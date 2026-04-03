@@ -629,13 +629,13 @@
         <span class="nav-name">Bipolar<span>Therapists</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+        <li><a href="directory.html" id="navBrowseLink">Find a Therapist</a></li>
+        <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
       </ul>
     </nav>
 
     <section class="hero">
-      <div class="hero-badge">🎗️ Specialized Directory</div>
+      <div class="hero-badge" id="heroBadge">🎗️ Specialized Directory</div>
       <h1 id="heroTitle">Find a Therapist Who Truly Understands Bipolar Disorder</h1>
       <p id="heroDescription">
         The only directory dedicated to bipolar spectrum specialists. Verified credentials, real
@@ -643,15 +643,15 @@
       </p>
       <form class="search-box" onsubmit="handleSearch(event)">
         <div class="search-field">
-          <label>Search</label>
+          <label id="searchLabel">Search</label>
           <input type="text" id="q" placeholder="Bipolar I, IPSRT, telehealth..." />
         </div>
         <div class="search-divider"></div>
         <div class="search-field">
-          <label>Location</label>
+          <label id="locationLabel">Location</label>
           <input type="text" id="location" placeholder="City or State" />
         </div>
-        <button type="submit" class="search-btn">Search →</button>
+        <button type="submit" class="search-btn" id="searchButton">Search →</button>
       </form>
       <div class="cms-banner" id="cmsBadge">
         CMS fallback mode: this preview is still using the seeded local data until Sanity is
@@ -677,161 +677,15 @@
       </div>
     </section>
 
-    <section style="background: var(--white)">
-      <div class="section-header">
-        <div class="eyebrow">Why BipolarTherapists</div>
-        <h2>Built for people navigating bipolar disorder</h2>
-        <p class="section-sub">
-          Generic directories don't cut it. You need someone who specializes in exactly what you're
-          facing.
-        </p>
-      </div>
-      <div class="why-grid">
-        <div class="why-card">
-          <div class="why-icon">🎯</div>
-          <div class="why-title">Bipolar-Specific Focus</div>
-          <div class="why-desc">
-            Every therapist here specializes in bipolar spectrum disorders. Filter by Bipolar I, II,
-            Cyclothymia, rapid cycling, and more.
-          </div>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">✅</div>
-          <div class="why-title">Verified Credentials</div>
-          <div class="why-desc">
-            See actual credentials, licenses, and years of experience. No vague listings — you know
-            exactly who you're reaching out to.
-          </div>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">💻</div>
-          <div class="why-title">Telehealth & In-Person</div>
-          <div class="why-desc">
-            Filter by your preferred format. Many specialists offer both options and are licensed in
-            multiple states for remote sessions.
-          </div>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">💳</div>
-          <div class="why-title">Insurance Filters</div>
-          <div class="why-desc">
-            See which providers accept your insurance. Many also offer sliding scale fees for those
-            without coverage.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="section-header">
-        <div class="eyebrow">For Patients</div>
-        <h2>Finding the right specialist takes 3 steps</h2>
-      </div>
-      <div class="steps">
-        <div class="step-card">
-          <div class="step-icon">🔍</div>
-          <div class="step-num">Step 1</div>
-          <div class="step-title">Search & Filter</div>
-          <div class="step-desc">
-            Narrow down by location, specialty focus, insurance, and whether they offer telehealth
-            or in-person sessions.
-          </div>
-        </div>
-        <div class="step-card">
-          <div class="step-icon">👤</div>
-          <div class="step-num">Step 2</div>
-          <div class="step-title">Review Profiles</div>
-          <div class="step-desc">
-            Read detailed bios, check credentials, see specialties, and understand their therapeutic
-            approach before reaching out.
-          </div>
-        </div>
-        <div class="step-card">
-          <div class="step-icon">📞</div>
-          <div class="step-num">Step 3</div>
-          <div class="step-title">Make Contact</div>
-          <div class="step-desc">
-            Reach out directly via phone, email, or their practice website. No middleman — direct
-            contact with your potential therapist.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section style="background: var(--white)">
-      <div class="section-header">
-        <div class="eyebrow">Featured Specialists</div>
-        <h2>Therapists accepting new patients</h2>
-        <p class="section-sub">
-          These specialists are currently available and actively taking new clients.
-        </p>
-      </div>
-      <div class="therapist-grid" id="featuredTherapists">
-        <p style="text-align: center; color: var(--muted); grid-column: 1/-1">
-          Loading specialists...
-        </p>
-      </div>
-      <div class="center-btn"><a href="directory.html" class="btn-p">View All Therapists →</a></div>
-    </section>
-
-    <section style="background: var(--white); padding-top: 0">
-      <div class="section-header" style="padding-top: 4rem">
-        <div class="eyebrow">Patient Stories</div>
-        <h2>Making the right connection changes everything</h2>
-      </div>
-      <div class="testimonials">
-        <div class="testimonial">
-          <div class="stars">★★★★★</div>
-          <div class="t-text">
-            "After years of seeing therapists who didn't really understand bipolar, finding someone
-            through this directory who specializes in Bipolar I has completely changed my treatment.
-            She knew exactly what IPSRT was."
-          </div>
-          <div class="t-author">Sarah M.</div>
-          <div class="t-role">Living with Bipolar I for 8 years</div>
-        </div>
-        <div class="testimonial">
-          <div class="stars">★★★★★</div>
-          <div class="t-text">
-            "The filters here are exactly what I needed. I found a psychiatrist who accepts my
-            insurance AND offers telehealth AND specializes in Bipolar II. Took me 10 minutes to
-            find the right person."
-          </div>
-          <div class="t-author">Marcus T.</div>
-          <div class="t-role">Recently diagnosed with Bipolar II</div>
-        </div>
-        <div class="testimonial">
-          <div class="stars">★★★★★</div>
-          <div class="t-text">
-            "As a caregiver for my spouse, the family therapy filter helped me find someone who
-            understood the relational dynamics of bipolar disorder from day one. Invaluable
-            resource."
-          </div>
-          <div class="t-author">Jennifer K.</div>
-          <div class="t-role">Partner of someone with Bipolar I</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta-sect">
-      <h2>Are you a bipolar disorder specialist?</h2>
-      <p>
-        Join our directory and connect with patients actively seeking your expertise. Be found by
-        the people who need you most.
-      </p>
-      <div class="cta-btns">
-        <a href="signup.html" class="btn-p">List Your Practice — $39/mo</a>
-        <a href="directory.html" class="btn-s">Browse the Directory</a>
-      </div>
-    </section>
+    <div id="pageSections"></div>
 
     <footer>
       <div class="f-logo">🧠 BipolarTherapists</div>
-      <p>Connecting patients with bipolar disorder specialists</p>
+      <p id="footerTagline">Connecting patients with bipolar disorder specialists</p>
       <ul>
         <li><a href="directory.html">Find a Therapist</a></li>
         <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="mailto:hello@chatroam.polsia.app">Contact</a></li>
+        <li><a href="mailto:hello@chatroam.polsia.app" id="footerContactLink">Contact</a></li>
       </ul>
       <div class="disc">
         BipolarTherapists is an information directory only. We do not provide medical advice,

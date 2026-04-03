@@ -27,6 +27,30 @@ export const siteSettingsType = defineType({
       title: "Primary CTA URL",
       type: "url",
     }),
+    defineField({
+      name: "browseLabel",
+      title: "Browse navigation label",
+      type: "string",
+      initialValue: "Find a Therapist",
+    }),
+    defineField({
+      name: "therapistCtaLabel",
+      title: "Therapist CTA label",
+      type: "string",
+      initialValue: "List Your Practice",
+    }),
+    defineField({
+      name: "therapistCtaUrl",
+      title: "Therapist CTA URL",
+      type: "string",
+      initialValue: "signup.html",
+    }),
+    defineField({
+      name: "footerTagline",
+      title: "Footer tagline",
+      type: "string",
+      initialValue: "Connecting patients with bipolar disorder specialists",
+    }),
   ],
   preview: {
     prepare: () => ({

@@ -178,17 +178,82 @@ export async function fetchHomePageContent() {
         .slice(0, 3),
       stats: getLocalStats(),
       homePage: null,
+      siteSettings: null,
     };
   }
 
   try {
-    const doc = await fetchFromSanity(
-      `*[_type == "homePage"][0]{
+    const result = await fetchFromSanity(`{
+      "homePage": *[_type == "homePage"][0]{
+        heroBadge,
         heroTitle,
         heroDescription,
+        searchLabel,
+        searchPlaceholder,
+        locationLabel,
+        locationPlaceholder,
+        searchButtonLabel,
+        sections[]{
+          _type,
+          sectionKey,
+          eyebrow,
+          title,
+          description,
+          cards[]{
+            icon,
+            stepLabel,
+            title,
+            description
+          },
+          buttonLabel,
+          buttonUrl,
+          therapists[]->${therapistProjection},
+          items[]{
+            stars,
+            quote,
+            author,
+            role
+          },
+          primaryLabel,
+          primaryUrl,
+          secondaryLabel,
+          secondaryUrl
+        },
+        featuredEyebrow,
+        featuredTitle,
+        featuredDescription,
+        featuredButtonLabel,
+        featuredButtonUrl,
+        whyEyebrow,
+        whyTitle,
+        whyDescription,
+        whyCards,
+        stepsEyebrow,
+        stepsTitle,
+        stepsCards,
+        testimonialsEyebrow,
+        testimonialsTitle,
+        testimonials,
+        ctaTitle,
+        ctaDescription,
+        ctaPrimaryLabel,
+        ctaPrimaryUrl,
+        ctaSecondaryLabel,
+        ctaSecondaryUrl,
         featuredTherapists[]->${therapistProjection}
-      }`,
-    );
+      },
+      "siteSettings": *[_type == "siteSettings"][0]{
+        siteTitle,
+        supportEmail,
+        browseLabel,
+        therapistCtaLabel,
+        therapistCtaUrl,
+        footerTagline
+      }
+    }`);
+
+    const doc = result && result.homePage ? result.homePage : null;
+    const siteSettings = result && result.siteSettings ? result.siteSettings : null;
 
     const featuredTherapists =
       doc && Array.isArray(doc.featuredTherapists) && doc.featuredTherapists.length
@@ -203,7 +268,8 @@ export async function fetchHomePageContent() {
       therapists: therapists,
       featuredTherapists: featuredTherapists,
       stats: deriveStats(therapists),
-      homePage: doc || null,
+      homePage: doc,
+      siteSettings: siteSettings,
     };
   } catch (error) {
     console.error("Failed to load homepage content from Sanity.", error);
@@ -213,6 +279,7 @@ export async function fetchHomePageContent() {
       featuredTherapists: [],
       stats: deriveStats(therapists),
       homePage: null,
+      siteSettings: null,
     };
   }
 }

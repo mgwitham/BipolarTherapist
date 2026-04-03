@@ -1,4 +1,19 @@
-const reviewApiBaseUrl = import.meta.env.VITE_REVIEW_API_URL || "http://localhost:8787";
+function getDefaultReviewApiBaseUrl() {
+  if (import.meta.env.VITE_REVIEW_API_URL) {
+    return import.meta.env.VITE_REVIEW_API_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8787";
+    }
+  }
+
+  return "/api/review";
+}
+
+const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
 
 function sanitizeApplication(application) {

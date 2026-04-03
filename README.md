@@ -76,6 +76,16 @@ Recommended upgrade:
 ```sh
 REVIEW_API_ADMIN_USERNAME=admin
 REVIEW_API_ADMIN_PASSWORD=choose-a-strong-admin-password
+REVIEW_API_SESSION_SECRET=choose-a-long-random-session-secret
+```
+
+Production-shaped review API settings:
+
+```sh
+REVIEW_API_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+REVIEW_API_SESSION_TTL_MS=43200000
+REVIEW_API_LOGIN_WINDOW_MS=900000
+REVIEW_API_LOGIN_MAX_ATTEMPTS=10
 ```
 
 By default the site will keep using the seeded local data until the Sanity environment variables
@@ -122,11 +132,15 @@ Current behavior:
 - the admin review queue requires login through the review API
 - publish/reject actions from `admin.html` are protected by a server-issued admin session
 - the old `REVIEW_API_ADMIN_KEY` path still works as a fallback during migration
+- admin sessions now expire automatically
+- login attempts are rate-limited per client
+- allowed browser origins are explicitly configurable
+- the same review API handler now works locally and on a hosted `/api/review/*` route
 
 Still to come:
 
-- stronger user-based authentication instead of a shared admin key
-- deployment of the review API to your production hosting
+- stronger user-based authentication instead of shared admin credentials
+- final deployment of the review API to your production hosting
 - payments and listing lifecycle automation
 
 ## Node Version
@@ -204,6 +218,11 @@ Typical static-host settings:
 
 - Build command: `npm run build`
 - Output directory: `dist`
+
+For Vercel-style hosting, this repo also includes:
+
+- `vercel.json` for the Vite build output
+- `api/review/[...path].mjs` so the review API can live beside the frontend
 
 ## GitHub Workflow
 
