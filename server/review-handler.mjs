@@ -13,6 +13,15 @@ const DEFAULT_LOGIN_MAX_ATTEMPTS = 10;
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
 const loginAttemptStore = new Map();
 
+function parseBooleanEnv(value, fallback) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return {};
@@ -90,14 +99,8 @@ export function getReviewApiConfig() {
     adminKey: process.env.REVIEW_API_ADMIN_KEY || rootEnv.REVIEW_API_ADMIN_KEY || "",
     adminUsername: process.env.REVIEW_API_ADMIN_USERNAME || rootEnv.REVIEW_API_ADMIN_USERNAME || "",
     adminPassword: process.env.REVIEW_API_ADMIN_PASSWORD || rootEnv.REVIEW_API_ADMIN_PASSWORD || "",
-    sessionSecret:
-      process.env.REVIEW_API_SESSION_SECRET ||
-      rootEnv.REVIEW_API_SESSION_SECRET ||
-      process.env.REVIEW_API_ADMIN_PASSWORD ||
-      rootEnv.REVIEW_API_ADMIN_PASSWORD ||
-      process.env.REVIEW_API_ADMIN_KEY ||
-      rootEnv.REVIEW_API_ADMIN_KEY ||
-      "",
+    explicitSessionSecret:
+      process.env.REVIEW_API_SESSION_SECRET || rootEnv.REVIEW_API_SESSION_SECRET || "",
     port: Number(process.env.REVIEW_API_PORT || rootEnv.REVIEW_API_PORT || DEFAULT_PORT),
     allowedOrigins: allowedOrigins,
     sessionTtlMs: Number(
@@ -115,10 +118,17 @@ export function getReviewApiConfig() {
         rootEnv.REVIEW_API_LOGIN_MAX_ATTEMPTS ||
         DEFAULT_LOGIN_MAX_ATTEMPTS,
     ),
+    allowLegacyKey: parseBooleanEnv(
+      process.env.REVIEW_API_ALLOW_LEGACY_KEY || rootEnv.REVIEW_API_ALLOW_LEGACY_KEY,
+      false,
+    ),
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
   };
+
+  config.sessionSecret =
+    config.explicitSessionSecret || config.adminPassword || config.adminKey || "";
 
   if (!config.projectId || !config.dataset || !config.token) {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
@@ -134,11 +144,33 @@ export function getReviewApiConfig() {
     throw new Error("Missing REVIEW_API_SESSION_SECRET or admin password/key to sign sessions.");
   }
 
+  if (process.env.NODE_ENV === "production" && !config.explicitSessionSecret) {
+    throw new Error("Missing REVIEW_API_SESSION_SECRET in production.");
+  }
+
   return config;
 }
 
 function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
+}
+
+function getSecurityWarnings(config) {
+  const warnings = [];
+
+  if (!config.explicitSessionSecret) {
+    warnings.push("Session secret is falling back to another admin secret.");
+  }
+
+  if (config.allowLegacyKey && config.adminKey) {
+    warnings.push("Legacy X-Admin-Key auth is enabled.");
+  }
+
+  if (config.adminPassword === "Password" || config.adminKey === "Password") {
+    warnings.push('Admin auth still uses the placeholder value "Password".');
+  }
+
+  return warnings;
 }
 
 function getAllowedOrigin(origin, config) {
@@ -237,7 +269,7 @@ function isAuthorized(request, config) {
     return true;
   }
 
-  if (!config.adminKey) {
+  if (!config.allowLegacyKey || !config.adminKey) {
     return false;
   }
 
@@ -616,6 +648,8 @@ export function createReviewApiHandler(configOverride) {
             ok: true,
             authMode: config.adminUsername && config.adminPassword ? "password" : "legacy-key",
             sessionTtlMs: config.sessionTtlMs,
+            legacyKeyEnabled: config.allowLegacyKey && Boolean(config.adminKey),
+            securityWarnings: getSecurityWarnings(config),
           },
           origin,
           config,
@@ -639,7 +673,7 @@ export function createReviewApiHandler(configOverride) {
         const username = String(body.username || "").trim();
         const password = String(body.password || "");
         const usingUserPass = config.adminUsername && config.adminPassword;
-        const usingLegacyKey = config.adminKey;
+        const usingLegacyKey = config.allowLegacyKey && config.adminKey;
 
         const valid =
           (usingUserPass &&

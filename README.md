@@ -77,6 +77,7 @@ Recommended upgrade:
 REVIEW_API_ADMIN_USERNAME=admin
 REVIEW_API_ADMIN_PASSWORD=choose-a-strong-admin-password
 REVIEW_API_SESSION_SECRET=choose-a-long-random-session-secret
+REVIEW_API_ALLOW_LEGACY_KEY=false
 ```
 
 Production-shaped review API settings:
@@ -137,6 +138,7 @@ Current behavior:
 - allowed browser origins are explicitly configurable
 - the same review API handler now works locally and on a hosted `/api/review/*` route
 - email notifications can be enabled for new submissions and approval/rejection updates
+- legacy `X-Admin-Key` auth is now disabled by default and must be explicitly re-enabled
 
 Still to come:
 
@@ -163,6 +165,22 @@ Behavior when configured:
 - rejected application -> applicant notification email
 
 If those variables are missing, the signup/review flow still works normally and email sending is skipped.
+
+## Security Notes
+
+For a stronger local or hosted setup, make these changes in your real `.env`:
+
+```sh
+REVIEW_API_ADMIN_PASSWORD=replace-the-placeholder-password
+REVIEW_API_SESSION_SECRET=replace-with-a-long-random-secret
+REVIEW_API_ALLOW_LEGACY_KEY=false
+```
+
+Recommended next cleanup:
+
+- rotate `SANITY_API_TOKEN`
+- stop using the placeholder value `Password`
+- remove `REVIEW_API_ADMIN_KEY` entirely once you no longer need the fallback
 
 ## Node Version
 
