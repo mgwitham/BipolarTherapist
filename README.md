@@ -67,6 +67,35 @@ Current scope:
 - homepage featured therapists can come from Sanity
 - Sanity Studio manages therapist, homepage, site settings, and therapist application documents
 
+## CMS Import
+
+You can bulk import therapist listings into Sanity from CSV instead of hand-entering them.
+
+1. Copy the template:
+
+```sh
+cp data/import/therapists-template.csv data/import/therapists.csv
+```
+
+2. Fill in `data/import/therapists.csv`.
+
+Array-style fields use `|` separators:
+
+- `specialties`
+- `insuranceAccepted`
+- `languages`
+
+3. Create a Sanity API token with write access in Sanity Manage.
+
+4. Run the importer:
+
+```sh
+SANITY_API_TOKEN=your_token_here npm run cms:import:therapists
+```
+
+The importer will upsert therapists by slug, so rerunning it updates existing listings instead of
+duplicating them.
+
 Still to come:
 
 - a secure public submission backend that writes applications directly into Sanity

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "cms:dev": "npm --prefix studio run dev",
     "cms:build": "npm --prefix studio run build",
+    "cms:import:therapists": "node scripts/import-therapists.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
