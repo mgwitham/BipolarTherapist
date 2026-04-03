@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Review — BipolarTherapists</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{--teal:#1a7a8f;--teal-light:#2a9cb3;--teal-dark:#155f70;--teal-faint:#e8f5f8;--navy:#1d3a4a;--slate:#4a6572;--muted:#6b8290;--border:#d4e4e9;--bg:#f7fbfc;--white:#ffffff;--green:#3aaa7a;--red:#c2410c}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--navy)}
+    nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
+    .nav-logo{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:inherit}
+    .nav-icon{width:34px;height:34px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+    .nav-links{display:flex;gap:1rem;list-style:none}
+    .nav-links a{text-decoration:none;color:var(--slate);font-size:.9rem}
+    .wrap{max-width:1100px;margin:0 auto;padding:1.5rem}
+    .hero{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
+    h1{font-family:'Lora',serif;margin:0 0 .35rem}
+    .subtle{color:var(--muted);font-size:.9rem}
+    .btn-primary,.btn-secondary{border:none;border-radius:10px;padding:.7rem 1rem;font:inherit;cursor:pointer}
+    .btn-primary{background:var(--teal);color:#fff}
+    .btn-secondary{background:var(--white);border:1px solid var(--border);color:var(--slate)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .stat-card,.panel,.application-card,.mini-card{background:var(--white);border:1px solid var(--border);border-radius:16px}
+    .stat-card{padding:1rem 1.1rem}
+    .stat-value{font-size:1.8rem;font-weight:800;color:var(--navy)}
+    .stat-label{font-size:.8rem;color:var(--muted);margin-top:.25rem}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:1.25rem}
+    .panel{padding:1.2rem}
+    .panel h2{margin:0 0 .9rem;font-size:1rem}
+    .mini-card{padding:.9rem 1rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+    .mini-card a{color:var(--teal);text-decoration:none;font-weight:600;font-size:.85rem}
+    .application-card{padding:1.2rem;margin-bottom:1rem}
+    .application-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem}
+    .application-head h3{margin:0}
+    .application-bio{color:var(--slate);line-height:1.7}
+    .tag-row{display:flex;flex-wrap:wrap;gap:.4rem;margin:.85rem 0}
+    .tag{font-size:.72rem;font-weight:600;padding:.25rem .6rem;border-radius:999px;background:var(--teal-faint);color:var(--teal-dark)}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem;color:var(--slate);margin-bottom:1rem}
+    .action-row{display:flex;gap:.75rem;align-items:center}
+    .status{display:inline-flex;padding:.35rem .7rem;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:capitalize}
+    .status.published{background:#e8f5ee;color:#1f7a52}
+    .status.rejected{background:#fff7ed;color:var(--red)}
+    .status.pending{background:var(--teal-faint);color:var(--teal-dark)}
+    .empty{padding:2rem;text-align:center;color:var(--muted);background:var(--white);border:1px dashed var(--border);border-radius:16px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}.hero{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-logo">
+      <div class="nav-icon">🧠</div>
+      <strong>BipolarTherapists</strong>
+    </a>
+    <ul class="nav-links">
+      <li><a href="directory.html">Directory</a></li>
+      <li><a href="signup.html">Signup</a></li>
+      <li><a href="admin.html" style="color:var(--teal);font-weight:700">Admin</a></li>
+    </ul>
+  </nav>
+
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Admin Review</h1>
+        <p class="subtle">Manage locally submitted therapist applications and publish them into the public directory.</p>
+      </div>
+      <button class="btn-secondary" id="resetDemo">Reset Demo Data</button>
+    </div>
+
+    <div class="stats" id="adminStats"></div>
+
+    <div class="grid">
+      <aside class="panel">
+        <h2>Published Listings</h2>
+        <div id="publishedListings"></div>
+      </aside>
+
+      <main>
+        <div class="panel" style="margin-bottom:1rem">
+          <h2>Applications</h2>
+          <p class="subtle" style="margin-top:0">Applications saved from the public signup page appear here immediately.</p>
+        </div>
+        <div id="applicationsList"></div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="assets/admin.js"></script>
+</body>
+</html>
