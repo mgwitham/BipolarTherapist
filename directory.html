@@ -24,15 +24,17 @@
       </a>
       <ul class="nav-links">
         <li>
-          <a href="directory.html" style="color: var(--teal); font-weight: 600">Find a Therapist</a>
+          <a href="directory.html" id="navBrowseLink" style="color: var(--teal); font-weight: 600"
+            >Find a Therapist</a
+          >
         </li>
-        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+        <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
       </ul>
     </nav>
 
     <div class="dir-header">
-      <h1>Find a Bipolar Disorder Specialist</h1>
-      <p>
+      <h1 id="directoryHeroTitle">Find a Bipolar Disorder Specialist</h1>
+      <p id="directoryHeroDescription">
         Browse verified therapists and psychiatrists who specialize in bipolar spectrum disorders
       </p>
     </div>
@@ -44,31 +46,31 @@
         </button>
         <div class="sidebar" id="sidebar">
           <div class="filter-panel">
-            <h3>🔍 Search</h3>
+            <h3>🔍 <span id="searchPanelTitle">Search</span></h3>
             <div class="filter-group">
-              <label for="q">Keywords</label>
+              <label for="q" id="searchLabelText">Keywords</label>
               <input type="text" id="q" placeholder="Name, specialty, approach..." />
             </div>
           </div>
 
           <div class="filter-panel">
-            <h3>📍 Location</h3>
+            <h3>📍 <span id="locationPanelTitle">Location</span></h3>
             <div class="filter-group">
-              <label for="state">State</label>
+              <label for="state" id="stateLabelText">State</label>
               <select id="state">
                 <option value="">All States</option>
               </select>
             </div>
             <div class="filter-group">
-              <label for="city">City</label>
+              <label for="city" id="cityLabelText">City</label>
               <input type="text" id="city" placeholder="e.g. Chicago" />
             </div>
           </div>
 
           <div class="filter-panel">
-            <h3>🎯 Specialty</h3>
+            <h3>🎯 <span id="specialtyPanelTitle">Specialty</span></h3>
             <div class="filter-group">
-              <label for="specialty">Focus Area</label>
+              <label for="specialty" id="specialtyLabelText">Focus Area</label>
               <select id="specialty">
                 <option value="">All Specialties</option>
               </select>
@@ -76,9 +78,9 @@
           </div>
 
           <div class="filter-panel">
-            <h3>💳 Insurance</h3>
+            <h3>💳 <span id="insurancePanelTitle">Insurance</span></h3>
             <div class="filter-group">
-              <label for="insurance">Accepted Insurance</label>
+              <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
               <select id="insurance">
                 <option value="">All Insurance</option>
               </select>
@@ -86,22 +88,29 @@
           </div>
 
           <div class="filter-panel">
-            <h3>⚙️ Options</h3>
+            <h3>⚙️ <span id="optionsPanelTitle">Options</span></h3>
             <div class="check-group">
               <label class="check-label"
-                ><input type="checkbox" id="telehealth" /> Telehealth Available</label
+                ><input type="checkbox" id="telehealth" />
+                <span id="telehealthLabelText">Telehealth Available</span></label
               >
               <label class="check-label"
-                ><input type="checkbox" id="in_person" /> In-Person Available</label
+                ><input type="checkbox" id="in_person" />
+                <span id="inPersonLabelText">In-Person Available</span></label
               >
               <label class="check-label"
-                ><input type="checkbox" id="accepting" /> Accepting New Patients</label
+                ><input type="checkbox" id="accepting" />
+                <span id="acceptingLabelText">Accepting New Patients</span></label
               >
             </div>
           </div>
 
-          <button class="btn-filter" onclick="applyFilters()">Apply Filters</button>
-          <button class="btn-reset" onclick="resetFilters()">Reset All</button>
+          <button class="btn-filter" onclick="applyFilters()" id="applyFiltersButton">
+            Apply Filters
+          </button>
+          <button class="btn-reset" onclick="resetFilters()" id="resetFiltersButton">
+            Reset All
+          </button>
         </div>
       </div>
 
@@ -123,7 +132,7 @@
       <p style="margin-bottom: 0.5rem">
         <strong style="color: white">🧠 BipolarTherapists</strong>
       </p>
-      <p>Need to be listed? <a href="signup.html">Join as a therapist →</a></p>
+      <p id="footerTagline">Need to be listed? <a href="signup.html">Join as a therapist →</a></p>
     </footer>
 
     <script type="module" src="assets/directory.js"></script>

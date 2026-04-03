@@ -1,7 +1,10 @@
-import { fetchPublicTherapists } from "./cms.js";
+import { fetchDirectoryPageContent } from "./cms.js";
 
 (async function () {
-  var therapists = await fetchPublicTherapists();
+  var content = await fetchDirectoryPageContent();
+  var therapists = content.therapists || [];
+  var directoryPage = content.directoryPage || null;
+  var siteSettings = content.siteSettings || null;
   var currentPage = 1;
   var pageSize = 12;
   var filters = {
@@ -15,11 +18,98 @@ import { fetchPublicTherapists } from "./cms.js";
     accepting: false,
   };
 
+  function applyDirectoryCopy() {
+    if (!directoryPage) {
+      return;
+    }
+
+    var mappings = [
+      ["directoryHeroTitle", "heroTitle"],
+      ["directoryHeroDescription", "heroDescription"],
+      ["searchPanelTitle", "searchPanelTitle"],
+      ["searchLabelText", "searchLabel"],
+      ["locationPanelTitle", "locationPanelTitle"],
+      ["stateLabelText", "stateLabel"],
+      ["cityLabelText", "cityLabel"],
+      ["specialtyPanelTitle", "specialtyPanelTitle"],
+      ["specialtyLabelText", "specialtyLabel"],
+      ["insurancePanelTitle", "insurancePanelTitle"],
+      ["insuranceLabelText", "insuranceLabel"],
+      ["optionsPanelTitle", "optionsPanelTitle"],
+      ["telehealthLabelText", "telehealthLabel"],
+      ["inPersonLabelText", "inPersonLabel"],
+      ["acceptingLabelText", "acceptingLabel"],
+      ["applyFiltersButton", "applyButtonLabel"],
+      ["resetFiltersButton", "resetButtonLabel"],
+    ];
+
+    mappings.forEach(function (entry) {
+      var element = document.getElementById(entry[0]);
+      var value = directoryPage[entry[1]];
+      if (element && value) {
+        element.textContent = value;
+      }
+    });
+
+    var keywordInput = document.getElementById("q");
+    var cityInput = document.getElementById("city");
+    if (keywordInput && directoryPage.searchPlaceholder) {
+      keywordInput.placeholder = directoryPage.searchPlaceholder;
+    }
+    if (cityInput && directoryPage.cityPlaceholder) {
+      cityInput.placeholder = directoryPage.cityPlaceholder;
+    }
+
+    var stateSelect = document.getElementById("state");
+    var specialtySelect = document.getElementById("specialty");
+    var insuranceSelect = document.getElementById("insurance");
+
+    if (stateSelect && directoryPage.stateAllLabel) {
+      stateSelect.querySelector("option").textContent = directoryPage.stateAllLabel;
+    }
+    if (specialtySelect && directoryPage.specialtyAllLabel) {
+      specialtySelect.querySelector("option").textContent = directoryPage.specialtyAllLabel;
+    }
+    if (insuranceSelect && directoryPage.insuranceAllLabel) {
+      insuranceSelect.querySelector("option").textContent = directoryPage.insuranceAllLabel;
+    }
+  }
+
+  function applySiteSettings() {
+    if (!siteSettings) {
+      return;
+    }
+
+    var navBrowseLink = document.getElementById("navBrowseLink");
+    var navCtaLink = document.getElementById("navCtaLink");
+    var footerTagline = document.getElementById("footerTagline");
+
+    if (navBrowseLink && siteSettings.browseLabel) {
+      navBrowseLink.textContent = siteSettings.browseLabel;
+    }
+
+    if (navCtaLink) {
+      if (siteSettings.therapistCtaLabel) {
+        navCtaLink.textContent = siteSettings.therapistCtaLabel;
+      }
+      if (siteSettings.therapistCtaUrl) {
+        navCtaLink.href = siteSettings.therapistCtaUrl;
+      }
+    }
+
+    if (footerTagline && siteSettings.footerTagline) {
+      footerTagline.textContent = siteSettings.footerTagline;
+    }
+  }
+
   function uniqueCounts(field, nested) {
     var counts = new Map();
     therapists.forEach(function (therapist) {
-      var values = nested ? therapist[field] : [therapist[field]];
+      var values = nested ? therapist[field] || [] : [therapist[field]];
       values.forEach(function (value) {
+        if (!value) {
+          return;
+        }
         counts.set(value, (counts.get(value) || 0) + 1);
       });
     });
@@ -32,20 +122,52 @@ import { fetchPublicTherapists } from "./cms.js";
       });
   }
 
-  function populateSelect(id, items, labelKey) {
+  function getConfiguredItems(field, nested) {
+    var configured =
+      directoryPage && Array.isArray(directoryPage[field]) ? directoryPage[field] : [];
+    if (!configured.length) {
+      return uniqueCounts(
+        field === "curatedStates"
+          ? "state"
+          : field === "curatedSpecialties"
+            ? "specialties"
+            : "insurance_accepted",
+        nested,
+      );
+    }
+
+    return configured.filter(Boolean).map(function (value) {
+      var count = therapists.filter(function (therapist) {
+        if (field === "curatedStates") {
+          return therapist.state === value;
+        }
+        if (field === "curatedSpecialties") {
+          return (therapist.specialties || []).includes(value);
+        }
+        return (therapist.insurance_accepted || []).includes(value);
+      }).length;
+
+      return {
+        value: value,
+        count: count,
+      };
+    });
+  }
+
+  function populateSelect(id, items) {
     var select = document.getElementById(id);
     items.forEach(function (item) {
       var option = document.createElement("option");
       option.value = item.value;
-      option.textContent = labelKey ? item.value + " (" + item.count + ")" : item.value;
+      option.textContent = item.value + (item.count ? " (" + item.count + ")" : "");
       select.appendChild(option);
     });
   }
 
   function initializeFilters() {
-    populateSelect("state", uniqueCounts("state"), true);
-    populateSelect("specialty", uniqueCounts("specialties", true), false);
-    populateSelect("insurance", uniqueCounts("insurance_accepted", true), false);
+    populateSelect("state", getConfiguredItems("curatedStates", false));
+    populateSelect("specialty", getConfiguredItems("curatedSpecialties", true));
+    populateSelect("insurance", getConfiguredItems("curatedInsurance", true));
 
     var params = new URLSearchParams(window.location.search);
     ["q", "state", "city", "specialty", "insurance"].forEach(function (key) {
@@ -215,18 +337,24 @@ import { fetchPublicTherapists } from "./cms.js";
     var count = document.getElementById("resultsCount");
     var activeFilterCount = Object.values(filters).filter(Boolean).length;
     var filterCount = document.getElementById("filterCount");
+    var resultsSuffix = (directoryPage && directoryPage.resultsSuffix) || "specialists found";
+    var singularSuffix = resultsSuffix === "specialists found" ? "specialist found" : resultsSuffix;
 
     count.innerHTML =
       "<strong>" +
       results.length +
-      "</strong> specialist" +
-      (results.length === 1 ? "" : "s") +
-      " found";
+      "</strong> " +
+      (results.length === 1 ? singularSuffix : resultsSuffix);
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
 
     if (!pageItems.length) {
       grid.innerHTML =
-        '<div class="empty-state"><h3>No therapists found</h3><p>Try adjusting your filters or search terms.</p></div>';
+        '<div class="empty-state"><h3>' +
+        ((directoryPage && directoryPage.emptyStateTitle) || "No therapists found") +
+        "</h3><p>" +
+        ((directoryPage && directoryPage.emptyStateDescription) ||
+          "Try adjusting your filters or search terms.") +
+        "</p></div>";
       renderPagination(0);
       updateUrl();
       return;
@@ -283,6 +411,8 @@ import { fetchPublicTherapists } from "./cms.js";
     }
   });
 
+  applySiteSettings();
+  applyDirectoryCopy();
   initializeFilters();
   render();
 })();

@@ -5,6 +5,10 @@ export function deskStructure(S: any) {
     .title("Content")
     .items([
       S.listItem()
+        .title("Directory Page")
+        .icon(DocumentIcon)
+        .child(S.document().schemaType("directoryPage").documentId("directoryPage")),
+      S.listItem()
         .title("Homepage")
         .icon(HomeIcon)
         .child(S.document().schemaType("homePage").documentId("homePage")),

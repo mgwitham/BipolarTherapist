@@ -283,3 +283,74 @@ export async function fetchHomePageContent() {
     };
   }
 }
+
+export async function fetchDirectoryPageContent() {
+  const therapists = await fetchPublicTherapists();
+
+  if (!cmsEnabled) {
+    setCmsState("seed", null);
+    return {
+      therapists: therapists,
+      directoryPage: null,
+      siteSettings: null,
+    };
+  }
+
+  try {
+    const result = await fetchFromSanity(`{
+      "directoryPage": *[_type == "directoryPage"][0]{
+        heroTitle,
+        heroDescription,
+        searchPanelTitle,
+        searchLabel,
+        searchPlaceholder,
+        locationPanelTitle,
+        stateLabel,
+        stateAllLabel,
+        cityLabel,
+        cityPlaceholder,
+        specialtyPanelTitle,
+        specialtyLabel,
+        specialtyAllLabel,
+        insurancePanelTitle,
+        insuranceLabel,
+        insuranceAllLabel,
+        optionsPanelTitle,
+        telehealthLabel,
+        inPersonLabel,
+        acceptingLabel,
+        applyButtonLabel,
+        resetButtonLabel,
+        resultsSuffix,
+        emptyStateTitle,
+        emptyStateDescription,
+        curatedStates,
+        curatedSpecialties,
+        curatedInsurance
+      },
+      "siteSettings": *[_type == "siteSettings"][0]{
+        siteTitle,
+        supportEmail,
+        browseLabel,
+        therapistCtaLabel,
+        therapistCtaUrl,
+        footerTagline
+      }
+    }`);
+
+    setCmsState("sanity", null);
+    return {
+      therapists: therapists,
+      directoryPage: result && result.directoryPage ? result.directoryPage : null,
+      siteSettings: result && result.siteSettings ? result.siteSettings : null,
+    };
+  } catch (error) {
+    console.error("Failed to load directory page content from Sanity.", error);
+    setCmsState("error", error);
+    return {
+      therapists: therapists,
+      directoryPage: null,
+      siteSettings: null,
+    };
+  }
+}
