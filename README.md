@@ -71,6 +71,13 @@ SANITY_API_TOKEN=your_write_enabled_sanity_token
 REVIEW_API_ADMIN_KEY=choose-a-strong-admin-password
 ```
 
+Recommended upgrade:
+
+```sh
+REVIEW_API_ADMIN_USERNAME=admin
+REVIEW_API_ADMIN_PASSWORD=choose-a-strong-admin-password
+```
+
 By default the site will keep using the seeded local data until the Sanity environment variables
 are configured. Once they are set, the public pages will read therapist content from Sanity.
 
@@ -112,8 +119,9 @@ duplicating them.
 Current behavior:
 
 - the public signup form can create Sanity therapist application documents through the local review API
-- the admin review queue requires the `REVIEW_API_ADMIN_KEY`
-- publish/reject actions from `admin.html` are protected by that admin key
+- the admin review queue requires login through the review API
+- publish/reject actions from `admin.html` are protected by a server-issued admin session
+- the old `REVIEW_API_ADMIN_KEY` path still works as a fallback during migration
 
 Still to come:
 

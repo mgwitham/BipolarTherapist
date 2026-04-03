@@ -7,6 +7,7 @@ import { createClient } from "@sanity/client";
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const DEFAULT_PORT = 8787;
+const sessionStore = new Map();
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -54,6 +55,8 @@ function getConfig() {
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
     token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || "",
     adminKey: process.env.REVIEW_API_ADMIN_KEY || rootEnv.REVIEW_API_ADMIN_KEY || "",
+    adminUsername: process.env.REVIEW_API_ADMIN_USERNAME || rootEnv.REVIEW_API_ADMIN_USERNAME || "",
+    adminPassword: process.env.REVIEW_API_ADMIN_PASSWORD || rootEnv.REVIEW_API_ADMIN_PASSWORD || "",
     port: Number(process.env.REVIEW_API_PORT || rootEnv.REVIEW_API_PORT || DEFAULT_PORT),
   };
 }
@@ -75,19 +78,56 @@ function sendJson(response, statusCode, payload, origin) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": allowOrigin(origin),
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   });
   response.end(JSON.stringify(payload));
 }
 
-function isAuthorized(request, adminKey) {
-  if (!adminKey) {
+function parseAuthorizationHeader(request) {
+  const header = request.headers.authorization;
+  if (!header || typeof header !== "string") {
+    return "";
+  }
+
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : "";
+}
+
+function createSessionToken() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
+function createSession() {
+  const token = createSessionToken();
+  sessionStore.set(token, {
+    createdAt: Date.now(),
+  });
+  return token;
+}
+
+function deleteSession(token) {
+  if (!token) {
+    return;
+  }
+
+  sessionStore.delete(token);
+}
+
+function isAuthorized(request, config) {
+  const sessionToken = parseAuthorizationHeader(request);
+  if (sessionToken && sessionStore.has(sessionToken)) {
+    return true;
+  }
+
+  if (!config.adminKey) {
     return false;
   }
 
   const requestKey = request.headers["x-admin-key"];
-  return typeof requestKey === "string" && requestKey === adminKey;
+  return typeof requestKey === "string" && requestKey === config.adminKey;
 }
 
 function parseBody(request) {
@@ -288,8 +328,10 @@ async function makeServer() {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
   }
 
-  if (!config.adminKey) {
-    throw new Error("Missing REVIEW_API_ADMIN_KEY for review API.");
+  if (!config.adminKey && !(config.adminUsername && config.adminPassword)) {
+    throw new Error(
+      "Missing admin auth config for review API. Set REVIEW_API_ADMIN_KEY or REVIEW_API_ADMIN_USERNAME/REVIEW_API_ADMIN_PASSWORD.",
+    );
   }
 
   const client = createClient({
@@ -316,8 +358,46 @@ async function makeServer() {
         return;
       }
 
+      if (request.method === "POST" && url.pathname === "/auth/login") {
+        const body = await parseBody(request);
+        const username = String(body.username || "").trim();
+        const password = String(body.password || "");
+        const usingUserPass = config.adminUsername && config.adminPassword;
+        const usingLegacyKey = config.adminKey;
+
+        const valid =
+          (usingUserPass &&
+            username === config.adminUsername &&
+            password === config.adminPassword) ||
+          (usingLegacyKey && password === config.adminKey);
+
+        if (!valid) {
+          sendJson(response, 401, { error: "Invalid admin credentials." }, origin);
+          return;
+        }
+
+        const sessionToken = createSession();
+        sendJson(
+          response,
+          200,
+          {
+            ok: true,
+            sessionToken: sessionToken,
+            authMode: usingUserPass ? "password" : "legacy-key",
+          },
+          origin,
+        );
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/auth/logout") {
+        deleteSession(parseAuthorizationHeader(request));
+        sendJson(response, 200, { ok: true }, origin);
+        return;
+      }
+
       if (request.method === "GET" && url.pathname === "/applications") {
-        if (!isAuthorized(request, config.adminKey)) {
+        if (!isAuthorized(request, config)) {
           sendJson(response, 401, { error: "Unauthorized." }, origin);
           return;
         }
@@ -345,7 +425,7 @@ async function makeServer() {
 
       const approveMatch = url.pathname.match(/^\/applications\/([^/]+)\/approve$/);
       if (request.method === "POST" && approveMatch) {
-        if (!isAuthorized(request, config.adminKey)) {
+        if (!isAuthorized(request, config)) {
           sendJson(response, 401, { error: "Unauthorized." }, origin);
           return;
         }
@@ -383,7 +463,7 @@ async function makeServer() {
 
       const rejectMatch = url.pathname.match(/^\/applications\/([^/]+)\/reject$/);
       if (request.method === "POST" && rejectMatch) {
-        if (!isAuthorized(request, config.adminKey)) {
+        if (!isAuthorized(request, config)) {
           sendJson(response, 401, { error: "Unauthorized." }, origin);
           return;
         }

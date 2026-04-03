@@ -10,11 +10,12 @@ import { fetchPublicTherapists } from "./cms.js";
 import {
   approveTherapistApplication,
   checkReviewApiHealth,
-  clearAdminKey,
+  getAdminSessionToken,
   fetchTherapistApplications,
-  getAdminKey,
   rejectTherapistApplication as rejectTherapistApplicationRemote,
-  setAdminKey,
+  setAdminSessionToken,
+  signInAdmin,
+  signOutAdmin,
 } from "./review-api.js";
 
 let dataMode = "local";
@@ -232,7 +233,7 @@ async function loadData() {
     reviewApiAvailable = false;
   }
 
-  if (reviewApiAvailable && !getAdminKey()) {
+  if (reviewApiAvailable && !getAdminSessionToken()) {
     dataMode = "sanity";
     remoteApplications = [];
     publishedTherapists = [];
@@ -252,7 +253,7 @@ async function loadData() {
     dataMode = "sanity";
     authRequired = false;
   } catch (_error) {
-    if (reviewApiAvailable || getAdminKey()) {
+    if (reviewApiAvailable || getAdminSessionToken()) {
       dataMode = "sanity";
       remoteApplications = [];
       publishedTherapists = [];
@@ -277,30 +278,42 @@ document.getElementById("resetDemo").addEventListener("click", function () {
 document.getElementById("adminAuthForm").addEventListener("submit", async function (event) {
   event.preventDefault();
   const field = document.getElementById("adminKey");
+  const usernameField = document.getElementById("adminUsername");
   const error = document.getElementById("authError");
   const value = field.value.trim();
+  const username = usernameField.value.trim();
 
   if (!value) {
-    error.textContent = "Enter your admin key.";
+    error.textContent = "Enter your admin password.";
     error.style.display = "block";
     return;
   }
 
-  setAdminKey(value);
-  authRequired = false;
-  error.style.display = "none";
-  await loadData();
+  try {
+    const result = await signInAdmin({
+      username: username,
+      password: value,
+    });
+    setAdminSessionToken(result.sessionToken);
+    authRequired = false;
+    error.style.display = "none";
+    await loadData();
 
-  if (authRequired) {
-    error.textContent = "That admin key was not accepted.";
+    if (authRequired) {
+      error.textContent = "Those admin credentials were not accepted.";
+      error.style.display = "block";
+    } else {
+      field.value = "";
+    }
+  } catch (_error) {
+    authRequired = true;
+    error.textContent = "Those admin credentials were not accepted.";
     error.style.display = "block";
-  } else {
-    field.value = "";
   }
 });
 
-document.getElementById("signOutAdmin").addEventListener("click", function () {
-  clearAdminKey();
+document.getElementById("signOutAdmin").addEventListener("click", async function () {
+  await signOutAdmin();
   authRequired = false;
   dataMode = "local";
   remoteApplications = [];
@@ -309,7 +322,7 @@ document.getElementById("signOutAdmin").addEventListener("click", function () {
   renderAll();
 });
 
-if (getAdminKey()) {
+if (getAdminSessionToken()) {
   authRequired = false;
 }
 

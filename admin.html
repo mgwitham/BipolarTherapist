@@ -326,14 +326,13 @@
 
       <div class="auth-gate" id="adminAuthGate" style="display: none">
         <h2>Admin Sign-In</h2>
-        <p class="subtle">
-          Enter your review API admin key to unlock the submission queue and publishing controls.
-        </p>
+        <p class="subtle">Sign in to unlock the submission queue and publishing controls.</p>
         <form class="auth-form" id="adminAuthForm">
-          <input id="adminKey" type="password" placeholder="Review API admin key" />
-          <button class="btn-primary btn-inline" type="submit">Unlock Admin</button>
+          <input id="adminUsername" type="text" placeholder="Admin username (optional for now)" />
+          <input id="adminKey" type="password" placeholder="Admin password" />
+          <button class="btn-primary btn-inline" type="submit">Sign In</button>
         </form>
-        <div class="error-note" id="authError">That admin key was not accepted.</div>
+        <div class="error-note" id="authError">Those admin credentials were not accepted.</div>
       </div>
 
       <div id="adminApp">

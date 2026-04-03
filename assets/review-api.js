@@ -39,7 +39,7 @@ function canUseSessionStorage() {
   }
 }
 
-export function getAdminKey() {
+export function getAdminSessionToken() {
   if (!canUseSessionStorage()) {
     return "";
   }
@@ -47,20 +47,50 @@ export function getAdminKey() {
   return window.sessionStorage.getItem(adminSessionKey) || "";
 }
 
-export function setAdminKey(adminKey) {
+export function setAdminSessionToken(adminSessionToken) {
   if (!canUseSessionStorage()) {
     return;
   }
 
-  window.sessionStorage.setItem(adminSessionKey, adminKey);
+  window.sessionStorage.setItem(adminSessionKey, adminSessionToken);
 }
 
-export function clearAdminKey() {
+export function clearAdminSessionToken() {
   if (!canUseSessionStorage()) {
     return;
   }
 
   window.sessionStorage.removeItem(adminSessionKey);
+}
+
+function getAdminHeaders() {
+  const sessionToken = getAdminSessionToken();
+  return sessionToken
+    ? {
+        Authorization: `Bearer ${sessionToken}`,
+      }
+    : {};
+}
+
+export async function signInAdmin(credentials) {
+  return request("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+}
+
+export async function signOutAdmin() {
+  const token = getAdminSessionToken();
+  try {
+    if (token) {
+      await request("/auth/logout", {
+        method: "POST",
+        headers: getAdminHeaders(),
+      });
+    }
+  } finally {
+    clearAdminSessionToken();
+  }
 }
 
 export async function submitTherapistApplication(application) {
@@ -75,9 +105,7 @@ export async function submitTherapistApplication(application) {
 export async function fetchTherapistApplications() {
   const payload = await request("/applications", {
     method: "GET",
-    headers: {
-      "X-Admin-Key": getAdminKey(),
-    },
+    headers: getAdminHeaders(),
   });
 
   return payload.map(sanitizeApplication);
@@ -86,18 +114,14 @@ export async function fetchTherapistApplications() {
 export async function approveTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/approve`, {
     method: "POST",
-    headers: {
-      "X-Admin-Key": getAdminKey(),
-    },
+    headers: getAdminHeaders(),
   });
 }
 
 export async function rejectTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/reject`, {
     method: "POST",
-    headers: {
-      "X-Admin-Key": getAdminKey(),
-    },
+    headers: getAdminHeaders(),
   });
 }
 
