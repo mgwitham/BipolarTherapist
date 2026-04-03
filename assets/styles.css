@@ -314,7 +314,9 @@ nav {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1.35rem;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
   text-decoration: none;
   display: block;
   color: inherit;

@@ -2,7 +2,7 @@ export const SITE_STATS = {
   total_therapists: 6,
   states_covered: 5,
   telehealth_count: 6,
-  accepting_count: 5
+  accepting_count: 5,
 };
 
 export const THERAPISTS = [
@@ -12,7 +12,8 @@ export const THERAPISTS = [
     credentials: "MD, DFAPA",
     title: "Psychiatrist",
     bio: "Board-certified psychiatrist specializing in bipolar spectrum disorders with over 12 years of experience. Dr. Chen takes an integrative approach combining evidence-based medication management with psychoeducation to help patients achieve lasting stability.",
-    bio_preview: "Board-certified psychiatrist specializing in bipolar spectrum disorders with over 12 years of experience. Dr. Chen takes an integrative approach combining evidence-based medication management with psychoeducation to help patients achieve lasting stability.",
+    bio_preview:
+      "Board-certified psychiatrist specializing in bipolar spectrum disorders with over 12 years of experience. Dr. Chen takes an integrative approach combining evidence-based medication management with psychoeducation to help patients achieve lasting stability.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 234-5678",
@@ -34,7 +35,7 @@ export const THERAPISTS = [
     sliding_scale: false,
     listing_active: true,
     status: "active",
-    slug: "dr-sarah-chen-san-francisco-ca"
+    slug: "dr-sarah-chen-san-francisco-ca",
   },
   {
     id: 2,
@@ -42,7 +43,8 @@ export const THERAPISTS = [
     credentials: "LCSW",
     title: "Licensed Clinical Social Worker",
     bio: "Specializing in bipolar disorder therapy with a focus on Cognitive Behavioral Therapy (CBT) and Interpersonal and Social Rhythm Therapy (IPSRT). Michael helps clients build structured routines and coping strategies to manage mood episodes.",
-    bio_preview: "Specializing in bipolar disorder therapy with a focus on Cognitive Behavioral Therapy (CBT) and Interpersonal and Social Rhythm Therapy (IPSRT). Michael helps clients build structured routines and coping strategies to manage mood episodes.",
+    bio_preview:
+      "Specializing in bipolar disorder therapy with a focus on Cognitive Behavioral Therapy (CBT) and Interpersonal and Social Rhythm Therapy (IPSRT). Michael helps clients build structured routines and coping strategies to manage mood episodes.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 345-6789",
@@ -64,7 +66,7 @@ export const THERAPISTS = [
     sliding_scale: true,
     listing_active: true,
     status: "active",
-    slug: "michael-torres-austin-tx"
+    slug: "michael-torres-austin-tx",
   },
   {
     id: 3,
@@ -72,7 +74,8 @@ export const THERAPISTS = [
     credentials: "PhD",
     title: "Clinical Psychologist",
     bio: "Dr. Osei is a clinical psychologist with deep expertise in bipolar disorder across the lifespan. Her practice integrates DBT, mindfulness, and family therapy approaches. She has published research on early intervention in bipolar I and works closely with patients to create personalized stability plans.",
-    bio_preview: "Dr. Osei is a clinical psychologist with deep expertise in bipolar disorder across the lifespan. Her practice integrates DBT, mindfulness, and family therapy approaches. She has published research on early intervention in bipolar I and works closely with patients to create personalized stability plans.",
+    bio_preview:
+      "Dr. Osei is a clinical psychologist with deep expertise in bipolar disorder across the lifespan. Her practice integrates DBT, mindfulness, and family therapy approaches. She has published research on early intervention in bipolar I and works closely with patients to create personalized stability plans.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 456-7890",
@@ -94,7 +97,7 @@ export const THERAPISTS = [
     sliding_scale: false,
     listing_active: true,
     status: "active",
-    slug: "dr-amara-osei-chicago-il"
+    slug: "dr-amara-osei-chicago-il",
   },
   {
     id: 4,
@@ -102,7 +105,8 @@ export const THERAPISTS = [
     credentials: "LMFT",
     title: "Marriage & Family Therapist",
     bio: "Specializing in the relational impact of bipolar disorder, Rachel works with individuals, couples, and families navigating the unique challenges of living with bipolar. Her strengths-based approach helps clients build resilient relationships and effective support systems.",
-    bio_preview: "Specializing in the relational impact of bipolar disorder, Rachel works with individuals, couples, and families navigating the unique challenges of living with bipolar. Her strengths-based approach helps clients build resilient relationships and effective support systems.",
+    bio_preview:
+      "Specializing in the relational impact of bipolar disorder, Rachel works with individuals, couples, and families navigating the unique challenges of living with bipolar. Her strengths-based approach helps clients build resilient relationships and effective support systems.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 567-8901",
@@ -124,7 +128,7 @@ export const THERAPISTS = [
     sliding_scale: true,
     listing_active: true,
     status: "active",
-    slug: "rachel-kim-new-york-ny"
+    slug: "rachel-kim-new-york-ny",
   },
   {
     id: 6,
@@ -132,7 +136,8 @@ export const THERAPISTS = [
     credentials: "LPC",
     title: "Licensed Professional Counselor",
     bio: "Priya brings a culturally sensitive lens to bipolar disorder treatment, with expertise in serving South Asian and minority communities. She uses ACT (Acceptance and Commitment Therapy) alongside psychoeducation to help clients navigate stigma, family dynamics, and mood management.",
-    bio_preview: "Priya brings a culturally sensitive lens to bipolar disorder treatment, with expertise in serving South Asian and minority communities. She uses ACT (Acceptance and Commitment Therapy) alongside psychoeducation to help clients navigate stigma, family dynamics, and mood management.",
+    bio_preview:
+      "Priya brings a culturally sensitive lens to bipolar disorder treatment, with expertise in serving South Asian and minority communities. She uses ACT (Acceptance and Commitment Therapy) alongside psychoeducation to help clients navigate stigma, family dynamics, and mood management.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 789-0123",
@@ -154,7 +159,7 @@ export const THERAPISTS = [
     sliding_scale: true,
     listing_active: true,
     status: "active",
-    slug: "priya-nair-houston-tx"
+    slug: "priya-nair-houston-tx",
   },
   {
     id: 5,
@@ -162,7 +167,8 @@ export const THERAPISTS = [
     credentials: "DO",
     title: "Psychiatrist",
     bio: "Dr. Whitfield combines pharmacological expertise with a genuine interest in his patients' overall wellbeing. He focuses on finding medication regimens that allow patients to thrive while minimizing side effects. Special interest in treatment-resistant bipolar and rapid cycling.",
-    bio_preview: "Dr. Whitfield combines pharmacological expertise with a genuine interest in his patients' overall wellbeing. He focuses on finding medication regimens that allow patients to thrive while minimizing side effects. Special interest in treatment-resistant bipolar and rapid cycling.",
+    bio_preview:
+      "Dr. Whitfield combines pharmacological expertise with a genuine interest in his patients' overall wellbeing. He focuses on finding medication regimens that allow patients to thrive while minimizing side effects. Special interest in treatment-resistant bipolar and rapid cycling.",
     photo_url: null,
     email: "contact@example.com",
     phone: "(555) 678-9012",
@@ -172,7 +178,13 @@ export const THERAPISTS = [
     state: "CO",
     zip: "80202",
     country: "US",
-    specialties: ["Bipolar I", "Bipolar II", "Treatment-Resistant Bipolar", "Rapid Cycling", "Mixed Episodes"],
+    specialties: [
+      "Bipolar I",
+      "Bipolar II",
+      "Treatment-Resistant Bipolar",
+      "Rapid Cycling",
+      "Mixed Episodes",
+    ],
     insurance_accepted: ["Cigna", "United Healthcare", "Tricare", "Self-Pay"],
     accepts_telehealth: true,
     accepts_in_person: true,
@@ -184,6 +196,6 @@ export const THERAPISTS = [
     sliding_scale: false,
     listing_active: true,
     status: "active",
-    slug: "dr-james-whitfield-denver-co"
-  }
+    slug: "dr-james-whitfield-denver-co",
+  },
 ];

@@ -1,108 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Find a Bipolar Disorder Specialist — BipolarTherapists</title>
-  <meta name="description" content="Search and filter bipolar disorder therapists and psychiatrists by location, specialty, insurance, and more." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css" />
-</head>
-<body>
-  <nav>
-    <a href="index.html" class="nav-logo">
-      <div class="nav-icon">🧠</div>
-      <span class="nav-name">Bipolar<span>Therapists</span></span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="directory.html" style="color:var(--teal);font-weight:600">Find a Therapist</a></li>
-      <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
-    </ul>
-  </nav>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find a Bipolar Disorder Specialist — BipolarTherapists</title>
+    <meta
+      name="description"
+      content="Search and filter bipolar disorder therapists and psychiatrists by location, specialty, insurance, and more."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <div class="nav-icon">🧠</div>
+        <span class="nav-name">Bipolar<span>Therapists</span></span>
+      </a>
+      <ul class="nav-links">
+        <li>
+          <a href="directory.html" style="color: var(--teal); font-weight: 600">Find a Therapist</a>
+        </li>
+        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+      </ul>
+    </nav>
 
-  <div class="dir-header">
-    <h1>Find a Bipolar Disorder Specialist</h1>
-    <p>Browse verified therapists and psychiatrists who specialize in bipolar spectrum disorders</p>
-  </div>
+    <div class="dir-header">
+      <h1>Find a Bipolar Disorder Specialist</h1>
+      <p>
+        Browse verified therapists and psychiatrists who specialize in bipolar spectrum disorders
+      </p>
+    </div>
 
-  <div class="layout">
-    <div>
-      <button class="mobile-filter-toggle" onclick="toggleFilters()">🔧 Filters <span id="filterCount"></span></button>
-      <div class="sidebar" id="sidebar">
-        <div class="filter-panel">
-          <h3>🔍 Search</h3>
-          <div class="filter-group">
-            <label for="q">Keywords</label>
-            <input type="text" id="q" placeholder="Name, specialty, approach..." />
+    <div class="layout">
+      <div>
+        <button class="mobile-filter-toggle" onclick="toggleFilters()">
+          🔧 Filters <span id="filterCount"></span>
+        </button>
+        <div class="sidebar" id="sidebar">
+          <div class="filter-panel">
+            <h3>🔍 Search</h3>
+            <div class="filter-group">
+              <label for="q">Keywords</label>
+              <input type="text" id="q" placeholder="Name, specialty, approach..." />
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <h3>📍 Location</h3>
+            <div class="filter-group">
+              <label for="state">State</label>
+              <select id="state">
+                <option value="">All States</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="city">City</label>
+              <input type="text" id="city" placeholder="e.g. Chicago" />
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <h3>🎯 Specialty</h3>
+            <div class="filter-group">
+              <label for="specialty">Focus Area</label>
+              <select id="specialty">
+                <option value="">All Specialties</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <h3>💳 Insurance</h3>
+            <div class="filter-group">
+              <label for="insurance">Accepted Insurance</label>
+              <select id="insurance">
+                <option value="">All Insurance</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <h3>⚙️ Options</h3>
+            <div class="check-group">
+              <label class="check-label"
+                ><input type="checkbox" id="telehealth" /> Telehealth Available</label
+              >
+              <label class="check-label"
+                ><input type="checkbox" id="in_person" /> In-Person Available</label
+              >
+              <label class="check-label"
+                ><input type="checkbox" id="accepting" /> Accepting New Patients</label
+              >
+            </div>
+          </div>
+
+          <button class="btn-filter" onclick="applyFilters()">Apply Filters</button>
+          <button class="btn-reset" onclick="resetFilters()">Reset All</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="results-header">
+          <div class="results-count" id="resultsCount">Loading therapists...</div>
+        </div>
+        <div class="therapist-grid" id="resultsGrid">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Finding specialists...</p>
           </div>
         </div>
-
-        <div class="filter-panel">
-          <h3>📍 Location</h3>
-          <div class="filter-group">
-            <label for="state">State</label>
-            <select id="state">
-              <option value="">All States</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="city">City</label>
-            <input type="text" id="city" placeholder="e.g. Chicago" />
-          </div>
-        </div>
-
-        <div class="filter-panel">
-          <h3>🎯 Specialty</h3>
-          <div class="filter-group">
-            <label for="specialty">Focus Area</label>
-            <select id="specialty">
-              <option value="">All Specialties</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-panel">
-          <h3>💳 Insurance</h3>
-          <div class="filter-group">
-            <label for="insurance">Accepted Insurance</label>
-            <select id="insurance">
-              <option value="">All Insurance</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-panel">
-          <h3>⚙️ Options</h3>
-          <div class="check-group">
-            <label class="check-label"><input type="checkbox" id="telehealth" /> Telehealth Available</label>
-            <label class="check-label"><input type="checkbox" id="in_person" /> In-Person Available</label>
-            <label class="check-label"><input type="checkbox" id="accepting" /> Accepting New Patients</label>
-          </div>
-        </div>
-
-        <button class="btn-filter" onclick="applyFilters()">Apply Filters</button>
-        <button class="btn-reset" onclick="resetFilters()">Reset All</button>
+        <div class="pagination" id="pagination"></div>
       </div>
     </div>
 
-    <div>
-      <div class="results-header">
-        <div class="results-count" id="resultsCount">Loading therapists...</div>
-      </div>
-      <div class="therapist-grid" id="resultsGrid">
-        <div class="loading"><div class="spinner"></div><p>Finding specialists...</p></div>
-      </div>
-      <div class="pagination" id="pagination"></div>
-    </div>
-  </div>
+    <footer>
+      <p style="margin-bottom: 0.5rem">
+        <strong style="color: white">🧠 BipolarTherapists</strong>
+      </p>
+      <p>Need to be listed? <a href="signup.html">Join as a therapist →</a></p>
+    </footer>
 
-  <footer>
-    <p style="margin-bottom:.5rem"><strong style="color:white">🧠 BipolarTherapists</strong></p>
-    <p>Need to be listed? <a href="signup.html">Join as a therapist →</a></p>
-  </footer>
-
-  <script type="module" src="assets/directory.js"></script>
-</body>
+    <script type="module" src="assets/directory.js"></script>
+  </body>
 </html>

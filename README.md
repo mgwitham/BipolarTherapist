@@ -33,6 +33,50 @@ npm run dev
 
 Vite will print a local URL such as `http://localhost:5173/`.
 
+## Node Version
+
+This project is pinned to Node.js 22 in `.nvmrc` so local development and GitHub Actions stay aligned.
+
+## Quality Checks
+
+Format the project:
+
+```sh
+npm run format
+```
+
+Check formatting without changing files:
+
+```sh
+npm run format:check
+```
+
+Run the linter:
+
+```sh
+npm run lint
+```
+
+Run the full local verification suite:
+
+```sh
+npm run check
+```
+
+This runs formatting checks, linting, and a production build.
+
+## Commit Workflow
+
+Git hooks are enabled with Husky. On each commit, staged files are automatically formatted and linted before Git finishes the commit.
+
+If hooks stop working after a fresh clone, run:
+
+```sh
+npm install
+```
+
+That triggers the `prepare` script and re-registers Husky.
+
 ## Production Build
 
 Create the production build:
@@ -64,6 +108,19 @@ Typical static-host settings:
 
 - Build command: `npm run build`
 - Output directory: `dist`
+
+## GitHub Workflow
+
+The repository includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
+
+On every push to `main` and on every pull request, GitHub will:
+
+- install dependencies with `npm ci`
+- verify formatting
+- run ESLint
+- run the production build
+
+There is also a pull request template at `.github/pull_request_template.md` and contributor notes in `CONTRIBUTING.md`.
 
 ## Next App Steps
 

@@ -1,0 +1,3 @@
+PATH="/opt/homebrew/bin:$PATH"
+
+npx lint-staged

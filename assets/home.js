@@ -21,12 +21,35 @@ import { getStats, getTherapists } from "./store.js";
       .join("");
     var mode = [
       t.accepts_telehealth ? '<span class="tag tele">Telehealth</span>' : "",
-      t.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : ""
+      t.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : "",
     ].join("");
     var acc = t.accepting_new_patients
       ? '<span class="accepting">Accepting patients</span>'
       : '<span class="accepting not-acc">Waitlist only</span>';
-    return '<a href="therapist.html?slug=' + t.slug + '" class="t-card"><div class="t-card-top"><div class="t-avatar">' + avatar + '</div><div class="t-info"><div class="t-name">' + t.name + '</div><div class="t-creds">' + (t.credentials || "") + " " + (t.title ? "· " + t.title : "") + '</div><div class="t-loc">📍 ' + t.city + ", " + t.state + '</div></div></div><div class="t-bio">' + bio + '</div><div class="tags">' + tags + mode + '</div><div class="t-footer">' + acc + '<span class="view-link">View Profile →</span></div></a>';
+    return (
+      '<a href="therapist.html?slug=' +
+      t.slug +
+      '" class="t-card"><div class="t-card-top"><div class="t-avatar">' +
+      avatar +
+      '</div><div class="t-info"><div class="t-name">' +
+      t.name +
+      '</div><div class="t-creds">' +
+      (t.credentials || "") +
+      " " +
+      (t.title ? "· " + t.title : "") +
+      '</div><div class="t-loc">📍 ' +
+      t.city +
+      ", " +
+      t.state +
+      '</div></div></div><div class="t-bio">' +
+      bio +
+      '</div><div class="tags">' +
+      tags +
+      mode +
+      '</div><div class="t-footer">' +
+      acc +
+      '<span class="view-link">View Profile →</span></div></a>'
+    );
   }
 
   var statT = document.getElementById("statT");
@@ -34,13 +57,34 @@ import { getStats, getTherapists } from "./store.js";
   var statTH = document.getElementById("statTH");
   var statAcc = document.getElementById("statAcc");
   if (statT) statT.textContent = stats.total_therapists || therapists.length || 0;
-  if (statS) statS.textContent = stats.states_covered || new Set(therapists.map(function (t) { return t.state; })).size;
-  if (statTH) statTH.textContent = stats.telehealth_count || therapists.filter(function (t) { return t.accepts_telehealth; }).length;
-  if (statAcc) statAcc.textContent = stats.accepting_count || therapists.filter(function (t) { return t.accepting_new_patients; }).length;
+  if (statS)
+    statS.textContent =
+      stats.states_covered ||
+      new Set(
+        therapists.map(function (t) {
+          return t.state;
+        }),
+      ).size;
+  if (statTH)
+    statTH.textContent =
+      stats.telehealth_count ||
+      therapists.filter(function (t) {
+        return t.accepts_telehealth;
+      }).length;
+  if (statAcc)
+    statAcc.textContent =
+      stats.accepting_count ||
+      therapists.filter(function (t) {
+        return t.accepting_new_patients;
+      }).length;
 
   var featured = document.getElementById("featuredTherapists");
   if (featured) {
-    var items = therapists.filter(function (t) { return t.accepting_new_patients; }).slice(0, 3);
+    var items = therapists
+      .filter(function (t) {
+        return t.accepting_new_patients;
+      })
+      .slice(0, 3);
     featured.innerHTML = items.length
       ? items.map(renderCard).join("")
       : '<p style="text-align:center;color:var(--muted);grid-column:1/-1">No therapists found</p>';

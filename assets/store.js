@@ -69,9 +69,11 @@ export function getTherapists() {
 }
 
 export function getTherapistBySlug(slug) {
-  return getTherapists().find(function (item) {
-    return item.slug === slug;
-  }) || null;
+  return (
+    getTherapists().find(function (item) {
+      return item.slug === slug;
+    }) || null
+  );
 }
 
 export function getApplications() {
@@ -85,9 +87,26 @@ export function getStats() {
   const therapists = getTherapists();
   return {
     total_therapists: therapists.length || SITE_STATS.total_therapists || 0,
-    states_covered: new Set(therapists.map(function (item) { return item.state; })).size || SITE_STATS.states_covered || 0,
-    telehealth_count: therapists.filter(function (item) { return item.accepts_telehealth; }).length || SITE_STATS.telehealth_count || 0,
-    accepting_count: therapists.filter(function (item) { return item.accepting_new_patients; }).length || SITE_STATS.accepting_count || 0
+    states_covered:
+      new Set(
+        therapists.map(function (item) {
+          return item.state;
+        }),
+      ).size ||
+      SITE_STATS.states_covered ||
+      0,
+    telehealth_count:
+      therapists.filter(function (item) {
+        return item.accepts_telehealth;
+      }).length ||
+      SITE_STATS.telehealth_count ||
+      0,
+    accepting_count:
+      therapists.filter(function (item) {
+        return item.accepting_new_patients;
+      }).length ||
+      SITE_STATS.accepting_count ||
+      0,
   };
 }
 
@@ -96,11 +115,16 @@ export function submitApplication(input) {
 
   const therapists = readJson(THERAPISTS_KEY, clone(SEEDED_THERAPISTS));
   const applications = readJson(APPLICATIONS_KEY, []);
-  const existingSlugs = new Set(therapists.map(function (item) { return item.slug; }));
+  const existingSlugs = new Set(
+    therapists.map(function (item) {
+      return item.slug;
+    }),
+  );
 
   const specialties = Array.isArray(input.specialties) ? input.specialties : [];
   const insuranceAccepted = Array.isArray(input.insurance_accepted) ? input.insurance_accepted : [];
-  const languages = Array.isArray(input.languages) && input.languages.length ? input.languages : ["English"];
+  const languages =
+    Array.isArray(input.languages) && input.languages.length ? input.languages : ["English"];
   const slug = createUniqueSlug(input.name, input.city, input.state, existingSlugs);
   const timestamp = new Date().toISOString();
 
@@ -133,7 +157,7 @@ export function submitApplication(input) {
     session_fee_max: Number(input.session_fee_max || 0) || null,
     sliding_scale: !!input.sliding_scale,
     listing_active: false,
-    country: "US"
+    country: "US",
   };
 
   applications.unshift(application);
@@ -153,7 +177,10 @@ export function publishApplication(applicationId) {
   if (!target) return null;
 
   const therapist = {
-    id: therapists.reduce(function (max, item) { return Math.max(max, Number(item.id) || 0); }, 0) + 1,
+    id:
+      therapists.reduce(function (max, item) {
+        return Math.max(max, Number(item.id) || 0);
+      }, 0) + 1,
     name: target.name,
     credentials: target.credentials,
     title: target.title,
@@ -180,7 +207,7 @@ export function publishApplication(applicationId) {
     sliding_scale: !!target.sliding_scale,
     listing_active: true,
     status: "active",
-    slug: target.slug
+    slug: target.slug,
   };
 
   therapists.unshift(therapist);
@@ -192,7 +219,7 @@ export function publishApplication(applicationId) {
       ...item,
       status: "published",
       listing_active: true,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
   });
   writeJson(APPLICATIONS_KEY, nextApplications);
@@ -207,7 +234,7 @@ export function rejectApplication(applicationId) {
     return {
       ...item,
       status: "rejected",
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
   });
   writeJson(APPLICATIONS_KEY, nextApplications);

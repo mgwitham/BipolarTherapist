@@ -1,229 +1,827 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BipolarTherapists.com — Find a Specialist Near You</title>
-  <meta name="description" content="The only therapist directory dedicated to bipolar disorder. Find psychiatrists, therapists, and counselors who specialize in Bipolar I, Bipolar II, and mood disorders." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --teal:#1a7a8f;--teal-light:#2a9cb3;--teal-dark:#155f70;--teal-faint:#e8f5f8;
-      --navy:#1d3a4a;--slate:#4a6572;--muted:#6b8290;--border:#d4e4e9;
-      --bg:#f7fbfc;--white:#ffffff;--green:#3aaa7a;
-    }
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--navy);line-height:1.6}
-    nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-    .nav-logo{display:flex;align-items:center;gap:.5rem;text-decoration:none}
-    .nav-icon{width:34px;height:34px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px}
-    .nav-name{font-size:1rem;font-weight:700;color:var(--navy)}
-    .nav-name span{color:var(--teal)}
-    .nav-links{display:flex;gap:1.5rem;align-items:center;list-style:none}
-    .nav-links a{text-decoration:none;color:var(--slate);font-size:.875rem;font-weight:500;transition:color .2s}
-    .nav-links a:hover{color:var(--teal)}
-    .nav-cta{background:var(--teal)!important;color:white!important;padding:.5rem 1.25rem;border-radius:8px;font-weight:600!important}
-    .nav-cta:hover{background:var(--teal-dark)!important}
-    .hero{background:linear-gradient(135deg,#0e4d5f 0%,#1a7a8f 55%,#2a9cb3 100%);padding:5rem 1.5rem 3.5rem;text-align:center;color:white}
-    .hero-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:white;font-size:.75rem;font-weight:700;padding:.35rem .9rem;border-radius:100px;margin-bottom:1.5rem;letter-spacing:.5px;text-transform:uppercase}
-    .hero h1{font-family:'Lora',serif;font-size:clamp(1.9rem,5vw,3rem);font-weight:600;line-height:1.2;margin-bottom:1rem;max-width:660px;margin-left:auto;margin-right:auto}
-    .hero p{font-size:1.05rem;opacity:.88;max-width:500px;margin:0 auto 2.5rem;line-height:1.7}
-    .search-box{background:white;border-radius:14px;padding:1.25rem 1.5rem;max-width:660px;margin:0 auto;display:grid;grid-template-columns:1fr 1px 1fr auto;align-items:center;gap:.75rem;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-    .search-field{display:flex;flex-direction:column;gap:.2rem}
-    .search-field label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-    .search-field input{border:none;outline:none;font-size:.95rem;color:var(--navy);background:transparent;font-family:inherit}
-    .search-divider{background:var(--border);width:1px;height:36px}
-    .search-btn{background:var(--teal);color:white;border:none;border-radius:10px;padding:.8rem 1.5rem;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;font-family:inherit}
-    .search-btn:hover{background:var(--teal-dark)}
-    .hero-stats{display:flex;justify-content:center;gap:2.5rem;margin-top:2.5rem;flex-wrap:wrap}
-    .hero-stat{text-align:center;color:white}
-    .hero-stat-num{font-size:1.8rem;font-weight:700;line-height:1}
-    .hero-stat-label{font-size:.78rem;opacity:.8;margin-top:.2rem}
-    section{padding:4rem 1.5rem}
-    .section-header{text-align:center;margin-bottom:2.5rem}
-    .eyebrow{font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:.4rem}
-    h2{font-family:'Lora',serif;font-size:clamp(1.6rem,3vw,2.1rem);font-weight:600;color:var(--navy);line-height:1.3}
-    .section-sub{color:var(--slate);font-size:.95rem;margin-top:.6rem;max-width:480px;margin-left:auto;margin-right:auto}
-    .why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;max-width:900px;margin:0 auto}
-    .why-card{padding:1.5rem;background:var(--teal-faint);border-radius:14px;border-left:3px solid var(--teal)}
-    .why-icon{font-size:1.4rem;margin-bottom:.6rem}
-    .why-title{font-weight:700;color:var(--navy);margin-bottom:.35rem;font-size:.95rem}
-    .why-desc{font-size:.85rem;color:var(--slate);line-height:1.6}
-    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.25rem;max-width:860px;margin:0 auto}
-    .step-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:1.6rem 1.4rem;text-align:center;transition:box-shadow .2s,transform .2s}
-    .step-card:hover{box-shadow:0 6px 20px rgba(26,122,143,.12);transform:translateY(-2px)}
-    .step-icon{width:50px;height:50px;border-radius:12px;background:var(--teal-faint);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .9rem}
-    .step-num{font-size:.68rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
-    .step-title{font-size:.95rem;font-weight:600;color:var(--navy);margin-bottom:.4rem}
-    .step-desc{font-size:.83rem;color:var(--slate);line-height:1.6}
-    .therapist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;max-width:1080px;margin:0 auto}
-    .t-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:1.4rem;transition:box-shadow .2s,transform .2s;cursor:pointer;text-decoration:none;display:block;color:inherit}
-    .t-card:hover{box-shadow:0 6px 20px rgba(26,122,143,.12);transform:translateY(-2px);border-color:var(--teal-light)}
-    .t-card-top{display:flex;gap:.9rem;margin-bottom:.9rem}
-    .t-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-light));display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;font-weight:700;flex-shrink:0;overflow:hidden}
-    .t-avatar img{width:100%;height:100%;object-fit:cover}
-    .t-info{flex:1;min-width:0}
-    .t-name{font-size:.95rem;font-weight:700;color:var(--navy)}
-    .t-creds{font-size:.76rem;color:var(--teal);font-weight:600;margin-top:.1rem}
-    .t-loc{font-size:.76rem;color:var(--muted);margin-top:.15rem}
-    .t-bio{font-size:.83rem;color:var(--slate);line-height:1.55;margin-bottom:.9rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-    .tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.9rem}
-    .tag{font-size:.7rem;font-weight:600;padding:.22rem .6rem;border-radius:100px;background:var(--teal-faint);color:var(--teal-dark)}
-    .tag.tele{background:#e8f5ee;color:#2a7a52}
-    .tag.inperson{background:#fef3e2;color:#8a5a00}
-    .t-footer{display:flex;align-items:center;justify-content:space-between;padding-top:.7rem;border-top:1px solid var(--border)}
-    .accepting{font-size:.73rem;font-weight:600;color:var(--green);display:flex;align-items:center;gap:.3rem}
-    .accepting::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
-    .not-acc{color:var(--muted)}
-    .not-acc::before{background:var(--muted)}
-    .view-link{font-size:.78rem;font-weight:600;color:var(--teal)}
-    .testimonials{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;max-width:880px;margin:0 auto}
-    .testimonial{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:1.6rem}
-    .stars{color:#f59e0b;font-size:.85rem;margin-bottom:.7rem}
-    .t-text{font-size:.85rem;color:var(--slate);line-height:1.7;font-style:italic;margin-bottom:.9rem}
-    .t-author{font-size:.78rem;font-weight:700;color:var(--navy)}
-    .t-role{font-size:.72rem;color:var(--muted)}
-    .cta-sect{background:linear-gradient(135deg,var(--navy) 0%,#2d5a70 100%);padding:4.5rem 1.5rem;text-align:center;color:white}
-    .cta-sect h2{font-family:'Lora',serif;color:white;font-size:clamp(1.6rem,3vw,2.3rem);margin-bottom:.7rem}
-    .cta-sect p{opacity:.85;font-size:1rem;max-width:480px;margin:0 auto 2rem}
-    .cta-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-    .btn-p{background:var(--teal-light);color:white;padding:.85rem 2rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.93rem;transition:background .2s,transform .1s;display:inline-block}
-    .btn-p:hover{background:var(--teal);transform:translateY(-1px)}
-    .btn-s{background:rgba(255,255,255,.12);color:white;padding:.85rem 2rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.93rem;border:1px solid rgba(255,255,255,.25);transition:background .2s;display:inline-block}
-    .btn-s:hover{background:rgba(255,255,255,.2)}
-    footer{background:var(--navy);color:rgba(255,255,255,.7);padding:2.5rem 1.5rem 2rem;text-align:center}
-    footer .f-logo{font-size:1rem;font-weight:700;color:white;margin-bottom:.4rem}
-    footer p{font-size:.78rem;margin-bottom:.9rem}
-    footer ul{display:flex;justify-content:center;gap:1.5rem;list-style:none;margin-bottom:1.5rem;flex-wrap:wrap}
-    footer ul a{color:rgba(255,255,255,.6);text-decoration:none;font-size:.78rem;transition:color .2s}
-    footer ul a:hover{color:white}
-    footer .disc{font-size:.7rem;opacity:.5;max-width:580px;margin:0 auto;line-height:1.6}
-    .center-btn{text-align:center;margin-top:2rem}
-    @media(max-width:640px){
-      .search-box{grid-template-columns:1fr;gap:.6rem}
-      .search-divider{display:none}
-      .nav-links li:not(:last-child){display:none}
-    }
-  </style>
-</head>
-<body>
-  <nav>
-    <a href="index.html" class="nav-logo">
-      <div class="nav-icon">🧠</div>
-      <span class="nav-name">Bipolar<span>Therapists</span></span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="directory.html">Find a Therapist</a></li>
-      <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
-    </ul>
-  </nav>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BipolarTherapists.com — Find a Specialist Near You</title>
+    <meta
+      name="description"
+      content="The only therapist directory dedicated to bipolar disorder. Find psychiatrists, therapists, and counselors who specialize in Bipolar I, Bipolar II, and mood disorders."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a7a8f;
+        --teal-light: #2a9cb3;
+        --teal-dark: #155f70;
+        --teal-faint: #e8f5f8;
+        --navy: #1d3a4a;
+        --slate: #4a6572;
+        --muted: #6b8290;
+        --border: #d4e4e9;
+        --bg: #f7fbfc;
+        --white: #ffffff;
+        --green: #3aaa7a;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--navy);
+        line-height: 1.6;
+      }
+      nav {
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.5rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+      }
+      .nav-icon {
+        width: 34px;
+        height: 34px;
+        background: var(--teal);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+      }
+      .nav-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .nav-name span {
+        color: var(--teal);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+      }
+      .nav-links a {
+        text-decoration: none;
+        color: var(--slate);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--teal);
+      }
+      .nav-cta {
+        background: var(--teal) !important;
+        color: white !important;
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600 !important;
+      }
+      .nav-cta:hover {
+        background: var(--teal-dark) !important;
+      }
+      .hero {
+        background: linear-gradient(135deg, #0e4d5f 0%, #1a7a8f 55%, #2a9cb3 100%);
+        padding: 5rem 1.5rem 3.5rem;
+        text-align: center;
+        color: white;
+      }
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 0.9rem;
+        border-radius: 100px;
+        margin-bottom: 1.5rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.9rem, 5vw, 3rem);
+        font-weight: 600;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+        max-width: 660px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .hero p {
+        font-size: 1.05rem;
+        opacity: 0.88;
+        max-width: 500px;
+        margin: 0 auto 2.5rem;
+        line-height: 1.7;
+      }
+      .search-box {
+        background: white;
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        max-width: 660px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1px 1fr auto;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      }
+      .search-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .search-field label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .search-field input {
+        border: none;
+        outline: none;
+        font-size: 0.95rem;
+        color: var(--navy);
+        background: transparent;
+        font-family: inherit;
+      }
+      .search-divider {
+        background: var(--border);
+        width: 1px;
+        height: 36px;
+      }
+      .search-btn {
+        background: var(--teal);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+        font-family: inherit;
+      }
+      .search-btn:hover {
+        background: var(--teal-dark);
+      }
+      .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2.5rem;
+        margin-top: 2.5rem;
+        flex-wrap: wrap;
+      }
+      .hero-stat {
+        text-align: center;
+        color: white;
+      }
+      .hero-stat-num {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .hero-stat-label {
+        font-size: 0.78rem;
+        opacity: 0.8;
+        margin-top: 0.2rem;
+      }
+      section {
+        padding: 4rem 1.5rem;
+      }
+      .section-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+      }
+      .eyebrow {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--teal);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.4rem;
+      }
+      h2 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 600;
+        color: var(--navy);
+        line-height: 1.3;
+      }
+      .section-sub {
+        color: var(--slate);
+        font-size: 0.95rem;
+        margin-top: 0.6rem;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .why-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .why-card {
+        padding: 1.5rem;
+        background: var(--teal-faint);
+        border-radius: 14px;
+        border-left: 3px solid var(--teal);
+      }
+      .why-icon {
+        font-size: 1.4rem;
+        margin-bottom: 0.6rem;
+      }
+      .why-title {
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 0.35rem;
+        font-size: 0.95rem;
+      }
+      .why-desc {
+        font-size: 0.85rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.25rem;
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .step-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.6rem 1.4rem;
+        text-align: center;
+        transition:
+          box-shadow 0.2s,
+          transform 0.2s;
+      }
+      .step-card:hover {
+        box-shadow: 0 6px 20px rgba(26, 122, 143, 0.12);
+        transform: translateY(-2px);
+      }
+      .step-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: var(--teal-faint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        margin: 0 auto 0.9rem;
+      }
+      .step-num {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--teal);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.3rem;
+      }
+      .step-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--navy);
+        margin-bottom: 0.4rem;
+      }
+      .step-desc {
+        font-size: 0.83rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .therapist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      .t-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.4rem;
+        transition:
+          box-shadow 0.2s,
+          transform 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+      }
+      .t-card:hover {
+        box-shadow: 0 6px 20px rgba(26, 122, 143, 0.12);
+        transform: translateY(-2px);
+        border-color: var(--teal-light);
+      }
+      .t-card-top {
+        display: flex;
+        gap: 0.9rem;
+        margin-bottom: 0.9rem;
+      }
+      .t-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--teal), var(--teal-light));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .t-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .t-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .t-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .t-creds {
+        font-size: 0.76rem;
+        color: var(--teal);
+        font-weight: 600;
+        margin-top: 0.1rem;
+      }
+      .t-loc {
+        font-size: 0.76rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+      }
+      .t-bio {
+        font-size: 0.83rem;
+        color: var(--slate);
+        line-height: 1.55;
+        margin-bottom: 0.9rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 0.9rem;
+      }
+      .tag {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.22rem 0.6rem;
+        border-radius: 100px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+      }
+      .tag.tele {
+        background: #e8f5ee;
+        color: #2a7a52;
+      }
+      .tag.inperson {
+        background: #fef3e2;
+        color: #8a5a00;
+      }
+      .t-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0.7rem;
+        border-top: 1px solid var(--border);
+      }
+      .accepting {
+        font-size: 0.73rem;
+        font-weight: 600;
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .accepting::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .not-acc {
+        color: var(--muted);
+      }
+      .not-acc::before {
+        background: var(--muted);
+      }
+      .view-link {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--teal);
+      }
+      .testimonials {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.25rem;
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      .testimonial {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.6rem;
+      }
+      .stars {
+        color: #f59e0b;
+        font-size: 0.85rem;
+        margin-bottom: 0.7rem;
+      }
+      .t-text {
+        font-size: 0.85rem;
+        color: var(--slate);
+        line-height: 1.7;
+        font-style: italic;
+        margin-bottom: 0.9rem;
+      }
+      .t-author {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .t-role {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .cta-sect {
+        background: linear-gradient(135deg, var(--navy) 0%, #2d5a70 100%);
+        padding: 4.5rem 1.5rem;
+        text-align: center;
+        color: white;
+      }
+      .cta-sect h2 {
+        font-family: "Lora", serif;
+        color: white;
+        font-size: clamp(1.6rem, 3vw, 2.3rem);
+        margin-bottom: 0.7rem;
+      }
+      .cta-sect p {
+        opacity: 0.85;
+        font-size: 1rem;
+        max-width: 480px;
+        margin: 0 auto 2rem;
+      }
+      .cta-btns {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn-p {
+        background: var(--teal-light);
+        color: white;
+        padding: 0.85rem 2rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.93rem;
+        transition:
+          background 0.2s,
+          transform 0.1s;
+        display: inline-block;
+      }
+      .btn-p:hover {
+        background: var(--teal);
+        transform: translateY(-1px);
+      }
+      .btn-s {
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        padding: 0.85rem 2rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.93rem;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        transition: background 0.2s;
+        display: inline-block;
+      }
+      .btn-s:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      footer {
+        background: var(--navy);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 2.5rem 1.5rem 2rem;
+        text-align: center;
+      }
+      footer .f-logo {
+        font-size: 1rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.4rem;
+      }
+      footer p {
+        font-size: 0.78rem;
+        margin-bottom: 0.9rem;
+      }
+      footer ul {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        list-style: none;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+      }
+      footer ul a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        font-size: 0.78rem;
+        transition: color 0.2s;
+      }
+      footer ul a:hover {
+        color: white;
+      }
+      footer .disc {
+        font-size: 0.7rem;
+        opacity: 0.5;
+        max-width: 580px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      .center-btn {
+        text-align: center;
+        margin-top: 2rem;
+      }
+      @media (max-width: 640px) {
+        .search-box {
+          grid-template-columns: 1fr;
+          gap: 0.6rem;
+        }
+        .search-divider {
+          display: none;
+        }
+        .nav-links li:not(:last-child) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <div class="nav-icon">🧠</div>
+        <span class="nav-name">Bipolar<span>Therapists</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="directory.html">Find a Therapist</a></li>
+        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+      </ul>
+    </nav>
 
-  <section class="hero">
-    <div class="hero-badge">🎗️ Specialized Directory</div>
-    <h1>Find a Therapist Who Truly Understands Bipolar Disorder</h1>
-    <p>The only directory dedicated to bipolar spectrum specialists. Verified credentials, real specialties, and filters that actually matter for your care.</p>
-    <form class="search-box" onsubmit="handleSearch(event)">
-      <div class="search-field">
-        <label>Search</label>
-        <input type="text" id="q" placeholder="Bipolar I, IPSRT, telehealth..." />
+    <section class="hero">
+      <div class="hero-badge">🎗️ Specialized Directory</div>
+      <h1>Find a Therapist Who Truly Understands Bipolar Disorder</h1>
+      <p>
+        The only directory dedicated to bipolar spectrum specialists. Verified credentials, real
+        specialties, and filters that actually matter for your care.
+      </p>
+      <form class="search-box" onsubmit="handleSearch(event)">
+        <div class="search-field">
+          <label>Search</label>
+          <input type="text" id="q" placeholder="Bipolar I, IPSRT, telehealth..." />
+        </div>
+        <div class="search-divider"></div>
+        <div class="search-field">
+          <label>Location</label>
+          <input type="text" id="location" placeholder="City or State" />
+        </div>
+        <button type="submit" class="search-btn">Search →</button>
+      </form>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statT">—</div>
+          <div class="hero-stat-label">Verified Specialists</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statS">—</div>
+          <div class="hero-stat-label">States Covered</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statTH">—</div>
+          <div class="hero-stat-label">Offer Telehealth</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statAcc">—</div>
+          <div class="hero-stat-label">Accepting Patients</div>
+        </div>
       </div>
-      <div class="search-divider"></div>
-      <div class="search-field">
-        <label>Location</label>
-        <input type="text" id="location" placeholder="City or State" />
+    </section>
+
+    <section style="background: var(--white)">
+      <div class="section-header">
+        <div class="eyebrow">Why BipolarTherapists</div>
+        <h2>Built for people navigating bipolar disorder</h2>
+        <p class="section-sub">
+          Generic directories don't cut it. You need someone who specializes in exactly what you're
+          facing.
+        </p>
       </div>
-      <button type="submit" class="search-btn">Search →</button>
-    </form>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num" id="statT">—</div><div class="hero-stat-label">Verified Specialists</div></div>
-      <div class="hero-stat"><div class="hero-stat-num" id="statS">—</div><div class="hero-stat-label">States Covered</div></div>
-      <div class="hero-stat"><div class="hero-stat-num" id="statTH">—</div><div class="hero-stat-label">Offer Telehealth</div></div>
-      <div class="hero-stat"><div class="hero-stat-num" id="statAcc">—</div><div class="hero-stat-label">Accepting Patients</div></div>
-    </div>
-  </section>
-
-  <section style="background:var(--white)">
-    <div class="section-header">
-      <div class="eyebrow">Why BipolarTherapists</div>
-      <h2>Built for people navigating bipolar disorder</h2>
-      <p class="section-sub">Generic directories don't cut it. You need someone who specializes in exactly what you're facing.</p>
-    </div>
-    <div class="why-grid">
-      <div class="why-card"><div class="why-icon">🎯</div><div class="why-title">Bipolar-Specific Focus</div><div class="why-desc">Every therapist here specializes in bipolar spectrum disorders. Filter by Bipolar I, II, Cyclothymia, rapid cycling, and more.</div></div>
-      <div class="why-card"><div class="why-icon">✅</div><div class="why-title">Verified Credentials</div><div class="why-desc">See actual credentials, licenses, and years of experience. No vague listings — you know exactly who you're reaching out to.</div></div>
-      <div class="why-card"><div class="why-icon">💻</div><div class="why-title">Telehealth & In-Person</div><div class="why-desc">Filter by your preferred format. Many specialists offer both options and are licensed in multiple states for remote sessions.</div></div>
-      <div class="why-card"><div class="why-icon">💳</div><div class="why-title">Insurance Filters</div><div class="why-desc">See which providers accept your insurance. Many also offer sliding scale fees for those without coverage.</div></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-header">
-      <div class="eyebrow">For Patients</div>
-      <h2>Finding the right specialist takes 3 steps</h2>
-    </div>
-    <div class="steps">
-      <div class="step-card"><div class="step-icon">🔍</div><div class="step-num">Step 1</div><div class="step-title">Search & Filter</div><div class="step-desc">Narrow down by location, specialty focus, insurance, and whether they offer telehealth or in-person sessions.</div></div>
-      <div class="step-card"><div class="step-icon">👤</div><div class="step-num">Step 2</div><div class="step-title">Review Profiles</div><div class="step-desc">Read detailed bios, check credentials, see specialties, and understand their therapeutic approach before reaching out.</div></div>
-      <div class="step-card"><div class="step-icon">📞</div><div class="step-num">Step 3</div><div class="step-title">Make Contact</div><div class="step-desc">Reach out directly via phone, email, or their practice website. No middleman — direct contact with your potential therapist.</div></div>
-    </div>
-  </section>
-
-  <section style="background:var(--white)">
-    <div class="section-header">
-      <div class="eyebrow">Featured Specialists</div>
-      <h2>Therapists accepting new patients</h2>
-      <p class="section-sub">These specialists are currently available and actively taking new clients.</p>
-    </div>
-    <div class="therapist-grid" id="featuredTherapists"><p style="text-align:center;color:var(--muted);grid-column:1/-1">Loading specialists...</p></div>
-    <div class="center-btn"><a href="directory.html" class="btn-p">View All Therapists →</a></div>
-  </section>
-
-  <section style="background:var(--white);padding-top:0">
-    <div class="section-header" style="padding-top:4rem">
-      <div class="eyebrow">Patient Stories</div>
-      <h2>Making the right connection changes everything</h2>
-    </div>
-    <div class="testimonials">
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <div class="t-text">"After years of seeing therapists who didn't really understand bipolar, finding someone through this directory who specializes in Bipolar I has completely changed my treatment. She knew exactly what IPSRT was."</div>
-        <div class="t-author">Sarah M.</div><div class="t-role">Living with Bipolar I for 8 years</div>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon">🎯</div>
+          <div class="why-title">Bipolar-Specific Focus</div>
+          <div class="why-desc">
+            Every therapist here specializes in bipolar spectrum disorders. Filter by Bipolar I, II,
+            Cyclothymia, rapid cycling, and more.
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">✅</div>
+          <div class="why-title">Verified Credentials</div>
+          <div class="why-desc">
+            See actual credentials, licenses, and years of experience. No vague listings — you know
+            exactly who you're reaching out to.
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">💻</div>
+          <div class="why-title">Telehealth & In-Person</div>
+          <div class="why-desc">
+            Filter by your preferred format. Many specialists offer both options and are licensed in
+            multiple states for remote sessions.
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">💳</div>
+          <div class="why-title">Insurance Filters</div>
+          <div class="why-desc">
+            See which providers accept your insurance. Many also offer sliding scale fees for those
+            without coverage.
+          </div>
+        </div>
       </div>
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <div class="t-text">"The filters here are exactly what I needed. I found a psychiatrist who accepts my insurance AND offers telehealth AND specializes in Bipolar II. Took me 10 minutes to find the right person."</div>
-        <div class="t-author">Marcus T.</div><div class="t-role">Recently diagnosed with Bipolar II</div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div class="eyebrow">For Patients</div>
+        <h2>Finding the right specialist takes 3 steps</h2>
       </div>
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <div class="t-text">"As a caregiver for my spouse, the family therapy filter helped me find someone who understood the relational dynamics of bipolar disorder from day one. Invaluable resource."</div>
-        <div class="t-author">Jennifer K.</div><div class="t-role">Partner of someone with Bipolar I</div>
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-icon">🔍</div>
+          <div class="step-num">Step 1</div>
+          <div class="step-title">Search & Filter</div>
+          <div class="step-desc">
+            Narrow down by location, specialty focus, insurance, and whether they offer telehealth
+            or in-person sessions.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">👤</div>
+          <div class="step-num">Step 2</div>
+          <div class="step-title">Review Profiles</div>
+          <div class="step-desc">
+            Read detailed bios, check credentials, see specialties, and understand their therapeutic
+            approach before reaching out.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">📞</div>
+          <div class="step-num">Step 3</div>
+          <div class="step-title">Make Contact</div>
+          <div class="step-desc">
+            Reach out directly via phone, email, or their practice website. No middleman — direct
+            contact with your potential therapist.
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="cta-sect">
-    <h2>Are you a bipolar disorder specialist?</h2>
-    <p>Join our directory and connect with patients actively seeking your expertise. Be found by the people who need you most.</p>
-    <div class="cta-btns">
-      <a href="signup.html" class="btn-p">List Your Practice — $39/mo</a>
-      <a href="directory.html" class="btn-s">Browse the Directory</a>
-    </div>
-  </section>
+    <section style="background: var(--white)">
+      <div class="section-header">
+        <div class="eyebrow">Featured Specialists</div>
+        <h2>Therapists accepting new patients</h2>
+        <p class="section-sub">
+          These specialists are currently available and actively taking new clients.
+        </p>
+      </div>
+      <div class="therapist-grid" id="featuredTherapists">
+        <p style="text-align: center; color: var(--muted); grid-column: 1/-1">
+          Loading specialists...
+        </p>
+      </div>
+      <div class="center-btn"><a href="directory.html" class="btn-p">View All Therapists →</a></div>
+    </section>
 
-  <footer>
-    <div class="f-logo">🧠 BipolarTherapists</div>
-    <p>Connecting patients with bipolar disorder specialists</p>
-    <ul>
-      <li><a href="directory.html">Find a Therapist</a></li>
-      <li><a href="signup.html">For Therapists</a></li>
-      <li><a href="mailto:hello@chatroam.polsia.app">Contact</a></li>
-    </ul>
-    <div class="disc">BipolarTherapists is an information directory only. We do not provide medical advice, diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).</div>
-  </footer>
+    <section style="background: var(--white); padding-top: 0">
+      <div class="section-header" style="padding-top: 4rem">
+        <div class="eyebrow">Patient Stories</div>
+        <h2>Making the right connection changes everything</h2>
+      </div>
+      <div class="testimonials">
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <div class="t-text">
+            "After years of seeing therapists who didn't really understand bipolar, finding someone
+            through this directory who specializes in Bipolar I has completely changed my treatment.
+            She knew exactly what IPSRT was."
+          </div>
+          <div class="t-author">Sarah M.</div>
+          <div class="t-role">Living with Bipolar I for 8 years</div>
+        </div>
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <div class="t-text">
+            "The filters here are exactly what I needed. I found a psychiatrist who accepts my
+            insurance AND offers telehealth AND specializes in Bipolar II. Took me 10 minutes to
+            find the right person."
+          </div>
+          <div class="t-author">Marcus T.</div>
+          <div class="t-role">Recently diagnosed with Bipolar II</div>
+        </div>
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <div class="t-text">
+            "As a caregiver for my spouse, the family therapy filter helped me find someone who
+            understood the relational dynamics of bipolar disorder from day one. Invaluable
+            resource."
+          </div>
+          <div class="t-author">Jennifer K.</div>
+          <div class="t-role">Partner of someone with Bipolar I</div>
+        </div>
+      </div>
+    </section>
 
-  <script type="module" src="assets/home.js"></script>
-</body>
+    <section class="cta-sect">
+      <h2>Are you a bipolar disorder specialist?</h2>
+      <p>
+        Join our directory and connect with patients actively seeking your expertise. Be found by
+        the people who need you most.
+      </p>
+      <div class="cta-btns">
+        <a href="signup.html" class="btn-p">List Your Practice — $39/mo</a>
+        <a href="directory.html" class="btn-s">Browse the Directory</a>
+      </div>
+    </section>
+
+    <footer>
+      <div class="f-logo">🧠 BipolarTherapists</div>
+      <p>Connecting patients with bipolar disorder specialists</p>
+      <ul>
+        <li><a href="directory.html">Find a Therapist</a></li>
+        <li><a href="signup.html">For Therapists</a></li>
+        <li><a href="mailto:hello@chatroam.polsia.app">Contact</a></li>
+      </ul>
+      <div class="disc">
+        BipolarTherapists is an information directory only. We do not provide medical advice,
+        diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
+        crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
+      </div>
+    </footer>
+
+    <script type="module" src="assets/home.js"></script>
+  </body>
 </html>

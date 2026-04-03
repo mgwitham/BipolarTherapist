@@ -12,7 +12,7 @@ import { getTherapists } from "./store.js";
     insurance: "",
     telehealth: false,
     in_person: false,
-    accepting: false
+    accepting: false,
   };
 
   function uniqueCounts(field, nested) {
@@ -86,7 +86,7 @@ import { getTherapists } from "./store.js";
         therapist.city,
         therapist.state,
         therapist.practice_name,
-        therapist.bio_preview
+        therapist.bio_preview,
       ]
         .concat(therapist.specialties || [])
         .concat(therapist.insurance_accepted || [])
@@ -96,8 +96,10 @@ import { getTherapists } from "./store.js";
       if (filters.q && !haystack.includes(filters.q.toLowerCase())) return false;
       if (filters.state && therapist.state !== filters.state) return false;
       if (filters.city && therapist.city.toLowerCase() !== filters.city.toLowerCase()) return false;
-      if (filters.specialty && !(therapist.specialties || []).includes(filters.specialty)) return false;
-      if (filters.insurance && !(therapist.insurance_accepted || []).includes(filters.insurance)) return false;
+      if (filters.specialty && !(therapist.specialties || []).includes(filters.specialty))
+        return false;
+      if (filters.insurance && !(therapist.insurance_accepted || []).includes(filters.insurance))
+        return false;
       if (filters.telehealth && !therapist.accepts_telehealth) return false;
       if (filters.in_person && !therapist.accepts_in_person) return false;
       if (filters.accepting && !therapist.accepting_new_patients) return false;
@@ -124,7 +126,7 @@ import { getTherapists } from "./store.js";
       .join("");
     var mode = [
       therapist.accepts_telehealth ? '<span class="tag tele">Telehealth</span>' : "",
-      therapist.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : ""
+      therapist.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : "",
     ].join("");
     var acceptance = therapist.accepting_new_patients
       ? '<span class="accepting">Accepting patients</span>'
@@ -214,11 +216,17 @@ import { getTherapists } from "./store.js";
     var activeFilterCount = Object.values(filters).filter(Boolean).length;
     var filterCount = document.getElementById("filterCount");
 
-    count.innerHTML = "<strong>" + results.length + "</strong> specialist" + (results.length === 1 ? "" : "s") + " found";
+    count.innerHTML =
+      "<strong>" +
+      results.length +
+      "</strong> specialist" +
+      (results.length === 1 ? "" : "s") +
+      " found";
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
 
     if (!pageItems.length) {
-      grid.innerHTML = '<div class="empty-state"><h3>No therapists found</h3><p>Try adjusting your filters or search terms.</p></div>';
+      grid.innerHTML =
+        '<div class="empty-state"><h3>No therapists found</h3><p>Try adjusting your filters or search terms.</p></div>';
       renderPagination(0);
       updateUrl();
       return;
@@ -256,7 +264,7 @@ import { getTherapists } from "./store.js";
       insurance: "",
       telehealth: false,
       in_person: false,
-      accepting: false
+      accepting: false,
     };
     currentPage = 1;
     render();
@@ -267,7 +275,10 @@ import { getTherapists } from "./store.js";
   };
 
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Enter" && (event.target.tagName === "INPUT" || event.target.tagName === "SELECT")) {
+    if (
+      event.key === "Enter" &&
+      (event.target.tagName === "INPUT" || event.target.tagName === "SELECT")
+    ) {
       window.applyFilters();
     }
   });

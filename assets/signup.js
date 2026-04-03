@@ -17,7 +17,7 @@ function showSuccess(application) {
   document.getElementById("formCard").innerHTML =
     '<div class="success-state"><div class="success-icon">🎉</div><h2>Application Received!</h2><p>Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory.</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
     application.name +
-    '</strong> with status <strong>pending</strong>.<br/>Once published, the listing will appear in search and on the public pages.</p></div>';
+    "</strong> with status <strong>pending</strong>.<br/>Once published, the listing will appear in search and on the public pages.</p></div>";
   window.scrollTo(0, 0);
 }
 
@@ -47,17 +47,20 @@ function handleSubmit(event) {
     session_fee_max: form.elements.session_fee_max.value,
     sliding_scale: !!form.querySelector('input[name="sliding_scale"]:checked'),
     accepts_telehealth: !!form.querySelector('input[name="accepts_telehealth"]:checked'),
-    accepts_in_person: !!form.querySelector('input[name="accepts_in_person"]:checked')
+    accepts_in_person: !!form.querySelector('input[name="accepts_in_person"]:checked'),
   };
 
   if (!data.name) return showErr("Please enter your name.");
   if (!data.credentials) return showErr("Please enter your credentials or license.");
-  if (!data.email || !data.email.includes("@")) return showErr("Please enter a valid email address.");
+  if (!data.email || !data.email.includes("@"))
+    return showErr("Please enter a valid email address.");
   if (!data.city) return showErr("Please enter your city.");
   if (!data.state) return showErr("Please select your state.");
-  if (!data.bio || data.bio.length < 50) return showErr("Please write a bio of at least 50 characters.");
+  if (!data.bio || data.bio.length < 50)
+    return showErr("Please write a bio of at least 50 characters.");
   if (!data.specialties.length) return showErr("Please choose at least one specialty.");
-  if (!data.accepts_telehealth && !data.accepts_in_person) return showErr("Choose at least one session format.");
+  if (!data.accepts_telehealth && !data.accepts_in_person)
+    return showErr("Choose at least one session format.");
 
   button.disabled = true;
   button.textContent = "Submitting...";
