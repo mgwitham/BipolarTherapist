@@ -115,6 +115,9 @@ export function getReviewApiConfig() {
         rootEnv.REVIEW_API_LOGIN_MAX_ATTEMPTS ||
         DEFAULT_LOGIN_MAX_ATTEMPTS,
     ),
+    resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
+    emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
+    notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
   };
 
   if (!config.projectId || !config.dataset || !config.token) {
@@ -132,6 +135,10 @@ export function getReviewApiConfig() {
   }
 
   return config;
+}
+
+function hasEmailConfig(config) {
+  return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
 }
 
 function getAllowedOrigin(origin, config) {
@@ -482,6 +489,80 @@ function normalizeApplication(doc) {
   };
 }
 
+async function sendEmail(config, payload) {
+  if (!hasEmailConfig(config)) {
+    return { skipped: true };
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.resendApiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(function () {
+    return {};
+  });
+
+  if (!response.ok) {
+    throw new Error(result.message || result.error || "Email send failed.");
+  }
+
+  return result;
+}
+
+async function notifyAdminOfSubmission(config, application) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [config.notificationTo],
+    subject: `New therapist application: ${application.name}`,
+    html: `<h2>New therapist application</h2>
+<p><strong>Name:</strong> ${application.name}</p>
+<p><strong>Email:</strong> ${application.email}</p>
+<p><strong>Location:</strong> ${application.city}, ${application.state}</p>
+<p><strong>Credentials:</strong> ${application.credentials || "Not provided"}</p>
+<p><strong>Specialties:</strong> ${(application.specialties || []).join(", ") || "Not provided"}</p>
+<p><strong>Status:</strong> ${application.status}</p>
+<p>Open the admin review page to review this submission.</p>`,
+  });
+}
+
+async function notifyApplicantOfDecision(config, application, decision) {
+  if (!config.resendApiKey || !config.emailFrom || !application.email) {
+    return;
+  }
+
+  const subject =
+    decision === "approved"
+      ? "Your BipolarTherapists application was approved"
+      : "Your BipolarTherapists application was reviewed";
+  const html =
+    decision === "approved"
+      ? `<h2>Your listing was approved</h2>
+<p>Hi ${application.name},</p>
+<p>Your BipolarTherapists application has been approved and your listing is now live.</p>
+<p>Thank you for joining the directory.</p>`
+      : `<h2>Your application was reviewed</h2>
+<p>Hi ${application.name},</p>
+<p>Your BipolarTherapists application was reviewed and is not moving forward right now.</p>
+<p>You can reply to this email if you want to follow up with updated details later.</p>`;
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [application.email],
+    reply_to: config.notificationTo,
+    subject: subject,
+    html: html,
+  });
+}
+
 async function updateApplicationFields(client, applicationId, fields) {
   const allowedUpdates = {};
 
@@ -636,6 +717,11 @@ export function createReviewApiHandler(configOverride) {
         const body = await parseBody(request);
         const document = buildApplicationDocument(body);
         const created = await client.create(document);
+        try {
+          await notifyAdminOfSubmission(config, created);
+        } catch (error) {
+          console.error("Failed to send new-submission email.", error);
+        }
         sendJson(response, 201, normalizeApplication(created), origin, config);
         return;
       }
@@ -694,6 +780,12 @@ export function createReviewApiHandler(configOverride) {
 
         await transaction.commit({ visibility: "sync" });
 
+        try {
+          await notifyApplicantOfDecision(config, application, "approved");
+        } catch (error) {
+          console.error("Failed to send approval email.", error);
+        }
+
         sendJson(response, 200, { ok: true, therapistId: therapistId }, origin, config);
         return;
       }
@@ -706,10 +798,19 @@ export function createReviewApiHandler(configOverride) {
         }
 
         const applicationId = decodeURIComponent(rejectMatch[1]);
+        const application = await client.getDocument(applicationId);
         await client
           .patch(applicationId)
           .set({ status: "rejected", updatedAt: new Date().toISOString() })
           .commit({ visibility: "sync" });
+
+        if (application) {
+          try {
+            await notifyApplicantOfDecision(config, application, "rejected");
+          } catch (error) {
+            console.error("Failed to send rejection email.", error);
+          }
+        }
 
         sendJson(response, 200, { ok: true }, origin, config);
         return;

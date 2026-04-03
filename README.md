@@ -136,12 +136,33 @@ Current behavior:
 - login attempts are rate-limited per client
 - allowed browser origins are explicitly configurable
 - the same review API handler now works locally and on a hosted `/api/review/*` route
+- email notifications can be enabled for new submissions and approval/rejection updates
 
 Still to come:
 
 - stronger user-based authentication instead of shared admin credentials
 - final deployment of the review API to your production hosting
 - payments and listing lifecycle automation
+
+## Email Notifications
+
+This project is prepared for Resend-based transactional email without requiring a separate mail server.
+
+Add these local or hosted environment variables when you are ready:
+
+```sh
+RESEND_API_KEY=your_resend_api_key
+REVIEW_EMAIL_FROM=notifications@yourdomain.com
+REVIEW_NOTIFICATION_TO=you@yourdomain.com
+```
+
+Behavior when configured:
+
+- new therapist submission -> admin notification email
+- approved application -> applicant notification email
+- rejected application -> applicant notification email
+
+If those variables are missing, the signup/review flow still works normally and email sending is skipped.
 
 ## Node Version
 
