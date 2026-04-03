@@ -1,3 +1,4 @@
+import { submitTherapistApplication } from "./review-api.js";
 import { submitApplication } from "./store.js";
 
 function collectCheckedValues(form, name) {
@@ -13,15 +14,22 @@ function showErr(msg) {
   element.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function showSuccess(application) {
+function showSuccess(application, source) {
+  var message =
+    source === "sanity"
+      ? "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
+      : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory.";
+
   document.getElementById("formCard").innerHTML =
-    '<div class="success-state"><div class="success-icon">🎉</div><h2>Application Received!</h2><p>Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory.</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
+    '<div class="success-state"><div class="success-icon">🎉</div><h2>Application Received!</h2><p>' +
+    message +
+    '</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
     application.name +
     "</strong> with status <strong>pending</strong>.<br/>Once published, the listing will appear in search and on the public pages.</p></div>";
   window.scrollTo(0, 0);
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
 
   var form = document.getElementById("applyForm");
@@ -66,8 +74,17 @@ function handleSubmit(event) {
   button.textContent = "Submitting...";
 
   try {
-    var application = submitApplication(data);
-    showSuccess(application);
+    let application;
+    let source = "sanity";
+
+    try {
+      application = await submitTherapistApplication(data);
+    } catch (_error) {
+      application = submitApplication(data);
+      source = "local";
+    }
+
+    showSuccess(application, source);
   } catch (_error) {
     button.disabled = false;
     button.textContent = "Submit Application →";

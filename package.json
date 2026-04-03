@@ -5,6 +5,7 @@
   "description": "Static site clone of the live BipolarTherapists experience, rebuilt locally so we can keep developing it without needing access to the private upstream repository.",
   "scripts": {
     "dev": "vite",
+    "api:dev": "node server/review-api.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "cms:dev": "npm --prefix studio run dev",

@@ -58,6 +58,12 @@ Run the CMS:
 npm run cms:dev
 ```
 
+Run the local review API for therapist submissions and admin publishing:
+
+```sh
+npm run api:dev
+```
+
 By default the site will keep using the seeded local data until the Sanity environment variables
 are configured. Once they are set, the public pages will read therapist content from Sanity.
 
@@ -98,8 +104,9 @@ duplicating them.
 
 Still to come:
 
-- a secure public submission backend that writes applications directly into Sanity
-- authenticated admin workflows and publishing automation
+- authentication around the review API and admin publishing flow
+- deployment of the review API to your production hosting
+- payments and listing lifecycle automation
 
 ## Node Version
 

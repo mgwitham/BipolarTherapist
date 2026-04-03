@@ -6,15 +6,38 @@ import {
   rejectApplication,
   resetDemoData,
 } from "./store.js";
+import { fetchPublicTherapists } from "./cms.js";
+import {
+  approveTherapistApplication,
+  fetchTherapistApplications,
+  rejectTherapistApplication as rejectTherapistApplicationRemote,
+} from "./review-api.js";
+
+let dataMode = "local";
+let remoteApplications = [];
+let publishedTherapists = [];
 
 function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
 function renderStats() {
-  const stats = getStats();
-  const therapists = getTherapists();
-  const applications = getApplications();
+  const stats =
+    dataMode === "sanity"
+      ? {
+          total_therapists: publishedTherapists.length,
+          states_covered: new Set(
+            publishedTherapists.map(function (item) {
+              return item.state;
+            }),
+          ).size,
+          accepting_count: publishedTherapists.filter(function (item) {
+            return item.accepting_new_patients;
+          }).length,
+        }
+      : getStats();
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
 
   document.getElementById("adminStats").innerHTML =
     '<div class="stat-card"><div class="stat-value">' +
@@ -34,7 +57,7 @@ function renderStats() {
 }
 
 function renderListings() {
-  const therapists = getTherapists();
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
   const root = document.getElementById("publishedListings");
   root.innerHTML = therapists
     .map(function (item) {
@@ -56,7 +79,7 @@ function renderListings() {
 }
 
 function renderApplications() {
-  const applications = getApplications();
+  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
   const root = document.getElementById("applicationsList");
 
   if (!applications.length) {
@@ -125,12 +148,23 @@ function renderApplications() {
     .join("");
 
   root.querySelectorAll("[data-action]").forEach(function (button) {
-    button.addEventListener("click", function () {
+    button.addEventListener("click", async function () {
       const id = button.getAttribute("data-id");
       const action = button.getAttribute("data-action");
-      if (action === "publish") publishApplication(id);
-      if (action === "reject") rejectApplication(id);
-      renderAll();
+      button.disabled = true;
+      try {
+        if (dataMode === "sanity") {
+          if (action === "publish") await approveTherapistApplication(id);
+          if (action === "reject") await rejectTherapistApplicationRemote(id);
+          await loadData();
+        } else {
+          if (action === "publish") publishApplication(id);
+          if (action === "reject") rejectApplication(id);
+          renderAll();
+        }
+      } finally {
+        button.disabled = false;
+      }
     });
   });
 }
@@ -141,9 +175,27 @@ function renderAll() {
   renderApplications();
 }
 
+async function loadData() {
+  try {
+    const [applications, therapists] = await Promise.all([
+      fetchTherapistApplications(),
+      fetchPublicTherapists(),
+    ]);
+    remoteApplications = applications;
+    publishedTherapists = therapists;
+    dataMode = "sanity";
+  } catch (_error) {
+    dataMode = "local";
+    remoteApplications = [];
+    publishedTherapists = [];
+  }
+
+  renderAll();
+}
+
 document.getElementById("resetDemo").addEventListener("click", function () {
   resetDemoData();
   renderAll();
 });
 
-renderAll();
+loadData();

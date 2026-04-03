@@ -20,6 +20,7 @@ module.exports = [
       globals: {
         console: "readonly",
         document: "readonly",
+        fetch: "readonly",
         history: "readonly",
         localStorage: "readonly",
         Map: "readonly",
