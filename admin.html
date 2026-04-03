@@ -219,6 +219,51 @@
         display: flex;
         gap: 0.75rem;
         align-items: center;
+        flex-wrap: wrap;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin: 0.75rem 0 0;
+      }
+      .toolbar input,
+      .toolbar select {
+        padding: 0.75rem 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        background: var(--white);
+      }
+      .toolbar input {
+        flex: 1 1 240px;
+      }
+      .toolbar select {
+        min-width: 180px;
+      }
+      .notes-box {
+        margin-top: 0.9rem;
+        display: grid;
+        gap: 0.6rem;
+      }
+      .notes-box textarea {
+        width: 100%;
+        min-height: 90px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.8rem 0.9rem;
+        font: inherit;
+        resize: vertical;
+      }
+      .notes-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .mini-status {
+        font-size: 0.8rem;
+        color: var(--muted);
       }
       .status {
         display: inline-flex;
@@ -228,7 +273,8 @@
         font-weight: 700;
         text-transform: capitalize;
       }
-      .status.published {
+      .status.published,
+      .status.approved {
         background: #e8f5ee;
         color: #1f7a52;
       }
@@ -239,6 +285,10 @@
       .status.pending {
         background: var(--teal-faint);
         color: var(--teal-dark);
+      }
+      .status.reviewing {
+        background: #eef2ff;
+        color: #4f46e5;
       }
       .empty {
         padding: 2rem;
@@ -350,6 +400,20 @@
               <p class="subtle" style="margin-top: 0">
                 Applications from the public signup flow appear here when the review API is running.
               </p>
+              <div class="toolbar">
+                <input
+                  type="search"
+                  id="applicationSearch"
+                  placeholder="Search applicants, cities, specialties..."
+                />
+                <select id="applicationStatusFilter">
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
             </div>
             <div id="applicationsList"></div>
           </main>

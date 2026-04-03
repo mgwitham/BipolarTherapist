@@ -482,6 +482,29 @@ function normalizeApplication(doc) {
   };
 }
 
+async function updateApplicationFields(client, applicationId, fields) {
+  const allowedUpdates = {};
+
+  if (typeof fields.notes === "string") {
+    allowedUpdates.notes = fields.notes.trim();
+  }
+
+  if (
+    typeof fields.status === "string" &&
+    ["pending", "reviewing", "approved", "rejected"].includes(fields.status)
+  ) {
+    allowedUpdates.status = fields.status;
+  }
+
+  if (!Object.keys(allowedUpdates).length) {
+    throw new Error("No valid application updates were provided.");
+  }
+
+  allowedUpdates.updatedAt = new Date().toISOString();
+
+  return client.patch(applicationId).set(allowedUpdates).commit({ visibility: "sync" });
+}
+
 export function createReviewApiHandler(configOverride) {
   const config = configOverride || getReviewApiConfig();
   const client = createClient({
@@ -614,6 +637,26 @@ export function createReviewApiHandler(configOverride) {
         const document = buildApplicationDocument(body);
         const created = await client.create(document);
         sendJson(response, 201, normalizeApplication(created), origin, config);
+        return;
+      }
+
+      const updateMatch = routePath.match(/^\/applications\/([^/]+)$/);
+      if ((request.method === "PATCH" || request.method === "POST") && updateMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const applicationId = decodeURIComponent(updateMatch[1]);
+        const existing = await client.getDocument(applicationId);
+        if (!existing || existing._type !== "therapistApplication") {
+          sendJson(response, 404, { error: "Application not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const updated = await updateApplicationFields(client, applicationId, body);
+        sendJson(response, 200, normalizeApplication(updated), origin, config);
         return;
       }
 

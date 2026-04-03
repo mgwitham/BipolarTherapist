@@ -16,12 +16,17 @@ import {
   setAdminSessionToken,
   signInAdmin,
   signOutAdmin,
+  updateTherapistApplication,
 } from "./review-api.js";
 
 let dataMode = "local";
 let remoteApplications = [];
 let publishedTherapists = [];
 let authRequired = false;
+let applicationFilters = {
+  q: "",
+  status: "",
+};
 
 function formatDate(value) {
   return new Date(value).toLocaleString();
@@ -97,6 +102,22 @@ function renderListings() {
 function renderApplications() {
   const applications = dataMode === "sanity" ? remoteApplications : getApplications();
   const root = document.getElementById("applicationsList");
+  const filteredApplications = applications.filter(function (item) {
+    const haystack = [item.name, item.city, item.state, item.credentials, item.title, item.email]
+      .concat(item.specialties || [])
+      .join(" ")
+      .toLowerCase();
+
+    if (applicationFilters.q && !haystack.includes(applicationFilters.q.toLowerCase())) {
+      return false;
+    }
+
+    if (applicationFilters.status && item.status !== applicationFilters.status) {
+      return false;
+    }
+
+    return true;
+  });
 
   if (authRequired) {
     root.innerHTML = "";
@@ -109,16 +130,34 @@ function renderApplications() {
     return;
   }
 
-  root.innerHTML = applications
+  if (!filteredApplications.length) {
+    root.innerHTML =
+      '<div class="empty">No applications match the current review filters. Try a different search or status.</div>';
+    return;
+  }
+
+  root.innerHTML = filteredApplications
     .map(function (item) {
       const actions =
         item.status === "pending"
-          ? '<button class="btn-primary" data-action="publish" data-id="' +
+          ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
+            item.id +
+            '">Mark Reviewing</button><button class="btn-primary" data-action="publish" data-id="' +
             item.id +
             '">Publish</button><button class="btn-secondary" data-action="reject" data-id="' +
             item.id +
             '">Reject</button>'
-          : '<span class="status ' + item.status + '">' + item.status + "</span>";
+          : item.status === "reviewing"
+            ? '<button class="btn-primary" data-action="publish" data-id="' +
+              item.id +
+              '">Publish</button><button class="btn-secondary" data-action="pending" data-id="' +
+              item.id +
+              '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
+              item.id +
+              '">Reject</button>'
+            : item.status === "approved"
+              ? '<span class="status approved">approved</span>'
+              : '<span class="status ' + item.status + '">' + item.status + "</span>";
 
       return (
         '<article class="application-card">' +
@@ -163,6 +202,15 @@ function renderApplications() {
         '<div class="action-row">' +
         actions +
         "</div>" +
+        '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
+        item.id +
+        '" placeholder="Add review notes, follow-up items, or context for later...">' +
+        (item.notes || "") +
+        '</textarea><div class="notes-actions"><button class="btn-secondary" data-action="save-notes" data-id="' +
+        item.id +
+        '">Save Notes</button><span class="mini-status">' +
+        (item.notes ? "Notes saved" : "No notes yet") +
+        "</span></div></div>" +
         "</article>"
       );
     })
@@ -177,6 +225,18 @@ function renderApplications() {
         if (dataMode === "sanity") {
           if (action === "publish") await approveTherapistApplication(id);
           if (action === "reject") await rejectTherapistApplicationRemote(id);
+          if (action === "reviewing") {
+            await updateTherapistApplication(id, { status: "reviewing" });
+          }
+          if (action === "pending") {
+            await updateTherapistApplication(id, { status: "pending" });
+          }
+          if (action === "save-notes") {
+            const field = root.querySelector('[data-notes-id="' + id + '"]');
+            await updateTherapistApplication(id, {
+              notes: field ? field.value : "",
+            });
+          }
           await loadData();
         } else {
           if (action === "publish") publishApplication(id);
@@ -320,6 +380,16 @@ document.getElementById("signOutAdmin").addEventListener("click", async function
   publishedTherapists = [];
   setAuthUiState();
   renderAll();
+});
+
+document.getElementById("applicationSearch").addEventListener("input", function (event) {
+  applicationFilters.q = event.target.value.trim();
+  renderApplications();
+});
+
+document.getElementById("applicationStatusFilter").addEventListener("change", function (event) {
+  applicationFilters.status = event.target.value;
+  renderApplications();
 });
 
 if (getAdminSessionToken()) {

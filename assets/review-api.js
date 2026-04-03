@@ -140,6 +140,14 @@ export async function rejectTherapistApplication(applicationId) {
   });
 }
 
+export async function updateTherapistApplication(applicationId, updates) {
+  return request(`/applications/${encodeURIComponent(applicationId)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(updates),
+  });
+}
+
 export async function checkReviewApiHealth() {
   return request("/health", {
     method: "GET",
