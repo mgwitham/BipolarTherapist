@@ -224,6 +224,8 @@ For Vercel-style hosting, this repo also includes:
 - `vercel.json` for the Vite build output
 - `api/review/[...path].mjs` so the review API can live beside the frontend
 
+See [DEPLOYMENT.md](/Users/michaelwitham/Desktop/Bipolar Therapist Directory/DEPLOYMENT.md) for the full Vercel deployment checklist, required environment variables, and post-deploy smoke test.
+
 ## GitHub Workflow
 
 The repository includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
