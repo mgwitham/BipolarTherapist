@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "cms:dev": "npm --prefix studio run dev",
+    "cms:build": "npm --prefix studio run build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run build",
+    "check": "npm run format:check && npm run lint && npm run build && npm run cms:build",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -24,6 +26,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@sanity/client": "^7.11.1",
     "eslint": "^10.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",

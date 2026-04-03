@@ -1,17 +1,23 @@
-import { getTherapistBySlug } from "./store.js";
+import { fetchPublicTherapistBySlug } from "./cms.js";
 
 var slug = new URLSearchParams(window.location.search).get("slug");
-var therapist = getTherapistBySlug(slug);
 
-if (!slug) {
-  document.getElementById("profileWrap").innerHTML =
-    '<div class="not-found"><h2>No therapist specified</h2><p>Please return to the directory and select a therapist.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
-} else if (!therapist) {
-  document.getElementById("profileWrap").innerHTML =
-    '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active or the link may be incorrect.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
-} else {
+(async function init() {
+  if (!slug) {
+    document.getElementById("profileWrap").innerHTML =
+      '<div class="not-found"><h2>No therapist specified</h2><p>Please return to the directory and select a therapist.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+    return;
+  }
+
+  var therapist = await fetchPublicTherapistBySlug(slug);
+  if (!therapist) {
+    document.getElementById("profileWrap").innerHTML =
+      '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active or the link may be incorrect.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+    return;
+  }
+
   renderProfile(therapist);
-}
+})();
 
 function renderProfile(t) {
   document.title = t.name + " — BipolarTherapists";

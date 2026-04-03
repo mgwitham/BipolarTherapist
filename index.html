@@ -155,6 +155,20 @@
         gap: 0.75rem;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       }
+      .cms-banner {
+        margin: 1rem auto 0;
+        max-width: 660px;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+      .cms-banner a {
+        color: white;
+        font-weight: 700;
+      }
       .search-field {
         display: flex;
         flex-direction: column;
@@ -622,8 +636,8 @@
 
     <section class="hero">
       <div class="hero-badge">🎗️ Specialized Directory</div>
-      <h1>Find a Therapist Who Truly Understands Bipolar Disorder</h1>
-      <p>
+      <h1 id="heroTitle">Find a Therapist Who Truly Understands Bipolar Disorder</h1>
+      <p id="heroDescription">
         The only directory dedicated to bipolar spectrum specialists. Verified credentials, real
         specialties, and filters that actually matter for your care.
       </p>
@@ -639,6 +653,10 @@
         </div>
         <button type="submit" class="search-btn">Search →</button>
       </form>
+      <div class="cms-banner" id="cmsBadge">
+        CMS fallback mode: this preview is still using the seeded local data until Sanity is
+        connected.
+      </div>
       <div class="hero-stats">
         <div class="hero-stat">
           <div class="hero-stat-num" id="statT">—</div>

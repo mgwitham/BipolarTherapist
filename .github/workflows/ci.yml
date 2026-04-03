@@ -23,11 +23,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install CMS dependencies
+        run: npm --prefix studio ci
+
       - name: Check formatting
         run: npm run format:check
 
       - name: Lint
         run: npm run lint
 
-      - name: Build
+      - name: Build website
         run: npm run build
+
+      - name: Build CMS
+        run: npm run cms:build

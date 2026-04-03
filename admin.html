@@ -109,6 +109,16 @@
         border: 1px solid var(--border);
         color: var(--slate);
       }
+      .cms-note {
+        margin-top: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--slate);
+        line-height: 1.6;
+        font-size: 0.9rem;
+      }
       .stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -258,12 +268,17 @@
 
     <div class="wrap">
       <div class="hero">
-        <div>
+        <div style="flex: 1">
           <h1>Admin Review</h1>
           <p class="subtle">
             Manage locally submitted therapist applications and publish them into the public
             directory.
           </p>
+          <div class="cms-note">
+            Real content management now belongs in Sanity Studio. This page remains useful as a
+            local prototype for future submission workflow logic while the public site moves onto
+            the CMS.
+          </div>
         </div>
         <button class="btn-secondary" id="resetDemo">Reset Demo Data</button>
       </div>

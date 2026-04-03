@@ -1,7 +1,7 @@
-import { getTherapists } from "./store.js";
+import { fetchPublicTherapists } from "./cms.js";
 
-(() => {
-  var therapists = getTherapists();
+(async function () {
+  var therapists = await fetchPublicTherapists();
   var currentPage = 1;
   var pageSize = 12;
   var filters = {

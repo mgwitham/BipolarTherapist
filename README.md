@@ -33,6 +33,45 @@ npm run dev
 
 Vite will print a local URL such as `http://localhost:5173/`.
 
+## CMS
+
+This repo now includes a Sanity Studio workspace in `studio/`.
+
+Copy the example environment files before using it:
+
+```sh
+cp .env.example .env
+cp studio/.env.example studio/.env
+```
+
+Then set your Sanity project ID and dataset in both files.
+
+Run the website:
+
+```sh
+npm run dev
+```
+
+Run the CMS:
+
+```sh
+npm run cms:dev
+```
+
+By default the site will keep using the seeded local data until the Sanity environment variables
+are configured. Once they are set, the public pages will read therapist content from Sanity.
+
+Current scope:
+
+- public therapist listings can come from Sanity
+- homepage featured therapists can come from Sanity
+- Sanity Studio manages therapist, homepage, site settings, and therapist application documents
+
+Still to come:
+
+- a secure public submission backend that writes applications directly into Sanity
+- authenticated admin workflows and publishing automation
+
 ## Node Version
 
 This project is pinned to Node.js 22 in `.nvmrc` so local development and GitHub Actions stay aligned.
@@ -63,7 +102,7 @@ Run the full local verification suite:
 npm run check
 ```
 
-This runs formatting checks, linting, and a production build.
+This runs formatting checks, linting, the main site build, and the Sanity Studio build.
 
 ## Commit Workflow
 

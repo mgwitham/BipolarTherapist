@@ -1,8 +1,26 @@
-import { getStats, getTherapists } from "./store.js";
+import { cmsEnabled, cmsStudioUrl, fetchHomePageContent, getCmsState } from "./cms.js";
 
-(() => {
-  var therapists = getTherapists();
-  var stats = getStats();
+function applyHomePageCopy(homePage) {
+  if (!homePage) {
+    return;
+  }
+
+  var heroTitle = document.getElementById("heroTitle");
+  var heroDescription = document.getElementById("heroDescription");
+
+  if (heroTitle && homePage.heroTitle) {
+    heroTitle.textContent = homePage.heroTitle;
+  }
+
+  if (heroDescription && homePage.heroDescription) {
+    heroDescription.textContent = homePage.heroDescription;
+  }
+}
+
+(async function () {
+  var content = await fetchHomePageContent();
+  var therapists = content.therapists;
+  var stats = content.stats;
   function renderCard(t) {
     var initials = (t.name || "")
       .split(" ")
@@ -80,14 +98,38 @@ import { getStats, getTherapists } from "./store.js";
 
   var featured = document.getElementById("featuredTherapists");
   if (featured) {
-    var items = therapists
-      .filter(function (t) {
-        return t.accepting_new_patients;
-      })
-      .slice(0, 3);
+    var items = content.featuredTherapists || [];
     featured.innerHTML = items.length
       ? items.map(renderCard).join("")
       : '<p style="text-align:center;color:var(--muted);grid-column:1/-1">No therapists found</p>';
+  }
+
+  applyHomePageCopy(content.homePage);
+
+  var cmsBadge = document.getElementById("cmsBadge");
+  if (cmsBadge) {
+    if (cmsEnabled) {
+      var cmsState = getCmsState();
+      if (cmsState.error) {
+        cmsBadge.innerHTML =
+          'Live CMS mode is on, but the public content query failed. Check your published therapist documents, dataset permissions, or browser console. Manage content in <a href="' +
+          cmsStudioUrl +
+          '" target="_blank" rel="noopener">Sanity Studio</a>.';
+      } else if (!therapists.length) {
+        cmsBadge.innerHTML =
+          'Live CMS mode is on, but there are no published public therapist listings yet. Create and publish active therapist documents in <a href="' +
+          cmsStudioUrl +
+          '" target="_blank" rel="noopener">Sanity Studio</a>.';
+      } else {
+        cmsBadge.innerHTML =
+          'Live CMS mode is on. Manage content in <a href="' +
+          cmsStudioUrl +
+          '" target="_blank" rel="noopener">Sanity Studio</a>.';
+      }
+    } else {
+      cmsBadge.textContent =
+        "CMS fallback mode: this preview is still using the seeded local data until Sanity is connected.";
+    }
   }
 
   window.handleSearch = function (event) {
