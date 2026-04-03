@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a product or developer-experience improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are we solving?
+      description: Describe the user or developer pain point.
+      placeholder: It is hard to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change you want to make.
+      placeholder: We should add ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: success
+    attributes:
+      label: What does success look like?
+      description: Describe the behavior or outcome we want after the change.
+      placeholder: Users can ...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Links, examples, screenshots, or related ideas.

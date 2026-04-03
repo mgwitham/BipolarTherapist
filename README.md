@@ -122,6 +122,16 @@ On every push to `main` and on every pull request, GitHub will:
 
 There is also a pull request template at `.github/pull_request_template.md` and contributor notes in `CONTRIBUTING.md`.
 
+## Repository Standards
+
+This repo also includes:
+
+- `CODEOWNERS` for review ownership
+- issue templates for bugs and feature requests
+- `dependabot.yml` for npm and GitHub Actions updates
+- `SECURITY.md` for vulnerability reporting
+- `.gitattributes` to keep line endings consistent across environments
+
 ## Next App Steps
 
 Good next upgrades for this codebase:
