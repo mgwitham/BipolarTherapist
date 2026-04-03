@@ -53,6 +53,7 @@ function getConfig() {
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
     token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || "",
+    adminKey: process.env.REVIEW_API_ADMIN_KEY || rootEnv.REVIEW_API_ADMIN_KEY || "",
     port: Number(process.env.REVIEW_API_PORT || rootEnv.REVIEW_API_PORT || DEFAULT_PORT),
   };
 }
@@ -74,10 +75,19 @@ function sendJson(response, statusCode, payload, origin) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": allowOrigin(origin),
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   });
   response.end(JSON.stringify(payload));
+}
+
+function isAuthorized(request, adminKey) {
+  if (!adminKey) {
+    return false;
+  }
+
+  const requestKey = request.headers["x-admin-key"];
+  return typeof requestKey === "string" && requestKey === adminKey;
 }
 
 function parseBody(request) {
@@ -278,6 +288,10 @@ async function makeServer() {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
   }
 
+  if (!config.adminKey) {
+    throw new Error("Missing REVIEW_API_ADMIN_KEY for review API.");
+  }
+
   const client = createClient({
     projectId: config.projectId,
     dataset: config.dataset,
@@ -303,6 +317,11 @@ async function makeServer() {
       }
 
       if (request.method === "GET" && url.pathname === "/applications") {
+        if (!isAuthorized(request, config.adminKey)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin);
+          return;
+        }
+
         const docs = await client.fetch(
           `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
             _id, _createdAt, _updatedAt, name, email, credentials, title, practiceName, phone, website, city, state, zip, country,
@@ -326,6 +345,11 @@ async function makeServer() {
 
       const approveMatch = url.pathname.match(/^\/applications\/([^/]+)\/approve$/);
       if (request.method === "POST" && approveMatch) {
+        if (!isAuthorized(request, config.adminKey)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin);
+          return;
+        }
+
         const applicationId = decodeURIComponent(approveMatch[1]);
         const application = await client.getDocument(applicationId);
         if (!application || application._type !== "therapistApplication") {
@@ -359,6 +383,11 @@ async function makeServer() {
 
       const rejectMatch = url.pathname.match(/^\/applications\/([^/]+)\/reject$/);
       if (request.method === "POST" && rejectMatch) {
+        if (!isAuthorized(request, config.adminKey)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin);
+          return;
+        }
+
         const applicationId = decodeURIComponent(rejectMatch[1]);
         await client
           .patch(applicationId)

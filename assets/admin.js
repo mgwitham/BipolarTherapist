@@ -9,19 +9,29 @@ import {
 import { fetchPublicTherapists } from "./cms.js";
 import {
   approveTherapistApplication,
+  checkReviewApiHealth,
+  clearAdminKey,
   fetchTherapistApplications,
+  getAdminKey,
   rejectTherapistApplication as rejectTherapistApplicationRemote,
+  setAdminKey,
 } from "./review-api.js";
 
 let dataMode = "local";
 let remoteApplications = [];
 let publishedTherapists = [];
+let authRequired = false;
 
 function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
 function renderStats() {
+  if (authRequired) {
+    document.getElementById("adminStats").innerHTML = "";
+    return;
+  }
+
   const stats =
     dataMode === "sanity"
       ? {
@@ -57,6 +67,11 @@ function renderStats() {
 }
 
 function renderListings() {
+  if (authRequired) {
+    document.getElementById("publishedListings").innerHTML = "";
+    return;
+  }
+
   const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
   const root = document.getElementById("publishedListings");
   root.innerHTML = therapists
@@ -81,6 +96,11 @@ function renderListings() {
 function renderApplications() {
   const applications = dataMode === "sanity" ? remoteApplications : getApplications();
   const root = document.getElementById("applicationsList");
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
 
   if (!applications.length) {
     root.innerHTML =
@@ -175,7 +195,53 @@ function renderAll() {
   renderApplications();
 }
 
+function setAuthUiState() {
+  const gate = document.getElementById("adminAuthGate");
+  const app = document.getElementById("adminApp");
+  const resetButton = document.getElementById("resetDemo");
+  const signOutButton = document.getElementById("signOutAdmin");
+  const authError = document.getElementById("authError");
+
+  if (authRequired) {
+    gate.style.display = "block";
+    app.style.display = "none";
+    resetButton.style.display = "none";
+    signOutButton.style.display = "none";
+    if (authError) {
+      authError.style.display = "block";
+    }
+    return;
+  }
+
+  gate.style.display = "none";
+  app.style.display = "block";
+  resetButton.style.display = dataMode === "local" ? "inline-flex" : "none";
+  signOutButton.style.display = dataMode === "sanity" ? "inline-flex" : "none";
+  if (authError) {
+    authError.style.display = "none";
+  }
+}
+
 async function loadData() {
+  let reviewApiAvailable = false;
+
+  try {
+    await checkReviewApiHealth();
+    reviewApiAvailable = true;
+  } catch (_error) {
+    reviewApiAvailable = false;
+  }
+
+  if (reviewApiAvailable && !getAdminKey()) {
+    dataMode = "sanity";
+    remoteApplications = [];
+    publishedTherapists = [];
+    authRequired = true;
+    setAuthUiState();
+    renderAll();
+    return;
+  }
+
   try {
     const [applications, therapists] = await Promise.all([
       fetchTherapistApplications(),
@@ -184,12 +250,22 @@ async function loadData() {
     remoteApplications = applications;
     publishedTherapists = therapists;
     dataMode = "sanity";
+    authRequired = false;
   } catch (_error) {
-    dataMode = "local";
-    remoteApplications = [];
-    publishedTherapists = [];
+    if (reviewApiAvailable || getAdminKey()) {
+      dataMode = "sanity";
+      remoteApplications = [];
+      publishedTherapists = [];
+      authRequired = true;
+    } else {
+      dataMode = "local";
+      remoteApplications = [];
+      publishedTherapists = [];
+      authRequired = false;
+    }
   }
 
+  setAuthUiState();
   renderAll();
 }
 
@@ -197,5 +273,44 @@ document.getElementById("resetDemo").addEventListener("click", function () {
   resetDemoData();
   renderAll();
 });
+
+document.getElementById("adminAuthForm").addEventListener("submit", async function (event) {
+  event.preventDefault();
+  const field = document.getElementById("adminKey");
+  const error = document.getElementById("authError");
+  const value = field.value.trim();
+
+  if (!value) {
+    error.textContent = "Enter your admin key.";
+    error.style.display = "block";
+    return;
+  }
+
+  setAdminKey(value);
+  authRequired = false;
+  error.style.display = "none";
+  await loadData();
+
+  if (authRequired) {
+    error.textContent = "That admin key was not accepted.";
+    error.style.display = "block";
+  } else {
+    field.value = "";
+  }
+});
+
+document.getElementById("signOutAdmin").addEventListener("click", function () {
+  clearAdminKey();
+  authRequired = false;
+  dataMode = "local";
+  remoteApplications = [];
+  publishedTherapists = [];
+  setAuthUiState();
+  renderAll();
+});
+
+if (getAdminKey()) {
+  authRequired = false;
+}
 
 loadData();

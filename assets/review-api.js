@@ -1,4 +1,5 @@
 const reviewApiBaseUrl = import.meta.env.VITE_REVIEW_API_URL || "http://localhost:8787";
+const adminSessionKey = "bt_review_admin_key_v1";
 
 function sanitizeApplication(application) {
   return {
@@ -30,6 +31,38 @@ async function request(path, options) {
   return payload;
 }
 
+function canUseSessionStorage() {
+  try {
+    return typeof window !== "undefined" && !!window.sessionStorage;
+  } catch (_error) {
+    return false;
+  }
+}
+
+export function getAdminKey() {
+  if (!canUseSessionStorage()) {
+    return "";
+  }
+
+  return window.sessionStorage.getItem(adminSessionKey) || "";
+}
+
+export function setAdminKey(adminKey) {
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  window.sessionStorage.setItem(adminSessionKey, adminKey);
+}
+
+export function clearAdminKey() {
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  window.sessionStorage.removeItem(adminSessionKey);
+}
+
 export async function submitTherapistApplication(application) {
   return sanitizeApplication(
     await request("/applications", {
@@ -42,6 +75,9 @@ export async function submitTherapistApplication(application) {
 export async function fetchTherapistApplications() {
   const payload = await request("/applications", {
     method: "GET",
+    headers: {
+      "X-Admin-Key": getAdminKey(),
+    },
   });
 
   return payload.map(sanitizeApplication);
@@ -50,12 +86,18 @@ export async function fetchTherapistApplications() {
 export async function approveTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/approve`, {
     method: "POST",
+    headers: {
+      "X-Admin-Key": getAdminKey(),
+    },
   });
 }
 
 export async function rejectTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/reject`, {
     method: "POST",
+    headers: {
+      "X-Admin-Key": getAdminKey(),
+    },
   });
 }
 

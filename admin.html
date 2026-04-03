@@ -109,6 +109,11 @@
         border: 1px solid var(--border);
         color: var(--slate);
       }
+      .btn-inline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
       .cms-note {
         margin-top: 0.75rem;
         padding: 0.9rem 1rem;
@@ -243,11 +248,44 @@
         border: 1px dashed var(--border);
         border-radius: 16px;
       }
+      .auth-gate {
+        max-width: 520px;
+        margin: 1.5rem auto 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.5rem;
+      }
+      .auth-gate h2 {
+        margin: 0 0 0.6rem;
+        font-size: 1.1rem;
+      }
+      .auth-form {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      .auth-form input {
+        flex: 1;
+        padding: 0.8rem 0.95rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font: inherit;
+      }
+      .error-note {
+        margin-top: 0.75rem;
+        color: var(--red);
+        font-size: 0.9rem;
+        display: none;
+      }
       @media (max-width: 900px) {
         .grid {
           grid-template-columns: 1fr;
         }
         .hero {
+          flex-direction: column;
+        }
+        .auth-form {
           flex-direction: column;
         }
       }
@@ -271,35 +309,52 @@
         <div style="flex: 1">
           <h1>Admin Review</h1>
           <p class="subtle">
-            Manage locally submitted therapist applications and publish them into the public
-            directory.
+            Review therapist applications and publish them into the public directory.
           </p>
           <div class="cms-note">
-            Real content management now belongs in Sanity Studio. This page remains useful as a
-            local prototype for future submission workflow logic while the public site moves onto
-            the CMS.
+            Public applications can flow into Sanity now. This admin page is the review surface for
+            approving or rejecting them before they become live therapist listings.
           </div>
         </div>
-        <button class="btn-secondary" id="resetDemo">Reset Demo Data</button>
+        <div style="display: flex; gap: 0.75rem">
+          <button class="btn-secondary btn-inline" id="signOutAdmin" style="display: none">
+            Sign Out
+          </button>
+          <button class="btn-secondary btn-inline" id="resetDemo">Reset Demo Data</button>
+        </div>
       </div>
 
-      <div class="stats" id="adminStats"></div>
+      <div class="auth-gate" id="adminAuthGate" style="display: none">
+        <h2>Admin Sign-In</h2>
+        <p class="subtle">
+          Enter your review API admin key to unlock the submission queue and publishing controls.
+        </p>
+        <form class="auth-form" id="adminAuthForm">
+          <input id="adminKey" type="password" placeholder="Review API admin key" />
+          <button class="btn-primary btn-inline" type="submit">Unlock Admin</button>
+        </form>
+        <div class="error-note" id="authError">That admin key was not accepted.</div>
+      </div>
 
-      <div class="grid">
-        <aside class="panel">
-          <h2>Published Listings</h2>
-          <div id="publishedListings"></div>
-        </aside>
+      <div id="adminApp">
+        <div class="stats" id="adminStats"></div>
 
-        <main>
-          <div class="panel" style="margin-bottom: 1rem">
-            <h2>Applications</h2>
-            <p class="subtle" style="margin-top: 0">
-              Applications saved from the public signup page appear here immediately.
-            </p>
-          </div>
-          <div id="applicationsList"></div>
-        </main>
+        <div class="grid">
+          <aside class="panel">
+            <h2>Published Listings</h2>
+            <div id="publishedListings"></div>
+          </aside>
+
+          <main>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Applications</h2>
+              <p class="subtle" style="margin-top: 0">
+                Applications from the public signup flow appear here when the review API is running.
+              </p>
+            </div>
+            <div id="applicationsList"></div>
+          </main>
+        </div>
       </div>
     </div>
 
