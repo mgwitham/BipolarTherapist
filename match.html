@@ -1,0 +1,1566 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find Your Best Match — BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="Answer a few questions and get a calm, high-trust shortlist of bipolar therapists who may fit your needs."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      .match-hero {
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 35%),
+          linear-gradient(135deg, #0e4d5f 0%, #1a7a8f 58%, #2a9cb3 100%);
+        padding: 3.5rem 1.5rem 3rem;
+        color: white;
+      }
+      .match-hero-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 1.5rem;
+        align-items: start;
+      }
+      .match-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 1.15;
+        margin: 0 0 0.9rem;
+      }
+      .match-hero p {
+        margin: 0;
+        max-width: 58ch;
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+      .match-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.12);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+      }
+      .match-principles {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 18px;
+        padding: 1.2rem 1.25rem;
+      }
+      .match-principles h2 {
+        margin: 0 0 0.8rem;
+        font-size: 0.95rem;
+        color: white;
+      }
+      .match-principles ul {
+        margin: 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.5rem;
+        font-size: 0.86rem;
+        opacity: 0.92;
+      }
+      .match-panel-header {
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .match-steps {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.85rem;
+      }
+      .match-step {
+        font-size: 0.73rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--slate);
+        background: #f5fafb;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.32rem 0.6rem;
+      }
+      .match-layout {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+        gap: 1.5rem;
+      }
+      .match-panel,
+      .match-results {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+      }
+      .match-panel {
+        padding: 1.35rem;
+        position: sticky;
+        top: 84px;
+        align-self: start;
+      }
+      .match-panel h2,
+      .match-results h2 {
+        margin: 0 0 0.4rem;
+        font-size: 1rem;
+      }
+      .match-subtle {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-bottom: 1rem;
+      }
+      .match-form {
+        display: grid;
+        gap: 1rem;
+      }
+      .match-group {
+        display: grid;
+        gap: 0.45rem;
+      }
+      .match-group label,
+      .match-section-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .match-group input,
+      .match-group select {
+        width: 100%;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        color: var(--navy);
+        background: var(--white);
+        font-family: inherit;
+      }
+      .match-group input:focus,
+      .match-group select:focus {
+        border-color: var(--teal);
+        outline: none;
+      }
+      .match-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+      }
+      .match-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--slate);
+        font-size: 0.85rem;
+        background: #fbfdfe;
+      }
+      .match-check input {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--teal);
+      }
+      .match-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+      }
+      .match-actions .btn-secondary {
+        width: auto;
+      }
+      .match-actions .btn-primary {
+        width: auto;
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+      }
+      .intake-adaptive-coach {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.95rem 1rem;
+        border: 1px solid rgba(14, 77, 95, 0.14);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #f8fbfc 0%, #fdfefe 100%);
+      }
+      .intake-adaptive-coach.is-empty {
+        display: none;
+      }
+      .intake-adaptive-header h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.92rem;
+      }
+      .intake-adaptive-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .intake-adaptive-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .intake-tradeoff-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .intake-adaptive-item {
+        padding: 0.72rem 0.8rem;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid var(--border);
+      }
+      .intake-adaptive-item.tradeoff {
+        background: #fcfeff;
+      }
+      .intake-adaptive-item strong {
+        display: block;
+        margin-bottom: 0.18rem;
+        color: var(--navy);
+        font-size: 0.84rem;
+      }
+      .intake-adaptive-item span {
+        color: var(--slate);
+        font-size: 0.81rem;
+      }
+      .match-group.is-guided,
+      .match-group.is-guided .match-section-label {
+        color: var(--navy);
+      }
+      .match-group.is-guided input,
+      .match-group.is-guided select,
+      .match-group.is-guided .match-options {
+        border-color: rgba(14, 77, 95, 0.28);
+        box-shadow: 0 0 0 3px rgba(14, 77, 95, 0.06);
+      }
+      .match-results {
+        padding: 1.35rem;
+      }
+      .results-intro {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .match-note {
+        font-size: 0.83rem;
+        color: var(--muted);
+        max-width: 52ch;
+      }
+      .match-empty {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: var(--muted);
+      }
+      .match-list {
+        display: grid;
+        gap: 1rem;
+      }
+      .match-compare {
+        margin-top: 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+      }
+      .match-compare-header {
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+      }
+      .match-compare-header h3 {
+        margin: 0 0 0.25rem;
+        font-size: 0.98rem;
+      }
+      .match-compare-header p {
+        margin: 0;
+        font-size: 0.84rem;
+        color: var(--muted);
+      }
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 180px repeat(3, minmax(0, 1fr));
+      }
+      .compare-cell {
+        padding: 0.85rem 0.9rem;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .compare-grid .compare-cell:nth-child(4n) {
+        border-right: none;
+      }
+      .compare-cell.label {
+        background: #f9fcfd;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .compare-cell.header {
+        background: #f3fafb;
+      }
+      .compare-name {
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 0.2rem;
+      }
+      .compare-sub {
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
+      .compare-focus-note {
+        margin-top: 0.55rem;
+        font-size: 0.8rem;
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+      .match-card {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 18px;
+        padding: 1.1rem;
+        background:
+          linear-gradient(180deg, rgba(26, 122, 143, 0.045), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-editorial {
+        margin-bottom: 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 18px;
+        overflow: hidden;
+        background:
+          linear-gradient(90deg, rgba(26, 122, 143, 0.08), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-editorial-header {
+        padding: 1rem 1.05rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+      }
+      .match-editorial-header h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.98rem;
+      }
+      .match-editorial-header p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+      }
+      .match-editorial-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        padding: 1rem 1.05rem;
+      }
+      .match-editorial-card {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(26, 122, 143, 0.04), transparent 42%), #fff;
+        padding: 0.9rem 0.95rem;
+        box-shadow: 0 10px 20px rgba(14, 77, 95, 0.04);
+      }
+      .match-editorial-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+      }
+      .match-editorial-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 0.25rem;
+      }
+      .match-editorial-copy {
+        font-size: 0.83rem;
+        color: var(--slate);
+        line-height: 1.58;
+        margin-bottom: 0.7rem;
+      }
+      .match-editorial-note {
+        margin-top: 0.45rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .match-editorial-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.7rem;
+      }
+      .match-editorial-actions .btn-secondary {
+        width: auto;
+      }
+      .match-editorial-link {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--teal);
+        text-decoration: none;
+      }
+      .match-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 0.8rem;
+      }
+      .match-card-badges {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.55rem;
+      }
+      .match-rank {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+      .match-confidence {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+      .match-confidence.tone-high {
+        background: #e8f5ee;
+        color: #1f7a52;
+      }
+      .match-confidence.tone-medium {
+        background: #eef7f9;
+        color: var(--teal-dark);
+      }
+      .match-confidence.tone-light {
+        background: #f4f6f8;
+        color: var(--slate);
+      }
+      .match-card h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .match-meta {
+        color: var(--slate);
+        font-size: 0.84rem;
+        margin-top: 0.2rem;
+      }
+      .match-explanation {
+        color: var(--slate);
+        font-size: 0.89rem;
+        line-height: 1.65;
+        margin: 0.8rem 0 0;
+      }
+      .match-segment-learning {
+        margin-top: 0.55rem;
+        color: var(--teal-dark);
+        font-size: 0.79rem;
+        line-height: 1.55;
+        padding: 0.55rem 0.7rem;
+        border-radius: 12px;
+        background: rgba(26, 122, 143, 0.06);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+      }
+      .match-section {
+        margin-top: 0.9rem;
+      }
+      .match-section h4 {
+        margin: 0 0 0.45rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .match-reasons,
+      .match-cautions {
+        margin: 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .match-summary-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.7rem;
+      }
+      .match-summary-pill {
+        font-size: 0.73rem;
+        font-weight: 600;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+        background: #eef7f9;
+        color: var(--navy);
+      }
+      .contact-readiness-card {
+        display: grid;
+        gap: 0.7rem;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 16px;
+        padding: 0.9rem 0.95rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      }
+      .contact-readiness-card.tone-high {
+        background: linear-gradient(180deg, #f7fcf9 0%, #eef9f2 100%);
+      }
+      .contact-readiness-card.tone-medium {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+      }
+      .contact-readiness-card.tone-light {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+      }
+      .contact-readiness-item {
+        display: grid;
+        gap: 0.25rem;
+      }
+      .contact-readiness-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .contact-readiness-value {
+        font-size: 0.85rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .match-summary-bar {
+        margin-bottom: 1rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        background: #f7fbfc;
+        border: 1px solid var(--border);
+      }
+      .match-summary-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.9rem;
+      }
+      .match-summary-actions .btn-secondary,
+      .match-summary-actions .btn-primary {
+        width: auto;
+      }
+      .match-adaptive-next-step {
+        display: grid;
+        gap: 0.25rem;
+        margin-top: 0.8rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #f7fbfc 0%, #ffffff 100%);
+      }
+      .match-adaptive-next-step.is-empty {
+        display: none;
+      }
+      .match-adaptive-next-step-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .match-adaptive-next-step-body {
+        color: var(--slate);
+        font-size: 0.82rem;
+      }
+      .match-summary-bar strong {
+        display: block;
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .match-summary-text {
+        font-size: 0.88rem;
+        color: var(--slate);
+      }
+      .match-action-status {
+        margin-top: 0.7rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .match-feedback-bar {
+        margin: 1rem 0 0;
+        padding: 0.9rem 0.95rem;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fcfefe;
+      }
+      .adaptive-guidance {
+        margin: 1rem 0 0;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 18px;
+        background:
+          linear-gradient(90deg, rgba(26, 122, 143, 0.08), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
+      }
+      .adaptive-guidance-header {
+        padding: 1rem 1.05rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+      }
+      .adaptive-guidance-header h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.96rem;
+      }
+      .adaptive-guidance-header p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+      }
+      .adaptive-guidance-grid {
+        display: grid;
+        gap: 0.8rem;
+        padding: 1rem 1.05rem;
+      }
+      .adaptive-guidance-card {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 16px;
+        padding: 0.9rem 0.95rem;
+        background: linear-gradient(180deg, rgba(26, 122, 143, 0.04), transparent 42%), #fff;
+      }
+      .adaptive-guidance-card.tone-practical {
+        background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+      }
+      .adaptive-guidance-card.tone-timing {
+        background: linear-gradient(180deg, #f8fcff 0%, #eef7fc 100%);
+      }
+      .adaptive-guidance-card.tone-clinical {
+        background: linear-gradient(180deg, #f8fcfa 0%, #eef8f1 100%);
+      }
+      .adaptive-guidance-card.tone-decision {
+        background: linear-gradient(180deg, #fbfbff 0%, #f4f5ff 100%);
+      }
+      .adaptive-guidance-title {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 0.25rem;
+      }
+      .adaptive-guidance-body {
+        font-size: 0.84rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .first-contact-reco {
+        margin: 1rem 0 0;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 18px;
+        overflow: hidden;
+        background:
+          linear-gradient(90deg, rgba(26, 122, 143, 0.08), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
+      }
+      .first-contact-header {
+        padding: 1rem 1.05rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+      }
+      .first-contact-header h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.98rem;
+      }
+      .first-contact-header p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+      }
+      .first-contact-card {
+        padding: 1rem 1.05rem;
+        background: linear-gradient(180deg, rgba(26, 122, 143, 0.03), transparent 42%), transparent;
+      }
+      .first-contact-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+      }
+      .first-contact-kicker {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .first-contact-name {
+        margin-top: 0.25rem;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .first-contact-meta {
+        margin-top: 0.25rem;
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .first-contact-body {
+        margin-top: 0.9rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+      .first-contact-body p {
+        margin: 0;
+        font-size: 0.86rem;
+        color: var(--slate);
+        line-height: 1.65;
+      }
+      .first-contact-signal {
+        padding: 0.8rem 0.9rem;
+        border-radius: 14px;
+        background: rgba(26, 122, 143, 0.08);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        color: var(--slate);
+        font-size: 0.83rem;
+        line-height: 1.55;
+      }
+      .first-contact-signal-note {
+        margin-top: 0.35rem;
+        color: var(--muted);
+      }
+      .first-contact-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
+      .first-contact-actions .btn-primary,
+      .first-contact-actions .btn-secondary {
+        width: auto;
+      }
+      .first-contact-tracker {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid var(--border);
+      }
+      .first-contact-tracker-title {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .first-contact-tracker-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.7rem;
+      }
+      .first-contact-tracker-note {
+        margin-top: 0.65rem;
+        font-size: 0.81rem;
+        color: var(--muted);
+      }
+      .match-feedback-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-feedback-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.7rem;
+      }
+      .feedback-btn {
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--slate);
+        border-radius: 999px;
+        padding: 0.5rem 0.8rem;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .feedback-btn.active-positive {
+        border-color: #8dd5b0;
+        background: #e8f5ee;
+        color: #1f7a52;
+      }
+      .feedback-btn.active-negative {
+        border-color: #f0c4a8;
+        background: #fff7ed;
+        color: #9a4d14;
+      }
+      .feedback-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      .feedback-reason {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.8rem;
+        color: var(--slate);
+        background: var(--white);
+      }
+      .feedback-reason input {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--teal);
+      }
+      .feedback-note {
+        margin-top: 0.6rem;
+        font-size: 0.81rem;
+        color: var(--muted);
+      }
+      .match-outreach {
+        margin-top: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f8fbfc 0%, #eef6f8 100%);
+        padding: 1rem 1.05rem;
+      }
+      .match-outreach-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+        margin-bottom: 0.85rem;
+      }
+      .match-outreach-header h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.98rem;
+      }
+      .match-outreach-header p {
+        margin: 0;
+        font-size: 0.84rem;
+        color: var(--muted);
+        max-width: 56ch;
+      }
+      .match-outreach-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
+      .outreach-plan {
+        margin-bottom: 0.85rem;
+        padding: 0.95rem 1rem;
+        border-radius: 16px;
+        background:
+          linear-gradient(90deg, rgba(26, 122, 143, 0.08), transparent 30%),
+          rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        box-shadow: 0 10px 24px rgba(14, 77, 95, 0.04);
+      }
+      .outreach-plan-title {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .outreach-plan-copy {
+        margin-top: 0.45rem;
+        font-size: 0.84rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .outreach-plan-actions {
+        margin-top: 0.7rem;
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
+      .outreach-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .outreach-card {
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(26, 122, 143, 0.04), transparent 42%),
+          rgba(255, 255, 255, 0.92);
+        padding: 0.9rem;
+        box-shadow: 0 10px 20px rgba(14, 77, 95, 0.04);
+      }
+      .outreach-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: start;
+      }
+      .outreach-card-top h4 {
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .outreach-card-top p {
+        margin: 0.2rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .outreach-note {
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+        color: var(--slate);
+      }
+      .outreach-note-strong {
+        color: var(--teal);
+      }
+      .outreach-link-button {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+      }
+      .contact-readiness-note {
+        margin-top: 0.3rem;
+        font-size: 0.77rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .outreach-links {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.7rem;
+      }
+      .outreach-link {
+        text-decoration: none;
+        color: var(--teal);
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+      .concierge-panel {
+        margin-top: 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 1rem;
+      }
+      .concierge-panel-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+      }
+      .concierge-panel-top h4 {
+        margin: 0 0 0.25rem;
+        font-size: 0.94rem;
+      }
+      .concierge-panel-top p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+        max-width: 58ch;
+      }
+      .concierge-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: #eef7f9;
+        color: var(--teal-dark);
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+      .concierge-shortlist {
+        margin-top: 0.75rem;
+        font-size: 0.81rem;
+        color: var(--slate);
+      }
+      .concierge-form {
+        margin-top: 0.9rem;
+      }
+      .concierge-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+      .concierge-grid .match-group:last-child {
+        grid-column: 1 / -1;
+      }
+      .concierge-grid textarea {
+        width: 100%;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        color: var(--navy);
+        background: var(--white);
+        font-family: inherit;
+        resize: vertical;
+      }
+      .concierge-grid textarea:focus {
+        border-color: var(--teal);
+        outline: none;
+      }
+      .concierge-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.9rem;
+      }
+      .concierge-actions .btn-primary,
+      .concierge-actions .btn-secondary {
+        width: auto;
+      }
+      .concierge-status {
+        margin-top: 0.75rem;
+        font-size: 0.81rem;
+        color: var(--muted);
+      }
+      .feedback-insights {
+        margin-top: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        overflow: hidden;
+      }
+      .feedback-insights-header {
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+      }
+      .feedback-insights-header h3 {
+        margin: 0 0 0.25rem;
+        font-size: 0.98rem;
+      }
+      .feedback-insights-header p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+      }
+      .insight-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.8rem;
+        padding: 1rem 1.1rem 0;
+      }
+      .insight-stat {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.85rem 0.9rem;
+        background: #fcfefe;
+      }
+      .insight-stat-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .insight-stat-label {
+        margin-top: 0.2rem;
+        font-size: 0.76rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .insight-list {
+        padding: 1rem 1.1rem 1.1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .insight-item {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.85rem 0.9rem;
+        background: #fff;
+      }
+      .insight-item-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+      }
+      .insight-item-name {
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .insight-item-meta {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+      .insight-balance {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--teal-dark);
+      }
+      .insight-empty {
+        padding: 1rem 1.1rem 1.2rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .match-score-note {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      @media (max-width: 900px) {
+        .match-hero-inner,
+        .match-layout {
+          grid-template-columns: 1fr;
+        }
+        .match-panel {
+          position: static;
+        }
+        .match-editorial-grid {
+          grid-template-columns: 1fr;
+        }
+        .compare-grid {
+          grid-template-columns: 140px repeat(3, minmax(180px, 1fr));
+          overflow-x: auto;
+        }
+        .match-compare {
+          overflow-x: auto;
+        }
+      }
+      @media (max-width: 640px) {
+        .results-intro {
+          flex-direction: column;
+        }
+        .match-summary-actions {
+          flex-direction: column;
+        }
+        .match-summary-actions .btn-secondary,
+        .match-summary-actions .btn-primary {
+          width: 100%;
+        }
+        .match-options {
+          grid-template-columns: 1fr;
+        }
+        .compare-grid {
+          grid-template-columns: 120px repeat(3, minmax(220px, 1fr));
+        }
+        .compare-cell {
+          padding: 0.75rem 0.7rem;
+          font-size: 0.8rem;
+        }
+        .first-contact-top,
+        .match-outreach-header,
+        .insight-item-top {
+          flex-direction: column;
+        }
+        .first-contact-actions,
+        .match-outreach-actions {
+          flex-direction: column;
+        }
+        .first-contact-actions .btn-primary,
+        .first-contact-actions .btn-secondary,
+        .match-outreach-actions .btn-primary,
+        .match-outreach-actions .btn-secondary {
+          width: 100%;
+        }
+        .first-contact-tracker-actions,
+        .match-feedback-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+        }
+        .feedback-btn {
+          width: 100%;
+        }
+        .concierge-grid {
+          grid-template-columns: 1fr;
+        }
+        .match-actions {
+          flex-direction: column;
+        }
+        .match-actions .btn-primary,
+        .match-actions .btn-secondary {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="match.html" style="color: var(--teal); font-weight: 600">Get Matched</a></li>
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
+        <li><a href="directory.html">Directory</a></li>
+        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+      </ul>
+    </nav>
+
+    <section class="match-hero">
+      <div class="match-hero-inner">
+        <div>
+          <div class="match-badge">Guided Bipolar Match</div>
+          <h1>Find a shortlist of bipolar therapists that may actually fit</h1>
+          <p>
+            Answer a few practical questions. We will use care constraints, bipolar-specific fit,
+            and trust signals to suggest therapists and explain why they rose to the top.
+          </p>
+        </div>
+        <aside class="match-principles">
+          <h2>How this works</h2>
+          <ul>
+            <li>
+              We prioritize hard constraints like state, care format, insurance, and medication
+              needs.
+            </li>
+            <li>
+              We then boost bipolar-specific experience, modalities, populations served, and
+              verification.
+            </li>
+            <li>Every result shows why it matched and where tradeoffs may still exist.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <div class="match-layout">
+      <section class="match-panel">
+        <div class="match-panel-header">
+          <h2>Your Care Needs</h2>
+          <p class="match-subtle">
+            We start with practical constraints first, then refine for bipolar-specific fit.
+          </p>
+          <div class="match-steps">
+            <span class="match-step">1. Practical fit</span>
+            <span class="match-step">2. Clinical fit</span>
+            <span class="match-step">3. Trusted shortlist</span>
+          </div>
+          <div class="intake-adaptive-coach is-empty" id="intakeAdaptiveCoach"></div>
+          <div class="intake-adaptive-coach is-empty" id="intakeTradeoffCoach"></div>
+        </div>
+        <form id="matchForm" class="match-form">
+          <div class="match-group" data-intake-field="care_state">
+            <label for="care_state">State</label>
+            <input
+              id="care_state"
+              name="care_state"
+              type="text"
+              maxlength="2"
+              placeholder="CA"
+              required
+            />
+          </div>
+
+          <div class="match-group" data-intake-field="care_format">
+            <label for="care_format">Care Format</label>
+            <select id="care_format" name="care_format" required>
+              <option>Either</option>
+              <option>Telehealth</option>
+              <option>In-Person</option>
+            </select>
+          </div>
+
+          <div class="match-group" data-intake-field="care_intent">
+            <label for="care_intent">Care Type</label>
+            <select id="care_intent" name="care_intent" required>
+              <option>Either</option>
+              <option>Therapy</option>
+              <option>Psychiatry</option>
+            </select>
+          </div>
+
+          <div class="match-group" data-intake-field="needs_medication_management">
+            <label for="needs_medication_management">Medication Management</label>
+            <select id="needs_medication_management" name="needs_medication_management" required>
+              <option>Open to either</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="match-group" data-intake-field="insurance">
+            <label for="insurance">Insurance or Payment Preference</label>
+            <input
+              id="insurance"
+              name="insurance"
+              type="text"
+              placeholder="Aetna, Medicaid, Self-Pay"
+            />
+          </div>
+
+          <div class="match-group" data-intake-field="budget_max">
+            <label for="budget_max">Budget Max Per Session</label>
+            <input id="budget_max" name="budget_max" type="number" min="0" placeholder="150" />
+          </div>
+
+          <div class="match-group" data-intake-field="urgency">
+            <label for="urgency">Urgency</label>
+            <select id="urgency" name="urgency" required>
+              <option>Flexible</option>
+              <option>Within a month</option>
+              <option>Within 2 weeks</option>
+              <option>ASAP</option>
+            </select>
+          </div>
+
+          <div class="match-group" data-intake-field="priority_mode">
+            <label for="priority_mode">What Matters Most</label>
+            <select id="priority_mode" name="priority_mode" required>
+              <option>Best overall fit</option>
+              <option>Soonest availability</option>
+              <option>Lowest cost</option>
+              <option>Highest specialization</option>
+            </select>
+          </div>
+
+          <div class="match-group" data-intake-field="bipolar_focus">
+            <div class="match-section-label">Bipolar Focus</div>
+            <div class="match-options">
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Bipolar I" /> Bipolar I</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Bipolar II" /> Bipolar II</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Cyclothymia" />
+                Cyclothymia</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Rapid Cycling" /> Rapid
+                Cycling</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Mixed Episodes" /> Mixed
+                Episodes</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Psychosis" /> Psychosis</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Medication Management" />
+                Medication Mgmt</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="bipolar_focus" value="Family Support" /> Family
+                Support</label
+              >
+            </div>
+          </div>
+
+          <div class="match-group" data-intake-field="preferred_modalities">
+            <div class="match-section-label">Preferred Modalities</div>
+            <div class="match-options">
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="CBT" /> CBT</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="DBT" /> DBT</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="IPSRT" /> IPSRT</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="ACT" /> ACT</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="Family therapy" /> Family
+                therapy</label
+              >
+              <label class="match-check"
+                ><input
+                  type="checkbox"
+                  name="preferred_modalities"
+                  value="Mindfulness-based therapy"
+                />
+                Mindfulness</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="preferred_modalities" value="Psychoeducation" />
+                Psychoeducation</label
+              >
+            </div>
+          </div>
+
+          <div class="match-group" data-intake-field="population_fit">
+            <div class="match-section-label">Population Fit</div>
+            <div class="match-options">
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Adults" /> Adults</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Young adults" /> Young
+                adults</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Adolescents" />
+                Adolescents</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Couples" /> Couples</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Families" /> Families</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="Professionals" />
+                Professionals</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="College students" /> College
+                students</label
+              >
+              <label class="match-check"
+                ><input type="checkbox" name="population_fit" value="LGBTQ+" /> LGBTQ+</label
+              >
+            </div>
+          </div>
+
+          <div class="match-group" data-intake-field="language_preferences">
+            <label for="language_preferences">Language Preferences</label>
+            <input
+              id="language_preferences"
+              name="language_preferences"
+              type="text"
+              placeholder="English, Spanish"
+            />
+          </div>
+
+          <div class="match-actions">
+            <button type="submit" class="btn-primary">Find My Best Matches</button>
+            <button type="button" class="btn-secondary" id="resetMatch">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="match-results">
+        <div class="results-intro">
+          <div>
+            <h2>Your Match Shortlist</h2>
+            <div class="match-subtle" id="resultsMeta">We will suggest up to 3 strong options.</div>
+          </div>
+          <div class="match-note">
+            This tool is meant to narrow the field, not replace your own judgment. It compares
+            structured fit and trust signals, but it cannot know personal chemistry or exact
+            real-time availability. Review profiles, availability, and insurance details before
+            reaching out.
+          </div>
+        </div>
+        <div class="match-summary-bar">
+          <strong>What We’re Optimizing For</strong>
+          <div class="match-summary-text" id="matchSummary">
+            We balance care constraints first, then bipolar-specific fit and trust signals.
+          </div>
+          <div class="match-adaptive-next-step is-empty" id="matchAdaptiveNextStep"></div>
+          <div class="match-summary-actions">
+            <button type="button" class="btn-secondary" id="saveShortlist" disabled>
+              Save this shortlist
+            </button>
+            <button type="button" class="btn-secondary" id="copyShareLink" disabled>
+              Copy share link
+            </button>
+            <button type="button" class="btn-primary" id="requestHelp" disabled>
+              Help me narrow this
+            </button>
+          </div>
+          <div class="match-action-status" id="matchActionStatus">
+            Run a match to save, share, or ask for help comparing your shortlist.
+          </div>
+        </div>
+        <div class="match-feedback-bar">
+          <div class="match-feedback-title">Did this shortlist feel useful?</div>
+          <div class="match-feedback-actions">
+            <button type="button" class="feedback-btn" id="feedbackShortlistPositive">
+              Yes, this felt right
+            </button>
+            <button type="button" class="feedback-btn" id="feedbackShortlistNegative">
+              Not really
+            </button>
+          </div>
+          <div class="feedback-reasons" id="shortlistReasonGroup" style="display: none">
+            <label class="feedback-reason"
+              ><input type="checkbox" value="Insurance mismatch" /> Insurance mismatch</label
+            >
+            <label class="feedback-reason"
+              ><input type="checkbox" value="Availability mismatch" /> Availability mismatch</label
+            >
+            <label class="feedback-reason"
+              ><input type="checkbox" value="Needs medication management" /> Needs medication
+              management</label
+            >
+            <label class="feedback-reason"
+              ><input type="checkbox" value="Wrong care format" /> Wrong care format</label
+            >
+            <label class="feedback-reason"
+              ><input type="checkbox" value="Weak bipolar specialization" /> Weak bipolar
+              specialization</label
+            >
+            <label class="feedback-reason"><input type="checkbox" value="Other" /> Other</label>
+          </div>
+          <div class="feedback-note" id="feedbackStatus">
+            Your feedback helps improve future match quality.
+          </div>
+        </div>
+        <div id="matchFirstContact"></div>
+        <div id="matchFallbackContact"></div>
+        <div id="matchAdaptiveGuidance"></div>
+        <div class="feedback-insights" id="feedbackInsights">
+          <div class="feedback-insights-header">
+            <h3>Internal Match Insights</h3>
+            <p>Local-only summary of the feedback captured on this device.</p>
+          </div>
+          <div class="insight-empty">No feedback captured yet.</div>
+        </div>
+        <div id="matchResults" class="match-empty">
+          Start by answering the intake questions. We’ll show a ranked shortlist with reasons,
+          tradeoffs, and a clearer next step.
+        </div>
+        <div id="matchOutreach"></div>
+        <div id="matchCompare"></div>
+      </section>
+    </div>
+
+    <footer>
+      <p style="margin-bottom: 0.5rem">
+        <strong style="color: white">BipolarTherapyHub</strong>
+      </p>
+      <p>
+        This matching tool is informational only and does not replace clinical advice or emergency
+        care.
+      </p>
+    </footer>
+
+    <script type="module" src="assets/match.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
+  </body>
+</html>

@@ -1,3 +1,10 @@
 .DS_Store
 node_modules/
 dist/
+studio/node_modules/
+studio/.sanity/
+studio/dist/
+.env
+studio/.env
+data/import/*.csv
+!data/import/therapists-template.csv

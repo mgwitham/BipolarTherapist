@@ -1,6 +1,6 @@
 module.exports = [
   {
-    ignores: ["dist/**", "node_modules/**"],
+    ignores: ["dist/**", "node_modules/**", "studio/**"],
   },
   {
     files: ["eslint.config.js"],
@@ -20,6 +20,7 @@ module.exports = [
       globals: {
         console: "readonly",
         document: "readonly",
+        fetch: "readonly",
         history: "readonly",
         localStorage: "readonly",
         Map: "readonly",

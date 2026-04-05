@@ -1,6 +1,6 @@
 # Bipolar Therapist Directory
 
-Static site clone of the live BipolarTherapists experience, rebuilt locally so we can keep developing it without needing access to the private upstream repository.
+Local BipolarTherapyHub product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.
 
 ## Tech Stack
 
@@ -11,10 +11,13 @@ Static site clone of the live BipolarTherapists experience, rebuilt locally so w
 ## Project Structure
 
 - `index.html`: homepage
+- `match.html`: guided therapist match flow
 - `directory.html`: searchable therapist directory
 - `therapist.html`: therapist profile page
 - `signup.html`: therapist signup / listing page
 - `assets/`: shared data, styles, and client-side JavaScript
+- `assets/matching-model.js`: future matching intake and scoring foundation
+- `MATCHING_FOUNDATION.md`: product and trust model for guided therapist matching
 - `vite.config.js`: multi-page Vite build configuration
 
 ## Development
@@ -32,6 +35,165 @@ npm run dev
 ```
 
 Vite will print a local URL such as `http://localhost:5173/`.
+
+## CMS
+
+This repo now includes a Sanity Studio workspace in `studio/`.
+
+Copy the example environment files before using it:
+
+```sh
+cp .env.example .env
+cp studio/.env.example studio/.env
+```
+
+Then set your Sanity project ID and dataset in both files.
+
+Run the website:
+
+```sh
+npm run dev
+```
+
+Run the CMS:
+
+```sh
+npm run cms:dev
+```
+
+Run the local review API for therapist submissions and admin publishing:
+
+```sh
+npm run api:dev
+```
+
+For the review API, add these local-only secrets to `.env`:
+
+```sh
+SANITY_API_TOKEN=your_write_enabled_sanity_token
+REVIEW_API_ADMIN_KEY=choose-a-strong-admin-password
+```
+
+Recommended upgrade:
+
+```sh
+REVIEW_API_ADMIN_USERNAME=admin
+REVIEW_API_ADMIN_PASSWORD=choose-a-strong-admin-password
+REVIEW_API_SESSION_SECRET=choose-a-long-random-session-secret
+REVIEW_API_ALLOW_LEGACY_KEY=false
+```
+
+Production-shaped review API settings:
+
+```sh
+REVIEW_API_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+REVIEW_API_SESSION_TTL_MS=43200000
+REVIEW_API_LOGIN_WINDOW_MS=900000
+REVIEW_API_LOGIN_MAX_ATTEMPTS=10
+```
+
+By default the site will keep using the seeded local data until the Sanity environment variables
+are configured. Once they are set, the public pages will read therapist content from Sanity.
+
+Current scope:
+
+- public therapist listings can come from Sanity
+- homepage featured therapists can come from Sanity
+- Sanity Studio manages therapist, homepage, site settings, and therapist application documents
+- the repo includes a future-ready therapist matching model
+- `match.html` provides a guided public-facing shortlist and outreach flow
+
+## MVP Boundary
+
+See [MVP_LAUNCH_PLAN.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/MVP_LAUNCH_PLAN.md) for the current launch boundary between:
+
+- public MVP product surfaces
+- internal diagnostics and operational tooling
+- rollout priorities for the first real version
+
+## CMS Import
+
+You can bulk import therapist listings into Sanity from CSV instead of hand-entering them.
+
+1. Copy the template:
+
+```sh
+cp data/import/therapists-template.csv data/import/therapists.csv
+```
+
+2. Fill in `data/import/therapists.csv`.
+
+Array-style fields use `|` separators:
+
+- `specialties`
+- `insuranceAccepted`
+- `languages`
+
+3. Create a Sanity API token with write access in Sanity Manage.
+
+4. Run the importer:
+
+```sh
+SANITY_API_TOKEN=your_token_here npm run cms:import:therapists
+```
+
+The importer will upsert therapists by slug, so rerunning it updates existing listings instead of
+duplicating them.
+
+Current behavior:
+
+- the public signup form can create Sanity therapist application documents through the local review API
+- the admin review queue requires login through the review API
+- publish/reject actions from `admin.html` are protected by a server-issued admin session
+- the old `REVIEW_API_ADMIN_KEY` path still works as a fallback during migration
+- admin sessions now expire automatically
+- login attempts are rate-limited per client
+- allowed browser origins are explicitly configurable
+- the same review API handler now works locally and on a hosted `/api/review/*` route
+- email notifications can be enabled for new submissions and approval/rejection updates
+- legacy `X-Admin-Key` auth is now disabled by default and must be explicitly re-enabled
+
+Still to come:
+
+- stronger user-based authentication instead of shared admin credentials
+- final deployment of the review API to your production hosting
+- payments and listing lifecycle automation
+
+## Email Notifications
+
+This project is prepared for Resend-based transactional email without requiring a separate mail server.
+
+Add these local or hosted environment variables when you are ready:
+
+```sh
+RESEND_API_KEY=your_resend_api_key
+REVIEW_EMAIL_FROM=notifications@yourdomain.com
+REVIEW_NOTIFICATION_TO=you@yourdomain.com
+```
+
+Behavior when configured:
+
+- new therapist submission -> admin notification email
+- approved application -> applicant notification email
+- rejected application -> applicant notification email
+
+If those variables are missing, the signup/review flow still works normally and email sending is skipped.
+
+## Security Notes
+
+For a stronger local or hosted setup, make these changes in your real `.env`:
+
+```sh
+REVIEW_API_ADMIN_PASSWORD=replace-the-placeholder-password
+REVIEW_API_SESSION_SECRET=replace-with-a-long-random-secret
+REVIEW_API_ALLOW_LEGACY_KEY=false
+```
+
+Recommended next cleanup:
+
+- rotate `SANITY_API_TOKEN`
+- stop using the placeholder value `Password`
+- remove `REVIEW_API_ADMIN_KEY` entirely once you no longer need the fallback
 
 ## Node Version
 
@@ -63,7 +225,7 @@ Run the full local verification suite:
 npm run check
 ```
 
-This runs formatting checks, linting, and a production build.
+This runs formatting checks, linting, the main site build, and the Sanity Studio build.
 
 ## Commit Workflow
 
@@ -108,6 +270,13 @@ Typical static-host settings:
 
 - Build command: `npm run build`
 - Output directory: `dist`
+
+For Vercel-style hosting, this repo also includes:
+
+- `vercel.json` for the Vite build output
+- `api/review/[...path].mjs` so the review API can live beside the frontend
+
+See [DEPLOYMENT.md](/Users/michaelwitham/Desktop/Bipolar Therapist Directory/DEPLOYMENT.md) for the full Vercel deployment checklist, required environment variables, and post-deploy smoke test.
 
 ## GitHub Workflow
 

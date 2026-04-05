@@ -2,15 +2,19 @@
   "name": "bipolar-therapist-directory",
   "private": true,
   "version": "1.0.0",
-  "description": "Static site clone of the live BipolarTherapists experience, rebuilt locally so we can keep developing it without needing access to the private upstream repository.",
+  "description": "BipolarTherapyHub local product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.",
   "scripts": {
     "dev": "vite",
+    "api:dev": "node server/review-api.mjs",
     "build": "vite build",
     "preview": "vite preview",
+    "cms:dev": "npm --prefix studio run dev",
+    "cms:build": "npm --prefix studio run build",
+    "cms:import:therapists": "node scripts/import-therapists.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run build",
+    "check": "npm run format:check && npm run lint && npm run build && npm run cms:build",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -24,6 +28,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@sanity/client": "^7.11.1",
     "eslint": "^10.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",

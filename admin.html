@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Review — BipolarTherapists</title>
+    <title>Admin Review — BipolarTherapyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -109,6 +109,21 @@
         border: 1px solid var(--border);
         color: var(--slate);
       }
+      .btn-inline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cms-note {
+        margin-top: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--slate);
+        line-height: 1.6;
+        font-size: 0.9rem;
+      }
       .stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -165,6 +180,113 @@
         padding: 1.2rem;
         margin-bottom: 1rem;
       }
+      .queue-card {
+        padding: 1rem 1.05rem;
+        margin-bottom: 0.85rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+      }
+      .queue-card h3 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .queue-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: start;
+      }
+      .queue-head-actions {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .queue-summary {
+        margin-top: 0.7rem;
+        color: var(--slate);
+        font-size: 0.88rem;
+        line-height: 1.6;
+      }
+      .queue-shortlist {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.45rem;
+      }
+      .queue-shortlist-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.75rem 0.8rem;
+        background: #fbfdfe;
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .queue-item-controls {
+        margin-top: 0.65rem;
+        display: flex;
+        gap: 0.55rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .queue-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.9rem;
+      }
+      .queue-insights {
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .queue-insights-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.75rem;
+      }
+      .queue-insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+      }
+      .queue-insight-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 0.85rem 0.9rem;
+      }
+      .queue-insight-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .queue-insight-label {
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+        line-height: 1.5;
+      }
+      .queue-select-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .queue-select {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        color: var(--navy);
+        background: var(--white);
+      }
       .application-head {
         display: flex;
         justify-content: space-between;
@@ -204,6 +326,93 @@
         display: flex;
         gap: 0.75rem;
         align-items: center;
+        flex-wrap: wrap;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin: 0.75rem 0 0;
+      }
+      .toolbar input,
+      .toolbar select {
+        padding: 0.75rem 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        background: var(--white);
+      }
+      .toolbar input {
+        flex: 1 1 240px;
+      }
+      .toolbar select {
+        min-width: 180px;
+      }
+      .notes-box {
+        margin-top: 0.9rem;
+        display: grid;
+        gap: 0.6rem;
+      }
+      .review-coach-box {
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .review-coach-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .review-coach-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+      .review-coach-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .review-coach-status {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .review-history-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .review-history-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: #fbfdfe;
+        border: 1px solid var(--border);
+        color: var(--slate);
+        font-size: 0.83rem;
+        line-height: 1.5;
+      }
+      .notes-box textarea {
+        width: 100%;
+        min-height: 90px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.8rem 0.9rem;
+        font: inherit;
+        resize: vertical;
+      }
+      .notes-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .mini-status {
+        font-size: 0.8rem;
+        color: var(--muted);
       }
       .status {
         display: inline-flex;
@@ -213,7 +422,8 @@
         font-weight: 700;
         text-transform: capitalize;
       }
-      .status.published {
+      .status.published,
+      .status.approved {
         background: #e8f5ee;
         color: #1f7a52;
       }
@@ -225,6 +435,14 @@
         background: var(--teal-faint);
         color: var(--teal-dark);
       }
+      .status.reviewing {
+        background: #eef2ff;
+        color: #4f46e5;
+      }
+      .status.requested_changes {
+        background: #fff7ed;
+        color: var(--red);
+      }
       .empty {
         padding: 2rem;
         text-align: center;
@@ -233,11 +451,44 @@
         border: 1px dashed var(--border);
         border-radius: 16px;
       }
+      .auth-gate {
+        max-width: 520px;
+        margin: 1.5rem auto 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.5rem;
+      }
+      .auth-gate h2 {
+        margin: 0 0 0.6rem;
+        font-size: 1.1rem;
+      }
+      .auth-form {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      .auth-form input {
+        flex: 1;
+        padding: 0.8rem 0.95rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font: inherit;
+      }
+      .error-note {
+        margin-top: 0.75rem;
+        color: var(--red);
+        font-size: 0.9rem;
+        display: none;
+      }
       @media (max-width: 900px) {
         .grid {
           grid-template-columns: 1fr;
         }
         .hero {
+          flex-direction: column;
+        }
+        .auth-form {
           flex-direction: column;
         }
       }
@@ -246,8 +497,7 @@
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <strong>BipolarTherapists</strong>
+        <strong>BipolarTherapyHub</strong>
       </a>
       <ul class="nav-links">
         <li><a href="directory.html">Directory</a></li>
@@ -258,33 +508,83 @@
 
     <div class="wrap">
       <div class="hero">
-        <div>
+        <div style="flex: 1">
           <h1>Admin Review</h1>
           <p class="subtle">
-            Manage locally submitted therapist applications and publish them into the public
-            directory.
+            Review therapist applications and publish them into the public directory.
           </p>
+          <div class="cms-note">
+            Public applications can flow into Sanity now. This admin page is the review surface for
+            approving or rejecting them before they become live therapist listings.
+          </div>
         </div>
-        <button class="btn-secondary" id="resetDemo">Reset Demo Data</button>
+        <div style="display: flex; gap: 0.75rem">
+          <button class="btn-secondary btn-inline" id="signOutAdmin" style="display: none">
+            Sign Out
+          </button>
+          <button class="btn-secondary btn-inline" id="resetDemo">Reset Demo Data</button>
+        </div>
       </div>
 
-      <div class="stats" id="adminStats"></div>
+      <div class="auth-gate" id="adminAuthGate" style="display: none">
+        <h2>Admin Sign-In</h2>
+        <p class="subtle">Sign in to unlock the submission queue and publishing controls.</p>
+        <form class="auth-form" id="adminAuthForm">
+          <input id="adminUsername" type="text" placeholder="Admin username (optional for now)" />
+          <input id="adminKey" type="password" placeholder="Admin password" />
+          <button class="btn-primary btn-inline" type="submit">Sign In</button>
+        </form>
+        <div class="error-note" id="authError">Those admin credentials were not accepted.</div>
+      </div>
 
-      <div class="grid">
-        <aside class="panel">
-          <h2>Published Listings</h2>
-          <div id="publishedListings"></div>
-        </aside>
+      <div id="adminApp">
+        <div class="stats" id="adminStats"></div>
 
-        <main>
-          <div class="panel" style="margin-bottom: 1rem">
-            <h2>Applications</h2>
-            <p class="subtle" style="margin-top: 0">
-              Applications saved from the public signup page appear here immediately.
-            </p>
-          </div>
-          <div id="applicationsList"></div>
-        </main>
+        <div class="grid">
+          <aside class="panel">
+            <h2>Published Listings</h2>
+            <div id="publishedListings"></div>
+          </aside>
+
+          <main>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Funnel Analytics</h2>
+              <p class="subtle" style="margin-top: 0">
+                Local-only event tracking for the key moments in browse, match, shortlist, and
+                outreach.
+              </p>
+              <div id="funnelInsights"></div>
+            </div>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Concierge Queue</h2>
+              <p class="subtle" style="margin-top: 0">
+                Local-only requests captured when a user wants help choosing or reaching out.
+              </p>
+              <div id="conciergeQueue"></div>
+            </div>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Applications</h2>
+              <p class="subtle" style="margin-top: 0">
+                Applications from the public signup flow appear here when the review API is running.
+              </p>
+              <div class="toolbar">
+                <input
+                  type="search"
+                  id="applicationSearch"
+                  placeholder="Search applicants, cities, specialties..."
+                />
+                <select id="applicationStatusFilter">
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+            <div id="applicationsList"></div>
+          </main>
+        </div>
       </div>
     </div>
 

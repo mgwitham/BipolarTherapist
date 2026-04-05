@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Therapist Profile — BipolarTherapists</title>
+    <title>Therapist Profile — BipolarTherapyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -91,6 +91,24 @@
       .nav-links a:hover {
         color: var(--teal);
       }
+      .nav-shortlist {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .nav-shortlist-count {
+        min-width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0 0.35rem;
+      }
       .nav-cta {
         background: var(--teal) !important;
         color: white !important;
@@ -149,10 +167,18 @@
       }
       .profile-main h1 {
         font-family: "Lora", serif;
-        font-size: 1.6rem;
+        font-size: 1.9rem;
         font-weight: 600;
         color: var(--navy);
         line-height: 1.2;
+      }
+      .eyebrow {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 0.45rem;
       }
       .profile-main .creds {
         font-size: 0.9rem;
@@ -173,6 +199,13 @@
         align-items: center;
         gap: 0.4rem;
       }
+      .practice-line {
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .hero-meta {
+        margin-top: 0.8rem;
+      }
       .status-badge {
         display: inline-flex;
         align-items: center;
@@ -189,6 +222,27 @@
       .badge-waitlist {
         background: #f5f5f5;
         color: var(--muted);
+      }
+      .trust-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      .trust-pill {
+        font-size: 0.77rem;
+        font-weight: 600;
+        padding: 0.36rem 0.7rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+      }
+      .fit-summary {
+        margin-top: 1rem;
+        font-size: 0.96rem;
+        line-height: 1.7;
+        color: var(--slate);
+        max-width: 58ch;
       }
       .profile-actions {
         display: flex;
@@ -211,6 +265,9 @@
       .btn-contact:hover {
         background: var(--teal-dark);
       }
+      .btn-contact-secondary {
+        background: var(--teal-dark);
+      }
       .btn-website {
         display: block;
         text-align: center;
@@ -225,6 +282,43 @@
       }
       .btn-website:hover {
         background: var(--border);
+      }
+      .shortlist-profile-btn {
+        border: none;
+        cursor: pointer;
+      }
+      .shortlist-profile-btn.is-saved {
+        background: rgba(26, 122, 143, 0.14);
+        color: var(--teal-dark);
+      }
+      .profile-shortlist-status {
+        margin-top: 0.75rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+        max-width: 48ch;
+      }
+      .profile-shortlist-priority {
+        margin-top: 0.85rem;
+        max-width: 220px;
+      }
+      .profile-shortlist-priority label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .profile-shortlist-priority select {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.84rem;
+        color: var(--navy);
+        background: var(--white);
+        font-family: inherit;
       }
       .profile-body {
         display: grid;
@@ -290,6 +384,9 @@
         padding: 1.35rem;
         margin-bottom: 1.25rem;
       }
+      .trust-panel {
+        background: linear-gradient(180deg, #f9fcfd 0%, #eef7f9 100%);
+      }
       .sidebar-panel h3 {
         font-size: 0.875rem;
         font-weight: 700;
@@ -322,6 +419,16 @@
       }
       .info-val.teal {
         color: var(--teal);
+      }
+      .match-confidence-note {
+        margin: 0.2rem 0 0.65rem;
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        color: var(--slate);
+        font-size: 0.82rem;
+        line-height: 1.6;
       }
       .contact-section {
         background: linear-gradient(135deg, var(--teal-faint), #ddf0f5);
@@ -366,9 +473,9 @@
         color: var(--navy);
       }
       .fee-note {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: var(--muted);
-        margin-top: 0.15rem;
+        margin-top: 0.35rem;
       }
       .lang-pills {
         display: flex;
@@ -472,10 +579,14 @@
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <span class="nav-name">Bipolar<span>Therapists</span></span>
+        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
         <li><a href="directory.html">Find a Therapist</a></li>
         <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
       </ul>
@@ -495,14 +606,12 @@
 
     <footer>
       <p style="margin-bottom: 0.4rem">
-        <strong style="color: white">🧠 BipolarTherapists</strong>
+        <strong style="color: white">BipolarTherapyHub</strong>
       </p>
-      <p>
-        Is this your listing? <a href="mailto:hello@chatroam.polsia.app">Contact us</a> to update
-        your profile.
-      </p>
+      <p>Is this your listing? <a href="signup.html">Claim or update your listing</a>.</p>
     </footer>
 
     <script type="module" src="assets/therapist-page.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>
