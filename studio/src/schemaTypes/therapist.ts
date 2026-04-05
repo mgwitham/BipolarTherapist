@@ -126,7 +126,8 @@ export const therapistType = defineType({
       type: "text",
       rows: 3,
       group: "practice",
-      description: "Describe the first step after someone reaches out, such as a consult call or intake review.",
+      description:
+        "Describe the first step after someone reaches out, such as a consult call or intake review.",
     }),
     defineField({
       name: "bookingUrl",

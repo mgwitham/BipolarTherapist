@@ -66,14 +66,16 @@ export const therapistApplicationType = defineType({
       title: "Contact guidance",
       type: "text",
       rows: 3,
-      description: "Short note that helps users understand what to include or expect when reaching out.",
+      description:
+        "Short note that helps users understand what to include or expect when reaching out.",
     }),
     defineField({
       name: "firstStepExpectation",
       title: "What happens after outreach",
       type: "text",
       rows: 3,
-      description: "Describe the first step after someone reaches out, such as a consult call or intake review.",
+      description:
+        "Describe the first step after someone reaches out, such as a consult call or intake review.",
     }),
     defineField({
       name: "bookingUrl",

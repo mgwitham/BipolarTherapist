@@ -480,7 +480,9 @@ function buildRevisionFieldUpdates(input) {
     city: String(input.city || "").trim(),
     state: String(input.state || "").trim(),
     zip: String(input.zip || "").trim(),
-    licenseState: String(input.license_state || "").trim().toUpperCase(),
+    licenseState: String(input.license_state || "")
+      .trim()
+      .toUpperCase(),
     licenseNumber: String(input.license_number || "").trim(),
     bio: String(input.bio || "").trim(),
     careApproach: String(input.care_approach || "").trim(),
@@ -894,7 +896,13 @@ export function createReviewApiHandler(configOverride) {
         }
 
         if (application.status !== "requested_changes") {
-          sendJson(response, 409, { error: "This application is not currently open for revision." }, origin, config);
+          sendJson(
+            response,
+            409,
+            { error: "This application is not currently open for revision." },
+            origin,
+            config,
+          );
           return;
         }
 
@@ -912,7 +920,13 @@ export function createReviewApiHandler(configOverride) {
         }
 
         if (application.status !== "requested_changes") {
-          sendJson(response, 409, { error: "This application is not currently open for revision." }, origin, config);
+          sendJson(
+            response,
+            409,
+            { error: "This application is not currently open for revision." },
+            origin,
+            config,
+          );
           return;
         }
 
