@@ -24,6 +24,11 @@ function sanitizeApplication(application) {
       ? application.insurance_accepted
       : [],
     languages: Array.isArray(application.languages) ? application.languages : ["English"],
+    revision_history: Array.isArray(application.revision_history)
+      ? application.revision_history
+      : [],
+    review_request_message: application.review_request_message || "",
+    revision_count: Number(application.revision_count || 0) || 0,
   };
 }
 

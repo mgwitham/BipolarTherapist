@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BipolarTherapists.com — Find a Specialist Near You</title>
+    <title>BipolarTherapyHub — Guided Bipolar Therapist Matching</title>
     <meta
       name="description"
-      content="The only therapist directory dedicated to bipolar disorder. Find psychiatrists, therapists, and counselors who specialize in Bipolar I, Bipolar II, and mood disorders."
+      content="Find bipolar-specialist therapists and psychiatrists with guided matching, trust signals, fallback planning, and concierge-style support."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -94,6 +94,24 @@
       }
       .nav-links a:hover {
         color: var(--teal);
+      }
+      .nav-shortlist {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .nav-shortlist-count {
+        min-width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0 0.35rem;
       }
       .nav-cta {
         background: var(--teal) !important;
@@ -210,6 +228,31 @@
       .search-btn:hover {
         background: var(--teal-dark);
       }
+      .hero-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .hero-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1.2rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .hero-link.secondary {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        color: white;
+      }
+      .hero-link.secondary:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
       .hero-stats {
         display: flex;
         justify-content: center;
@@ -230,6 +273,125 @@
         font-size: 0.78rem;
         opacity: 0.8;
         margin-top: 0.2rem;
+      }
+      .home-teaser {
+        max-width: 1080px;
+        margin: -1.4rem auto 0;
+        padding: 0 1.5rem 1.5rem;
+        position: relative;
+        z-index: 2;
+      }
+      .home-teaser-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 20px;
+        padding: 1.2rem;
+        box-shadow: 0 18px 45px rgba(14, 77, 95, 0.08);
+      }
+      .home-teaser-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+        margin-bottom: 0.9rem;
+      }
+      .home-teaser-kicker {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .home-teaser-top h2 {
+        font-size: 1.15rem;
+        margin: 0 0 0.15rem;
+      }
+      .home-teaser-top p {
+        margin: 0;
+        color: var(--slate);
+        max-width: 62ch;
+      }
+      .home-teaser-tabs {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .home-teaser-tab {
+        border: 1px solid var(--border);
+        background: white;
+        color: var(--navy);
+        border-radius: 999px;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .home-teaser-tab.active {
+        border-color: var(--teal);
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+      }
+      .home-teaser-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 1rem;
+      }
+      .home-teaser-explainer {
+        padding: 1rem;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(26, 122, 143, 0.04), transparent 42%), white;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+      }
+      .home-teaser-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+      }
+      .home-teaser-copy {
+        color: var(--slate);
+        margin-bottom: 0.8rem;
+      }
+      .home-teaser-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .home-teaser-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.38rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: #f9fcfd;
+        font-size: 0.76rem;
+        color: var(--slate);
+      }
+      .home-teaser-preview {
+        padding: 1rem;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #0f5366 0%, #156779 100%);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .home-teaser-preview-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        opacity: 0.8;
+        margin-bottom: 0.45rem;
+      }
+      .home-teaser-preview-name {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .home-teaser-preview-copy {
+        opacity: 0.9;
+        font-size: 0.84rem;
       }
       section {
         padding: 4rem 1.5rem;
@@ -346,6 +508,43 @@
         gap: 1.25rem;
         max-width: 1080px;
         margin: 0 auto;
+      }
+      .ranking-note {
+        max-width: 920px;
+        margin: 0 auto 1.25rem;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #ffffff 0%, #f4fafb 100%);
+      }
+      .ranking-note-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.55rem;
+      }
+      .ranking-note-copy {
+        font-size: 0.86rem;
+        color: var(--slate);
+        line-height: 1.65;
+      }
+      .ranking-note-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.75rem;
+      }
+      .ranking-note-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.38rem 0.6rem;
+        border-radius: 999px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        font-size: 0.76rem;
+        color: var(--slate);
       }
       .t-card {
         background: var(--white);
@@ -609,6 +808,13 @@
         margin-top: 2rem;
       }
       @media (max-width: 640px) {
+        .home-teaser {
+          margin-top: -1rem;
+          padding: 0 1rem 1rem;
+        }
+        .home-teaser-body {
+          grid-template-columns: 1fr;
+        }
         .search-box {
           grid-template-columns: 1fr;
           gap: 0.6rem;
@@ -625,21 +831,26 @@
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <span class="nav-name">Bipolar<span>Therapists</span></span>
+        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
+        <li><a href="match.html">Get Matched</a></li>
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
         <li><a href="directory.html" id="navBrowseLink">Find a Therapist</a></li>
         <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
       </ul>
     </nav>
 
     <section class="hero">
-      <div class="hero-badge" id="heroBadge">🎗️ Specialized Directory</div>
-      <h1 id="heroTitle">Find a Therapist Who Truly Understands Bipolar Disorder</h1>
+      <div class="hero-badge" id="heroBadge">🎗️ Guided Bipolar Specialist Matching</div>
+      <h1 id="heroTitle">Find a bipolar specialist with more trust, clarity, and follow-through</h1>
       <p id="heroDescription">
-        The only directory dedicated to bipolar spectrum specialists. Verified credentials, real
-        specialties, and filters that actually matter for your care.
+        Browse bipolar-focused therapists and psychiatrists, get a guided shortlist, and move
+        forward with a clearer first step and a backup plan if needed.
       </p>
       <form class="search-box" onsubmit="handleSearch(event)">
         <div class="search-field">
@@ -653,6 +864,9 @@
         </div>
         <button type="submit" class="search-btn" id="searchButton">Search →</button>
       </form>
+      <div class="hero-actions">
+        <a href="match.html" class="hero-link secondary">Get a guided shortlist</a>
+      </div>
       <div class="cms-banner" id="cmsBadge">
         CMS fallback mode: this preview is still using the seeded local data until Sanity is
         connected.
@@ -677,23 +891,51 @@
       </div>
     </section>
 
+    <section class="home-teaser">
+      <div class="home-teaser-card">
+        <div class="home-teaser-top">
+          <div>
+            <div class="home-teaser-kicker">How Matching Works</div>
+            <h2>See how BipolarTherapyHub helps narrow the right next step</h2>
+            <p>
+              The product does not just rank profiles. It weighs practical access, bipolar-specific
+              fit, trust, and how likely the next step is to actually move.
+            </p>
+          </div>
+          <div class="home-teaser-tabs" id="homeTeaserTabs"></div>
+        </div>
+        <div class="home-teaser-body">
+          <div class="home-teaser-explainer" id="homeTeaserExplainer"></div>
+          <div class="home-teaser-preview" id="homeTeaserPreview"></div>
+        </div>
+        <div class="disc" style="margin-top: 1rem">
+          We can compare structured trust, fit, and follow-through signals, but we cannot know
+          personal chemistry, exact real-time availability, or clinical quality from profile data
+          alone.
+        </div>
+      </div>
+    </section>
+
     <div id="pageSections"></div>
 
     <footer>
-      <div class="f-logo">🧠 BipolarTherapists</div>
-      <p id="footerTagline">Connecting patients with bipolar disorder specialists</p>
+      <div class="f-logo">BipolarTherapyHub</div>
+      <p id="footerTagline">
+        Guided bipolar-specialist matching with trust signals and backup planning
+      </p>
       <ul>
         <li><a href="directory.html">Find a Therapist</a></li>
         <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="mailto:hello@chatroam.polsia.app" id="footerContactLink">Contact</a></li>
+        <li><a href="signup.html" id="footerContactLink">Claim or Update a Listing</a></li>
       </ul>
       <div class="disc">
-        BipolarTherapists is an information directory only. We do not provide medical advice,
+        BipolarTherapyHub is an information directory only. We do not provide medical advice,
         diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
         crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
       </div>
     </footer>
 
     <script type="module" src="assets/home.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

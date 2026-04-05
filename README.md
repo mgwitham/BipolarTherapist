@@ -1,6 +1,6 @@
 # Bipolar Therapist Directory
 
-Static site clone of the live BipolarTherapists experience, rebuilt locally so we can keep developing it without needing access to the private upstream repository.
+Local BipolarTherapyHub product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.
 
 ## Tech Stack
 
@@ -11,10 +11,13 @@ Static site clone of the live BipolarTherapists experience, rebuilt locally so w
 ## Project Structure
 
 - `index.html`: homepage
+- `match.html`: guided therapist match flow
 - `directory.html`: searchable therapist directory
 - `therapist.html`: therapist profile page
 - `signup.html`: therapist signup / listing page
 - `assets/`: shared data, styles, and client-side JavaScript
+- `assets/matching-model.js`: future matching intake and scoring foundation
+- `MATCHING_FOUNDATION.md`: product and trust model for guided therapist matching
 - `vite.config.js`: multi-page Vite build configuration
 
 ## Development
@@ -97,6 +100,16 @@ Current scope:
 - public therapist listings can come from Sanity
 - homepage featured therapists can come from Sanity
 - Sanity Studio manages therapist, homepage, site settings, and therapist application documents
+- the repo includes a future-ready therapist matching model
+- `match.html` provides a guided public-facing shortlist and outreach flow
+
+## MVP Boundary
+
+See [MVP_LAUNCH_PLAN.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/MVP_LAUNCH_PLAN.md) for the current launch boundary between:
+
+- public MVP product surfaces
+- internal diagnostics and operational tooling
+- rollout priorities for the first real version
 
 ## CMS Import
 

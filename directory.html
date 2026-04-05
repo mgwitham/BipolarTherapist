@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Find a Bipolar Disorder Specialist — BipolarTherapists</title>
+    <title>Find a Bipolar Disorder Specialist — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Search and filter bipolar disorder therapists and psychiatrists by location, specialty, insurance, and more."
+      content="Browse bipolar-specialist therapists and psychiatrists with trust signals, guided matching support, and practical outreach planning."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,10 +19,15 @@
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <span class="nav-name">Bipolar<span>Therapists</span></span>
+        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
+        <li><a href="match.html">Get Matched</a></li>
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
         <li>
           <a href="directory.html" id="navBrowseLink" style="color: var(--teal); font-weight: 600"
             >Find a Therapist</a
@@ -33,9 +38,10 @@
     </nav>
 
     <div class="dir-header">
-      <h1 id="directoryHeroTitle">Find a Bipolar Disorder Specialist</h1>
+      <h1 id="directoryHeroTitle">Browse bipolar specialists with guided matching in mind</h1>
       <p id="directoryHeroDescription">
-        Browse verified therapists and psychiatrists who specialize in bipolar spectrum disorders
+        Compare verified bipolar-focused therapists and psychiatrists using trust signals, fit cues,
+        shortlist tools, and a smoother path into matching.
       </p>
     </div>
 
@@ -74,6 +80,47 @@
               <select id="specialty">
                 <option value="">All Specialties</option>
               </select>
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <h3>🧭 Match Quality</h3>
+            <div class="filter-group">
+              <label for="modality">Treatment Modality</label>
+              <select id="modality">
+                <option value="">All Modalities</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="population">Population Served</label>
+              <select id="population">
+                <option value="">All Populations</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="verification">Verification</label>
+              <select id="verification">
+                <option value="">All Profiles</option>
+                <option value="editorially_verified">Editorially Verified</option>
+                <option value="under_review">Under Review</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="bipolar_experience">Bipolar Experience</label>
+              <select id="bipolar_experience">
+                <option value="">Any experience level</option>
+                <option value="3">3+ years</option>
+                <option value="5">5+ years</option>
+                <option value="10">10+ years</option>
+              </select>
+            </div>
+            <div class="check-group">
+              <label class="check-label"
+                ><input type="checkbox" id="medication_management" /> Medication Management</label
+              >
+              <label class="check-label"
+                ><input type="checkbox" id="responsive_contact" /> Responsive Contact Signal</label
+              >
             </div>
           </div>
 
@@ -117,7 +164,39 @@
       <div>
         <div class="results-header">
           <div class="results-count" id="resultsCount">Loading therapists...</div>
+          <div class="results-tools">
+            <a href="match.html" class="btn-secondary" style="width: auto">Start guided match</a>
+            <label for="sortBy">Sort by</label>
+            <select id="sortBy">
+              <option value="best_match">Best match</option>
+              <option value="most_experienced">Most bipolar experience</option>
+              <option value="soonest_availability">Soonest availability</option>
+              <option value="lowest_fee">Lowest fee</option>
+              <option value="most_responsive">Most responsive contact</option>
+            </select>
+          </div>
         </div>
+        <div class="results-explainer">
+          <div class="results-explainer-title">How We Sort Stronger Profiles</div>
+          <div class="results-explainer-copy">
+            Default ranking favors therapists with stronger trust signals, clearer outreach paths,
+            richer bipolar-specific detail, and profiles that are easier to compare and act on.
+          </div>
+          <div class="results-explainer-copy" id="directoryAdaptiveExplainer"></div>
+          <div class="results-explainer-copy">
+            The directory can compare structured fit and trust signals, but you should still verify
+            availability, insurance coverage, and personal fit before deciding.
+          </div>
+          <div class="results-explainer-pills">
+            <span class="results-explainer-pill">Editorial verification</span>
+            <span class="results-explainer-pill">Match readiness</span>
+            <span class="results-explainer-pill">Clear first-contact path</span>
+            <span class="results-explainer-pill">Availability clarity</span>
+          </div>
+        </div>
+        <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
+        <div class="editorial-lanes" id="editorialLanes"></div>
+        <div class="directory-shortlist-bar" id="directoryShortlistBar"></div>
         <div class="therapist-grid" id="resultsGrid">
           <div class="loading">
             <div class="spinner"></div>
@@ -130,11 +209,12 @@
 
     <footer>
       <p style="margin-bottom: 0.5rem">
-        <strong style="color: white">🧠 BipolarTherapists</strong>
+        <strong style="color: white">BipolarTherapyHub</strong>
       </p>
       <p id="footerTagline">Need to be listed? <a href="signup.html">Join as a therapist →</a></p>
     </footer>
 
     <script type="module" src="assets/directory.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

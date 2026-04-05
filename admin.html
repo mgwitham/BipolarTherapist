@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Review — BipolarTherapists</title>
+    <title>Admin Review — BipolarTherapyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -180,6 +180,113 @@
         padding: 1.2rem;
         margin-bottom: 1rem;
       }
+      .queue-card {
+        padding: 1rem 1.05rem;
+        margin-bottom: 0.85rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+      }
+      .queue-card h3 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .queue-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: start;
+      }
+      .queue-head-actions {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .queue-summary {
+        margin-top: 0.7rem;
+        color: var(--slate);
+        font-size: 0.88rem;
+        line-height: 1.6;
+      }
+      .queue-shortlist {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.45rem;
+      }
+      .queue-shortlist-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.75rem 0.8rem;
+        background: #fbfdfe;
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .queue-item-controls {
+        margin-top: 0.65rem;
+        display: flex;
+        gap: 0.55rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .queue-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.9rem;
+      }
+      .queue-insights {
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .queue-insights-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.75rem;
+      }
+      .queue-insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+      }
+      .queue-insight-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 0.85rem 0.9rem;
+      }
+      .queue-insight-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .queue-insight-label {
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+        line-height: 1.5;
+      }
+      .queue-select-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .queue-select {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        color: var(--navy);
+        background: var(--white);
+      }
       .application-head {
         display: flex;
         justify-content: space-between;
@@ -246,6 +353,48 @@
         display: grid;
         gap: 0.6rem;
       }
+      .review-coach-box {
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .review-coach-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .review-coach-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+      .review-coach-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .review-coach-status {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .review-history-list {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .review-history-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: #fbfdfe;
+        border: 1px solid var(--border);
+        color: var(--slate);
+        font-size: 0.83rem;
+        line-height: 1.5;
+      }
       .notes-box textarea {
         width: 100%;
         min-height: 90px;
@@ -289,6 +438,10 @@
       .status.reviewing {
         background: #eef2ff;
         color: #4f46e5;
+      }
+      .status.requested_changes {
+        background: #fff7ed;
+        color: var(--red);
       }
       .empty {
         padding: 2rem;
@@ -344,8 +497,7 @@
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <strong>BipolarTherapists</strong>
+        <strong>BipolarTherapyHub</strong>
       </a>
       <ul class="nav-links">
         <li><a href="directory.html">Directory</a></li>
@@ -395,6 +547,21 @@
           </aside>
 
           <main>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Funnel Analytics</h2>
+              <p class="subtle" style="margin-top: 0">
+                Local-only event tracking for the key moments in browse, match, shortlist, and
+                outreach.
+              </p>
+              <div id="funnelInsights"></div>
+            </div>
+            <div class="panel" style="margin-bottom: 1rem">
+              <h2>Concierge Queue</h2>
+              <p class="subtle" style="margin-top: 0">
+                Local-only requests captured when a user wants help choosing or reaching out.
+              </p>
+              <div id="conciergeQueue"></div>
+            </div>
             <div class="panel" style="margin-bottom: 1rem">
               <h2>Applications</h2>
               <p class="subtle" style="margin-top: 0">

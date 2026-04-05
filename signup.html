@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>List Your Practice — BipolarTherapists</title>
+    <title>List Your Practice — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Join the Bipolar Therapist Directory and connect with patients actively seeking bipolar disorder specialists. $39/month."
+      content="Create a high-trust bipolar-specialist profile on BipolarTherapyHub and appear in guided matching, shortlist, and outreach flows."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -96,6 +96,24 @@
       .nav-links a:hover {
         color: var(--teal);
       }
+      .nav-shortlist {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .nav-shortlist-count {
+        min-width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0 0.35rem;
+      }
       .signup-hero {
         background: linear-gradient(135deg, #0e4d5f, #1a7a8f);
         padding: 3.5rem 1.5rem;
@@ -167,8 +185,120 @@
         flex-direction: column;
         gap: 0.3rem;
       }
+      .field-hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .field-example {
+        margin-top: 0.15rem;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fbfdfe;
+        font-size: 0.77rem;
+        color: var(--slate);
+        line-height: 1.5;
+      }
+      .field-example strong {
+        color: var(--navy);
+      }
+      .field-coach {
+        margin-top: 0.2rem;
+        font-size: 0.76rem;
+        color: var(--slate);
+        min-height: 1.2rem;
+      }
+      .field-coach.strong {
+        color: #246b4d;
+      }
+      .field-coach.warn {
+        color: #9b2c2c;
+      }
       .field.full {
         grid-column: 1/-1;
+      }
+      .revision-notice {
+        margin: 1.25rem 1.75rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        background: linear-gradient(180deg, #f5fbfc 0%, #ffffff 100%);
+        display: none;
+      }
+      .revision-notice h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.35rem;
+      }
+      .revision-notice p {
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .revision-summary {
+        margin-top: 0.9rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+      .revision-summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+      .revision-summary-card {
+        padding: 0.85rem 0.9rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .revision-summary-card h4 {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.45rem;
+      }
+      .revision-summary-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .revision-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.42rem 0.62rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        line-height: 1.4;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--slate);
+      }
+      .revision-pill.requested {
+        background: #fff7ed;
+        border-color: rgba(229, 83, 62, 0.18);
+        color: #9b2c2c;
+      }
+      .revision-pill.improved {
+        background: rgba(58, 170, 122, 0.1);
+        border-color: rgba(58, 170, 122, 0.2);
+        color: #246b4d;
+      }
+      .revision-empty {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .field.field-requested {
+        padding: 0.75rem;
+        border-radius: 12px;
+        background: rgba(255, 247, 237, 0.8);
+        outline: 1px solid rgba(229, 83, 62, 0.14);
+      }
+      .field.field-improved {
+        padding: 0.75rem;
+        border-radius: 12px;
+        background: rgba(58, 170, 122, 0.08);
+        outline: 1px solid rgba(58, 170, 122, 0.14);
       }
       label {
         font-size: 0.76rem;
@@ -388,6 +518,85 @@
       .trust-item:last-child {
         margin-bottom: 0;
       }
+      .readiness-card {
+        background: linear-gradient(180deg, #ffffff, #f3fafb);
+        border: 1px solid var(--border);
+      }
+      .readiness-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+      }
+      .readiness-score {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1;
+      }
+      .readiness-label {
+        display: inline-flex;
+        margin-top: 0.35rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        background: var(--bg);
+        color: var(--slate);
+      }
+      .readiness-label.tone-match-ready {
+        background: rgba(58, 170, 122, 0.14);
+        color: #246b4d;
+      }
+      .readiness-label.tone-close {
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+      }
+      .readiness-label.tone-needs-work {
+        background: rgba(229, 62, 62, 0.1);
+        color: #9b2c2c;
+      }
+      .readiness-copy {
+        font-size: 0.8rem;
+        color: var(--slate);
+      }
+      .readiness-group {
+        margin-top: 1rem;
+      }
+      .readiness-group h4 {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--muted);
+        margin-bottom: 0.55rem;
+      }
+      .readiness-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .readiness-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.42rem 0.62rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        font-size: 0.77rem;
+        color: var(--slate);
+        line-height: 1.4;
+      }
+      .readiness-pill.positive {
+        background: rgba(58, 170, 122, 0.1);
+        border-color: rgba(58, 170, 122, 0.2);
+        color: #246b4d;
+      }
+      .readiness-empty {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
       footer {
         background: var(--navy);
         color: rgba(255, 255, 255, 0.7);
@@ -412,16 +621,23 @@
         .checkbox-grid {
           grid-template-columns: 1fr;
         }
+        .revision-summary-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <div class="nav-icon">🧠</div>
-        <span class="nav-name">Bipolar<span>Therapists</span></span>
+        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
         <li><a href="directory.html">Find a Therapist</a></li>
         <li>
           <a href="signup.html" style="color: var(--teal); font-weight: 600">List Your Practice</a>
@@ -430,17 +646,59 @@
     </nav>
 
     <div class="signup-hero">
-      <div class="pricing-badge">💼 Professional Listing — $39/month</div>
-      <h1>Reach Patients Who Are Looking for You</h1>
+      <div class="pricing-badge">💼 Match-Ready Professional Listing</div>
+      <h1>Build a bipolar-specialist profile people can trust and act on</h1>
       <p>
-        Join the only directory dedicated to bipolar disorder specialists. Be discovered by
-        motivated patients who are actively searching for your expertise.
+        Join a bipolar-focused platform built around trust, fit quality, and smoother outreach. The
+        strongest profiles help patients understand why you may fit and what happens when they reach
+        out.
       </p>
     </div>
 
     <div class="wrap">
       <div class="form-card" id="formCard">
         <form id="applyForm" onsubmit="handleSubmit(event)" novalidate>
+          <div class="revision-notice" id="revisionNotice">
+            <h3>Revision requested</h3>
+            <p id="revisionMessage">
+              This profile was sent back for revisions. Tighten the requested details and resubmit
+              this version for review.
+            </p>
+            <div class="revision-summary" id="revisionSummary">
+              <div class="revision-summary-grid">
+                <div class="revision-summary-card">
+                  <h4>Reviewer likely wants tightened</h4>
+                  <div class="revision-summary-list" id="revisionRequestedFields"></div>
+                </div>
+                <div class="revision-summary-card">
+                  <h4>What you have improved</h4>
+                  <div class="revision-summary-list" id="revisionImprovedFields"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h2>🧠 Match Readiness</h2>
+            <div class="readiness-header">
+              <div>
+                <div class="readiness-score" id="readinessScore">0/100</div>
+                <div class="readiness-label tone-needs-work" id="readinessLabel">Needs work</div>
+              </div>
+              <div class="readiness-copy">
+                We use this same score in admin review and matching to judge whether your profile
+                gives patients enough trust, fit, and next-step clarity to shortlist you with
+                confidence.
+              </div>
+            </div>
+            <div class="readiness-group">
+              <h4>Already Strong</h4>
+              <div class="readiness-list" id="readinessStrengths"></div>
+            </div>
+            <div class="readiness-group">
+              <h4>Best Next Fixes</h4>
+              <div class="readiness-list" id="readinessMissing"></div>
+            </div>
+          </div>
           <div class="form-section">
             <h2>👤 Your Information</h2>
             <div class="form-grid">
@@ -476,12 +734,38 @@
                 />
               </div>
               <div class="field">
+                <label>State of Licensure *</label
+                ><input type="text" name="license_state" placeholder="e.g. CA" maxlength="2" />
+              </div>
+              <div class="field">
+                <label>License Number *</label
+                ><input
+                  type="text"
+                  name="license_number"
+                  placeholder="Shown as a trust signal during editorial review"
+                />
+              </div>
+              <div class="field">
+                <label>Years Treating Bipolar Disorder</label
+                ><input
+                  type="number"
+                  name="bipolar_years_experience"
+                  placeholder="e.g. 5"
+                  min="0"
+                  max="60"
+                />
+              </div>
+              <div class="field">
                 <label>Email Address *</label
                 ><input type="email" name="email" placeholder="you@example.com" required />
               </div>
               <div class="field">
                 <label>Phone Number</label
                 ><input type="tel" name="phone" placeholder="(555) 123-4567" />
+              </div>
+              <div class="field full">
+                <label>Languages</label
+                ><input type="text" name="languages" placeholder="English, Spanish, Mandarin" />
               </div>
             </div>
           </div>
@@ -565,6 +849,71 @@
                 <label>Website URL</label
                 ><input type="url" name="website" placeholder="https://yourpractice.com" />
               </div>
+              <div class="field">
+                <label>Preferred Contact Path</label>
+                <select name="preferred_contact_method">
+                  <option value="">Choose preferred route</option>
+                  <option value="email">Email me</option>
+                  <option value="phone">Call my practice</option>
+                  <option value="website">Use my website</option>
+                  <option value="booking">Use my booking link</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label>Primary Contact Button Label</label
+                ><input
+                  type="text"
+                  name="preferred_contact_label"
+                  maxlength="40"
+                  placeholder="Examples: Book a consultation, Schedule an intro call, Start with a fit consult"
+                />
+                <p class="field-hint">
+                  Keep this concrete and calm. Strong labels usually describe the first step, not a
+                  marketing slogan.
+                </p>
+              </div>
+              <div class="field full">
+                <label>Contact Guidance</label
+                ><textarea
+                  name="contact_guidance"
+                  rows="3"
+                  maxlength="180"
+                  placeholder="Examples: New clients usually hear back within 1 business day. Please mention your state, whether you are seeking therapy or psychiatry, and any insurance questions."
+                ></textarea>
+                <p class="field-hint">
+                  This is where people decide whether reaching out feels manageable. Clarify
+                  response time, what to include, and anything that helps avoid back-and-forth.
+                </p>
+                <div class="field-example">
+                  <strong>Strong example:</strong> New clients usually hear back within one business
+                  day. Please include your state, whether you are looking for therapy or medication
+                  support, and any insurance questions so we can point you to the right next step.
+                </div>
+                <p class="field-coach" id="contactGuidanceCoach"></p>
+              </div>
+              <div class="field full">
+                <label>What Happens After Someone Reaches Out?</label
+                ><textarea
+                  name="first_step_expectation"
+                  rows="3"
+                  maxlength="220"
+                  placeholder="Examples: I usually start with a 15-minute consult to understand fit, urgency, and whether medication support is needed before booking a full intake."
+                ></textarea>
+                <p class="field-hint">
+                  Reduce uncertainty. A strong answer helps someone picture the first contact,
+                  timeline, and what you are evaluating for fit.
+                </p>
+                <div class="field-example">
+                  <strong>Strong example:</strong> I usually begin with a 15-minute consultation to
+                  understand your goals, urgency, and whether therapy, psychiatry, or coordinated
+                  care makes the most sense before we schedule a full intake.
+                </div>
+                <p class="field-coach" id="firstStepCoach"></p>
+              </div>
+              <div class="field full">
+                <label>Booking URL</label
+                ><input type="url" name="booking_url" placeholder="https://yourpractice.com/book" />
+              </div>
             </div>
           </div>
 
@@ -575,10 +924,34 @@
                 <label>Professional Bio *</label
                 ><textarea
                   name="bio"
-                  placeholder="Tell potential patients about your background, approach, and experience with bipolar disorder. What makes your treatment approach effective? (Minimum 100 characters)"
+                  placeholder="Tell potential patients about your background, bipolar-related experience, and the kind of care you provide. This should help someone understand why they may trust you. (Minimum 100 characters)"
                   required
                   minlength="50"
                 ></textarea>
+                <p class="field-hint">
+                  Focus on credibility and relevance: your training, who you help, and why bipolar
+                  clients or families may trust your care.
+                </p>
+              </div>
+              <div class="field full">
+                <label>How You Help Bipolar Clients *</label
+                ><textarea
+                  name="care_approach"
+                  placeholder="Describe your approach in a concise, concrete way. Focus on the practical and clinical details a patient would compare before reaching out."
+                  required
+                  minlength="40"
+                ></textarea>
+                <p class="field-hint">
+                  The strongest answers combine who you help, how you work, and what makes your
+                  bipolar-specific care distinct in practice.
+                </p>
+                <div class="field-example">
+                  <strong>Strong example:</strong> I work with adults living with Bipolar I and II
+                  using CBT, psychoeducation, and relapse-prevention planning. I help clients track
+                  sleep and mood patterns, strengthen routines, coordinate with psychiatry when
+                  needed, and build early-warning plans for mood shifts.
+                </div>
+                <p class="field-coach" id="careApproachCoach"></p>
               </div>
             </div>
           </div>
@@ -642,10 +1015,125 @@
           </div>
 
           <div class="form-section">
+            <h2>🧭 Clinical Fit</h2>
+            <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
+              These details make the profile far more useful in matching, shortlist decisions, and
+              first-contact planning.
+            </p>
+            <div class="form-grid">
+              <div class="field full">
+                <label>Treatment Modalities *</label>
+                <div class="checkbox-grid">
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="CBT" /> CBT</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="DBT" /> DBT</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="IPSRT" />
+                    IPSRT</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="ACT" /> ACT</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="treatment_modalities"
+                      value="Mindfulness-based therapy"
+                    />
+                    Mindfulness-based</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="Family therapy" />
+                    Family therapy</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="treatment_modalities"
+                      value="Medication management"
+                    />
+                    Medication management</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="treatment_modalities" value="Psychoeducation" />
+                    Psychoeducation</label
+                  >
+                </div>
+              </div>
+              <div class="field full">
+                <label>Populations Served</label>
+                <div class="checkbox-grid">
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Adults" />
+                    Adults</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Young adults" /> Young
+                    adults</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Adolescents" />
+                    Adolescents</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Couples" />
+                    Couples</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Families" />
+                    Families</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="LGBTQ+" />
+                    LGBTQ+</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="College students" />
+                    College students</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="client_populations" value="Professionals" />
+                    Professionals</label
+                  >
+                </div>
+              </div>
+              <div class="field">
+                <label>Typical Wait Time</label>
+                <select name="estimated_wait_time">
+                  <option value="">Select wait time</option>
+                  <option>Immediate availability</option>
+                  <option>Within 1 week</option>
+                  <option>Within 2 weeks</option>
+                  <option>2-4 weeks</option>
+                  <option>1-2 months</option>
+                  <option>Waitlist only</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Telehealth States</label
+                ><input type="text" name="telehealth_states" placeholder="CA, NY, TX" />
+              </div>
+              <div class="field full">
+                <label class="check-label" style="border: none; padding: 0"
+                  ><input type="checkbox" name="medication_management" value="true" /> I provide
+                  medication management or prescribing support</label
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
             <h2>💳 Insurance & Fees</h2>
             <div class="form-grid">
               <div class="field full">
                 <label>Insurance Accepted (select all that apply)</label>
+                <p class="field-hint">
+                  If you are out-of-network or self-pay, clear pricing and process details matter
+                  even more for matching and conversion.
+                </p>
                 <div class="checkbox-grid">
                   <label class="check-label"
                     ><input type="checkbox" name="insurance_accepted" value="Aetna" /> Aetna</label
@@ -698,6 +1186,14 @@
               <div class="field">
                 <label>Session Fee (max $)</label
                 ><input type="number" name="session_fee_max" placeholder="e.g. 250" min="0" />
+              </div>
+              <div class="field full">
+                <div class="field-example">
+                  <strong>Pricing guidance:</strong> A clear range helps users self-screen quickly.
+                  If your rate varies by intake, therapy type, or med-management follow-up, use the
+                  typical range and clarify the nuance in your contact guidance.
+                </div>
+                <p class="field-coach" id="pricingCoach"></p>
               </div>
               <div class="field full">
                 <label class="check-label" style="border: none; padding: 0"
@@ -755,66 +1251,65 @@
           <div class="price-note">Cancel anytime. No long-term commitment.</div>
           <div class="feature-list">
             <div class="feature-item">
-              <span class="check">✓</span> Full profile with bio and photo
+              <span class="check">✓</span> Full profile built for trust, fit, and clearer patient
+              decisions
             </div>
             <div class="feature-item">
-              <span class="check">✓</span> Searchable by specialty, location & insurance
+              <span class="check">✓</span> Inclusion in guided matching, shortlist, and compare
+              flows
             </div>
             <div class="feature-item">
-              <span class="check">✓</span> Direct patient contact (no intermediary)
+              <span class="check">✓</span> Direct patient outreach through your preferred contact
+              path
             </div>
             <div class="feature-item">
-              <span class="check">✓</span> Telehealth & in-person filter visibility
+              <span class="check">✓</span> Trust and match-confidence signals on public profiles
             </div>
             <div class="feature-item">
-              <span class="check">✓</span> Specialty tags for bipolar focus areas
+              <span class="check">✓</span> Visibility for bipolar-specific specialties, modalities,
+              and populations served
             </div>
-            <div class="feature-item"><span class="check">✓</span> Profile views tracking</div>
-            <div class="feature-item"><span class="check">✓</span> Update your info anytime</div>
+            <div class="feature-item">
+              <span class="check">✓</span> Better first-contact framing for motivated patients
+            </div>
+            <div class="feature-item">
+              <span class="check">✓</span> Update your profile anytime as availability changes
+            </div>
           </div>
         </div>
 
         <div class="trust-card">
-          <h3>🔒 Why Therapists Trust Us</h3>
+          <h3>🔒 Why Strong Profiles Perform Better Here</h3>
           <div class="trust-item">
             🎯
-            <span>Focused audience — only patients specifically seeking bipolar specialists</span>
+            <span>Focused audience: people specifically looking for bipolar-specialist care</span>
           </div>
           <div class="trust-item">
-            📊 <span>Growing directory as the go-to resource for bipolar care navigation</span>
+            🧭 <span>Guided matching and shortlist tools that help patients actually decide</span>
           </div>
           <div class="trust-item">
-            🔒 <span>Secure payment via Stripe — cancel anytime from your account</span>
+            ✅ <span>Trust signals that reward clearer licensure, fit, and next-step details</span>
           </div>
           <div class="trust-item">
-            📞 <span>Direct contact — patients reach you, not a booking platform</span>
+            📞
+            <span>Direct outreach to your preferred route, not a generic booking marketplace</span>
           </div>
         </div>
 
         <div class="sidebar-card" style="background: var(--teal-faint)">
           <h3 style="color: var(--teal-dark)">Questions?</h3>
           <p style="font-size: 0.83rem; color: var(--slate); line-height: 1.6">
-            Need help or have questions about your listing? We're here to help.
+            Need help or have questions about your listing? Direct email support is not live yet,
+            but you can still submit your application and we can use it as the starting point for a
+            claim or listing update flow.
           </p>
-          <a
-            href="mailto:hello@chatroam.polsia.app"
-            style="
-              display: inline-block;
-              margin-top: 0.75rem;
-              font-size: 0.83rem;
-              font-weight: 600;
-              color: var(--teal);
-              text-decoration: none;
-            "
-            >hello@chatroam.polsia.app →</a
-          >
         </div>
       </div>
     </div>
 
     <footer>
       <p>
-        <strong style="color: white">🧠 BipolarTherapists</strong> — Listing your practice takes 2
+        <strong style="color: white">BipolarTherapyHub</strong> — Listing your practice takes 2
         minutes
       </p>
       <p style="margin-top: 0.4rem">
@@ -823,5 +1318,6 @@
     </footer>
 
     <script type="module" src="assets/signup.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

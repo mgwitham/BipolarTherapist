@@ -1,7 +1,7 @@
 import { SITE_STATS, THERAPISTS as SEEDED_THERAPISTS } from "./data.js";
 
-const THERAPISTS_KEY = "bt_directory_therapists_v1";
-const APPLICATIONS_KEY = "bt_directory_applications_v1";
+const THERAPISTS_KEY = "bt_directory_therapists_v2";
+const APPLICATIONS_KEY = "bt_directory_applications_v2";
 
 function canUseStorage() {
   try {
@@ -61,6 +61,19 @@ function ensureSeeded() {
   }
 }
 
+function normalizeApplication(item) {
+  var application = item || {};
+  return {
+    ...application,
+    status: application.status || "pending",
+    revision_history: Array.isArray(application.revision_history)
+      ? application.revision_history
+      : [],
+    review_request_message: application.review_request_message || "",
+    revision_count: Number(application.revision_count || 0) || 0,
+  };
+}
+
 export function getTherapists() {
   ensureSeeded();
   return clone(readJson(THERAPISTS_KEY, SEEDED_THERAPISTS)).filter(function (item) {
@@ -78,9 +91,11 @@ export function getTherapistBySlug(slug) {
 
 export function getApplications() {
   ensureSeeded();
-  return clone(readJson(APPLICATIONS_KEY, [])).sort(function (a, b) {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  return clone(readJson(APPLICATIONS_KEY, []))
+    .map(normalizeApplication)
+    .sort(function (a, b) {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 }
 
 export function getStats() {
@@ -114,7 +129,7 @@ export function submitApplication(input) {
   ensureSeeded();
 
   const therapists = readJson(THERAPISTS_KEY, clone(SEEDED_THERAPISTS));
-  const applications = readJson(APPLICATIONS_KEY, []);
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
   const existingSlugs = new Set(
     therapists.map(function (item) {
       return item.slug;
@@ -122,9 +137,17 @@ export function submitApplication(input) {
   );
 
   const specialties = Array.isArray(input.specialties) ? input.specialties : [];
+  const treatmentModalities = Array.isArray(input.treatment_modalities)
+    ? input.treatment_modalities
+    : [];
+  const clientPopulations = Array.isArray(input.client_populations) ? input.client_populations : [];
   const insuranceAccepted = Array.isArray(input.insurance_accepted) ? input.insurance_accepted : [];
   const languages =
     Array.isArray(input.languages) && input.languages.length ? input.languages : ["English"];
+  const telehealthStates =
+    Array.isArray(input.telehealth_states) && input.telehealth_states.length
+      ? input.telehealth_states
+      : [];
   const slug = createUniqueSlug(input.name, input.city, input.state, existingSlugs);
   const timestamp = new Date().toISOString();
 
@@ -142,20 +165,38 @@ export function submitApplication(input) {
     email: input.email,
     phone: input.phone || "",
     website: input.website || "",
+    preferred_contact_method: input.preferred_contact_method || "",
+    preferred_contact_label: input.preferred_contact_label || "",
+    contact_guidance: input.contact_guidance || "",
+    first_step_expectation: input.first_step_expectation || "",
+    booking_url: input.booking_url || "",
     practice_name: input.practice_name || "",
+    license_state: input.license_state || "",
+    license_number: input.license_number || "",
     city: input.city,
     state: input.state,
     zip: input.zip || "",
     specialties: specialties,
+    treatment_modalities: treatmentModalities,
+    client_populations: clientPopulations,
     insurance_accepted: insuranceAccepted,
     accepts_telehealth: !!input.accepts_telehealth,
     accepts_in_person: !!input.accepts_in_person,
     accepting_new_patients: true,
     years_experience: Number(input.years_experience || 0) || null,
+    bipolar_years_experience: Number(input.bipolar_years_experience || 0) || null,
     languages: languages,
+    telehealth_states: telehealthStates,
+    estimated_wait_time: input.estimated_wait_time || "",
+    care_approach: input.care_approach || "",
+    medication_management: !!input.medication_management,
+    verification_status: "under_review",
     session_fee_min: Number(input.session_fee_min || 0) || null,
     session_fee_max: Number(input.session_fee_max || 0) || null,
     sliding_scale: !!input.sliding_scale,
+    revision_history: [],
+    review_request_message: "",
+    revision_count: 0,
     listing_active: false,
     country: "US",
   };
@@ -169,7 +210,7 @@ export function publishApplication(applicationId) {
   ensureSeeded();
 
   const therapists = readJson(THERAPISTS_KEY, clone(SEEDED_THERAPISTS));
-  const applications = readJson(APPLICATIONS_KEY, []);
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
   const target = applications.find(function (item) {
     return item.id === applicationId;
   });
@@ -187,21 +228,36 @@ export function publishApplication(applicationId) {
     bio: target.bio,
     bio_preview: target.bio,
     photo_url: null,
-    email: target.email || "contact@example.com",
+    email: target.email || "",
     phone: target.phone || "",
     website: target.website || null,
+    preferred_contact_method: target.preferred_contact_method || "",
+    preferred_contact_label: target.preferred_contact_label || "",
+    contact_guidance: target.contact_guidance || "",
+    first_step_expectation: target.first_step_expectation || "",
+    booking_url: target.booking_url || null,
     practice_name: target.practice_name || "",
+    license_state: target.license_state || "",
+    license_number: target.license_number || "",
     city: target.city,
     state: target.state,
     zip: target.zip,
     country: target.country || "US",
     specialties: target.specialties || [],
+    treatment_modalities: target.treatment_modalities || [],
+    client_populations: target.client_populations || [],
     insurance_accepted: target.insurance_accepted || [],
     accepts_telehealth: !!target.accepts_telehealth,
     accepts_in_person: !!target.accepts_in_person,
     accepting_new_patients: true,
     years_experience: target.years_experience,
+    bipolar_years_experience: target.bipolar_years_experience,
     languages: target.languages || ["English"],
+    telehealth_states: target.telehealth_states || [],
+    estimated_wait_time: target.estimated_wait_time || "",
+    care_approach: target.care_approach || "",
+    medication_management: !!target.medication_management,
+    verification_status: "editorially_verified",
     session_fee_min: target.session_fee_min,
     session_fee_max: target.session_fee_max,
     sliding_scale: !!target.sliding_scale,
@@ -228,7 +284,7 @@ export function publishApplication(applicationId) {
 
 export function rejectApplication(applicationId) {
   ensureSeeded();
-  const applications = readJson(APPLICATIONS_KEY, []);
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
   const nextApplications = applications.map(function (item) {
     if (item.id !== applicationId) return item;
     return {
@@ -238,6 +294,67 @@ export function rejectApplication(applicationId) {
     };
   });
   writeJson(APPLICATIONS_KEY, nextApplications);
+}
+
+export function getApplicationById(applicationId) {
+  return (
+    getApplications().find(function (item) {
+      return item.id === applicationId;
+    }) || null
+  );
+}
+
+export function requestApplicationChanges(applicationId, requestMessage) {
+  ensureSeeded();
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
+  const timestamp = new Date().toISOString();
+  const nextApplications = applications.map(function (item) {
+    if (item.id !== applicationId) return item;
+    return {
+      ...item,
+      status: "requested_changes",
+      updated_at: timestamp,
+      review_request_message: String(requestMessage || "").trim(),
+      revision_history: item.revision_history.concat([
+        {
+          type: "requested_changes",
+          at: timestamp,
+          message: String(requestMessage || "").trim(),
+        },
+      ]),
+    };
+  });
+  writeJson(APPLICATIONS_KEY, nextApplications);
+}
+
+export function reviseApplication(applicationId, updates) {
+  ensureSeeded();
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
+  const timestamp = new Date().toISOString();
+  let revised = null;
+
+  const nextApplications = applications.map(function (item) {
+    if (item.id !== applicationId) return item;
+    revised = normalizeApplication({
+      ...item,
+      ...updates,
+      updated_at: timestamp,
+      status: "pending",
+      review_request_message: "",
+      revision_count: (Number(item.revision_count || 0) || 0) + 1,
+      revision_history: item.revision_history.concat([
+        {
+          type: "resubmitted",
+          at: timestamp,
+          message: "Therapist submitted an updated revision.",
+        },
+      ]),
+    });
+    return revised;
+  });
+
+  writeJson(APPLICATIONS_KEY, nextApplications);
+  return revised ? clone(revised) : null;
 }
 
 export function resetDemoData() {

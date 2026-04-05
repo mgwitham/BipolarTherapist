@@ -17,6 +17,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(rootDir, "index.html"),
+        match: resolve(rootDir, "match.html"),
         directory: resolve(rootDir, "directory.html"),
         therapist: resolve(rootDir, "therapist.html"),
         signup: resolve(rootDir, "signup.html"),

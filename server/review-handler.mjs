@@ -408,7 +408,10 @@ function buildApplicationDocument(input) {
     !input.email ||
     !input.city ||
     !input.state ||
-    !input.bio
+    !input.bio ||
+    !input.license_state ||
+    !input.license_number ||
+    !input.care_approach
   ) {
     throw new Error("Missing required application fields.");
   }
@@ -423,18 +426,33 @@ function buildApplicationDocument(input) {
     practiceName: (input.practice_name || "").trim(),
     phone: (input.phone || "").trim(),
     website: (input.website || "").trim(),
+    preferredContactMethod: (input.preferred_contact_method || "").trim(),
+    preferredContactLabel: (input.preferred_contact_label || "").trim(),
+    contactGuidance: (input.contact_guidance || "").trim(),
+    firstStepExpectation: (input.first_step_expectation || "").trim(),
+    bookingUrl: (input.booking_url || "").trim(),
     city: input.city.trim(),
     state: input.state.trim(),
     zip: (input.zip || "").trim(),
     country: "US",
+    licenseState: (input.license_state || "").trim().toUpperCase(),
+    licenseNumber: (input.license_number || "").trim(),
     bio: input.bio.trim(),
+    careApproach: (input.care_approach || "").trim(),
     specialties: splitList(input.specialties),
+    treatmentModalities: splitList(input.treatment_modalities),
+    clientPopulations: splitList(input.client_populations),
     insuranceAccepted: splitList(input.insurance_accepted),
     languages: splitList(input.languages).length ? splitList(input.languages) : ["English"],
     yearsExperience: parseNumber(input.years_experience),
+    bipolarYearsExperience: parseNumber(input.bipolar_years_experience),
     acceptsTelehealth: parseBoolean(input.accepts_telehealth, true),
     acceptsInPerson: parseBoolean(input.accepts_in_person, true),
     acceptingNewPatients: true,
+    telehealthStates: splitList(input.telehealth_states),
+    estimatedWaitTime: (input.estimated_wait_time || "").trim(),
+    medicationManagement: parseBoolean(input.medication_management, false),
+    verificationStatus: "under_review",
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
     slidingScale: parseBoolean(input.sliding_scale, false),
@@ -467,19 +485,34 @@ function buildTherapistDocument(application, existingId) {
     email: application.email || "",
     phone: application.phone || "",
     website: application.website || "",
+    preferredContactMethod: application.preferredContactMethod || "",
+    preferredContactLabel: application.preferredContactLabel || "",
+    contactGuidance: application.contactGuidance || "",
+    firstStepExpectation: application.firstStepExpectation || "",
+    bookingUrl: application.bookingUrl || "",
     city: application.city || "",
     state: application.state || "",
     zip: application.zip || "",
     country: application.country || "US",
+    licenseState: application.licenseState || "",
+    licenseNumber: application.licenseNumber || "",
     specialties: splitList(application.specialties),
+    treatmentModalities: splitList(application.treatmentModalities),
+    clientPopulations: splitList(application.clientPopulations),
     insuranceAccepted: splitList(application.insuranceAccepted),
     languages: splitList(application.languages).length
       ? splitList(application.languages)
       : ["English"],
     yearsExperience: parseNumber(application.yearsExperience),
+    bipolarYearsExperience: parseNumber(application.bipolarYearsExperience),
     acceptsTelehealth: parseBoolean(application.acceptsTelehealth, true),
     acceptsInPerson: parseBoolean(application.acceptsInPerson, true),
     acceptingNewPatients: parseBoolean(application.acceptingNewPatients, true),
+    telehealthStates: splitList(application.telehealthStates),
+    estimatedWaitTime: application.estimatedWaitTime || "",
+    careApproach: application.careApproach || "",
+    medicationManagement: parseBoolean(application.medicationManagement, false),
+    verificationStatus: "editorially_verified",
     sessionFeeMin: parseNumber(application.sessionFeeMin),
     sessionFeeMax: parseNumber(application.sessionFeeMax),
     slidingScale: parseBoolean(application.slidingScale, false),
@@ -502,21 +535,39 @@ function normalizeApplication(doc) {
     email: doc.email || "",
     phone: doc.phone || "",
     website: doc.website || "",
+    preferred_contact_method: doc.preferredContactMethod || "",
+    preferred_contact_label: doc.preferredContactLabel || "",
+    contact_guidance: doc.contactGuidance || "",
+    first_step_expectation: doc.firstStepExpectation || "",
+    booking_url: doc.bookingUrl || "",
     practice_name: doc.practiceName || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
+    license_state: doc.licenseState || "",
+    license_number: doc.licenseNumber || "",
     specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
+    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
+    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
     insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
     accepts_telehealth: doc.acceptsTelehealth !== false,
     accepts_in_person: doc.acceptsInPerson !== false,
     accepting_new_patients: doc.acceptingNewPatients !== false,
     years_experience: doc.yearsExperience || null,
+    bipolar_years_experience: doc.bipolarYearsExperience || null,
     languages: Array.isArray(doc.languages) && doc.languages.length ? doc.languages : ["English"],
+    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
+    estimated_wait_time: doc.estimatedWaitTime || "",
+    care_approach: doc.careApproach || "",
+    medication_management: Boolean(doc.medicationManagement),
+    verification_status: doc.verificationStatus || "",
     session_fee_min: doc.sessionFeeMin || null,
     session_fee_max: doc.sessionFeeMax || null,
     sliding_scale: Boolean(doc.slidingScale),
     notes: doc.notes || "",
+    review_request_message: doc.reviewRequestMessage || "",
+    revision_history: Array.isArray(doc.revisionHistory) ? doc.revisionHistory : [],
+    revision_count: doc.revisionCount || 0,
     published_therapist_id: doc.publishedTherapistId || "",
   };
 }
@@ -573,17 +624,17 @@ async function notifyApplicantOfDecision(config, application, decision) {
 
   const subject =
     decision === "approved"
-      ? "Your BipolarTherapists application was approved"
-      : "Your BipolarTherapists application was reviewed";
+      ? "Your BipolarTherapyHub application was approved"
+      : "Your BipolarTherapyHub application was reviewed";
   const html =
     decision === "approved"
       ? `<h2>Your listing was approved</h2>
 <p>Hi ${application.name},</p>
-<p>Your BipolarTherapists application has been approved and your listing is now live.</p>
+<p>Your BipolarTherapyHub application has been approved and your listing is now live.</p>
 <p>Thank you for joining the directory.</p>`
       : `<h2>Your application was reviewed</h2>
 <p>Hi ${application.name},</p>
-<p>Your BipolarTherapists application was reviewed and is not moving forward right now.</p>
+<p>Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
 <p>You can reply to this email if you want to follow up with updated details later.</p>`;
 
   await sendEmail(config, {
@@ -604,18 +655,34 @@ async function updateApplicationFields(client, applicationId, fields) {
 
   if (
     typeof fields.status === "string" &&
-    ["pending", "reviewing", "approved", "rejected"].includes(fields.status)
+    ["pending", "reviewing", "requested_changes", "approved", "rejected"].includes(fields.status)
   ) {
     allowedUpdates.status = fields.status;
   }
 
-  if (!Object.keys(allowedUpdates).length) {
+  if (typeof fields.review_request_message === "string") {
+    allowedUpdates.reviewRequestMessage = fields.review_request_message.trim();
+  }
+
+  if (!Object.keys(allowedUpdates).length && !fields.revision_history_entry) {
     throw new Error("No valid application updates were provided.");
   }
 
   allowedUpdates.updatedAt = new Date().toISOString();
+  const patch = client.patch(applicationId).set(allowedUpdates);
 
-  return client.patch(applicationId).set(allowedUpdates).commit({ visibility: "sync" });
+  if (fields.revision_history_entry && typeof fields.revision_history_entry === "object") {
+    patch.setIfMissing({ revisionHistory: [] }).append("revisionHistory", [
+      {
+        _key: `${Date.now()}`,
+        type: String(fields.revision_history_entry.type || "updated"),
+        at: new Date().toISOString(),
+        message: String(fields.revision_history_entry.message || "").trim(),
+      },
+    ]);
+  }
+
+  return patch.commit({ visibility: "sync" });
 }
 
 export function createReviewApiHandler(configOverride) {
@@ -736,10 +803,12 @@ export function createReviewApiHandler(configOverride) {
 
         const docs = await client.fetch(
           `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
-            _id, _createdAt, _updatedAt, name, email, credentials, title, practiceName, phone, website, city, state, zip, country,
-            bio, specialties, insuranceAccepted, languages, yearsExperience, acceptsTelehealth, acceptsInPerson,
-            acceptingNewPatients, sessionFeeMin, sessionFeeMax, slidingScale, status, notes, submittedSlug,
-            submittedAt, updatedAt, publishedTherapistId
+            _id, _createdAt, _updatedAt, name, email, credentials, title, practiceName, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
+            licenseState, licenseNumber, bio, careApproach, specialties, treatmentModalities, clientPopulations,
+            insuranceAccepted, languages, yearsExperience, bipolarYearsExperience, acceptsTelehealth, acceptsInPerson,
+            acceptingNewPatients, telehealthStates, estimatedWaitTime, medicationManagement, verificationStatus,
+            sessionFeeMin, sessionFeeMax, slidingScale, status, notes, submittedSlug, submittedAt, updatedAt, reviewRequestMessage, revisionHistory, revisionCount,
+            publishedTherapistId
           }`,
         );
 

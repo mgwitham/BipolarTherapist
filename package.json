@@ -2,7 +2,7 @@
   "name": "bipolar-therapist-directory",
   "private": true,
   "version": "1.0.0",
-  "description": "Static site clone of the live BipolarTherapists experience, rebuilt locally so we can keep developing it without needing access to the private upstream repository.",
+  "description": "BipolarTherapyHub local product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.",
   "scripts": {
     "dev": "vite",
     "api:dev": "node server/review-api.mjs",

@@ -9,7 +9,7 @@ export const siteSettingsType = defineType({
       name: "siteTitle",
       title: "Site title",
       type: "string",
-      initialValue: "BipolarTherapists",
+      initialValue: "BipolarTherapyHub",
     }),
     defineField({
       name: "supportEmail",
@@ -49,7 +49,7 @@ export const siteSettingsType = defineType({
       name: "footerTagline",
       title: "Footer tagline",
       type: "string",
-      initialValue: "Connecting patients with bipolar disorder specialists",
+      initialValue: "Guided bipolar-specialist matching with trust, clarity, and follow-through",
     }),
   ],
   preview: {
