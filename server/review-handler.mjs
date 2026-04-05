@@ -201,7 +201,7 @@ function sendJson(response, statusCode, payload, origin, config) {
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     Vary: "Origin",
   };
   const allowedOrigin = getAllowedOrigin(origin, config);
@@ -461,6 +461,61 @@ function buildApplicationDocument(input) {
     submittedAt: now,
     updatedAt: now,
   };
+}
+
+function buildRevisionFieldUpdates(input) {
+  return {
+    name: String(input.name || "").trim(),
+    email: String(input.email || "").trim(),
+    credentials: String(input.credentials || "").trim(),
+    title: String(input.title || "").trim(),
+    practiceName: String(input.practice_name || "").trim(),
+    phone: String(input.phone || "").trim(),
+    website: String(input.website || "").trim(),
+    preferredContactMethod: String(input.preferred_contact_method || "").trim(),
+    preferredContactLabel: String(input.preferred_contact_label || "").trim(),
+    contactGuidance: String(input.contact_guidance || "").trim(),
+    firstStepExpectation: String(input.first_step_expectation || "").trim(),
+    bookingUrl: String(input.booking_url || "").trim(),
+    city: String(input.city || "").trim(),
+    state: String(input.state || "").trim(),
+    zip: String(input.zip || "").trim(),
+    licenseState: String(input.license_state || "").trim().toUpperCase(),
+    licenseNumber: String(input.license_number || "").trim(),
+    bio: String(input.bio || "").trim(),
+    careApproach: String(input.care_approach || "").trim(),
+    specialties: splitList(input.specialties),
+    treatmentModalities: splitList(input.treatment_modalities),
+    clientPopulations: splitList(input.client_populations),
+    insuranceAccepted: splitList(input.insurance_accepted),
+    languages: splitList(input.languages).length ? splitList(input.languages) : ["English"],
+    yearsExperience: parseNumber(input.years_experience),
+    bipolarYearsExperience: parseNumber(input.bipolar_years_experience),
+    acceptsTelehealth: parseBoolean(input.accepts_telehealth, true),
+    acceptsInPerson: parseBoolean(input.accepts_in_person, true),
+    telehealthStates: splitList(input.telehealth_states),
+    estimatedWaitTime: String(input.estimated_wait_time || "").trim(),
+    medicationManagement: parseBoolean(input.medication_management, false),
+    sessionFeeMin: parseNumber(input.session_fee_min),
+    sessionFeeMax: parseNumber(input.session_fee_max),
+    slidingScale: parseBoolean(input.sliding_scale, false),
+  };
+}
+
+function validateRevisionInput(input) {
+  if (
+    !input.name ||
+    !input.credentials ||
+    !input.email ||
+    !input.city ||
+    !input.state ||
+    !input.bio ||
+    !input.license_state ||
+    !input.license_number ||
+    !input.care_approach
+  ) {
+    throw new Error("Missing required application fields.");
+  }
 }
 
 function buildTherapistDocument(application, existingId) {
@@ -826,6 +881,65 @@ export function createReviewApiHandler(configOverride) {
           console.error("Failed to send new-submission email.", error);
         }
         sendJson(response, 201, normalizeApplication(created), origin, config);
+        return;
+      }
+
+      const revisionFetchMatch = routePath.match(/^\/applications\/([^/]+)\/revision$/);
+      if (request.method === "GET" && revisionFetchMatch) {
+        const applicationId = decodeURIComponent(revisionFetchMatch[1]);
+        const application = await client.getDocument(applicationId);
+        if (!application || application._type !== "therapistApplication") {
+          sendJson(response, 404, { error: "Application not found." }, origin, config);
+          return;
+        }
+
+        if (application.status !== "requested_changes") {
+          sendJson(response, 409, { error: "This application is not currently open for revision." }, origin, config);
+          return;
+        }
+
+        sendJson(response, 200, normalizeApplication(application), origin, config);
+        return;
+      }
+
+      const revisionSubmitMatch = routePath.match(/^\/applications\/([^/]+)\/revise$/);
+      if (request.method === "POST" && revisionSubmitMatch) {
+        const applicationId = decodeURIComponent(revisionSubmitMatch[1]);
+        const application = await client.getDocument(applicationId);
+        if (!application || application._type !== "therapistApplication") {
+          sendJson(response, 404, { error: "Application not found." }, origin, config);
+          return;
+        }
+
+        if (application.status !== "requested_changes") {
+          sendJson(response, 409, { error: "This application is not currently open for revision." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        validateRevisionInput(body);
+        const timestamp = new Date().toISOString();
+        const updated = await client
+          .patch(applicationId)
+          .set({
+            ...buildRevisionFieldUpdates(body),
+            status: "pending",
+            reviewRequestMessage: "",
+            updatedAt: timestamp,
+            revisionCount: (Number(application.revisionCount || 0) || 0) + 1,
+          })
+          .setIfMissing({ revisionHistory: [] })
+          .append("revisionHistory", [
+            {
+              _key: `${Date.now()}`,
+              type: "resubmitted",
+              at: timestamp,
+              message: "Therapist submitted an updated revision.",
+            },
+          ])
+          .commit({ visibility: "sync" });
+
+        sendJson(response, 200, normalizeApplication(updated), origin, config);
         return;
       }
 

@@ -182,7 +182,7 @@ export async function fetchPublicTherapistBySlug(slug) {
 
   try {
     const doc = await fetchFromSanity(
-      `*[_type == "therapist" && slug.current == $slug && listingActive == true][0] ${therapistProjection}`,
+      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active"][0] ${therapistProjection}`,
       { slug: slug },
     );
     setCmsState("sanity", null);

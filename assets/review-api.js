@@ -122,6 +122,23 @@ export async function submitTherapistApplication(application) {
   );
 }
 
+export async function fetchTherapistApplicationRevision(applicationId) {
+  return sanitizeApplication(
+    await request(`/applications/${encodeURIComponent(applicationId)}/revision`, {
+      method: "GET",
+    }),
+  );
+}
+
+export async function submitTherapistApplicationRevision(applicationId, application) {
+  return sanitizeApplication(
+    await request(`/applications/${encodeURIComponent(applicationId)}/revise`, {
+      method: "POST",
+      body: JSON.stringify(application),
+    }),
+  );
+}
+
 export async function fetchTherapistApplications() {
   const payload = await request("/applications", {
     method: "GET",

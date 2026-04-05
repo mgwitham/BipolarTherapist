@@ -1,4 +1,8 @@
-import { submitTherapistApplication } from "./review-api.js";
+import {
+  fetchTherapistApplicationRevision,
+  submitTherapistApplication,
+  submitTherapistApplicationRevision,
+} from "./review-api.js";
 import { getApplicationById, reviseApplication, submitApplication } from "./store.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 
@@ -81,10 +85,12 @@ function showErr(msg) {
 }
 
 function showSuccess(application, source) {
-  var isRevision = Boolean(application && application.revision_count);
+  var isRevision = Boolean(revisionApplicationId || (application && application.revision_count));
   var message =
     source === "sanity"
-      ? "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
+      ? isRevision
+        ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
+        : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
       : isRevision
         ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
         : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
@@ -431,7 +437,9 @@ async function handleSubmit(event) {
     let source = "sanity";
 
     try {
-      application = await submitTherapistApplication(data);
+      application = revisionApplicationId
+        ? await submitTherapistApplicationRevision(revisionApplicationId, data)
+        : await submitTherapistApplication(data);
     } catch (_error) {
       application = revisionApplicationId
         ? reviseApplication(revisionApplicationId, data)
@@ -468,19 +476,12 @@ function setCheckedValues(form, name, values) {
   });
 }
 
-function loadRevisionContext() {
-  var params = new URLSearchParams(window.location.search);
-  var revisionId = params.get("revise");
+function applyRevisionContext(application) {
   var form = document.getElementById("applyForm");
   var notice = document.getElementById("revisionNotice");
   var message = document.getElementById("revisionMessage");
 
-  if (!revisionId || !form) {
-    return;
-  }
-
-  var application = getApplicationById(revisionId);
-  if (!application || application.status !== "requested_changes") {
+  if (!application || !form) {
     return;
   }
 
@@ -540,7 +541,32 @@ function loadRevisionContext() {
     button.textContent = "Submit Updated Profile →";
   }
 
-  renderRevisionWorkspace(collectFormData(form));
+  renderReadiness();
+  renderFieldCoaching();
+}
+
+async function loadRevisionContext() {
+  var params = new URLSearchParams(window.location.search);
+  var revisionId = params.get("revise");
+
+  if (!revisionId || !document.getElementById("applyForm")) {
+    return;
+  }
+
+  try {
+    var remoteApplication = await fetchTherapistApplicationRevision(revisionId);
+    if (remoteApplication && remoteApplication.status === "requested_changes") {
+      applyRevisionContext(remoteApplication);
+      return;
+    }
+  } catch (_error) {
+    // Fall back to local demo data when the review API is unavailable.
+  }
+
+  var application = getApplicationById(revisionId);
+  if (application && application.status === "requested_changes") {
+    applyRevisionContext(application);
+  }
 }
 
 document.querySelectorAll('.check-label input[type="checkbox"]').forEach(function (checkbox) {
