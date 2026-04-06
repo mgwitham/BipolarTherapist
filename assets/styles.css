@@ -756,6 +756,41 @@ nav {
   margin-bottom: 0.85rem;
 }
 
+.card-fit-note {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--teal-dark);
+  margin: -0.25rem 0 0.7rem;
+}
+
+.card-signal-card {
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbfefe 0%, #f3f9fa 100%);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.7rem;
+}
+
+.card-signal-card-soft {
+  background: linear-gradient(180deg, #fffdf9 0%, #f9f5ec 100%);
+  border-color: rgba(194, 157, 76, 0.18);
+}
+
+.card-signal-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.card-signal-copy {
+  font-size: 0.76rem;
+  line-height: 1.6;
+  color: var(--navy);
+}
+
 .card-contact-detail {
   font-size: 0.72rem;
   font-weight: 600;
@@ -833,6 +868,34 @@ nav {
   font-size: 0.82rem;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.trust-summary-card {
+  margin-top: 0.95rem;
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfefe 0%, #f2f8fa 100%);
+  padding: 0.95rem 1rem;
+}
+
+.trust-summary-card-soft {
+  background: linear-gradient(180deg, #fffdf9 0%, #f9f5ec 100%);
+  border-color: rgba(194, 157, 76, 0.18);
+}
+
+.trust-summary-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.trust-summary-copy {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--navy);
 }
 
 .responsiveness-note {

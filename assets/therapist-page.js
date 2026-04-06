@@ -1,5 +1,12 @@
 import { fetchPublicTherapistBySlug } from "./cms.js";
-import { getTherapistMatchReadiness } from "./matching-model.js";
+import {
+  getDataFreshnessSummary,
+  getEditoriallyVerifiedOperationalCount,
+  getOperationalTrustSummary,
+  getRecentAppliedSummary,
+  getRecentConfirmationSummary,
+  getTherapistMatchReadiness,
+} from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 
 var slug = new URLSearchParams(window.location.search).get("slug");
@@ -31,6 +38,35 @@ function renderList(items, className) {
       return '<div class="' + className + '">' + escapeHtml(item) + "</div>";
     })
     .join("");
+}
+
+function formatSourceDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  var date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getSourceHostLabel(value) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch (_error) {
+    return "";
+  }
 }
 
 function readShortlist() {
@@ -171,6 +207,9 @@ function updateShortlistAction(slugValue) {
 
 function renderProfile(t) {
   var readiness = getTherapistMatchReadiness(t);
+  var freshness = getDataFreshnessSummary(t);
+  var recentApplied = getRecentAppliedSummary(t);
+  var recentConfirmation = getRecentConfirmationSummary(t);
   var responsivenessSignal = getPublicResponsivenessSignal(t);
   var readinessTitle =
     readiness.score >= 85
@@ -187,6 +226,9 @@ function renderProfile(t) {
   var fitReasons = [];
   if (t.verification_status === "editorially_verified") {
     fitReasons.push("editorial verification is in place");
+  }
+  if (getEditoriallyVerifiedOperationalCount(t) >= 2) {
+    fitReasons.push("multiple access details have been editor-verified");
   }
   if (Number(t.bipolar_years_experience || 0) >= 8) {
     fitReasons.push("they have substantial bipolar-specific experience");
@@ -208,6 +250,73 @@ function renderProfile(t) {
       fitReasons.slice(0, 3).join(", ") +
       ". You should still confirm availability, insurance, and personal fit directly."
     : "Use this profile to compare trust, access, and bipolar-specific fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
+  var likelyFitAudience = [];
+  if (t.medication_management) {
+    likelyFitAudience.push("people who may need psychiatry or medication support");
+  } else if ((t.client_populations || []).length) {
+    likelyFitAudience.push(
+      "people looking for " + String(t.client_populations[0] || "").toLowerCase() + " support",
+    );
+  }
+  if ((t.specialties || []).includes("Bipolar I")) {
+    likelyFitAudience.push("bipolar I care");
+  } else if ((t.specialties || []).includes("Bipolar II")) {
+    likelyFitAudience.push("bipolar II care");
+  } else if ((t.specialties || []).length) {
+    likelyFitAudience.push(String(t.specialties[0] || "").toLowerCase() + " care");
+  }
+  if (t.accepts_telehealth) {
+    likelyFitAudience.push("telehealth access");
+  }
+  var likelyFitCopy = likelyFitAudience.length
+    ? "Often a stronger fit for " + likelyFitAudience.slice(0, 3).join(", ") + "."
+    : "Often a stronger fit for people who want clearer bipolar-specific structure before reaching out.";
+  var reviewedDetails = [];
+  if (t.verification_status === "editorially_verified") {
+    reviewedDetails.push("license and location");
+    reviewedDetails.push("care format and availability details");
+    reviewedDetails.push("public contact path");
+  }
+  if (t.contact_guidance || t.first_step_expectation) {
+    reviewedDetails.push("first-contact guidance");
+  }
+  var reviewedDetailsCopy = reviewedDetails.length
+    ? "Reviewed details currently include " +
+      reviewedDetails.slice(0, 3).join(", ") +
+      ". This is a trust and clarity check, not a quality rating."
+    : "This profile includes useful trust signals, but some details may still need direct confirmation.";
+  var operationalTrustSummary = getOperationalTrustSummary(t);
+  var standoutReasons = [];
+  if (t.verification_status === "editorially_verified") {
+    standoutReasons.push("editorial review is already in place");
+  }
+  if (getEditoriallyVerifiedOperationalCount(t) >= 2) {
+    standoutReasons.push("multiple operational details are editor-verified");
+  }
+  if (Number(t.bipolar_years_experience || 0) >= 8) {
+    standoutReasons.push("bipolar-specific experience is clearly documented");
+  }
+  if (t.medication_management) {
+    standoutReasons.push("psychiatry or medication support is available");
+  }
+  if (t.accepting_new_patients && t.estimated_wait_time) {
+    standoutReasons.push("availability context is clearer than usual");
+  }
+  var standoutCopy = standoutReasons.length
+    ? "What looks especially strong on this profile right now: " +
+      standoutReasons.slice(0, 3).join(", ") +
+      "."
+    : "This profile is most useful when you want a clearer picture of fit, reachability, and next-step logistics before reaching out.";
+  var reachabilityCopy =
+    t.accepting_new_patients && t.estimated_wait_time
+      ? "Reachability looks relatively strong here: the profile shows a clear contact path, indicates new-patient availability, and includes a recent availability note suggesting " +
+        t.estimated_wait_time.toLowerCase() +
+        " timing."
+      : t.accepting_new_patients
+        ? "Reachability looks relatively strong here: the profile suggests this clinician is accepting new patients and gives a clear next step."
+        : t.estimated_wait_time
+          ? "Reachability is partly clear here: the profile includes availability context, but live openings should still be confirmed directly."
+          : "Reachability is moderate here: the contact path is clear, but live timing still needs direct confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
   document.getElementById("breadcrumbName").textContent = t.name;
 
@@ -245,6 +354,15 @@ function renderProfile(t) {
   var primaryContactLabel = String(t.preferred_contact_label || "").trim();
   var contactGuidance = String(t.contact_guidance || "").trim();
   var firstStepExpectation = String(t.first_step_expectation || "").trim();
+  var therapistReportedFields = Array.isArray(t.therapist_reported_fields)
+    ? t.therapist_reported_fields
+    : [];
+  var therapistReportedDate = formatSourceDate(t.therapist_reported_confirmed_at);
+  var sourceReviewedDate = formatSourceDate(t.source_reviewed_at);
+  var sourceHost = getSourceHostLabel(t.source_url);
+  var supportingSourceCount = Array.isArray(t.supporting_source_urls)
+    ? t.supporting_source_urls.filter(Boolean).length
+    : 0;
   var contactRouteLabel =
     t.preferred_contact_method === "booking"
       ? "Use the booking link"
@@ -297,6 +415,10 @@ function renderProfile(t) {
   contactBtns +=
     '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton">Save to shortlist</button>';
   contactBtns += buildPreferredContactButton();
+  contactBtns +=
+    '<a href="portal.html?slug=' +
+    encodeURIComponent(t.slug) +
+    '" class="btn-website btn-contact-secondary">Claim or manage profile</a>';
   if (t.phone && t.preferred_contact_method !== "phone") {
     contactBtns +=
       '<a href="tel:' +
@@ -330,6 +452,25 @@ function renderProfile(t) {
   var insTags = renderList(t.insurance_accepted, "ins-item");
   var langPills = renderTagList(t.languages || ["English"], "lang-pill");
   var telehealthStates = renderTagList(t.telehealth_states, "lang-pill");
+  var therapistReportedCopy = therapistReportedFields.length
+    ? "Some operational details here were confirmed directly by the specialist" +
+      (therapistReportedDate ? " on " + therapistReportedDate : "") +
+      ", including " +
+      therapistReportedFields.join(", ").replace(/_/g, " ") +
+      "."
+    : "";
+  var sourceReviewCopy = sourceReviewedDate
+    ? "This profile was last reviewed against public sources on " +
+      sourceReviewedDate +
+      (sourceHost ? ", with " + sourceHost + " as the primary source" : "") +
+      (supportingSourceCount
+        ? " and " +
+          supportingSourceCount +
+          " supporting source" +
+          (supportingSourceCount > 1 ? "s" : "")
+        : "") +
+      "."
+    : "";
 
   var feesHtml = "";
   if (t.session_fee_min || t.session_fee_max) {
@@ -396,7 +537,43 @@ function renderProfile(t) {
     "<div>" +
     '<div class="profile-section"><h2>Why this profile may fit</h2><div class="bio-text">' +
     escapeHtml(fitSummaryCopy) +
+    '</div><div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+    escapeHtml(likelyFitCopy) +
+    '</div><div class="trust-summary-card"><div class="trust-summary-label">Why this profile stands out</div><div class="trust-summary-copy">' +
+    escapeHtml(standoutCopy) +
+    '</div></div><div class="trust-summary-card trust-summary-card-soft"><div class="trust-summary-label">Reachability snapshot</div><div class="trust-summary-copy">' +
+    escapeHtml(reachabilityCopy) +
     "</div></div>" +
+    '<div class="profile-section"><h2>What we reviewed here</h2><div class="bio-text">' +
+    escapeHtml(reviewedDetailsCopy) +
+    "</div>" +
+    (therapistReportedCopy
+      ? '<div class="bio-text" style="margin-top:0.8rem">' +
+        escapeHtml(therapistReportedCopy) +
+        "</div>"
+      : "") +
+    (recentApplied
+      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+        escapeHtml(recentApplied.note) +
+        "</div>"
+      : "") +
+    (recentConfirmation
+      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+        escapeHtml(recentConfirmation.note) +
+        "</div>"
+      : "") +
+    (sourceReviewCopy
+      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(sourceReviewCopy) + "</div>"
+      : "") +
+    (freshness.status !== "fresh"
+      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(freshness.note) + "</div>"
+      : "") +
+    (operationalTrustSummary
+      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+        escapeHtml(operationalTrustSummary) +
+        "</div>"
+      : "") +
+    "</div>" +
     '<div class="profile-section"><h2>About this clinician</h2><div class="bio-text">' +
     escapeHtml(t.bio || "No bio provided.") +
     "</div></div>" +
@@ -425,7 +602,7 @@ function renderProfile(t) {
     escapeHtml(primaryContactLabel || contactRouteLabel) +
     "</div></div>" +
     (t.estimated_wait_time
-      ? '<div class="next-step-item"><div class="next-step-label">Typical timing</div><div class="next-step-value">' +
+      ? '<div class="next-step-item"><div class="next-step-label">Recent availability note</div><div class="next-step-value">' +
         escapeHtml(t.estimated_wait_time) +
         "</div></div>"
       : "") +
@@ -443,6 +620,9 @@ function renderProfile(t) {
     "</div>" +
     "<div>" +
     '<div class="sidebar-panel trust-panel"><h3>Trust and fit signals</h3>' +
+    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
+    escapeHtml(standoutCopy) +
+    "</div>" +
     '<div class="info-row"><span class="info-label">Match confidence</span><span class="info-val green">' +
     escapeHtml(readinessTitle) +
     "</span></div>" +
@@ -479,6 +659,32 @@ function renderProfile(t) {
         : "A profile under review may still be useful, but some details may need more confirmation before you decide.",
     ) +
     "</div>" +
+    (sourceReviewedDate
+      ? '<div class="info-row"><span class="info-label">Source review</span><span class="info-val">' +
+        escapeHtml(sourceReviewedDate) +
+        "</span></div>"
+      : "") +
+    (recentConfirmation && therapistReportedDate
+      ? '<div class="info-row"><span class="info-label">Therapist re-confirmed</span><span class="info-val green">' +
+        escapeHtml(therapistReportedDate) +
+        '</span></div><div class="responsiveness-note">' +
+        escapeHtml(
+          "This means key operational details were recently re-confirmed directly by the specialist. It does not guarantee exact live availability or personal fit.",
+        ) +
+        "</div>"
+      : "") +
+    (recentApplied
+      ? '<div class="info-row"><span class="info-label">Recently updated</span><span class="info-val green">' +
+        escapeHtml(recentApplied.label) +
+        '</span></div><div class="responsiveness-note">' +
+        escapeHtml(recentApplied.note) +
+        "</div>"
+      : "") +
+    '<div class="info-row"><span class="info-label">Freshness</span><span class="info-val ' +
+    (freshness.status === "fresh" ? "green" : "teal") +
+    '">' +
+    escapeHtml(freshness.label) +
+    "</span></div>" +
     '<div class="info-row"><span class="info-label">License</span><span class="info-val">' +
     escapeHtml([t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed") +
     "</span></div>" +
@@ -506,6 +712,9 @@ function renderProfile(t) {
       : "") +
     "</div>" +
     '<div class="sidebar-panel"><h3>Practical access details</h3>' +
+    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
+    escapeHtml(reachabilityCopy) +
+    "</div>" +
     '<div class="info-row"><span class="info-label">Status</span><span class="info-val ' +
     (t.accepting_new_patients ? "green" : "") +
     '">' +
@@ -525,7 +734,7 @@ function renderProfile(t) {
     escapeHtml(t.medication_management ? "Offered" : "No") +
     "</span></div>" +
     (t.estimated_wait_time
-      ? '<div class="info-row"><span class="info-label">Typical wait time</span><span class="info-val">' +
+      ? '<div class="info-row"><span class="info-label">Availability note</span><span class="info-val">' +
         escapeHtml(t.estimated_wait_time) +
         "</span></div>"
       : "") +

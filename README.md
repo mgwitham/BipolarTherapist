@@ -99,6 +99,9 @@ Current scope:
 
 - public therapist listings can come from Sanity
 - homepage featured therapists can come from Sanity
+- homepage featured therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and then synced with `node scripts/update-homepage-copy.mjs`
+- match-priority therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and are used as a light editorial prominence boost inside the public match flow
+- if you copy launch controls out of admin, paste them into [generated-launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-launch-profile-controls.json), then run `npm run cms:update:launch-controls` to safely update the repo source of truth
 - Sanity Studio manages therapist, homepage, site settings, and therapist application documents
 - the repo includes a future-ready therapist matching model
 - `match.html` provides a guided public-facing shortlist and outreach flow
@@ -111,6 +114,90 @@ See [MVP_LAUNCH_PLAN.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Dire
 - internal diagnostics and operational tooling
 - rollout priorities for the first real version
 
+## GTM Wedge
+
+See [GTM_WEDGE_PLAN.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/GTM_WEDGE_PLAN.md) for the current recommendation on:
+
+- who the first users are
+- what the first supply mix should look like
+- which states to focus on first
+- what not to build yet
+
+## Supply Playbook
+
+See [THERAPIST_ACQUISITION_PLAYBOOK.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/THERAPIST_ACQUISITION_PLAYBOOK.md) for the current recommendation on:
+
+- who to target first in California
+- what counts as a launch-worthy therapist profile
+- how to curate the first 10 to 25 strong listings
+
+Use [SOURCING_PRIORITY_FRAMEWORK.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/SOURCING_PRIORITY_FRAMEWORK.md) to prioritize the trust-critical fields that most affect ranking and trust before a candidate becomes an import row.
+
+## California Target List
+
+See [CALIFORNIA_TARGET_LIST.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/CALIFORNIA_TARGET_LIST.md) for the current first-pass list of real therapist and practice candidates to review for the `Los Angeles + California telehealth` wedge.
+
+## California Curation
+
+See [CALIFORNIA_CURATION_WORKSHEET.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/CALIFORNIA_CURATION_WORKSHEET.md) for the current triage worksheet that separates first-review candidates from backup pool and defines the scoring grid for launch-quality listings.
+
+For row-by-row scoring, use [california-curation-scorecard.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-curation-scorecard.csv).
+
+That scorecard now includes:
+
+- `trust_priority_fields`
+- `source_confidence`
+- `ranking_risk_if_missing`
+- `therapist_confirmation_priority`
+
+so sourcing work captures not just who looks good, but which missing truths would actually weaken trust and ranking.
+
+For the next sourcing wave beyond the current launch set, use [california-next-batch.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-next-batch.csv). It pre-sorts the remaining California candidates by trust-critical field risk, source confidence, and likely confirmation burden.
+
+For the strongest group-practice candidates that still need clinician-level conversion, use [california-group-clinician-drafts.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-group-clinician-drafts.csv). It turns Wave and Adelpha into named first-pass clinicians we can actually curate, instead of leaving them at the group level.
+
+For the actual go/no-go decision after that conversion, use [california-clinician-promotion-review.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-clinician-promotion-review.csv). It records which clinician is strong enough to graduate into the import pipeline and which one still needs more evidence.
+
+For the strongest remaining named psychiatry lead, use [california-freedom-clinician-review.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-freedom-clinician-review.csv). It documents the promotion case for Dr. Stacia Mills at Freedom Psychiatry, where the clinician-level source quality is already much stronger than the group-derived candidates.
+
+For a portfolio-quality view of the current live California set, use [california-live-portfolio-audit.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-live-portfolio-audit.csv). It ranks the live 10 by data-moat impact so we tighten the right profiles first instead of expanding blindly.
+
+For the live trust backlog generated from the readiness checker, use [california-live-warning-queue.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-live-warning-queue.csv). It converts the current warnings into a ranked queue so the next confirmation and refresh work follows the same logic every time.
+
+Before importing any future batch, run `npm run cms:check:therapists`. That readiness check enforces the same trust-first logic we have been using manually: it flags rows that are missing source review metadata, active contact paths, or too many trust-priority fields to be considered safely import-ready, and it writes a ranked warning queue based on moat impact plus confirmation leverage rather than raw file order alone. The generated queue now also separates `strong` warnings from `soft` warnings so bulk uploads are pressured hardest on the facts that actually drive trust and ranking.
+
+If you want the checker to behave like a true launch gate, run `npm run cms:check:therapists:strict`. That fails whenever any `strong` warnings remain, while still treating `soft` warnings as acceptable completeness debt.
+
+If you want the next therapist follow-up batch generated automatically, run `npm run cms:generate:confirmation-batch`. That creates both a prioritized warning queue and a confirmation-ready CSV with the exact asks for each profile, a plain-language `why it matters` note, warning-tier context, and a send-ready outreach package including recommended channel, contact target, subject line, and request body.
+
+If you want the next founder-sized outreach wave pre-packed, run `npm run cms:generate:confirmation-sprint`. That writes both [generated-confirmation-sprint.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-confirmation-sprint.md) and [generated-confirmation-sprint.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-confirmation-sprint.csv), which condense the top confirmation priorities into a smaller send-ready packet plus a structured spreadsheet/admin-friendly companion, including the current strong-vs-soft warning mix for each profile.
+
+If you want the strict safe-import blockers isolated into their own clearance packet, run `npm run cms:generate:import-blocker-sprint`. That writes [generated-import-blocker-sprint.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-import-blocker-sprint.md) and [generated-import-blocker-sprint.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-import-blocker-sprint.csv), which focus only on the top strong-warning profiles currently blocking safe import.
+
+If you want the current shared ask wave isolated into its own cross-queue handoff, run `npm run cms:generate:overlapping-ask-packet`. That writes [generated-overlapping-ask-packet.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-overlapping-ask-packet.md) and [generated-overlapping-ask-packet.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-overlapping-ask-packet.csv), which bundle the current overlapping ask when the top blocker wave and top confirmation sprint theme are aligned.
+
+If you want the smallest founder-ready version of that wave, run `npm run cms:generate:top-outreach-wave`. That writes [generated-top-outreach-wave.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-wave.md) and [generated-top-outreach-wave.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-wave.csv), which reduce the current unified outreach wave to the top 3 live targets with channel, target, primary ask, add-on asks, and subject.
+
+If you want that same top wave turned into a one-session execution sheet, run `npm run cms:generate:top-outreach-send-sheet`. That writes [generated-top-outreach-send-sheet.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-send-sheet.md), which adds a simple send order, channel-specific prep, and a small working checklist for each top target.
+
+If you want actual ready-to-send copy for that same top wave, run `npm run cms:generate:top-outreach-drafts`. That writes [generated-top-outreach-drafts.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-drafts.md), which gives you an email draft, phone script, or website-form draft for each of the current top outreach targets.
+
+If you want a tiny execution tracker for that same wave, run `npm run cms:generate:top-outreach-tracker`. That writes [generated-top-outreach-tracker.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-tracker.csv), which gives you a simple place to record send status, follow-up timing, reply status, and whether the answer has been applied back to the live profile.
+
+If you want the top wave turned into a single working session plan, run `npm run cms:generate:top-outreach-session`. That writes [generated-top-outreach-session.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-top-outreach-session.md), which adds suggested follow-up timing and a simple do-it-now checklist for the current top 3 targets.
+
+For the safest bulk-upload path, use `npm run cms:import:therapists:safe`. It now runs the strict readiness gate first and only imports when the batch has `0` strong warnings remaining.
+
+For the first conservative draft import rows, use [california-launch-drafts.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-launch-drafts.csv). It keeps the importer column shape, but also carries `sourceUrl` and `needsConfirmation` so launch data stays honest while the final verification pass happens.
+
+For the post-refresh therapist-confirmation agenda, use [CALIFORNIA_CONFIRMATION_PLAYBOOK.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/CALIFORNIA_CONFIRMATION_PLAYBOOK.md) and [california-confirmation-checklist.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-confirmation-checklist.csv). These track the high-value unknowns we still refuse to guess and turn them into a structured therapist follow-up queue.
+
+For the current highest-leverage live California confirmation packet, use [CALIFORNIA_PRIORITY_CONFIRMATION_WAVE.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/CALIFORNIA_PRIORITY_CONFIRMATION_WAVE.md) and [california-priority-confirmation-wave.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-priority-confirmation-wave.csv). These isolate the most visible California profiles where therapist-confirmed answers will most improve live trust and ranking right now.
+
+For ready-to-send copy and simple execution tracking for that exact wave, use [CALIFORNIA_PRIORITY_CONFIRMATION_DRAFTS.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/CALIFORNIA_PRIORITY_CONFIRMATION_DRAFTS.md) and [california-priority-confirmation-tracker.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-priority-confirmation-tracker.csv).
+
+If you want the repeated top California ask isolated into its own file-based packet, run `npm run cms:generate:california-priority-shared-ask`. That writes [generated-california-priority-shared-ask.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.md) and [generated-california-priority-shared-ask.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.csv), which currently isolate the shared `bipolarYearsExperience` ask across the full California priority wave.
+
 ## CMS Import
 
 You can bulk import therapist listings into Sanity from CSV instead of hand-entering them.
@@ -122,6 +209,10 @@ cp data/import/therapists-template.csv data/import/therapists.csv
 ```
 
 2. Fill in `data/import/therapists.csv`.
+
+For the current California-first launch wedge, a first truth-checked import set is already prepared in [therapists.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/therapists.csv). It reflects the strongest current `Los Angeles + California telehealth` launch candidates from the sourcing and curation pass.
+
+The supporting source trail for that import set lives in [california-launch-sources.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-launch-sources.md).
 
 Array-style fields use `|` separators:
 
@@ -254,6 +345,25 @@ npm run preview
 ```
 
 The deployable output is generated in `dist/`.
+
+Smoke-check the top built route shells:
+
+```sh
+npm run smoke:top-flows
+```
+
+Apply structured therapist-confirmation answers back into the import CSV:
+
+```sh
+npm run cms:check:confirmation-responses
+npm run cms:apply:confirmation-responses
+npm run cms:apply:confirmation-safe
+```
+
+That command reads [california-priority-confirmation-responses.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-priority-confirmation-responses.csv), updates only the approved trust-critical fields in [therapists.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/therapists.csv), and marks the matching review-state columns as therapist-confirmed when values are present.
+
+Run the `check` command first to see exactly which profile fields would change before writing anything.
+If you want one command for the whole local safety loop, use `npm run cms:apply:confirmation-safe`.
 
 ## Deployment
 

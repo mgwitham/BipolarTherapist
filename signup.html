@@ -659,7 +659,7 @@
       <div class="form-card" id="formCard">
         <form id="applyForm" onsubmit="handleSubmit(event)" novalidate>
           <div class="revision-notice" id="revisionNotice">
-            <h3>Revision requested</h3>
+            <h3 id="revisionTitle">Revision requested</h3>
             <p id="revisionMessage">
               This profile was sent back for revisions. Tighten the requested details and resubmit
               this version for review.
@@ -766,6 +766,41 @@
               <div class="field full">
                 <label>Languages</label
                 ><input type="text" name="languages" placeholder="English, Spanish, Mandarin" />
+              </div>
+              <div class="field full">
+                <label>Headshot</label>
+                <input
+                  type="file"
+                  name="photo_file"
+                  id="photoFileInput"
+                  accept="image/png,image/jpeg,image/webp"
+                />
+                <p class="field-hint">
+                  Preferred: upload the actual therapist or practice-approved headshot you want used
+                  on the live profile. JPG, PNG, or WebP up to 4 MB.
+                </p>
+                <div class="form-grid" style="margin-top: 0.75rem">
+                  <div class="field">
+                    <label>Photo source</label>
+                    <select name="photo_source_type">
+                      <option value="">Select source</option>
+                      <option value="therapist_uploaded">Therapist uploaded</option>
+                      <option value="practice_uploaded">Practice uploaded</option>
+                      <option value="public_source">Public-source fallback</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Photo use permission</label>
+                    <label class="check-label">
+                      <input type="checkbox" name="photo_usage_permission_confirmed" value="true" />
+                      I confirm this photo can be used on the live profile
+                    </label>
+                  </div>
+                </div>
+                <div class="field-example" id="photoUploadStatus">
+                  Uploaded headshots are preferred over public-source images because they are
+                  clearer, easier to trust, and easier to keep current.
+                </div>
               </div>
             </div>
           </div>
@@ -1121,6 +1156,101 @@
                   ><input type="checkbox" name="medication_management" value="true" /> I provide
                   medication management or prescribing support</label
                 >
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>🛡️ Trust & Source Clarity</h2>
+            <div class="form-grid">
+              <div class="field full">
+                <label>Which of these details are you directly confirming?</label>
+                <p class="field-hint">
+                  Some details are hard to verify from public sources alone. This lets us
+                  distinguish specialist-confirmed operational details from editorially reviewed
+                  facts.
+                </p>
+                <div class="checkbox-grid">
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="estimated_wait_time"
+                      checked
+                    />
+                    Estimated wait time</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="bipolar_years_experience"
+                      checked
+                    />
+                    Years treating bipolar disorder</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="insurance_accepted"
+                      checked
+                    />
+                    Insurance details</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="telehealth_states"
+                      checked
+                    />
+                    Telehealth states</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="contact_guidance"
+                      checked
+                    />
+                    Contact guidance</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="first_step_expectation"
+                      checked
+                    />
+                    What happens after outreach</label
+                  >
+                  <label class="check-label"
+                    ><input
+                      type="checkbox"
+                      name="therapist_reported_fields"
+                      value="session_pricing"
+                      checked
+                    />
+                    Session pricing</label
+                  >
+                </div>
+              </div>
+              <div class="field">
+                <label for="therapist_reported_confirmed_at">Last confirmed by you</label>
+                <input
+                  type="date"
+                  id="therapist_reported_confirmed_at"
+                  name="therapist_reported_confirmed_at"
+                />
+              </div>
+              <div class="field">
+                <label>Why this matters</label>
+                <div class="field-example">
+                  <strong>Trust model:</strong> we treat time-sensitive operational details
+                  differently from facts we can verify independently. That makes the product more
+                  honest and keeps your listing more credible.
+                </div>
               </div>
             </div>
           </div>

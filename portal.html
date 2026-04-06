@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claim or Manage Your Profile — BipolarTherapyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      body {
+        background: #f7fbfc;
+      }
+      .portal-wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+      }
+      .portal-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.35rem;
+        box-shadow: 0 12px 30px rgba(15, 65, 78, 0.05);
+      }
+      .portal-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1.25rem;
+      }
+      .portal-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.1;
+        margin: 0.15rem 0 0;
+      }
+      .portal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+      .portal-eyebrow {
+        margin: 0;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--teal);
+      }
+      .portal-subtle {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.6;
+      }
+      .portal-badges,
+      .portal-actions,
+      .portal-list {
+        display: grid;
+        gap: 0.65rem;
+      }
+      .portal-badge {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .portal-form {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .portal-form label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .portal-form input,
+      .portal-form select,
+      .portal-form textarea {
+        width: 100%;
+        padding: 0.72rem 0.82rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        color: var(--navy);
+        background: #fff;
+      }
+      .portal-feedback {
+        min-height: 1.2rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      @media (max-width: 860px) {
+        .portal-hero,
+        .portal-grid {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <div class="nav-icon">🧠</div>
+        <div class="nav-name">Bipolar<span>TherapyHub</span></div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="directory.html">Directory</a></li>
+        <li><a href="match.html">Get matched</a></li>
+        <li><a href="signup.html" class="nav-cta">Join as a therapist</a></li>
+      </ul>
+    </nav>
+    <main class="portal-wrap">
+      <div id="portalShell"></div>
+    </main>
+    <script type="module" src="assets/portal.js"></script>
+  </body>
+</html>

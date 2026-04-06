@@ -28,6 +28,39 @@ export const therapistApplicationType = defineType({
       type: "string",
     }),
     defineField({
+      name: "photo",
+      title: "Headshot",
+      type: "image",
+      description:
+        "Preferred: therapist-uploaded or practice-uploaded headshot. Public-source images should only be used as a temporary fallback.",
+      options: {
+        hotspot: true,
+      },
+    }),
+    defineField({
+      name: "photoSourceType",
+      title: "Photo source type",
+      type: "string",
+      options: {
+        list: [
+          { title: "Therapist uploaded", value: "therapist_uploaded" },
+          { title: "Practice uploaded", value: "practice_uploaded" },
+          { title: "Public-source fallback", value: "public_source" },
+        ],
+      },
+    }),
+    defineField({
+      name: "photoReviewedAt",
+      title: "Photo reviewed at",
+      type: "datetime",
+    }),
+    defineField({
+      name: "photoUsagePermissionConfirmed",
+      title: "Photo usage permission confirmed",
+      type: "boolean",
+      initialValue: false,
+    }),
+    defineField({
       name: "practiceName",
       title: "Practice name",
       type: "string",
@@ -230,6 +263,79 @@ export const therapistApplicationType = defineType({
         ],
       },
       initialValue: "under_review",
+    }),
+    defineField({
+      name: "therapistReportedFields",
+      title: "Therapist-confirmed fields",
+      type: "array",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+      description:
+        "Operational details this specialist is directly confirming because they are difficult to verify externally.",
+    }),
+    defineField({
+      name: "therapistReportedConfirmedAt",
+      title: "Therapist-confirmed at",
+      type: "datetime",
+      description:
+        "When the specialist last confirmed the therapist-reported operational details in this application.",
+    }),
+    defineField({
+      name: "fieldReviewStates",
+      title: "Field review states",
+      type: "object",
+      fields: [
+        defineField({
+          name: "estimatedWaitTime",
+          title: "Wait time review state",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+        }),
+        defineField({
+          name: "insuranceAccepted",
+          title: "Insurance review state",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+        }),
+        defineField({
+          name: "telehealthStates",
+          title: "Telehealth states review state",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+        }),
+        defineField({
+          name: "bipolarYearsExperience",
+          title: "Bipolar experience review state",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+        }),
+      ],
     }),
     defineField({
       name: "sessionFeeMin",

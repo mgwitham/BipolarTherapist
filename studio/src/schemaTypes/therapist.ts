@@ -52,6 +52,34 @@ export const therapistType = defineType({
       },
     }),
     defineField({
+      name: "photoSourceType",
+      title: "Photo source type",
+      type: "string",
+      group: "profile",
+      description:
+        "Prefer therapist-uploaded or practice-uploaded headshots. Use public-source only as a temporary fallback.",
+      options: {
+        list: [
+          { title: "Therapist uploaded", value: "therapist_uploaded" },
+          { title: "Practice uploaded", value: "practice_uploaded" },
+          { title: "Public-source fallback", value: "public_source" },
+        ],
+      },
+    }),
+    defineField({
+      name: "photoReviewedAt",
+      title: "Photo reviewed at",
+      type: "datetime",
+      group: "profile",
+    }),
+    defineField({
+      name: "photoUsagePermissionConfirmed",
+      title: "Photo usage permission confirmed",
+      type: "boolean",
+      group: "profile",
+      initialValue: false,
+    }),
+    defineField({
       name: "bio",
       title: "Full bio",
       type: "text",
@@ -133,6 +161,50 @@ export const therapistType = defineType({
       name: "bookingUrl",
       title: "Booking URL",
       type: "url",
+      group: "practice",
+    }),
+    defineField({
+      name: "claimStatus",
+      title: "Claim status",
+      type: "string",
+      group: "practice",
+      options: {
+        list: [
+          { title: "Unclaimed", value: "unclaimed" },
+          { title: "Claim requested", value: "claim_requested" },
+          { title: "Claimed", value: "claimed" },
+        ],
+      },
+      initialValue: "unclaimed",
+    }),
+    defineField({
+      name: "claimedByEmail",
+      title: "Claimed by email",
+      type: "string",
+      group: "practice",
+    }),
+    defineField({
+      name: "claimedAt",
+      title: "Claimed at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
+      name: "portalLastSeenAt",
+      title: "Portal last seen at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
+      name: "listingPauseRequestedAt",
+      title: "Listing pause requested at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
+      name: "listingRemovalRequestedAt",
+      title: "Listing removal requested at",
+      type: "datetime",
       group: "practice",
     }),
     defineField({
@@ -300,6 +372,111 @@ export const therapistType = defineType({
         ],
       },
       initialValue: "editorially_verified",
+    }),
+    defineField({
+      name: "sourceUrl",
+      title: "Primary source URL",
+      type: "url",
+      group: "trust",
+      description:
+        "Primary public source used to verify this profile, usually the clinician or practice site.",
+    }),
+    defineField({
+      name: "supportingSourceUrls",
+      title: "Supporting source URLs",
+      type: "array",
+      group: "trust",
+      of: [defineArrayMember({ type: "url" })],
+      description:
+        "Additional public sources used during editorial review, such as directory listings or about pages.",
+    }),
+    defineField({
+      name: "sourceReviewedAt",
+      title: "Source reviewed at",
+      type: "datetime",
+      group: "trust",
+      description: "When this profile was last reviewed against public sources.",
+    }),
+    defineField({
+      name: "therapistReportedFields",
+      title: "Therapist-confirmed fields",
+      type: "array",
+      group: "trust",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+      description:
+        "Operational details the specialist directly confirmed, such as wait time, insurance, telehealth coverage, or first-contact flow.",
+    }),
+    defineField({
+      name: "therapistReportedConfirmedAt",
+      title: "Therapist-confirmed at",
+      type: "datetime",
+      group: "trust",
+      description: "When the specialist last confirmed the therapist-reported operational details.",
+    }),
+    defineField({
+      name: "fieldReviewStates",
+      title: "Operational field review states",
+      type: "object",
+      group: "trust",
+      fields: [
+        defineField({
+          name: "estimatedWaitTime",
+          title: "Estimated wait time",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+          initialValue: "therapist_confirmed",
+        }),
+        defineField({
+          name: "insuranceAccepted",
+          title: "Insurance accepted",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+          initialValue: "therapist_confirmed",
+        }),
+        defineField({
+          name: "telehealthStates",
+          title: "Telehealth states",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+          initialValue: "therapist_confirmed",
+        }),
+        defineField({
+          name: "bipolarYearsExperience",
+          title: "Bipolar-specific years of experience",
+          type: "string",
+          options: {
+            list: [
+              { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+              { title: "Editorially verified", value: "editorially_verified" },
+              { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+            ],
+          },
+          initialValue: "therapist_confirmed",
+        }),
+      ],
+      description:
+        "Field-level trust state for hard-to-source operational details. Use this to distinguish therapist-confirmed details from editor-verified or stale details.",
     }),
     defineField({
       name: "sessionFeeMin",

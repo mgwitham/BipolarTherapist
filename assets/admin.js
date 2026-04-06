@@ -6,11 +6,13 @@ import {
   publishApplication,
   rejectApplication,
   resetDemoData,
+  updateApplicationReviewMetadata,
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
 import {
   approveTherapistApplication,
   checkReviewApiHealth,
+  fetchTherapistPortalRequests,
   getAdminSessionToken,
   fetchTherapistApplications,
   rejectTherapistApplication as rejectTherapistApplicationRemote,
@@ -18,8 +20,18 @@ import {
   signInAdmin,
   signOutAdmin,
   updateTherapistApplication,
+  updateTherapistPortalRequest,
 } from "./review-api.js";
-import { getTherapistMatchReadiness, getTherapistReviewCoaching } from "./matching-model.js";
+import {
+  buildTherapistFieldConfirmationPrompt,
+  getDataFreshnessSummary,
+  getEditoriallyVerifiedOperationalCount,
+  getTherapistConfirmationAgenda,
+  getTherapistMatchReadiness,
+  getTherapistMerchandisingQuality,
+  getRecentConfirmationSummary,
+  getTherapistReviewCoaching,
+} from "./matching-model.js";
 import {
   readFunnelEvents,
   summarizeAdaptiveSignals,
@@ -28,10 +40,36 @@ import {
 
 let dataMode = "local";
 let remoteApplications = [];
+let remotePortalRequests = [];
 let publishedTherapists = [];
 let authRequired = false;
+let rankingRiskFilter = "";
+let confirmationQueueFilter = "";
+let conciergeFilters = {
+  status: "",
+};
+let portalRequestFilters = {
+  status: "",
+};
 const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+const CONFIRMATION_QUEUE_KEY = "bth_confirmation_queue_v1";
+const CONFIRMATION_RESPONSE_VALUES_KEY = "bth_confirmation_response_values_v1";
+const LAUNCH_PROFILE_CONTROLS_KEY = "bth_launch_profile_controls_v1";
+const CONFIRMATION_RESPONSE_FIELDS = [
+  "bipolarYearsExperience",
+  "estimatedWaitTime",
+  "insuranceAccepted",
+  "yearsExperience",
+  "telehealthStates",
+];
+const CONFIRMATION_RESPONSE_ITEM_FIELD_MAP = {
+  bipolarYearsExperience: ["bipolarYearsExperience", "bipolar_years_experience"],
+  estimatedWaitTime: ["estimatedWaitTime", "estimated_wait_time"],
+  insuranceAccepted: ["insuranceAccepted", "insurance_accepted"],
+  yearsExperience: ["yearsExperience", "years_experience"],
+  telehealthStates: ["telehealthStates", "telehealth_states"],
+};
 const REQUEST_STATUS_OPTIONS = ["new", "triaging", "in_progress", "waiting_on_user", "resolved"];
 const THERAPIST_FOLLOW_UP_OPTIONS = [
   "unreviewed",
@@ -40,10 +78,146 @@ const THERAPIST_FOLLOW_UP_OPTIONS = [
   "needs_review",
   "not_a_fit",
 ];
+const CONFIRMATION_STATUS_OPTIONS = [
+  "not_started",
+  "sent",
+  "waiting_on_therapist",
+  "confirmed",
+  "applied",
+];
+const LAUNCH_STATE_OPTIONS = ["standard", "launch_ready", "featured"];
+const HOMEPAGE_FEATURED_FALLBACK_SLUGS = [
+  "dr-stacia-mills-pasadena-ca",
+  "dr-sylvia-cartwright-la-jolla-ca",
+  "dr-kalen-flynn-los-angeles-ca",
+  "dr-mike-mah-los-angeles-ca",
+  "dr-daniel-kaushansky-los-angeles-ca",
+  "dr-je-ko-los-angeles-ca",
+];
+const CALIFORNIA_PRIORITY_CONFIRMATION_SLUGS = [
+  "maya-smolarek-pasadena-ca",
+  "dr-stacia-mills-pasadena-ca",
+  "dr-sylvia-cartwright-la-jolla-ca",
+  "dr-je-ko-los-angeles-ca",
+  "dr-daniel-kaushansky-los-angeles-ca",
+];
+const CALIFORNIA_PRIORITY_CONFIRMATION_META = {
+  "maya-smolarek-pasadena-ca": {
+    first_action:
+      "Ask for Dr. Maya Smolarek by name and confirm whether Pasadena or California telehealth is the right intake path first.",
+    follow_up_rule:
+      "If front-desk staff cannot confirm on the call, ask for the best email or callback path and follow up within 2 business days.",
+    follow_up_business_days: 2,
+  },
+  "dr-stacia-mills-pasadena-ca": {
+    first_action:
+      "Lead with the free mini-consultation framing and keep the ask tight: bipolar-years first, wait time second.",
+    follow_up_rule:
+      "If there is no reply, follow up once after 4 business days and then leave the fields unchanged until confirmed.",
+    follow_up_business_days: 4,
+  },
+  "dr-sylvia-cartwright-la-jolla-ca": {
+    first_action:
+      "Use the online scheduling or contact path and position this as a brief profile-accuracy confirmation for California telehealth patients.",
+    follow_up_rule:
+      "If there is no response through the website path, try one phone follow-up during listed office hours before pausing.",
+    follow_up_business_days: 2,
+  },
+  "dr-je-ko-los-angeles-ca": {
+    first_action:
+      "Lead with whether the inquiry is for Westwood in-person care or California telepsychiatry, then keep the ask tight: bipolar-years first, timing second.",
+    follow_up_rule:
+      "If there is no response through the website path, follow up once by phone during listed office hours before pausing.",
+    follow_up_business_days: 2,
+  },
+  "dr-daniel-kaushansky-los-angeles-ca": {
+    first_action:
+      "Lead with the free bipolar therapy consultation framing and keep the ask focused on bipolar-years first, then timing and insurance stance if available.",
+    follow_up_rule:
+      "If there is no reply, follow up once by email or phone within 3 business days and then leave the fields unchanged until confirmed.",
+    follow_up_business_days: 3,
+  },
+};
 let applicationFilters = {
   q: "",
   status: "",
+  focus: "",
+  goal: "balanced",
 };
+let launchProfileFilters = {
+  state: "",
+  lane: "",
+};
+
+function spotlightSection(target) {
+  if (!target) {
+    return;
+  }
+  target.classList.add("section-spotlight");
+  window.setTimeout(function () {
+    target.classList.remove("section-spotlight");
+  }, 1800);
+}
+
+function buildPassiveStatCard(value, label, meta) {
+  return (
+    '<div class="stat-card is-passive"><div class="stat-value">' +
+    escapeHtml(value) +
+    '</div><div class="stat-label">' +
+    escapeHtml(label) +
+    "</div>" +
+    (meta ? '<div class="stat-meta">' + escapeHtml(meta) + "</div>" : "") +
+    "</div>"
+  );
+}
+
+function buildActionStatCard(value, label, targetId, options) {
+  var config = options || {};
+  var attrs = [
+    'type="button"',
+    'class="stat-card is-actionable"',
+    'data-admin-scroll-target="' + escapeHtml(targetId) + '"',
+    'style="text-align:left;cursor:pointer"',
+  ];
+  if (config.confirmationFilter !== undefined) {
+    attrs.push('data-admin-confirmation-filter="' + escapeHtml(config.confirmationFilter) + '"');
+  }
+  if (config.applicationStatus !== undefined) {
+    attrs.push('data-admin-application-status="' + escapeHtml(config.applicationStatus) + '"');
+  }
+  if (config.conciergeStatus !== undefined) {
+    attrs.push('data-admin-concierge-status="' + escapeHtml(config.conciergeStatus) + '"');
+  }
+  if (config.portalRequestStatus !== undefined) {
+    attrs.push('data-admin-portal-request-status="' + escapeHtml(config.portalRequestStatus) + '"');
+  }
+
+  return (
+    "<button " +
+    attrs.join(" ") +
+    '><div class="stat-value">' +
+    escapeHtml(value) +
+    '</div><div class="stat-label">' +
+    escapeHtml(label) +
+    "</div>" +
+    (config.meta ? '<div class="stat-meta">' + escapeHtml(config.meta) + "</div>" : "") +
+    '<div class="stat-action-note">' +
+    escapeHtml(config.actionLabel || "Open workflow") +
+    "</div></button>"
+  );
+}
+
+function wrapStatsGroup(title, cards, extraClass) {
+  return (
+    '<div class="stats-group"><div class="stats-group-title">' +
+    escapeHtml(title) +
+    '</div><div class="stats-grid' +
+    (extraClass ? " " + escapeHtml(extraClass) : "") +
+    '">' +
+    cards.join("") +
+    "</div></div>"
+  );
+}
 
 function escapeHtml(value) {
   return String(value || "")
@@ -56,6 +230,1503 @@ function escapeHtml(value) {
 
 function formatDate(value) {
   return new Date(value).toLocaleString();
+}
+
+function formatFieldLabel(value) {
+  return String(value || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, function (character) {
+      return character.toUpperCase();
+    });
+}
+
+function buildConfirmationChecklist(item, agenda, preferredPrimaryField) {
+  var orderedFields = getPreferredFieldOrder(
+    (agenda && agenda.unknown_fields) || [],
+    preferredPrimaryField,
+  );
+  var primaryAskField = orderedFields[0] || "";
+  var addOnAskFields = orderedFields.slice(1);
+  return [
+    "BipolarTherapyHub profile confirmation checklist",
+    "",
+    "Therapist: " + (item && item.name ? item.name : "Unknown therapist"),
+    item && item.slug ? "Slug: " + item.slug : "",
+    "Priority: " + formatStatusLabel(agenda.priority),
+    "Needs confirmation: " +
+      ((agenda && agenda.unknown_fields) || [])
+        .map(function (field) {
+          return formatFieldLabel(field);
+        })
+        .join(", "),
+    primaryAskField ? "Primary ask: " + formatFieldLabel(primaryAskField) : "",
+    addOnAskFields.length
+      ? "Add-on asks: " +
+        addOnAskFields
+          .map(function (field) {
+            return formatFieldLabel(field);
+          })
+          .join(", ")
+      : "",
+    orderedFields.length
+      ? "Ordered ask flow: " +
+        orderedFields
+          .map(function (field) {
+            return formatFieldLabel(field);
+          })
+          .join(" -> ")
+      : "",
+    "",
+    "Exact asks:",
+    orderedFields
+      .map(function (field) {
+        return getImportBlockerPromptMap()[field];
+      })
+      .filter(Boolean)
+      .map(function (ask, index) {
+        return index + 1 + ". " + ask;
+      })
+      .join("\n"),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildConfirmationApplyBrief(item, agenda, workflow, preferredPrimaryField) {
+  var orderedFields = getPreferredFieldOrder(
+    (agenda && agenda.unknown_fields) || [],
+    preferredPrimaryField,
+  );
+  var primaryAskField = orderedFields[0] || "";
+  var addOnAskFields = orderedFields.slice(1);
+  return [
+    "BipolarTherapyHub live profile update brief",
+    "",
+    "Therapist: " + (item && item.name ? item.name : "Unknown therapist"),
+    item && item.slug ? "Slug: " + item.slug : "",
+    "Current confirmation status: " +
+      formatStatusLabel((workflow && workflow.status) || "not_started"),
+    workflow && workflow.last_updated_at
+      ? "Last confirmed state update: " + formatDate(workflow.last_updated_at)
+      : "",
+    primaryAskField ? "Primary confirmed ask: " + formatFieldLabel(primaryAskField) : "",
+    addOnAskFields.length
+      ? "Secondary asks: " +
+        addOnAskFields
+          .map(function (field) {
+            return formatFieldLabel(field);
+          })
+          .join(", ")
+      : "",
+    orderedFields.length
+      ? "Ordered apply flow: " +
+        orderedFields
+          .map(function (field) {
+            return formatFieldLabel(field);
+          })
+          .join(" -> ")
+      : "",
+    "",
+    "Fields ready to apply or re-check:",
+    (orderedFields.length
+      ? orderedFields.map(function (field) {
+          return "- " + formatFieldLabel(field);
+        })
+      : ["- No specific fields flagged."]
+    ).join("\n"),
+    "",
+    "Apply steps:",
+    "1. Review the therapist response or confirmation submission.",
+    "2. Update the live profile fields that were confirmed.",
+    "3. Tighten field review states where editorial verification is now appropriate.",
+    "4. Re-run any needed trust or freshness review after the update.",
+    "",
+    "Profile URL:",
+    item && item.slug
+      ? new URL(
+          "therapist.html?slug=" + encodeURIComponent(item.slug),
+          window.location.href,
+        ).toString()
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildConfirmationApplySummary(rows, heading) {
+  var readyRows = buildConfirmationApplyCsvRows(rows);
+  if (!readyRows.length) {
+    return "";
+  }
+
+  var lines = [
+    heading || "# Confirmation Apply Summary",
+    "",
+    "Therapist-confirmed values captured in admin and ready to apply back into live profiles.",
+    "",
+  ];
+
+  readyRows.forEach(function (row) {
+    var orderedFields = getPreferredFieldOrder(
+      (row.agenda && row.agenda.unknown_fields) || [],
+      row.primaryAskField || row.primary_ask_field || "",
+    );
+    var response = getConfirmationResponseEntry(row.item.slug);
+    var confirmedLines = orderedFields
+      .filter(function (field) {
+        return response[field];
+      })
+      .map(function (field) {
+        return "- " + formatFieldLabel(field) + ": " + response[field];
+      });
+
+    lines.push("## " + row.item.name);
+    lines.push("");
+    lines.push("- Slug: " + row.item.slug);
+    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
+    if (row.workflow.last_updated_at) {
+      lines.push("- Confirmed in admin: " + formatDate(row.workflow.last_updated_at));
+    }
+    if (confirmedLines.length) {
+      lines.push("- Captured values:");
+      confirmedLines.forEach(function (line) {
+        lines.push("  " + line);
+      });
+    } else {
+      lines.push("- Captured values: none entered yet");
+    }
+    lines.push(
+      "- Profile URL: " +
+        new URL(
+          "therapist.html?slug=" + encodeURIComponent(row.item.slug),
+          window.location.href,
+        ).toString(),
+    );
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildConfirmationApplyOperatorChecklist(rows, heading) {
+  var readyRows = buildConfirmationApplyCsvRows(rows);
+  if (!readyRows.length) {
+    return "";
+  }
+
+  return [
+    heading || "# Confirmation Apply Operator Checklist",
+    "",
+    "Use this when therapist-confirmed values are ready to move from admin into the import CSV.",
+    "",
+    "Files involved:",
+    "- data/import/california-priority-confirmation-responses.csv",
+    "- data/import/therapists.csv",
+    "",
+    "Steps:",
+    "1. Copy the apply CSV from admin and paste the confirmed values into data/import/california-priority-confirmation-responses.csv.",
+    "2. Optionally copy the apply summary too so the human context stays with the values.",
+    "3. Run: npm run cms:check:confirmation-responses",
+    "4. Review the printed field diffs carefully.",
+    "5. Run: npm run cms:apply:confirmation-responses",
+    "6. Run: npm run lint",
+    "7. Run: npm run build",
+    "8. If the changes should go live, run: npm run cms:import:therapists",
+    "",
+    "Profiles currently ready to apply:",
+  ]
+    .concat(
+      readyRows.map(function (row) {
+        return (
+          "- " +
+          row.item.name +
+          " (" +
+          row.item.slug +
+          ")" +
+          (row.workflow.last_updated_at
+            ? " — confirmed in admin " + formatDate(row.workflow.last_updated_at)
+            : "")
+        );
+      }),
+    )
+    .join("\n");
+}
+
+function readConfirmationResponseState() {
+  try {
+    return JSON.parse(window.localStorage.getItem(CONFIRMATION_RESPONSE_VALUES_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeConfirmationResponseState(value) {
+  try {
+    window.localStorage.setItem(CONFIRMATION_RESPONSE_VALUES_KEY, JSON.stringify(value));
+  } catch (_error) {
+    return;
+  }
+}
+
+function getConfirmationResponseEntry(slug) {
+  var all = readConfirmationResponseState();
+  var entry = all && slug ? all[slug] : null;
+  var normalized = {
+    updated_at: entry && entry.updated_at ? entry.updated_at : "",
+  };
+  CONFIRMATION_RESPONSE_FIELDS.forEach(function (field) {
+    normalized[field] = entry && entry[field] ? String(entry[field]) : "";
+  });
+  return normalized;
+}
+
+function updateConfirmationResponseEntry(slug, updates) {
+  if (!slug) {
+    return;
+  }
+  var all = readConfirmationResponseState();
+  var current = getConfirmationResponseEntry(slug);
+  var next = {
+    ...current,
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  all[slug] = next;
+  writeConfirmationResponseState(all);
+}
+
+function clearConfirmationResponseEntry(slug) {
+  if (!slug) {
+    return;
+  }
+  var all = readConfirmationResponseState();
+  delete all[slug];
+  writeConfirmationResponseState(all);
+}
+
+function getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug) {
+  var ordered = [];
+  var seen = new Set();
+  [primaryAskField]
+    .concat(addOnAskFields || [])
+    .concat(CONFIRMATION_RESPONSE_FIELDS)
+    .forEach(function (field) {
+      if (!field || !CONFIRMATION_RESPONSE_FIELDS.includes(field) || seen.has(field)) {
+        return;
+      }
+      seen.add(field);
+      ordered.push(field);
+    });
+
+  var stored = getConfirmationResponseEntry(slug);
+  CONFIRMATION_RESPONSE_FIELDS.forEach(function (field) {
+    if (stored[field] && !seen.has(field)) {
+      seen.add(field);
+      ordered.push(field);
+    }
+  });
+
+  return ordered;
+}
+
+function getConfirmationResponseFieldPlaceholder(field) {
+  if (field === "bipolarYearsExperience" || field === "yearsExperience") {
+    return "e.g. 8";
+  }
+  if (field === "estimatedWaitTime") {
+    return "e.g. 2 to 3 weeks";
+  }
+  if (field === "insuranceAccepted") {
+    return "Use | between multiple values";
+  }
+  if (field === "telehealthStates") {
+    return "e.g. CA|NY";
+  }
+  return "Enter confirmed value";
+}
+
+function getTherapistFieldCurrentValue(item, field) {
+  var candidates = CONFIRMATION_RESPONSE_ITEM_FIELD_MAP[field] || [field];
+  for (var index = 0; index < candidates.length; index += 1) {
+    var key = candidates[index];
+    var value = item ? item[key] : "";
+    if (Array.isArray(value)) {
+      if (value.length) {
+        return value.join("|");
+      }
+      continue;
+    }
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return "";
+}
+
+function buildConfirmationApplyPreviewHtml(item, slug, primaryAskField, addOnAskFields) {
+  var response = getConfirmationResponseEntry(slug);
+  var fields = getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug).filter(
+    function (field) {
+      return response[field];
+    },
+  );
+
+  if (!fields.length) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-summary"><strong>Apply preview:</strong> These are the field-level changes that would flow into the next apply CSV export.</div><div class="queue-shortlist">' +
+    fields
+      .map(function (field) {
+        var currentValue = getTherapistFieldCurrentValue(item, field) || "Not set";
+        return (
+          '<div class="queue-shortlist-item"><strong>' +
+          escapeHtml(formatFieldLabel(field)) +
+          ":</strong> " +
+          escapeHtml(currentValue) +
+          " → " +
+          escapeHtml(response[field]) +
+          "</div>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function buildConfirmationResponseCaptureHtml(slug, primaryAskField, addOnAskFields) {
+  var response = getConfirmationResponseEntry(slug);
+  var fields = getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug);
+
+  return (
+    '<div class="queue-summary"><strong>Captured response values:</strong> Save therapist-confirmed answers here so apply CSV exports can prefill them.' +
+    (response.updated_at
+      ? " Last updated " + escapeHtml(formatDate(response.updated_at)) + "."
+      : "") +
+    '</div><div class="queue-shortlist" data-confirmation-response-form="' +
+    escapeHtml(slug) +
+    '">' +
+    fields
+      .map(function (field) {
+        return (
+          '<label class="queue-select-label" for="confirmation-response-' +
+          escapeHtml(slug) +
+          "-" +
+          escapeHtml(field) +
+          '">' +
+          escapeHtml(formatFieldLabel(field)) +
+          '</label><input class="queue-select" id="confirmation-response-' +
+          escapeHtml(slug) +
+          "-" +
+          escapeHtml(field) +
+          '" data-confirmation-response-field="' +
+          escapeHtml(field) +
+          '" value="' +
+          escapeHtml(response[field] || "") +
+          '" placeholder="' +
+          escapeHtml(getConfirmationResponseFieldPlaceholder(field)) +
+          '" />'
+        );
+      })
+      .join("") +
+    '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-response-save="' +
+    escapeHtml(slug) +
+    '">Save confirmed values</button><button class="btn-secondary" data-confirmation-response-clear="' +
+    escapeHtml(slug) +
+    '">Clear confirmed values</button></div>'
+  );
+}
+
+function buildConfirmationApplyCsvRows(rows) {
+  return (rows || []).filter(function (row) {
+    var status = row && row.workflow ? row.workflow.status : "not_started";
+    return status === "confirmed" || status === "applied";
+  });
+}
+
+function buildConfirmationApplyCsv(rows) {
+  var readyRows = buildConfirmationApplyCsvRows(rows);
+  var headers = [
+    "slug",
+    "confirmedAt",
+    "bipolarYearsExperience",
+    "estimatedWaitTime",
+    "insuranceAccepted",
+    "yearsExperience",
+    "telehealthStates",
+  ];
+  var lines = [headers.join(",")];
+
+  readyRows.forEach(function (row) {
+    var response = getConfirmationResponseEntry(row.item.slug);
+    lines.push(
+      [
+        row.item.slug,
+        row.workflow && row.workflow.last_updated_at
+          ? new Date(row.workflow.last_updated_at).toISOString().slice(0, 10)
+          : "",
+        response.bipolarYearsExperience || "",
+        response.estimatedWaitTime || "",
+        response.insuranceAccepted || "",
+        response.yearsExperience || "",
+        response.telehealthStates || "",
+      ]
+        .map(csvEscape)
+        .join(","),
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function buildConfirmationLink(slug) {
+  return new URL(
+    "signup.html?confirm=" + encodeURIComponent(slug),
+    window.location.href,
+  ).toString();
+}
+
+function setConfirmationActionStatus(root, id, message) {
+  var status = root.querySelector('[data-confirmation-status-id="' + id + '"]');
+  if (status) {
+    status.textContent = message;
+  }
+}
+
+function setPortalRequestActionStatus(root, id, message) {
+  var status = root.querySelector('[data-portal-request-status-id="' + id + '"]');
+  if (status) {
+    status.textContent = message;
+  }
+}
+
+function bindConfirmationResponseCapture(root) {
+  if (!root) {
+    return;
+  }
+
+  root.querySelectorAll("[data-confirmation-response-save]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-confirmation-response-save");
+      var form = root.querySelector('[data-confirmation-response-form="' + slug + '"]');
+      if (!slug || !form) {
+        return;
+      }
+
+      var values = {};
+      form.querySelectorAll("[data-confirmation-response-field]").forEach(function (input) {
+        var field = input.getAttribute("data-confirmation-response-field");
+        if (!field) {
+          return;
+        }
+        values[field] = String(input.value || "").trim();
+      });
+
+      updateConfirmationResponseEntry(slug, values);
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationSprint();
+      renderConfirmationQueue();
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-response-clear]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-confirmation-response-clear");
+      if (!slug) {
+        return;
+      }
+      clearConfirmationResponseEntry(slug);
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationSprint();
+      renderConfirmationQueue();
+    });
+  });
+}
+
+function isConfirmationRefreshApplication(item) {
+  return Boolean(
+    item &&
+    (item.published_therapist_id ||
+      String(item.notes || "")
+        .toLowerCase()
+        .includes("confirmation update submitted for live therapist slug")),
+  );
+}
+
+function getRankingRiskMatches(therapist) {
+  var freshness = getDataFreshnessSummary(therapist);
+  var confirmationAgenda = getTherapistConfirmationAgenda(therapist);
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  var verifiedOperationalCount = getEditoriallyVerifiedOperationalCount(therapist);
+
+  return {
+    aging_data: freshness.status === "aging",
+    refresh_soon: freshness.status === "watch",
+    confirmation_needed: confirmationAgenda.needs_confirmation,
+    no_recent_confirmation: !recentConfirmation,
+    weak_editorial_depth: verifiedOperationalCount < 2,
+  };
+}
+
+function getRankingRiskMeta(key) {
+  var meta = {
+    confirmation_needed: {
+      note: "These profiles still have high-value unknowns that are costing trust and visibility.",
+      action: "Open confirmation queue",
+      target: "confirmationQueue",
+    },
+    no_recent_confirmation: {
+      note: "These profiles have not been re-confirmed by the specialist recently, so they miss the freshness lift.",
+      action: "Open confirmation queue",
+      target: "confirmationQueue",
+    },
+    weak_editorial_depth: {
+      note: "These profiles need stronger editor-verified operational coverage to earn more ranking trust.",
+      action: "Review published listings first",
+      target: "publishedListings",
+    },
+    aging_data: {
+      note: "These profiles are already losing some ranking strength because their operational data is aging.",
+      action: "Open refresh queue",
+      target: "refreshQueue",
+    },
+    refresh_soon: {
+      note: "These profiles are not in trouble yet, but they are the next best refresh candidates.",
+      action: "Open refresh queue",
+      target: "refreshQueue",
+    },
+  };
+
+  return (
+    meta[key] || {
+      note: "Review the affected profiles and decide the strongest next trust update.",
+      action: "Review published listings",
+      target: "publishedListings",
+    }
+  );
+}
+
+function readLaunchProfileControlsState() {
+  try {
+    return JSON.parse(window.localStorage.getItem(LAUNCH_PROFILE_CONTROLS_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeLaunchProfileControlsState(value) {
+  try {
+    window.localStorage.setItem(LAUNCH_PROFILE_CONTROLS_KEY, JSON.stringify(value));
+  } catch (_error) {
+    return;
+  }
+}
+
+function getLaunchStateLabel(value) {
+  if (value === "featured") {
+    return "Featured";
+  }
+  if (value === "launch_ready") {
+    return "Launch-ready";
+  }
+  return "Live only";
+}
+
+function getLaunchStateWeight(value) {
+  if (value === "featured") {
+    return 0;
+  }
+  if (value === "launch_ready") {
+    return 1;
+  }
+  return 2;
+}
+
+function getDefaultLaunchProfileControl(item) {
+  var readiness = getTherapistMatchReadiness(item);
+  var quality = getTherapistMerchandisingQuality(item);
+  var homepageFeatured = HOMEPAGE_FEATURED_FALLBACK_SLUGS.includes(item && item.slug);
+  var matchPriority =
+    readiness.score >= 85 &&
+    quality.score >= 80 &&
+    Boolean(
+      item && (item.accepting_new_patients || item.contact_guidance || item.first_step_expectation),
+    );
+
+  return {
+    launch_state: homepageFeatured ? "featured" : matchPriority ? "launch_ready" : "standard",
+    homepage_featured: homepageFeatured,
+    match_priority: matchPriority,
+    updated_at: "",
+  };
+}
+
+function getLaunchProfileControlEntry(item) {
+  var defaults = getDefaultLaunchProfileControl(item || {});
+  var all = readLaunchProfileControlsState();
+  var stored = item && item.slug ? all[item.slug] || {} : {};
+  var launchState = LAUNCH_STATE_OPTIONS.includes(stored.launch_state)
+    ? stored.launch_state
+    : defaults.launch_state;
+
+  return {
+    launch_state: launchState,
+    homepage_featured:
+      typeof stored.homepage_featured === "boolean"
+        ? stored.homepage_featured
+        : defaults.homepage_featured,
+    match_priority:
+      typeof stored.match_priority === "boolean" ? stored.match_priority : defaults.match_priority,
+    updated_at: stored.updated_at || defaults.updated_at || "",
+  };
+}
+
+function updateLaunchProfileControlEntry(slug, updates) {
+  if (!slug) {
+    return;
+  }
+  var all = readLaunchProfileControlsState();
+  var current = all[slug] || {};
+  all[slug] = {
+    ...current,
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  writeLaunchProfileControlsState(all);
+}
+
+function getLaunchControlRows(therapists) {
+  return (Array.isArray(therapists) ? therapists : [])
+    .map(function (item) {
+      return {
+        item: item,
+        control: getLaunchProfileControlEntry(item),
+        readiness: getTherapistMatchReadiness(item),
+        quality: getTherapistMerchandisingQuality(item),
+        freshness: getDataFreshnessSummary(item),
+      };
+    })
+    .sort(function (a, b) {
+      return (
+        getLaunchStateWeight(a.control.launch_state) -
+          getLaunchStateWeight(b.control.launch_state) ||
+        Number(b.control.homepage_featured) - Number(a.control.homepage_featured) ||
+        Number(b.control.match_priority) - Number(a.control.match_priority) ||
+        b.quality.score - a.quality.score ||
+        b.readiness.score - a.readiness.score ||
+        a.item.name.localeCompare(b.item.name)
+      );
+    });
+}
+
+function getLaunchControlCounts(rows) {
+  return (rows || []).reduce(
+    function (counts, row) {
+      counts.total += 1;
+      if (row.control.launch_state === "launch_ready") {
+        counts.launch_ready += 1;
+      }
+      if (row.control.launch_state === "featured") {
+        counts.featured += 1;
+      }
+      if (row.control.homepage_featured) {
+        counts.homepage_featured += 1;
+      }
+      if (row.control.match_priority) {
+        counts.match_priority += 1;
+      }
+      return counts;
+    },
+    {
+      total: 0,
+      launch_ready: 0,
+      featured: 0,
+      homepage_featured: 0,
+      match_priority: 0,
+    },
+  );
+}
+
+function getLaunchControlSummaryNote(counts) {
+  if (!counts.total) {
+    return "No live profiles available for launch control yet.";
+  }
+  if (counts.featured || counts.homepage_featured || counts.match_priority) {
+    return (
+      counts.featured +
+      " featured, " +
+      counts.homepage_featured +
+      " homepage-featured, and " +
+      counts.match_priority +
+      " match-priority profile" +
+      (counts.match_priority === 1 ? "" : "s") +
+      " are currently staged."
+    );
+  }
+  return "No explicit launch control overrides are staged yet. Start by marking the strongest public profiles as launch-ready or featured.";
+}
+
+function getLaunchLaneRows(rows, lane) {
+  return (rows || []).filter(function (row) {
+    if (lane === "homepage") {
+      return row.control.homepage_featured;
+    }
+    if (lane === "match") {
+      return row.control.match_priority;
+    }
+    return false;
+  });
+}
+
+function getLaunchLaneHealthSummary(rows, lane) {
+  var laneRows = getLaunchLaneRows(rows, lane);
+  var label = lane === "homepage" ? "Homepage featured lane" : "Match-priority lane";
+  if (!laneRows.length) {
+    return label + ": no profiles staged yet.";
+  }
+
+  var featuredCount = laneRows.filter(function (row) {
+    return row.control.launch_state === "featured";
+  }).length;
+  var launchReadyCount = laneRows.filter(function (row) {
+    return row.control.launch_state === "launch_ready";
+  }).length;
+  var agingCount = laneRows.filter(function (row) {
+    return row.freshness.status === "aging";
+  }).length;
+  var weakCount = laneRows.filter(function (row) {
+    return row.readiness.score < 75 || row.quality.score < 75;
+  }).length;
+
+  if (laneRows.length < 3) {
+    return (
+      label + ": thin supply. Add a few more strong profiles before leaning on this lane heavily."
+    );
+  }
+  if (agingCount >= 2) {
+    return label + ": usable, but freshness is slipping across the current set.";
+  }
+  if (weakCount >= Math.ceil(laneRows.length / 2)) {
+    return label + ": staged, but too many profiles still look weaker than ideal.";
+  }
+  if (featuredCount >= Math.ceil(laneRows.length / 2)) {
+    return (
+      label +
+      ": strong. " +
+      featuredCount +
+      " featured and " +
+      launchReadyCount +
+      " launch-ready profile" +
+      (launchReadyCount === 1 ? "" : "s") +
+      " are carrying this lane."
+    );
+  }
+  return (
+    label +
+    ": healthy enough to use, with " +
+    featuredCount +
+    " featured and " +
+    launchReadyCount +
+    " launch-ready profile" +
+    (launchReadyCount === 1 ? "" : "s") +
+    "."
+  );
+}
+
+function getLaunchControlBottleneck(rows) {
+  var homepageRows = getLaunchLaneRows(rows, "homepage");
+  var matchRows = getLaunchLaneRows(rows, "match");
+  var staleHomepage = homepageRows.filter(function (row) {
+    return row.freshness.status === "aging";
+  }).length;
+  var weakMatch = matchRows.filter(function (row) {
+    return row.readiness.score < 75 || row.quality.score < 75;
+  }).length;
+
+  if (!homepageRows.length) {
+    return "Next bottleneck: no homepage featured set is staged yet.";
+  }
+  if (!matchRows.length) {
+    return "Next bottleneck: no match-priority set is staged yet.";
+  }
+  if (homepageRows.length < 4) {
+    return "Next bottleneck: homepage featured supply is still too thin for a confident rotation.";
+  }
+  if (staleHomepage >= 2) {
+    return "Next bottleneck: homepage featured supply needs freshness work before stronger promotion.";
+  }
+  if (weakMatch >= Math.ceil(Math.max(matchRows.length, 1) / 2)) {
+    return "Next bottleneck: match-priority profiles need stronger trust or merchandising quality.";
+  }
+  return "Next bottleneck: keep the featured lanes fresh while promoting the strongest launch-ready profiles up into featured state.";
+}
+
+function summarizeLaunchProfileSignals(rows, events) {
+  var signalMap = {};
+  (rows || []).forEach(function (row) {
+    signalMap[row.item.slug] = {
+      shortlist_saves: 0,
+      contact_intents: 0,
+      profile_opens: 0,
+    };
+  });
+
+  (Array.isArray(events) ? events : []).forEach(function (event) {
+    var payload = event && event.payload ? event.payload : {};
+    var slug = payload.therapist_slug || payload.top_slug || "";
+    if (!slug || !signalMap[slug]) {
+      return;
+    }
+
+    if (event.type === "directory_shortlist_saved" || event.type === "match_shortlist_saved") {
+      signalMap[slug].shortlist_saves += 1;
+      return;
+    }
+
+    if (
+      event.type === "match_recommended_outreach_started" ||
+      event.type === "match_fallback_outreach_started" ||
+      event.type === "match_entry_outreach_started" ||
+      event.type === "match_recommended_draft_copied" ||
+      event.type === "match_fallback_draft_copied" ||
+      event.type === "match_entry_draft_copied" ||
+      event.type === "directory_primary_cta_clicked"
+    ) {
+      signalMap[slug].contact_intents += 1;
+      return;
+    }
+
+    if (
+      event.type === "match_result_profile_opened" ||
+      event.type === "directory_profile_review_clicked"
+    ) {
+      signalMap[slug].profile_opens += 1;
+    }
+  });
+
+  return signalMap;
+}
+
+function getLaunchLaneSignalSummary(rows, lane, signalMap) {
+  var laneRows = getLaunchLaneRows(rows, lane);
+  var label = lane === "homepage" ? "Homepage featured" : "Match-priority";
+  if (!laneRows.length) {
+    return label + ": no staged profiles yet, so no behavior signal exists.";
+  }
+
+  var totals = laneRows.reduce(
+    function (accumulator, row) {
+      var signals = signalMap[row.item.slug] || {
+        shortlist_saves: 0,
+        contact_intents: 0,
+        profile_opens: 0,
+      };
+      accumulator.shortlist_saves += signals.shortlist_saves;
+      accumulator.contact_intents += signals.contact_intents;
+      accumulator.profile_opens += signals.profile_opens;
+      return accumulator;
+    },
+    { shortlist_saves: 0, contact_intents: 0, profile_opens: 0 },
+  );
+
+  return (
+    label +
+    ": " +
+    totals.shortlist_saves +
+    " shortlist save" +
+    (totals.shortlist_saves === 1 ? "" : "s") +
+    ", " +
+    totals.contact_intents +
+    " contact intent" +
+    (totals.contact_intents === 1 ? "" : "s") +
+    ", and " +
+    totals.profile_opens +
+    " profile open" +
+    (totals.profile_opens === 1 ? "" : "s") +
+    " tracked so far."
+  );
+}
+
+function getLaunchSignalStrength(signals) {
+  var summary = signals || {};
+  return (
+    Number(summary.contact_intents || 0) * 3 +
+    Number(summary.shortlist_saves || 0) * 2 +
+    Number(summary.profile_opens || 0)
+  );
+}
+
+function getUnderperformingFeaturedRows(rows, signalMap) {
+  return (rows || [])
+    .filter(function (row) {
+      if (!(row.control.homepage_featured || row.control.match_priority)) {
+        return false;
+      }
+      var signals = signalMap[row.item.slug] || {};
+      var signalStrength = getLaunchSignalStrength(signals);
+      var weakProfile = row.readiness.score < 75 || row.quality.score < 75;
+      var aging = row.freshness.status === "aging";
+      return weakProfile || aging || signalStrength === 0;
+    })
+    .sort(function (a, b) {
+      var aSignals = getLaunchSignalStrength(signalMap[a.item.slug] || {});
+      var bSignals = getLaunchSignalStrength(signalMap[b.item.slug] || {});
+      return (
+        aSignals - bSignals ||
+        Number(a.freshness.status === "aging") - Number(b.freshness.status === "aging") ||
+        a.readiness.score - b.readiness.score ||
+        a.quality.score - b.quality.score
+      );
+    })
+    .slice(0, 3);
+}
+
+function getPromotionCandidateRows(rows, signalMap) {
+  return (rows || [])
+    .filter(function (row) {
+      if (row.control.homepage_featured || row.control.match_priority) {
+        return false;
+      }
+      if (row.readiness.score < 80 || row.quality.score < 80) {
+        return false;
+      }
+      if (row.freshness.status === "aging") {
+        return false;
+      }
+      var signals = signalMap[row.item.slug] || {};
+      return getLaunchSignalStrength(signals) > 0 || row.control.launch_state !== "standard";
+    })
+    .sort(function (a, b) {
+      var aSignals = getLaunchSignalStrength(signalMap[a.item.slug] || {});
+      var bSignals = getLaunchSignalStrength(signalMap[b.item.slug] || {});
+      return (
+        bSignals - aSignals ||
+        getLaunchStateWeight(a.control.launch_state) -
+          getLaunchStateWeight(b.control.launch_state) ||
+        b.quality.score - a.quality.score ||
+        b.readiness.score - a.readiness.score
+      );
+    })
+    .slice(0, 3);
+}
+
+function getLaunchRecommendationSummary(underperformingRows, promotionRows) {
+  if (underperformingRows.length && promotionRows.length) {
+    return "Suggested swap window: some promoted profiles are underperforming while stronger unstaged candidates are emerging.";
+  }
+  if (underperformingRows.length) {
+    return "Suggested cleanup: a few promoted profiles may need refresh, demotion, or replacement.";
+  }
+  if (promotionRows.length) {
+    return "Suggested promotion: a few unstaged profiles look strong enough to move into the launch lanes.";
+  }
+  return "No obvious launch-lane swaps stand out yet.";
+}
+
+function buildLaunchProfilePacket(rows) {
+  var stagedRows = (rows || []).filter(function (row) {
+    return (
+      row.control.launch_state !== "standard" ||
+      row.control.homepage_featured ||
+      row.control.match_priority
+    );
+  });
+
+  if (!stagedRows.length) {
+    return [
+      "# Launch / Featured Profile Control",
+      "",
+      "No launch-state or featured-profile overrides are staged yet.",
+    ].join("\n");
+  }
+
+  var lines = [
+    "# Launch / Featured Profile Control",
+    "",
+    "Profiles currently staged for launch-ready or featured visibility work.",
+    "",
+  ];
+
+  stagedRows.forEach(function (row, index) {
+    var lanes = [];
+    if (row.control.homepage_featured) {
+      lanes.push("Homepage featured");
+    }
+    if (row.control.match_priority) {
+      lanes.push("Match priority");
+    }
+
+    lines.push("## " + (index + 1) + ". " + row.item.name);
+    lines.push("");
+    lines.push("- Slug: " + row.item.slug);
+    lines.push("- Launch state: " + getLaunchStateLabel(row.control.launch_state));
+    lines.push("- Lanes: " + (lanes.length ? lanes.join(", ") : "No explicit featured lanes"));
+    lines.push("- Merchandising score: " + row.quality.score);
+    lines.push("- Match readiness: " + row.readiness.score + "/100");
+    lines.push("- Freshness: " + row.freshness.label);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildHomepageFeaturedSlugSnippet(rows) {
+  var featuredSlugs = (rows || [])
+    .filter(function (row) {
+      return row.control.homepage_featured;
+    })
+    .map(function (row) {
+      return row.item.slug;
+    });
+
+  return JSON.stringify(
+    {
+      homepageFeaturedSlugs: featuredSlugs,
+    },
+    null,
+    2,
+  );
+}
+
+function buildMatchPrioritySlugSnippet(rows) {
+  var prioritySlugs = (rows || [])
+    .filter(function (row) {
+      return row.control.match_priority;
+    })
+    .map(function (row) {
+      return row.item.slug;
+    });
+
+  return JSON.stringify(
+    {
+      matchPrioritySlugs: prioritySlugs,
+    },
+    null,
+    2,
+  );
+}
+
+function getPhotoSourceLabel(value) {
+  if (value === "therapist_uploaded") {
+    return "Therapist-uploaded photo";
+  }
+  if (value === "practice_uploaded") {
+    return "Practice-uploaded photo";
+  }
+  if (value === "public_source") {
+    return "Public-source photo";
+  }
+  return "No photo source set";
+}
+
+function hasPreferredPhotoSource(value) {
+  return value === "therapist_uploaded" || value === "practice_uploaded";
+}
+
+function getApplicationReviewSnapshot(item) {
+  var readiness = getTherapistMatchReadiness(item);
+  var isConfirmationRefresh = isConfirmationRefreshApplication(item);
+  var missingCriticalFields = [];
+  var photoSourceType = item.photo_source_type || "";
+  var hasPhotoAsset = Boolean(item.photo_url);
+  var preferredPhotoSource = hasPreferredPhotoSource(photoSourceType);
+
+  if (!item.license_number) {
+    missingCriticalFields.push("license number");
+  }
+  if (!item.preferred_contact_label) {
+    missingCriticalFields.push("CTA label");
+  }
+  if (!item.contact_guidance) {
+    missingCriticalFields.push("contact guidance");
+  }
+  if (!item.first_step_expectation) {
+    missingCriticalFields.push("first-step expectation");
+  }
+  if (!item.care_approach) {
+    missingCriticalFields.push("care approach");
+  }
+  if (!hasPhotoAsset) {
+    missingCriticalFields.push("headshot");
+  } else if (!photoSourceType) {
+    missingCriticalFields.push("headshot source");
+  }
+
+  var focus = "active_review";
+  var label = "Active review";
+  var note =
+    "Keep tightening the operational truth and make a clear decision on publish versus request changes.";
+
+  if (isConfirmationRefresh) {
+    focus = "confirmation_refresh";
+    label = "Confirmation refresh";
+    note =
+      "Treat this like upkeep on a live profile, not a brand-new listing. Prioritize confirmed operational truth and apply it back to the existing profile.";
+  } else if (missingCriticalFields.length >= 3 || readiness.completeness_score < 65) {
+    focus = "needs_changes";
+    label = "Needs fixes";
+    note =
+      "This is more likely to benefit from a request-changes round before publishing because too many trust-critical basics are still thin.";
+  } else if (
+    readiness.score >= 75 &&
+    readiness.completeness_score >= 75 &&
+    missingCriticalFields.length <= 1
+  ) {
+    focus = "publish_ready";
+    label = "Publish-ready";
+    note =
+      "This looks like a strong publish candidate after one final quality pass on trust and source clarity.";
+  }
+
+  return {
+    focus: focus,
+    label: label,
+    note: note,
+    photoStatusLabel: !hasPhotoAsset
+      ? "No headshot uploaded"
+      : getPhotoSourceLabel(photoSourceType),
+    photoNextMove: !hasPhotoAsset
+      ? "Ask for a therapist- or practice-uploaded headshot before treating the profile as launch-ready."
+      : !photoSourceType
+        ? "Ask for a therapist- or practice-uploaded headshot before treating the profile as fully launch-ready."
+        : preferredPhotoSource
+          ? "The headshot source is already in the preferred uploaded tier."
+          : "Treat this as a temporary photo fallback and prefer a therapist- or practice-uploaded headshot next.",
+    missingCriticalFields: missingCriticalFields,
+    nextMove:
+      focus === "confirmation_refresh"
+        ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
+        : focus === "needs_changes"
+          ? "Request changes before publishing."
+          : focus === "publish_ready"
+            ? "Do a final trust pass, then publish."
+            : item.status === "pending"
+              ? "Move into reviewing and decide what still blocks trust."
+              : "Keep reviewing and make the next decision explicit.",
+  };
+}
+
+function getApplicationPriorityScore(item) {
+  var snapshot = getApplicationReviewSnapshot(item);
+  var readiness = getTherapistMatchReadiness(item);
+  var score = 0;
+
+  if (snapshot.focus === "publish_ready") {
+    score += 120;
+  } else if (snapshot.focus === "confirmation_refresh") {
+    score += 95;
+  } else if (snapshot.focus === "active_review") {
+    score += 80;
+  } else if (snapshot.focus === "needs_changes") {
+    score += 40;
+  }
+
+  if (item.status === "reviewing") {
+    score += 35;
+  } else if (item.status === "pending") {
+    score += 20;
+  } else if (item.status === "requested_changes") {
+    score -= 10;
+  } else if (item.status === "approved") {
+    score -= 25;
+  } else if (item.status === "rejected") {
+    score -= 40;
+  }
+
+  score += Math.round((readiness.score || 0) / 5);
+  score += Math.round((readiness.completeness_score || 0) / 10);
+
+  return score;
+}
+
+function getApplicationReviewGoalMeta(goal) {
+  if (goal === "publish_now") {
+    return {
+      label: "Clear publish-ready work",
+      batchTitle: "Publish-Ready Batch",
+      sortNote:
+        "Applications are sorted to surface the fastest trustworthy publish decisions first.",
+      batchIntro:
+        "If you want quick wins right now, clear these publish-ready or nearly-ready applications first.",
+      packetHeading: "# Recommended Review Batch — Clear Publish-Ready Work",
+      primaryActionLabel: "Copy publish batch",
+      primaryActionMode: "packet",
+    };
+  }
+  if (goal === "fix_weak") {
+    return {
+      label: "Clean up weak applications",
+      batchTitle: "Fix-First Batch",
+      sortNote:
+        "Applications are sorted to surface the weakest trust cases and highest-fix review work first.",
+      batchIntro:
+        "If this session is about cleanup, start with the applications that need the clearest trust repairs.",
+      packetHeading: "# Recommended Review Batch — Clean Up Weak Applications",
+      primaryActionLabel: "Copy fix requests",
+      primaryActionMode: "requests",
+    };
+  }
+  if (goal === "refresh_first") {
+    return {
+      label: "Handle refresh updates",
+      batchTitle: "Refresh Review Batch",
+      sortNote:
+        "Applications are sorted to surface live-profile refresh updates and confirmation upkeep work first.",
+      batchIntro:
+        "If this session is about upkeep, start with these refresh-driven review actions first.",
+      packetHeading: "# Recommended Review Batch — Refresh Updates First",
+      primaryActionLabel: "Copy refresh batch",
+      primaryActionMode: "packet",
+    };
+  }
+  return {
+    label: "Balanced review",
+    batchTitle: "Recommended Review Batch",
+    sortNote:
+      "Applications are sorted by current review priority, so publish-ready and active high-leverage review work rises first.",
+    batchIntro: "If you only clear a few items right now, start with these.",
+    packetHeading: "# Recommended Review Batch",
+    primaryActionLabel: "Copy balanced batch",
+    primaryActionMode: "packet",
+  };
+}
+
+function isGoalMatchedReviewCard(goal, item) {
+  if (goal === "publish_now") {
+    return item.focus === "publish_ready";
+  }
+  if (goal === "fix_weak") {
+    return item.focus === "needs_changes";
+  }
+  if (goal === "refresh_first") {
+    return item.focus === "confirmation_refresh";
+  }
+  return item.focus === "publish_ready" || item.focus === "active_review";
+}
+
+function getGoalAdjustedApplicationPriorityScore(item, goal) {
+  var snapshot = getApplicationReviewSnapshot(item);
+  var score = getApplicationPriorityScore(item);
+
+  if (goal === "publish_now") {
+    if (snapshot.focus === "publish_ready") {
+      score += 90;
+    } else if (snapshot.focus === "active_review") {
+      score += 20;
+    } else if (snapshot.focus === "confirmation_refresh") {
+      score -= 5;
+    } else if (snapshot.focus === "needs_changes") {
+      score -= 40;
+    }
+  } else if (goal === "fix_weak") {
+    if (snapshot.focus === "needs_changes") {
+      score += 100;
+    } else if (snapshot.focus === "active_review") {
+      score += 20;
+    } else if (snapshot.focus === "publish_ready") {
+      score -= 30;
+    } else if (snapshot.focus === "confirmation_refresh") {
+      score -= 10;
+    }
+    if (item.status === "requested_changes") {
+      score += 25;
+    }
+  } else if (goal === "refresh_first") {
+    if (snapshot.focus === "confirmation_refresh") {
+      score += 110;
+    } else if (snapshot.focus === "active_review") {
+      score += 10;
+    } else if (snapshot.focus === "publish_ready") {
+      score -= 15;
+    } else if (snapshot.focus === "needs_changes") {
+      score -= 25;
+    }
+  }
+
+  return score;
+}
+
+function getApplicationBatchReason(item, goal) {
+  var snapshot = getApplicationReviewSnapshot(item);
+
+  if (goal === "publish_now") {
+    if (snapshot.focus === "publish_ready") {
+      return "Strong trust signals make this a fast publish decision candidate.";
+    }
+    if (snapshot.focus === "active_review") {
+      return "This is close enough to publish-ready that one more clear decision could move it.";
+    }
+    return "This stays in view as secondary review work after the fastest publish decisions.";
+  }
+
+  if (goal === "fix_weak") {
+    if (snapshot.focus === "needs_changes") {
+      return "This is missing trust-critical basics and benefits most from explicit fixes first.";
+    }
+    if (snapshot.focus === "active_review") {
+      return "This still needs a clear review call and could slip into a weak state without intervention.";
+    }
+    return "This is lower-leverage cleanup work once the weakest applications are handled.";
+  }
+
+  if (goal === "refresh_first") {
+    if (snapshot.focus === "confirmation_refresh") {
+      return "This is live-profile upkeep work and belongs at the top of a refresh session.";
+    }
+    return "This is supporting review work after the refresh-specific items are cleared.";
+  }
+
+  if (snapshot.focus === "publish_ready") {
+    return "This is strong, near-finish review work that can create momentum quickly.";
+  }
+  if (snapshot.focus === "confirmation_refresh") {
+    return "This is high-leverage upkeep work on an existing live profile.";
+  }
+  if (snapshot.focus === "active_review") {
+    return "This already has momentum and needs a clear next review decision.";
+  }
+  return "This needs more repair work before it becomes strong publish or refresh inventory.";
+}
+
+function getApplicationEmptyStateCopy(goal) {
+  if (goal === "publish_now") {
+    return "No applications match the current filters for a publish-focused session. Try broadening the filters or switch back to balanced review.";
+  }
+  if (goal === "fix_weak") {
+    return "No applications match the current filters for a fix-first session. Try broadening the filters or switch back to balanced review.";
+  }
+  if (goal === "refresh_first") {
+    return "No applications match the current filters for a refresh-review session. Try broadening the filters or switch back to balanced review.";
+  }
+  return "No applications match the current review filters. Try a different search or status.";
+}
+
+function getApplicationFilterChips() {
+  var chips = [];
+  if (applicationFilters.status) {
+    chips.push("Status: " + formatStatusLabel(applicationFilters.status));
+  }
+  if (applicationFilters.focus) {
+    chips.push("Focus: " + formatFieldLabel(applicationFilters.focus));
+  }
+  if (applicationFilters.q) {
+    chips.push('Search: "' + applicationFilters.q + '"');
+  }
+  return chips;
+}
+
+function buildRecommendedReviewBatchPacket(items, goal) {
+  var rows = Array.isArray(items) ? items.slice(0, 3) : [];
+  if (!rows.length) {
+    return "";
+  }
+  var goalMeta = getApplicationReviewGoalMeta(goal);
+
+  var lines = [
+    goalMeta.packetHeading,
+    "",
+    "Top application review targets right now.",
+    "Reviewer goal: " + goalMeta.label,
+    "",
+  ];
+
+  rows.forEach(function (item, index) {
+    var snapshot = getApplicationReviewSnapshot(item);
+    var coaching = getTherapistReviewCoaching(item);
+    var request = buildImprovementRequest(item, coaching);
+    var batchReason = getApplicationBatchReason(item, goal);
+    var revisionLink = new URL(
+      "signup.html?revise=" + encodeURIComponent(item.id),
+      window.location.href,
+    ).toString();
+    var confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
+
+    lines.push("## " + (index + 1) + ". " + item.name);
+    lines.push("");
+    lines.push("- Status: " + item.status);
+    lines.push("- Review focus: " + snapshot.label);
+    lines.push("- Recommended next move: " + snapshot.nextMove);
+    lines.push("- Why this is in the batch: " + batchReason);
+    lines.push("- Why it matters: " + snapshot.note);
+    lines.push(
+      "- Next link: " + (isConfirmationRefreshApplication(item) ? confirmationLink : revisionLink),
+    );
+    lines.push("- Improvement request:");
+    lines.push(request || "No improvement request generated.");
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildRecommendedReviewBatchRequests(items, goal) {
+  var rows = Array.isArray(items) ? items.slice(0, 3) : [];
+  if (!rows.length) {
+    return "";
+  }
+  var goalMeta = getApplicationReviewGoalMeta(goal);
+
+  return ["Reviewer goal: " + goalMeta.label, ""]
+    .concat(
+      rows.map(function (item, index) {
+        var coaching = getTherapistReviewCoaching(item);
+        return [
+          index + 1 + ". " + item.name,
+          buildImprovementRequest(item, coaching) || "No improvement request generated.",
+        ].join("\n");
+      }),
+    )
+    .join("\n\n");
+}
+
+function buildFieldReviewControls(item) {
+  var states = item.field_review_states || {};
+  var fields = [
+    { key: "estimated_wait_time", label: "Wait time" },
+    { key: "insurance_accepted", label: "Insurance" },
+    { key: "telehealth_states", label: "Telehealth states" },
+    { key: "bipolar_years_experience", label: "Bipolar experience" },
+  ];
+
+  return (
+    '<div class="field-review-grid">' +
+    fields
+      .map(function (field) {
+        return (
+          '<label class="field-review-item"><span class="field-review-label">' +
+          escapeHtml(field.label) +
+          '</span><select class="queue-select field-review-select" data-review-field="' +
+          escapeHtml(field.key) +
+          '" data-id="' +
+          escapeHtml(item.id) +
+          '">' +
+          [
+            { value: "therapist_confirmed", label: "Therapist-confirmed only" },
+            { value: "editorially_verified", label: "Editorially verified" },
+            { value: "needs_reconfirmation", label: "Needs re-confirmation" },
+          ]
+            .map(function (option) {
+              return (
+                '<option value="' +
+                option.value +
+                '"' +
+                (states[field.key] === option.value ||
+                (!states[field.key] && option.value === "therapist_confirmed")
+                  ? " selected"
+                  : "") +
+                ">" +
+                escapeHtml(option.label) +
+                "</option>"
+              );
+            })
+            .join("") +
+          "</select></label>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
 }
 
 function readConciergeRequests() {
@@ -82,6 +1753,2403 @@ function readOutreachOutcomes() {
   } catch (_error) {
     return [];
   }
+}
+
+function readConfirmationQueueState() {
+  try {
+    return JSON.parse(window.localStorage.getItem(CONFIRMATION_QUEUE_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeConfirmationQueueState(value) {
+  try {
+    window.localStorage.setItem(CONFIRMATION_QUEUE_KEY, JSON.stringify(value));
+  } catch (_error) {
+    return;
+  }
+}
+
+function getConfirmationQueueEntry(slug) {
+  var all = readConfirmationQueueState();
+  var entry = all && slug ? all[slug] : null;
+  return {
+    status:
+      entry && CONFIRMATION_STATUS_OPTIONS.includes(entry.status) ? entry.status : "not_started",
+    last_sent_at: entry && entry.last_sent_at ? entry.last_sent_at : "",
+    last_updated_at: entry && entry.last_updated_at ? entry.last_updated_at : "",
+    confirmation_applied_at:
+      entry && entry.confirmation_applied_at ? entry.confirmation_applied_at : "",
+  };
+}
+
+function updateConfirmationQueueEntry(slug, updates) {
+  if (!slug) {
+    return;
+  }
+  var all = readConfirmationQueueState();
+  var current = getConfirmationQueueEntry(slug);
+  var next = {
+    ...current,
+    ...updates,
+    last_updated_at: new Date().toISOString(),
+  };
+  all[slug] = next;
+  writeConfirmationQueueState(all);
+}
+
+function getPublishedTherapistConfirmationQueue() {
+  var therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  return therapists
+    .map(function (item) {
+      var workflow = getConfirmationQueueEntry(item.slug);
+      return {
+        item: {
+          ...item,
+          confirmation_applied_at: workflow.confirmation_applied_at,
+        },
+        agenda: getTherapistConfirmationAgenda(item),
+        workflow: workflow,
+      };
+    })
+    .filter(function (entry) {
+      return entry.agenda.needs_confirmation;
+    })
+    .sort(function (a, b) {
+      var statusWeight = {
+        not_started: 0,
+        sent: 1,
+        waiting_on_therapist: 2,
+        confirmed: 3,
+        applied: 4,
+      };
+      var statusDiff =
+        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      var weight = { high: 0, medium: 1, low: 2 };
+      var priorityDiff = (weight[a.agenda.priority] || 9) - (weight[b.agenda.priority] || 9);
+      if (priorityDiff) {
+        return priorityDiff;
+      }
+      return b.agenda.unknown_fields.length - a.agenda.unknown_fields.length;
+    });
+}
+
+function getCaliforniaPriorityConfirmationQueue() {
+  var queue = getPublishedTherapistConfirmationQueue();
+  return CALIFORNIA_PRIORITY_CONFIRMATION_SLUGS.map(function (slug) {
+    return queue.find(function (entry) {
+      return entry.item && entry.item.slug === slug;
+    });
+  }).filter(Boolean);
+}
+
+function getCaliforniaPriorityConfirmationRows() {
+  return getCaliforniaPriorityConfirmationQueue().map(function (entry, index) {
+    var item = entry.item;
+    var agenda = entry.agenda;
+    var workflow = getConfirmationQueueEntry(item.slug);
+    var meta = CALIFORNIA_PRIORITY_CONFIRMATION_META[item.slug] || {};
+    var orderedUnknownFields = getPreferredFieldOrder(agenda.unknown_fields || []);
+    return {
+      priority_rank: index + 1,
+      item: item,
+      agenda: agenda,
+      workflow: workflow,
+      primaryAskField: orderedUnknownFields[0] || "",
+      addOnAskFields: orderedUnknownFields.slice(1),
+      firstAction: meta.first_action || "Use the preferred contact path first.",
+      followUpRule:
+        meta.follow_up_rule ||
+        "Follow up once if needed, then leave the field unchanged until confirmed.",
+      followUpBusinessDays: Number(meta.follow_up_business_days) || 0,
+    };
+  });
+}
+
+function addBusinessDays(startDate, businessDays) {
+  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || businessDays <= 0) {
+    return null;
+  }
+  var next = new Date(startDate.getTime());
+  var remaining = businessDays;
+  while (remaining > 0) {
+    next.setDate(next.getDate() + 1);
+    var day = next.getDay();
+    if (day !== 0 && day !== 6) {
+      remaining -= 1;
+    }
+  }
+  return next;
+}
+
+function getCaliforniaPriorityFollowUpNote(row) {
+  if (!row || !row.workflow) {
+    return "";
+  }
+  var status = row.workflow.status;
+  if (status !== "sent" && status !== "waiting_on_therapist") {
+    return "";
+  }
+  if (!row.followUpBusinessDays || !row.workflow.last_sent_at) {
+    return "Follow-up timing starts once the request is sent.";
+  }
+  var sentAt = new Date(row.workflow.last_sent_at);
+  if (Number.isNaN(sentAt.getTime())) {
+    return "Follow-up timing is not available yet.";
+  }
+  var dueDate = addBusinessDays(sentAt, row.followUpBusinessDays);
+  if (!dueDate) {
+    return "Follow-up timing is not available yet.";
+  }
+  var now = new Date();
+  var msPerDay = 24 * 60 * 60 * 1000;
+  var daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / msPerDay);
+  if (daysUntilDue <= 0) {
+    return (
+      "Follow-up due now. Original outreach went out on " +
+      formatDate(row.workflow.last_sent_at) +
+      "."
+    );
+  }
+  if (daysUntilDue === 1) {
+    return (
+      "Follow-up due within 1 day. Original outreach went out on " +
+      formatDate(row.workflow.last_sent_at) +
+      "."
+    );
+  }
+  return (
+    "Follow-up due in " +
+    daysUntilDue +
+    " days. Original outreach went out on " +
+    formatDate(row.workflow.last_sent_at) +
+    "."
+  );
+}
+
+function getCaliforniaPriorityFollowUpSummary(rows) {
+  var dueNow = 0;
+  var dueSoon = 0;
+  (rows || []).forEach(function (row) {
+    var note = getCaliforniaPriorityFollowUpNote(row);
+    if (!note) {
+      return;
+    }
+    if (note.indexOf("Follow-up due now") === 0) {
+      dueNow += 1;
+      return;
+    }
+    if (note.indexOf("Follow-up due within 1 day") === 0) {
+      dueSoon += 1;
+    }
+  });
+  if (!dueNow && !dueSoon) {
+    return "";
+  }
+  if (dueNow && dueSoon) {
+    return (
+      "Follow-up urgency: " +
+      dueNow +
+      " due now and " +
+      dueSoon +
+      " due within 1 day across the California wave."
+    );
+  }
+  if (dueNow) {
+    return (
+      "Follow-up urgency: " +
+      dueNow +
+      " California-wave follow-up" +
+      (dueNow === 1 ? " is" : "s are") +
+      " due now."
+    );
+  }
+  return (
+    "Follow-up urgency: " +
+    dueSoon +
+    " California-wave follow-up" +
+    (dueSoon === 1 ? " is" : "s are") +
+    " due within 1 day."
+  );
+}
+
+function getCaliforniaPriorityWaveHealth(rows) {
+  var counts = { not_started: 0, sent: 0, waiting_on_therapist: 0, confirmed: 0, applied: 0 };
+  (rows || []).forEach(function (row) {
+    var status = row && row.workflow ? row.workflow.status : "not_started";
+    if (Object.prototype.hasOwnProperty.call(counts, status)) {
+      counts[status] += 1;
+    }
+  });
+  var parts = [];
+  if (counts.not_started) parts.push(counts.not_started + " not started");
+  if (counts.sent) parts.push(counts.sent + " sent");
+  if (counts.waiting_on_therapist) parts.push(counts.waiting_on_therapist + " waiting");
+  if (counts.confirmed) parts.push(counts.confirmed + " confirmed");
+  if (counts.applied) parts.push(counts.applied + " applied");
+  return parts.length
+    ? "Current California wave: " + parts.join(" · ") + "."
+    : "Current California wave: no active work.";
+}
+
+function getCaliforniaPriorityWaveBottleneck(rows) {
+  var counts = { not_started: 0, sent: 0, waiting_on_therapist: 0, confirmed: 0, applied: 0 };
+  (rows || []).forEach(function (row) {
+    var status = row && row.workflow ? row.workflow.status : "not_started";
+    if (Object.prototype.hasOwnProperty.call(counts, status)) {
+      counts[status] += 1;
+    }
+  });
+  if (
+    counts.not_started >=
+    Math.max(counts.sent, counts.waiting_on_therapist, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: the highest-value California confirmations still need first outreach.";
+  }
+  if (
+    counts.waiting_on_therapist >=
+    Math.max(counts.not_started, counts.sent, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: this wave is mostly blocked on therapist replies.";
+  }
+  if (
+    counts.sent >=
+    Math.max(counts.not_started, counts.waiting_on_therapist, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: requests are in flight, so follow-up discipline matters most.";
+  }
+  if (counts.confirmed > 0) {
+    return "Next bottleneck: confirmed answers are ready to apply back into live profiles.";
+  }
+  if (counts.applied > 0) {
+    return "Next bottleneck: move from recently applied profiles back into the next confirmation target.";
+  }
+  return "Next bottleneck: no active blocker yet.";
+}
+
+function getCaliforniaPrioritySharedAsk(rows) {
+  var counts = {};
+  (rows || []).forEach(function (row) {
+    var field = row && row.primaryAskField ? row.primaryAskField : "";
+    if (!field) {
+      return;
+    }
+    if (!counts[field]) {
+      counts[field] = { field: field, count: 0, rows: [] };
+    }
+    counts[field].count += 1;
+    counts[field].rows.push(row);
+  });
+  return (
+    Object.keys(counts)
+      .map(function (key) {
+        return counts[key];
+      })
+      .sort(function (a, b) {
+        return b.count - a.count || a.field.localeCompare(b.field);
+      })[0] || null
+  );
+}
+
+function buildCaliforniaPriorityWavePacket(rows) {
+  var lines = [
+    "# California Priority Confirmation Wave",
+    "",
+    "Top live California confirmation targets to work first.",
+    "",
+  ];
+
+  (rows || []).forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.item.name);
+    lines.push("");
+    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
+    lines.push("- Result: " + getConfirmationResultLabel(row.workflow.status));
+    lines.push("- Target: " + getConfirmationTarget(row.item));
+    lines.push("- Primary ask: " + formatFieldLabel(row.primaryAskField));
+    if (row.addOnAskFields.length) {
+      lines.push("- Add-on asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
+    }
+    lines.push("- First action: " + row.firstAction);
+    lines.push("- Follow-up rule: " + row.followUpRule);
+    if (getCaliforniaPriorityFollowUpNote(row)) {
+      lines.push("- Follow-up timing: " + getCaliforniaPriorityFollowUpNote(row));
+    }
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildCaliforniaPrioritySharedAskPacket(rows) {
+  var sharedAsk = getCaliforniaPrioritySharedAsk(rows);
+  if (!sharedAsk || !sharedAsk.rows.length) {
+    return "";
+  }
+
+  var lines = [
+    "# California Priority Shared Ask",
+    "",
+    "Best shared ask across the current California confirmation wave.",
+    "",
+    "Shared ask: " + formatFieldLabel(sharedAsk.field),
+    "Coverage: " + sharedAsk.count + " of " + (rows || []).length + " California-wave profiles",
+    "",
+  ];
+
+  sharedAsk.rows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.item.name);
+    lines.push("");
+    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
+    lines.push("- Target: " + getConfirmationTarget(row.item));
+    lines.push("- Primary ask: " + formatFieldLabel(row.primaryAskField));
+    if (row.addOnAskFields.length) {
+      lines.push("- Add-on asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
+    }
+    lines.push("- First action: " + row.firstAction);
+    lines.push("- Follow-up rule: " + row.followUpRule);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildCaliforniaPriorityWaveTrackerCsv(rows) {
+  var headers = [
+    "priority_rank",
+    "name",
+    "slug",
+    "status",
+    "result",
+    "target",
+    "primary_ask_field",
+    "add_on_ask_fields",
+    "first_action",
+    "follow_up_rule",
+    "follow_up_timing",
+    "last_action",
+  ];
+  var lines = [headers.join(",")];
+
+  (rows || []).forEach(function (row) {
+    lines.push(
+      [
+        row.priority_rank,
+        row.item.name,
+        row.item.slug,
+        row.workflow.status,
+        getConfirmationResultLabel(row.workflow.status),
+        getConfirmationTarget(row.item),
+        row.primaryAskField,
+        row.addOnAskFields.join("|"),
+        row.firstAction,
+        row.followUpRule,
+        getCaliforniaPriorityFollowUpNote(row),
+        getConfirmationLastActionNote(row.workflow).replace(/^Last action:\s*/, ""),
+      ]
+        .map(csvEscape)
+        .join(","),
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function buildCaliforniaPriorityWaveApplyPacket(rows) {
+  var readyRows = (rows || []).filter(function (row) {
+    var status = row && row.workflow ? row.workflow.status : "not_started";
+    return status === "confirmed" || status === "applied";
+  });
+
+  if (!readyRows.length) {
+    return "";
+  }
+
+  var lines = [
+    "# California Priority Apply Queue",
+    "",
+    "Confirmed California-wave answers ready to apply back into live profiles.",
+    "",
+  ];
+
+  readyRows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.item.name);
+    lines.push("");
+    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
+    lines.push("- Result: " + getConfirmationResultLabel(row.workflow.status));
+    lines.push(
+      "- Primary confirmed ask: " +
+        (row.primaryAskField ? formatFieldLabel(row.primaryAskField) : "None"),
+    );
+    if (row.addOnAskFields.length) {
+      lines.push("- Secondary asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
+    }
+    lines.push(
+      "- Ordered apply flow: " +
+        [row.primaryAskField]
+          .concat(row.addOnAskFields)
+          .filter(Boolean)
+          .map(formatFieldLabel)
+          .join(" -> "),
+    );
+    lines.push(
+      "- Last action: " +
+        getConfirmationLastActionNote(row.workflow).replace(/^Last action:\s*/, ""),
+    );
+    lines.push(
+      "- Profile URL: " +
+        new URL(
+          "therapist.html?slug=" + encodeURIComponent(row.item.slug),
+          window.location.href,
+        ).toString(),
+    );
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildCaliforniaPriorityWaveApplyCsv(rows) {
+  return buildConfirmationApplyCsv(rows);
+}
+
+function renderCaliforniaPriorityConfirmationWave() {
+  var root = document.getElementById("californiaPriorityConfirmationWave");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  var rows = getCaliforniaPriorityConfirmationRows();
+  var readyToApplyRows = rows.filter(function (row) {
+    var status = row && row.workflow ? row.workflow.status : "not_started";
+    return status === "confirmed" || status === "applied";
+  });
+  var followUpSummary = getCaliforniaPriorityFollowUpSummary(rows);
+  var sharedAsk = getCaliforniaPrioritySharedAsk(rows);
+  if (!rows.length) {
+    root.innerHTML =
+      '<div class="subtle">No California priority confirmations are currently active.</div>';
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="queue-summary"><strong>This is the current highest-leverage California confirmation wave.</strong></div><div class="queue-summary subtle">These profiles are visible, strategically important, and now mostly blocked on therapist-confirmed operational truth, not more source work.</div><div class="queue-summary"><strong>' +
+    escapeHtml(getCaliforniaPriorityWaveHealth(rows)) +
+    '</strong></div><div class="queue-summary subtle">' +
+    escapeHtml(getCaliforniaPriorityWaveBottleneck(rows)) +
+    "</div>" +
+    (followUpSummary
+      ? '<div class="queue-summary"><strong>' + escapeHtml(followUpSummary) + "</strong></div>"
+      : "") +
+    (sharedAsk
+      ? '<div class="queue-summary"><strong>Best shared ask to send next:</strong> ' +
+        escapeHtml(formatFieldLabel(sharedAsk.field)) +
+        " (" +
+        escapeHtml(String(sharedAsk.count)) +
+        " of " +
+        escapeHtml(String(rows.length)) +
+        " profiles).</div>"
+      : "") +
+    (readyToApplyRows.length
+      ? '<div class="queue-summary"><strong>Ready to apply now:</strong> ' +
+        escapeHtml(
+          readyToApplyRows.length === 1
+            ? readyToApplyRows[0].item.name + " is ready to apply back into the live profile."
+            : readyToApplyRows.length +
+                " California-wave profiles are ready to apply back into live profiles.",
+        ) +
+        '</div><div class="queue-insights"><div class="queue-insights-title">Ready to apply now</div><div class="subtle" style="margin-bottom:0.7rem">Use this lane once therapist-confirmed answers come back and you are ready to update the live profile.</div><div class="queue-insights-grid">' +
+        readyToApplyRows
+          .map(function (row) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              escapeHtml(row.item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(getConfirmationResultLabel(row.workflow.status)) +
+              '</div><div class="queue-insight-action"><button class="btn-secondary" data-california-priority-apply-brief="' +
+              escapeHtml(row.item.slug) +
+              '">Copy apply brief</button></div></div>'
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" data-california-priority-export="packet">Copy wave packet</button><button class="btn-secondary" data-california-priority-export="tracker">Copy wave tracker CSV</button>' +
+    (sharedAsk
+      ? '<button class="btn-secondary" data-california-priority-export="shared-ask">Copy shared ask packet</button>'
+      : "") +
+    (readyToApplyRows.length
+      ? '<button class="btn-secondary" data-california-priority-export="apply-packet">Copy apply packet</button><button class="btn-secondary" data-california-priority-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-california-priority-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-california-priority-export="apply-checklist">Copy apply checklist</button>'
+      : "") +
+    '</div><div class="review-coach-status" id="californiaPriorityWaveStatus"></div>' +
+    rows
+      .map(function (row) {
+        var item = row.item;
+        var workflow = row.workflow;
+        return (
+          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          escapeHtml(String(row.priority_rank) + ". " + item.name) +
+          '</h3><div class="subtle">' +
+          escapeHtml(row.agenda.summary) +
+          '</div></div><div class="queue-head-actions"><span class="tag">' +
+          escapeHtml(formatStatusLabel(workflow.status)) +
+          '</span><span class="tag">' +
+          escapeHtml(getConfirmationResultLabel(workflow.status)) +
+          '</span></div></div><div class="queue-summary"><strong>Primary ask:</strong> ' +
+          escapeHtml(formatFieldLabel(row.primaryAskField)) +
+          "</div>" +
+          (row.addOnAskFields.length
+            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
+              escapeHtml(row.addOnAskFields.map(formatFieldLabel).join(", ")) +
+              "</div>"
+            : "") +
+          '<div class="queue-summary"><strong>Target:</strong> ' +
+          escapeHtml(getConfirmationTarget(item)) +
+          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
+          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
+          '</div><div class="queue-summary"><strong>First action:</strong> ' +
+          escapeHtml(row.firstAction) +
+          '</div><div class="queue-summary"><strong>Follow-up rule:</strong> ' +
+          escapeHtml(row.followUpRule) +
+          (getCaliforniaPriorityFollowUpNote(row)
+            ? '</div><div class="queue-summary"><strong>Follow-up timing:</strong> ' +
+              escapeHtml(getCaliforniaPriorityFollowUpNote(row))
+            : "") +
+          "</div>" +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationResponseCaptureHtml(
+                item.slug,
+                row.primaryAskField,
+                row.addOnAskFields,
+              )
+            : "") +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationApplyPreviewHtml(
+                item,
+                item.slug,
+                row.primaryAskField,
+                row.addOnAskFields,
+              )
+            : "") +
+          '<div class="queue-actions"><button class="btn-secondary" data-california-priority-copy="' +
+          escapeHtml(item.slug) +
+          '">Copy request</button><button class="btn-secondary" data-california-priority-link="' +
+          escapeHtml(item.slug) +
+          '">Copy confirmation link</button><button class="btn-secondary" data-california-priority-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="sent">Mark sent</button><button class="btn-secondary" data-california-priority-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="waiting_on_therapist">Mark waiting</button><button class="btn-secondary" data-california-priority-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="confirmed">Mark confirmed</button>' +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? '<button class="btn-secondary" data-california-priority-apply-brief="' +
+              escapeHtml(item.slug) +
+              '">Copy apply brief</button><button class="btn-secondary" data-california-priority-status="' +
+              escapeHtml(item.slug) +
+              '" data-next-status="applied">Mark applied</button>'
+            : "") +
+          '<button class="btn-secondary" data-california-priority-queue="' +
+          escapeHtml(item.slug) +
+          '">Show in queue</button></div><div class="review-coach-status" data-california-priority-status-id="' +
+          escapeHtml(item.slug) +
+          '"></div></article>'
+        );
+      })
+      .join("");
+
+  root.querySelectorAll("[data-california-priority-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-california-priority-copy");
+      var row = rows.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+      if (!row) {
+        return;
+      }
+      var text = [
+        buildOrderedConfirmationRequestMessage(
+          row.item,
+          row.agenda.unknown_fields || [],
+          row.primaryAskField,
+        ),
+        "",
+        "Confirmation form:",
+        buildConfirmationLink(slug),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      var success = await copyText(text);
+      setConfirmationActionStatus(
+        root,
+        slug,
+        success ? "California priority request copied." : "Could not copy confirmation request.",
+      );
+      if (success) {
+        updateConfirmationQueueEntry(slug, {
+          status: "sent",
+          last_sent_at: new Date().toISOString(),
+        });
+        renderStats();
+        renderCaliforniaPriorityConfirmationWave();
+        renderImportBlockerSprint();
+        renderConfirmationSprint();
+        renderConfirmationQueue();
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-california-priority-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-california-priority-export");
+      var text =
+        mode === "tracker"
+          ? buildCaliforniaPriorityWaveTrackerCsv(rows)
+          : mode === "shared-ask"
+            ? buildCaliforniaPrioritySharedAskPacket(rows)
+            : mode === "apply-csv"
+              ? buildCaliforniaPriorityWaveApplyCsv(rows)
+              : mode === "apply-summary"
+                ? buildConfirmationApplySummary(rows, "# California Priority Apply Summary")
+                : mode === "apply-checklist"
+                  ? buildConfirmationApplyOperatorChecklist(
+                      rows,
+                      "# California Priority Apply Checklist",
+                    )
+                  : mode === "apply-packet"
+                    ? buildCaliforniaPriorityWaveApplyPacket(rows)
+                    : buildCaliforniaPriorityWavePacket(rows);
+      var success = await copyText(text);
+      var status = root.querySelector("#californiaPriorityWaveStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "tracker"
+            ? "California wave tracker CSV copied."
+            : mode === "shared-ask"
+              ? "California shared ask packet copied."
+              : mode === "apply-csv"
+                ? "California apply CSV copied."
+                : mode === "apply-summary"
+                  ? "California apply summary copied."
+                  : mode === "apply-checklist"
+                    ? "California apply checklist copied."
+                    : mode === "apply-packet"
+                      ? "California wave apply packet copied."
+                      : "California wave packet copied."
+          : "Could not copy the California wave export.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-california-priority-link]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-california-priority-link");
+      var success = await copyText(buildConfirmationLink(slug));
+      setConfirmationActionStatus(
+        root,
+        slug,
+        success ? "Confirmation link copied." : "Could not copy confirmation link.",
+      );
+      if (success) {
+        updateConfirmationQueueEntry(slug, {
+          status: "sent",
+          last_sent_at: new Date().toISOString(),
+        });
+        renderStats();
+        renderCaliforniaPriorityConfirmationWave();
+        renderImportBlockerSprint();
+        renderConfirmationSprint();
+        renderConfirmationQueue();
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-california-priority-status]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-california-priority-status");
+      var nextStatus = button.getAttribute("data-next-status");
+      if (!slug || !nextStatus) {
+        return;
+      }
+      updateConfirmationQueueEntry(slug, {
+        status: nextStatus,
+        last_sent_at:
+          nextStatus === "sent"
+            ? new Date().toISOString()
+            : getConfirmationQueueEntry(slug).last_sent_at,
+        confirmation_applied_at:
+          nextStatus === "applied"
+            ? new Date().toISOString()
+            : nextStatus === "confirmed" ||
+                nextStatus === "waiting_on_therapist" ||
+                nextStatus === "sent"
+              ? ""
+              : getConfirmationQueueEntry(slug).confirmation_applied_at,
+      });
+      renderStats();
+      renderCaliforniaPriorityConfirmationWave();
+      renderImportBlockerSprint();
+      renderConfirmationSprint();
+      renderConfirmationQueue();
+    });
+  });
+
+  root.querySelectorAll("[data-california-priority-apply-brief]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-california-priority-apply-brief");
+      var row = rows.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+      if (!row) {
+        return;
+      }
+      var text = buildConfirmationApplyBrief(
+        row.item,
+        row.agenda,
+        getConfirmationQueueEntry(slug),
+        row.primaryAskField,
+      );
+      var success = await copyText(text);
+      setConfirmationActionStatus(
+        root,
+        slug,
+        success ? "Apply brief copied." : "Could not copy apply brief.",
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-california-priority-queue]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      confirmationQueueFilter = "";
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationQueue();
+      var queueRoot = document.getElementById("confirmationQueue");
+      if (queueRoot) {
+        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  bindConfirmationResponseCapture(root);
+}
+
+function getConfirmationResultLabel(status) {
+  if (status === "applied") {
+    return "Applied to live profile";
+  }
+  if (status === "confirmed") {
+    return "Confirmed by therapist";
+  }
+  if (status === "waiting_on_therapist") {
+    return "Waiting on therapist";
+  }
+  if (status === "sent") {
+    return "Request sent";
+  }
+  return "Not started";
+}
+
+function getConfirmationLastActionNote(workflow) {
+  var entry = workflow || {};
+  if (entry.status === "applied" && entry.last_updated_at) {
+    return "Last action: marked applied on " + formatDate(entry.last_updated_at) + ".";
+  }
+  if (entry.status === "confirmed" && entry.last_updated_at) {
+    return "Last action: marked confirmed on " + formatDate(entry.last_updated_at) + ".";
+  }
+  if (entry.status === "waiting_on_therapist" && entry.last_updated_at) {
+    return "Last action: marked waiting on " + formatDate(entry.last_updated_at) + ".";
+  }
+  if (entry.status === "sent" && entry.last_sent_at) {
+    return "Last action: request sent on " + formatDate(entry.last_sent_at) + ".";
+  }
+  if (entry.last_updated_at) {
+    return "Last action: updated on " + formatDate(entry.last_updated_at) + ".";
+  }
+  return "Last action: not started yet.";
+}
+
+function getConfirmationGraceWindowNote(item) {
+  var appliedAt =
+    item && item.confirmation_applied_at ? new Date(item.confirmation_applied_at) : null;
+  if (!appliedAt || Number.isNaN(appliedAt.getTime())) {
+    return "";
+  }
+  var now = new Date();
+  var diffDays = Math.max(0, Math.round((now.getTime() - appliedAt.getTime()) / 86400000));
+  if (diffDays > 21) {
+    return "";
+  }
+  return "Grace window active after recent applied updates.";
+}
+
+function getConfirmationTarget(item) {
+  var therapist = item || {};
+  if (therapist.preferred_contact_method === "email" && therapist.email) {
+    return therapist.email;
+  }
+  if (therapist.preferred_contact_method === "phone" && therapist.phone) {
+    return therapist.phone;
+  }
+  if (
+    (therapist.preferred_contact_method === "website" ||
+      therapist.preferred_contact_method === "booking") &&
+    (therapist.booking_url || therapist.website)
+  ) {
+    return therapist.booking_url || therapist.website;
+  }
+  return (
+    therapist.booking_url ||
+    therapist.website ||
+    therapist.email ||
+    therapist.phone ||
+    "Manual review"
+  );
+}
+
+function getImportBlockerFields() {
+  return [
+    "license_number",
+    "insurance_accepted",
+    "estimated_wait_time",
+    "bipolar_years_experience",
+  ];
+}
+
+function getImportBlockerFieldBuckets(fields) {
+  var sourceFirst = [];
+  var therapistConfirmation = [];
+
+  (Array.isArray(fields) ? fields : []).forEach(function (field) {
+    if (field === "license_number" || field === "insurance_accepted") {
+      sourceFirst.push(field);
+    } else {
+      therapistConfirmation.push(field);
+    }
+  });
+
+  return {
+    source_first: sourceFirst,
+    therapist_confirmation: therapistConfirmation,
+  };
+}
+
+function getImportBlockerSourcePathStatus(buckets) {
+  var sourceFirstFields = Array.isArray(buckets?.source_first) ? buckets.source_first : [];
+  var confirmationFields = Array.isArray(buckets?.therapist_confirmation)
+    ? buckets.therapist_confirmation
+    : [];
+
+  if (sourceFirstFields.length && confirmationFields.length) {
+    return "Still worth one more public-source pass before therapist confirmation.";
+  }
+  if (sourceFirstFields.length) {
+    return "Public-source path still open.";
+  }
+  return "Public-source path exhausted. Therapist confirmation is the honest next move.";
+}
+
+function getPreferredFieldOrder(fields, preferredPrimaryField) {
+  var ordered = (Array.isArray(fields) ? fields : []).slice();
+  if (!preferredPrimaryField) {
+    return ordered;
+  }
+  return ordered.sort(function (a, b) {
+    if (a === preferredPrimaryField && b !== preferredPrimaryField) {
+      return -1;
+    }
+    if (b === preferredPrimaryField && a !== preferredPrimaryField) {
+      return 1;
+    }
+    return 0;
+  });
+}
+
+function buildImportBlockerRequestSubject(item, fields, preferredPrimaryField) {
+  var name = item && item.name ? item.name : "this profile";
+  var orderedFields = getPreferredFieldOrder(fields, preferredPrimaryField);
+  var labels = orderedFields.slice(0, 2).map(formatFieldLabel).join(" and ");
+  return labels
+    ? "Quick import-blocker confirmation for " + name + " (" + labels + ")"
+    : "Quick import-blocker confirmation for " + name;
+}
+
+function buildImportBlockerRequestMessage(item, fields, preferredPrimaryField) {
+  var orderedFields = getPreferredFieldOrder(fields, preferredPrimaryField);
+  return buildTherapistFieldConfirmationPrompt(item, orderedFields, {
+    intro:
+      "We are clearing the final strict import blockers on your BipolarTherapyHub profile so the highest-trust operational details stay accurate.",
+    close:
+      "Once you confirm these specific details, we can clear this blocker and keep the live profile trustable.\n\nThank you,\nBipolarTherapyHub",
+  });
+}
+
+function getPublishedTherapistImportBlockerQueue() {
+  var blockerFields = getImportBlockerFields();
+  return getPublishedTherapistConfirmationQueue()
+    .map(function (entry) {
+      var blockerUnknownFields = (entry.agenda.unknown_fields || []).filter(function (field) {
+        return blockerFields.includes(field);
+      });
+      return {
+        ...entry,
+        blocker_unknown_fields: blockerUnknownFields,
+      };
+    })
+    .filter(function (entry) {
+      return entry.blocker_unknown_fields.length > 0;
+    })
+    .sort(function (a, b) {
+      var blockerDiff = b.blocker_unknown_fields.length - a.blocker_unknown_fields.length;
+      if (blockerDiff) {
+        return blockerDiff;
+      }
+      var statusWeight = {
+        not_started: 0,
+        sent: 1,
+        waiting_on_therapist: 2,
+        confirmed: 3,
+        applied: 4,
+      };
+      var statusDiff =
+        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      return a.item.name.localeCompare(b.item.name);
+    });
+}
+
+function getImportBlockerSprintRows(limit) {
+  var selectedEntries = getPublishedTherapistImportBlockerQueue().slice(0, limit || 3);
+  var fieldCounts = {};
+  selectedEntries.forEach(function (entry) {
+    entry.blocker_unknown_fields.forEach(function (field) {
+      fieldCounts[field] = (fieldCounts[field] || 0) + 1;
+    });
+  });
+  var preferredPrimaryField = Object.keys(fieldCounts).sort(function (a, b) {
+    var countDiff = fieldCounts[b] - fieldCounts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+
+  return selectedEntries.map(function (entry, index) {
+    var item = entry.item;
+    var workflow = entry.workflow || getConfirmationQueueEntry(item.slug);
+    var buckets = getImportBlockerFieldBuckets(entry.blocker_unknown_fields);
+    var sourcePathStatus = getImportBlockerSourcePathStatus(buckets);
+    var nextMove = "";
+    if (buckets.source_first.length && buckets.therapist_confirmation.length) {
+      nextMove =
+        "Try one more public-source pass for " +
+        buckets.source_first.map(formatFieldLabel).join(", ") +
+        ", then use therapist confirmation for " +
+        buckets.therapist_confirmation.map(formatFieldLabel).join(", ") +
+        ".";
+    } else if (buckets.source_first.length) {
+      nextMove =
+        "Try one more public-source pass for " +
+        buckets.source_first.map(formatFieldLabel).join(", ") +
+        " before treating this blocker as confirmation-only.";
+    } else {
+      nextMove =
+        "Use therapist confirmation to clear " +
+        buckets.therapist_confirmation.map(formatFieldLabel).join(", ") +
+        ".";
+    }
+    var blockerMode = buckets.source_first.length
+      ? buckets.therapist_confirmation.length
+        ? "Mixed blocker"
+        : "Source-first blocker"
+      : "Therapist-confirmation blocker";
+    return {
+      priority_rank: index + 1,
+      name: item.name,
+      slug: item.slug,
+      status: formatStatusLabel(workflow.status),
+      result: getConfirmationResultLabel(workflow.status),
+      blocker_mode: blockerMode,
+      blocker_count: entry.blocker_unknown_fields.length,
+      blocker_fields: entry.blocker_unknown_fields.join("|"),
+      source_first_fields: buckets.source_first.join("|"),
+      therapist_confirmation_fields: buckets.therapist_confirmation.join("|"),
+      source_path_status: sourcePathStatus,
+      contact_target: getConfirmationTarget(item),
+      why_it_matters: buckets.source_first.length
+        ? item.name +
+          " is still blocking the strict safe-import gate because " +
+          entry.blocker_unknown_fields.map(formatFieldLabel).join(", ") +
+          " remain unresolved."
+        : item.name +
+          " is still blocking the strict safe-import gate because " +
+          entry.blocker_unknown_fields.map(formatFieldLabel).join(", ") +
+          " still need therapist-confirmed truth, not more guessing.",
+      request_subject: buildImportBlockerRequestSubject(
+        item,
+        entry.blocker_unknown_fields,
+        preferredPrimaryField,
+      ),
+      request_message: buildImportBlockerRequestMessage(
+        item,
+        entry.blocker_unknown_fields,
+        preferredPrimaryField,
+      ),
+      next_best_move: nextMove,
+    };
+  });
+}
+
+function getImportBlockerSprintSummary(rows) {
+  if (!rows.length) {
+    return "No strong-warning profiles are currently blocking the strict safe-import gate.";
+  }
+
+  return (
+    rows.length +
+    " profile" +
+    (rows.length === 1 ? "" : "s") +
+    " currently sit at the top of the strict safe-import blocker queue."
+  );
+}
+
+function getImportBlockerSprintBottleneck(rows) {
+  if (!rows.length) {
+    return "";
+  }
+
+  var notStarted = rows.filter(function (row) {
+    return row.status === "Not started";
+  }).length;
+  var waiting = rows.filter(function (row) {
+    return row.status === "Waiting on therapist";
+  }).length;
+  var confirmed = rows.filter(function (row) {
+    return row.status === "Confirmed by therapist";
+  }).length;
+
+  if (notStarted >= 2) {
+    return "The strict gate is still mostly blocked on first outreach to unresolved high-trust profiles.";
+  }
+  if (waiting >= 1) {
+    return "The strict gate is now mostly waiting on therapist replies for the top blocker profiles.";
+  }
+  if (confirmed >= 1) {
+    return "Some strict-gate blockers look ready to apply back into the live profile data.";
+  }
+  return "The strict gate backlog is active, but the top blockers are already moving.";
+}
+
+function getImportBlockerSprintWaveShape(rows) {
+  if (!rows.length) {
+    return "";
+  }
+
+  var sourceFirstCount = rows.filter(function (row) {
+    return row.blocker_mode === "Source-first blocker";
+  }).length;
+  var mixedCount = rows.filter(function (row) {
+    return row.blocker_mode === "Mixed blocker";
+  }).length;
+  var confirmationOnlyCount = rows.filter(function (row) {
+    return row.blocker_mode === "Therapist-confirmation blocker";
+  }).length;
+
+  if (confirmationOnlyCount === rows.length) {
+    return "Wave shape: all top blockers are now confirmation-only.";
+  }
+  if (sourceFirstCount === rows.length) {
+    return "Wave shape: all top blockers still have a public-source path open.";
+  }
+  if (mixedCount === rows.length) {
+    return "Wave shape: the whole top wave is mixed, with both source and therapist-confirmation work.";
+  }
+  if (confirmationOnlyCount > 0 && !sourceFirstCount) {
+    return (
+      "Wave shape: mostly confirmation-only, with " +
+      mixedCount +
+      " mixed blocker" +
+      (mixedCount === 1 ? "" : "s") +
+      " still needing a last source pass."
+    );
+  }
+  if (sourceFirstCount > 0 && !confirmationOnlyCount) {
+    return (
+      "Wave shape: mostly source-first, with " +
+      mixedCount +
+      " mixed blocker" +
+      (mixedCount === 1 ? "" : "s") +
+      " also needing therapist confirmation."
+    );
+  }
+  return "Wave shape: mixed blocker work across the top wave, combining source checks and therapist confirmation.";
+}
+
+function getImportBlockerSprintFieldPattern(rows) {
+  if (!rows.length) {
+    return "";
+  }
+
+  var counts = {};
+  rows.forEach(function (row) {
+    String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .forEach(function (field) {
+        counts[field] = (counts[field] || 0) + 1;
+      });
+  });
+
+  var ranked = Object.keys(counts)
+    .sort(function (a, b) {
+      var countDiff = counts[b] - counts[a];
+      if (countDiff) {
+        return countDiff;
+      }
+      return a.localeCompare(b);
+    })
+    .slice(0, 3)
+    .map(function (field) {
+      return formatFieldLabel(field);
+    });
+
+  if (!ranked.length) {
+    return "";
+  }
+
+  return "Most common blockers right now: " + ranked.join(", ") + ".";
+}
+
+function getImportBlockerPromptMap() {
+  return {
+    estimated_wait_time:
+      "What is your current typical wait time for a new bipolar-related therapy or psychiatry intake?",
+    bipolar_years_experience:
+      "About how many years have you been treating bipolar-spectrum conditions specifically?",
+    insurance_accepted:
+      "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
+    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
+    license_number:
+      "What is your current license number for the license you want displayed on your profile?",
+  };
+}
+
+function getImportBlockerSprintSharedAskDetails(rows) {
+  if (!rows.length) {
+    return null;
+  }
+
+  var counts = {};
+  rows.forEach(function (row) {
+    String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .forEach(function (field) {
+        counts[field] = (counts[field] || 0) + 1;
+      });
+  });
+
+  var topField = Object.keys(counts).sort(function (a, b) {
+    var countDiff = counts[b] - counts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+
+  if (!topField) {
+    return null;
+  }
+
+  var ask = getImportBlockerPromptMap()[topField];
+  if (!ask) {
+    return null;
+  }
+
+  return {
+    field: topField,
+    ask: ask,
+    count: counts[topField] || 0,
+  };
+}
+
+function getImportBlockerSprintSharedAsk(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  return (
+    "Best shared ask to send next (" +
+    details.count +
+    " of " +
+    rows.length +
+    " top blockers): " +
+    details.ask
+  );
+}
+
+function getImportBlockerSprintSharedAskText(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  return details ? details.ask : "";
+}
+
+function getImportBlockerSprintSharedAskStatus(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  var matchingRows = rows.filter(function (row) {
+    return String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(details.field);
+  });
+
+  if (!matchingRows.length) {
+    return "";
+  }
+
+  var unsent = matchingRows.filter(function (row) {
+    return row.status === "Not started";
+  }).length;
+  var inFlight = matchingRows.filter(function (row) {
+    return row.status === "Request sent" || row.status === "Waiting on therapist";
+  }).length;
+  var confirmed = matchingRows.filter(function (row) {
+    return row.status === "Confirmed by therapist" || row.status === "Applied to live profile";
+  }).length;
+
+  if (unsent === matchingRows.length) {
+    return (
+      "Shared ask status: not started yet across all " +
+      matchingRows.length +
+      " matching top blockers."
+    );
+  }
+  if (inFlight === matchingRows.length) {
+    return (
+      "Shared ask status: already in flight across all " +
+      matchingRows.length +
+      " matching top blockers."
+    );
+  }
+  if (confirmed === matchingRows.length) {
+    return (
+      "Shared ask status: already confirmed or applied across all " +
+      matchingRows.length +
+      " matching top blockers."
+    );
+  }
+
+  var parts = [];
+  if (unsent) {
+    parts.push(unsent + " unsent");
+  }
+  if (inFlight) {
+    parts.push(inFlight + " in flight");
+  }
+  if (confirmed) {
+    parts.push(confirmed + " confirmed/applied");
+  }
+
+  return "Shared ask status: " + parts.join(", ") + ".";
+}
+
+function getImportBlockerSprintSharedAskImpact(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  var matchingCount = rows.filter(function (row) {
+    return String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(details.field);
+  }).length;
+
+  if (!matchingCount) {
+    return "";
+  }
+
+  return (
+    "Shared ask impact: clearing this answer would likely move " +
+    matchingCount +
+    " of the top " +
+    rows.length +
+    " strict-gate blockers."
+  );
+}
+
+function getConfirmationSprintThemeDetails(rows) {
+  if (!rows.length) {
+    return null;
+  }
+
+  var counts = {};
+  rows.forEach(function (row) {
+    String(row.warnings || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .forEach(function (field) {
+        counts[field] = (counts[field] || 0) + 1;
+      });
+  });
+
+  var topField = Object.keys(counts).sort(function (a, b) {
+    var countDiff = counts[b] - counts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+
+  if (!topField) {
+    return null;
+  }
+
+  return {
+    field: topField,
+    count: counts[topField] || 0,
+  };
+}
+
+function getConfirmationSprintThemeSummary(rows) {
+  var details = getConfirmationSprintThemeDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  return (
+    "Top confirmation sprint theme: " +
+    formatFieldLabel(details.field) +
+    " (" +
+    details.count +
+    " of " +
+    rows.length +
+    " sprint profiles)."
+  );
+}
+
+function getPrimaryAskHeaderLine(field) {
+  if (!field) {
+    return "";
+  }
+  return "Primary ask right now: " + formatFieldLabel(field) + ".";
+}
+
+function getBlockerConfirmationThemeBridge(blockerRows, confirmationRows) {
+  var blockerSharedAsk = getImportBlockerSprintSharedAskDetails(blockerRows);
+  var confirmationTheme = getConfirmationSprintThemeDetails(confirmationRows);
+  if (!blockerSharedAsk || !confirmationTheme) {
+    return "";
+  }
+
+  if (blockerSharedAsk.field === confirmationTheme.field) {
+    return "Bridge: this same ask is also the top confirmation sprint theme, so clearing it strengthens both queues at once.";
+  }
+
+  return (
+    "Bridge: the blocker sprint is led by " +
+    formatFieldLabel(blockerSharedAsk.field) +
+    ", while the confirmation sprint is led by " +
+    formatFieldLabel(confirmationTheme.field) +
+    "."
+  );
+}
+
+function getOverlappingAskDetails(blockerRows, confirmationRows) {
+  var blockerSharedAsk = getImportBlockerSprintSharedAskDetails(blockerRows);
+  var confirmationTheme = getConfirmationSprintThemeDetails(confirmationRows);
+  if (
+    !blockerSharedAsk ||
+    !confirmationTheme ||
+    blockerSharedAsk.field !== confirmationTheme.field
+  ) {
+    return null;
+  }
+
+  var matchingBlockerRows = blockerRows.filter(function (row) {
+    return String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(blockerSharedAsk.field);
+  });
+
+  var matchingConfirmationRows = confirmationRows.filter(function (row) {
+    return String(row.warnings || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(blockerSharedAsk.field);
+  });
+
+  return {
+    field: blockerSharedAsk.field,
+    ask: blockerSharedAsk.ask,
+    blocker_count: matchingBlockerRows.length,
+    confirmation_count: matchingConfirmationRows.length,
+    blocker_rows: matchingBlockerRows,
+    confirmation_rows: matchingConfirmationRows,
+  };
+}
+
+function getOverlappingAskExtraAsks(row, key, sharedField) {
+  var promptMap = getImportBlockerPromptMap();
+  return String(row[key] || "")
+    .split("|")
+    .map(function (field) {
+      return field.trim();
+    })
+    .filter(Boolean)
+    .filter(function (field) {
+      return field !== sharedField;
+    })
+    .map(function (field) {
+      return promptMap[field];
+    })
+    .filter(Boolean);
+}
+
+function getImportBlockerSprintSharedAskNextMove(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  var matchingRows = rows.filter(function (row) {
+    return String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(details.field);
+  });
+
+  if (!matchingRows.length) {
+    return "";
+  }
+
+  var unsent = matchingRows.filter(function (row) {
+    return row.status === "Not started";
+  }).length;
+  var inFlight = matchingRows.filter(function (row) {
+    return row.status === "Request sent" || row.status === "Waiting on therapist";
+  }).length;
+  var confirmed = matchingRows.filter(function (row) {
+    return row.status === "Confirmed by therapist" || row.status === "Applied to live profile";
+  }).length;
+
+  if (unsent >= inFlight && unsent >= confirmed) {
+    return "Best next move: start outreach on this shared ask across the top matching blockers.";
+  }
+  if (inFlight >= unsent && inFlight >= confirmed) {
+    return "Best next move: follow up on replies for this shared ask before widening the wave.";
+  }
+  return "Best next move: apply confirmed answers from this shared ask back into the live profiles.";
+}
+
+function getImportBlockerLeverageNote(rows, fields) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details || details.count <= 1) {
+    return "";
+  }
+  var fieldList = Array.isArray(fields) ? fields : [];
+  if (!fieldList.includes(details.field)) {
+    return "";
+  }
+  return (
+    "Leverage note: this same ask applies to " +
+    details.count +
+    " of the top " +
+    rows.length +
+    " strict-gate blockers right now."
+  );
+}
+
+function buildImportBlockerSharedAskPacket(rows) {
+  var details = getImportBlockerSprintSharedAskDetails(rows);
+  if (!details) {
+    return "";
+  }
+
+  var matchingRows = rows.filter(function (row) {
+    return String(row.blocker_fields || "")
+      .split("|")
+      .map(function (field) {
+        return field.trim();
+      })
+      .filter(Boolean)
+      .includes(details.field);
+  });
+
+  if (!matchingRows.length) {
+    return "";
+  }
+
+  var lines = [
+    "# Shared Ask Packet",
+    "",
+    "Top strict-gate blockers currently sharing the same highest-leverage question.",
+    "",
+    getImportBlockerSprintSharedAsk(rows),
+    getImportBlockerSprintSharedAskNextMove(rows),
+    getImportBlockerSprintSharedAskStatus(rows),
+    getImportBlockerSprintSharedAskImpact(rows),
+    "",
+  ];
+
+  matchingRows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.name);
+    lines.push("");
+    lines.push("- Status: " + row.status);
+    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
+    lines.push("- Blocking fields: " + row.blocker_fields);
+    lines.push("- Contact target: " + row.contact_target);
+    lines.push("- Send action: " + (row.send_action || "manual review"));
+    lines.push("- Primary ask: " + formatFieldLabel(details.field));
+    var sharedExtraAsks = getOverlappingAskExtraAsks(row, "blocker_fields", details.field);
+    if (sharedExtraAsks.length) {
+      lines.push("- Add-on asks: " + sharedExtraAsks.join(" "));
+    }
+    lines.push("- Subject: " + (row.request_subject || ""));
+    lines.push("");
+    lines.push("Shared ask:");
+    lines.push("");
+    lines.push("```text");
+    lines.push(details.ask);
+    lines.push("```");
+    lines.push("");
+    lines.push("Confirmation form:");
+    lines.push(buildConfirmationLink(row.slug));
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildOverlappingAskPacket(blockerRows, confirmationRows) {
+  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
+  if (!overlap) {
+    return "";
+  }
+
+  var unifiedRowsBySlug = {};
+  overlap.blocker_rows.forEach(function (row) {
+    var existing = unifiedRowsBySlug[row.slug] || {
+      slug: row.slug,
+      name: row.name,
+      lanes: [],
+      recommended_channel: row.recommended_channel || "",
+      contact_target: row.contact_target || "",
+      send_action: row.send_action || "",
+      request_subject: row.request_subject || "",
+      extraAsks: [],
+    };
+    existing.lanes.push("blocker");
+    existing.extraAsks = existing.extraAsks.concat(
+      getOverlappingAskExtraAsks(row, "blocker_fields", overlap.field),
+    );
+    unifiedRowsBySlug[row.slug] = existing;
+  });
+  overlap.confirmation_rows.forEach(function (row) {
+    var existing = unifiedRowsBySlug[row.slug] || {
+      slug: row.slug,
+      name: row.name,
+      lanes: [],
+      recommended_channel: row.recommended_channel || "",
+      contact_target: row.contact_target || "",
+      send_action: row.send_action || "",
+      request_subject: row.request_subject || "",
+      extraAsks: [],
+    };
+    existing.lanes.push("confirmation");
+    existing.extraAsks = existing.extraAsks.concat(
+      getOverlappingAskExtraAsks(row, "warnings", overlap.field),
+    );
+    unifiedRowsBySlug[row.slug] = existing;
+  });
+  var unifiedRows = Object.keys(unifiedRowsBySlug).map(function (slug) {
+    var row = unifiedRowsBySlug[slug];
+    return {
+      ...row,
+      lanes: Array.from(new Set(row.lanes)),
+      extraAsks: Array.from(new Set(row.extraAsks)),
+    };
+  });
+  var channelMixSummary = getOutreachChannelMixSummary(unifiedRows);
+  var channelNextMoveSummary = getOutreachChannelNextMoveSummary(unifiedRows);
+
+  var lines = [
+    "# Overlapping Ask Packet",
+    "",
+    "This ask is currently shared by the top strict-gate blocker wave and the top confirmation sprint theme.",
+    "",
+    "Shared ask: " + overlap.ask,
+    "Overlap impact: " +
+      overlap.blocker_count +
+      " blocker profile" +
+      (overlap.blocker_count === 1 ? "" : "s") +
+      " and " +
+      overlap.confirmation_count +
+      " confirmation sprint profile" +
+      (overlap.confirmation_count === 1 ? "" : "s") +
+      " are aligned on this same question.",
+    channelMixSummary ? channelMixSummary : "",
+    channelNextMoveSummary ? channelNextMoveSummary : "",
+    "",
+    "## Unified Outreach Wave",
+    "",
+  ];
+
+  unifiedRows.forEach(function (row) {
+    lines.push("### " + row.name);
+    lines.push("");
+    lines.push("- Lanes: " + row.lanes.join(" + "));
+    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
+    lines.push("- Target: " + (row.contact_target || "manual review"));
+    lines.push("- Send action: " + (row.send_action || "manual review"));
+    lines.push("- Primary ask: " + formatFieldLabel(overlap.field));
+    if (row.extraAsks.length) {
+      lines.push("- Add-on asks: " + row.extraAsks.join(" "));
+    }
+    lines.push("- Subject: " + (row.request_subject || "N/A"));
+    lines.push("");
+  });
+
+  lines.push("", "Shared ask:", "", "```text", overlap.ask, "```", "");
+
+  return lines.join("\n");
+}
+
+function buildTopOutreachWavePacket(blockerRows, confirmationRows, limit) {
+  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
+  if (!overlap) {
+    return "";
+  }
+  var unifiedRows = getTopOutreachWaveRows(blockerRows, confirmationRows, limit || 3);
+  var channelMixSummary = getOutreachChannelMixSummary(unifiedRows);
+  var channelNextMoveSummary = getOutreachChannelNextMoveSummary(unifiedRows);
+
+  var lines = [
+    "# Top Outreach Wave",
+    "",
+    "Top " + unifiedRows.length + " unified outreach targets for the current shared ask wave.",
+    "",
+    "Primary ask right now: " + formatFieldLabel(overlap.field) + ".",
+    channelMixSummary ? channelMixSummary : "",
+    channelNextMoveSummary ? channelNextMoveSummary : "",
+    "",
+  ];
+
+  unifiedRows.forEach(function (row, index) {
+    lines.push("## " + (index + 1) + ". " + row.name);
+    lines.push("");
+    lines.push("- Coverage: " + row.lanes.join("|"));
+    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
+    lines.push("- Target: " + (row.contact_target || "manual review"));
+    lines.push("- Send action: " + (row.send_action || "manual review"));
+    lines.push("- Primary ask: " + formatFieldLabel(overlap.field));
+    if (row.extraAsks.length) {
+      lines.push("- Add-on asks: " + row.extraAsks.join(" "));
+    }
+    lines.push("- Subject: " + (row.request_subject || "N/A"));
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function getTopOutreachWaveRows(blockerRows, confirmationRows, limit) {
+  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
+  if (!overlap) {
+    return [];
+  }
+
+  var unifiedRowsBySlug = {};
+  overlap.blocker_rows.forEach(function (row) {
+    var existing = unifiedRowsBySlug[row.slug] || {
+      slug: row.slug,
+      name: row.name,
+      lanes: [],
+      recommended_channel: row.recommended_channel || "",
+      contact_target: row.contact_target || "",
+      send_action: row.send_action || "",
+      request_subject: row.request_subject || "",
+      extraAsks: [],
+    };
+    existing.lanes.push("blocker");
+    existing.extraAsks = existing.extraAsks.concat(
+      getOverlappingAskExtraAsks(row, "blocker_fields", overlap.field),
+    );
+    unifiedRowsBySlug[row.slug] = existing;
+  });
+  overlap.confirmation_rows.forEach(function (row) {
+    var existing = unifiedRowsBySlug[row.slug] || {
+      slug: row.slug,
+      name: row.name,
+      lanes: [],
+      recommended_channel: row.recommended_channel || "",
+      contact_target: row.contact_target || "",
+      send_action: row.send_action || "",
+      request_subject: row.request_subject || "",
+      extraAsks: [],
+    };
+    existing.lanes.push("confirmation");
+    existing.extraAsks = existing.extraAsks.concat(
+      getOverlappingAskExtraAsks(row, "warnings", overlap.field),
+    );
+    unifiedRowsBySlug[row.slug] = existing;
+  });
+
+  return Object.keys(unifiedRowsBySlug)
+    .map(function (slug) {
+      var row = unifiedRowsBySlug[slug];
+      return {
+        ...row,
+        lanes: Array.from(new Set(row.lanes)),
+        extraAsks: Array.from(new Set(row.extraAsks)),
+      };
+    })
+    .slice(0, limit || 3);
+}
+
+function getOutreachChannelMixSummary(rows) {
+  var normalizedRows = Array.isArray(rows) ? rows : [];
+  if (!normalizedRows.length) {
+    return "";
+  }
+
+  var counts = {
+    email: 0,
+    phone: 0,
+    website: 0,
+    manual_review: 0,
+  };
+
+  normalizedRows.forEach(function (row) {
+    var channel = String((row && row.recommended_channel) || "manual_review")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
+    if (!Object.prototype.hasOwnProperty.call(counts, channel)) {
+      counts.manual_review += 1;
+      return;
+    }
+
+    counts[channel] += 1;
+  });
+
+  var orderedChannels = ["email", "phone", "website", "manual_review"];
+  var parts = orderedChannels
+    .filter(function (channel) {
+      return counts[channel] > 0;
+    })
+    .map(function (channel) {
+      return counts[channel] + " " + formatFieldLabel(channel).toLowerCase().replace("_", " ");
+    });
+
+  return parts.length ? "Channel mix right now: " + parts.join(" · ") + "." : "";
+}
+
+function getOutreachChannelNextMoveSummary(rows) {
+  var normalizedRows = Array.isArray(rows) ? rows : [];
+  if (!normalizedRows.length) {
+    return "";
+  }
+
+  var counts = {
+    email: 0,
+    phone: 0,
+    website: 0,
+    manual_review: 0,
+  };
+
+  normalizedRows.forEach(function (row) {
+    var channel = String((row && row.recommended_channel) || "manual_review")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
+    if (!Object.prototype.hasOwnProperty.call(counts, channel)) {
+      counts.manual_review += 1;
+      return;
+    }
+
+    counts[channel] += 1;
+  });
+
+  var dominantChannel = Object.keys(counts).sort(function (a, b) {
+    var countDiff = counts[b] - counts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+
+  if (!dominantChannel || !counts[dominantChannel]) {
+    return "";
+  }
+
+  if (counts[dominantChannel] === normalizedRows.length) {
+    if (dominantChannel === "email") {
+      return "Best outreach move right now: this wave is all email, so send the top requests directly first.";
+    }
+    if (dominantChannel === "phone") {
+      return "Best outreach move right now: this wave is all phone-first, so call the top offices first.";
+    }
+    if (dominantChannel === "website") {
+      return "Best outreach move right now: this wave is all website-first, so work the contact forms first.";
+    }
+    return "Best outreach move right now: this wave still needs manual channel review before sending.";
+  }
+
+  return "Best outreach move right now: this is a mixed-channel wave, so follow the top packet in priority order instead of batching by one channel.";
+}
+
+function buildImportBlockerSprintMarkdown(rows) {
+  var lines = [
+    "# Import Blocker Sprint",
+    "",
+    "Top strict safe-import blockers from the current live admin queue.",
+    "",
+  ];
+
+  rows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.name);
+    lines.push("");
+    lines.push("- Status: " + row.status);
+    lines.push("- Result: " + row.result);
+    lines.push("- Blocking fields: " + row.blocker_fields);
+    lines.push("- Source-first fields: " + (row.source_first_fields || "None"));
+    lines.push("- Therapist-confirmation fields: " + (row.therapist_confirmation_fields || "None"));
+    lines.push("- Source path status: " + (row.source_path_status || "Unknown"));
+    lines.push("- Contact target: " + row.contact_target);
+    lines.push("- Why this matters: " + row.why_it_matters);
+    lines.push("- Next move: " + row.next_best_move);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildImportBlockerSprintCsv(rows) {
+  var headers = [
+    "priority_rank",
+    "name",
+    "slug",
+    "status",
+    "result",
+    "blocker_count",
+    "blocker_fields",
+    "source_first_fields",
+    "therapist_confirmation_fields",
+    "source_path_status",
+    "contact_target",
+    "why_it_matters",
+    "request_subject",
+    "request_message",
+    "next_best_move",
+  ];
+  var lines = [headers.join(",")];
+
+  rows.forEach(function (row) {
+    var values = headers.map(function (header) {
+      return row[header] || "";
+    });
+    lines.push(
+      values
+        .map(function (value) {
+          var stringValue = String(value);
+          return /[",\n\r]/.test(stringValue)
+            ? '"' + stringValue.replace(/"/g, '""') + '"'
+            : stringValue;
+        })
+        .join(","),
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function buildImportBlockerPacket(rows) {
+  var lines = [
+    "# Top Import Blocker Packet",
+    "",
+    "Send-ready strict-gate blocker requests for the current top wave.",
+    "",
+  ];
+
+  var sharedAsk = getImportBlockerSprintSharedAsk(rows);
+  if (sharedAsk) {
+    lines.push(sharedAsk);
+    lines.push("");
+  }
+
+  rows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.name);
+    lines.push("");
+    lines.push("- Blocking fields: " + row.blocker_fields);
+    lines.push("- Source path status: " + (row.source_path_status || "Unknown"));
+    lines.push("- Contact target: " + row.contact_target);
+    lines.push("- Why this matters: " + row.why_it_matters);
+    lines.push("- Next move: " + row.next_best_move);
+    lines.push("- Subject: " + (row.request_subject || ""));
+    var leverageNote = getImportBlockerLeverageNote(
+      rows,
+      String(row.blocker_fields || "")
+        .split("|")
+        .map(function (field) {
+          return field.trim();
+        })
+        .filter(Boolean),
+    );
+    if (leverageNote) {
+      lines.push("- " + leverageNote);
+    }
+    lines.push("");
+    lines.push("```text");
+    lines.push(row.request_message || "");
+    lines.push("```");
+    lines.push("");
+    lines.push("Confirmation form:");
+    lines.push(buildConfirmationLink(row.slug));
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function getConfirmationSprintRows(limit) {
+  var queue = getPublishedTherapistConfirmationQueue();
+  var activeRows = queue.filter(function (entry) {
+    return entry.workflow.status !== "applied";
+  });
+  var prioritizedRows = activeRows.length ? activeRows : queue;
+  var selectedEntries = prioritizedRows.slice(0, limit || 5);
+  var fieldCounts = {};
+  selectedEntries.forEach(function (entry) {
+    (entry.agenda.unknown_fields || []).forEach(function (field) {
+      fieldCounts[field] = (fieldCounts[field] || 0) + 1;
+    });
+  });
+  var preferredPrimaryField = Object.keys(fieldCounts).sort(function (a, b) {
+    var countDiff = fieldCounts[b] - fieldCounts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+
+  return selectedEntries.map(function (entry, index) {
+    var item = entry.item;
+    var workflow = entry.workflow || getConfirmationQueueEntry(item.slug);
+    var warningFields = (entry.agenda.unknown_fields || []).slice();
+    var orderedWarningFields = getPreferredFieldOrder(warningFields, preferredPrimaryField);
+    var primaryAskField = orderedWarningFields[0] || "";
+    var addOnAskFields = orderedWarningFields.slice(1);
+    return {
+      priority_rank: index + 1,
+      name: item.name,
+      slug: item.slug,
+      status: formatStatusLabel(workflow.status),
+      result: getConfirmationResultLabel(workflow.status),
+      recommended_channel: item.preferred_contact_method || "manual_review",
+      contact_target: getConfirmationTarget(item),
+      why_it_matters: entry.agenda.summary,
+      next_best_move: entry.agenda.needs_confirmation
+        ? "Confirm " + orderedWarningFields.slice(0, 3).map(formatFieldLabel).join(", ")
+        : "No next move needed",
+      warnings: warningFields.join("|"),
+      primary_ask_field: primaryAskField,
+      add_on_ask_fields: addOnAskFields.join("|"),
+      send_action:
+        item.preferred_contact_method === "email"
+          ? "Send a direct email request."
+          : item.preferred_contact_method === "phone"
+            ? "Call the office and use the request as a verbal or voicemail script."
+            : "Use the website contact or scheduling path first.",
+      request_subject: "Quick profile confirmation for " + item.name + " on BipolarTherapyHub",
+      request_message: buildTherapistFieldConfirmationPrompt(item, orderedWarningFields),
+    };
+  });
+}
+
+function buildConfirmationSprintMarkdown(rows) {
+  var lines = [
+    "# Confirmation Sprint",
+    "",
+    "Top confirmation tasks from the current live admin queue.",
+    "",
+  ];
+
+  rows.forEach(function (row) {
+    lines.push("## " + row.priority_rank + ". " + row.name);
+    lines.push("");
+    lines.push("- Status: " + row.status);
+    lines.push("- Result: " + row.result);
+    lines.push("- Channel: " + row.recommended_channel);
+    lines.push("- Target: " + row.contact_target);
+    lines.push("- Why this matters: " + row.why_it_matters);
+    lines.push("- Next move: " + row.next_best_move);
+    lines.push("- Missing fields: " + row.warnings);
+    if (row.primary_ask_field) {
+      lines.push("- Primary ask: " + row.primary_ask_field);
+    }
+    if (row.add_on_ask_fields) {
+      lines.push("- Add-on asks: " + row.add_on_ask_fields);
+    }
+    lines.push("");
+    lines.push("```text");
+    lines.push(row.request_message);
+    lines.push("```");
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildConfirmationSprintCsv(rows) {
+  var headers = [
+    "priority_rank",
+    "name",
+    "slug",
+    "status",
+    "result",
+    "recommended_channel",
+    "contact_target",
+    "why_it_matters",
+    "next_best_move",
+    "warnings",
+    "primary_ask_field",
+    "add_on_ask_fields",
+    "send_action",
+    "request_subject",
+    "request_message",
+  ];
+  var lines = [headers.join(",")];
+
+  rows.forEach(function (row) {
+    lines.push(
+      headers
+        .map(function (header) {
+          return csvEscape(row[header] || "");
+        })
+        .join(","),
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function getConfirmationQueuePrimaryField(entries) {
+  var counts = {};
+  (Array.isArray(entries) ? entries : []).forEach(function (entry) {
+    (entry.agenda?.unknown_fields || []).forEach(function (field) {
+      counts[field] = (counts[field] || 0) + 1;
+    });
+  });
+
+  return Object.keys(counts).sort(function (a, b) {
+    var countDiff = counts[b] - counts[a];
+    if (countDiff) {
+      return countDiff;
+    }
+    return a.localeCompare(b);
+  })[0];
+}
+
+function buildOrderedConfirmationRequestMessage(item, unknownFields, preferredPrimaryField) {
+  return buildTherapistFieldConfirmationPrompt(
+    item,
+    getPreferredFieldOrder(unknownFields || [], preferredPrimaryField),
+  );
+}
+
+function getConfirmationSprintHealthSummary(rows) {
+  var counts = {
+    not_started: 0,
+    sent: 0,
+    waiting_on_therapist: 0,
+    confirmed: 0,
+    applied: 0,
+  };
+
+  (rows || []).forEach(function (row) {
+    var status = String((row && row.status) || "")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+    if (Object.prototype.hasOwnProperty.call(counts, status)) {
+      counts[status] += 1;
+    }
+  });
+
+  var parts = [];
+  if (counts.not_started) {
+    parts.push(counts.not_started + " not started");
+  }
+  if (counts.sent) {
+    parts.push(counts.sent + " sent");
+  }
+  if (counts.waiting_on_therapist) {
+    parts.push(counts.waiting_on_therapist + " awaiting therapist reply");
+  }
+  if (counts.confirmed) {
+    parts.push(counts.confirmed + " confirmed");
+  }
+  if (counts.applied) {
+    parts.push(counts.applied + " applied");
+  }
+
+  return parts.length
+    ? "Current sprint health: " + parts.join(" · ") + "."
+    : "Current sprint health: no active confirmation work.";
+}
+
+function getConfirmationSprintBottleneckSummary(rows) {
+  var counts = {
+    not_started: 0,
+    sent: 0,
+    waiting_on_therapist: 0,
+    confirmed: 0,
+    applied: 0,
+  };
+
+  (rows || []).forEach(function (row) {
+    var status = String((row && row.status) || "")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+    if (Object.prototype.hasOwnProperty.call(counts, status)) {
+      counts[status] += 1;
+    }
+  });
+
+  if (
+    counts.not_started >=
+    Math.max(counts.sent, counts.waiting_on_therapist, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: this wave is still mostly blocked on initial outreach getting started.";
+  }
+  if (
+    counts.waiting_on_therapist >=
+    Math.max(counts.not_started, counts.sent, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: the main blocker is waiting on therapist replies before profile updates can land.";
+  }
+  if (
+    counts.sent >=
+    Math.max(counts.not_started, counts.waiting_on_therapist, counts.confirmed, counts.applied)
+  ) {
+    return "Next bottleneck: requests are in flight, so the highest-value work is following up and moving more profiles into reply state.";
+  }
+  if (counts.confirmed > 0) {
+    return "Next bottleneck: some confirmations are ready, so the highest-value work is applying those answers back to live profiles.";
+  }
+  if (counts.applied > 0) {
+    return "Next bottleneck: some confirmation work is already applied, so the next leverage is refreshing trust signals and continuing the next outreach wave.";
+  }
+  return "Next bottleneck: no active blocker yet.";
+}
+
+function getConfirmationSprintRecommendation(rows) {
+  var byStatus = {
+    not_started: [],
+    sent: [],
+    waiting_on_therapist: [],
+    confirmed: [],
+    applied: [],
+  };
+
+  (rows || []).forEach(function (row) {
+    var status = String((row && row.status) || "")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+    if (Object.prototype.hasOwnProperty.call(byStatus, status)) {
+      byStatus[status].push(row);
+    }
+  });
+
+  if (byStatus.not_started.length) {
+    return {
+      label: "Start outreach now",
+      note: "Best next move: send the highest-priority unsent therapist request.",
+      mode: "copy_request",
+      slug: byStatus.not_started[0].slug,
+    };
+  }
+
+  if (byStatus.waiting_on_therapist.length) {
+    return {
+      label: "Follow up on replies",
+      note: "Best next move: review the waiting profiles and move any therapist replies forward.",
+      mode: "scroll",
+      targetId: "confirmationQueue",
+    };
+  }
+
+  if (byStatus.sent.length) {
+    return {
+      label: "Review in-flight requests",
+      note: "Best next move: move sent requests into waiting or confirmed as responses arrive.",
+      mode: "scroll",
+      targetId: "confirmationQueue",
+    };
+  }
+
+  if (byStatus.confirmed.length) {
+    return {
+      label: "Apply confirmed updates",
+      note: "Best next move: process the confirmed therapist answers and update the live listings.",
+      mode: "copy_apply_brief",
+      slug: byStatus.confirmed[0].slug,
+    };
+  }
+
+  if (byStatus.applied.length) {
+    return {
+      label: "Continue next outreach wave",
+      note: "Best next move: move from already-applied profiles back into the next highest-priority confirmations.",
+      mode: "scroll",
+      targetId: "confirmationQueue",
+    };
+  }
+
+  return {
+    label: "Review confirmation queue",
+    note: "Best next move: inspect the full queue for the next trust update.",
+    mode: "scroll",
+    targetId: "confirmationQueue",
+  };
+}
+
+function applyOverlapRecommendationContext(recommendation, blockerRows, confirmationRows) {
+  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
+  if (!overlap || !recommendation) {
+    return recommendation;
+  }
+
+  var next = {
+    ...recommendation,
+  };
+
+  if (next.mode === "copy_request" || next.mode === "scroll") {
+    next.note =
+      "Best next move: work the shared ask wave first, since " +
+      formatFieldLabel(overlap.field) +
+      " is currently driving both the strict-gate blockers and the confirmation sprint.";
+  } else if (next.mode === "copy_apply_brief") {
+    next.note =
+      "Best next move: apply the shared ask answers first, since " +
+      formatFieldLabel(overlap.field) +
+      " is currently driving both the strict-gate blockers and the confirmation sprint.";
+  }
+
+  return next;
+}
+
+function getImportBlockerRecommendationNote(blockerRows, confirmationRows) {
+  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
+  if (overlap) {
+    return (
+      "Best next move: work the shared ask wave first, since " +
+      formatFieldLabel(overlap.field) +
+      " is currently driving both the strict-gate blockers and the confirmation sprint."
+    );
+  }
+
+  return getImportBlockerSprintSharedAskNextMove(blockerRows);
+}
+
+function getConfirmationSprintMiniLanes(rows) {
+  var waiting = [];
+  var confirmed = [];
+  var applied = [];
+
+  (rows || []).forEach(function (row) {
+    var status = String((row && row.status) || "")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+    if (status === "waiting_on_therapist") {
+      waiting.push(row);
+    } else if (status === "confirmed") {
+      confirmed.push(row);
+    } else if (status === "applied") {
+      applied.push(row);
+    }
+  });
+
+  var lanes = [];
+
+  if (waiting.length) {
+    lanes.push({
+      title: "Top waiting profiles",
+      note: "These are the sprint items currently waiting on therapist replies.",
+      filter: "waiting_on_therapist",
+      rows: waiting.slice(0, 3),
+    });
+  }
+
+  if (confirmed.length) {
+    lanes.push({
+      title: "Ready to apply now",
+      note: "These sprint items are already confirmed and ready for live profile updates.",
+      filter: "confirmed",
+      rows: confirmed.slice(0, 3),
+    });
+  }
+
+  if (applied.length) {
+    lanes.push({
+      title: "Recently applied",
+      note: "These sprint items have already been reflected in the live profile and can move out of the active handoff path.",
+      filter: "applied",
+      rows: applied.slice(0, 3),
+    });
+  }
+
+  return lanes;
+}
+
+function csvEscape(value) {
+  var stringValue = String(value || "");
+  if (/[",\n\r]/.test(stringValue)) {
+    return '"' + stringValue.replace(/"/g, '""') + '"';
+  }
+  return stringValue;
 }
 
 function normalizeConciergeRequests(value) {
@@ -602,6 +4670,7 @@ function renderStats() {
   const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
   const applications = dataMode === "sanity" ? remoteApplications : getApplications();
   const conciergeRequests = readConciergeRequests();
+  const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
   const outreachOutcomes = readOutreachOutcomes();
   const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
   const matchReadyCount = therapists.filter(function (item) {
@@ -610,55 +4679,194 @@ function renderStats() {
   const openConciergeCount = conciergeRequests.filter(function (item) {
     return item.request_status !== "resolved";
   }).length;
+  const openPortalRequestCount = portalRequests.filter(function (item) {
+    return item.status !== "resolved";
+  }).length;
   const heardBackCount = outreachOutcomes.filter(function (item) {
     return item.outcome === "heard_back";
   }).length;
   const bookedConsultCount = outreachOutcomes.filter(function (item) {
     return item.outcome === "booked_consult";
   }).length;
+  const profilesNeedingRefresh = therapists.filter(function (item) {
+    return getDataFreshnessSummary(item).status !== "fresh";
+  }).length;
+  const recentlyMaintainedCount = therapists.filter(function (item) {
+    return Boolean(getConfirmationGraceWindowNote(item));
+  }).length;
+  const profilesNeedingConfirmation = therapists.filter(function (item) {
+    return getTherapistConfirmationAgenda(item).needs_confirmation;
+  }).length;
+  const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
+  const strictImportBlockerCount = strictImportBlockers.length;
+  const topStrictImportBlocker = strictImportBlockers.length
+    ? strictImportBlockers[0].item.name
+    : "";
+  const strictImportBlockerHealth =
+    strictImportBlockerCount === 0
+      ? "Safe import gate clear"
+      : strictImportBlockerCount <= 3
+        ? "Safe import gate blocked by a small top wave"
+        : "Safe import gate still blocked by a broader backlog";
+  const confirmationQueue = getPublishedTherapistConfirmationQueue();
+  const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
+  const refreshQueue = therapists
+    .map(function (item) {
+      return {
+        item: item,
+        freshness: getDataFreshnessSummary(item),
+      };
+    })
+    .filter(function (entry) {
+      return entry.freshness.status !== "fresh";
+    })
+    .sort(function (a, b) {
+      const weight = {
+        aging: 0,
+        watch: 1,
+        fresh: 2,
+      };
+      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      return (
+        (b.freshness.needs_reconfirmation_fields || []).length -
+        (a.freshness.needs_reconfirmation_fields || []).length
+      );
+    });
+  const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
+  const recentlyMaintainedProfiles = therapists.filter(function (item) {
+    return Boolean(getConfirmationGraceWindowNote(item));
+  });
+  const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
+    ? recentlyMaintainedProfiles[0].name
+    : "";
+  const confirmationQueueState = readConfirmationQueueState();
+  const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
+    var entry = confirmationQueueState[slug];
+    return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
+  }).length;
+  const pendingApplicationsCount = applications.filter(function (item) {
+    return item.status === "pending";
+  }).length;
+
+  const primaryOpsCards = [
+    buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
+      applicationStatus: "pending",
+      actionLabel: "Open review queue",
+    }),
+    buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
+      conciergeStatus: "open",
+      actionLabel: "Open active items",
+    }),
+    buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
+      portalRequestStatus: "open",
+      actionLabel: "Open portal queue",
+    }),
+    buildActionStatCard(profilesNeedingRefresh, "Profiles needing refresh", "refreshQueue", {
+      meta: topRefreshProfile ? "Top: " + topRefreshProfile : "",
+      actionLabel: "Open refresh queue",
+    }),
+    buildActionStatCard(strictImportBlockerCount, "Strict import blockers", "importBlockerSprint", {
+      meta:
+        strictImportBlockerHealth +
+        (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
+      actionLabel: "Open blocker sprint",
+    }),
+    buildActionStatCard(
+      profilesNeedingConfirmation,
+      "Profiles needing confirmation",
+      "confirmationQueue",
+      {
+        meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
+        actionLabel: "Open confirmation queue",
+      },
+    ),
+    buildActionStatCard(
+      awaitingConfirmationCount,
+      "Confirmation follow-ups open",
+      "confirmationQueue",
+      {
+        confirmationFilter: "waiting_on_therapist",
+        actionLabel: "Open follow-ups",
+      },
+    ),
+  ];
+
+  const secondaryContextCards = [
+    buildPassiveStatCard(therapists.length, "Published listings"),
+    buildPassiveStatCard(stats.states_covered, "States covered"),
+    buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
+    buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
+    buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
+      actionLabel: "Open concierge queue",
+    }),
+    buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
+    buildPassiveStatCard(bookedConsultCount, "Booked consults"),
+    buildActionStatCard(
+      recentlyMaintainedCount,
+      "Recently maintained",
+      "recentlyMaintainedRefresh",
+      {
+        meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
+        actionLabel: "Open maintained list",
+      },
+    ),
+    buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
+      actionLabel: "Open analytics",
+    }),
+    buildPassiveStatCard(funnelSummary.matches, "Matches run"),
+    buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
+    buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
+  ];
 
   document.getElementById("adminStats").innerHTML =
-    '<div class="stat-card"><div class="stat-value">' +
-    therapists.length +
-    '</div><div class="stat-label">Published listings</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    applications.filter(function (item) {
-      return item.status === "pending";
-    }).length +
-    '</div><div class="stat-label">Pending applications</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    stats.states_covered +
-    '</div><div class="stat-label">States covered</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    stats.accepting_count +
-    '</div><div class="stat-label">Accepting patients</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    matchReadyCount +
-    '</div><div class="stat-label">Match-ready profiles</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    conciergeRequests.length +
-    '</div><div class="stat-label">Concierge requests</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    openConciergeCount +
-    '</div><div class="stat-label">Open concierge items</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    heardBackCount +
-    '</div><div class="stat-label">Heard-back outcomes</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    bookedConsultCount +
-    '</div><div class="stat-label">Booked consults</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    funnelSummary.searches +
-    '</div><div class="stat-label">Searches tracked</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    funnelSummary.matches +
-    '</div><div class="stat-label">Matches run</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    funnelSummary.shortlist_saves +
-    '</div><div class="stat-label">Shortlist saves</div></div>' +
-    '<div class="stat-card"><div class="stat-value">' +
-    funnelSummary.help_requests +
-    '</div><div class="stat-label">Help requests</div></div>';
+    wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
+    wrapStatsGroup("Reference metrics", secondaryContextCards, "");
+
+  document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var targetId = button.getAttribute("data-admin-scroll-target");
+      var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
+      var applicationStatus = button.getAttribute("data-admin-application-status");
+      var conciergeStatus = button.getAttribute("data-admin-concierge-status");
+      var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
+      if (confirmationFilter) {
+        confirmationQueueFilter = confirmationFilter;
+        renderConfirmationQueue();
+      }
+      if (applicationStatus !== null) {
+        applicationFilters.status = applicationStatus || "";
+        var applicationStatusFilter = document.getElementById("applicationStatusFilter");
+        if (applicationStatusFilter) {
+          applicationStatusFilter.value = applicationFilters.status;
+        }
+        renderApplications();
+      }
+      if (conciergeStatus !== null) {
+        conciergeFilters.status = conciergeStatus || "";
+        var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
+        if (conciergeStatusFilter) {
+          conciergeStatusFilter.value = conciergeFilters.status;
+        }
+        renderConciergeQueue();
+      }
+      if (portalRequestStatus !== null) {
+        portalRequestFilters.status = portalRequestStatus || "";
+        var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
+        if (portalRequestStatusFilter) {
+          portalRequestStatusFilter.value = portalRequestFilters.status;
+        }
+        renderPortalRequestsQueue();
+      }
+      var target = targetId ? document.getElementById(targetId) : null;
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        spotlightSection(target);
+      }
+    });
+  });
 }
 
 function renderFunnelInsights() {
@@ -692,6 +4900,7 @@ function renderFunnelInsights() {
       { label: "Matches run", count: summary.matches },
       { label: "Shortlist saves", count: summary.shortlist_saves },
       { label: "Help requests", count: summary.help_requests },
+      { label: "Contact intents", count: summary.contact_intents || 0 },
       { label: "Outreach starts", count: summary.outreach_starts },
     ]
       .map(function (item) {
@@ -815,54 +5024,1826 @@ function renderFunnelInsights() {
 function renderListings() {
   if (authRequired) {
     document.getElementById("publishedListings").innerHTML = "";
+    var refreshRoot = document.getElementById("refreshQueue");
+    if (refreshRoot) {
+      refreshRoot.innerHTML = "";
+    }
     return;
   }
 
   const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
   const root = document.getElementById("publishedListings");
-  root.innerHTML = therapists
-    .map(function (item) {
-      const readiness = getTherapistMatchReadiness(item);
-      return (
-        '<div class="mini-card"><div><strong>' +
-        item.name +
-        '</strong><div class="subtle">' +
-        item.city +
-        ", " +
-        item.state +
-        " · " +
-        item.credentials +
-        '</div><div class="subtle">' +
-        escapeHtml(readiness.label) +
-        " · " +
-        escapeHtml(readiness.score) +
-        '/100</div></div><a href="therapist.html?slug=' +
-        item.slug +
-        '">Open profile</a></div>'
-      );
+  const launchRows = getLaunchControlRows(therapists);
+  const launchCounts = getLaunchControlCounts(launchRows);
+  const launchSignalMap = summarizeLaunchProfileSignals(launchRows, readFunnelEvents());
+  const underperformingFeaturedRows = getUnderperformingFeaturedRows(launchRows, launchSignalMap);
+  const promotionCandidateRows = getPromotionCandidateRows(launchRows, launchSignalMap);
+  var rankingRiskTotals = {
+    aging_data: 0,
+    refresh_soon: 0,
+    confirmation_needed: 0,
+    no_recent_confirmation: 0,
+    weak_editorial_depth: 0,
+  };
+
+  therapists.forEach(function (item) {
+    var matches = getRankingRiskMatches(item);
+
+    if (matches.aging_data) {
+      rankingRiskTotals.aging_data += 1;
+    } else if (matches.refresh_soon) {
+      rankingRiskTotals.refresh_soon += 1;
+    }
+    if (matches.confirmation_needed) {
+      rankingRiskTotals.confirmation_needed += 1;
+    }
+    if (matches.no_recent_confirmation) {
+      rankingRiskTotals.no_recent_confirmation += 1;
+    }
+    if (matches.weak_editorial_depth) {
+      rankingRiskTotals.weak_editorial_depth += 1;
+    }
+  });
+
+  var topRankingRisks = [
+    {
+      key: "confirmation_needed",
+      label: "Profiles still need therapist confirmation",
+      count: rankingRiskTotals.confirmation_needed,
+    },
+    {
+      key: "no_recent_confirmation",
+      label: "Profiles do not have recent specialist re-confirmation",
+      count: rankingRiskTotals.no_recent_confirmation,
+    },
+    {
+      key: "weak_editorial_depth",
+      label: "Profiles have shallow editorial verification depth",
+      count: rankingRiskTotals.weak_editorial_depth,
+    },
+    {
+      key: "aging_data",
+      label: "Profiles are already being held back by aging data",
+      count: rankingRiskTotals.aging_data,
+    },
+    {
+      key: "refresh_soon",
+      label: "Profiles will need refresh soon",
+      count: rankingRiskTotals.refresh_soon,
+    },
+  ]
+    .filter(function (item) {
+      return item.count > 0;
     })
-    .join("");
+    .sort(function (a, b) {
+      return b.count - a.count || a.label.localeCompare(b.label);
+    })
+    .slice(0, 4);
+
+  var visibleRows = launchRows.filter(function (row) {
+    if (rankingRiskFilter && !getRankingRiskMatches(row.item)[rankingRiskFilter]) {
+      return false;
+    }
+    if (launchProfileFilters.state && row.control.launch_state !== launchProfileFilters.state) {
+      return false;
+    }
+    if (launchProfileFilters.lane === "homepage" && !row.control.homepage_featured) {
+      return false;
+    }
+    if (launchProfileFilters.lane === "match" && !row.control.match_priority) {
+      return false;
+    }
+    if (launchProfileFilters.lane === "featured" && row.control.launch_state !== "featured") {
+      return false;
+    }
+    return true;
+  });
+
+  root.innerHTML =
+    '<div class="queue-insights"><div class="queue-insights-title">Launch control</div><div class="subtle" style="margin-bottom:0.7rem">Use launch state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
+    [
+      {
+        label: "All live profiles",
+        count: launchCounts.total,
+        note: "Full published set",
+        state: "",
+        lane: "",
+      },
+      {
+        label: "Launch-ready",
+        count: launchCounts.launch_ready,
+        note: "Strong enough to promote next",
+        state: "launch_ready",
+        lane: "",
+      },
+      {
+        label: "Featured",
+        count: launchCounts.featured,
+        note: "Top-of-funnel profiles",
+        state: "featured",
+        lane: "featured",
+      },
+      {
+        label: "Homepage featured",
+        count: launchCounts.homepage_featured,
+        note: "Current homepage set",
+        state: "",
+        lane: "homepage",
+      },
+      {
+        label: "Match priority",
+        count: launchCounts.match_priority,
+        note: "Preferred for match prominence",
+        state: "",
+        lane: "match",
+      },
+    ]
+      .map(function (card) {
+        var isActive =
+          launchProfileFilters.state === (card.state || "") &&
+          launchProfileFilters.lane === (card.lane || "");
+        return (
+          '<button type="button" class="queue-insight-card launch-filter-card' +
+          (isActive ? " is-active" : "") +
+          '" data-launch-filter-state="' +
+          escapeHtml(card.state || "") +
+          '" data-launch-filter-lane="' +
+          escapeHtml(card.lane || "") +
+          '"><div class="queue-insight-value">' +
+          escapeHtml(card.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(card.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(card.note) +
+          "</div></button>"
+        );
+      })
+      .join("") +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchControlSummaryNote(launchCounts)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchLaneHealthSummary(launchRows, "homepage")) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchLaneSignalSummary(launchRows, "homepage", launchSignalMap)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchLaneHealthSummary(launchRows, "match")) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchLaneSignalSummary(launchRows, "match", launchSignalMap)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getLaunchControlBottleneck(launchRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(
+      getLaunchRecommendationSummary(underperformingFeaturedRows, promotionCandidateRows),
+    ) +
+    '</div><div class="queue-actions"><button class="btn-secondary" data-launch-export="packet">Copy launch packet</button><button class="btn-secondary" data-launch-export="homepage">Copy homepage featured slugs</button><button class="btn-secondary" data-launch-export="match">Copy match-priority slugs</button>' +
+    (launchProfileFilters.state || launchProfileFilters.lane || rankingRiskFilter
+      ? '<button class="btn-secondary" data-clear-launch-filters>Clear listing filters</button>'
+      : "") +
+    '</div><div class="review-coach-status" id="launchControlStatus"></div></div>' +
+    (underperformingFeaturedRows.length || promotionCandidateRows.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Suggested launch moves</div><div class="queue-insights-grid">' +
+        underperformingFeaturedRows
+          .map(function (row) {
+            var signals = launchSignalMap[row.item.slug] || {};
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              escapeHtml(row.item.name) +
+              '</strong></div><div class="queue-insight-note">Underperforming featured profile. Signals: ' +
+              escapeHtml(
+                (signals.contact_intents || 0) +
+                  " contact · " +
+                  (signals.shortlist_saves || 0) +
+                  " save · " +
+                  (signals.profile_opens || 0) +
+                  " open",
+              ) +
+              '. Consider refresh or demotion.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-focus="' +
+              escapeHtml(row.item.slug) +
+              '">Focus profile</button></div></div>'
+            );
+          })
+          .join("") +
+        promotionCandidateRows
+          .map(function (row) {
+            var signals = launchSignalMap[row.item.slug] || {};
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              escapeHtml(row.item.name) +
+              '</strong></div><div class="queue-insight-note">Promotion candidate. Signals: ' +
+              escapeHtml(
+                (signals.contact_intents || 0) +
+                  " contact · " +
+                  (signals.shortlist_saves || 0) +
+                  " save · " +
+                  (signals.profile_opens || 0) +
+                  " open",
+              ) +
+              '. Strong enough to test in a launch lane.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-promote="' +
+              escapeHtml(row.item.slug) +
+              '">Promote to launch-ready</button></div></div>'
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    (topRankingRisks.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Top ranking risks across live profiles</div>' +
+        (rankingRiskFilter || launchProfileFilters.state || launchProfileFilters.lane
+          ? '<div class="mini-status" style="margin-bottom:0.75rem"><strong>Showing profiles for:</strong> ' +
+            escapeHtml(
+              [
+                rankingRiskFilter
+                  ? (
+                      topRankingRisks.find(function (item) {
+                        return item.key === rankingRiskFilter;
+                      }) || {
+                        label: rankingRiskFilter.replace(/_/g, " "),
+                      }
+                    ).label
+                  : "",
+                launchProfileFilters.state
+                  ? "Launch state: " + getLaunchStateLabel(launchProfileFilters.state)
+                  : "",
+                launchProfileFilters.lane === "homepage"
+                  ? "Lane: Homepage featured"
+                  : launchProfileFilters.lane === "match"
+                    ? "Lane: Match priority"
+                    : launchProfileFilters.lane === "featured"
+                      ? "Lane: Featured"
+                      : "",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            ) +
+            ' <button class="btn-secondary" type="button" data-clear-ranking-risk-filter style="margin-left:0.65rem">Clear</button></div>'
+          : "") +
+        '<div class="queue-insights-grid">' +
+        topRankingRisks
+          .map(function (item) {
+            var meta = getRankingRiskMeta(item.key);
+            return (
+              '<button type="button" class="queue-insight-card" data-ranking-risk-filter="' +
+              escapeHtml(item.key) +
+              '"><div class="queue-insight-value">' +
+              escapeHtml(item.count) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(item.label) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(meta.note) +
+              '</div><div class="queue-insight-action" data-ranking-risk-next="' +
+              escapeHtml(item.key) +
+              '" data-target="' +
+              escapeHtml(meta.target) +
+              '">' +
+              escapeHtml(meta.action) +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    (visibleRows.length
+      ? '<div class="mini-status" style="margin-bottom:0.75rem">Showing ' +
+        escapeHtml(visibleRows.length) +
+        " of " +
+        escapeHtml(launchRows.length) +
+        " live profile" +
+        (launchRows.length === 1 ? "" : "s") +
+        ".</div>"
+      : "") +
+    visibleRows
+      .map(function (row) {
+        const item = row.item;
+        const control = row.control;
+        const readiness = row.readiness;
+        const quality = row.quality;
+        const freshness = row.freshness;
+        const signals = launchSignalMap[item.slug] || {
+          shortlist_saves: 0,
+          contact_intents: 0,
+          profile_opens: 0,
+        };
+        const recentConfirmation = getRecentConfirmationSummary(item);
+        const graceWindowNote = getConfirmationGraceWindowNote(item);
+        const sourceReviewed = item.source_reviewed_at ? formatDate(item.source_reviewed_at) : "";
+        const primarySource = item.source_url || item.website || "";
+        let primarySourceHost = "";
+        try {
+          primarySourceHost = primarySource
+            ? new URL(primarySource).hostname.replace(/^www\./, "")
+            : "";
+        } catch (_error) {
+          primarySourceHost = "";
+        }
+        var rankingImpact = graceWindowNote
+          ? "Temporarily protected by a freshness grace window after recently applied updates."
+          : freshness.status === "aging"
+            ? "Being held back a bit by aging operational data."
+            : freshness.status === "watch"
+              ? "Losing a small amount of ranking strength until key details are refreshed."
+              : recentConfirmation
+                ? "Earning a modest lift from recent specialist re-confirmation."
+                : "Ranking is currently driven more by profile quality than freshness.";
+        return (
+          '<div class="mini-card launch-mini-card"><div class="launch-card-main"><strong>' +
+          escapeHtml(item.name) +
+          '</strong><div class="subtle">' +
+          escapeHtml(item.city + ", " + item.state + " · " + item.credentials) +
+          '</div><div class="tag-row"><span class="tag">' +
+          escapeHtml(getLaunchStateLabel(control.launch_state)) +
+          "</span>" +
+          (control.homepage_featured ? '<span class="tag">Homepage featured</span>' : "") +
+          (control.match_priority ? '<span class="tag">Match priority</span>' : "") +
+          '</div><div class="subtle">' +
+          escapeHtml(quality.label) +
+          " · merchandising " +
+          escapeHtml(quality.score) +
+          '</div><div class="subtle">' +
+          escapeHtml(readiness.label) +
+          " · " +
+          escapeHtml(readiness.score) +
+          "/100</div>" +
+          '<div class="subtle">' +
+          escapeHtml(freshness.label) +
+          "</div>" +
+          '<div class="subtle">' +
+          escapeHtml(rankingImpact) +
+          "</div>" +
+          (graceWindowNote ? '<div class="subtle">' + escapeHtml(graceWindowNote) + "</div>" : "") +
+          (sourceReviewed
+            ? '<div class="subtle">Source reviewed: ' +
+              escapeHtml(sourceReviewed) +
+              (primarySourceHost ? " · " + escapeHtml(primarySourceHost) : "") +
+              "</div>"
+            : "") +
+          '<div class="subtle">Signals: ' +
+          escapeHtml(
+            signals.shortlist_saves +
+              " shortlist saves · " +
+              signals.contact_intents +
+              " contact intents · " +
+              signals.profile_opens +
+              " profile opens",
+          ) +
+          "</div>" +
+          '</div><div class="launch-card-controls"><label class="queue-select-label" for="launch-state-' +
+          escapeHtml(item.slug) +
+          '">Launch state</label><select class="queue-select" id="launch-state-' +
+          escapeHtml(item.slug) +
+          '" data-launch-state="' +
+          escapeHtml(item.slug) +
+          '">' +
+          LAUNCH_STATE_OPTIONS.map(function (option) {
+            return (
+              '<option value="' +
+              escapeHtml(option) +
+              '"' +
+              (control.launch_state === option ? " selected" : "") +
+              ">" +
+              escapeHtml(getLaunchStateLabel(option)) +
+              "</option>"
+            );
+          }).join("") +
+          '</select><label class="launch-checkbox"><input type="checkbox" data-launch-homepage="' +
+          escapeHtml(item.slug) +
+          '"' +
+          (control.homepage_featured ? " checked" : "") +
+          '> Homepage featured</label><label class="launch-checkbox"><input type="checkbox" data-launch-match="' +
+          escapeHtml(item.slug) +
+          '"' +
+          (control.match_priority ? " checked" : "") +
+          '> Match priority</label><a href="therapist.html?slug=' +
+          encodeURIComponent(item.slug) +
+          '">Open profile</a></div></div>'
+        );
+      })
+      .join("") +
+    (!visibleRows.length
+      ? '<div class="empty">No live profiles match the current launch or risk filters.</div>'
+      : "");
+
+  root
+    .querySelectorAll("[data-launch-filter-state], [data-launch-filter-lane]")
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var nextState = button.getAttribute("data-launch-filter-state") || "";
+        var nextLane = button.getAttribute("data-launch-filter-lane") || "";
+        var isActive =
+          launchProfileFilters.state === nextState && launchProfileFilters.lane === nextLane;
+        launchProfileFilters.state = isActive ? "" : nextState;
+        launchProfileFilters.lane = isActive ? "" : nextLane;
+        renderListings();
+      });
+    });
+
+  root.querySelectorAll("[data-launch-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-launch-export");
+      var text =
+        mode === "homepage"
+          ? buildHomepageFeaturedSlugSnippet(launchRows)
+          : mode === "match"
+            ? buildMatchPrioritySlugSnippet(launchRows)
+            : buildLaunchProfilePacket(launchRows);
+      var success = await copyText(text);
+      var status = root.querySelector("#launchControlStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "homepage"
+            ? "Homepage featured slug snippet copied."
+            : mode === "match"
+              ? "Match-priority slugs copied."
+              : "Launch profile packet copied."
+          : mode === "homepage"
+            ? "Could not copy homepage featured slug snippet."
+            : mode === "match"
+              ? "Could not copy match-priority slugs."
+              : "Could not copy launch profile packet.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-launch-state]").forEach(function (select) {
+    select.addEventListener("change", function () {
+      updateLaunchProfileControlEntry(select.getAttribute("data-launch-state"), {
+        launch_state: select.value,
+      });
+      renderListings();
+    });
+  });
+
+  root.querySelectorAll("[data-launch-homepage]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      updateLaunchProfileControlEntry(input.getAttribute("data-launch-homepage"), {
+        homepage_featured: input.checked,
+      });
+      renderListings();
+    });
+  });
+
+  root.querySelectorAll("[data-launch-match]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      updateLaunchProfileControlEntry(input.getAttribute("data-launch-match"), {
+        match_priority: input.checked,
+      });
+      renderListings();
+    });
+  });
+
+  root.querySelectorAll("[data-launch-focus]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-launch-focus") || "";
+      if (!slug) {
+        return;
+      }
+      launchProfileFilters.state = "";
+      launchProfileFilters.lane = "";
+      rankingRiskFilter = "";
+      renderListings();
+      var target = root.querySelector('[data-launch-state="' + slug + '"]');
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        spotlightSection(target.closest(".mini-card"));
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-launch-promote]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-launch-promote") || "";
+      if (!slug) {
+        return;
+      }
+      updateLaunchProfileControlEntry(slug, {
+        launch_state: "launch_ready",
+      });
+      renderListings();
+      var status = root.querySelector("#launchControlStatus");
+      if (status) {
+        status.textContent = "Promoted profile to launch-ready.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-ranking-risk-filter]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      rankingRiskFilter = button.getAttribute("data-ranking-risk-filter") || "";
+      renderListings();
+    });
+  });
+
+  root.querySelectorAll("[data-ranking-risk-next]").forEach(function (element) {
+    element.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var key = element.getAttribute("data-ranking-risk-next") || "";
+      var targetId = element.getAttribute("data-target") || "";
+      rankingRiskFilter = key;
+      renderListings();
+      var target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  var clearButton = root.querySelector("[data-clear-ranking-risk-filter]");
+  if (clearButton) {
+    clearButton.addEventListener("click", function () {
+      rankingRiskFilter = "";
+      launchProfileFilters.state = "";
+      launchProfileFilters.lane = "";
+      renderListings();
+    });
+  }
+
+  var clearLaunchFiltersButton = root.querySelector("[data-clear-launch-filters]");
+  if (clearLaunchFiltersButton) {
+    clearLaunchFiltersButton.addEventListener("click", function () {
+      rankingRiskFilter = "";
+      launchProfileFilters.state = "";
+      launchProfileFilters.lane = "";
+      renderListings();
+    });
+  }
+}
+
+function renderRefreshQueue() {
+  const root = document.getElementById("refreshQueue");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  const recentlyMaintained = therapists
+    .filter(function (item) {
+      return Boolean(getConfirmationGraceWindowNote(item));
+    })
+    .slice(0, 4);
+  const queue = therapists
+    .map(function (item) {
+      return {
+        item: item,
+        freshness: getDataFreshnessSummary(item),
+      };
+    })
+    .filter(function (entry) {
+      return entry.freshness.status !== "fresh";
+    })
+    .sort(function (a, b) {
+      const weight = {
+        aging: 0,
+        watch: 1,
+        fresh: 2,
+      };
+      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      return (
+        (b.freshness.needs_reconfirmation_fields || []).length -
+        (a.freshness.needs_reconfirmation_fields || []).length
+      );
+    });
+
+  if (!queue.length && !recentlyMaintained.length) {
+    root.innerHTML =
+      '<div class="subtle">No published profiles are currently flagged for refresh.</div>';
+    return;
+  }
+
+  root.innerHTML =
+    (recentlyMaintained.length
+      ? '<div class="queue-insights" id="recentlyMaintainedRefresh"><div class="queue-insights-title">Recently maintained</div><div class="subtle" style="margin-bottom:0.7rem">These profiles were updated recently and are currently in a short freshness grace window.</div><div class="queue-insights-grid">' +
+        recentlyMaintained
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(getConfirmationGraceWindowNote(item)) +
+              '</div><div class="queue-insight-action"><a href="therapist.html?slug=' +
+              encodeURIComponent(item.slug) +
+              '">Open profile</a></div></div>'
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    queue
+      .map(function (entry) {
+        const item = entry.item;
+        const freshness = entry.freshness;
+        const nextMove = freshness.needs_reconfirmation_fields.length
+          ? "Re-confirm " +
+            freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
+          : "Refresh source review";
+        return (
+          '<div class="mini-card"><div><strong>' +
+          escapeHtml(item.name) +
+          '</strong><div class="subtle">' +
+          escapeHtml(freshness.label) +
+          '</div><div class="subtle">' +
+          escapeHtml(freshness.note) +
+          '</div><div class="subtle">Next move: ' +
+          escapeHtml(nextMove) +
+          '</div></div><a href="therapist.html?slug=' +
+          encodeURIComponent(item.slug) +
+          '">Open profile</a></div>'
+        );
+      })
+      .join("");
+}
+
+function renderImportBlockerSprint() {
+  const root = document.getElementById("importBlockerSprint");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const queue = getPublishedTherapistImportBlockerQueue().slice(0, 3);
+  const sprintRows = getImportBlockerSprintRows(3);
+  const confirmationRows = getConfirmationSprintRows(5);
+  const overlappingAsk = getOverlappingAskDetails(sprintRows, confirmationRows);
+
+  if (!queue.length) {
+    root.innerHTML =
+      '<div class="subtle">No strong-warning profiles are currently blocking the strict safe-import gate.</div>';
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="queue-summary"><strong>' +
+    escapeHtml(getImportBlockerSprintSummary(sprintRows)) +
+    '</strong></div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintBottleneck(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(
+      getPrimaryAskHeaderLine(getImportBlockerSprintSharedAskDetails(sprintRows)?.field || ""),
+    ) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintWaveShape(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintFieldPattern(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintSharedAsk(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintSharedAskStatus(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerSprintSharedAskImpact(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getBlockerConfirmationThemeBridge(sprintRows, confirmationRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getImportBlockerRecommendationNote(sprintRows, confirmationRows)) +
+    "</div>" +
+    (overlappingAsk
+      ? '<div class="queue-summary subtle">' +
+        escapeHtml(
+          getOutreachChannelMixSummary(getTopOutreachWaveRows(sprintRows, confirmationRows, 3)),
+        ) +
+        '</div><div class="queue-summary subtle">' +
+        escapeHtml(
+          getOutreachChannelNextMoveSummary(
+            getTopOutreachWaveRows(sprintRows, confirmationRows, 3),
+          ),
+        ) +
+        "</div>"
+      : "") +
+    (overlappingAsk
+      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
+        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
+        ".</span></div>"
+      : "") +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-import-blocker-copy-top>Copy top blocker request</button><button class="btn-secondary" data-import-blocker-copy-shared-ask>Copy shared ask</button><button class="btn-secondary" data-import-blocker-copy-shared-packet>Copy shared ask packet</button>' +
+    (overlappingAsk
+      ? '<button class="btn-secondary" data-import-blocker-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-import-blocker-copy-top-wave>Copy top outreach wave</button>'
+      : "") +
+    '<button class="btn-secondary" data-import-blocker-copy-packet>Copy top 3 blocker packet</button><button class="btn-secondary" data-import-blocker-open-queue>Show in confirmation queue</button><button class="btn-secondary" data-import-blocker-export="markdown">Copy blocker sprint markdown</button><button class="btn-secondary" data-import-blocker-export="csv">Copy blocker sprint CSV</button></div><div class="review-coach-status" id="importBlockerSprintStatus"></div>' +
+    queue
+      .map(function (entry, index) {
+        const item = entry.item;
+        const workflow = getConfirmationQueueEntry(item.slug);
+        const blockerBuckets = getImportBlockerFieldBuckets(entry.blocker_unknown_fields);
+        const blockerRow =
+          sprintRows.find(function (row) {
+            return row.slug === item.slug;
+          }) || null;
+        return (
+          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          escapeHtml(String(index + 1) + ". " + item.name) +
+          '</h3><div class="subtle">' +
+          escapeHtml(
+            "Blocking fields: " + entry.blocker_unknown_fields.map(formatFieldLabel).join(", "),
+          ) +
+          '</div></div><div class="queue-head-actions"><span class="tag">' +
+          escapeHtml((blockerRow && blockerRow.blocker_mode) || "Blocker") +
+          '</span><span class="tag">' +
+          escapeHtml(
+            String(entry.blocker_unknown_fields.length) +
+              " blocker" +
+              (entry.blocker_unknown_fields.length === 1 ? "" : "s"),
+          ) +
+          '</span><span class="tag">' +
+          escapeHtml(formatStatusLabel(workflow.status)) +
+          '</span></div></div><div class="queue-summary"><strong>Strict gate impact:</strong> ' +
+          escapeHtml(
+            (blockerRow && blockerRow.why_it_matters) ||
+              item.name +
+                " still prevents the safe importer from passing while these strong-warning fields remain unresolved.",
+          ) +
+          '</div><div class="queue-summary"><strong>Source path status:</strong> ' +
+          escapeHtml(
+            (blockerRow && blockerRow.source_path_status) ||
+              "Public-source path status still needs review.",
+          ) +
+          '</div><div class="queue-summary"><strong>Source-first:</strong> ' +
+          escapeHtml(
+            blockerBuckets.source_first.length
+              ? blockerBuckets.source_first.map(formatFieldLabel).join(", ")
+              : "Complete",
+          ) +
+          '</div><div class="queue-summary"><strong>Therapist-confirmation:</strong> ' +
+          escapeHtml(
+            blockerBuckets.therapist_confirmation.length
+              ? blockerBuckets.therapist_confirmation.map(formatFieldLabel).join(", ")
+              : "None",
+          ) +
+          '</div><div class="queue-summary"><strong>Next move:</strong> ' +
+          escapeHtml((blockerRow && blockerRow.next_best_move) || "") +
+          '</div><div class="queue-summary"><strong>Target:</strong> ' +
+          escapeHtml(getConfirmationTarget(item)) +
+          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
+          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
+          '</div><div class="queue-actions"><button class="btn-secondary" data-import-blocker-copy="' +
+          escapeHtml(item.slug) +
+          '">Copy blocker request</button><button class="btn-secondary" data-import-blocker-link="' +
+          escapeHtml(item.slug) +
+          '">Copy confirmation link</button><button class="btn-secondary" data-import-blocker-show-queue="' +
+          escapeHtml(item.slug) +
+          '" data-current-status="' +
+          escapeHtml(workflow.status) +
+          '">Show in queue</button></div><div class="review-coach-status" data-import-blocker-status-id="' +
+          escapeHtml(item.slug) +
+          '"></div></article>'
+        );
+      })
+      .join("");
+
+  root
+    .querySelector("[data-import-blocker-copy-top]")
+    ?.addEventListener("click", async function () {
+      var topEntry = queue[0];
+      if (!topEntry) {
+        return;
+      }
+      var slug = topEntry.item.slug;
+      var blockerRow =
+        sprintRows.find(function (row) {
+          return row.slug === slug;
+        }) || null;
+      var leverageNote = getImportBlockerLeverageNote(sprintRows, topEntry.blocker_unknown_fields);
+      var text = [
+        (blockerRow && blockerRow.request_subject) ||
+          buildImportBlockerRequestSubject(topEntry.item, topEntry.blocker_unknown_fields),
+        "",
+        (blockerRow && blockerRow.request_message) ||
+          buildImportBlockerRequestMessage(topEntry.item, topEntry.blocker_unknown_fields),
+        leverageNote ? "" : null,
+        leverageNote || null,
+        "",
+        "Confirmation form:",
+        buildConfirmationLink(slug),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      var success = await copyText(text);
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Top blocker request copied."
+          : "Could not copy the top blocker request.";
+      }
+      if (success) {
+        updateConfirmationQueueEntry(slug, {
+          status: "sent",
+          last_sent_at: new Date().toISOString(),
+        });
+        renderStats();
+        renderImportBlockerSprint();
+        renderCaliforniaPriorityConfirmationWave();
+        renderConfirmationSprint();
+        renderConfirmationQueue();
+      }
+    });
+
+  root.querySelector("[data-import-blocker-open-queue]")?.addEventListener("click", function () {
+    confirmationQueueFilter = "";
+    renderCaliforniaPriorityConfirmationWave();
+    renderConfirmationQueue();
+    var queueRoot = document.getElementById("confirmationQueue");
+    if (queueRoot) {
+      queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  root
+    .querySelector("[data-import-blocker-copy-packet]")
+    ?.addEventListener("click", async function () {
+      var text = buildImportBlockerPacket(sprintRows);
+      var success = await copyText(text);
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Top blocker packet copied."
+          : "Could not copy the top blocker packet.";
+      }
+    });
+
+  root
+    .querySelector("[data-import-blocker-copy-shared-ask]")
+    ?.addEventListener("click", async function () {
+      var text = getImportBlockerSprintSharedAskText(sprintRows);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Shared blocker ask copied."
+          : "Could not copy the shared blocker ask.";
+      }
+    });
+
+  root
+    .querySelector("[data-import-blocker-copy-shared-packet]")
+    ?.addEventListener("click", async function () {
+      var text = buildImportBlockerSharedAskPacket(sprintRows);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Shared ask packet copied."
+          : "Could not copy the shared ask packet.";
+      }
+    });
+
+  root
+    .querySelector("[data-import-blocker-copy-overlap]")
+    ?.addEventListener("click", async function () {
+      var text = buildOverlappingAskPacket(sprintRows, confirmationRows);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Unified outreach wave copied."
+          : "Could not copy the unified outreach wave.";
+      }
+    });
+
+  root
+    .querySelector("[data-import-blocker-copy-top-wave]")
+    ?.addEventListener("click", async function () {
+      var text = buildTopOutreachWavePacket(sprintRows, confirmationRows, 3);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Top outreach wave copied."
+          : "Could not copy the top outreach wave.";
+      }
+    });
+
+  root.querySelectorAll("[data-import-blocker-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-import-blocker-export");
+      var text =
+        mode === "csv"
+          ? buildImportBlockerSprintCsv(sprintRows)
+          : buildImportBlockerSprintMarkdown(sprintRows);
+      var success = await copyText(text);
+      var status = root.querySelector("#importBlockerSprintStatus");
+      if (status) {
+        status.textContent = success
+          ? "Import blocker sprint " + mode.toUpperCase() + " copied."
+          : "Could not copy import blocker sprint " + mode.toUpperCase() + ".";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-import-blocker-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-import-blocker-copy");
+      var entry = queue.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      var blockerRow =
+        sprintRows.find(function (row) {
+          return row.slug === slug;
+        }) || null;
+      var leverageNote = getImportBlockerLeverageNote(sprintRows, entry.blocker_unknown_fields);
+      var text = [
+        (blockerRow && blockerRow.request_subject) ||
+          buildImportBlockerRequestSubject(entry.item, entry.blocker_unknown_fields),
+        "",
+        (blockerRow && blockerRow.request_message) ||
+          buildImportBlockerRequestMessage(entry.item, entry.blocker_unknown_fields),
+        leverageNote ? "" : null,
+        leverageNote || null,
+        "",
+        "Confirmation form:",
+        buildConfirmationLink(slug),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      var success = await copyText(text);
+      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
+      if (status) {
+        status.textContent = success
+          ? "Blocker request copied."
+          : "Could not copy blocker request.";
+      }
+      if (success) {
+        updateConfirmationQueueEntry(slug, {
+          status: "sent",
+          last_sent_at: new Date().toISOString(),
+        });
+        renderStats();
+        renderImportBlockerSprint();
+        renderCaliforniaPriorityConfirmationWave();
+        renderConfirmationSprint();
+        renderConfirmationQueue();
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-import-blocker-link]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-import-blocker-link");
+      var success = await copyText(buildConfirmationLink(slug));
+      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
+      if (status) {
+        status.textContent = success
+          ? "Confirmation link copied."
+          : "Could not copy confirmation link.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-import-blocker-show-queue]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var currentStatus = button.getAttribute("data-current-status") || "";
+      confirmationQueueFilter = currentStatus;
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationQueue();
+      var queueRoot = document.getElementById("confirmationQueue");
+      if (queueRoot) {
+        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+}
+
+function renderConfirmationSprint() {
+  const root = document.getElementById("confirmationSprint");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const queue = getPublishedTherapistConfirmationQueue().slice(0, 5);
+  const sprintRows = getConfirmationSprintRows(5);
+  const blockerRows = getImportBlockerSprintRows(3);
+  const overlappingAsk = getOverlappingAskDetails(blockerRows, sprintRows);
+  const readySprintRows = buildConfirmationApplyCsvRows(sprintRows);
+  const recommendation = applyOverlapRecommendationContext(
+    getConfirmationSprintRecommendation(sprintRows),
+    blockerRows,
+    sprintRows,
+  );
+  const miniLanes = getConfirmationSprintMiniLanes(sprintRows);
+
+  if (!queue.length) {
+    root.innerHTML =
+      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="queue-summary"><strong>' +
+    escapeHtml(getConfirmationSprintHealthSummary(sprintRows)) +
+    '</strong></div><div class="queue-summary subtle">' +
+    escapeHtml(getConfirmationSprintBottleneckSummary(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(
+      getPrimaryAskHeaderLine(getConfirmationSprintThemeDetails(sprintRows)?.field || ""),
+    ) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getConfirmationSprintThemeSummary(sprintRows)) +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(getBlockerConfirmationThemeBridge(blockerRows, sprintRows)) +
+    "</div>" +
+    (overlappingAsk
+      ? '<div class="queue-summary subtle">' +
+        escapeHtml(
+          getOutreachChannelMixSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
+        ) +
+        '</div><div class="queue-summary subtle">' +
+        escapeHtml(
+          getOutreachChannelNextMoveSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
+        ) +
+        "</div>"
+      : "") +
+    (overlappingAsk
+      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
+        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
+        ".</span></div>"
+      : "") +
+    (overlappingAsk
+      ? '<div class="queue-insights"><div class="queue-insights-title">Shared Ask Wave</div><div class="subtle" style="margin-bottom:0.7rem">This same ask currently spans ' +
+        escapeHtml(String(overlappingAsk.blocker_count)) +
+        " blocker profile" +
+        (overlappingAsk.blocker_count === 1 ? "" : "s") +
+        " and " +
+        escapeHtml(String(overlappingAsk.confirmation_count)) +
+        " confirmation sprint profile" +
+        (overlappingAsk.confirmation_count === 1 ? "" : "s") +
+        '.</div><div class="subtle" style="margin-bottom:0.7rem">Primary shared ask right now: ' +
+        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
+        '.</div><div class="queue-insights-grid"><div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
+        '</strong></div><div class="queue-insight-note">Shared ask across both queues</div><div class="queue-insight-action"><button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button></div></div></div></div>'
+      : "") +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-confirmation-sprint-recommendation="' +
+    escapeHtml(recommendation.mode) +
+    '"' +
+    (recommendation.slug ? ' data-slug="' + escapeHtml(recommendation.slug) + '"' : "") +
+    (recommendation.targetId ? ' data-target="' + escapeHtml(recommendation.targetId) + '"' : "") +
+    ">" +
+    escapeHtml(recommendation.label) +
+    "</button>" +
+    (overlappingAsk
+      ? '<button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-confirmation-copy-top-wave>Copy top outreach wave</button>'
+      : "") +
+    '<button class="btn-secondary" data-confirmation-sprint-export="markdown">Copy sprint markdown</button><button class="btn-secondary" data-confirmation-sprint-export="csv">Copy sprint CSV</button>' +
+    (readySprintRows.length
+      ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-sprint-export="apply-checklist">Copy apply checklist</button>'
+      : "") +
+    '</div><div class="queue-summary subtle">' +
+    escapeHtml(recommendation.note) +
+    "</div>" +
+    (miniLanes.length
+      ? miniLanes
+          .map(function (lane) {
+            return (
+              '<div class="queue-insights"><div class="queue-insights-title">' +
+              escapeHtml(lane.title) +
+              '</div><div class="subtle" style="margin-bottom:0.7rem">' +
+              escapeHtml(lane.note) +
+              '</div><div class="queue-insights-grid">' +
+              lane.rows
+                .map(function (row) {
+                  return (
+                    '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+                    escapeHtml(row.name) +
+                    '</strong></div><div class="queue-insight-note">' +
+                    escapeHtml(row.result) +
+                    '</div><div class="queue-insight-action">' +
+                    (lane.filter === "confirmed" || lane.filter === "applied"
+                      ? '<button class="btn-secondary" data-confirmation-mini-apply="' +
+                        escapeHtml(row.slug) +
+                        '">Copy apply brief</button>'
+                      : '<button class="btn-secondary" data-confirmation-mini-lane="' +
+                        escapeHtml(lane.filter) +
+                        '">' +
+                        escapeHtml("Show in queue") +
+                        "</button>") +
+                    "</div></div>"
+                  );
+                })
+                .join("") +
+              "</div></div>"
+            );
+          })
+          .join("")
+      : "") +
+    '<div class="review-coach-status" id="confirmationSprintExportStatus"></div>' +
+    queue
+      .map(function (entry) {
+        const item = entry.item;
+        const agenda = entry.agenda;
+        const workflow = getConfirmationQueueEntry(item.slug);
+        const graceWindowNote = getConfirmationGraceWindowNote(item);
+        const confirmationLink = buildConfirmationLink(item.slug);
+        const sprintRow = sprintRows.find(function (row) {
+          return row.slug === item.slug;
+        });
+        const orderedUnknownFields = sprintRow
+          ? getPreferredFieldOrder(agenda.unknown_fields || [], sprintRow.primary_ask_field || "")
+          : agenda.unknown_fields || [];
+        const primaryAskField = sprintRow?.primary_ask_field || orderedUnknownFields[0] || "";
+        const addOnAskFields = sprintRow?.add_on_ask_fields
+          ? String(sprintRow.add_on_ask_fields)
+              .split("|")
+              .map(function (field) {
+                return field.trim();
+              })
+              .filter(Boolean)
+          : orderedUnknownFields.slice(1);
+        return (
+          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          escapeHtml(String(queue.indexOf(entry) + 1) + ". " + item.name) +
+          '</h3><div class="subtle">' +
+          escapeHtml(agenda.summary) +
+          '</div></div><div class="queue-head-actions"><span class="tag">' +
+          escapeHtml(formatStatusLabel(agenda.priority)) +
+          ' priority</span><span class="tag">' +
+          escapeHtml(formatStatusLabel(workflow.status)) +
+          '</span></div></div><div class="queue-summary"><strong>Status:</strong> ' +
+          escapeHtml(formatStatusLabel(workflow.status)) +
+          '</div><div class="queue-summary"><strong>Result:</strong> ' +
+          escapeHtml(getConfirmationResultLabel(workflow.status)) +
+          '</div><div class="queue-summary"><strong>Target:</strong> ' +
+          escapeHtml(getConfirmationTarget(item)) +
+          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
+          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
+          (graceWindowNote
+            ? '</div><div class="queue-summary"><strong>Grace window:</strong> ' +
+              escapeHtml(graceWindowNote)
+            : "") +
+          '</div><div class="queue-summary"><strong>Needs:</strong> ' +
+          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
+          "</div>" +
+          (primaryAskField
+            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
+              escapeHtml(formatFieldLabel(primaryAskField)) +
+              "</div>"
+            : "") +
+          (addOnAskFields.length
+            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
+              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
+              "</div>"
+            : "") +
+          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
+          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
+          "</div>" +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
+            : "") +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
+            : "") +
+          '<div class="queue-actions" style="margin-top:0.8rem"><button class="btn-secondary" data-confirmation-quick-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="sent">Mark sent</button><button class="btn-secondary" data-confirmation-quick-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="waiting_on_therapist">Mark waiting</button><button class="btn-secondary" data-confirmation-quick-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="confirmed">Mark confirmed</button><button class="btn-secondary" data-confirmation-quick-status="' +
+          escapeHtml(item.slug) +
+          '" data-next-status="applied">Mark applied</button><button class="btn-secondary" data-confirmation-show-queue="' +
+          escapeHtml(item.slug) +
+          '" data-current-status="' +
+          escapeHtml(workflow.status) +
+          '">Show in queue</button></div><div class="queue-shortlist"><div class="queue-shortlist-item">[ ] Review current profile and source trail</div><div class="queue-shortlist-item">[ ] Send request through preferred channel</div><div class="queue-shortlist-item">[ ] Record send state in admin</div><div class="queue-shortlist-item">[ ] Mark reply or follow-up outcome</div></div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
+          escapeHtml(item.slug) +
+          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
+          escapeHtml(item.slug) +
+          '">Copy confirmation link</button>' +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
+              escapeHtml(item.slug) +
+              '">Copy apply brief</button>'
+            : "") +
+          '<a class="btn-secondary btn-inline" href="' +
+          escapeHtml(confirmationLink) +
+          '" target="_blank" rel="noopener">Open confirmation form</a></div><div class="review-coach-status" data-confirmation-status-id="' +
+          escapeHtml(item.slug) +
+          '"></div></article>'
+        );
+      })
+      .join("");
+
+  root.querySelectorAll("[data-confirmation-sprint-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-confirmation-sprint-export");
+      var text =
+        mode === "apply-csv"
+          ? buildConfirmationApplyCsv(sprintRows)
+          : mode === "apply-summary"
+            ? buildConfirmationApplySummary(sprintRows, "# Confirmation Sprint Apply Summary")
+            : mode === "apply-checklist"
+              ? buildConfirmationApplyOperatorChecklist(
+                  sprintRows,
+                  "# Confirmation Sprint Apply Checklist",
+                )
+              : mode === "csv"
+                ? buildConfirmationSprintCsv(sprintRows)
+                : buildConfirmationSprintMarkdown(sprintRows);
+      var success = await copyText(text);
+      var status = root.querySelector("#confirmationSprintExportStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "apply-csv"
+            ? "Confirmation sprint apply CSV copied."
+            : mode === "apply-summary"
+              ? "Confirmation sprint apply summary copied."
+              : mode === "apply-checklist"
+                ? "Confirmation sprint apply checklist copied."
+                : "Confirmation sprint " + mode.toUpperCase() + " copied."
+          : mode === "apply-csv"
+            ? "Could not copy confirmation sprint apply CSV."
+            : mode === "apply-summary"
+              ? "Could not copy confirmation sprint apply summary."
+              : mode === "apply-checklist"
+                ? "Could not copy confirmation sprint apply checklist."
+                : "Could not copy confirmation sprint " + mode.toUpperCase() + ".";
+      }
+    });
+  });
+
+  root
+    .querySelector("[data-confirmation-copy-overlap]")
+    ?.addEventListener("click", async function () {
+      var text = buildOverlappingAskPacket(blockerRows, sprintRows);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#confirmationSprintExportStatus");
+      if (status) {
+        status.textContent = success
+          ? "Unified outreach wave copied."
+          : "Could not copy the unified outreach wave.";
+      }
+    });
+
+  root
+    .querySelector("[data-confirmation-copy-top-wave]")
+    ?.addEventListener("click", async function () {
+      var text = buildTopOutreachWavePacket(blockerRows, sprintRows, 3);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#confirmationSprintExportStatus");
+      if (status) {
+        status.textContent = success
+          ? "Top outreach wave copied."
+          : "Could not copy the top outreach wave.";
+      }
+    });
+
+  root.querySelectorAll("[data-confirmation-sprint-recommendation]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-confirmation-sprint-recommendation");
+      if (mode === "copy_request") {
+        var slug = button.getAttribute("data-slug");
+        var sprintRow = sprintRows.find(function (row) {
+          return row.slug === slug;
+        });
+        if (!sprintRow) {
+          return;
+        }
+        var text = [
+          sprintRow.request_message,
+          "",
+          "Confirmation form:",
+          buildConfirmationLink(slug),
+        ]
+          .filter(Boolean)
+          .join("\n");
+        var success = await copyText(text);
+        var status = root.querySelector("#confirmationSprintExportStatus");
+        if (status) {
+          status.textContent = success
+            ? "Top therapist request copied."
+            : "Could not copy the top therapist request.";
+        }
+        if (success) {
+          updateConfirmationQueueEntry(slug, {
+            status: "sent",
+            last_sent_at: new Date().toISOString(),
+          });
+          renderStats();
+          renderImportBlockerSprint();
+          renderCaliforniaPriorityConfirmationWave();
+          renderConfirmationSprint();
+          renderConfirmationQueue();
+        }
+        return;
+      }
+
+      if (mode === "copy_apply_brief") {
+        var applySlug = button.getAttribute("data-slug");
+        var applyEntry = queue.find(function (item) {
+          return item.item && item.item.slug === applySlug;
+        });
+        var applySprintRow = sprintRows.find(function (row) {
+          return row.slug === applySlug;
+        });
+        if (!applyEntry) {
+          return;
+        }
+        var applyText = buildConfirmationApplyBrief(
+          applyEntry.item,
+          applyEntry.agenda,
+          getConfirmationQueueEntry(applySlug),
+          applySprintRow?.primary_ask_field || "",
+        );
+        var applySuccess = await copyText(applyText);
+        var applyStatus = root.querySelector("#confirmationSprintExportStatus");
+        if (applyStatus) {
+          applyStatus.textContent = applySuccess
+            ? "Apply brief copied."
+            : "Could not copy apply brief.";
+        }
+        return;
+      }
+
+      var targetId = button.getAttribute("data-target");
+      var target = targetId ? document.getElementById(targetId) : null;
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-mini-lane]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      confirmationQueueFilter = button.getAttribute("data-confirmation-mini-lane") || "";
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationQueue();
+      var queueRoot = document.getElementById("confirmationQueue");
+      if (queueRoot) {
+        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-mini-apply]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-confirmation-mini-apply");
+      var entry = queue.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+      var sprintRow = sprintRows.find(function (row) {
+        return row.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      var text = buildConfirmationApplyBrief(
+        entry.item,
+        entry.agenda,
+        getConfirmationQueueEntry(slug),
+        sprintRow?.primary_ask_field || "",
+      );
+      var success = await copyText(text);
+      var status = root.querySelector("#confirmationSprintExportStatus");
+      if (status) {
+        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-quick-status]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var slug = button.getAttribute("data-confirmation-quick-status");
+      var nextStatus = button.getAttribute("data-next-status");
+      if (!slug || !nextStatus) {
+        return;
+      }
+      updateConfirmationQueueEntry(slug, {
+        status: nextStatus,
+        last_sent_at:
+          nextStatus === "sent"
+            ? new Date().toISOString()
+            : getConfirmationQueueEntry(slug).last_sent_at,
+        confirmation_applied_at:
+          nextStatus === "applied"
+            ? new Date().toISOString()
+            : nextStatus === "confirmed" ||
+                nextStatus === "waiting_on_therapist" ||
+                nextStatus === "sent" ||
+                nextStatus === "not_started"
+              ? ""
+              : getConfirmationQueueEntry(slug).confirmation_applied_at,
+      });
+      renderStats();
+      renderImportBlockerSprint();
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationSprint();
+      renderConfirmationQueue();
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-show-queue]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var currentStatus = button.getAttribute("data-current-status") || "";
+      confirmationQueueFilter = currentStatus;
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationQueue();
+      var queueRoot = document.getElementById("confirmationQueue");
+      if (queueRoot) {
+        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-confirmation-apply-brief");
+      var entry = queue.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      var queuePrimaryField = getConfirmationQueuePrimaryField(queue);
+      var orderedUnknownFields = getPreferredFieldOrder(
+        entry.agenda.unknown_fields || [],
+        queuePrimaryField,
+      );
+      var text = buildConfirmationApplyBrief(
+        entry.item,
+        entry.agenda,
+        getConfirmationQueueEntry(slug),
+        orderedUnknownFields[0] || "",
+      );
+      var success = await copyText(text);
+      var status = root.querySelector('[data-confirmation-status-id="' + slug + '"]');
+      if (status) {
+        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
+      }
+    });
+  });
+}
+
+function renderConfirmationQueue() {
+  const root = document.getElementById("confirmationQueue");
+  const statusFilter = document.getElementById("confirmationQueueStatusFilter");
+  const countLabel = document.getElementById("confirmationQueueCount");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  if (statusFilter) {
+    statusFilter.value = confirmationQueueFilter;
+  }
+
+  const queue = getPublishedTherapistConfirmationQueue();
+  const preferredPrimaryField = getConfirmationQueuePrimaryField(queue);
+  const filteredQueue = queue.filter(function (entry) {
+    if (!confirmationQueueFilter) {
+      return true;
+    }
+    return getConfirmationQueueEntry(entry.item.slug).status === confirmationQueueFilter;
+  });
+  const readyQueueRows = buildConfirmationApplyCsvRows(queue);
+
+  if (countLabel) {
+    countLabel.textContent =
+      filteredQueue.length +
+      " of " +
+      queue.length +
+      " profile" +
+      (queue.length === 1 ? "" : "s") +
+      (confirmationQueueFilter ? " in this status" : " in queue");
+  }
+
+  if (!queue.length) {
+    root.innerHTML =
+      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
+    return;
+  }
+
+  if (!filteredQueue.length) {
+    root.innerHTML =
+      '<div class="subtle">No profiles match the current confirmation status filter.</div>';
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="queue-actions" style="margin-bottom:0.8rem">' +
+    (readyQueueRows.length
+      ? '<button class="btn-secondary" data-confirmation-queue-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-queue-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-queue-export="apply-checklist">Copy apply checklist</button>'
+      : "") +
+    '</div><div class="review-coach-status" id="confirmationQueueExportStatus"></div>' +
+    filteredQueue
+      .map(function (entry) {
+        const item = entry.item;
+        const agenda = entry.agenda;
+        const confirmationLink = buildConfirmationLink(item.slug);
+        const workflow = getConfirmationQueueEntry(item.slug);
+        const orderedUnknownFields = getPreferredFieldOrder(
+          agenda.unknown_fields || [],
+          preferredPrimaryField,
+        );
+        const primaryAskField = orderedUnknownFields[0] || "";
+        const addOnAskFields = orderedUnknownFields.slice(1);
+        return (
+          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          escapeHtml(item.name) +
+          '</h3><div class="subtle">' +
+          escapeHtml(formatStatusLabel(agenda.priority) + " priority") +
+          '</div><div class="subtle">' +
+          escapeHtml(agenda.summary) +
+          '</div></div><div class="queue-head-actions"><span class="tag">' +
+          escapeHtml(formatStatusLabel(agenda.priority)) +
+          ' priority</span><span class="tag">' +
+          escapeHtml(formatStatusLabel(workflow.status)) +
+          '</span></div></div><div class="queue-summary"><strong>Needs:</strong> ' +
+          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
+          "</div>" +
+          (primaryAskField
+            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
+              escapeHtml(formatFieldLabel(primaryAskField)) +
+              "</div>"
+            : "") +
+          (addOnAskFields.length
+            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
+              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
+              "</div>"
+            : "") +
+          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
+          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
+          "</div>" +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
+            : "") +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
+            : "") +
+          '<div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="confirmation-status-' +
+          escapeHtml(item.slug) +
+          '">Confirmation status</label><select class="queue-select" id="confirmation-status-' +
+          escapeHtml(item.slug) +
+          '" data-confirmation-status="' +
+          escapeHtml(item.slug) +
+          '">' +
+          CONFIRMATION_STATUS_OPTIONS.map(function (option) {
+            return (
+              '<option value="' +
+              escapeHtml(option) +
+              '"' +
+              (workflow.status === option ? " selected" : "") +
+              ">" +
+              escapeHtml(formatStatusLabel(option)) +
+              "</option>"
+            );
+          }).join("") +
+          "</select></div>" +
+          (workflow.last_sent_at
+            ? '<div class="queue-summary"><strong>Last request copied:</strong> ' +
+              escapeHtml(formatDate(workflow.last_sent_at)) +
+              "</div>"
+            : "") +
+          '</div><div class="queue-shortlist">' +
+          (agenda.asks || [])
+            .map(function (ask) {
+              return '<div class="queue-shortlist-item">' + escapeHtml(ask) + "</div>";
+            })
+            .join("") +
+          '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
+          escapeHtml(item.slug) +
+          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
+          escapeHtml(item.slug) +
+          '">Copy confirmation link</button>' +
+          (workflow.status === "confirmed" || workflow.status === "applied"
+            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
+              escapeHtml(item.slug) +
+              '">Copy apply brief</button>'
+            : "") +
+          '<button class="btn-secondary" data-confirmation-checklist="' +
+          escapeHtml(item.slug) +
+          '">Copy internal checklist</button><a class="btn-secondary btn-inline" href="' +
+          escapeHtml(confirmationLink) +
+          '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
+          encodeURIComponent(item.slug) +
+          '">Open profile</a></div><div class="review-coach-status" data-confirmation-status-id="' +
+          escapeHtml(item.slug) +
+          '"></div></article>'
+        );
+      })
+      .join("");
+
+  root.querySelectorAll("[data-confirmation-queue-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-confirmation-queue-export");
+      var text =
+        mode === "apply-csv"
+          ? buildConfirmationApplyCsv(queue)
+          : mode === "apply-summary"
+            ? buildConfirmationApplySummary(queue, "# Confirmation Queue Apply Summary")
+            : mode === "apply-checklist"
+              ? buildConfirmationApplyOperatorChecklist(
+                  queue,
+                  "# Confirmation Queue Apply Checklist",
+                )
+              : "";
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#confirmationQueueExportStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "apply-summary"
+            ? "Confirmation queue apply summary copied."
+            : mode === "apply-checklist"
+              ? "Confirmation queue apply checklist copied."
+              : "Confirmation queue apply CSV copied."
+          : mode === "apply-summary"
+            ? "Could not copy confirmation queue apply summary."
+            : mode === "apply-checklist"
+              ? "Could not copy confirmation queue apply checklist."
+              : "Could not copy confirmation queue apply CSV.";
+      }
+    });
+  });
+
+  [document.getElementById("confirmationSprint"), root].forEach(function (scope) {
+    if (!scope) {
+      return;
+    }
+
+    scope.querySelectorAll("[data-confirmation-copy]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var slug = button.getAttribute("data-confirmation-copy");
+        var entry = queue.find(function (item) {
+          return item.item && item.item.slug === slug;
+        });
+
+        if (!entry) {
+          return;
+        }
+
+        var text = [
+          buildOrderedConfirmationRequestMessage(
+            entry.item,
+            entry.agenda.unknown_fields || [],
+            preferredPrimaryField,
+          ),
+          "",
+          "Confirmation form:",
+          buildConfirmationLink(slug),
+        ]
+          .filter(Boolean)
+          .join("\n");
+        var success = await copyText(text);
+        setConfirmationActionStatus(
+          scope,
+          slug,
+          success
+            ? "Therapist confirmation request copied."
+            : "Could not copy confirmation request.",
+        );
+        if (success) {
+          updateConfirmationQueueEntry(slug, {
+            status: "sent",
+            last_sent_at: new Date().toISOString(),
+          });
+          renderStats();
+          renderImportBlockerSprint();
+          renderCaliforniaPriorityConfirmationWave();
+          renderConfirmationSprint();
+          renderConfirmationQueue();
+        }
+      });
+    });
+
+    scope.querySelectorAll("[data-confirmation-link]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var slug = button.getAttribute("data-confirmation-link");
+        var success = await copyText(buildConfirmationLink(slug));
+        setConfirmationActionStatus(
+          scope,
+          slug,
+          success ? "Confirmation link copied." : "Could not copy confirmation link.",
+        );
+        if (success) {
+          updateConfirmationQueueEntry(slug, {
+            status: "sent",
+            last_sent_at: new Date().toISOString(),
+          });
+          renderStats();
+          renderImportBlockerSprint();
+          renderCaliforniaPriorityConfirmationWave();
+          renderConfirmationSprint();
+          renderConfirmationQueue();
+        }
+      });
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-checklist]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-confirmation-checklist");
+      var entry = queue.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+
+      if (!entry) {
+        return;
+      }
+
+      var text = buildConfirmationChecklist(entry.item, entry.agenda, preferredPrimaryField);
+      var success = await copyText(text);
+      setConfirmationActionStatus(
+        root,
+        slug,
+        success ? "Internal checklist copied." : "Could not copy internal checklist.",
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-confirmation-apply-brief");
+      var entry = queue.find(function (item) {
+        return item.item && item.item.slug === slug;
+      });
+
+      if (!entry) {
+        return;
+      }
+
+      var text = buildConfirmationApplyBrief(
+        entry.item,
+        entry.agenda,
+        getConfirmationQueueEntry(slug),
+      );
+      var success = await copyText(text);
+      setConfirmationActionStatus(
+        root,
+        slug,
+        success ? "Apply brief copied." : "Could not copy apply brief.",
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-status]").forEach(function (select) {
+    select.addEventListener("change", function () {
+      var slug = select.getAttribute("data-confirmation-status");
+      updateConfirmationQueueEntry(slug, {
+        status: select.value,
+      });
+      renderStats();
+      renderImportBlockerSprint();
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationSprint();
+      renderConfirmationQueue();
+    });
+  });
+
+  bindConfirmationResponseCapture(root);
 }
 
 function renderApplications() {
   const applications = dataMode === "sanity" ? remoteApplications : getApplications();
   const root = document.getElementById("applicationsList");
-  const filteredApplications = applications.filter(function (item) {
-    const haystack = [item.name, item.city, item.state, item.credentials, item.title, item.email]
-      .concat(item.specialties || [])
-      .join(" ")
-      .toLowerCase();
+  const reviewGoalMeta = getApplicationReviewGoalMeta(applicationFilters.goal);
+  const filteredApplications = applications
+    .filter(function (item) {
+      const snapshot = getApplicationReviewSnapshot(item);
+      const haystack = [item.name, item.city, item.state, item.credentials, item.title, item.email]
+        .concat(item.specialties || [])
+        .join(" ")
+        .toLowerCase();
 
-    if (applicationFilters.q && !haystack.includes(applicationFilters.q.toLowerCase())) {
-      return false;
-    }
+      if (applicationFilters.q && !haystack.includes(applicationFilters.q.toLowerCase())) {
+        return false;
+      }
 
-    if (applicationFilters.status && item.status !== applicationFilters.status) {
-      return false;
-    }
+      if (applicationFilters.status && item.status !== applicationFilters.status) {
+        return false;
+      }
 
-    return true;
-  });
+      if (applicationFilters.focus && snapshot.focus !== applicationFilters.focus) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort(function (a, b) {
+      var scoreDelta =
+        getGoalAdjustedApplicationPriorityScore(b, applicationFilters.goal) -
+        getGoalAdjustedApplicationPriorityScore(a, applicationFilters.goal);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
 
   if (authRequired) {
     root.innerHTML = "";
@@ -877,232 +6858,555 @@ function renderApplications() {
 
   if (!filteredApplications.length) {
     root.innerHTML =
-      '<div class="empty">No applications match the current review filters. Try a different search or status.</div>';
+      '<div class="empty">' +
+      escapeHtml(getApplicationEmptyStateCopy(applicationFilters.goal)) +
+      "</div>";
     return;
   }
 
-  root.innerHTML = filteredApplications
-    .map(function (item) {
-      const readiness = getTherapistMatchReadiness(item);
-      const coaching = getTherapistReviewCoaching(item);
-      const improvementRequest = buildImprovementRequest(item, coaching);
-      const revisionLink = new URL(
-        "signup.html?revise=" + encodeURIComponent(item.id),
-        window.location.href,
-      ).toString();
-      const fitTags = []
-        .concat(item.treatment_modalities || [])
-        .concat(item.client_populations || [])
-        .slice(0, 8)
-        .map(function (tag) {
-          return '<span class="tag">' + escapeHtml(tag) + "</span>";
-        })
-        .join("");
+  const summaryCounts = applications.reduce(
+    function (accumulator, item) {
+      const snapshot = getApplicationReviewSnapshot(item);
+      accumulator.pending += item.status === "pending" ? 1 : 0;
+      accumulator.reviewing += item.status === "reviewing" ? 1 : 0;
+      accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
+      accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
+      accumulator.confirmation_refresh += snapshot.focus === "confirmation_refresh" ? 1 : 0;
+      return accumulator;
+    },
+    {
+      pending: 0,
+      reviewing: 0,
+      publish_ready: 0,
+      needs_changes: 0,
+      confirmation_refresh: 0,
+    },
+  );
+  const recommendedBatch = filteredApplications.slice(0, 3);
+  const topReviewTarget = recommendedBatch[0] || null;
+  const activeFilterChips = getApplicationFilterChips();
 
-      const actions =
-        item.status === "pending"
-          ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
-            item.id +
-            '">Mark Reviewing</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
-            item.id +
-            '" data-request="' +
-            escapeHtml(improvementRequest) +
-            '" data-link="' +
-            escapeHtml(revisionLink) +
-            '">Request Changes</button><button class="btn-primary" data-action="publish" data-id="' +
-            item.id +
-            '">Publish</button><button class="btn-secondary" data-action="reject" data-id="' +
-            item.id +
-            '">Reject</button>'
-          : item.status === "reviewing"
-            ? '<button class="btn-primary" data-action="publish" data-id="' +
+  root.innerHTML =
+    '<div class="review-priority-grid">' +
+    [
+      {
+        status: "pending",
+        focus: "",
+        label: "Pending",
+        value: summaryCounts.pending,
+        note: "Submissions still waiting for an explicit review decision.",
+      },
+      {
+        status: "reviewing",
+        focus: "active_review",
+        label: "Reviewing",
+        value: summaryCounts.reviewing,
+        note: "Applications already in motion and needing a next clear call.",
+      },
+      {
+        status: "",
+        focus: "publish_ready",
+        label: "Publish-ready",
+        value: summaryCounts.publish_ready,
+        note: "Strong candidates likely worth a final trust pass and then publish.",
+      },
+      {
+        status: "",
+        focus: "needs_changes",
+        label: "Needs fixes",
+        value: summaryCounts.needs_changes,
+        note: "Applications missing too many trust-critical basics to publish cleanly yet.",
+      },
+      {
+        status: "",
+        focus: "confirmation_refresh",
+        label: "Refresh updates",
+        value: summaryCounts.confirmation_refresh,
+        note: "Live-profile confirmation updates that should be handled as upkeep, not new supply.",
+      },
+    ]
+      .map(function (item) {
+        var isGoalMatch = isGoalMatchedReviewCard(applicationFilters.goal, item);
+        return (
+          '<button type="button" class="review-priority-card' +
+          (isGoalMatch ? " is-goal-match" : "") +
+          (applicationFilters.focus === item.focus &&
+          applicationFilters.status === (item.status || "")
+            ? " is-active"
+            : "") +
+          '" data-application-status-card="' +
+          escapeHtml(item.status || "") +
+          '" data-application-focus-card="' +
+          escapeHtml(item.focus) +
+          '"><div class="review-priority-value">' +
+          escapeHtml(item.value) +
+          '</div><div class="review-priority-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="review-priority-note">' +
+          escapeHtml(item.note) +
+          '</div><div class="review-priority-meta"><span class="review-priority-chip' +
+          (isGoalMatch ? "" : " is-neutral") +
+          '">' +
+          escapeHtml(isGoalMatch ? "Best fit for this goal" : "Available lane") +
+          "</span></div>" +
+          "</button>"
+        );
+      })
+      .join("") +
+    '</div><div class="review-ops-bar"><div class="review-ops-title">Review Command Bar</div><div class="review-ops-copy">' +
+    escapeHtml(
+      topReviewTarget
+        ? "Start with " +
+            topReviewTarget.name +
+            ". " +
+            getApplicationReviewSnapshot(topReviewTarget).nextMove
+        : "No top review target is available for the current filters.",
+    ) +
+    '</div><div class="review-ops-meta"><span class="review-priority-chip">' +
+    escapeHtml(reviewGoalMeta.label) +
+    "</span>" +
+    (activeFilterChips.length
+      ? activeFilterChips
+          .map(function (chip) {
+            return '<span class="review-priority-chip is-neutral">' + escapeHtml(chip) + "</span>";
+          })
+          .join("")
+      : '<span class="review-priority-chip is-neutral">No extra filters</span>') +
+    '</div><div class="queue-actions" style="margin-top:0"><button class="btn-secondary" type="button" data-application-clear-filters>Clear filters</button>' +
+    (topReviewTarget
+      ? '<button class="btn-primary" type="button" data-application-jump="' +
+        escapeHtml(topReviewTarget.id) +
+        '">Open top review</button>'
+      : "") +
+    "</div></div>" +
+    (recommendedBatch.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">' +
+        escapeHtml(reviewGoalMeta.batchTitle) +
+        '</div><div class="subtle" style="margin-bottom:0.7rem">' +
+        escapeHtml(reviewGoalMeta.batchIntro) +
+        '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-review-batch-export="' +
+        escapeHtml(reviewGoalMeta.primaryActionMode) +
+        '">' +
+        escapeHtml(reviewGoalMeta.primaryActionLabel) +
+        '</button><button class="btn-secondary" data-review-batch-export="packet">Copy review batch packet</button><button class="btn-secondary" data-review-batch-export="requests">Copy top improvement requests</button></div><div class="review-coach-status" id="reviewBatchExportStatus"></div><div class="queue-insights-grid">' +
+        recommendedBatch
+          .map(function (item) {
+            var snapshot = getApplicationReviewSnapshot(item);
+            var batchReason = getApplicationBatchReason(item, applicationFilters.goal);
+            return (
+              '<button type="button" class="queue-insight-card" data-application-jump="' +
+              escapeHtml(item.id) +
+              '"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(snapshot.label) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(batchReason) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(snapshot.nextMove) +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    filteredApplications
+      .map(function (item) {
+        const readiness = getTherapistMatchReadiness(item);
+        const freshness = getDataFreshnessSummary(item);
+        const coaching = getTherapistReviewCoaching(item);
+        const reviewSnapshot = getApplicationReviewSnapshot(item);
+        const isConfirmationRefresh = isConfirmationRefreshApplication(item);
+        const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
+          ? item.therapist_reported_fields
+          : [];
+        const therapistReportedDate = item.therapist_reported_confirmed_at
+          ? formatDate(item.therapist_reported_confirmed_at)
+          : "";
+        const editorialFollowUps = therapistReportedFields.filter(function (fieldName) {
+          return !item[fieldName] && item[fieldName] !== false;
+        });
+        const improvementRequest = buildImprovementRequest(item, coaching);
+        const revisionLink = new URL(
+          "signup.html?revise=" + encodeURIComponent(item.id),
+          window.location.href,
+        ).toString();
+        const confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
+        const fitTags = []
+          .concat(item.treatment_modalities || [])
+          .concat(item.client_populations || [])
+          .slice(0, 8)
+          .map(function (tag) {
+            return '<span class="tag">' + escapeHtml(tag) + "</span>";
+          })
+          .join("");
+
+        const actions =
+          item.status === "pending"
+            ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
               item.id +
-              '">Publish</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
+              '">Mark Reviewing</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
               item.id +
               '" data-request="' +
               escapeHtml(improvementRequest) +
               '" data-link="' +
-              escapeHtml(revisionLink) +
-              '">Request Changes</button><button class="btn-secondary" data-action="pending" data-id="' +
+              escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
+              '">Request Changes</button><button class="btn-primary" data-action="publish" data-id="' +
               item.id +
-              '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
+              '">Publish</button><button class="btn-secondary" data-action="reject" data-id="' +
               item.id +
               '">Reject</button>'
-            : item.status === "requested_changes"
-              ? '<span class="status requested_changes">requested changes</span><button class="btn-secondary" data-action="copy-revision-link" data-id="' +
+            : item.status === "reviewing"
+              ? '<button class="btn-primary" data-action="publish" data-id="' +
                 item.id +
+                '">Publish</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
+                item.id +
+                '" data-request="' +
+                escapeHtml(improvementRequest) +
                 '" data-link="' +
-                escapeHtml(revisionLink) +
-                '">Copy revision link</button><button class="btn-secondary" data-action="pending" data-id="' +
+                escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
+                '">Request Changes</button><button class="btn-secondary" data-action="pending" data-id="' +
                 item.id +
-                '">Move to Pending</button>'
-              : item.status === "approved"
-                ? '<span class="status approved">approved</span>'
-                : '<span class="status ' + item.status + '">' + item.status + "</span>";
+                '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
+                item.id +
+                '">Reject</button>'
+              : item.status === "requested_changes"
+                ? '<span class="status requested_changes">requested changes</span><button class="btn-secondary" data-action="copy-revision-link" data-id="' +
+                  item.id +
+                  '" data-link="' +
+                  escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
+                  '">' +
+                  (isConfirmationRefresh ? "Copy confirmation link" : "Copy revision link") +
+                  '</button><button class="btn-secondary" data-action="pending" data-id="' +
+                  item.id +
+                  '">Move to Pending</button>'
+                : item.status === "approved"
+                  ? '<span class="status approved">approved</span>'
+                  : '<span class="status ' + item.status + '">' + item.status + "</span>";
 
-      return (
-        '<article class="application-card">' +
-        '<div class="application-head"><div><h3>' +
-        escapeHtml(item.name) +
-        '</h3><p class="subtle">' +
-        escapeHtml(item.credentials) +
-        (item.title ? " · " + escapeHtml(item.title) : "") +
-        " · " +
-        escapeHtml(item.city) +
-        ", " +
-        escapeHtml(item.state) +
-        '</p></div><div class="subtle">' +
-        formatDate(item.created_at) +
-        "</div></div>" +
-        '<div class="tag-row"><span class="tag">' +
-        escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
-        "</span>" +
-        (item.bipolar_years_experience
-          ? '<span class="tag">' +
-            escapeHtml(item.bipolar_years_experience) +
-            " yrs bipolar care</span>"
-          : "") +
-        (item.medication_management ? '<span class="tag">Medication management</span>' : "") +
-        '<span class="tag">' +
-        escapeHtml(readiness.label) +
-        " · " +
-        escapeHtml(readiness.score) +
-        "/100</span>" +
-        "</div>" +
-        (item.care_approach
-          ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
-            escapeHtml(item.care_approach) +
-            "</p>"
-          : "") +
-        '<p class="application-bio">' +
-        escapeHtml(item.bio) +
-        "</p>" +
-        '<div class="tag-row">' +
-        (item.specialties || [])
-          .map(function (specialty) {
-            return '<span class="tag">' + escapeHtml(specialty) + "</span>";
-          })
-          .join("") +
-        "</div>" +
-        (fitTags ? '<div class="tag-row">' + fitTags + "</div>" : "") +
-        '<div class="meta-grid">' +
-        "<div><strong>Email:</strong> " +
-        escapeHtml(item.email) +
-        "</div>" +
-        "<div><strong>Phone:</strong> " +
-        escapeHtml(item.phone || "Not provided") +
-        "</div>" +
-        "<div><strong>License:</strong> " +
-        escapeHtml(
-          [item.license_state, item.license_number].filter(Boolean).join(" · ") || "Not provided",
-        ) +
-        "</div>" +
-        "<div><strong>Wait time:</strong> " +
-        escapeHtml(item.estimated_wait_time || "Not provided") +
-        "</div>" +
-        "<div><strong>Insurance:</strong> " +
-        escapeHtml((item.insurance_accepted || []).join(", ") || "Not provided") +
-        "</div>" +
-        "<div><strong>Format:</strong> " +
-        [item.accepts_telehealth ? "Telehealth" : "", item.accepts_in_person ? "In-Person" : ""]
-          .filter(Boolean)
-          .join(" / ") +
-        "</div>" +
-        "<div><strong>Preferred contact:</strong> " +
-        escapeHtml(
-          item.preferred_contact_method
-            ? item.preferred_contact_method === "booking"
-              ? "Booking link"
-              : item.preferred_contact_method
-            : "Not provided",
-        ) +
-        "</div>" +
-        "<div><strong>CTA label:</strong> " +
-        escapeHtml(item.preferred_contact_label || "Not provided") +
-        "</div>" +
-        "<div><strong>Booking URL:</strong> " +
-        (item.booking_url
-          ? '<a href="' +
-            escapeHtml(item.booking_url) +
-            '" target="_blank" rel="noopener">Open link</a>'
-          : "Not provided") +
-        "</div>" +
-        "<div><strong>Contact guidance:</strong> " +
-        escapeHtml(item.contact_guidance || "Not provided") +
-        "</div>" +
-        "<div><strong>After outreach:</strong> " +
-        escapeHtml(item.first_step_expectation || "Not provided") +
-        "</div>" +
-        "<div><strong>Languages:</strong> " +
-        escapeHtml((item.languages || []).join(", ") || "English") +
-        "</div>" +
-        "<div><strong>Telehealth states:</strong> " +
-        escapeHtml((item.telehealth_states || []).join(", ") || "Not provided") +
-        "</div>" +
-        "<div><strong>Match readiness:</strong> " +
-        escapeHtml(readiness.label) +
-        " (" +
-        escapeHtml(readiness.score) +
-        "/100)</div>" +
-        "<div><strong>Profile completeness:</strong> " +
-        escapeHtml(readiness.completeness_score) +
-        "/100</div>" +
-        "</div>" +
-        (readiness.strengths.length
-          ? '<div class="notes-box"><label><strong>Already strong for matching</strong></label><div class="tag-row">' +
-            readiness.strengths
-              .map(function (strength) {
-                return '<span class="tag">' + escapeHtml(strength) + "</span>";
-              })
-              .join("") +
-            "</div></div>"
-          : "") +
-        (readiness.missing_items.length
-          ? '<div class="notes-box"><label><strong>Best next fixes for match quality</strong></label><div class="tag-row">' +
-            readiness.missing_items
-              .map(function (itemText) {
-                return '<span class="tag">' + escapeHtml(itemText) + "</span>";
-              })
-              .join("") +
-            "</div></div>"
-          : "") +
-        (coaching.length
-          ? '<div class="notes-box review-coach-box"><label><strong>Reviewer coaching prompts</strong></label><div class="review-coach-list">' +
-            coaching
-              .map(function (itemText) {
-                return '<div class="review-coach-item">' + escapeHtml(itemText) + "</div>";
-              })
-              .join("") +
-            '</div><div class="review-coach-actions"><button class="btn-secondary" data-action="copy-improvement-request" data-id="' +
-            item.id +
-            '" data-request="' +
-            escapeHtml(improvementRequest) +
-            '">Copy improvement request</button><button class="btn-secondary" data-action="append-improvement-request" data-id="' +
-            item.id +
-            '" data-request="' +
-            escapeHtml(improvementRequest) +
-            '">Add request to notes</button><span class="review-coach-status" data-coach-status-id="' +
-            item.id +
-            '">Ready to reuse</span></div>' +
-            "</div></div>"
-          : "") +
-        buildRevisionHistoryHtml(item) +
-        '<div class="action-row">' +
-        actions +
-        "</div>" +
-        '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
-        item.id +
-        '" placeholder="Add review notes, follow-up items, or context for later...">' +
-        (item.notes || "") +
-        '</textarea><div class="notes-actions"><button class="btn-secondary" data-action="save-notes" data-id="' +
-        item.id +
-        '">Save Notes</button><span class="mini-status">' +
-        (item.notes ? "Notes saved" : "No notes yet") +
-        "</span></div></div>" +
-        "</article>"
-      );
-    })
-    .join("");
+        return (
+          '<article class="application-card" data-application-card-id="' +
+          escapeHtml(item.id) +
+          '">' +
+          '<div class="application-head"><div><h3>' +
+          escapeHtml(item.name) +
+          '</h3><p class="subtle">' +
+          escapeHtml(item.credentials) +
+          (item.title ? " · " + escapeHtml(item.title) : "") +
+          " · " +
+          escapeHtml(item.city) +
+          ", " +
+          escapeHtml(item.state) +
+          '</p></div><div class="subtle">' +
+          formatDate(item.created_at) +
+          "</div></div>" +
+          '<div class="tag-row"><span class="tag">' +
+          escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
+          "</span>" +
+          (isConfirmationRefresh
+            ? '<span class="tag">Live profile confirmation update</span>'
+            : "") +
+          '<span class="tag">' +
+          escapeHtml(reviewSnapshot.label) +
+          "</span>" +
+          (item.bipolar_years_experience
+            ? '<span class="tag">' +
+              escapeHtml(item.bipolar_years_experience) +
+              " yrs bipolar care</span>"
+            : "") +
+          '<span class="tag">' +
+          escapeHtml(reviewSnapshot.photoStatusLabel) +
+          "</span>" +
+          (item.medication_management ? '<span class="tag">Medication management</span>' : "") +
+          '<span class="tag">' +
+          escapeHtml(readiness.label) +
+          " · " +
+          escapeHtml(readiness.score) +
+          "/100</span>" +
+          "</div>" +
+          (item.care_approach
+            ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
+              escapeHtml(item.care_approach) +
+              "</p>"
+            : "") +
+          '<div class="review-snapshot-box"><div class="review-snapshot-title">Recommended next move</div><div class="review-snapshot-copy">' +
+          escapeHtml(reviewSnapshot.nextMove) +
+          '</div><div class="review-snapshot-copy">' +
+          escapeHtml(reviewSnapshot.note) +
+          '</div><div class="review-snapshot-copy"><strong>Photo status:</strong> ' +
+          escapeHtml(reviewSnapshot.photoNextMove) +
+          "</div>" +
+          (reviewSnapshot.missingCriticalFields.length
+            ? '<div class="tag-row">' +
+              reviewSnapshot.missingCriticalFields
+                .map(function (field) {
+                  return '<span class="tag">' + escapeHtml(field) + "</span>";
+                })
+                .join("") +
+              "</div>"
+            : "") +
+          "</div>" +
+          '<p class="application-bio">' +
+          escapeHtml(item.bio) +
+          "</p>" +
+          '<div class="tag-row">' +
+          (item.specialties || [])
+            .map(function (specialty) {
+              return '<span class="tag">' + escapeHtml(specialty) + "</span>";
+            })
+            .join("") +
+          "</div>" +
+          (fitTags ? '<div class="tag-row">' + fitTags + "</div>" : "") +
+          '<div class="meta-grid">' +
+          "<div><strong>Email:</strong> " +
+          escapeHtml(item.email) +
+          "</div>" +
+          "<div><strong>Phone:</strong> " +
+          escapeHtml(item.phone || "Not provided") +
+          "</div>" +
+          "<div><strong>License:</strong> " +
+          escapeHtml(
+            [item.license_state, item.license_number].filter(Boolean).join(" · ") || "Not provided",
+          ) +
+          "</div>" +
+          "<div><strong>Photo source:</strong> " +
+          escapeHtml(reviewSnapshot.photoStatusLabel) +
+          "</div>" +
+          "<div><strong>Photo permission:</strong> " +
+          escapeHtml(item.photo_usage_permission_confirmed ? "Confirmed" : "Not confirmed") +
+          "</div>" +
+          "<div><strong>Wait time:</strong> " +
+          escapeHtml(item.estimated_wait_time || "Not provided") +
+          "</div>" +
+          "<div><strong>Insurance:</strong> " +
+          escapeHtml((item.insurance_accepted || []).join(", ") || "Not provided") +
+          "</div>" +
+          "<div><strong>Format:</strong> " +
+          [item.accepts_telehealth ? "Telehealth" : "", item.accepts_in_person ? "In-Person" : ""]
+            .filter(Boolean)
+            .join(" / ") +
+          "</div>" +
+          "<div><strong>Preferred contact:</strong> " +
+          escapeHtml(
+            item.preferred_contact_method
+              ? item.preferred_contact_method === "booking"
+                ? "Booking link"
+                : item.preferred_contact_method
+              : "Not provided",
+          ) +
+          "</div>" +
+          "<div><strong>CTA label:</strong> " +
+          escapeHtml(item.preferred_contact_label || "Not provided") +
+          "</div>" +
+          "<div><strong>Booking URL:</strong> " +
+          (item.booking_url
+            ? '<a href="' +
+              escapeHtml(item.booking_url) +
+              '" target="_blank" rel="noopener">Open link</a>'
+            : "Not provided") +
+          "</div>" +
+          "<div><strong>Contact guidance:</strong> " +
+          escapeHtml(item.contact_guidance || "Not provided") +
+          "</div>" +
+          "<div><strong>After outreach:</strong> " +
+          escapeHtml(item.first_step_expectation || "Not provided") +
+          "</div>" +
+          "<div><strong>Languages:</strong> " +
+          escapeHtml((item.languages || []).join(", ") || "English") +
+          "</div>" +
+          "<div><strong>Telehealth states:</strong> " +
+          escapeHtml((item.telehealth_states || []).join(", ") || "Not provided") +
+          "</div>" +
+          "<div><strong>Match readiness:</strong> " +
+          escapeHtml(readiness.label) +
+          " (" +
+          escapeHtml(readiness.score) +
+          "/100)</div>" +
+          "<div><strong>Profile completeness:</strong> " +
+          escapeHtml(readiness.completeness_score) +
+          "/100</div>" +
+          "</div>" +
+          '<div class="action-row">' +
+          actions +
+          "</div>" +
+          '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +
+          (isConfirmationRefresh
+            ? '<div class="notes-box"><label><strong>Confirmation refresh</strong></label><div class="subtle">This submission is tied to an existing live therapist profile and is meant to refresh high-value operational details without creating a brand-new listing.</div>' +
+              (item.published_therapist_id
+                ? '<div class="subtle">Linked live therapist ID: ' +
+                  escapeHtml(item.published_therapist_id) +
+                  "</div>"
+                : "") +
+              (confirmationLink
+                ? '<div class="subtle">Therapist update link: <a href="' +
+                  escapeHtml(confirmationLink) +
+                  '" target="_blank" rel="noopener">Open confirmation form</a></div>'
+                : "") +
+              "</div>"
+            : "") +
+          (therapistReportedFields.length
+            ? '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="tag-row">' +
+              therapistReportedFields
+                .map(function (fieldName) {
+                  return (
+                    '<span class="tag">' +
+                    escapeHtml(formatFieldLabel(fieldName)) +
+                    " · therapist confirmed</span>"
+                  );
+                })
+                .join("") +
+              '</div><div class="subtle">Last specialist confirmation: ' +
+              escapeHtml(therapistReportedDate || "Not provided") +
+              "</div>" +
+              (editorialFollowUps.length
+                ? '<div class="subtle">Still worth editorial follow-up: ' +
+                  escapeHtml(
+                    editorialFollowUps.map(formatFieldLabel).join(", ") || "None currently flagged",
+                  ) +
+                  "</div>"
+                : "")
+            : '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="subtle">No therapist-confirmed operational fields are marked yet.</div>') +
+          "</div>" +
+          '<div class="notes-box"><label><strong>Field-level review states</strong></label>' +
+          buildFieldReviewControls(item) +
+          '<div class="subtle">Use this to distinguish details that are still therapist-confirmed from details your team has independently verified.</div></div>' +
+          '<div class="notes-box"><label><strong>Freshness audit</strong></label><div class="subtle"><strong>' +
+          escapeHtml(freshness.label) +
+          ":</strong> " +
+          escapeHtml(freshness.note) +
+          "</div></div>" +
+          (readiness.strengths.length
+            ? '<div class="notes-box"><label><strong>Already strong for matching</strong></label><div class="tag-row">' +
+              readiness.strengths
+                .map(function (strength) {
+                  return '<span class="tag">' + escapeHtml(strength) + "</span>";
+                })
+                .join("") +
+              "</div></div>"
+            : "") +
+          (readiness.missing_items.length
+            ? '<div class="notes-box"><label><strong>Best next fixes for match quality</strong></label><div class="tag-row">' +
+              readiness.missing_items
+                .map(function (itemText) {
+                  return '<span class="tag">' + escapeHtml(itemText) + "</span>";
+                })
+                .join("") +
+              "</div></div>"
+            : "") +
+          (coaching.length
+            ? '<div class="notes-box review-coach-box"><label><strong>Reviewer coaching prompts</strong></label><div class="review-coach-list">' +
+              coaching
+                .map(function (itemText) {
+                  return '<div class="review-coach-item">' + escapeHtml(itemText) + "</div>";
+                })
+                .join("") +
+              '</div><div class="review-coach-actions"><button class="btn-secondary" data-action="copy-improvement-request" data-id="' +
+              item.id +
+              '" data-request="' +
+              escapeHtml(improvementRequest) +
+              '">Copy improvement request</button><button class="btn-secondary" data-action="append-improvement-request" data-id="' +
+              item.id +
+              '" data-request="' +
+              escapeHtml(improvementRequest) +
+              '">Add request to notes</button><span class="review-coach-status" data-coach-status-id="' +
+              item.id +
+              '">Ready to reuse</span></div>' +
+              "</div></div>"
+            : "") +
+          buildRevisionHistoryHtml(item) +
+          '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
+          item.id +
+          '" placeholder="Add review notes, follow-up items, or context for later...">' +
+          (item.notes || "") +
+          '</textarea><div class="notes-actions"><button class="btn-secondary" data-action="save-notes" data-id="' +
+          item.id +
+          '">Save Notes</button><span class="mini-status">' +
+          (item.notes ? "Notes saved" : "No notes yet") +
+          "</span></div></div></div></details>" +
+          "</article>"
+        );
+      })
+      .join("");
+
+  root.querySelectorAll("[data-application-focus-card]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var focus = button.getAttribute("data-application-focus-card") || "";
+      var status = button.getAttribute("data-application-status-card") || "";
+      var sameSelection =
+        applicationFilters.focus === focus && applicationFilters.status === status;
+      applicationFilters.focus = sameSelection ? "" : focus;
+      applicationFilters.status = sameSelection ? "" : status;
+      var focusFilter = document.getElementById("applicationFocusFilter");
+      if (focusFilter) {
+        focusFilter.value = applicationFilters.focus;
+      }
+      var statusFilter = document.getElementById("applicationStatusFilter");
+      if (statusFilter) {
+        statusFilter.value = applicationFilters.status;
+      }
+      renderApplications();
+    });
+  });
+
+  root.querySelectorAll("[data-review-batch-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-review-batch-export");
+      var text =
+        mode === "requests"
+          ? buildRecommendedReviewBatchRequests(recommendedBatch, applicationFilters.goal)
+          : buildRecommendedReviewBatchPacket(recommendedBatch, applicationFilters.goal);
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#reviewBatchExportStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "requests"
+            ? "Top improvement requests copied."
+            : mode === reviewGoalMeta.primaryActionMode
+              ? reviewGoalMeta.primaryActionLabel + " copied."
+              : "Review batch packet copied."
+          : mode === "requests"
+            ? "Could not copy top improvement requests."
+            : mode === reviewGoalMeta.primaryActionMode
+              ? "Could not copy " + reviewGoalMeta.primaryActionLabel.toLowerCase() + "."
+              : "Could not copy review batch packet.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-application-jump]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-application-jump");
+      var target = root.querySelector('[data-application-card-id="' + id + '"]');
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        spotlightSection(target);
+      }
+    });
+  });
+
+  root.querySelector("[data-application-clear-filters]")?.addEventListener("click", function () {
+    applicationFilters.q = "";
+    applicationFilters.status = "";
+    applicationFilters.focus = "";
+    applicationFilters.goal = "balanced";
+    var searchInput = document.getElementById("applicationSearch");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+    var statusFilter = document.getElementById("applicationStatusFilter");
+    if (statusFilter) {
+      statusFilter.value = "";
+    }
+    var focusFilter = document.getElementById("applicationFocusFilter");
+    if (focusFilter) {
+      focusFilter.value = "";
+    }
+    var goalFilter = document.getElementById("applicationReviewGoal");
+    if (goalFilter) {
+      goalFilter.value = "balanced";
+    }
+    renderApplications();
+  });
 
   root.querySelectorAll("[data-action]").forEach(function (button) {
     button.addEventListener("click", async function () {
@@ -1207,6 +7511,39 @@ function renderApplications() {
       }
     });
   });
+
+  root.querySelectorAll("[data-review-field]").forEach(function (select) {
+    select.addEventListener("change", async function () {
+      var id = select.getAttribute("data-id");
+      var field = select.getAttribute("data-review-field");
+      var value = select.value;
+      select.disabled = true;
+      try {
+        if (dataMode === "sanity") {
+          var target = remoteApplications.find(function (item) {
+            return item.id === id;
+          });
+          var nextStates = {
+            field_review_states: {
+              ...(target && target.field_review_states ? target.field_review_states : {}),
+              [field]: value,
+            },
+          };
+          await updateTherapistApplication(id, nextStates);
+          await loadData();
+        } else {
+          updateApplicationReviewMetadata(id, {
+            field_review_states: {
+              [field]: value,
+            },
+          });
+          renderAll();
+        }
+      } finally {
+        select.disabled = false;
+      }
+    });
+  });
 }
 
 function renderConciergeQueue() {
@@ -1226,6 +7563,30 @@ function renderConciergeQueue() {
     root.innerHTML =
       '<div class="empty">No concierge requests captured yet. Once users ask for help in the match flow, they will appear here on this device.</div>';
     return;
+  }
+
+  const filteredRequests = requests
+    .map(function (request, requestIndex) {
+      return {
+        request: request,
+        requestIndex: requestIndex,
+      };
+    })
+    .filter(function (entry) {
+      if (!conciergeFilters.status) {
+        return true;
+      }
+      if (conciergeFilters.status === "open") {
+        return entry.request.request_status !== "resolved";
+      }
+      return entry.request.request_status === conciergeFilters.status;
+    });
+  const countLabel = document.getElementById("conciergeQueueCount");
+  if (countLabel) {
+    countLabel.textContent =
+      filteredRequests.length === requests.length
+        ? String(requests.length) + " of " + String(requests.length) + " requests shown"
+        : String(filteredRequests.length) + " of " + String(requests.length) + " requests shown";
   }
 
   const patterns = analyzeConciergePatterns(requests);
@@ -1339,9 +7700,14 @@ function renderConciergeQueue() {
     outcomeHtml +
     journeyHtml +
     timingHtml +
-    requests
+    (filteredRequests.length
+      ? ""
+      : '<div class="empty">No concierge requests match the current filter.</div>') +
+    filteredRequests
       .slice(0, 12)
-      .map(function (request, index) {
+      .map(function (entry, index) {
+        const request = entry.request;
+        const requestIndex = entry.requestIndex;
         const shortlist = Array.isArray(request.shortlist) ? request.shortlist : [];
         const note = String(request.request_note || "").trim();
         const summary = String(request.request_summary || "No request summary captured.");
@@ -1357,11 +7723,11 @@ function renderConciergeQueue() {
           '</span><span class="tag">Request ' +
           (index + 1) +
           '</span></div></div><div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="request-status-' +
-          index +
+          requestIndex +
           '">Request status</label><select class="queue-select" id="request-status-' +
-          index +
+          requestIndex +
           '" data-request-status="' +
-          index +
+          requestIndex +
           '">' +
           REQUEST_STATUS_OPTIONS.map(function (option) {
             return (
@@ -1400,15 +7766,15 @@ function renderConciergeQueue() {
                     '<div class="subtle" style="margin-top:0.25rem">Best route: ' +
                     escapeHtml(item.outreach || "Not listed") +
                     '</div><div class="queue-item-controls"><label class="queue-select-label" for="shortlist-status-' +
-                    index +
+                    requestIndex +
                     "-" +
                     shortlistIndex +
                     '">Therapist follow-up</label><select class="queue-select" id="shortlist-status-' +
-                    index +
+                    requestIndex +
                     "-" +
                     shortlistIndex +
                     '" data-shortlist-status="' +
-                    index +
+                    requestIndex +
                     ":" +
                     shortlistIndex +
                     '">' +
@@ -1430,7 +7796,7 @@ function renderConciergeQueue() {
               "</div>"
             : "") +
           '<div class="queue-actions"><button class="btn-secondary" data-concierge-copy="' +
-          index +
+          requestIndex +
           '">Copy brief</button>' +
           (request.share_link
             ? '<a class="btn-secondary btn-inline" href="' +
@@ -1506,11 +7872,153 @@ function renderConciergeQueue() {
   });
 }
 
+function formatPortalRequestType(value) {
+  return String(value || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+}
+
+function renderPortalRequestsQueue() {
+  const root = document.getElementById("portalRequestsQueue");
+  const countEl = document.getElementById("portalRequestCount");
+  if (!root || !countEl) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    countEl.textContent = "";
+    return;
+  }
+
+  const requests = dataMode === "sanity" ? remotePortalRequests : [];
+  const filtered = requests.filter(function (item) {
+    if (portalRequestFilters.status && item.status !== portalRequestFilters.status) {
+      return false;
+    }
+    return true;
+  });
+
+  countEl.textContent =
+    filtered.length +
+    " of " +
+    requests.length +
+    " portal request" +
+    (requests.length === 1 ? "" : "s");
+
+  if (!requests.length) {
+    root.innerHTML =
+      '<div class="empty">No therapist portal requests yet. Claims, pause requests, and removal requests will appear here.</div>';
+    return;
+  }
+
+  if (!filtered.length) {
+    root.innerHTML = '<div class="empty">No portal requests match the current filter.</div>';
+    return;
+  }
+
+  root.innerHTML = filtered
+    .map(function (item) {
+      var canMarkInReview = item.status !== "in_review";
+      var canResolve = item.status !== "resolved";
+      return (
+        '<article class="queue-card"><div class="queue-head"><div><h3>' +
+        escapeHtml(item.therapist_name || item.therapist_slug) +
+        '</h3><div class="subtle">' +
+        escapeHtml(item.requester_name || "Unknown requester") +
+        (item.requester_email ? " · " + escapeHtml(item.requester_email) : "") +
+        '</div></div><div class="queue-head-actions"><span class="tag">' +
+        escapeHtml(formatPortalRequestType(item.request_type)) +
+        '</span><span class="tag">' +
+        escapeHtml(String(item.status || "open").replace(/_/g, " ")) +
+        "</span></div></div>" +
+        '<div class="queue-summary"><strong>Requested:</strong> ' +
+        escapeHtml(formatDate(item.requested_at)) +
+        "</div>" +
+        '<div class="queue-summary"><strong>Profile slug:</strong> ' +
+        escapeHtml(item.therapist_slug || "Unknown") +
+        "</div>" +
+        '<div class="queue-summary"><strong>License number:</strong> ' +
+        escapeHtml(item.license_number || "Not provided") +
+        "</div>" +
+        (item.reviewed_at
+          ? '<div class="queue-summary"><strong>Last reviewed:</strong> ' +
+            escapeHtml(formatDate(item.reviewed_at)) +
+            "</div>"
+          : "") +
+        '<div class="queue-summary"><strong>Message:</strong> ' +
+        escapeHtml(item.message || "No extra message provided.") +
+        '</div><div class="queue-actions">' +
+        (canMarkInReview
+          ? '<button class="btn-primary" data-portal-request-update="' +
+            escapeHtml(item.id) +
+            '" data-next-status="in_review">Mark in review</button>'
+          : "") +
+        (canResolve
+          ? '<button class="btn-secondary" data-portal-request-update="' +
+            escapeHtml(item.id) +
+            '" data-next-status="resolved">Resolve</button>'
+          : "") +
+        '<a class="btn-secondary" href="portal.html?slug=' +
+        encodeURIComponent(item.therapist_slug || "") +
+        '">Open portal</a><a class="btn-secondary" href="therapist.html?slug=' +
+        encodeURIComponent(item.therapist_slug || "") +
+        '">View profile</a></div><div class="review-coach-status" data-portal-request-status-id="' +
+        escapeHtml(item.id) +
+        '"></div></article>'
+      );
+    })
+    .join("");
+
+  root.querySelectorAll("[data-portal-request-update]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var requestId = button.getAttribute("data-portal-request-update");
+      var nextStatus = button.getAttribute("data-next-status");
+      if (!requestId || !nextStatus) {
+        return;
+      }
+
+      var priorLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = nextStatus === "resolved" ? "Resolving..." : "Updating...";
+
+      try {
+        var updated = await updateTherapistPortalRequest(requestId, {
+          status: nextStatus,
+        });
+        remotePortalRequests = remotePortalRequests.map(function (item) {
+          return item.id === requestId ? updated : item;
+        });
+        renderStats();
+        renderPortalRequestsQueue();
+      } catch (_error) {
+        setPortalRequestActionStatus(
+          root,
+          requestId,
+          nextStatus === "resolved"
+            ? "Could not resolve this portal request."
+            : "Could not update this portal request.",
+        );
+        button.disabled = false;
+        button.textContent = priorLabel;
+      }
+    });
+  });
+}
+
 function renderAll() {
   renderStats();
   renderFunnelInsights();
   renderListings();
+  renderRefreshQueue();
+  renderImportBlockerSprint();
+  renderCaliforniaPriorityConfirmationWave();
+  renderConfirmationSprint();
+  renderConfirmationQueue();
   renderConciergeQueue();
+  renderPortalRequestsQueue();
   renderApplications();
 }
 
@@ -1530,6 +8038,16 @@ function setAuthUiState() {
       authError.style.display = "block";
     }
     return;
+  }
+
+  var confirmationQueueStatusFilter = document.getElementById("confirmationQueueStatusFilter");
+  if (confirmationQueueStatusFilter) {
+    confirmationQueueStatusFilter.value = confirmationQueueFilter;
+    confirmationQueueStatusFilter.onchange = function () {
+      confirmationQueueFilter = confirmationQueueStatusFilter.value;
+      renderCaliforniaPriorityConfirmationWave();
+      renderConfirmationQueue();
+    };
   }
 
   gate.style.display = "none";
@@ -1554,6 +8072,7 @@ async function loadData() {
   if (reviewApiAvailable && !getAdminSessionToken()) {
     dataMode = "sanity";
     remoteApplications = [];
+    remotePortalRequests = [];
     publishedTherapists = [];
     authRequired = true;
     setAuthUiState();
@@ -1562,11 +8081,13 @@ async function loadData() {
   }
 
   try {
-    const [applications, therapists] = await Promise.all([
+    const [applications, portalRequests, therapists] = await Promise.all([
       fetchTherapistApplications(),
+      fetchTherapistPortalRequests(),
       fetchPublicTherapists(),
     ]);
     remoteApplications = applications;
+    remotePortalRequests = Array.isArray(portalRequests) ? portalRequests : [];
     publishedTherapists = therapists;
     dataMode = "sanity";
     authRequired = false;
@@ -1574,11 +8095,13 @@ async function loadData() {
     if (reviewApiAvailable || getAdminSessionToken()) {
       dataMode = "sanity";
       remoteApplications = [];
+      remotePortalRequests = [];
       publishedTherapists = [];
       authRequired = true;
     } else {
       dataMode = "local";
       remoteApplications = [];
+      remotePortalRequests = [];
       publishedTherapists = [];
       authRequired = false;
     }
@@ -1648,6 +8171,50 @@ document.getElementById("applicationSearch").addEventListener("input", function 
 document.getElementById("applicationStatusFilter").addEventListener("change", function (event) {
   applicationFilters.status = event.target.value;
   renderApplications();
+});
+
+document.getElementById("applicationFocusFilter").addEventListener("change", function (event) {
+  applicationFilters.focus = event.target.value;
+  renderApplications();
+});
+
+document.getElementById("applicationReviewGoal").addEventListener("change", function (event) {
+  applicationFilters.goal = event.target.value || "balanced";
+  renderApplications();
+});
+
+document.getElementById("applicationClearFilters").addEventListener("click", function () {
+  applicationFilters.q = "";
+  applicationFilters.status = "";
+  applicationFilters.focus = "";
+  applicationFilters.goal = "balanced";
+  var searchInput = document.getElementById("applicationSearch");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+  var statusFilter = document.getElementById("applicationStatusFilter");
+  if (statusFilter) {
+    statusFilter.value = "";
+  }
+  var focusFilter = document.getElementById("applicationFocusFilter");
+  if (focusFilter) {
+    focusFilter.value = "";
+  }
+  var goalFilter = document.getElementById("applicationReviewGoal");
+  if (goalFilter) {
+    goalFilter.value = "balanced";
+  }
+  renderApplications();
+});
+
+document.getElementById("conciergeStatusFilter").addEventListener("change", function (event) {
+  conciergeFilters.status = event.target.value || "";
+  renderConciergeQueue();
+});
+
+document.getElementById("portalRequestStatusFilter").addEventListener("change", function (event) {
+  portalRequestFilters.status = event.target.value || "";
+  renderPortalRequestsQueue();
 });
 
 if (getAdminSessionToken()) {

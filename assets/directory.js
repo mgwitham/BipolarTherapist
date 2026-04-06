@@ -1,5 +1,13 @@
 import { fetchDirectoryPageContent } from "./cms.js";
-import { getTherapistMatchReadiness, getTherapistMerchandisingQuality } from "./matching-model.js";
+import launchProfileControls from "../data/import/launch-profile-controls.json";
+import {
+  getEditoriallyVerifiedOperationalCount,
+  getOperationalTrustSummary,
+  getRecentAppliedSummary,
+  getRecentConfirmationSummary,
+  getTherapistMatchReadiness,
+  getTherapistMerchandisingQuality,
+} from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import {
   readFunnelEvents,
@@ -12,13 +20,20 @@ import {
   var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
+  var matchPrioritySlugs = Array.isArray(launchProfileControls?.matchPrioritySlugs)
+    ? launchProfileControls.matchPrioritySlugs
+        .map(function (value) {
+          return String(value || "").trim();
+        })
+        .filter(Boolean)
+    : [];
   var directoryPage = content.directoryPage || null;
   var siteSettings = content.siteSettings || null;
   var currentPage = 1;
   var pageSize = 12;
   var defaultFilters = {
     q: "",
-    state: "",
+    state: "CA",
     city: "",
     specialty: "",
     modality: "",
@@ -122,7 +137,40 @@ import {
       emphasis +
       ". That emphasis is guided by " +
       basis +
-      " in similar browsing patterns.";
+      " in similar browsing patterns, with a California-first launch focus.";
+  }
+
+  function renderDirectoryLaunchExplainer(results) {
+    var root = document.getElementById("directoryLaunchExplainer");
+    if (!root) {
+      return;
+    }
+
+    var activeFilterCount = Object.keys(filters).filter(function (key) {
+      return key !== "sortBy" && Boolean(filters[key]);
+    }).length;
+    var prioritySet = new Set(matchPrioritySlugs);
+    var visiblePriorityCount = (results || []).filter(function (therapist) {
+      return prioritySet.has(therapist.slug);
+    }).length;
+
+    if (activeFilterCount > 1 || filters.sortBy !== "best_match") {
+      root.textContent =
+        "Once you add stronger filters or change the sort, the directory leans much harder on your choices than on any launch-level curation.";
+      return;
+    }
+
+    if (!visiblePriorityCount) {
+      root.textContent =
+        "The strongest profiles here still rise on trust, fit, and next-step clarity, even when no launch-priority profile is in view.";
+      return;
+    }
+
+    root.textContent =
+      visiblePriorityCount +
+      " profile" +
+      (visiblePriorityCount === 1 ? " is" : "s are") +
+      " currently getting a light visibility boost because the profile looks especially strong on reviewed trust detail, decision-readiness, and contact clarity. That boost only matters when options are already close.";
   }
 
   function escapeHtml(value) {
@@ -132,6 +180,31 @@ import {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function applyDirectoryPriorityProminence(list, filterState) {
+    var prioritySet = new Set(matchPrioritySlugs);
+    var activeFilterCount = Object.keys(filterState || {}).filter(function (key) {
+      return key !== "sortBy" && Boolean(filterState[key]);
+    }).length;
+
+    return (Array.isArray(list) ? list.slice() : []).sort(function (a, b) {
+      var aPriority = prioritySet.has(a && a.slug ? a.slug : "");
+      var bPriority = prioritySet.has(b && b.slug ? b.slug : "");
+      var aBase = getMatchScore(a);
+      var bBase = getMatchScore(b);
+      var scoreDiff = Math.abs(bBase - aBase);
+      var canUseBoost =
+        activeFilterCount <= 1 &&
+        (!filterState.sortBy || filterState.sortBy === "best_match") &&
+        scoreDiff <= 12;
+
+      if (canUseBoost && aPriority !== bPriority) {
+        return Number(bPriority) - Number(aPriority);
+      }
+
+      return compareTherapistsWithFilters(filterState, a, b);
+    });
   }
 
   function readShortlist() {
@@ -563,6 +636,124 @@ import {
     return "Profile still being completed";
   }
 
+  function buildLikelyFitCopy(therapist) {
+    var cues = [];
+
+    if (therapist.medication_management) {
+      cues.push("people who may need psychiatry or medication support");
+    } else if ((therapist.client_populations || []).length) {
+      cues.push(
+        "people looking for " +
+          String(therapist.client_populations[0] || "").toLowerCase() +
+          " support",
+      );
+    }
+
+    if ((therapist.specialties || []).includes("Bipolar I")) {
+      cues.push("bipolar I care");
+    } else if ((therapist.specialties || []).includes("Bipolar II")) {
+      cues.push("bipolar II care");
+    } else if ((therapist.specialties || []).length) {
+      cues.push(String(therapist.specialties[0] || "").toLowerCase() + " care");
+    }
+
+    if (therapist.accepts_telehealth) {
+      cues.push("telehealth access");
+    }
+
+    if (!cues.length) {
+      return "Likely best for people who want a more structured bipolar-focused next step.";
+    }
+
+    return "Likely best for " + cues.slice(0, 2).join(" and ") + ".";
+  }
+
+  function buildReviewedDetailsCopy(therapist) {
+    if (therapist.verification_status === "editorially_verified") {
+      return "Reviewed details include license, location, care format, and contact path.";
+    }
+
+    return "Core profile details are present, but some trust details may still need confirmation.";
+  }
+
+  function buildCardStandoutCopy(therapist) {
+    var reasons = [];
+    if (therapist.verification_status === "editorially_verified") {
+      reasons.push("editorial review is already in place");
+    }
+    if (getEditoriallyVerifiedOperationalCount(therapist) >= 2) {
+      reasons.push("multiple practical details are editor-verified");
+    }
+    if (Number(therapist.bipolar_years_experience || 0) >= 8) {
+      reasons.push("bipolar-specific experience is unusually clear");
+    }
+    if (therapist.medication_management) {
+      reasons.push("medication support is part of the offering");
+    }
+    if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
+      reasons.push("the profile gives unusually clear availability context");
+    }
+
+    if (!reasons.length) {
+      return "Worth a closer look because the profile gives a relatively clear picture of fit and next-step logistics.";
+    }
+
+    return reasons.slice(0, 2).join(" and ") + ".";
+  }
+
+  function buildCardReachabilityCopy(therapist) {
+    var route = getPreferredContactRoute(therapist);
+    var routeCopy = route ? route.label : "Review the profile for the best next step";
+    if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
+      return (
+        "Reachability: a recent availability note suggests " +
+        therapist.estimated_wait_time +
+        ", and the clearest next move is to " +
+        routeCopy +
+        "."
+      );
+    }
+    if (therapist.accepting_new_patients) {
+      return (
+        "Reachability: appears to be accepting new patients, with a clear next move to " +
+        routeCopy +
+        "."
+      );
+    }
+    if (therapist.estimated_wait_time) {
+      return (
+        "Reachability: a recent availability note suggests " +
+        therapist.estimated_wait_time +
+        ", but live openings should still be confirmed directly. The clearest next move is to " +
+        routeCopy +
+        "."
+      );
+    }
+    return "Reachability: the contact path is clear, but live timing still needs direct confirmation.";
+  }
+
+  function buildCardTrustSnapshot(therapist) {
+    var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
+    var recentApplied = getRecentAppliedSummary(therapist);
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+
+    if (recentApplied) {
+      return recentApplied.label + ". " + recentApplied.note;
+    }
+    if (recentConfirmation) {
+      return recentConfirmation.label + ". " + recentConfirmation.note;
+    }
+    if (reviewedCount >= 2) {
+      return (
+        reviewedCount +
+        " key operational detail" +
+        (reviewedCount === 1 ? "" : "s") +
+        " are editor-verified."
+      );
+    }
+    return buildReviewedDetailsCopy(therapist);
+  }
+
   function getResponsivenessRank(therapist) {
     var signal = getPublicResponsivenessSignal(therapist);
     if (!signal) {
@@ -865,8 +1056,8 @@ import {
   }
 
   function getFilteredWithFilters(filterState) {
-    return therapists
-      .filter(function (therapist) {
+    return applyDirectoryPriorityProminence(
+      therapists.filter(function (therapist) {
         var haystack = [
           therapist.name,
           therapist.title,
@@ -920,10 +1111,9 @@ import {
         if (filterState.medication_management && !therapist.medication_management) return false;
         if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
         return true;
-      })
-      .sort(function (a, b) {
-        return compareTherapistsWithFilters(filterState, a, b);
-      });
+      }),
+      filterState,
+    );
   }
 
   function getFiltered() {
@@ -1057,6 +1247,12 @@ import {
         ? getTherapistMerchandisingQuality(therapist).label
         : "",
       therapist.verification_status === "editorially_verified" ? "Verified" : "",
+      getEditoriallyVerifiedOperationalCount(therapist)
+        ? getEditoriallyVerifiedOperationalCount(therapist) +
+          " key detail" +
+          (getEditoriallyVerifiedOperationalCount(therapist) > 1 ? "s" : "") +
+          " verified"
+        : "",
       therapist.bipolar_years_experience
         ? therapist.bipolar_years_experience + " yrs bipolar care"
         : "",
@@ -1078,8 +1274,9 @@ import {
     ].join("");
     var acceptance = therapist.accepting_new_patients
       ? '<span class="accepting">Accepting patients</span>'
-      : '<span class="accepting not-acc">Waitlist only</span>';
+      : '<span class="accepting not-acc">Check current openings</span>';
     var fitSummary = buildCardFitSummary(therapist);
+    var likelyFitCopy = buildLikelyFitCopy(therapist);
     var shortlisted = isShortlisted(therapist.slug);
     var shortlistEntry = shortlist.find(function (item) {
       return item.slug === therapist.slug;
@@ -1105,6 +1302,11 @@ import {
         escapeHtml(therapist.contact_guidance || contactRoute.detail) +
         "</div>"
       : "";
+    var reviewedDetailsCopy = buildReviewedDetailsCopy(therapist);
+    var operationalTrustCopy = getOperationalTrustSummary(therapist);
+    var standoutCopy = buildCardStandoutCopy(therapist);
+    var reachabilityCopy = buildCardReachabilityCopy(therapist);
+    var trustSnapshot = buildCardTrustSnapshot(therapist);
 
     return (
       '<article class="t-card" data-card-slug="' +
@@ -1134,12 +1336,33 @@ import {
       "</div>" +
       '<div class="t-fit-summary">' +
       escapeHtml(fitSummary) +
+      '</div><div class="card-fit-note">' +
+      escapeHtml(likelyFitCopy) +
       "</div>" +
+      '<div class="card-signal-card">' +
+      '<div class="card-signal-label">Why this stands out</div>' +
+      '<div class="card-signal-copy">' +
+      escapeHtml(standoutCopy) +
+      "</div></div>" +
+      '<div class="card-signal-card card-signal-card-soft">' +
+      '<div class="card-signal-label">Reachability</div>' +
+      '<div class="card-signal-copy">' +
+      escapeHtml(reachabilityCopy) +
+      "</div></div>" +
       '<div class="tags">' +
       tags +
       trustTags +
       mode +
       "</div>" +
+      '<div class="card-contact-detail"><strong>Reviewed strength:</strong> ' +
+      escapeHtml(trustSnapshot) +
+      "</div>" +
+      (operationalTrustCopy && operationalTrustCopy !== trustSnapshot
+        ? '<div class="card-contact-detail">' + escapeHtml(operationalTrustCopy) + "</div>"
+        : "") +
+      (reviewedDetailsCopy && reviewedDetailsCopy !== trustSnapshot
+        ? '<div class="card-contact-detail">' + escapeHtml(reviewedDetailsCopy) + "</div>"
+        : "") +
       contactDetail +
       '<div class="card-actions">' +
       '<button class="card-action-btn' +
@@ -1147,14 +1370,14 @@ import {
       '" data-shortlist-slug="' +
       escapeHtml(therapist.slug) +
       '" type="button">' +
-      (shortlisted ? "Saved for compare" : "Save for compare") +
+      (shortlisted ? "Saved to shortlist" : "Save to shortlist") +
       "</button>" +
       primaryAction +
       '<a href="therapist.html?slug=' +
       encodeURIComponent(therapist.slug) +
       '" class="card-action-link" data-review-fit="' +
       escapeHtml(therapist.slug) +
-      '">Review fit</a>' +
+      '">View profile</a>' +
       "</div>" +
       (shortlisted
         ? '<div class="card-priority-row"><label class="card-priority-label" for="priority-' +
@@ -1317,6 +1540,7 @@ import {
         "</p></div>";
       renderDirectoryTradeoffPreview([]);
       renderEditorialLanes([]);
+      renderDirectoryLaunchExplainer([]);
       renderDirectoryAdaptiveExplainer();
       renderPagination(0);
       renderShortlistBar();
@@ -1326,6 +1550,7 @@ import {
 
     renderDirectoryTradeoffPreview(results);
     renderEditorialLanes(results);
+    renderDirectoryLaunchExplainer(results);
     renderDirectoryAdaptiveExplainer();
     grid.innerHTML = pageItems.map(renderCard).join("");
     if (pendingMotionSlug) {

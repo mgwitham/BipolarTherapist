@@ -37,13 +37,34 @@ export function summarizeFunnelEvents(events) {
     return accumulator;
   }, {});
 
+  var outreachStartTypes = [
+    "match_recommended_outreach_started",
+    "match_fallback_outreach_started",
+    "match_entry_outreach_started",
+  ];
+  var contactIntentTypes = outreachStartTypes.concat([
+    "match_recommended_draft_copied",
+    "match_fallback_draft_copied",
+    "match_entry_draft_copied",
+    "match_outreach_plan_copied",
+    "match_pivot_reminder_copied",
+    "match_result_profile_opened",
+  ]);
+
+  function sumTypes(types) {
+    return (types || []).reduce(function (total, type) {
+      return total + (byType[type] || 0);
+    }, 0);
+  }
+
   return {
     total: entries.length,
     searches: (byType.home_search_submitted || 0) + (byType.directory_filters_applied || 0),
     matches: byType.match_submitted || 0,
     shortlist_saves: (byType.directory_shortlist_saved || 0) + (byType.match_shortlist_saved || 0),
     help_requests: (byType.match_help_requested || 0) + (byType.match_concierge_requested || 0),
-    outreach_starts: byType.match_recommended_outreach_started || 0,
+    outreach_starts: sumTypes(outreachStartTypes),
+    contact_intents: sumTypes(contactIntentTypes),
     top_types: Object.keys(byType)
       .map(function (key) {
         return { type: key, count: byType[key] };
@@ -113,7 +134,14 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
 
     if (
       item.type === "match_recommended_outreach_started" ||
-      item.type === "match_recommended_draft_copied"
+      item.type === "match_recommended_draft_copied" ||
+      item.type === "match_fallback_outreach_started" ||
+      item.type === "match_fallback_draft_copied" ||
+      item.type === "match_entry_outreach_started" ||
+      item.type === "match_entry_draft_copied" ||
+      item.type === "match_outreach_plan_copied" ||
+      item.type === "match_pivot_reminder_copied" ||
+      item.type === "match_result_profile_opened"
     ) {
       actionCounts.outreach += 1;
       return;

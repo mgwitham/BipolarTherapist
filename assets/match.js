@@ -1,7 +1,13 @@
 import { fetchPublicTherapists } from "./cms.js";
+import launchProfileControls from "../data/import/launch-profile-controls.json";
 import {
   buildMatchExplanation,
+  getEditoriallyVerifiedOperationalCount,
   getMatchTier,
+  getOperationalTrustSummary,
+  getRecentAppliedSummary,
+  getRecentConfirmationSummary,
+  getTherapistMatchReadiness,
   buildUserMatchProfile,
   getTherapistMerchandisingQuality,
   rankTherapistsForUser,
@@ -44,6 +50,66 @@ var FEEDBACK_REASON_OPTIONS = [
 ];
 var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
+var MATCH_PRIORITY_SLUGS = Array.isArray(launchProfileControls?.matchPrioritySlugs)
+  ? launchProfileControls.matchPrioritySlugs
+      .map(function (value) {
+        return String(value || "").trim();
+      })
+      .filter(Boolean)
+  : [];
+var US_STATE_MAP = {
+  ALABAMA: "AL",
+  ALASKA: "AK",
+  ARIZONA: "AZ",
+  ARKANSAS: "AR",
+  CALIFORNIA: "CA",
+  COLORADO: "CO",
+  CONNECTICUT: "CT",
+  DELAWARE: "DE",
+  FLORIDA: "FL",
+  GEORGIA: "GA",
+  HAWAII: "HI",
+  IDAHO: "ID",
+  ILLINOIS: "IL",
+  INDIANA: "IN",
+  IOWA: "IA",
+  KANSAS: "KS",
+  KENTUCKY: "KY",
+  LOUISIANA: "LA",
+  MAINE: "ME",
+  MARYLAND: "MD",
+  MASSACHUSETTS: "MA",
+  MICHIGAN: "MI",
+  MINNESOTA: "MN",
+  MISSISSIPPI: "MS",
+  MISSOURI: "MO",
+  MONTANA: "MT",
+  NEBRASKA: "NE",
+  NEVADA: "NV",
+  "NEW HAMPSHIRE": "NH",
+  "NEW JERSEY": "NJ",
+  "NEW MEXICO": "NM",
+  "NEW YORK": "NY",
+  "NORTH CAROLINA": "NC",
+  "NORTH DAKOTA": "ND",
+  OHIO: "OH",
+  OKLAHOMA: "OK",
+  OREGON: "OR",
+  PENNSYLVANIA: "PA",
+  "RHODE ISLAND": "RI",
+  "SOUTH CAROLINA": "SC",
+  "SOUTH DAKOTA": "SD",
+  TENNESSEE: "TN",
+  TEXAS: "TX",
+  UTAH: "UT",
+  VERMONT: "VT",
+  VIRGINIA: "VA",
+  WASHINGTON: "WA",
+  "WEST VIRGINIA": "WV",
+  WISCONSIN: "WI",
+  WYOMING: "WY",
+  "DISTRICT OF COLUMBIA": "DC",
+};
 
 function escapeHtml(value) {
   return String(value || "")
@@ -52,6 +118,63 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function applyMatchPriorityProminence(entries) {
+  var prioritySet = new Set(MATCH_PRIORITY_SLUGS);
+  return (entries || []).slice().sort(function (a, b) {
+    var aPriority = prioritySet.has(a && a.therapist ? a.therapist.slug : "");
+    var bPriority = prioritySet.has(b && b.therapist ? b.therapist.slug : "");
+    var scoreDiff = Math.abs(
+      (Number(a?.evaluation?.score) || 0) - (Number(b?.evaluation?.score) || 0),
+    );
+
+    if (aPriority !== bPriority && scoreDiff <= 12) {
+      return Number(bPriority) - Number(aPriority);
+    }
+
+    return (
+      (Number(b?.evaluation?.score) || 0) - (Number(a?.evaluation?.score) || 0) ||
+      (Number(b?.evaluation?.confidence_score) || 0) -
+        (Number(a?.evaluation?.confidence_score) || 0) ||
+      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || ""))
+    );
+  });
+}
+
+function renderMatchLaunchExplainer(entries, profile) {
+  var root = document.getElementById("matchLaunchExplainer");
+  if (!root) {
+    return;
+  }
+
+  var list = Array.isArray(entries) ? entries : [];
+  var hasRefinements = hasMeaningfulRefinements(profile);
+  if (!list.length || hasRefinements) {
+    root.textContent = "";
+    return;
+  }
+
+  var prioritySet = new Set(MATCH_PRIORITY_SLUGS);
+  var top = list[0];
+  var second = list[1];
+  var topIsPriority = top && top.therapist ? prioritySet.has(top.therapist.slug) : false;
+  var closeCall =
+    top &&
+    second &&
+    Math.abs(
+      (Number(top.evaluation && top.evaluation.score) || 0) -
+        (Number(second.evaluation && second.evaluation.score) || 0),
+    ) <= 12;
+
+  if (topIsPriority && closeCall) {
+    root.textContent =
+      "Because the top options were already close, this shortlist gave a light edge to a profile with especially strong reviewed trust detail, decision-readiness, and contact clarity.";
+    return;
+  }
+
+  root.textContent =
+    "This shortlist is led mainly by your location, practical fit, bipolar-related fit, and the clearest next step.";
 }
 
 function collectCheckedValues(form, name) {
@@ -69,6 +192,179 @@ function splitCommaSeparated(value) {
       return item.trim();
     })
     .filter(Boolean);
+}
+
+function normalizeLocationQuery(value) {
+  return String(value || "").trim();
+}
+
+function deriveStateFromLocation(value) {
+  var normalized = normalizeLocationQuery(value);
+  if (!normalized) {
+    return "";
+  }
+
+  var upper = normalized.toUpperCase();
+  if (/^[A-Z]{2}$/.test(upper)) {
+    return upper;
+  }
+
+  if (US_STATE_MAP[upper]) {
+    return US_STATE_MAP[upper];
+  }
+
+  var cityMatch = therapists.find(function (therapist) {
+    return (
+      String(therapist.city || "")
+        .trim()
+        .toUpperCase() === upper
+    );
+  });
+  if (cityMatch && cityMatch.state) {
+    return String(cityMatch.state || "")
+      .trim()
+      .toUpperCase();
+  }
+
+  if (upper.indexOf("CALIFORNIA") !== -1) {
+    return "CA";
+  }
+
+  var knownState = Object.keys(US_STATE_MAP).find(function (stateName) {
+    return upper.indexOf(stateName) !== -1;
+  });
+  return knownState ? US_STATE_MAP[knownState] : "";
+}
+
+function getLocationIntent(profile) {
+  if (!profile) {
+    return null;
+  }
+
+  var raw = normalizeLocationQuery(profile.location_query || profile.care_state || "");
+  if (!raw) {
+    return null;
+  }
+
+  var upper = raw.toUpperCase();
+  var cityMatch = therapists.find(function (therapist) {
+    return (
+      String(therapist.city || "")
+        .trim()
+        .toUpperCase() === upper
+    );
+  });
+  var isStateOnly = /^[A-Z]{2}$/.test(upper) || Boolean(US_STATE_MAP[upper]);
+  var mentionsTelehealth = upper.indexOf("TELEHEALTH") !== -1 || upper.indexOf("VIRTUAL") !== -1;
+
+  if (cityMatch) {
+    return {
+      type: "city",
+      label: cityMatch.city + ", " + cityMatch.state,
+      shortLabel: cityMatch.city,
+      state: cityMatch.state,
+      telehealth: mentionsTelehealth,
+    };
+  }
+
+  if (mentionsTelehealth && profile.care_state) {
+    return {
+      type: "telehealth",
+      label: raw,
+      shortLabel: raw,
+      state: profile.care_state,
+      telehealth: true,
+    };
+  }
+
+  if (isStateOnly || upper.indexOf("CALIFORNIA") !== -1) {
+    return {
+      type: "state",
+      label: raw,
+      shortLabel: raw,
+      state: profile.care_state,
+      telehealth: true,
+    };
+  }
+
+  return {
+    type: "regional",
+    label: raw,
+    shortLabel: raw,
+    state: profile.care_state,
+    telehealth: mentionsTelehealth,
+  };
+}
+
+function buildLocationAwareSummary(profile, hasRefinements) {
+  var intent = getLocationIntent(profile);
+  if (!intent) {
+    return hasRefinements
+      ? "We balance care constraints first, then bipolar-specific fit and trust signals."
+      : "Start with location, then add optional refinements only if you want a tighter shortlist.";
+  }
+
+  if (!hasRefinements && intent.type === "city") {
+    return (
+      "We anchored this shortlist to " +
+      intent.shortLabel +
+      " first, then widened carefully to bipolar fit, trust, and the clearest next step. Add refinements if you want a narrower result set."
+    );
+  }
+
+  if (!hasRefinements && (intent.type === "state" || intent.type === "telehealth")) {
+    return (
+      "We treated this as a broader " +
+      (intent.state ? intent.state + " " : "") +
+      "telehealth-style search, then ranked for bipolar fit, trust, and practical next steps. Add refinements if you want a tighter shortlist."
+    );
+  }
+
+  if (!hasRefinements) {
+    return "We anchored this shortlist to your location first, then balanced bipolar fit, trust, and the clearest next step. Add refinements if you want a narrower result set.";
+  }
+
+  return "We balance care constraints first, then bipolar-specific fit, trust, and the next move that seems most usable.";
+}
+
+function buildLocationAwareResultsMeta(profile, entries, hasRefinements) {
+  var intent = getLocationIntent(profile);
+  var count = Math.min((entries || []).length, 3);
+  if (!intent) {
+    return hasRefinements
+      ? "Showing " + count + " ranked match" + (count > 1 ? "es" : "") + "."
+      : "Showing " +
+          count +
+          " strong location-based option" +
+          (count > 1 ? "s" : "") +
+          ". Add refinements if you want a narrower shortlist.";
+  }
+
+  if (!hasRefinements && intent.type === "city") {
+    return (
+      "Showing " +
+      count +
+      " strong option" +
+      (count > 1 ? "s" : "") +
+      " anchored around " +
+      intent.shortLabel +
+      ". Add refinements if you want a narrower shortlist."
+    );
+  }
+
+  if (!hasRefinements && (intent.type === "state" || intent.type === "telehealth")) {
+    return (
+      "Showing " +
+      count +
+      " broad " +
+      (intent.state ? intent.state + " " : "") +
+      "telehealth-friendly option" +
+      (count > 1 ? "s" : "") +
+      ". Add refinements if you want a narrower shortlist."
+    );
+  }
+
+  return "Showing " + count + " ranked match" + (count > 1 ? "es" : "") + ".";
 }
 
 function getOutcomeOption(outcome) {
@@ -322,6 +618,135 @@ function getShortlistSummary(entry) {
   return renderTags(pills);
 }
 
+function buildMatchStandoutCopy(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var reasons = [];
+
+  if (therapist.verification_status === "editorially_verified") {
+    reasons.push("editorial review is already in place");
+  }
+  if (getEditoriallyVerifiedOperationalCount(therapist) >= 2) {
+    reasons.push("multiple practical details are editor-verified");
+  }
+  if (Number(therapist.bipolar_years_experience || 0) >= 8) {
+    reasons.push("bipolar-specific experience is unusually clear");
+  }
+  if (therapist.medication_management) {
+    reasons.push("medication support is part of the care path");
+  }
+  if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
+    reasons.push("the availability context is clearer than usual");
+  }
+
+  if (!reasons.length) {
+    return "This option is worth a closer look because the profile gives a clearer-than-usual picture of fit and next-step logistics.";
+  }
+
+  return "This option stands out because " + reasons.slice(0, 2).join(" and ") + ".";
+}
+
+function buildMatchTrustSnapshot(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var recentApplied = getRecentAppliedSummary(therapist);
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  var operationalTrust = getOperationalTrustSummary(therapist);
+  var readiness = getTherapistMatchReadiness(therapist);
+  var quality = getTherapistMerchandisingQuality(therapist);
+
+  if (recentApplied) {
+    return recentApplied.label + ". " + recentApplied.note;
+  }
+  if (recentConfirmation) {
+    return recentConfirmation.label + ". " + recentConfirmation.note;
+  }
+  if (operationalTrust) {
+    return (
+      operationalTrust +
+      " " +
+      (readiness.score >= 85 || quality.score >= 90
+        ? "Overall, this looks more decision-ready than average."
+        : "A few details may still be worth confirming directly.")
+    );
+  }
+  return "Core fit details are present, but some practical trust details may still need direct confirmation.";
+}
+
+function buildMatchReachabilitySnapshot(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var contactReadiness = getContactReadiness(entry);
+  var route = contactReadiness ? contactReadiness.route : "review the full profile first";
+
+  if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
+    return (
+      "Appears reachable, and a recent availability note suggests " +
+      therapist.estimated_wait_time.toLowerCase() +
+      ". The clearest next move is to start with " +
+      route.toLowerCase() +
+      "."
+    );
+  }
+  if (therapist.accepting_new_patients) {
+    return (
+      "Appears to be accepting new patients. The clearest next move is to start with " +
+      route.toLowerCase() +
+      "."
+    );
+  }
+  if (therapist.estimated_wait_time) {
+    return (
+      "A recent availability note suggests " +
+      therapist.estimated_wait_time.toLowerCase() +
+      ", but current openings should still be confirmed directly. The clearest next move is to start with " +
+      route.toLowerCase() +
+      "."
+    );
+  }
+  return "The contact path is clear, but live timing still needs direct confirmation before you rely on it.";
+}
+
+function buildPublicRankingCopy(entry) {
+  var breakdown = entry && entry.evaluation ? entry.evaluation.score_breakdown || {} : {};
+  var weighted = [
+    { label: "practical fit", value: Number(breakdown.practical || 0) || 0 },
+    { label: "bipolar-specific fit", value: Number(breakdown.clinical || 0) || 0 },
+    { label: "reviewed trust signals", value: Number(breakdown.trust || 0) || 0 },
+    { label: "access and follow-through", value: Number(breakdown.access || 0) || 0 },
+  ]
+    .sort(function (a, b) {
+      return b.value - a.value;
+    })
+    .filter(function (item) {
+      return item.value > 0;
+    });
+
+  var topReasons = weighted.slice(0, 2).map(function (item) {
+    return item.label;
+  });
+  var uncertainty = Number(breakdown.uncertainty || 0) || 0;
+
+  if (!topReasons.length) {
+    return "This result rose because the overall fit looked stronger than the alternatives, while still keeping practical unknowns in view.";
+  }
+
+  return (
+    "This result rose mainly because " +
+    topReasons.join(" and ") +
+    " looked stronger here." +
+    (uncertainty > 0
+      ? " We still keep unresolved details in view instead of pretending every field is fully settled."
+      : "")
+  );
+}
+
+function buildCompareModeRankingCopy(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  return (
+    "This comparison view is not trying to invent a full ranked score. Use the trust snapshot, reachability, and contact readiness to decide whether " +
+    (therapist.name || "this option") +
+    " feels like the clearest first contact or a better backup path."
+  );
+}
+
 function renderCompareValue(value) {
   if (Array.isArray(value)) {
     return value.length
@@ -338,6 +763,40 @@ function renderCompareValue(value) {
     return '<span class="compare-sub">Not listed</span>';
   }
   return escapeHtml(String(value));
+}
+
+function getContactPlanRole(plan, slug) {
+  if (!plan || !slug) {
+    return "";
+  }
+  if (plan.first && plan.first.therapist && plan.first.therapist.slug === slug) {
+    return "Contact first";
+  }
+  if (plan.fallback && plan.fallback.therapist && plan.fallback.therapist.slug === slug) {
+    return "Backup if stalled";
+  }
+  return "Keep in reserve";
+}
+
+function getContactPlanNextMove(plan, slug) {
+  if (!plan || !slug) {
+    return "";
+  }
+  if (plan.first && plan.first.therapist && plan.first.therapist.slug === slug) {
+    return (
+      "Start here first. If this path stalls, pivots to " +
+      (plan.fallback && plan.fallback.therapist
+        ? plan.fallback.therapist.name
+        : "your backup option") +
+      " around " +
+      plan.pivotAtLabel +
+      "."
+    );
+  }
+  if (plan.fallback && plan.fallback.therapist && plan.fallback.therapist.slug === slug) {
+    return "Hold this as your backup. Move here if the first outreach hits no response, waitlist, or insurance friction.";
+  }
+  return "Keep this one as a third option if the first two paths do not move cleanly.";
 }
 
 function getCompareDecisionLenses(entries, profile) {
@@ -400,6 +859,7 @@ function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
   var topEntries = entries.slice(0, 3);
   var decisionLenses = getCompareDecisionLenses(entries, latestProfile);
+  var contactPlan = buildContactOrderPlan(latestProfile, entries);
 
   if (compareFocusSlug) {
     topEntries = topEntries.slice().sort(function (a, b) {
@@ -420,6 +880,18 @@ function renderComparison(entries) {
       label: "Decision logic",
       getValue: function (therapist) {
         return decisionLenses[therapist.slug] || [];
+      },
+    },
+    {
+      label: "Contact plan role",
+      getValue: function (therapist) {
+        return getContactPlanRole(contactPlan, therapist.slug);
+      },
+    },
+    {
+      label: "Next move if you choose this",
+      getValue: function (therapist) {
+        return getContactPlanNextMove(contactPlan, therapist.slug);
       },
     },
     {
@@ -568,6 +1040,17 @@ function renderComparison(entries) {
 
   root.innerHTML =
     '<section class="match-compare"><div class="match-compare-header"><h3>Compare the shortlist side by side</h3><p>Use this to narrow down the top options before opening full profiles.</p>' +
+    (contactPlan && contactPlan.first
+      ? '<p class="compare-focus-note" style="margin-top:0.55rem">' +
+        escapeHtml(
+          "If you are only contacting one person first, start with " +
+            contactPlan.first.therapist.name +
+            (contactPlan.fallback && contactPlan.fallback.therapist
+              ? " and hold " + contactPlan.fallback.therapist.name + " as backup."
+              : "."),
+        ) +
+        "</p>"
+      : "") +
     (compareFocusSlug
       ? '<div class="compare-focus-note">Focused on: ' +
         escapeHtml(
@@ -730,9 +1213,11 @@ function renderEditorialShortcuts(entries, profile) {
 }
 
 function buildRequestSummary(profile) {
+  var hasRefinements = hasMeaningfulRefinements(profile);
   var summary = [
-    profile.care_state ? "State: " + profile.care_state : "",
-    profile.care_format ? "Format: " + profile.care_format : "",
+    profile.location_query ? "Location: " + profile.location_query : "",
+    !profile.location_query && profile.care_state ? "State: " + profile.care_state : "",
+    profile.care_format && profile.care_format !== "Either" ? "Format: " + profile.care_format : "",
     profile.care_intent && profile.care_intent !== "Either"
       ? "Looking for: " + profile.care_intent
       : "",
@@ -744,7 +1229,36 @@ function buildRequestSummary(profile) {
       : "",
   ].filter(Boolean);
 
+  if (summary.length === 1 && profile.location_query && !hasRefinements) {
+    return (
+      "Location: " +
+      profile.location_query +
+      " • Broad shortlist with optional refinements still open."
+    );
+  }
+
   return summary.length ? summary.join(" • ") : "Shortlist based on your current answers.";
+}
+
+function hasMeaningfulRefinements(profile) {
+  if (!profile) {
+    return false;
+  }
+
+  return Boolean(
+    (profile.care_format && profile.care_format !== "Either") ||
+    (profile.care_intent && profile.care_intent !== "Either") ||
+    (profile.needs_medication_management &&
+      profile.needs_medication_management !== "Open to either") ||
+    profile.insurance ||
+    profile.budget_max ||
+    (profile.urgency && profile.urgency !== "Flexible") ||
+    (profile.priority_mode && profile.priority_mode !== "Best overall fit") ||
+    (profile.bipolar_focus && profile.bipolar_focus.length) ||
+    (profile.preferred_modalities && profile.preferred_modalities.length) ||
+    (profile.population_fit && profile.population_fit.length) ||
+    (profile.language_preferences && profile.language_preferences.length),
+  );
 }
 
 function readCurrentIntakeProfile() {
@@ -752,9 +1266,9 @@ function readCurrentIntakeProfile() {
   if (!form) {
     return null;
   }
-
-  return buildUserMatchProfile({
-    care_state: form.elements.care_state.value,
+  var locationQuery = normalizeLocationQuery(form.elements.location_query.value);
+  var profile = buildUserMatchProfile({
+    care_state: deriveStateFromLocation(locationQuery),
     care_format: form.elements.care_format.value,
     care_intent: form.elements.care_intent.value,
     needs_medication_management: form.elements.needs_medication_management.value,
@@ -767,6 +1281,8 @@ function readCurrentIntakeProfile() {
     population_fit: collectCheckedValues(form, "population_fit"),
     language_preferences: splitCommaSeparated(form.elements.language_preferences.value),
   });
+  profile.location_query = locationQuery;
+  return profile;
 }
 
 function buildAdaptiveIntakeGuidance(profile) {
@@ -896,25 +1412,27 @@ function renderAdaptiveIntakeGuidance(profile) {
 }
 
 function buildProfileVariant(profile, overrides) {
-  return buildUserMatchProfile(
-    Object.assign(
-      {
-        care_state: profile.care_state,
-        care_format: profile.care_format,
-        care_intent: profile.care_intent,
-        needs_medication_management: profile.needs_medication_management,
-        insurance: profile.insurance,
-        budget_max: profile.budget_max,
-        urgency: profile.urgency,
-        priority_mode: profile.priority_mode,
-        bipolar_focus: (profile.bipolar_focus || []).slice(),
-        preferred_modalities: (profile.preferred_modalities || []).slice(),
-        population_fit: (profile.population_fit || []).slice(),
-        language_preferences: (profile.language_preferences || []).slice(),
-      },
-      overrides || {},
-    ),
+  var next = Object.assign(
+    {
+      care_state: profile.care_state,
+      care_format: profile.care_format,
+      care_intent: profile.care_intent,
+      needs_medication_management: profile.needs_medication_management,
+      insurance: profile.insurance,
+      budget_max: profile.budget_max,
+      urgency: profile.urgency,
+      priority_mode: profile.priority_mode,
+      bipolar_focus: (profile.bipolar_focus || []).slice(),
+      preferred_modalities: (profile.preferred_modalities || []).slice(),
+      population_fit: (profile.population_fit || []).slice(),
+      language_preferences: (profile.language_preferences || []).slice(),
+      location_query: profile.location_query || "",
+    },
+    overrides || {},
   );
+  var built = buildUserMatchProfile(next);
+  built.location_query = next.location_query || "";
+  return built;
 }
 
 function buildIntakeTradeoffPreviews(profile) {
@@ -922,12 +1440,16 @@ function buildIntakeTradeoffPreviews(profile) {
     return [];
   }
 
-  var baseEntries = rankTherapistsForUser(therapists, profile, latestLearningSignals);
+  var baseEntries = applyMatchPriorityProminence(
+    rankTherapistsForUser(therapists, profile, latestLearningSignals),
+  );
   var baseTop = baseEntries[0] ? baseEntries[0].therapist.name : "";
   var scenarios = [];
 
   function addScenario(field, label, variantProfile, bodyBuilder) {
-    var variantEntries = rankTherapistsForUser(therapists, variantProfile, latestLearningSignals);
+    var variantEntries = applyMatchPriorityProminence(
+      rankTherapistsForUser(therapists, variantProfile, latestLearningSignals),
+    );
     if (!variantEntries.length) {
       return;
     }
@@ -2361,7 +2883,9 @@ function recordShortlistFeedback(value) {
     value === "positive"
       ? "Saved: this shortlist felt useful."
       : "Saved: this shortlist needs work.";
-  latestEntries = rankTherapistsForUser(therapists, latestProfile, latestLearningSignals);
+  latestEntries = applyMatchPriorityProminence(
+    rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
+  );
   renderResults(latestEntries, latestProfile);
   renderFeedbackInsights();
 }
@@ -2397,7 +2921,9 @@ function recordTherapistFeedback(slug, value) {
         return therapist.slug === slug;
       }).name +
     ".";
-  latestEntries = rankTherapistsForUser(therapists, latestProfile, latestLearningSignals);
+  latestEntries = applyMatchPriorityProminence(
+    rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
+  );
   renderResults(latestEntries, latestProfile);
   renderFeedbackInsights();
 }
@@ -2522,6 +3048,7 @@ function renderAdaptiveMatchActions(profile, entries) {
   var saveButton = document.getElementById("saveShortlist");
   var summary = document.getElementById("matchSummary");
   var hasResults = Boolean(entries && entries.length);
+  var hasRefinements = hasMeaningfulRefinements(profile);
   var contextLabel =
     profile && profile.urgency && profile.urgency !== "Flexible"
       ? "Urgency still matters most, so practicality stays high in the ranking."
@@ -2538,11 +3065,9 @@ function renderAdaptiveMatchActions(profile, entries) {
   }
 
   if (summary && hasResults) {
-    summary.textContent =
-      "We balance care constraints first, then bipolar-specific fit, trust, and the next move that seems most usable.";
+    summary.textContent = buildLocationAwareSummary(profile, hasRefinements);
   } else if (summary) {
-    summary.textContent =
-      "We balance care constraints first, then bipolar-specific fit and trust signals.";
+    summary.textContent = buildLocationAwareSummary(profile, hasRefinements);
   }
 
   if (!note) {
@@ -2611,6 +3136,65 @@ function getRecommendationActionCopy(profile) {
     primaryLabel: "Take this next step",
     secondaryLabel: "Copy first message",
   };
+}
+
+function getRouteSpecificPrimaryLabel(entry, actionCopy) {
+  var routeType = getPreferredRouteType(entry);
+  if (routeType === "booking") {
+    return "Open booking link";
+  }
+  if (routeType === "phone") {
+    return "Call this practice";
+  }
+  if (routeType === "email") {
+    return "Open email draft";
+  }
+  if (routeType === "website") {
+    return "Open contact page";
+  }
+  return actionCopy.primaryLabel;
+}
+
+function buildRouteSpecificCopy(recommendation) {
+  if (!recommendation || !recommendation.entry) {
+    return "";
+  }
+
+  var routeType = getPreferredRouteType(recommendation.entry);
+  if (routeType === "booking") {
+    return "Use the booking link first so you can see the fastest real next opening.";
+  }
+  if (routeType === "phone") {
+    return "Lead with a quick call so you can confirm fit, availability, and next steps in one move.";
+  }
+  if (routeType === "email") {
+    return "Start with a short email so you can confirm availability and fit without overexplaining.";
+  }
+  if (routeType === "website") {
+    return "Use the website contact path first, then keep the profile open so you can cross-check details while you reach out.";
+  }
+  return "Start with the clearest contact route first, then use the full profile only if you need more detail.";
+}
+
+function buildRecommendedMessageFocus(profile, recommendation) {
+  var cues = [];
+  if (recommendation && recommendation.segmentCue) {
+    cues.push(recommendation.segmentCue);
+  }
+  if (profile && profile.insurance) {
+    cues.push("Ask early whether they take " + profile.insurance + ".");
+  }
+  if (profile && profile.urgency && profile.urgency !== "Flexible") {
+    cues.push("Mention your timing so they can respond with a realistic next opening.");
+  }
+  if (profile && profile.needs_medication_management === "Yes") {
+    cues.push("Say clearly that medication support matters for you.");
+  }
+
+  return (
+    cues[0] ||
+    "Keep the first message short, practical, and focused on fit, availability, and next steps."
+  );
 }
 
 function getExecutionStrategyCopy(profile) {
@@ -2700,8 +3284,33 @@ function restoreProfileFromUrl() {
     return null;
   }
 
-  return buildUserMatchProfile({
-    care_state: params.get("care_state") || "",
+  var intakeKeys = [
+    "location_query",
+    "care_state",
+    "care_format",
+    "care_intent",
+    "needs_medication_management",
+    "insurance",
+    "budget_max",
+    "urgency",
+    "priority_mode",
+    "bipolar_focus",
+    "preferred_modalities",
+    "population_fit",
+    "language_preferences",
+  ];
+
+  var hasIntakeParams = intakeKeys.some(function (key) {
+    return String(params.get(key) || "").trim() !== "";
+  });
+
+  if (!hasIntakeParams) {
+    return null;
+  }
+
+  var locationQuery = params.get("location_query") || "";
+  var profile = buildUserMatchProfile({
+    care_state: deriveStateFromLocation(locationQuery) || params.get("care_state") || "",
     care_format: params.get("care_format") || "Either",
     care_intent: params.get("care_intent") || "Either",
     needs_medication_management: params.get("needs_medication_management") || "Open to either",
@@ -2714,6 +3323,8 @@ function restoreProfileFromUrl() {
     population_fit: splitCommaSeparated(params.get("population_fit") || ""),
     language_preferences: splitCommaSeparated(params.get("language_preferences") || ""),
   });
+  profile.location_query = locationQuery;
+  return profile;
 }
 
 function restoreShortlistFromUrl() {
@@ -2732,7 +3343,7 @@ function hydrateForm(profile) {
   }
 
   var form = document.getElementById("matchForm");
-  form.elements.care_state.value = profile.care_state || "";
+  form.elements.location_query.value = profile.location_query || profile.care_state || "";
   form.elements.care_format.value = profile.care_format || "Either";
   form.elements.care_intent.value = profile.care_intent || "Either";
   form.elements.needs_medication_management.value =
@@ -3193,6 +3804,32 @@ function buildRecommendedOutreachDraft(recommendation, profile) {
   return [introLine, context, ask].filter(Boolean).join("\n\n");
 }
 
+function getEntryRankPosition(slug) {
+  if (!slug || !Array.isArray(latestEntries)) {
+    return 0;
+  }
+  return (
+    latestEntries.findIndex(function (entry) {
+      return entry && entry.therapist && entry.therapist.slug === slug;
+    }) + 1
+  );
+}
+
+function buildMatchTrackingPayload(slug, extra) {
+  var payload = Object.assign(
+    {
+      therapist_slug: slug || "",
+      rank_position: getEntryRankPosition(slug) || "",
+      result_count: Array.isArray(latestEntries) ? latestEntries.length : 0,
+      top_slug:
+        latestEntries[0] && latestEntries[0].therapist ? latestEntries[0].therapist.slug : "",
+      strategy: buildAdaptiveStrategySnapshot(latestProfile),
+    },
+    extra || {},
+  );
+  return payload;
+}
+
 async function copyRecommendedOutreachDraft() {
   var recommendation = buildFirstContactRecommendation(latestProfile, latestEntries);
   if (!recommendation) {
@@ -3202,10 +3839,12 @@ async function copyRecommendedOutreachDraft() {
   var draft = buildRecommendedOutreachDraft(recommendation, latestProfile);
   try {
     await navigator.clipboard.writeText(draft);
-    trackFunnelEvent("match_recommended_draft_copied", {
-      therapist_slug: recommendation.therapist.slug,
-      strategy: buildAdaptiveStrategySnapshot(latestProfile),
-    });
+    trackFunnelEvent(
+      "match_recommended_draft_copied",
+      buildMatchTrackingPayload(recommendation.therapist.slug, {
+        route: recommendation.route,
+      }),
+    );
     setActionState(true, "Recommended outreach draft copied.");
   } catch (_error) {
     setActionState(true, "Unable to copy the outreach draft automatically on this device.");
@@ -3217,11 +3856,12 @@ function openRecommendedOutreach() {
   if (!recommendation) {
     return;
   }
-  trackFunnelEvent("match_recommended_outreach_started", {
-    therapist_slug: recommendation.therapist.slug,
-    route: recommendation.route,
-    strategy: buildAdaptiveStrategySnapshot(latestProfile),
-  });
+  trackFunnelEvent(
+    "match_recommended_outreach_started",
+    buildMatchTrackingPayload(recommendation.therapist.slug, {
+      route: recommendation.route,
+    }),
+  );
 
   var preferred = getPreferredOutreach(recommendation.entry);
   if (preferred && String(preferred.href || "").startsWith("mailto:")) {
@@ -3296,7 +3936,9 @@ function recordRecommendedOutreachOutcome(outcome) {
   writeOutreachOutcomes(outcomes.slice(0, 100));
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   if (latestProfile) {
-    latestEntries = rankTherapistsForUser(therapists, latestProfile, latestLearningSignals);
+    latestEntries = applyMatchPriorityProminence(
+      rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
+    );
   }
   renderResults(latestEntries, latestProfile);
   renderFirstContactRecommendation(latestProfile, latestEntries);
@@ -3348,7 +3990,9 @@ function recordEntryOutreachOutcome(slug, outcome) {
   writeOutreachOutcomes(outcomes.slice(0, 150));
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   if (latestProfile) {
-    latestEntries = rankTherapistsForUser(therapists, latestProfile, latestLearningSignals);
+    latestEntries = applyMatchPriorityProminence(
+      rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
+    );
   }
   renderResults(latestEntries, latestProfile);
   setActionState(
@@ -3465,6 +4109,12 @@ async function copyFallbackOutreachDraft() {
 
   try {
     await navigator.clipboard.writeText(buildEntryOutreachDraft(fallback.entry, latestProfile));
+    trackFunnelEvent(
+      "match_fallback_draft_copied",
+      buildMatchTrackingPayload(fallback.therapist.slug, {
+        route: fallback.route,
+      }),
+    );
     setActionState(true, "Fallback outreach draft copied.");
   } catch (_error) {
     setActionState(true, "Unable to copy the fallback outreach draft automatically.");
@@ -3476,6 +4126,14 @@ function openFallbackOutreach() {
   if (!fallback) {
     return;
   }
+
+  trackFunnelEvent(
+    "match_fallback_outreach_started",
+    buildMatchTrackingPayload(fallback.therapist.slug, {
+      route: fallback.route,
+      trigger: fallback.triggerLabel,
+    }),
+  );
 
   var preferred = getPreferredOutreach(fallback.entry);
   if (preferred && String(preferred.href || "").startsWith("mailto:")) {
@@ -3522,7 +4180,9 @@ function renderFallbackRecommendation(profile, entries) {
     escapeHtml(fallback.route) +
     '</div></div><a href="therapist.html?slug=' +
     encodeURIComponent(fallback.therapist.slug) +
-    '" class="btn-secondary" style="width:auto">Review profile</a></div><div class="first-contact-body"><p><strong>Why pivot now:</strong> ' +
+    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+    escapeHtml(fallback.therapist.slug) +
+    '" data-profile-link-context="fallback">Review profile</a></div><div class="first-contact-body"><p><strong>Why pivot now:</strong> ' +
     escapeHtml(
       "The first outreach is currently marked as " +
         fallback.triggerLabel.toLowerCase() +
@@ -3576,6 +4236,18 @@ function renderFallbackRecommendation(profile, entries) {
       copyFallbackOutreachDraft();
     });
   }
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "result",
+        }),
+      );
+    });
+  });
 }
 
 function renderFirstContactRecommendation(profile, entries) {
@@ -3594,6 +4266,9 @@ function renderFirstContactRecommendation(profile, entries) {
   var responsivenessNote = getResponsivenessSignalNote(recommendation.therapist);
   var actionCopy = getRecommendationActionCopy(profile);
   var gentleStrategyExplanation = getGentleStrategyExplanation(profile);
+  var routeSpecificPrimaryLabel = getRouteSpecificPrimaryLabel(recommendation.entry, actionCopy);
+  var routeSpecificCopy = buildRouteSpecificCopy(recommendation);
+  var messageFocus = buildRecommendedMessageFocus(profile, recommendation);
 
   root.innerHTML =
     '<section class="first-contact-reco"><div class="first-contact-header"><h3>' +
@@ -3611,13 +4286,28 @@ function renderFirstContactRecommendation(profile, entries) {
     escapeHtml(recommendation.route) +
     '</div></div><a href="therapist.html?slug=' +
     encodeURIComponent(recommendation.therapist.slug) +
-    '" class="btn-secondary" style="width:auto">Review profile</a></div><div class="first-contact-body"><p><strong>Why start here:</strong> ' +
+    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+    escapeHtml(recommendation.therapist.slug) +
+    '" data-profile-link-context="recommended">Review profile</a></div><div class="first-contact-body"><p><strong>Why start here:</strong> ' +
     escapeHtml(
       "This therapist is a strong first outreach because " + recommendation.rationale + ".",
     ) +
     "</p><p><strong>What likely happens next:</strong> " +
     escapeHtml(recommendation.firstStep) +
     "</p>" +
+    '<div class="first-contact-summary-grid">' +
+    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">Best route</div><div class="first-contact-summary-value">' +
+    escapeHtml(recommendation.route) +
+    "</div></div>" +
+    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">Likely next step</div><div class="first-contact-summary-value">' +
+    escapeHtml(recommendation.firstStep) +
+    "</div></div>" +
+    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">What to lead with</div><div class="first-contact-summary-value">' +
+    escapeHtml(messageFocus) +
+    "</div></div></div>" +
+    '<div class="first-contact-signal"><strong>How to use this route:</strong> ' +
+    escapeHtml(routeSpecificCopy) +
+    "</div>" +
     (recommendation.segmentCue
       ? '<div class="first-contact-signal"><strong>How to approach this outreach:</strong> ' +
         escapeHtml(recommendation.segmentCue) +
@@ -3658,7 +4348,7 @@ function renderFirstContactRecommendation(profile, entries) {
         "</div>"
       : "") +
     '<div class="first-contact-actions"><button type="button" class="btn-primary" id="recommendedOutreachAction">' +
-    escapeHtml(actionCopy.primaryLabel) +
+    escapeHtml(routeSpecificPrimaryLabel) +
     '</button><button type="button" class="btn-secondary" id="copyRecommendedDraft">' +
     escapeHtml(actionCopy.secondaryLabel) +
     '</button></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">What happened after outreach?</div><div class="first-contact-tracker-actions">' +
@@ -3703,6 +4393,18 @@ function renderFirstContactRecommendation(profile, entries) {
   root.querySelectorAll("[data-outreach-outcome]").forEach(function (button) {
     button.addEventListener("click", function () {
       recordRecommendedOutreachOutcome(button.getAttribute("data-outreach-outcome"));
+    });
+  });
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "result",
+        }),
+      );
     });
   });
 }
@@ -4054,6 +4756,7 @@ function renderOutreachPanel(entries) {
         var segmentCue = getEntrySegmentCue(latestProfile, entry);
         var latestOutcome = getLatestOutreachOutcome(entry.therapist.slug);
         var shortcutSignal = shortcutInfluence[entry.therapist.slug] || null;
+        var contactPlanRole = getContactPlanRole(contactPlan, entry.therapist.slug);
         return (
           '<article class="outreach-card"><div class="outreach-card-top"><div><h4>' +
           escapeHtml(entry.therapist.name) +
@@ -4061,11 +4764,13 @@ function renderOutreachPanel(entries) {
           escapeHtml(entry.therapist.credentials || "") +
           (entry.therapist.title ? " · " + escapeHtml(entry.therapist.title) : "") +
           "</p></div>" +
-          (entry.evaluation.shortlist_priority
-            ? '<span class="match-summary-pill">' +
-              escapeHtml(entry.evaluation.shortlist_priority) +
-              "</span>"
-            : "") +
+          (contactPlanRole
+            ? '<span class="match-summary-pill">' + escapeHtml(contactPlanRole) + "</span>"
+            : entry.evaluation.shortlist_priority
+              ? '<span class="match-summary-pill">' +
+                escapeHtml(entry.evaluation.shortlist_priority) +
+                "</span>"
+              : "") +
           "</div>" +
           (entry.evaluation.shortlist_note
             ? '<div class="outreach-note">Your note: ' +
@@ -4117,6 +4822,11 @@ function renderOutreachPanel(entries) {
               escapeHtml(primaryContact.href) +
               '"' +
               (primaryContact.external ? ' target="_blank" rel="noopener"' : "") +
+              ' data-entry-contact-link="' +
+              escapeHtml(entry.therapist.slug) +
+              '" data-entry-route-label="' +
+              escapeHtml(primaryContact.label) +
+              '"' +
               ">" +
               escapeHtml(primaryContact.label) +
               "</a>"
@@ -4126,25 +4836,33 @@ function renderOutreachPanel(entries) {
           '">Copy tailored draft</button>' +
           '<a class="outreach-link" href="therapist.html?slug=' +
           encodeURIComponent(entry.therapist.slug) +
+          '" data-match-profile-link="' +
+          escapeHtml(entry.therapist.slug) +
+          '" data-profile-link-context="outreach-card' +
           '">Review profile</a>' +
           "</div></article>"
         );
       })
       .join("") +
-    '</div><div class="concierge-panel" id="conciergePanel"><div class="concierge-panel-top"><div><h4>Want a second set of eyes before reaching out?</h4><p>Capture the hesitation moment here. This stays local on this device for now, but it gives us a structured concierge request we can operationalize later.</p></div><div class="concierge-pill">Prototype concierge</div></div><div class="concierge-shortlist">Focused on: ' +
+    '</div><div class="concierge-panel" id="conciergePanel"><div class="concierge-panel-top"><div><h4>Want a second set of eyes before reaching out?</h4><p>Save a structured help request here if you want help narrowing the shortlist or deciding who to contact first.</p></div><div class="concierge-pill">Help request</div></div><div class="concierge-shortlist">Focused on: ' +
     entries
       .slice(0, 3)
       .map(function (entry) {
         return escapeHtml(entry.therapist.name);
       })
       .join(" • ") +
-    '</div><form class="concierge-form" id="conciergeForm"><div class="concierge-grid"><div class="match-group"><label for="concierge_name">First Name</label><input id="concierge_name" name="requester_name" type="text" placeholder="Optional" /></div><div class="match-group"><label for="concierge_followup">Preferred Follow-Up</label><select id="concierge_followup" name="follow_up_preference"><option value="Email me later">Email me later</option><option value="Text me later">Text me later</option><option value="Call me later">Call me later</option><option value="No follow-up yet">No follow-up yet</option></select></div><div class="match-group"><label for="concierge_topic">What do you want help with?</label><select id="concierge_topic" name="help_topic"><option value="Who should I contact first?">Who should I contact first?</option><option value="Which option seems like the best fit?">Which option seems like the best fit?</option><option value="Help me think through insurance and cost">Help me think through insurance and cost</option><option value="Help me compare availability and practicality">Help me compare availability and practicality</option></select></div><div class="match-group"><label for="concierge_note">What feels uncertain?</label><textarea id="concierge_note" name="request_note" rows="4" placeholder="Examples: I need evening availability, I am unsure about medication support, I only want to contact one person first, I am worried about insurance coverage."></textarea></div></div><div class="concierge-actions"><button type="button" class="btn-secondary" id="saveConciergeRequest">Save concierge request</button><button type="button" class="btn-primary" id="copyConciergeBrief">Copy concierge brief</button></div><div class="concierge-status" id="conciergeStatus">This is local-only until live concierge support is connected.</div></form></div></section>';
+    '</div><form class="concierge-form" id="conciergeForm"><div class="concierge-grid"><div class="match-group"><label for="concierge_name">First Name</label><input id="concierge_name" name="requester_name" type="text" placeholder="Optional" /></div><div class="match-group"><label for="concierge_followup">Preferred Follow-Up</label><select id="concierge_followup" name="follow_up_preference"><option value="Email me later">Email me later</option><option value="Text me later">Text me later</option><option value="Call me later">Call me later</option><option value="No follow-up yet">No follow-up yet</option></select></div><div class="match-group"><label for="concierge_topic">What do you want help with?</label><select id="concierge_topic" name="help_topic"><option value="Who should I contact first?">Who should I contact first?</option><option value="Which option seems like the best fit?">Which option seems like the best fit?</option><option value="Help me think through insurance and cost">Help me think through insurance and cost</option><option value="Help me compare availability and practicality">Help me compare availability and practicality</option></select></div><div class="match-group"><label for="concierge_note">What feels uncertain?</label><textarea id="concierge_note" name="request_note" rows="4" placeholder="Examples: I need evening availability, I am unsure about medication support, I only want to contact one person first, I am worried about insurance coverage."></textarea></div></div><div class="concierge-actions"><button type="button" class="btn-secondary" id="saveConciergeRequest">Save help request</button><button type="button" class="btn-primary" id="copyConciergeBrief">Copy help summary</button></div><div class="concierge-status" id="conciergeStatus">Saved on this device so you can come back to it later.</div></form></div></section>';
 
   var copyButton = document.getElementById("copyOutreachPlan");
   if (copyButton) {
     copyButton.addEventListener("click", async function () {
       try {
         await navigator.clipboard.writeText(buildOutreachPlan(entries));
+        trackFunnelEvent("match_outreach_plan_copied", {
+          result_count: entries.length,
+          top_slug: entries[0] ? entries[0].therapist.slug : "",
+          strategy: buildAdaptiveStrategySnapshot(latestProfile),
+        });
         setActionState(true, "Outreach plan copied.");
       } catch (_error) {
         setActionState(
@@ -4160,6 +4878,17 @@ function renderOutreachPanel(entries) {
     reminderButton.addEventListener("click", async function () {
       try {
         await navigator.clipboard.writeText(buildPivotReminderText(contactPlan));
+        trackFunnelEvent("match_pivot_reminder_copied", {
+          therapist_slug:
+            contactPlan.first && contactPlan.first.therapist
+              ? contactPlan.first.therapist.slug
+              : "",
+          fallback_slug:
+            contactPlan.fallback && contactPlan.fallback.therapist
+              ? contactPlan.fallback.therapist.slug
+              : "",
+          strategy: buildAdaptiveStrategySnapshot(latestProfile),
+        });
         setActionState(true, "Pivot reminder copied.");
       } catch (_error) {
         setActionState(true, "Unable to copy the pivot reminder automatically.");
@@ -4178,10 +4907,42 @@ function renderOutreachPanel(entries) {
       }
       try {
         await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
+        trackFunnelEvent(
+          "match_entry_draft_copied",
+          buildMatchTrackingPayload(entry.therapist.slug, {
+            route: getPreferredOutreach(entry)
+              ? getPreferredOutreach(entry).label
+              : "Review profile",
+          }),
+        );
         setActionState(true, "Tailored outreach draft copied for " + entry.therapist.name + ".");
       } catch (_error) {
         setActionState(true, "Unable to copy the tailored outreach draft automatically.");
       }
+    });
+  });
+
+  root.querySelectorAll("[data-entry-contact-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-entry-contact-link") || "";
+      trackFunnelEvent(
+        "match_entry_outreach_started",
+        buildMatchTrackingPayload(slug, {
+          route: link.getAttribute("data-entry-route-label") || "",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "result",
+        }),
+      );
     });
   });
 
@@ -4218,14 +4979,20 @@ function renderResults(entries, profile) {
   var adaptiveGuidance = document.getElementById("matchAdaptiveGuidance");
   var firstContact = document.getElementById("matchFirstContact");
   var fallbackContact = document.getElementById("matchFallbackContact");
+  var hasRefinements = hasMeaningfulRefinements(profile);
+  var contactPlan = buildContactOrderPlan(profile, entries);
 
   if (!entries.length) {
-    meta.textContent = "No good match surfaced from the current constraints.";
+    meta.textContent = hasRefinements
+      ? "No good match surfaced from the current constraints."
+      : "No strong match surfaced for this location yet.";
     summary.textContent = buildRequestSummary(profile);
+    renderMatchLaunchExplainer([], profile);
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     root.className = "match-empty";
-    root.innerHTML =
-      "No strong match appeared with the current requirements. Try widening care format, insurance, or urgency.";
+    root.innerHTML = hasRefinements
+      ? "No strong match appeared with the current requirements. Try widening care format, insurance, or urgency."
+      : "No strong match surfaced for this location yet. Try a nearby city, California telehealth, or a few optional refinements.";
     outreach.innerHTML = "";
     compare.innerHTML = "";
     adaptiveGuidance.innerHTML = "";
@@ -4235,15 +5002,11 @@ function renderResults(entries, profile) {
     return;
   }
 
-  meta.textContent =
-    "Showing " +
-    Math.min(entries.length, 3) +
-    " ranked match" +
-    (entries.length > 1 ? "es" : "") +
-    ".";
+  meta.textContent = buildLocationAwareResultsMeta(profile, entries, hasRefinements);
   summary.textContent = profile
     ? buildRequestSummary(profile)
     : "Comparing a shortlist saved from the directory.";
+  renderMatchLaunchExplainer(entries, profile);
   if (!currentJourneyId) {
     currentJourneyId = buildJourneyId(profile, entries);
   }
@@ -4268,6 +5031,16 @@ function renderResults(entries, profile) {
         var responsivenessNote = getResponsivenessSignalNote(therapist);
         var segmentLearning = getSegmentLearningCopy(evaluation);
         var shortcutSignal = shortcutInfluence[therapist.slug] || null;
+        var standoutCopy = buildMatchStandoutCopy(entry);
+        var trustSnapshot = buildMatchTrustSnapshot(entry);
+        var reachabilitySnapshot = buildMatchReachabilitySnapshot(entry);
+        var contactPlanRole = getContactPlanRole(contactPlan, therapist.slug);
+        var contactPlanNextMove = getContactPlanNextMove(contactPlan, therapist.slug);
+        var showScoredPills =
+          Boolean(profile) &&
+          (Number(evaluation.confidence_score || 0) > 0 ||
+            Number(evaluation.completeness_score || 0) > 0 ||
+            Boolean(responsivenessLabel));
         var reasons = (evaluation.reasons || [])
           .map(function (reason) {
             return "<li>" + escapeHtml(reason) + "</li>";
@@ -4308,10 +5081,30 @@ function renderResults(entries, profile) {
           "</div>" +
           '<div class="match-summary-pills">' +
           getShortlistSummary(entry) +
+          (contactPlanRole
+            ? '<span class="match-summary-pill">' + escapeHtml(contactPlanRole) + "</span>"
+            : "") +
           "</div>" +
           '<p class="match-explanation">' +
-          escapeHtml(buildMatchExplanation(entry)) +
+          escapeHtml(
+            profile
+              ? buildMatchExplanation(entry)
+              : "Saved directly from the directory for side-by-side comparison. Use the decision snapshot and contact readiness to judge who feels strongest to contact first.",
+          ) +
           "</p>" +
+          '<div class="match-section"><h4>Decision snapshot</h4><div class="match-snapshot-grid">' +
+          '<div class="match-snapshot-card"><div class="match-snapshot-label">Why this stands out</div><div class="match-snapshot-copy">' +
+          escapeHtml(standoutCopy) +
+          "</div></div>" +
+          '<div class="match-snapshot-card"><div class="match-snapshot-label">Trust snapshot</div><div class="match-snapshot-copy">' +
+          escapeHtml(trustSnapshot) +
+          "</div></div>" +
+          '<div class="match-snapshot-card"><div class="match-snapshot-label">Reachability</div><div class="match-snapshot-copy">' +
+          escapeHtml(reachabilitySnapshot) +
+          "</div></div>" +
+          '<div class="match-snapshot-card"><div class="match-snapshot-label">Contact plan</div><div class="match-snapshot-copy">' +
+          escapeHtml(contactPlanNextMove) +
+          "</div></div></div></div>" +
           (segmentLearning
             ? '<div class="match-segment-learning">' + escapeHtml(segmentLearning) + "</div>"
             : "") +
@@ -4320,13 +5113,15 @@ function renderResults(entries, profile) {
               escapeHtml(getShortcutInfluenceCopy(shortcutSignal)) +
               "</div>"
             : "") +
-          '<div class="match-summary-pills">' +
-          renderTags([
-            "Confidence " + evaluation.confidence_score + "/100",
-            "Profile completeness " + evaluation.completeness_score + "/100",
-            responsivenessLabel,
-          ]) +
-          "</div>" +
+          (showScoredPills
+            ? '<div class="match-summary-pills">' +
+              renderTags([
+                "Confidence " + evaluation.confidence_score + "/100",
+                "Profile completeness " + evaluation.completeness_score + "/100",
+                responsivenessLabel,
+              ]) +
+              "</div>"
+            : "") +
           (contactReadiness
             ? '<div class="match-section"><h4>Contact readiness</h4><div class="contact-readiness-card tone-' +
               escapeHtml(contactReadiness.tone) +
@@ -4391,20 +5186,26 @@ function renderResults(entries, profile) {
             );
           }).join("") +
           "</div></div>" +
-          '<div class="match-section"><h4>Score breakdown</h4><div class="match-summary-pills">' +
-          renderTags([
-            "Access " + evaluation.score_breakdown.access,
-            "Practical " + evaluation.score_breakdown.practical,
-            "Clinical " + evaluation.score_breakdown.clinical,
-            "Trust " + evaluation.score_breakdown.trust,
-            "Uncertainty " + evaluation.score_breakdown.uncertainty,
-            "Learning " + evaluation.score_breakdown.learned,
-          ]) +
-          '</div><p class="match-score-note">' +
-          escapeHtml(
-            "This rank is built from eligibility, practical fit, clinical fit, trust signals, uncertainty penalties, and a light feedback-learning layer.",
-          ) +
-          "</p></div>" +
+          (isInternalMode
+            ? '<div class="match-section"><h4>Score breakdown</h4><div class="match-summary-pills">' +
+              renderTags([
+                "Access " + evaluation.score_breakdown.access,
+                "Practical " + evaluation.score_breakdown.practical,
+                "Clinical " + evaluation.score_breakdown.clinical,
+                "Trust " + evaluation.score_breakdown.trust,
+                "Uncertainty " + evaluation.score_breakdown.uncertainty,
+                "Learning " + evaluation.score_breakdown.learned,
+              ]) +
+              '</div><p class="match-score-note">' +
+              escapeHtml(
+                "This rank is built from eligibility, practical fit, clinical fit, trust signals, uncertainty penalties, and a light feedback-learning layer.",
+              ) +
+              "</p></div>"
+            : '<div class="match-section"><h4>Why the rank looks this way</h4><p class="match-score-note">' +
+              escapeHtml(
+                profile ? buildPublicRankingCopy(entry) : buildCompareModeRankingCopy(entry),
+              ) +
+              "</p></div>") +
           "</article>"
         );
       })
@@ -4467,12 +5268,15 @@ function handleSubmit(event) {
   var profile = readCurrentIntakeProfile();
 
   if (!profile.care_state) {
-    document.getElementById("resultsMeta").textContent = "Enter a state to continue.";
+    document.getElementById("resultsMeta").textContent =
+      "Enter a location we can match, like Los Angeles, Pasadena, or CA.";
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
-  var entries = rankTherapistsForUser(therapists, profile, latestLearningSignals);
+  var entries = applyMatchPriorityProminence(
+    rankTherapistsForUser(therapists, profile, latestLearningSignals),
+  );
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
     care_intent: profile.care_intent,
@@ -4559,18 +5363,22 @@ function resetForm() {
   form.reset();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
-  document.getElementById("resultsMeta").textContent = "We will suggest up to 3 strong options.";
+  document.getElementById("resultsMeta").textContent =
+    "Start with location first. We will suggest up to 3 strong options, and you can add refinements if you want a narrower shortlist.";
   document.getElementById("matchSummary").textContent =
-    "We balance care constraints first, then bipolar-specific fit and trust signals.";
+    "Start with location, then add optional refinements only if you want a tighter shortlist.";
   latestProfile = null;
   latestEntries = [];
   currentJourneyId = null;
   compareFocusSlug = "";
   window.history.replaceState({}, "", "match.html");
-  setActionState(false, "Run a match to save, share, or ask for help comparing your shortlist.");
+  setActionState(
+    false,
+    "Run a match to save, share, or get a little help narrowing your shortlist.",
+  );
   document.getElementById("matchResults").className = "match-empty";
   document.getElementById("matchResults").innerHTML =
-    "Start by answering the intake questions. We’ll show a ranked shortlist with reasons and cautions.";
+    "Start with your location. We’ll turn it into a calmer shortlist with clearer reasons, trust snapshots, and next steps.";
   document.getElementById("matchFirstContact").innerHTML = "";
   document.getElementById("matchFallbackContact").innerHTML = "";
   document.getElementById("matchAdaptiveGuidance").innerHTML = "";
@@ -4579,7 +5387,7 @@ function resetForm() {
   document.getElementById("matchCompare").innerHTML = "";
   updateShortlistFeedbackUi("");
   document.getElementById("feedbackStatus").textContent =
-    "This is an early internal signal to help improve match quality over time.";
+    "Your feedback helps improve which therapists rise for searches like this over time.";
 }
 
 (async function init() {
@@ -4659,7 +5467,7 @@ function resetForm() {
     });
     setActionState(
       true,
-      "Use the concierge request form below if you want help narrowing the shortlist.",
+      "Use the help request form below if you want help narrowing the shortlist.",
     );
   });
   document.getElementById("feedbackShortlistPositive").addEventListener("click", function () {
@@ -4676,7 +5484,9 @@ function resetForm() {
   if (restoredProfile) {
     hydrateForm(restoredProfile);
     latestProfile = restoredProfile;
-    latestEntries = rankTherapistsForUser(therapists, restoredProfile, latestLearningSignals);
+    latestEntries = applyMatchPriorityProminence(
+      rankTherapistsForUser(therapists, restoredProfile, latestLearningSignals),
+    );
     renderResults(latestEntries, restoredProfile);
   } else if (!restoredProfile && restoredShortlist.length) {
     renderDirectoryShortlist(restoredShortlist);
