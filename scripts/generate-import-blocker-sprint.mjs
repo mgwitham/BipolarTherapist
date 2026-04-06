@@ -105,8 +105,7 @@ function getPromptMap() {
       "About how many years have you been treating bipolar-spectrum conditions specifically?",
     insurance_accepted:
       "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
-    telehealth_states:
-      "Which states are you currently able to see patients in by telehealth?",
+    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
     license_number:
       "What is your current license number for the license you want displayed on your profile?",
   };
@@ -344,63 +343,59 @@ function getSelectedRows(rows, limit) {
   const sharedAsk = getSharedAskDetails(selectedBaseRows);
 
   return selectedBaseRows.map((row) => {
-      const strongWarnings = String(row.strong_warnings || row.warnings || "")
-        .split("|")
-        .map((item) => item.trim())
-        .filter(Boolean);
-      const sourceFirstFields = strongWarnings.filter(
-        (field) => field === "license_number" || field === "insurance_accepted",
-      );
-      const therapistConfirmationFields = strongWarnings.filter(
-        (field) => field !== "license_number" && field !== "insurance_accepted",
-      );
-      const sourcePathStatus = getSourcePathStatus(
-        sourceFirstFields,
-        therapistConfirmationFields,
-      );
-      let clearanceMove = "";
+    const strongWarnings = String(row.strong_warnings || row.warnings || "")
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const sourceFirstFields = strongWarnings.filter(
+      (field) => field === "license_number" || field === "insurance_accepted",
+    );
+    const therapistConfirmationFields = strongWarnings.filter(
+      (field) => field !== "license_number" && field !== "insurance_accepted",
+    );
+    const sourcePathStatus = getSourcePathStatus(sourceFirstFields, therapistConfirmationFields);
+    let clearanceMove = "";
 
-      if (sourceFirstFields.length && therapistConfirmationFields.length) {
-        clearanceMove =
-          "Try one more public-source pass for " +
-          sourceFirstFields.join(", ") +
-          ", then use therapist confirmation for " +
-          therapistConfirmationFields.join(", ") +
-          ".";
-      } else if (sourceFirstFields.length) {
-        clearanceMove =
-          "Try one more public-source pass for " +
-          sourceFirstFields.join(", ") +
-          " before treating this blocker as confirmation-only.";
-      } else {
-        clearanceMove =
-          "Use therapist confirmation to clear " + therapistConfirmationFields.join(", ") + ".";
-      }
+    if (sourceFirstFields.length && therapistConfirmationFields.length) {
+      clearanceMove =
+        "Try one more public-source pass for " +
+        sourceFirstFields.join(", ") +
+        ", then use therapist confirmation for " +
+        therapistConfirmationFields.join(", ") +
+        ".";
+    } else if (sourceFirstFields.length) {
+      clearanceMove =
+        "Try one more public-source pass for " +
+        sourceFirstFields.join(", ") +
+        " before treating this blocker as confirmation-only.";
+    } else {
+      clearanceMove =
+        "Use therapist confirmation to clear " + therapistConfirmationFields.join(", ") + ".";
+    }
 
-      return {
-        ...row,
-        blocker_status: "Not cleared",
-        blocker_result: "Blocking safe import",
-        source_first_fields: sourceFirstFields.join("|"),
-        therapist_confirmation_fields: therapistConfirmationFields.join("|"),
-        source_path_status: sourcePathStatus,
-        clearance_move: clearanceMove,
-        primary_ask_field:
-          sharedAsk &&
-          strongWarnings.includes(sharedAsk.field)
-            ? sharedAsk.field
-            : strongWarnings[0] || "",
-        add_on_ask_fields: strongWarnings
-          .filter((field) =>
-            sharedAsk && strongWarnings.includes(sharedAsk.field)
-              ? field !== sharedAsk.field
-              : field !== strongWarnings[0],
-          )
-          .join("|"),
-        request_subject: buildBlockerSubject(row.name, strongWarnings, sharedAsk?.field),
-        request_message: buildFieldPrompt(row.name, strongWarnings, sharedAsk?.field),
-      };
-    });
+    return {
+      ...row,
+      blocker_status: "Not cleared",
+      blocker_result: "Blocking safe import",
+      source_first_fields: sourceFirstFields.join("|"),
+      therapist_confirmation_fields: therapistConfirmationFields.join("|"),
+      source_path_status: sourcePathStatus,
+      clearance_move: clearanceMove,
+      primary_ask_field:
+        sharedAsk && strongWarnings.includes(sharedAsk.field)
+          ? sharedAsk.field
+          : strongWarnings[0] || "",
+      add_on_ask_fields: strongWarnings
+        .filter((field) =>
+          sharedAsk && strongWarnings.includes(sharedAsk.field)
+            ? field !== sharedAsk.field
+            : field !== strongWarnings[0],
+        )
+        .join("|"),
+      request_subject: buildBlockerSubject(row.name, strongWarnings, sharedAsk?.field),
+      request_message: buildFieldPrompt(row.name, strongWarnings, sharedAsk?.field),
+    };
+  });
 }
 
 function buildMarkdown(rows, limit) {
@@ -444,9 +439,7 @@ function buildMarkdown(rows, limit) {
     lines.push(`- Strong warnings: ${row.strong_warning_count || "0"}`);
     lines.push(`- Blocking fields: ${row.strong_warnings || row.warnings || "N/A"}`);
     lines.push(`- Source-first fields: ${row.source_first_fields || "None"}`);
-    lines.push(
-      `- Therapist-confirmation fields: ${row.therapist_confirmation_fields || "None"}`,
-    );
+    lines.push(`- Therapist-confirmation fields: ${row.therapist_confirmation_fields || "None"}`);
     lines.push(`- Source path status: ${row.source_path_status || "Unknown"}`);
     lines.push(`- Why this matters: ${row.why_it_matters || "N/A"}`);
     lines.push(`- Clearance move: ${row.clearance_move || row.next_best_move || "N/A"}`);
@@ -474,10 +467,16 @@ function buildMarkdown(rows, limit) {
     lines.push("");
     lines.push("Clearance checklist:");
     lines.push("");
-    lines.push("- [ ] Re-check public sources for any blocker field that can be resolved without guessing.");
-    lines.push("- [ ] If still unresolved, send the confirmation request through the recommended channel.");
+    lines.push(
+      "- [ ] Re-check public sources for any blocker field that can be resolved without guessing.",
+    );
+    lines.push(
+      "- [ ] If still unresolved, send the confirmation request through the recommended channel.",
+    );
     lines.push("- [ ] Mark the confirmation workflow status in admin.");
-    lines.push("- [ ] Only clear the blocker once the live profile or import row is updated truthfully.");
+    lines.push(
+      "- [ ] Only clear the blocker once the live profile or import row is updated truthfully.",
+    );
     lines.push("");
     lines.push("Message:");
     lines.push("");

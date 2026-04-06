@@ -10,12 +10,7 @@ const MARKDOWN_OUTPUT_PATH = path.join(
   "import",
   "generated-overlapping-ask-packet.md",
 );
-const CSV_OUTPUT_PATH = path.join(
-  ROOT,
-  "data",
-  "import",
-  "generated-overlapping-ask-packet.csv",
-);
+const CSV_OUTPUT_PATH = path.join(ROOT, "data", "import", "generated-overlapping-ask-packet.csv");
 const BLOCKER_LIMIT = 3;
 const CONFIRMATION_LIMIT = 5;
 
@@ -185,7 +180,8 @@ function getPromptMap() {
     insurance_accepted:
       "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
     telehealth_states: "Which states are you currently able to see patients in by telehealth?",
-    license_number: "What is your current license number for the license you want displayed on your profile?",
+    license_number:
+      "What is your current license number for the license you want displayed on your profile?",
   };
 }
 
@@ -269,9 +265,7 @@ function getOverlapDetails(rows) {
   }
 
   const blockerIsConfirmationOnly = matchingBlockerRows.every((row) =>
-    ["confirmation_first", "fast_confirmation_win"].includes(
-      String(row.queue_lane || "").trim(),
-    ),
+    ["confirmation_first", "fast_confirmation_win"].includes(String(row.queue_lane || "").trim()),
   );
 
   return {

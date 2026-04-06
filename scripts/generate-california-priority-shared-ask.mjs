@@ -3,12 +3,7 @@ import path from "node:path";
 import process from "node:process";
 
 const ROOT = process.cwd();
-const INPUT_PATH = path.join(
-  ROOT,
-  "data",
-  "import",
-  "california-priority-confirmation-wave.csv",
-);
+const INPUT_PATH = path.join(ROOT, "data", "import", "california-priority-confirmation-wave.csv");
 const MARKDOWN_OUTPUT_PATH = path.join(
   ROOT,
   "data",
@@ -121,13 +116,15 @@ function getSharedAskDetails(rows) {
     counts[field].rows.push(row);
   });
 
-  return Object.values(counts).sort((a, b) => {
-    const countDiff = b.count - a.count;
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.field.localeCompare(b.field);
-  })[0] || null;
+  return (
+    Object.values(counts).sort((a, b) => {
+      const countDiff = b.count - a.count;
+      if (countDiff) {
+        return countDiff;
+      }
+      return a.field.localeCompare(b.field);
+    })[0] || null
+  );
 }
 
 function buildMarkdown(rows, sharedAsk) {

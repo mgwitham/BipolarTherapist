@@ -129,7 +129,9 @@ function buildWebsiteDraft(row) {
 }
 
 function buildDraft(row) {
-  const channel = String(row.recommended_channel || "").trim().toLowerCase();
+  const channel = String(row.recommended_channel || "")
+    .trim()
+    .toLowerCase();
   if (channel === "email") {
     return {
       title: "Email draft",

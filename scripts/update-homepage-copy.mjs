@@ -66,10 +66,7 @@ function getConfig() {
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
     token:
-      process.env.SANITY_API_TOKEN ||
-      rootEnv.SANITY_API_TOKEN ||
-      studioEnv.SANITY_API_TOKEN ||
-      "",
+      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -117,10 +114,9 @@ async function main() {
   const client = getClient(config);
   const homepageFeaturedSlugs = getHomepageFeaturedSlugs();
 
-  const existing = await client.fetch(
-    `*[_type == "homePage" && _id == $id][0]{_id, sections}`,
-    { id: HOMEPAGE_ID },
-  );
+  const existing = await client.fetch(`*[_type == "homePage" && _id == $id][0]{_id, sections}`, {
+    id: HOMEPAGE_ID,
+  });
   const featuredTherapists = await client.fetch(
     `*[_type == "therapist" && slug.current in $slugs]{
       _id,
@@ -158,7 +154,7 @@ async function main() {
                     title: "Clearer next steps",
                     description:
                       "Get a calmer first-contact path, a backup if it stalls, and less guessing about who to contact first.",
-                    };
+                  };
                 }
                 return card;
               })

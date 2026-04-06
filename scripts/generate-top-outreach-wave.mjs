@@ -4,18 +4,8 @@ import process from "node:process";
 
 const ROOT = process.cwd();
 const INPUT_PATH = path.join(ROOT, "data", "import", "generated-overlapping-ask-packet.csv");
-const MARKDOWN_OUTPUT_PATH = path.join(
-  ROOT,
-  "data",
-  "import",
-  "generated-top-outreach-wave.md",
-);
-const CSV_OUTPUT_PATH = path.join(
-  ROOT,
-  "data",
-  "import",
-  "generated-top-outreach-wave.csv",
-);
+const MARKDOWN_OUTPUT_PATH = path.join(ROOT, "data", "import", "generated-top-outreach-wave.md");
+const CSV_OUTPUT_PATH = path.join(ROOT, "data", "import", "generated-top-outreach-wave.csv");
 const DEFAULT_LIMIT = 3;
 
 function parseCsv(content) {

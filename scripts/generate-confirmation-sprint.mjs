@@ -125,8 +125,7 @@ function getPromptMap() {
       "About how many years have you been treating bipolar-spectrum conditions specifically?",
     insurance_accepted:
       "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
-    telehealth_states:
-      "Which states are you currently able to see patients in by telehealth?",
+    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
     license_number:
       "What is your current license number for the license you want displayed on your profile?",
   };
@@ -192,7 +191,11 @@ function getSelectedRows(rows, limit) {
 
 function buildSprintMarkdown(rows, limit) {
   const selectedRows = getSelectedRows(rows, limit);
-  const blockerTheme = getThemeDetails(rows.filter((row) => (row.highest_warning_tier || "").trim() === "strong"), "strong_warnings", 3);
+  const blockerTheme = getThemeDetails(
+    rows.filter((row) => (row.highest_warning_tier || "").trim() === "strong"),
+    "strong_warnings",
+    3,
+  );
   const confirmationTheme = getThemeDetails(selectedRows, "warnings", limit);
   const lines = [
     "# Confirmation Sprint",

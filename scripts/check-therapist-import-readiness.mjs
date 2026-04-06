@@ -4,7 +4,12 @@ import process from "node:process";
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
-const DEFAULT_QUEUE_OUTPUT_PATH = path.join(ROOT, "data", "import", "generated-import-warning-queue.csv");
+const DEFAULT_QUEUE_OUTPUT_PATH = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-import-warning-queue.csv",
+);
 const FIELD_PRIORITY = {
   license_number: 120,
   insurance_accepted: 95,
@@ -115,7 +120,11 @@ function splitList(value) {
 }
 
 function truthy(value) {
-  return ["true", "1", "yes"].includes(String(value || "").trim().toLowerCase());
+  return ["true", "1", "yes"].includes(
+    String(value || "")
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 function getTrustPriorityFields(row) {
@@ -183,7 +192,11 @@ function buildReadiness(row) {
     errors.push("editorially verified listing is missing sourceReviewedAt");
   }
 
-  if (verificationStatus === "editorially_verified" && !row.sourceUrl && !row.supportingSourceUrls) {
+  if (
+    verificationStatus === "editorially_verified" &&
+    !row.sourceUrl &&
+    !row.supportingSourceUrls
+  ) {
     errors.push("editorially verified listing has no public source trail");
   }
 
@@ -232,7 +245,9 @@ function getWarningFields(warnings) {
     .map((warning) =>
       warning.type === "missing_trust_priority_field"
         ? String(warning.field || "").trim()
-        : String(warning.message || "").replace("missing trust-priority field: ", "").trim(),
+        : String(warning.message || "")
+            .replace("missing trust-priority field: ", "")
+            .trim(),
     )
     .filter(Boolean);
 }
@@ -308,9 +323,7 @@ function getProfileStrengthScore(row) {
 }
 
 function getQueueLane(row, warnings) {
-  const warningSet = new Set(
-    getWarningFields(warnings),
-  );
+  const warningSet = new Set(getWarningFields(warnings));
   const therapistReportedFieldCount = splitList(row.therapistReportedFields).length;
 
   if (warningSet.has("license_number")) {
@@ -333,9 +346,7 @@ function getQueueLane(row, warnings) {
 }
 
 function buildNextBestMove(warnings) {
-  const warningSet = new Set(
-    getWarningFields(warnings),
-  );
+  const warningSet = new Set(getWarningFields(warnings));
 
   if (warningSet.has("license_number")) {
     return "Try independent license verification first, then use therapist confirmation for any remaining fields.";
@@ -534,7 +545,12 @@ function main() {
         whyItMatters: buildWhyItMatters(row, readiness.warnings, queueLane, profileStrengthScore),
         nextBestMove: buildNextBestMove(readiness.warnings),
         queueLane,
-        priorityScore: getQueuePriorityScore(row, readiness.warnings, queueLane, profileStrengthScore),
+        priorityScore: getQueuePriorityScore(
+          row,
+          readiness.warnings,
+          queueLane,
+          profileStrengthScore,
+        ),
       });
     }
   });

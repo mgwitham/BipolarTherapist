@@ -101,7 +101,8 @@ function getPromptMap() {
     insurance_accepted:
       "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
     telehealth_states: "Which states are you currently able to see patients in by telehealth?",
-    license_number: "What is your current license number for the license you want displayed on your profile?",
+    license_number:
+      "What is your current license number for the license you want displayed on your profile?",
   };
 }
 
@@ -140,7 +141,9 @@ function orderFieldsForTheme(fields, preferredPrimaryField) {
 }
 
 function normalizeContactMethod(value) {
-  const method = String(value || "").trim().toLowerCase();
+  const method = String(value || "")
+    .trim()
+    .toLowerCase();
   if (["email", "website", "phone", "booking"].includes(method)) {
     return method;
   }

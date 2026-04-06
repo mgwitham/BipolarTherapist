@@ -409,7 +409,9 @@ function slugify(value) {
 }
 
 function parsePhotoSourceType(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (
     normalized === "therapist_uploaded" ||
     normalized === "practice_uploaded" ||
@@ -431,7 +433,9 @@ function decodeBase64FilePayload(payload) {
     throw new Error("Invalid headshot upload format.");
   }
 
-  const mimeType = String(match[1] || "").trim().toLowerCase();
+  const mimeType = String(match[1] || "")
+    .trim()
+    .toLowerCase();
   const base64 = String(match[2] || "").trim();
   if (!ALLOWED_PHOTO_MIME_TYPES.has(mimeType)) {
     throw new Error("Headshot must be a JPG, PNG, or WebP image.");
@@ -457,7 +461,8 @@ async function uploadPhotoAssetIfPresent(client, input) {
     return null;
   }
 
-  const filename = String(input.photo_filename || "therapist-headshot").trim() || "therapist-headshot";
+  const filename =
+    String(input.photo_filename || "therapist-headshot").trim() || "therapist-headshot";
   const asset = await client.assets.upload("image", decoded.buffer, {
     filename: filename,
     contentType: decoded.mimeType,
@@ -605,18 +610,19 @@ async function buildRevisionFieldUpdates(client, input, existingApplication) {
     therapistReportedFields: splitList(input.therapist_reported_fields),
     therapistReportedConfirmedAt: String(input.therapist_reported_confirmed_at || "").trim(),
     fieldReviewStates: {
-      estimatedWaitTime: String(
-        input.field_review_states && input.field_review_states.estimated_wait_time,
-      ).trim() || "therapist_confirmed",
-      insuranceAccepted: String(
-        input.field_review_states && input.field_review_states.insurance_accepted,
-      ).trim() || "therapist_confirmed",
-      telehealthStates: String(
-        input.field_review_states && input.field_review_states.telehealth_states,
-      ).trim() || "therapist_confirmed",
-      bipolarYearsExperience: String(
-        input.field_review_states && input.field_review_states.bipolar_years_experience,
-      ).trim() || "therapist_confirmed",
+      estimatedWaitTime:
+        String(input.field_review_states && input.field_review_states.estimated_wait_time).trim() ||
+        "therapist_confirmed",
+      insuranceAccepted:
+        String(input.field_review_states && input.field_review_states.insurance_accepted).trim() ||
+        "therapist_confirmed",
+      telehealthStates:
+        String(input.field_review_states && input.field_review_states.telehealth_states).trim() ||
+        "therapist_confirmed",
+      bipolarYearsExperience:
+        String(
+          input.field_review_states && input.field_review_states.bipolar_years_experience,
+        ).trim() || "therapist_confirmed",
     },
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
@@ -758,8 +764,7 @@ function normalizeApplication(doc) {
       estimated_wait_time:
         (doc.fieldReviewStates && doc.fieldReviewStates.estimatedWaitTime) || "therapist_confirmed",
       insurance_accepted:
-        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) ||
-        "therapist_confirmed",
+        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) || "therapist_confirmed",
       telehealth_states:
         (doc.fieldReviewStates && doc.fieldReviewStates.telehealthStates) || "therapist_confirmed",
       bipolar_years_experience:
@@ -991,7 +996,10 @@ async function updateApplicationFields(client, applicationId, fields) {
 async function updatePortalRequestFields(client, requestId, fields) {
   const allowedUpdates = {};
 
-  if (typeof fields.status === "string" && ["open", "in_review", "resolved"].includes(fields.status)) {
+  if (
+    typeof fields.status === "string" &&
+    ["open", "in_review", "resolved"].includes(fields.status)
+  ) {
     allowedUpdates.status = fields.status;
     allowedUpdates.reviewedAt = new Date().toISOString();
   }

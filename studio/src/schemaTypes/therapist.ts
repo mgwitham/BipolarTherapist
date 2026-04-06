@@ -378,7 +378,8 @@ export const therapistType = defineType({
       title: "Primary source URL",
       type: "url",
       group: "trust",
-      description: "Primary public source used to verify this profile, usually the clinician or practice site.",
+      description:
+        "Primary public source used to verify this profile, usually the clinician or practice site.",
     }),
     defineField({
       name: "supportingSourceUrls",
@@ -386,7 +387,8 @@ export const therapistType = defineType({
       type: "array",
       group: "trust",
       of: [defineArrayMember({ type: "url" })],
-      description: "Additional public sources used during editorial review, such as directory listings or about pages.",
+      description:
+        "Additional public sources used during editorial review, such as directory listings or about pages.",
     }),
     defineField({
       name: "sourceReviewedAt",

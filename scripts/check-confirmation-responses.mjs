@@ -146,9 +146,7 @@ function main() {
 
   const therapistRows = mapRowsToObjects(parseCsv(fs.readFileSync(config.therapists, "utf8")));
   const responseRows = mapRowsToObjects(parseCsv(fs.readFileSync(config.input, "utf8")));
-  const therapistBySlug = new Map(
-    therapistRows.map((row) => [String(row.slug || "").trim(), row]),
-  );
+  const therapistBySlug = new Map(therapistRows.map((row) => [String(row.slug || "").trim(), row]));
 
   const diffs = [];
 

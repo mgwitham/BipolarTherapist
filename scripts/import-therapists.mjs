@@ -51,7 +51,8 @@ function getConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
-    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
+    token:
+      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -155,7 +156,9 @@ function parseNumber(value) {
 }
 
 function parseFieldReviewState(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (
     normalized === "editorially_verified" ||
     normalized === "needs_reconfirmation" ||
@@ -167,7 +170,9 @@ function parseFieldReviewState(value) {
 }
 
 function parsePhotoSourceType(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (
     normalized === "therapist_uploaded" ||
     normalized === "practice_uploaded" ||
@@ -179,7 +184,9 @@ function parsePhotoSourceType(value) {
 }
 
 function parseClaimStatus(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (normalized === "claimed" || normalized === "claim_requested" || normalized === "unclaimed") {
     return normalized;
   }

@@ -179,7 +179,9 @@ function applyResponses(therapistRows, responseRows) {
       throw new Error(`Response row references unknown slug: ${slug}`);
     }
 
-    const confirmedAt = String(response.confirmedAt || response.therapistReportedConfirmedAt || "").trim();
+    const confirmedAt = String(
+      response.confirmedAt || response.therapistReportedConfirmedAt || "",
+    ).trim();
     const updatedFields = [];
 
     ALLOWED_FIELDS.forEach((field) => {
@@ -205,7 +207,9 @@ function applyResponses(therapistRows, responseRows) {
       updatedFields,
     );
     therapist.therapistReportedConfirmedAt =
-      confirmedAt || therapist.therapistReportedConfirmedAt || new Date().toISOString().slice(0, 10);
+      confirmedAt ||
+      therapist.therapistReportedConfirmedAt ||
+      new Date().toISOString().slice(0, 10);
 
     applied.push({
       slug,
