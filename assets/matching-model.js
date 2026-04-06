@@ -160,6 +160,334 @@ function normalizeList(value) {
     .filter(Boolean);
 }
 
+function getFieldReviewStates(therapist) {
+  var states = therapist && therapist.field_review_states ? therapist.field_review_states : {};
+  return {
+    estimated_wait_time: states.estimated_wait_time || "therapist_confirmed",
+    insurance_accepted: states.insurance_accepted || "therapist_confirmed",
+    telehealth_states: states.telehealth_states || "therapist_confirmed",
+    bipolar_years_experience: states.bipolar_years_experience || "therapist_confirmed",
+  };
+}
+
+export function getEditoriallyVerifiedOperationalCount(therapist) {
+  var states = getFieldReviewStates(therapist);
+  return Object.values(states).filter(function (value) {
+    return value === "editorially_verified";
+  }).length;
+}
+
+export function getOperationalTrustSummary(therapist) {
+  var editorialCount = getEditoriallyVerifiedOperationalCount(therapist);
+  var therapistConfirmedCount = Array.isArray(therapist && therapist.therapist_reported_fields)
+    ? therapist.therapist_reported_fields.length
+    : 0;
+
+  if (editorialCount >= 3) {
+    return "Several key access details are editor-verified.";
+  }
+  if (editorialCount >= 1) {
+    return (
+      editorialCount +
+      " key operational detail" +
+      (editorialCount > 1 ? "s are" : " is") +
+      " editor-verified."
+    );
+  }
+  if (therapistConfirmedCount) {
+    return "Includes specialist-confirmed operational details.";
+  }
+  return "";
+}
+
+function daysSince(value) {
+  if (!value) {
+    return null;
+  }
+
+  var date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  var now = new Date();
+  var diff = now.getTime() - date.getTime();
+  return Math.max(0, Math.round(diff / 86400000));
+}
+
+export function getRecentConfirmationSummary(therapist) {
+  var fields = Array.isArray(therapist && therapist.therapist_reported_fields)
+    ? therapist.therapist_reported_fields.filter(Boolean)
+    : [];
+  var confirmedDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
+
+  if (!fields.length || confirmedDays === null) {
+    return null;
+  }
+
+  if (confirmedDays <= 30) {
+    return {
+      tone: "fresh",
+      label: "Recently re-confirmed",
+      short_label: "Recently re-confirmed",
+      note:
+        fields.length +
+        " operational detail" +
+        (fields.length > 1 ? "s were" : " was") +
+        " reconfirmed directly by the specialist in the last 30 days.",
+    };
+  }
+
+  if (confirmedDays <= 90) {
+    return {
+      tone: "recent",
+      label: "Specialist-confirmed recently",
+      short_label: "Confirmed recently",
+      note:
+        fields.length +
+        " operational detail" +
+        (fields.length > 1 ? "s were" : " was") +
+        " confirmed directly by the specialist within the last 90 days.",
+    };
+  }
+
+  return null;
+}
+
+export function getRecentAppliedSummary(therapist) {
+  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  if (appliedDays === null || appliedDays > 21) {
+    return null;
+  }
+
+  if (appliedDays <= 7) {
+    return {
+      tone: "fresh",
+      label: "Recently updated",
+      short_label: "Recently updated",
+      note: "Recent profile updates were applied within the last week, so key operational details may be more current than older profiles.",
+    };
+  }
+
+  return {
+    tone: "recent",
+    label: "Updated recently",
+    short_label: "Updated recently",
+    note: "Recent profile updates were applied within the last few weeks, which can make the operational details more current while the next refresh window is still settling.",
+  };
+}
+
+export function getDataFreshnessSummary(therapist) {
+  var sourceDays = daysSince(therapist && therapist.source_reviewed_at);
+  var therapistDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
+  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  var states = getFieldReviewStates(therapist);
+  var needsReconfirmation = Object.keys(states).filter(function (key) {
+    return states[key] === "needs_reconfirmation";
+  });
+  var staleReasons = [];
+  var recentlyApplied = appliedDays !== null && appliedDays <= 21;
+
+  if (recentlyApplied) {
+    needsReconfirmation = [];
+  }
+
+  if (sourceDays !== null && sourceDays > 90) {
+    staleReasons.push("public-source review is aging");
+  }
+  if (therapistDays !== null && therapistDays > 60 && !recentlyApplied) {
+    staleReasons.push("specialist-confirmed details are aging");
+  }
+  if (needsReconfirmation.length && !recentlyApplied) {
+    staleReasons.push(
+      needsReconfirmation.length +
+        " operational field" +
+        (needsReconfirmation.length > 1 ? "s need" : " needs") +
+        " re-confirmation",
+    );
+  }
+
+  var status = "fresh";
+  var label = "Freshly reviewed";
+  var note = "Source-backed trust details were reviewed recently.";
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  var recentApplied = getRecentAppliedSummary(therapist);
+
+  if (recentConfirmation && !staleReasons.length) {
+    note = recentConfirmation.note;
+  }
+
+  if (recentApplied) {
+    label = recentApplied.label;
+    note = recentApplied.note;
+  }
+
+  if (staleReasons.length >= 2 || (sourceDays !== null && sourceDays > 180)) {
+    status = "aging";
+    label = "Needs refresh soon";
+    note = staleReasons.join("; ") + ".";
+  } else if (staleReasons.length) {
+    status = "watch";
+    label = "Review worth scheduling";
+    note = staleReasons.join("; ") + ".";
+  }
+
+  return {
+    status: status,
+    label: label,
+    note: note,
+    source_review_age_days: sourceDays,
+    therapist_confirmation_age_days: therapistDays,
+    needs_reconfirmation_fields: needsReconfirmation,
+  };
+}
+
+function hasListedInsurance(therapist) {
+  return (
+    Array.isArray(therapist && therapist.insurance_accepted) &&
+    therapist.insurance_accepted.length > 0
+  );
+}
+
+function getTelehealthStatesList(therapist) {
+  return Array.isArray(therapist && therapist.telehealth_states) ? therapist.telehealth_states : [];
+}
+
+export function getTherapistConfirmationAgenda(therapist) {
+  var states = getFieldReviewStates(therapist);
+  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  if (appliedDays !== null && appliedDays <= 21) {
+    return {
+      needs_confirmation: false,
+      unknown_fields: [],
+      asks: [],
+      priority: "low",
+      summary: "Recently applied confirmation updates are still within the grace window.",
+    };
+  }
+  var unknowns = [];
+
+  if (
+    !normalizeText(therapist && therapist.bipolar_years_experience) ||
+    states.bipolar_years_experience !== "editorially_verified"
+  ) {
+    unknowns.push("bipolar_years_experience");
+  }
+  if (!hasListedInsurance(therapist) || states.insurance_accepted !== "editorially_verified") {
+    unknowns.push("insurance_accepted");
+  }
+  if (
+    therapist &&
+    therapist.accepts_telehealth &&
+    (!getTelehealthStatesList(therapist).length ||
+      states.telehealth_states !== "editorially_verified")
+  ) {
+    unknowns.push("telehealth_states");
+  }
+  if (!normalizeText(therapist && therapist.license_number)) {
+    unknowns.push("license_number");
+  }
+
+  var dedupedUnknowns = Array.from(new Set(unknowns));
+  var priority =
+    dedupedUnknowns.length >= 4 ? "high" : dedupedUnknowns.length >= 2 ? "medium" : "low";
+  var askMap = {
+    bipolar_years_experience: "bipolar-specific years of experience",
+    insurance_accepted: "insurance or superbill reality",
+    telehealth_states: "current telehealth coverage",
+    license_number: "license number",
+  };
+  var promptMap = {
+    bipolar_years_experience:
+      "About how many years have you been treating bipolar-spectrum conditions specifically?",
+    insurance_accepted:
+      "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
+    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
+    license_number:
+      "What is your current license number for the license you want displayed on your profile?",
+  };
+  var ask = dedupedUnknowns
+    .slice(0, 3)
+    .map(function (field) {
+      return askMap[field] || field.replace(/_/g, " ");
+    })
+    .join(", ");
+
+  return {
+    needs_confirmation: dedupedUnknowns.length > 0,
+    unknown_fields: dedupedUnknowns,
+    asks: dedupedUnknowns.map(function (field) {
+      return (
+        promptMap[field] || "Please confirm " + (askMap[field] || field.replace(/_/g, " ")) + "."
+      );
+    }),
+    priority: priority,
+    summary: dedupedUnknowns.length
+      ? "Confirm " + ask + "."
+      : "No high-value therapist confirmation gaps currently flagged.",
+  };
+}
+
+function getTherapistConfirmationPromptMap() {
+  return {
+    bipolar_years_experience:
+      "About how many years have you been treating bipolar-spectrum conditions specifically?",
+    insurance_accepted:
+      "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
+    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
+    license_number:
+      "What is your current license number for the license you want displayed on your profile?",
+  };
+}
+
+function getTherapistConfirmationAsks(fields) {
+  var promptMap = getTherapistConfirmationPromptMap();
+  return (Array.isArray(fields) ? fields : [])
+    .map(function (field) {
+      return promptMap[field];
+    })
+    .filter(Boolean);
+}
+
+export function buildTherapistFieldConfirmationPrompt(therapist, fields, options) {
+  var profile = therapist || {};
+  var name = normalizeText(profile.name);
+  var asks = getTherapistConfirmationAsks(fields);
+  if (!asks.length) {
+    return "";
+  }
+  var promptOptions = options || {};
+  var intro =
+    promptOptions.intro ||
+    "We are tightening your BipolarTherapyHub profile so the information people rely on most stays accurate and trustable.";
+  var guidance =
+    promptOptions.guidance ||
+    "Please confirm only the details below that you are comfortable stating directly. If something is not current or you would rather not list it, it is completely fine to leave it blank.";
+  var bullets = asks
+    .map(function (ask) {
+      return "- " + ask;
+    })
+    .join("\n");
+  var close =
+    promptOptions.close ||
+    "Once you confirm these details, we can update the profile to reflect the latest accurate information.\n\nThank you,\nBipolarTherapyHub";
+
+  return [name ? "Hi " + name + "," : "Hi,", "", intro, "", guidance, "", bullets, "", close].join(
+    "\n",
+  );
+}
+
+export function buildTherapistConfirmationPrompt(therapist) {
+  var profile = therapist || {};
+  var agenda = getTherapistConfirmationAgenda(profile);
+
+  if (!agenda.needs_confirmation) {
+    return "";
+  }
+
+  return buildTherapistFieldConfirmationPrompt(profile, agenda.unknown_fields);
+}
+
 function listOverlaps(a, b) {
   var left = new Set(
     normalizeList(a).map(function (item) {
@@ -227,7 +555,6 @@ function getCompletenessScore(therapist) {
   var fields = [
     therapist.license_number,
     therapist.care_approach,
-    therapist.estimated_wait_time,
     therapist.treatment_modalities && therapist.treatment_modalities.length,
     therapist.client_populations && therapist.client_populations.length,
     therapist.languages && therapist.languages.length,
@@ -249,9 +576,6 @@ function getMissingReadinessItems(therapist) {
   }
   if (!therapist.care_approach) {
     items.push("Add a concise bipolar care approach summary.");
-  }
-  if (!therapist.estimated_wait_time) {
-    items.push("Add a typical wait time so urgency matching is credible.");
   }
   if (!(therapist.treatment_modalities && therapist.treatment_modalities.length)) {
     items.push("List treatment modalities to improve clinical-fit matching.");
@@ -383,18 +707,14 @@ export function getTherapistReviewCoaching(therapist) {
     );
   }
 
-  if (!profile.estimated_wait_time) {
-    suggestions.push(
-      "Add a current wait-time estimate so urgent users know whether this is a realistic option.",
-    );
-  }
-
   return suggestions.slice(0, 4);
 }
 
 export function getTherapistMerchandisingQuality(therapist) {
   var profile = therapist || {};
   var readiness = getTherapistMatchReadiness(profile);
+  var freshness = getDataFreshnessSummary(profile);
+  var recentConfirmation = getRecentConfirmationSummary(profile);
   var score = Number(readiness.score || 0) || 0;
   var reasons = [];
 
@@ -443,6 +763,15 @@ export function getTherapistMerchandisingQuality(therapist) {
   }
   if (profile.insurance_accepted && profile.insurance_accepted.length >= 3) {
     score += 3;
+  }
+  if (recentConfirmation) {
+    score += recentConfirmation.tone === "fresh" ? 6 : 3;
+    reasons.push(recentConfirmation.short_label);
+  }
+  if (freshness.status === "aging") {
+    score -= 8;
+  } else if (freshness.status === "watch") {
+    score -= 3;
   }
 
   var label = "Solid profile";
@@ -652,6 +981,8 @@ export function getMatchTier(scoreOrEvaluation) {
 export function evaluateTherapistAgainstProfile(therapist, userProfile, learningSignals) {
   var profile = buildUserMatchProfile(userProfile || {});
   var resolvedLearning = resolveLearningSignals(learningSignals, profile);
+  var freshness = getDataFreshnessSummary(therapist);
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
   var reasons = [];
   var cautions = [];
   var hardFailures = [];
@@ -781,40 +1112,50 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   }
 
   if (profile.urgency === "ASAP") {
-    if (getWaitPriority(therapist.estimated_wait_time) <= 1) {
+    if (therapist.estimated_wait_time && getWaitPriority(therapist.estimated_wait_time) <= 1) {
       breakdown.practical += 16;
       reasons.push({
         text: "Has relatively fast availability.",
         weight: 16,
       });
-    } else if (getWaitPriority(therapist.estimated_wait_time) <= 3) {
+    } else if (
+      therapist.estimated_wait_time &&
+      getWaitPriority(therapist.estimated_wait_time) <= 3
+    ) {
       breakdown.practical -= 4;
       breakdown.learned -= getReasonWeight(resolvedLearning, "Availability mismatch");
       cautions.push("Availability may be slower than desired.");
-    } else {
+    } else if (therapist.estimated_wait_time) {
       breakdown.practical -= 12;
       breakdown.learned -= getReasonWeight(resolvedLearning, "Availability mismatch") + 2;
       cautions.push("Availability is likely too slow for urgent needs.");
+    } else {
+      cautions.push("Current openings should be confirmed directly if timing is important.");
     }
   } else if (profile.urgency === "Within 2 weeks") {
-    if (getWaitPriority(therapist.estimated_wait_time) <= 2) {
+    if (therapist.estimated_wait_time && getWaitPriority(therapist.estimated_wait_time) <= 2) {
       breakdown.practical += 10;
       reasons.push({
         text: "Availability fits the preferred timeline.",
         weight: 10,
       });
-    } else if (getWaitPriority(therapist.estimated_wait_time) > 3) {
+    } else if (
+      therapist.estimated_wait_time &&
+      getWaitPriority(therapist.estimated_wait_time) > 3
+    ) {
       breakdown.practical -= 8;
       breakdown.learned -= getReasonWeight(resolvedLearning, "Availability mismatch");
       cautions.push("Availability may miss the preferred timeline.");
+    } else {
+      cautions.push("Current openings should be confirmed directly if timing matters.");
     }
   } else if (profile.urgency === "Within a month") {
-    if (getWaitPriority(therapist.estimated_wait_time) <= 3) {
+    if (therapist.estimated_wait_time && getWaitPriority(therapist.estimated_wait_time) <= 3) {
       breakdown.practical += 6;
     }
   }
 
-  if (profile.priority_mode === "Soonest availability") {
+  if (profile.priority_mode === "Soonest availability" && therapist.estimated_wait_time) {
     breakdown.practical += Math.max(0, 12 - getWaitPriority(therapist.estimated_wait_time) * 3);
   }
   if (profile.priority_mode === "Lowest cost") {
@@ -915,6 +1256,36 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     cautions.push("Cultural fit is not yet strongly modeled.");
   }
 
+  var verifiedOperationalCount = getEditoriallyVerifiedOperationalCount(therapist);
+  if (verifiedOperationalCount) {
+    breakdown.trust += verifiedOperationalCount * 2;
+    reasons.push({
+      text:
+        verifiedOperationalCount +
+        " key operational detail" +
+        (verifiedOperationalCount > 1 ? "s are" : " is") +
+        " editor-verified.",
+      weight: 6 + verifiedOperationalCount,
+    });
+  }
+
+  if (recentConfirmation) {
+    breakdown.trust += recentConfirmation.tone === "fresh" ? 5 : 3;
+    reasons.push({
+      text: recentConfirmation.note,
+      weight: recentConfirmation.tone === "fresh" ? 7 : 5,
+    });
+  }
+
+  if (freshness.status === "aging") {
+    breakdown.trust -= 6;
+    breakdown.uncertainty -= 3;
+    cautions.push("Some operational details may be aging and worth reconfirming.");
+  } else if (freshness.status === "watch") {
+    breakdown.trust -= 2;
+    cautions.push("Some operational details may need a refresh soon.");
+  }
+
   if (profile.needs_medication_management === "Yes" && !therapist.medication_management) {
     breakdown.learned -= getReasonWeight(resolvedLearning, "Needs medication management");
   }
@@ -954,6 +1325,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     58 +
       Math.round(completeness * 0.22) +
       (therapist.verification_status === "editorially_verified" ? 8 : 0) +
+      (recentConfirmation ? (recentConfirmation.tone === "fresh" ? 4 : 2) : 0) +
       (hardConstraintFailed ? -40 : 0) +
       clamp(breakdown.uncertainty, -25, 0) +
       clamp(Math.round(breakdown.learned / 2), -8, 6),

@@ -6,7 +6,7 @@
     <title>BipolarTherapyHub — Guided Bipolar Therapist Matching</title>
     <meta
       name="description"
-      content="Find bipolar-specialist therapists and psychiatrists with guided matching, trust signals, fallback planning, and concierge-style support."
+      content="Find reviewed bipolar-specialist therapists and psychiatrists with clearer trust details, decision-ready profiles, and a calmer path from shortlist to first contact."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -161,6 +161,12 @@
         margin: 0 auto 2.5rem;
         line-height: 1.7;
       }
+      .hero-helper {
+        margin: -1rem auto 1.35rem;
+        max-width: 640px;
+        font-size: 0.88rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
       .search-box {
         background: white;
         border-radius: 14px;
@@ -168,7 +174,7 @@
         max-width: 660px;
         margin: 0 auto;
         display: grid;
-        grid-template-columns: 1fr 1px 1fr auto;
+        grid-template-columns: 1fr auto;
         align-items: center;
         gap: 0.75rem;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -245,6 +251,14 @@
         font-size: 0.9rem;
         font-weight: 700;
       }
+      .hero-link.primary {
+        background: white;
+        color: var(--teal-dark);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      }
+      .hero-link.primary:hover {
+        background: #f6fbfc;
+      }
       .hero-link.secondary {
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.24);
@@ -273,6 +287,145 @@
         font-size: 0.78rem;
         opacity: 0.8;
         margin-top: 0.2rem;
+      }
+      .start-here {
+        padding: 0 1.5rem 1rem;
+        margin-top: -1.1rem;
+      }
+      .start-here-card {
+        max-width: 1080px;
+        margin: 0 auto;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.25rem;
+        box-shadow: 0 16px 32px rgba(14, 77, 95, 0.08);
+      }
+      .start-here-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 1rem;
+      }
+      .start-here-kicker {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .start-here-card h2 {
+        font-family: "Lora", serif;
+        font-size: 1.65rem;
+        line-height: 1.2;
+        margin-top: 0.25rem;
+      }
+      .start-here-card p {
+        color: var(--slate);
+        max-width: 58ch;
+      }
+      .start-here-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+      }
+      .start-here-option {
+        display: grid;
+        gap: 0.45rem;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .start-here-option:hover {
+        border-color: rgba(26, 122, 143, 0.3);
+        box-shadow: 0 10px 22px rgba(14, 77, 95, 0.06);
+      }
+      .start-here-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .start-here-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .start-here-copy {
+        font-size: 0.87rem;
+        color: var(--slate);
+      }
+      .start-here-link {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: var(--teal);
+      }
+      .ease-strip {
+        padding: 1rem 1.5rem 0;
+      }
+      .ease-strip-card {
+        max-width: 1080px;
+        margin: 0 auto;
+        background: #eef7f9;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+      }
+      .ease-strip-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+      .ease-strip-kicker {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ease-strip-card h2 {
+        font-size: 1.2rem;
+        margin-top: 0.15rem;
+      }
+      .ease-strip-card p {
+        color: var(--slate);
+      }
+      .ease-strip-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-top: 0.9rem;
+      }
+      .ease-strip-step {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(21, 95, 112, 0.1);
+        border-radius: 14px;
+        padding: 0.9rem;
+      }
+      .ease-strip-step-num {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ease-strip-step-title {
+        font-size: 0.97rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin-top: 0.2rem;
+      }
+      .ease-strip-step-copy {
+        font-size: 0.86rem;
+        color: var(--slate);
+        margin-top: 0.25rem;
       }
       .home-teaser {
         max-width: 1080px;
@@ -618,6 +771,23 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
+      .card-fit-note,
+      .card-contact-detail {
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: var(--slate);
+        margin-bottom: 0.7rem;
+      }
+      .card-fit-note strong,
+      .card-contact-detail strong {
+        color: var(--navy);
+      }
+      .card-contact-detail {
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        background: #f7fbfc;
+        border: 1px solid var(--border);
+      }
       .tags {
         display: flex;
         flex-wrap: wrap;
@@ -808,12 +978,24 @@
         margin-top: 2rem;
       }
       @media (max-width: 640px) {
+        .start-here-top,
+        .ease-strip-top,
+        .home-teaser-top {
+          flex-direction: column;
+          align-items: start;
+        }
+        .start-here-grid,
+        .ease-strip-grid,
+        .home-teaser-body {
+          grid-template-columns: 1fr;
+        }
         .home-teaser {
           margin-top: -1rem;
           padding: 0 1rem 1rem;
         }
-        .home-teaser-body {
-          grid-template-columns: 1fr;
+        .start-here-card,
+        .ease-strip-card {
+          padding: 1rem;
         }
         .search-box {
           grid-template-columns: 1fr;
@@ -847,25 +1029,28 @@
 
     <section class="hero">
       <div class="hero-badge" id="heroBadge">🎗️ Guided Bipolar Specialist Matching</div>
-      <h1 id="heroTitle">Find a bipolar specialist with more trust, clarity, and follow-through</h1>
+      <h1 id="heroTitle">
+        Find a bipolar specialist in Los Angeles or across California telehealth
+      </h1>
       <p id="heroDescription">
-        Browse bipolar-focused therapists and psychiatrists, get a guided shortlist, and move
-        forward with a clearer first step and a backup plan if needed.
+        Find reviewed bipolar-specialist therapy or psychiatry with clearer trust signals, simpler
+        comparison, and a calmer path to first contact in Los Angeles and across California
+        telehealth.
       </p>
+      <div class="hero-helper">
+        Most people should start with matching. Use the directory if you already know you want to
+        browse profiles yourself.
+      </div>
       <form class="search-box" onsubmit="handleSearch(event)">
         <div class="search-field">
-          <label id="searchLabel">Search</label>
-          <input type="text" id="q" placeholder="Bipolar I, IPSRT, telehealth..." />
-        </div>
-        <div class="search-divider"></div>
-        <div class="search-field">
           <label id="locationLabel">Location</label>
-          <input type="text" id="location" placeholder="City or State" />
+          <input type="text" id="location" placeholder="Los Angeles, Pasadena, Telehealth" />
         </div>
-        <button type="submit" class="search-btn" id="searchButton">Search →</button>
+        <button type="submit" class="search-btn" id="searchButton">Start matching →</button>
       </form>
       <div class="hero-actions">
-        <a href="match.html" class="hero-link secondary">Get a guided shortlist</a>
+        <a href="match.html" class="hero-link primary">Get matched</a>
+        <a href="directory.html" class="hero-link secondary">Browse reviewed specialists</a>
       </div>
       <div class="cms-banner" id="cmsBadge">
         CMS fallback mode: this preview is still using the seeded local data until Sanity is
@@ -874,11 +1059,11 @@
       <div class="hero-stats">
         <div class="hero-stat">
           <div class="hero-stat-num" id="statT">—</div>
-          <div class="hero-stat-label">Verified Specialists</div>
+          <div class="hero-stat-label">Reviewed Specialists</div>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-num" id="statS">—</div>
-          <div class="hero-stat-label">States Covered</div>
+          <div class="hero-stat-label">Licensed States</div>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-num" id="statTH">—</div>
@@ -891,15 +1076,91 @@
       </div>
     </section>
 
+    <section class="start-here">
+      <div class="start-here-card">
+        <div class="start-here-top">
+          <div>
+            <div class="start-here-kicker">Start Here</div>
+            <h2>Choose one of two simple paths</h2>
+          </div>
+          <p>
+            Most first-time visitors should start with matching. Browse directly only if you already
+            know you want to compare profiles yourself.
+          </p>
+        </div>
+        <div class="start-here-grid">
+          <a href="match.html" class="start-here-option">
+            <div class="start-here-label">Recommended first step</div>
+            <div class="start-here-title">Get matched</div>
+            <div class="start-here-copy">
+              Answer a few questions and let the product narrow the field for you with calmer,
+              trust-first shortlist guidance.
+            </div>
+            <div class="start-here-link">Start with matching →</div>
+          </a>
+          <a href="directory.html" class="start-here-option">
+            <div class="start-here-label">Browse on your own</div>
+            <div class="start-here-title">Browse reviewed specialists</div>
+            <div class="start-here-copy">
+              Compare bipolar-focused therapists and psychiatrists with clearer trust, reachability,
+              and contact detail.
+            </div>
+            <div class="start-here-link">Open the directory →</div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="ease-strip">
+      <div class="ease-strip-card">
+        <div class="ease-strip-top">
+          <div>
+            <div class="ease-strip-kicker">How It Works</div>
+            <h2>What happens after you start</h2>
+          </div>
+          <p>
+            We try to make the first good decision easier, not force you through a complicated
+            search.
+          </p>
+        </div>
+        <div class="ease-strip-grid">
+          <div class="ease-strip-step">
+            <div class="ease-strip-step-num">Step 1</div>
+            <div class="ease-strip-step-title">Tell us what kind of care you need</div>
+            <div class="ease-strip-step-copy">
+              Start with Los Angeles or California telehealth, then add practical needs like format,
+              insurance, or medication support.
+            </div>
+          </div>
+          <div class="ease-strip-step">
+            <div class="ease-strip-step-num">Step 2</div>
+            <div class="ease-strip-step-title">Review a calmer shortlist</div>
+            <div class="ease-strip-step-copy">
+              See why profiles stand out, what was reviewed, and which options look easiest to act
+              on first.
+            </div>
+          </div>
+          <div class="ease-strip-step">
+            <div class="ease-strip-step-num">Step 3</div>
+            <div class="ease-strip-step-title">Reach out with clearer next steps</div>
+            <div class="ease-strip-step-copy">
+              Use the contact path, trust detail, and backup options to decide who to contact first
+              without guessing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="home-teaser">
       <div class="home-teaser-card">
         <div class="home-teaser-top">
           <div>
-            <div class="home-teaser-kicker">How Matching Works</div>
-            <h2>See how BipolarTherapyHub helps narrow the right next step</h2>
+            <div class="home-teaser-kicker">Why This Feels Easier</div>
+            <h2>See what the product helps you notice before you reach out</h2>
             <p>
-              The product does not just rank profiles. It weighs practical access, bipolar-specific
-              fit, trust, and how likely the next step is to actually move.
+              BipolarTherapyHub is built to make the first good decision easier: who looks most
+              credible, who feels most reachable, and which next step seems easiest to actually use.
             </p>
           </div>
           <div class="home-teaser-tabs" id="homeTeaserTabs"></div>
@@ -910,8 +1171,7 @@
         </div>
         <div class="disc" style="margin-top: 1rem">
           We can compare structured trust, fit, and follow-through signals, but we cannot know
-          personal chemistry, exact real-time availability, or clinical quality from profile data
-          alone.
+          personal chemistry, exact live availability, or clinical quality from profile data alone.
         </div>
       </div>
     </section>

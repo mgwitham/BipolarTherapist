@@ -1,13 +1,22 @@
+import { fetchPublicTherapistBySlug, cmsEnabled } from "./cms.js";
 import {
   fetchTherapistApplicationRevision,
   submitTherapistApplication,
   submitTherapistApplicationRevision,
 } from "./review-api.js";
-import { getApplicationById, reviseApplication, submitApplication } from "./store.js";
-import { getTherapistMatchReadiness } from "./matching-model.js";
+import {
+  getApplicationById,
+  getTherapistBySlug,
+  reviseApplication,
+  submitApplication,
+} from "./store.js";
+import { getTherapistConfirmationAgenda, getTherapistMatchReadiness } from "./matching-model.js";
 
 let revisionApplicationId = "";
 let revisionBaseline = null;
+let confirmationTherapistSlug = "";
+let confirmationTherapistId = "";
+let activeRequestedFields = [];
 
 var REVISION_FIELD_CONFIG = {
   license_number: {
@@ -77,6 +86,23 @@ function splitCommaSeparated(value) {
     .filter(Boolean);
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new window.FileReader();
+    reader.onload = function () {
+      resolve(String(reader.result || ""));
+    };
+    reader.onerror = function () {
+      reject(new Error("Could not read the selected headshot."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function getTodayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function showErr(msg) {
   var element = document.getElementById("formError");
   element.textContent = msg;
@@ -86,17 +112,24 @@ function showErr(msg) {
 
 function showSuccess(application, source) {
   var isRevision = Boolean(revisionApplicationId || (application && application.revision_count));
+  var isConfirmation = Boolean(confirmationTherapistSlug && !revisionApplicationId);
   var message =
     source === "sanity"
-      ? isRevision
-        ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
-        : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
-      : isRevision
-        ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
-        : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
+      ? isConfirmation
+        ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
+        : isRevision
+          ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
+          : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
+      : isConfirmation
+        ? "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed."
+        : isRevision
+          ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
+          : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
 
   document.getElementById("formCard").innerHTML =
-    '<div class="success-state"><div class="success-icon">🎉</div><h2>Application Received!</h2><p>' +
+    '<div class="success-state"><div class="success-icon">🎉</div><h2>' +
+    (isConfirmation ? "Confirmation Update Received!" : "Application Received!") +
+    "</h2><p>" +
     message +
     '</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
     application.name +
@@ -145,6 +178,12 @@ function getRevisionRequestedFields(message) {
   });
 }
 
+function setActiveRequestedFields(fields) {
+  activeRequestedFields = Array.from(
+    new Set((Array.isArray(fields) ? fields : []).filter(Boolean)),
+  );
+}
+
 function getChangedRevisionFields(data) {
   if (!revisionBaseline) {
     return [];
@@ -177,7 +216,9 @@ function renderRevisionWorkspace(data) {
     return;
   }
 
-  var requestedFields = getRevisionRequestedFields(revisionBaseline.review_request_message);
+  var requestedFields = activeRequestedFields.length
+    ? activeRequestedFields
+    : getRevisionRequestedFields(revisionBaseline.review_request_message);
   var changedFields = getChangedRevisionFields(data);
 
   requestedEl.innerHTML = requestedFields.length
@@ -218,6 +259,8 @@ function renderRevisionWorkspace(data) {
 
 function collectFormData(form) {
   return {
+    slug: confirmationTherapistSlug || "",
+    published_therapist_id: confirmationTherapistId || "",
     name: form.elements.name.value.trim(),
     credentials: form.elements.credentials.value.trim(),
     title: form.elements.title.value.trim(),
@@ -225,6 +268,10 @@ function collectFormData(form) {
     bipolar_years_experience: form.elements.bipolar_years_experience.value,
     email: form.elements.email.value.trim(),
     phone: form.elements.phone.value.trim(),
+    photo_source_type: form.elements.photo_source_type.value,
+    photo_usage_permission_confirmed: !!form.querySelector(
+      'input[name="photo_usage_permission_confirmed"]:checked',
+    ),
     practice_name: form.elements.practice_name.value.trim(),
     city: form.elements.city.value.trim(),
     state: form.elements.state.value,
@@ -246,6 +293,9 @@ function collectFormData(form) {
     treatment_modalities: collectCheckedValues(form, "treatment_modalities"),
     client_populations: collectCheckedValues(form, "client_populations"),
     insurance_accepted: collectCheckedValues(form, "insurance_accepted"),
+    therapist_reported_fields: collectCheckedValues(form, "therapist_reported_fields"),
+    therapist_reported_confirmed_at:
+      form.elements.therapist_reported_confirmed_at.value.trim() || getTodayDateString(),
     session_fee_min: form.elements.session_fee_min.value,
     session_fee_max: form.elements.session_fee_max.value,
     sliding_scale: !!form.querySelector('input[name="sliding_scale"]:checked'),
@@ -253,7 +303,71 @@ function collectFormData(form) {
     accepts_in_person: !!form.querySelector('input[name="accepts_in_person"]:checked'),
     medication_management: !!form.querySelector('input[name="medication_management"]:checked'),
     verification_status: "under_review",
+    notes: confirmationTherapistSlug
+      ? "Confirmation update submitted for live therapist slug " + confirmationTherapistSlug + "."
+      : "",
   };
+}
+
+async function collectPhotoUploadData(form) {
+  var input = form.elements.photo_file;
+  var file = input && input.files ? input.files[0] : null;
+  if (!file) {
+    return {};
+  }
+
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type || "")) {
+    throw new Error("Headshot must be a JPG, PNG, or WebP image.");
+  }
+
+  if (file.size > 4 * 1024 * 1024) {
+    throw new Error("Headshot image is too large. Keep it under 4 MB.");
+  }
+
+  return {
+    photo_upload_base64: await readFileAsDataUrl(file),
+    photo_filename: file.name || "therapist-headshot",
+  };
+}
+
+function renderPhotoUploadStatus() {
+  var form = document.getElementById("applyForm");
+  var status = document.getElementById("photoUploadStatus");
+  if (!form || !status) {
+    return;
+  }
+
+  var input = form.elements.photo_file;
+  var file = input && input.files ? input.files[0] : null;
+  var sourceType = form.elements.photo_source_type.value;
+  var permissionConfirmed = !!form.querySelector(
+    'input[name="photo_usage_permission_confirmed"]:checked',
+  );
+
+  if (!file) {
+    status.textContent =
+      "Uploaded headshots are preferred over public-source images because they are clearer, easier to trust, and easier to keep current.";
+    return;
+  }
+
+  var sourceLabel =
+    sourceType === "therapist_uploaded"
+      ? "therapist-uploaded"
+      : sourceType === "practice_uploaded"
+        ? "practice-uploaded"
+        : sourceType === "public_source"
+          ? "public-source fallback"
+          : "source not yet selected";
+
+  status.textContent =
+    file.name +
+    " selected (" +
+    Math.round(file.size / 1024) +
+    " KB). Current source: " +
+    sourceLabel +
+    (permissionConfirmed
+      ? ". Usage permission confirmed."
+      : ". Confirm usage permission before submitting.");
 }
 
 function renderReadiness() {
@@ -428,11 +542,27 @@ async function handleSubmit(event) {
     return showErr("Please choose at least one treatment modality.");
   if (!data.accepts_telehealth && !data.accepts_in_person)
     return showErr("Choose at least one session format.");
+  if (!data.therapist_reported_fields.length)
+    return showErr(
+      "Please choose at least one therapist-confirmed field so the trust layer can separate your submitted operational details from reviewed facts.",
+    );
+  if (form.elements.photo_file.files && form.elements.photo_file.files[0]) {
+    if (!data.photo_source_type) {
+      return showErr("Choose the source for the uploaded headshot.");
+    }
+    if (!data.photo_usage_permission_confirmed) {
+      return showErr("Please confirm that the uploaded headshot can be used on the live profile.");
+    }
+  }
 
   button.disabled = true;
   button.textContent = "Submitting...";
 
   try {
+    data = {
+      ...data,
+      ...(await collectPhotoUploadData(form)),
+    };
     let application;
     let source = "sanity";
 
@@ -487,6 +617,9 @@ function applyRevisionContext(application) {
 
   revisionApplicationId = application.id;
   revisionBaseline = application;
+  confirmationTherapistSlug = "";
+  confirmationTherapistId = application.published_therapist_id || "";
+  setActiveRequestedFields(getRevisionRequestedFields(application.review_request_message));
   [
     "name",
     "credentials",
@@ -512,6 +645,7 @@ function applyRevisionContext(application) {
     "care_approach",
     "session_fee_min",
     "session_fee_max",
+    "therapist_reported_confirmed_at",
   ].forEach(function (fieldName) {
     setFieldValue(form, fieldName, application[fieldName]);
   });
@@ -522,13 +656,25 @@ function applyRevisionContext(application) {
   setCheckedValues(form, "treatment_modalities", application.treatment_modalities);
   setCheckedValues(form, "client_populations", application.client_populations);
   setCheckedValues(form, "insurance_accepted", application.insurance_accepted);
+  setCheckedValues(form, "therapist_reported_fields", application.therapist_reported_fields);
   setFieldValue(form, "sliding_scale", application.sliding_scale);
   setFieldValue(form, "accepts_telehealth", application.accepts_telehealth);
   setFieldValue(form, "accepts_in_person", application.accepts_in_person);
   setFieldValue(form, "medication_management", application.medication_management);
+  setFieldValue(form, "photo_source_type", application.photo_source_type || "");
+  setFieldValue(
+    form,
+    "photo_usage_permission_confirmed",
+    application.photo_usage_permission_confirmed,
+  );
+  renderPhotoUploadStatus();
 
   if (notice) {
     notice.style.display = "block";
+  }
+  var title = document.getElementById("revisionTitle");
+  if (title) {
+    title.textContent = "Revision requested";
   }
   if (message) {
     message.textContent =
@@ -539,6 +685,92 @@ function applyRevisionContext(application) {
   var button = document.getElementById("submitBtn");
   if (button) {
     button.textContent = "Submit Updated Profile →";
+  }
+
+  renderReadiness();
+  renderFieldCoaching();
+}
+
+function applyConfirmationContext(therapist) {
+  var form = document.getElementById("applyForm");
+  var notice = document.getElementById("revisionNotice");
+  var title = document.getElementById("revisionTitle");
+  var message = document.getElementById("revisionMessage");
+
+  if (!therapist || !form) {
+    return;
+  }
+
+  var agenda = getTherapistConfirmationAgenda(therapist);
+  revisionApplicationId = "";
+  revisionBaseline = therapist;
+  confirmationTherapistSlug = therapist.slug || "";
+  confirmationTherapistId = therapist.id || "";
+  setActiveRequestedFields(agenda.unknown_fields);
+
+  [
+    "name",
+    "credentials",
+    "title",
+    "years_experience",
+    "bipolar_years_experience",
+    "email",
+    "phone",
+    "practice_name",
+    "city",
+    "state",
+    "zip",
+    "website",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "contact_guidance",
+    "first_step_expectation",
+    "booking_url",
+    "license_state",
+    "license_number",
+    "estimated_wait_time",
+    "bio",
+    "care_approach",
+    "session_fee_min",
+    "session_fee_max",
+    "therapist_reported_confirmed_at",
+  ].forEach(function (fieldName) {
+    setFieldValue(form, fieldName, therapist[fieldName]);
+  });
+
+  setFieldValue(form, "languages", (therapist.languages || []).join(", "));
+  setFieldValue(form, "telehealth_states", (therapist.telehealth_states || []).join(", "));
+  setCheckedValues(form, "specialties", therapist.specialties);
+  setCheckedValues(form, "treatment_modalities", therapist.treatment_modalities);
+  setCheckedValues(form, "client_populations", therapist.client_populations);
+  setCheckedValues(form, "insurance_accepted", therapist.insurance_accepted);
+  setCheckedValues(form, "therapist_reported_fields", therapist.therapist_reported_fields);
+  setFieldValue(form, "sliding_scale", therapist.sliding_scale);
+  setFieldValue(form, "accepts_telehealth", therapist.accepts_telehealth);
+  setFieldValue(form, "accepts_in_person", therapist.accepts_in_person);
+  setFieldValue(form, "medication_management", therapist.medication_management);
+  setFieldValue(form, "photo_source_type", therapist.photo_source_type || "");
+  setFieldValue(
+    form,
+    "photo_usage_permission_confirmed",
+    therapist.photo_usage_permission_confirmed,
+  );
+  renderPhotoUploadStatus();
+
+  if (notice) {
+    notice.style.display = "block";
+  }
+  if (title) {
+    title.textContent = "Confirmation requested";
+  }
+  if (message) {
+    message.textContent =
+      "Please confirm the highlighted operational details for your live profile. Only confirm what is current and accurate. If something is uncertain, it is better to leave it blank than overstate it.";
+  }
+
+  var button = document.getElementById("submitBtn");
+  if (button) {
+    button.textContent = "Submit Confirmation Update →";
   }
 
   renderReadiness();
@@ -569,6 +801,30 @@ async function loadRevisionContext() {
   }
 }
 
+async function loadConfirmationContext() {
+  var params = new URLSearchParams(window.location.search);
+  var slug = params.get("confirm");
+
+  if (!slug || !document.getElementById("applyForm") || revisionApplicationId) {
+    return;
+  }
+
+  try {
+    var therapist = cmsEnabled ? await fetchPublicTherapistBySlug(slug) : getTherapistBySlug(slug);
+    if (therapist) {
+      applyConfirmationContext(therapist);
+      return;
+    }
+  } catch (_error) {
+    // Fall back to local data if CMS fetch fails.
+  }
+
+  var localTherapist = getTherapistBySlug(slug);
+  if (localTherapist) {
+    applyConfirmationContext(localTherapist);
+  }
+}
+
 document.querySelectorAll('.check-label input[type="checkbox"]').forEach(function (checkbox) {
   checkbox.addEventListener("change", function () {
     this.closest(".check-label").classList.toggle("checked-style", this.checked);
@@ -578,12 +834,27 @@ document.querySelectorAll('.check-label input[type="checkbox"]').forEach(functio
   }
 });
 
-loadRevisionContext();
+async function initSignupContext() {
+  await loadRevisionContext();
+  await loadConfirmationContext();
+}
+
+initSignupContext();
+if (
+  document.getElementById("applyForm") &&
+  document.getElementById("applyForm").elements.therapist_reported_confirmed_at &&
+  !document.getElementById("applyForm").elements.therapist_reported_confirmed_at.value
+) {
+  document.getElementById("applyForm").elements.therapist_reported_confirmed_at.value =
+    getTodayDateString();
+}
 document.getElementById("applyForm").addEventListener("input", renderReadiness);
 document.getElementById("applyForm").addEventListener("change", renderReadiness);
 document.getElementById("applyForm").addEventListener("input", renderFieldCoaching);
 document.getElementById("applyForm").addEventListener("change", renderFieldCoaching);
+document.getElementById("applyForm").addEventListener("change", renderPhotoUploadStatus);
 renderReadiness();
 renderFieldCoaching();
+renderPhotoUploadStatus();
 
 window.handleSubmit = handleSubmit;

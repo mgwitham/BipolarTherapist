@@ -17,12 +17,26 @@ const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
 
 function sanitizeApplication(application) {
+  var fieldReviewStates = application.field_review_states || {};
   return {
     ...application,
+    photo_url: application.photo_url || "",
+    photo_source_type: application.photo_source_type || "",
+    photo_reviewed_at: application.photo_reviewed_at || "",
+    photo_usage_permission_confirmed: Boolean(application.photo_usage_permission_confirmed),
     specialties: Array.isArray(application.specialties) ? application.specialties : [],
     insurance_accepted: Array.isArray(application.insurance_accepted)
       ? application.insurance_accepted
       : [],
+    therapist_reported_fields: Array.isArray(application.therapist_reported_fields)
+      ? application.therapist_reported_fields
+      : [],
+    field_review_states: {
+      estimated_wait_time: fieldReviewStates.estimated_wait_time || "therapist_confirmed",
+      insurance_accepted: fieldReviewStates.insurance_accepted || "therapist_confirmed",
+      telehealth_states: fieldReviewStates.telehealth_states || "therapist_confirmed",
+      bipolar_years_experience: fieldReviewStates.bipolar_years_experience || "therapist_confirmed",
+    },
     languages: Array.isArray(application.languages) ? application.languages : ["English"],
     revision_history: Array.isArray(application.revision_history)
       ? application.revision_history
@@ -120,6 +134,48 @@ export async function submitTherapistApplication(application) {
       body: JSON.stringify(application),
     }),
   );
+}
+
+export async function submitTherapistPortalRequest(requestPayload) {
+  return request("/portal/requests", {
+    method: "POST",
+    body: JSON.stringify(requestPayload),
+  });
+}
+
+export async function fetchTherapistPortalRequests() {
+  return request("/portal/requests", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function updateTherapistPortalRequest(requestId, updates) {
+  return request(`/portal/requests/${encodeURIComponent(requestId)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function requestTherapistClaimLink(payload) {
+  return request("/portal/claim-link", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchTherapistClaimSession(token) {
+  return request(`/portal/claim-session?token=${encodeURIComponent(token)}`, {
+    method: "GET",
+  });
+}
+
+export async function acceptTherapistClaim(token) {
+  return request("/portal/claim-accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 }
 
 export async function fetchTherapistApplicationRevision(applicationId) {

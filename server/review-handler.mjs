@@ -10,7 +10,9 @@ const DEFAULT_PORT = 8787;
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const DEFAULT_LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const DEFAULT_LOGIN_MAX_ATTEMPTS = 10;
-const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
+const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
+const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
+const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const loginAttemptStore = new Map();
 
 function parseBooleanEnv(value, fallback) {
@@ -235,32 +237,42 @@ function createSignedSession(config) {
   return `${encodedPayload}.${signature}`;
 }
 
-function readSignedSession(token, config) {
+function createSignedPayload(payload, secret) {
+  const encodedPayload = encodeBase64Url(JSON.stringify(payload));
+  const signature = signValue(encodedPayload, secret);
+  return `${encodedPayload}.${signature}`;
+}
+
+function readSignedPayload(token, secret) {
   if (!token) {
     return null;
   }
 
-  const parts = token.split(".");
+  const parts = String(token).split(".");
   if (parts.length !== 2) {
     return null;
   }
 
   const encodedPayload = parts[0];
   const signature = parts[1];
-  if (signValue(encodedPayload, config.sessionSecret) !== signature) {
+  if (signValue(encodedPayload, secret) !== signature) {
     return null;
   }
 
   try {
-    const payload = JSON.parse(decodeBase64Url(encodedPayload));
-    if (!payload || payload.sub !== "admin" || !payload.exp || payload.exp <= Date.now()) {
-      return null;
-    }
-
-    return payload;
+    return JSON.parse(decodeBase64Url(encodedPayload));
   } catch (_error) {
     return null;
   }
+}
+
+function readSignedSession(token, config) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "admin" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+
+  return payload;
 }
 
 function isAuthorized(request, config) {
@@ -396,11 +408,77 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
-function buildApplicationDocument(input) {
+function parsePhotoSourceType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (
+    normalized === "therapist_uploaded" ||
+    normalized === "practice_uploaded" ||
+    normalized === "public_source"
+  ) {
+    return normalized;
+  }
+  return "";
+}
+
+function decodeBase64FilePayload(payload) {
+  const raw = String(payload || "").trim();
+  if (!raw) {
+    return null;
+  }
+
+  const match = raw.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Invalid headshot upload format.");
+  }
+
+  const mimeType = String(match[1] || "").trim().toLowerCase();
+  const base64 = String(match[2] || "").trim();
+  if (!ALLOWED_PHOTO_MIME_TYPES.has(mimeType)) {
+    throw new Error("Headshot must be a JPG, PNG, or WebP image.");
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+  if (!buffer.length) {
+    throw new Error("Headshot upload was empty.");
+  }
+  if (buffer.length > MAX_PHOTO_UPLOAD_BYTES) {
+    throw new Error("Headshot image is too large. Keep it under 4 MB.");
+  }
+
+  return {
+    mimeType: mimeType,
+    buffer: buffer,
+  };
+}
+
+async function uploadPhotoAssetIfPresent(client, input) {
+  const decoded = decodeBase64FilePayload(input.photo_upload_base64);
+  if (!decoded) {
+    return null;
+  }
+
+  const filename = String(input.photo_filename || "therapist-headshot").trim() || "therapist-headshot";
+  const asset = await client.assets.upload("image", decoded.buffer, {
+    filename: filename,
+    contentType: decoded.mimeType,
+  });
+
+  return {
+    _type: "image",
+    asset: {
+      _type: "reference",
+      _ref: asset._id,
+    },
+  };
+}
+
+async function buildApplicationDocument(client, input) {
   const slug = slugify(
     input.slug || [input.name, input.city, input.state].filter(Boolean).join(" "),
   );
   const now = new Date().toISOString();
+  const photo = await uploadPhotoAssetIfPresent(client, input);
+  const photoSourceType = parsePhotoSourceType(input.photo_source_type);
 
   if (
     !input.name ||
@@ -423,6 +501,10 @@ function buildApplicationDocument(input) {
     email: input.email.trim(),
     credentials: input.credentials.trim(),
     title: (input.title || "").trim(),
+    ...(photo ? { photo: photo } : {}),
+    photoSourceType: photoSourceType,
+    photoReviewedAt: photoSourceType ? now : "",
+    photoUsagePermissionConfirmed: parseBoolean(input.photo_usage_permission_confirmed, false),
     practiceName: (input.practice_name || "").trim(),
     phone: (input.phone || "").trim(),
     website: (input.website || "").trim(),
@@ -453,22 +535,44 @@ function buildApplicationDocument(input) {
     estimatedWaitTime: (input.estimated_wait_time || "").trim(),
     medicationManagement: parseBoolean(input.medication_management, false),
     verificationStatus: "under_review",
+    therapistReportedFields: splitList(input.therapist_reported_fields),
+    therapistReportedConfirmedAt: (input.therapist_reported_confirmed_at || "").trim() || now,
+    fieldReviewStates: {
+      estimatedWaitTime: "therapist_confirmed",
+      insuranceAccepted: "therapist_confirmed",
+      telehealthStates: "therapist_confirmed",
+      bipolarYearsExperience: "therapist_confirmed",
+    },
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
     slidingScale: parseBoolean(input.sliding_scale, false),
     status: "pending",
+    notes: (input.notes || "").trim(),
+    publishedTherapistId: (input.published_therapist_id || "").trim(),
     submittedSlug: slug,
     submittedAt: now,
     updatedAt: now,
   };
 }
 
-function buildRevisionFieldUpdates(input) {
+async function buildRevisionFieldUpdates(client, input, existingApplication) {
+  const photo = await uploadPhotoAssetIfPresent(client, input);
+  const photoSourceType = parsePhotoSourceType(input.photo_source_type);
   return {
     name: String(input.name || "").trim(),
     email: String(input.email || "").trim(),
     credentials: String(input.credentials || "").trim(),
     title: String(input.title || "").trim(),
+    ...(photo ? { photo: photo } : {}),
+    photoSourceType: photoSourceType || existingApplication.photoSourceType || "",
+    photoReviewedAt:
+      photo || photoSourceType
+        ? new Date().toISOString()
+        : String(existingApplication.photoReviewedAt || "").trim(),
+    photoUsagePermissionConfirmed: parseBoolean(
+      input.photo_usage_permission_confirmed,
+      Boolean(existingApplication.photoUsagePermissionConfirmed),
+    ),
     practiceName: String(input.practice_name || "").trim(),
     phone: String(input.phone || "").trim(),
     website: String(input.website || "").trim(),
@@ -498,6 +602,22 @@ function buildRevisionFieldUpdates(input) {
     telehealthStates: splitList(input.telehealth_states),
     estimatedWaitTime: String(input.estimated_wait_time || "").trim(),
     medicationManagement: parseBoolean(input.medication_management, false),
+    therapistReportedFields: splitList(input.therapist_reported_fields),
+    therapistReportedConfirmedAt: String(input.therapist_reported_confirmed_at || "").trim(),
+    fieldReviewStates: {
+      estimatedWaitTime: String(
+        input.field_review_states && input.field_review_states.estimated_wait_time,
+      ).trim() || "therapist_confirmed",
+      insuranceAccepted: String(
+        input.field_review_states && input.field_review_states.insurance_accepted,
+      ).trim() || "therapist_confirmed",
+      telehealthStates: String(
+        input.field_review_states && input.field_review_states.telehealth_states,
+      ).trim() || "therapist_confirmed",
+      bipolarYearsExperience: String(
+        input.field_review_states && input.field_review_states.bipolar_years_experience,
+      ).trim() || "therapist_confirmed",
+    },
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
     slidingScale: parseBoolean(input.sliding_scale, false),
@@ -536,6 +656,10 @@ function buildTherapistDocument(application, existingId) {
     },
     credentials: application.credentials || "",
     title: application.title || "",
+    ...(application.photo ? { photo: application.photo } : {}),
+    photoSourceType: application.photoSourceType || "",
+    photoReviewedAt: application.photoReviewedAt || "",
+    photoUsagePermissionConfirmed: Boolean(application.photoUsagePermissionConfirmed),
     bio: application.bio || "",
     bioPreview: application.bio || "",
     practiceName: application.practiceName || "",
@@ -570,6 +694,10 @@ function buildTherapistDocument(application, existingId) {
     careApproach: application.careApproach || "",
     medicationManagement: parseBoolean(application.medicationManagement, false),
     verificationStatus: "editorially_verified",
+    therapistReportedFields: Array.isArray(application.therapistReportedFields)
+      ? application.therapistReportedFields
+      : [],
+    therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
     sessionFeeMin: parseNumber(application.sessionFeeMin),
     sessionFeeMax: parseNumber(application.sessionFeeMax),
     slidingScale: parseBoolean(application.slidingScale, false),
@@ -588,6 +716,10 @@ function normalizeApplication(doc) {
     name: doc.name || "",
     credentials: doc.credentials || "",
     title: doc.title || "",
+    photo_url: doc.photo && doc.photo.asset ? doc.photo.asset.url || "" : "",
+    photo_source_type: doc.photoSourceType || "",
+    photo_reviewed_at: doc.photoReviewedAt || "",
+    photo_usage_permission_confirmed: Boolean(doc.photoUsagePermissionConfirmed),
     bio: doc.bio || "",
     email: doc.email || "",
     phone: doc.phone || "",
@@ -618,6 +750,22 @@ function normalizeApplication(doc) {
     care_approach: doc.careApproach || "",
     medication_management: Boolean(doc.medicationManagement),
     verification_status: doc.verificationStatus || "",
+    therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
+      ? doc.therapistReportedFields
+      : [],
+    therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
+    field_review_states: {
+      estimated_wait_time:
+        (doc.fieldReviewStates && doc.fieldReviewStates.estimatedWaitTime) || "therapist_confirmed",
+      insurance_accepted:
+        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) ||
+        "therapist_confirmed",
+      telehealth_states:
+        (doc.fieldReviewStates && doc.fieldReviewStates.telehealthStates) || "therapist_confirmed",
+      bipolar_years_experience:
+        (doc.fieldReviewStates && doc.fieldReviewStates.bipolarYearsExperience) ||
+        "therapist_confirmed",
+    },
     session_fee_min: doc.sessionFeeMin || null,
     session_fee_max: doc.sessionFeeMax || null,
     sliding_scale: Boolean(doc.slidingScale),
@@ -627,6 +775,80 @@ function normalizeApplication(doc) {
     revision_count: doc.revisionCount || 0,
     published_therapist_id: doc.publishedTherapistId || "",
   };
+}
+
+function normalizePortalRequest(doc) {
+  return {
+    id: doc._id,
+    therapist_slug: doc.therapistSlug || "",
+    therapist_name: doc.therapistName || "",
+    request_type: doc.requestType || "",
+    requester_name: doc.requesterName || "",
+    requester_email: doc.requesterEmail || "",
+    license_number: doc.licenseNumber || "",
+    message: doc.message || "",
+    status: doc.status || "open",
+    requested_at: doc.requestedAt || doc._createdAt || "",
+    reviewed_at: doc.reviewedAt || "",
+  };
+}
+
+function buildPortalRequestDocument(input) {
+  const requestType = String(input.request_type || "").trim();
+  const therapistSlug = String(input.therapist_slug || "").trim();
+  const therapistName = String(input.therapist_name || "").trim();
+  const requesterName = String(input.requester_name || "").trim();
+  const requesterEmail = String(input.requester_email || "").trim();
+
+  if (!therapistSlug || !therapistName || !requestType || !requesterName || !requesterEmail) {
+    throw new Error("Missing required therapist portal request fields.");
+  }
+
+  const allowedRequestTypes = new Set([
+    "claim_profile",
+    "pause_listing",
+    "remove_listing",
+    "profile_update",
+  ]);
+  if (!allowedRequestTypes.has(requestType)) {
+    throw new Error("Invalid therapist portal request type.");
+  }
+
+  const now = new Date().toISOString();
+  return {
+    _id: `therapist-portal-request-${therapistSlug}-${Date.now()}`,
+    _type: "therapistPortalRequest",
+    therapistSlug: therapistSlug,
+    therapistName: therapistName,
+    requestType: requestType,
+    requesterName: requesterName,
+    requesterEmail: requesterEmail,
+    licenseNumber: String(input.license_number || "").trim(),
+    message: String(input.message || "").trim(),
+    status: "open",
+    requestedAt: now,
+  };
+}
+
+function buildPortalClaimToken(config, therapist, requesterEmail) {
+  return createSignedPayload(
+    {
+      sub: "therapist-portal",
+      slug: therapist.slug.current,
+      email: requesterEmail,
+      exp: Date.now() + 1000 * 60 * 30,
+      nonce: crypto.randomBytes(12).toString("hex"),
+    },
+    config.sessionSecret,
+  );
+}
+
+function readPortalClaimToken(config, token) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "therapist-portal" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  return payload;
 }
 
 async function sendEmail(config, payload) {
@@ -703,6 +925,30 @@ async function notifyApplicantOfDecision(config, application, decision) {
   });
 }
 
+async function sendPortalClaimLink(config, therapist, requesterEmail, portalBaseUrl) {
+  if (!hasEmailConfig(config)) {
+    throw new Error("Email delivery is not configured for claim links yet.");
+  }
+
+  const token = buildPortalClaimToken(config, therapist, requesterEmail);
+  const manageUrl =
+    String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "") +
+    "/portal.html?token=" +
+    encodeURIComponent(token);
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [requesterEmail],
+    reply_to: config.notificationTo,
+    subject: `Your BipolarTherapyHub manage link for ${therapist.name}`,
+    html: `<h2>Claim or manage your profile</h2>
+<p>Hi ${therapist.name},</p>
+<p>Use the secure link below to access your lightweight profile portal.</p>
+<p><a href="${manageUrl}">${manageUrl}</a></p>
+<p>This link expires in 30 minutes.</p>`,
+  });
+}
+
 async function updateApplicationFields(client, applicationId, fields) {
   const allowedUpdates = {};
 
@@ -740,6 +986,21 @@ async function updateApplicationFields(client, applicationId, fields) {
   }
 
   return patch.commit({ visibility: "sync" });
+}
+
+async function updatePortalRequestFields(client, requestId, fields) {
+  const allowedUpdates = {};
+
+  if (typeof fields.status === "string" && ["open", "in_review", "resolved"].includes(fields.status)) {
+    allowedUpdates.status = fields.status;
+    allowedUpdates.reviewedAt = new Date().toISOString();
+  }
+
+  if (!Object.keys(allowedUpdates).length) {
+    throw new Error("No valid portal request updates were provided.");
+  }
+
+  return client.patch(requestId).set(allowedUpdates).commit({ visibility: "sync" });
 }
 
 export function createReviewApiHandler(configOverride) {
@@ -860,7 +1121,7 @@ export function createReviewApiHandler(configOverride) {
 
         const docs = await client.fetch(
           `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
-            _id, _createdAt, _updatedAt, name, email, credentials, title, practiceName, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
+            _id, _createdAt, _updatedAt, name, email, credentials, title, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed, practiceName, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
             licenseState, licenseNumber, bio, careApproach, specialties, treatmentModalities, clientPopulations,
             insuranceAccepted, languages, yearsExperience, bipolarYearsExperience, acceptsTelehealth, acceptsInPerson,
             acceptingNewPatients, telehealthStates, estimatedWaitTime, medicationManagement, verificationStatus,
@@ -873,9 +1134,209 @@ export function createReviewApiHandler(configOverride) {
         return;
       }
 
+      if (request.method === "GET" && routePath === "/portal/requests") {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const docs = await client.fetch(
+          `*[_type == "therapistPortalRequest"] | order(coalesce(requestedAt, _createdAt) desc){
+            _id, _createdAt, therapistSlug, therapistName, requestType, requesterName, requesterEmail, licenseNumber, message, status, requestedAt, reviewedAt
+          }`,
+        );
+
+        sendJson(response, 200, docs.map(normalizePortalRequest), origin, config);
+        return;
+      }
+
+      if (request.method === "POST" && routePath === "/portal/requests") {
+        const body = await parseBody(request);
+        const document = buildPortalRequestDocument(body);
+        const created = await client.create(document);
+        sendJson(response, 201, normalizePortalRequest(created), origin, config);
+        return;
+      }
+
+      const portalRequestUpdateMatch = routePath.match(/^\/portal\/requests\/([^/]+)$/);
+      if ((request.method === "PATCH" || request.method === "POST") && portalRequestUpdateMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const requestId = decodeURIComponent(portalRequestUpdateMatch[1]);
+        const existing = await client.getDocument(requestId);
+        if (!existing || existing._type !== "therapistPortalRequest") {
+          sendJson(response, 404, { error: "Portal request not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const updated = await updatePortalRequestFields(client, requestId, body);
+        sendJson(response, 200, normalizePortalRequest(updated), origin, config);
+        return;
+      }
+
+      if (request.method === "POST" && routePath === "/portal/claim-link") {
+        const body = await parseBody(request);
+        const therapistSlug = String(body.therapist_slug || "").trim();
+        const requesterEmail = String(body.requester_email || "")
+          .trim()
+          .toLowerCase();
+
+        if (!therapistSlug || !requesterEmail) {
+          sendJson(response, 400, { error: "Missing therapist slug or email." }, origin, config);
+          return;
+        }
+
+        const therapist = await client.fetch(
+          `*[_type == "therapist" && slug.current == $slug][0]{
+            _id, name, email, claimStatus, "slug": slug
+          }`,
+          { slug: therapistSlug },
+        );
+
+        if (!therapist || !therapist.slug || !therapist.slug.current) {
+          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+          return;
+        }
+
+        const profileEmail = String(therapist.email || "")
+          .trim()
+          .toLowerCase();
+        if (!profileEmail || profileEmail !== requesterEmail) {
+          sendJson(
+            response,
+            403,
+            {
+              error:
+                "That email does not match the public contact email on this profile yet. Use the request form instead so we can verify ownership manually.",
+            },
+            origin,
+            config,
+          );
+          return;
+        }
+
+        await sendPortalClaimLink(
+          config,
+          therapist,
+          requesterEmail,
+          `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+        );
+
+        await client
+          .patch(therapist._id)
+          .set({
+            claimStatus: therapist.claimStatus === "claimed" ? "claimed" : "claim_requested",
+          })
+          .commit({ visibility: "sync" });
+
+        sendJson(
+          response,
+          200,
+          { ok: true, message: "Claim link sent if the profile email matched." },
+          origin,
+          config,
+        );
+        return;
+      }
+
+      if (request.method === "GET" && routePath === "/portal/claim-session") {
+        const token = String(url.searchParams.get("token") || "").trim();
+        const payload = readPortalClaimToken(config, token);
+        if (!payload) {
+          sendJson(response, 401, { error: "Claim link is invalid or expired." }, origin, config);
+          return;
+        }
+
+        const therapist = await client.fetch(
+          `*[_type == "therapist" && slug.current == $slug][0]{
+            _id, name, email, city, state, practiceName, claimStatus, claimedByEmail, claimedAt,
+            portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
+            "slug": slug.current
+          }`,
+          { slug: payload.slug },
+        );
+
+        if (!therapist) {
+          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+          return;
+        }
+
+        sendJson(
+          response,
+          200,
+          {
+            ok: true,
+            therapist: {
+              slug: therapist.slug,
+              name: therapist.name,
+              email: therapist.email || "",
+              city: therapist.city || "",
+              state: therapist.state || "",
+              practice_name: therapist.practiceName || "",
+              claim_status: therapist.claimStatus || "unclaimed",
+              claimed_by_email: therapist.claimedByEmail || "",
+              claimed_at: therapist.claimedAt || "",
+              portal_last_seen_at: therapist.portalLastSeenAt || "",
+              listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
+              listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
+            },
+          },
+          origin,
+          config,
+        );
+        return;
+      }
+
+      if (request.method === "POST" && routePath === "/portal/claim-accept") {
+        const body = await parseBody(request);
+        const token = String(body.token || "").trim();
+        const payload = readPortalClaimToken(config, token);
+        if (!payload) {
+          sendJson(response, 401, { error: "Claim link is invalid or expired." }, origin, config);
+          return;
+        }
+
+        const therapist = await client.fetch(
+          `*[_type == "therapist" && slug.current == $slug][0]{ _id, name, "slug": slug.current }`,
+          { slug: payload.slug },
+        );
+        if (!therapist) {
+          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+          return;
+        }
+
+        const now = new Date().toISOString();
+        await client
+          .patch(therapist._id)
+          .set({
+            claimStatus: "claimed",
+            claimedByEmail: payload.email,
+            claimedAt: now,
+            portalLastSeenAt: now,
+          })
+          .commit({ visibility: "sync" });
+
+        sendJson(
+          response,
+          200,
+          {
+            ok: true,
+            therapist_slug: therapist.slug,
+            claimed_by_email: payload.email,
+          },
+          origin,
+          config,
+        );
+        return;
+      }
+
       if (request.method === "POST" && routePath === "/applications") {
         const body = await parseBody(request);
-        const document = buildApplicationDocument(body);
+        const document = await buildApplicationDocument(client, body);
         const created = await client.create(document);
         try {
           await notifyAdminOfSubmission(config, created);
@@ -936,7 +1397,7 @@ export function createReviewApiHandler(configOverride) {
         const updated = await client
           .patch(applicationId)
           .set({
-            ...buildRevisionFieldUpdates(body),
+            ...(await buildRevisionFieldUpdates(client, body, application)),
             status: "pending",
             reviewRequestMessage: "",
             updatedAt: timestamp,
@@ -996,7 +1457,7 @@ export function createReviewApiHandler(configOverride) {
           slugify(
             [application.name, application.city, application.state].filter(Boolean).join(" "),
           );
-        const therapistId = `therapist-${slug}`;
+        const therapistId = application.publishedTherapistId || `therapist-${slug}`;
 
         const transaction = client.transaction();
         transaction.createOrReplace(buildTherapistDocument(application, therapistId));

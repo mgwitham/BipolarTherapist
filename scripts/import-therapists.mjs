@@ -51,7 +51,7 @@ function getConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
-    token: process.env.SANITY_API_TOKEN || "",
+    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -154,6 +154,38 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : undefined;
 }
 
+function parseFieldReviewState(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (
+    normalized === "editorially_verified" ||
+    normalized === "needs_reconfirmation" ||
+    normalized === "therapist_confirmed"
+  ) {
+    return normalized;
+  }
+  return "therapist_confirmed";
+}
+
+function parsePhotoSourceType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (
+    normalized === "therapist_uploaded" ||
+    normalized === "practice_uploaded" ||
+    normalized === "public_source"
+  ) {
+    return normalized;
+  }
+  return "";
+}
+
+function parseClaimStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "claimed" || normalized === "claim_requested" || normalized === "unclaimed") {
+    return normalized;
+  }
+  return "unclaimed";
+}
+
 function buildTherapistDocument(row) {
   const slug = row.slug || slugify([row.name, row.city, row.state].filter(Boolean).join(" "));
   if (!row.name || !slug || !row.city || !row.state || !row.bio || !row.credentials) {
@@ -176,21 +208,56 @@ function buildTherapistDocument(row) {
     title: row.title || "",
     bio: row.bio,
     bioPreview: row.bioPreview || row.bio,
+    photoSourceType: parsePhotoSourceType(row.photoSourceType),
+    photoReviewedAt: row.photoReviewedAt || "",
+    photoUsagePermissionConfirmed: parseBoolean(row.photoUsagePermissionConfirmed, false),
     practiceName: row.practiceName || "",
     email: row.email || "",
     phone: row.phone || "",
     website: row.website || "",
+    preferredContactMethod: row.preferredContactMethod || "",
+    preferredContactLabel: row.preferredContactLabel || "",
+    contactGuidance: row.contactGuidance || "",
+    firstStepExpectation: row.firstStepExpectation || "",
+    bookingUrl: row.bookingUrl || "",
+    claimStatus: parseClaimStatus(row.claimStatus),
+    claimedByEmail: row.claimedByEmail || "",
+    claimedAt: row.claimedAt || "",
+    portalLastSeenAt: row.portalLastSeenAt || "",
+    listingPauseRequestedAt: row.listingPauseRequestedAt || "",
+    listingRemovalRequestedAt: row.listingRemovalRequestedAt || "",
     city: row.city,
     state: row.state,
     zip: row.zip || "",
     country: row.country || "US",
+    licenseState: row.licenseState || "",
+    licenseNumber: row.licenseNumber || "",
+    careApproach: row.careApproach || "",
+    treatmentModalities: splitList(row.treatmentModalities),
+    clientPopulations: splitList(row.clientPopulations),
     specialties: splitList(row.specialties),
     insuranceAccepted: splitList(row.insuranceAccepted),
     languages: splitList(row.languages).length ? splitList(row.languages) : ["English"],
     yearsExperience: parseNumber(row.yearsExperience),
+    bipolarYearsExperience: parseNumber(row.bipolarYearsExperience),
     acceptsTelehealth: parseBoolean(row.acceptsTelehealth, true),
     acceptsInPerson: parseBoolean(row.acceptsInPerson, true),
     acceptingNewPatients: parseBoolean(row.acceptingNewPatients, true),
+    telehealthStates: splitList(row.telehealthStates),
+    estimatedWaitTime: row.estimatedWaitTime || "",
+    medicationManagement: parseBoolean(row.medicationManagement, false),
+    verificationStatus: row.verificationStatus || "under_review",
+    sourceUrl: row.sourceUrl || row.website || "",
+    supportingSourceUrls: splitList(row.supportingSourceUrls),
+    sourceReviewedAt: row.sourceReviewedAt || "",
+    therapistReportedFields: splitList(row.therapistReportedFields),
+    therapistReportedConfirmedAt: row.therapistReportedConfirmedAt || "",
+    fieldReviewStates: {
+      estimatedWaitTime: parseFieldReviewState(row.estimatedWaitTimeReviewState),
+      insuranceAccepted: parseFieldReviewState(row.insuranceAcceptedReviewState),
+      telehealthStates: parseFieldReviewState(row.telehealthStatesReviewState),
+      bipolarYearsExperience: parseFieldReviewState(row.bipolarYearsExperienceReviewState),
+    },
     sessionFeeMin: parseNumber(row.sessionFeeMin),
     sessionFeeMax: parseNumber(row.sessionFeeMax),
     slidingScale: parseBoolean(row.slidingScale, false),

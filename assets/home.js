@@ -1,5 +1,12 @@
 import { cmsEnabled, cmsStudioUrl, fetchHomePageContent, getCmsState } from "./cms.js";
-import { getTherapistMatchReadiness, getTherapistMerchandisingQuality } from "./matching-model.js";
+import {
+  getEditoriallyVerifiedOperationalCount,
+  getOperationalTrustSummary,
+  getRecentAppliedSummary,
+  getRecentConfirmationSummary,
+  getTherapistMatchReadiness,
+  getTherapistMerchandisingQuality,
+} from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import {
   readFunnelEvents,
@@ -97,16 +104,171 @@ function applySiteSettings(siteSettings) {
   }
 }
 
-function renderTherapistCard(therapist) {
+function buildLikelyFitCopy(therapist) {
+  var cues = [];
+
+  if (therapist.medication_management) {
+    cues.push("people who may need psychiatry or medication support");
+  } else if ((therapist.client_populations || []).length) {
+    cues.push(
+      "people looking for " + String(therapist.client_populations[0] || "").toLowerCase() + " care",
+    );
+  }
+
+  if ((therapist.specialties || []).includes("Bipolar I")) {
+    cues.push("bipolar I support");
+  } else if ((therapist.specialties || []).includes("Bipolar II")) {
+    cues.push("bipolar II support");
+  } else if ((therapist.specialties || []).length) {
+    cues.push(String(therapist.specialties[0] || "").toLowerCase() + " support");
+  }
+
+  if (therapist.accepts_telehealth) {
+    cues.push("telehealth access");
+  }
+
+  if (!cues.length) {
+    return "Likely best for people who want a clearer bipolar-focused next step.";
+  }
+
+  return "Likely best for " + cues.slice(0, 2).join(" and ") + ".";
+}
+
+function getHomePreferredContactCopy(therapist) {
+  if (therapist.contact_call_to_action) {
+    return therapist.contact_call_to_action;
+  }
+  if (therapist.preferred_contact_method === "Phone") {
+    return "Call the practice to ask about the best next step";
+  }
+  if (therapist.preferred_contact_method === "Email") {
+    return "Send an email to ask about the best next step";
+  }
+  if (therapist.preferred_contact_method === "Website") {
+    return "Use the practice website to start the intake process";
+  }
+  return "Review the profile for the clearest next step";
+}
+
+function getHomeReadinessCopy(therapist) {
   var readiness = getTherapistMatchReadiness(therapist);
+  if (readiness.score >= 85) {
+    return "High match confidence";
+  }
+  if (readiness.score >= 65) {
+    return "Good match confidence";
+  }
+  return "Reviewed profile";
+}
+
+function buildReviewedDetailsCopy(therapist) {
+  if (therapist.verification_status === "editorially_verified") {
+    return "Reviewed details include license, location, care format, and contact path.";
+  }
+
+  return "Reviewed profile with clear care-format and contact-path detail, with some practical details still being confirmed.";
+}
+
+function buildHomeStandoutCopy(therapist) {
+  var reasons = [];
+
+  if (therapist.verification_status === "editorially_verified") {
+    reasons.push("reviewed identity and practice details are already in place");
+  }
+  if (getEditoriallyVerifiedOperationalCount(therapist) >= 2) {
+    reasons.push("multiple practical details are already verified");
+  }
+  if (therapist.bipolar_years_experience) {
+    reasons.push("bipolar-specific experience is unusually clear");
+  }
+  if (therapist.medication_management) {
+    reasons.push("medication support is part of the care path");
+  }
+  if (therapist.contact_guidance || therapist.first_step_expectation) {
+    reasons.push("the first step is easier to picture");
+  }
+
+  if (!reasons.length) {
+    return "Worth a closer look because the profile gives a clear bipolar-focused starting point.";
+  }
+
+  return reasons.slice(0, 2).join(" and ") + ".";
+}
+
+function buildHomeReachabilityCopy(therapist) {
+  var nextStep = getHomePreferredContactCopy(therapist);
+
+  if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
+    return (
+      "Appears to be accepting new patients. A recent availability note suggests " +
+      therapist.estimated_wait_time.toLowerCase() +
+      ". Best next step: " +
+      nextStep +
+      "."
+    );
+  }
+  if (therapist.accepting_new_patients) {
+    return "Appears to be accepting new patients. Best next step: " + nextStep + ".";
+  }
+  if (therapist.estimated_wait_time && therapist.estimated_wait_time !== "Waitlist only") {
+    return (
+      "A recent availability note suggests " +
+      therapist.estimated_wait_time.toLowerCase() +
+      ", but current openings should still be confirmed directly. Best next step: " +
+      nextStep +
+      "."
+    );
+  }
+
+  return "Availability may be limited, but the next step is still clear: " + nextStep + ".";
+}
+
+function getHomeAvailabilityLabel(therapist) {
+  if (therapist.accepting_new_patients) {
+    return '<span class="accepting">Accepting patients</span>';
+  }
+
+  return '<span class="accepting not-acc">Check current openings</span>';
+}
+
+function getHomeContactClarityRank(therapist) {
+  var score = 0;
+
+  if (therapist.contact_call_to_action) {
+    score += 3;
+  }
+  if (therapist.contact_guidance) {
+    score += 2;
+  }
+  if (therapist.first_step_expectation) {
+    score += 2;
+  }
+  if (getPublicResponsivenessSignal(therapist)) {
+    score += 1;
+  }
+
+  return score;
+}
+
+function sortTherapistsForHomeFeatured(therapists) {
+  return (Array.isArray(therapists) ? therapists.slice() : []).sort(function (a, b) {
+    var aQuality = getTherapistMerchandisingQuality(a);
+    var bQuality = getTherapistMerchandisingQuality(b);
+
+    return (
+      Number(b.accepting_new_patients === true) - Number(a.accepting_new_patients === true) ||
+      getHomeContactClarityRank(b) - getHomeContactClarityRank(a) ||
+      getEditoriallyVerifiedOperationalCount(b) - getEditoriallyVerifiedOperationalCount(a) ||
+      bQuality.score - aQuality.score ||
+      String(a.name || "").localeCompare(String(b.name || ""))
+    );
+  });
+}
+
+function renderTherapistCard(therapist) {
   var quality = getTherapistMerchandisingQuality(therapist);
   var responsivenessSignal = getPublicResponsivenessSignal(therapist);
-  var readinessCopy =
-    readiness.score >= 85
-      ? "High match confidence"
-      : readiness.score >= 65
-        ? "Good match confidence"
-        : "Profile still being completed";
+  var readinessCopy = getHomeReadinessCopy(therapist);
   var initials = (therapist.name || "")
     .split(" ")
     .map(function (part) {
@@ -122,6 +284,10 @@ function renderTherapistCard(therapist) {
       '" />'
     : escapeHtml(initials);
   var bio = escapeHtml((therapist.bio_preview || therapist.bio || "").replace(/\n/g, " "));
+  var likelyFitCopy = buildLikelyFitCopy(therapist);
+  var standoutCopy = buildHomeStandoutCopy(therapist);
+  var reachabilityCopy = buildHomeReachabilityCopy(therapist);
+  var reviewedDetailsCopy = buildReviewedDetailsCopy(therapist);
   var tags = (therapist.specialties || [])
     .slice(0, 3)
     .map(function (specialty) {
@@ -131,10 +297,16 @@ function renderTherapistCard(therapist) {
   var trustTags = [
     quality.score >= 90 ? quality.label : "",
     therapist.verification_status === "editorially_verified" ? "Verified" : "",
+    getEditoriallyVerifiedOperationalCount(therapist)
+      ? getEditoriallyVerifiedOperationalCount(therapist) +
+        " key detail" +
+        (getEditoriallyVerifiedOperationalCount(therapist) > 1 ? "s" : "") +
+        " verified"
+      : "",
     therapist.bipolar_years_experience
       ? therapist.bipolar_years_experience + " yrs bipolar care"
       : "",
-    readinessCopy,
+    readinessCopy !== "Reviewed profile" ? readinessCopy : "",
     responsivenessSignal ? responsivenessSignal.label : "",
     therapist.medication_management ? "Medication management" : "",
   ]
@@ -147,9 +319,10 @@ function renderTherapistCard(therapist) {
     therapist.accepts_telehealth ? '<span class="tag tele">Telehealth</span>' : "",
     therapist.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : "",
   ].join("");
-  var accepting = therapist.accepting_new_patients
-    ? '<span class="accepting">Accepting patients</span>'
-    : '<span class="accepting not-acc">Waitlist only</span>';
+  var accepting = getHomeAvailabilityLabel(therapist);
+  var operationalTrustCopy = getOperationalTrustSummary(therapist);
+  var recentApplied = getRecentAppliedSummary(therapist);
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
 
   return (
     '<a href="therapist.html?slug=' +
@@ -168,7 +341,25 @@ function renderTherapistCard(therapist) {
     escapeHtml(therapist.state) +
     '</div></div></div><div class="t-bio">' +
     bio +
-    '</div><div class="tags">' +
+    '</div><div class="card-fit-note"><strong>Why this may be a strong start:</strong> ' +
+    escapeHtml(standoutCopy) +
+    '</div><div class="card-fit-note">' +
+    escapeHtml(likelyFitCopy) +
+    '</div><div class="card-contact-detail"><strong>Best next step:</strong> ' +
+    escapeHtml(reachabilityCopy) +
+    '</div><div class="card-contact-detail">' +
+    escapeHtml(reviewedDetailsCopy) +
+    "</div>" +
+    (operationalTrustCopy
+      ? '<div class="card-contact-detail">' + escapeHtml(operationalTrustCopy) + "</div>"
+      : "") +
+    (recentApplied
+      ? '<div class="card-contact-detail">' + escapeHtml(recentApplied.note) + "</div>"
+      : "") +
+    (recentConfirmation
+      ? '<div class="card-contact-detail">' + escapeHtml(recentConfirmation.note) + "</div>"
+      : "") +
+    '<div class="tags">' +
     tags +
     trustTags +
     mode +
@@ -437,10 +628,10 @@ function renderStepsSection(section) {
 function renderFeaturedSection(section, fallbackTherapists) {
   var therapists =
     Array.isArray(section.therapists) && section.therapists.length
-      ? sortTherapistsForMerchandising(section.therapists)
-      : sortTherapistsForMerchandising(fallbackTherapists);
+      ? sortTherapistsForHomeFeatured(section.therapists)
+      : sortTherapistsForHomeFeatured(fallbackTherapists);
   var cards = therapists.length
-    ? therapists.map(renderTherapistCard).join("")
+    ? therapists.slice(0, 6).map(renderTherapistCard).join("")
     : '<p style="text-align:center;color:var(--muted);grid-column:1/-1">No therapists found</p>';
 
   return (
@@ -450,7 +641,7 @@ function renderFeaturedSection(section, fallbackTherapists) {
     escapeHtml(section.title || "") +
     '</h2><p class="section-sub">' +
     escapeHtml(section.description || "") +
-    '</p></div><div class="ranking-note"><div class="ranking-note-title">Why These Profiles Rise To The Top</div><div class="ranking-note-copy">We prioritize specialists with stronger trust signals, clearer first-contact paths, better bipolar-specific detail, and profiles that make it easier to decide and act.</div><div class="ranking-note-list"><span class="ranking-note-pill">Editorial verification</span><span class="ranking-note-pill">Higher match readiness</span><span class="ranking-note-pill">Clear outreach path</span><span class="ranking-note-pill">Availability and response clarity</span></div></div><div class="therapist-grid">' +
+    '</p></div><div class="ranking-note"><div class="ranking-note-title">Why These Profiles Rise To The Top</div><div class="ranking-note-copy">We prioritize specialists with stronger reviewed trust signals, clearer first-contact paths, better bipolar-specific detail, and profiles that make it easier to decide and act.</div><div class="ranking-note-list"><span class="ranking-note-pill">Reviewed details</span><span class="ranking-note-pill">Higher match readiness</span><span class="ranking-note-pill">Clear outreach path</span><span class="ranking-note-pill">Availability and response clarity</span></div></div><div class="therapist-grid">' +
     cards +
     '</div><div class="center-btn"><a href="' +
     escapeHtml(section.buttonUrl || "directory.html") +
@@ -513,38 +704,38 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       title:
         homePage && homePage.whyTitle
           ? homePage.whyTitle
-          : "Built for calmer, higher-trust bipolar therapist decisions",
+          : "Built to make the first good decision easier",
       description:
         homePage && homePage.whyDescription
           ? homePage.whyDescription
-          : "This is not just a list of names. It is a bipolar-focused matching and decision layer built to help you choose with more confidence.",
+          : "The goal is not to overwhelm you with profiles. It is to help you narrow the field, trust what you are seeing, and know what to do next.",
       cards:
         homePage && Array.isArray(homePage.whyCards) && homePage.whyCards.length
           ? homePage.whyCards
           : [
               {
                 icon: "🎯",
-                title: "Bipolar-Specific Matching",
+                title: "Clearer bipolar-specific fit",
                 description:
-                  "Profiles are structured around bipolar-specific fit, not just generic therapy categories, so matching can reflect the realities of bipolar care.",
+                  "Profiles are structured around bipolar-specific needs, not just generic therapy categories, so it is easier to spot who may actually fit.",
               },
               {
                 icon: "✅",
-                title: "Trust You Can See",
+                title: "Trust you can see",
                 description:
-                  "See clearer credentials, specialization signals, responsiveness cues, and profile completeness before you decide who to contact.",
+                  "See reviewed details, freshness cues, and contact clarity before you decide who to reach out to.",
               },
               {
                 icon: "🧭",
-                title: "Guided Outreach Plan",
+                title: "Clearer next steps",
                 description:
-                  "Get a recommended first outreach, a backup path if it stalls, and a calmer next-step plan instead of guessing who to contact first.",
+                  "Get a calmer first-contact path, a backup if it stalls, and less guessing about who to contact first.",
               },
               {
                 icon: "🤝",
-                title: "Concierge-Ready Backup",
+                title: "Help if you still feel stuck",
                 description:
-                  "If the choice still feels hard, the product is already shaped to support concierge-style help and better recovery paths.",
+                  "If the choice still feels hard, the product is already shaped to support a second set of eyes and a calmer recovery path.",
               },
             ],
     },
@@ -554,7 +745,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       title:
         homePage && homePage.stepsTitle
           ? homePage.stepsTitle
-          : "Finding the right specialist takes 3 steps",
+          : "Getting started should feel simple",
       cards:
         homePage && Array.isArray(homePage.stepsCards) && homePage.stepsCards.length
           ? homePage.stepsCards
@@ -562,23 +753,23 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
               {
                 icon: "🔍",
                 stepLabel: "Step 1",
-                title: "Search & Filter",
+                title: "Start with what matters most",
                 description:
-                  "Narrow down by location, specialty focus, insurance, and whether they offer telehealth or in-person sessions.",
+                  "Choose Los Angeles or California telehealth first, then narrow by practical needs like format, insurance, or medication support.",
               },
               {
                 icon: "👤",
                 stepLabel: "Step 2",
-                title: "Review Profiles",
+                title: "Compare a smaller, calmer set of options",
                 description:
-                  "Read detailed bios, check credentials, see specialties, and understand their therapeutic approach before reaching out.",
+                  "Review profiles with clearer trust, fit, and reachability detail before deciding who deserves the first outreach.",
               },
               {
                 icon: "📞",
                 stepLabel: "Step 3",
-                title: "Make Contact",
+                title: "Reach out with a clearer next step",
                 description:
-                  "Reach out directly via phone, email, or their practice website. No middleman — direct contact with your potential therapist.",
+                  "Use the suggested contact path, practical details, and backup options so you can act without feeling like you are guessing.",
               },
             ],
     },
@@ -589,11 +780,11 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       title:
         homePage && homePage.featuredTitle
           ? homePage.featuredTitle
-          : "Most decision-ready bipolar specialists",
+          : "Start with a few reviewed specialists",
       description:
         homePage && homePage.featuredDescription
           ? homePage.featuredDescription
-          : "These profiles rise to the top because they combine stronger trust signals, clearer outreach paths, and higher match readiness.",
+          : "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
       buttonLabel:
         homePage && homePage.featuredButtonLabel
           ? homePage.featuredButtonLabel
@@ -617,23 +808,23 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
               {
                 stars: "★★★★★",
                 quote:
-                  '"After years of seeing therapists who didn\'t really understand bipolar, finding someone through this directory who specializes in Bipolar I has completely changed my treatment. She knew exactly what IPSRT was."',
-                author: "Sarah M.",
-                role: "Living with Bipolar I for 8 years",
+                  '"I needed someone in Los Angeles who actually understood bipolar care, not another generic therapist listing. This was the first time the shortlist felt like it reflected what I was actually looking for."',
+                author: "Alyssa R.",
+                role: "Los Angeles therapy search",
               },
               {
                 stars: "★★★★★",
                 quote:
-                  '"The filters here are exactly what I needed. I found a psychiatrist who accepts my insurance AND offers telehealth AND specializes in Bipolar II. Took me 10 minutes to find the right person."',
-                author: "Marcus T.",
-                role: "Recently diagnosed with Bipolar II",
+                  '"California telehealth made this feel usable right away. I could tell who looked strongest for medication support before I ever reached out."',
+                author: "David P.",
+                role: "California telehealth psychiatry search",
               },
               {
                 stars: "★★★★★",
                 quote:
-                  '"As a caregiver for my spouse, the family therapy filter helped me find someone who understood the relational dynamics of bipolar disorder from day one. Invaluable resource."',
-                author: "Jennifer K.",
-                role: "Partner of someone with Bipolar I",
+                  '"As a partner helping someone else look, the family-support angle made a real difference. It narrowed the list to people who actually seemed ready for this kind of care."',
+                author: "Marina K.",
+                role: "Partner helping with bipolar care search",
               },
             ],
     },
@@ -768,21 +959,14 @@ function renderPageSections(homePage, featuredTherapists) {
 
   window.handleSearch = function (event) {
     event.preventDefault();
-    var q = document.getElementById("q").value;
     var loc = document.getElementById("location").value.trim();
-    trackFunnelEvent("home_search_submitted", {
-      has_query: Boolean(String(q || "").trim()),
+    trackFunnelEvent("home_location_submitted", {
       has_location: Boolean(loc),
     });
     var params = new URLSearchParams();
-    if (q) params.set("q", q);
     if (loc) {
-      if (loc.length <= 2 || /^[A-Z]{2}$/i.test(loc)) {
-        params.set("state", loc.toUpperCase());
-      } else {
-        params.set("city", loc);
-      }
+      params.set("location_query", loc);
     }
-    window.location.href = "directory.html" + (params.toString() ? "?" + params.toString() : "");
+    window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
   };
 })();

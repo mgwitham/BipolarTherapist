@@ -65,7 +65,30 @@ function normalizeApplication(item) {
   var application = item || {};
   return {
     ...application,
+    photo_url: application.photo_url || "",
+    photo_source_type: application.photo_source_type || "",
+    photo_reviewed_at: application.photo_reviewed_at || "",
+    photo_usage_permission_confirmed: Boolean(application.photo_usage_permission_confirmed),
     status: application.status || "pending",
+    therapist_reported_fields: Array.isArray(application.therapist_reported_fields)
+      ? application.therapist_reported_fields
+      : [],
+    therapist_reported_confirmed_at: application.therapist_reported_confirmed_at || "",
+    field_review_states: {
+      estimated_wait_time:
+        (application.field_review_states && application.field_review_states.estimated_wait_time) ||
+        "therapist_confirmed",
+      insurance_accepted:
+        (application.field_review_states && application.field_review_states.insurance_accepted) ||
+        "therapist_confirmed",
+      telehealth_states:
+        (application.field_review_states && application.field_review_states.telehealth_states) ||
+        "therapist_confirmed",
+      bipolar_years_experience:
+        (application.field_review_states &&
+          application.field_review_states.bipolar_years_experience) ||
+        "therapist_confirmed",
+    },
     revision_history: Array.isArray(application.revision_history)
       ? application.revision_history
       : [],
@@ -142,13 +165,18 @@ export function submitApplication(input) {
     : [];
   const clientPopulations = Array.isArray(input.client_populations) ? input.client_populations : [];
   const insuranceAccepted = Array.isArray(input.insurance_accepted) ? input.insurance_accepted : [];
+  const therapistReportedFields = Array.isArray(input.therapist_reported_fields)
+    ? input.therapist_reported_fields
+    : [];
   const languages =
     Array.isArray(input.languages) && input.languages.length ? input.languages : ["English"];
   const telehealthStates =
     Array.isArray(input.telehealth_states) && input.telehealth_states.length
       ? input.telehealth_states
       : [];
-  const slug = createUniqueSlug(input.name, input.city, input.state, existingSlugs);
+  const slug = String(input.slug || "").trim()
+    ? String(input.slug || "").trim()
+    : createUniqueSlug(input.name, input.city, input.state, existingSlugs);
   const timestamp = new Date().toISOString();
 
   const application = {
@@ -157,9 +185,14 @@ export function submitApplication(input) {
     updated_at: timestamp,
     status: "pending",
     slug: slug,
+    published_therapist_id: input.published_therapist_id || "",
     name: input.name,
     credentials: input.credentials,
     title: input.title || "",
+    photo_url: "",
+    photo_source_type: input.photo_source_type || "",
+    photo_reviewed_at: input.photo_reviewed_at || "",
+    photo_usage_permission_confirmed: !!input.photo_usage_permission_confirmed,
     bio: input.bio,
     bio_preview: input.bio,
     email: input.email,
@@ -191,9 +224,18 @@ export function submitApplication(input) {
     care_approach: input.care_approach || "",
     medication_management: !!input.medication_management,
     verification_status: "under_review",
+    therapist_reported_fields: therapistReportedFields,
+    therapist_reported_confirmed_at: input.therapist_reported_confirmed_at || timestamp,
+    field_review_states: {
+      estimated_wait_time: "therapist_confirmed",
+      insurance_accepted: "therapist_confirmed",
+      telehealth_states: "therapist_confirmed",
+      bipolar_years_experience: "therapist_confirmed",
+    },
     session_fee_min: Number(input.session_fee_min || 0) || null,
     session_fee_max: Number(input.session_fee_max || 0) || null,
     sliding_scale: !!input.sliding_scale,
+    notes: input.notes || "",
     revision_history: [],
     review_request_message: "",
     revision_count: 0,
@@ -228,6 +270,9 @@ export function publishApplication(applicationId) {
     bio: target.bio,
     bio_preview: target.bio,
     photo_url: null,
+    photo_source_type: target.photo_source_type || "",
+    photo_reviewed_at: target.photo_reviewed_at || "",
+    photo_usage_permission_confirmed: !!target.photo_usage_permission_confirmed,
     email: target.email || "",
     phone: target.phone || "",
     website: target.website || null,
@@ -258,6 +303,8 @@ export function publishApplication(applicationId) {
     care_approach: target.care_approach || "",
     medication_management: !!target.medication_management,
     verification_status: "editorially_verified",
+    therapist_reported_fields: target.therapist_reported_fields || [],
+    therapist_reported_confirmed_at: target.therapist_reported_confirmed_at || "",
     session_fee_min: target.session_fee_min,
     session_fee_max: target.session_fee_max,
     sliding_scale: !!target.sliding_scale,
@@ -323,6 +370,25 @@ export function requestApplicationChanges(applicationId, requestMessage) {
         },
       ]),
     };
+  });
+  writeJson(APPLICATIONS_KEY, nextApplications);
+}
+
+export function updateApplicationReviewMetadata(applicationId, updates) {
+  ensureSeeded();
+  const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
+  const timestamp = new Date().toISOString();
+  const nextApplications = applications.map(function (item) {
+    if (item.id !== applicationId) return item;
+    return normalizeApplication({
+      ...item,
+      ...updates,
+      updated_at: timestamp,
+      field_review_states: {
+        ...item.field_review_states,
+        ...(updates.field_review_states || {}),
+      },
+    });
   });
   writeJson(APPLICATIONS_KEY, nextApplications);
 }
