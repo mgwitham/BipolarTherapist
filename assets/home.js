@@ -1,12 +1,5 @@
 import { cmsEnabled, cmsStudioUrl, fetchHomePageContent, getCmsState } from "./cms.js";
-import {
-  getEditoriallyVerifiedOperationalCount,
-  getOperationalTrustSummary,
-  getRecentAppliedSummary,
-  getRecentConfirmationSummary,
-  getTherapistMatchReadiness,
-  getTherapistMerchandisingQuality,
-} from "./matching-model.js";
+import { getTherapistMerchandisingQuality } from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import {
   readFunnelEvents,
@@ -314,271 +307,6 @@ function initHeroZipFocusRow() {
   });
 }
 
-function buildLikelyFitCopy(therapist) {
-  var cues = [];
-
-  if (therapist.medication_management) {
-    cues.push("people who may need psychiatry or medication support");
-  } else if ((therapist.client_populations || []).length) {
-    cues.push(
-      "people looking for " + String(therapist.client_populations[0] || "").toLowerCase() + " care",
-    );
-  }
-
-  if ((therapist.specialties || []).includes("Bipolar I")) {
-    cues.push("bipolar I support");
-  } else if ((therapist.specialties || []).includes("Bipolar II")) {
-    cues.push("bipolar II support");
-  } else if ((therapist.specialties || []).length) {
-    cues.push(String(therapist.specialties[0] || "").toLowerCase() + " support");
-  }
-
-  if (therapist.accepts_telehealth) {
-    cues.push("telehealth access");
-  }
-
-  if (!cues.length) {
-    return "Likely best for people who want a clearer bipolar-focused next step.";
-  }
-
-  return "Likely best for " + cues.slice(0, 2).join(" and ") + ".";
-}
-
-function getHomePreferredContactCopy(therapist) {
-  if (therapist.contact_call_to_action) {
-    return therapist.contact_call_to_action;
-  }
-  if (therapist.preferred_contact_method === "Phone") {
-    return "Call the practice to ask about the best next step";
-  }
-  if (therapist.preferred_contact_method === "Email") {
-    return "Send an email to ask about the best next step";
-  }
-  if (therapist.preferred_contact_method === "Website") {
-    return "Use the practice website to start the intake process";
-  }
-  return "Review the profile for the clearest next step";
-}
-
-function getHomeReadinessCopy(therapist) {
-  var readiness = getTherapistMatchReadiness(therapist);
-  if (readiness.score >= 85) {
-    return "High match confidence";
-  }
-  if (readiness.score >= 65) {
-    return "Good match confidence";
-  }
-  return "Reviewed profile";
-}
-
-function buildReviewedDetailsCopy(therapist) {
-  if (therapist.verification_status === "editorially_verified") {
-    return "Reviewed details include license, location, care format, and contact path.";
-  }
-
-  return "Reviewed profile with clear care-format and contact-path detail, with some practical details still being confirmed.";
-}
-
-function buildHomeStandoutCopy(therapist) {
-  var reasons = [];
-
-  if (therapist.verification_status === "editorially_verified") {
-    reasons.push("reviewed identity and practice details are already in place");
-  }
-  if (getEditoriallyVerifiedOperationalCount(therapist) >= 2) {
-    reasons.push("multiple practical details are already verified");
-  }
-  if (therapist.bipolar_years_experience) {
-    reasons.push("bipolar-specific experience is unusually clear");
-  }
-  if (therapist.medication_management) {
-    reasons.push("medication support is part of the care path");
-  }
-  if (therapist.contact_guidance || therapist.first_step_expectation) {
-    reasons.push("the first step is easier to picture");
-  }
-
-  if (!reasons.length) {
-    return "Worth a closer look because the profile gives a clear bipolar-focused starting point.";
-  }
-
-  return reasons.slice(0, 2).join(" and ") + ".";
-}
-
-function buildHomeReachabilityCopy(therapist) {
-  var nextStep = getHomePreferredContactCopy(therapist);
-
-  if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
-    return (
-      "Appears to be accepting new patients. A recent availability note suggests " +
-      therapist.estimated_wait_time.toLowerCase() +
-      ". Best next step: " +
-      nextStep +
-      "."
-    );
-  }
-  if (therapist.accepting_new_patients) {
-    return "Appears to be accepting new patients. Best next step: " + nextStep + ".";
-  }
-  if (therapist.estimated_wait_time && therapist.estimated_wait_time !== "Waitlist only") {
-    return (
-      "A recent availability note suggests " +
-      therapist.estimated_wait_time.toLowerCase() +
-      ", but current openings should still be confirmed directly. Best next step: " +
-      nextStep +
-      "."
-    );
-  }
-
-  return "Availability may be limited, but the next step is still clear: " + nextStep + ".";
-}
-
-function getHomeAvailabilityLabel(therapist) {
-  if (therapist.accepting_new_patients) {
-    return '<span class="accepting">Accepting patients</span>';
-  }
-
-  return '<span class="accepting not-acc">Check current openings</span>';
-}
-
-function getHomeContactClarityRank(therapist) {
-  var score = 0;
-
-  if (therapist.contact_call_to_action) {
-    score += 3;
-  }
-  if (therapist.contact_guidance) {
-    score += 2;
-  }
-  if (therapist.first_step_expectation) {
-    score += 2;
-  }
-  if (getPublicResponsivenessSignal(therapist)) {
-    score += 1;
-  }
-
-  return score;
-}
-
-function sortTherapistsForHomeFeatured(therapists) {
-  return (Array.isArray(therapists) ? therapists.slice() : []).sort(function (a, b) {
-    var aQuality = getTherapistMerchandisingQuality(a);
-    var bQuality = getTherapistMerchandisingQuality(b);
-
-    return (
-      Number(b.accepting_new_patients === true) - Number(a.accepting_new_patients === true) ||
-      getHomeContactClarityRank(b) - getHomeContactClarityRank(a) ||
-      getEditoriallyVerifiedOperationalCount(b) - getEditoriallyVerifiedOperationalCount(a) ||
-      bQuality.score - aQuality.score ||
-      String(a.name || "").localeCompare(String(b.name || ""))
-    );
-  });
-}
-
-function renderTherapistCard(therapist) {
-  var quality = getTherapistMerchandisingQuality(therapist);
-  var responsivenessSignal = getPublicResponsivenessSignal(therapist);
-  var readinessCopy = getHomeReadinessCopy(therapist);
-  var initials = (therapist.name || "")
-    .split(" ")
-    .map(function (part) {
-      return part[0];
-    })
-    .join("")
-    .substring(0, 2);
-  var avatar = therapist.photo_url
-    ? '<img src="' +
-      escapeHtml(therapist.photo_url) +
-      '" alt="' +
-      escapeHtml(therapist.name) +
-      '" />'
-    : escapeHtml(initials);
-  var bio = escapeHtml((therapist.bio_preview || therapist.bio || "").replace(/\n/g, " "));
-  var likelyFitCopy = buildLikelyFitCopy(therapist);
-  var standoutCopy = buildHomeStandoutCopy(therapist);
-  var reachabilityCopy = buildHomeReachabilityCopy(therapist);
-  var reviewedDetailsCopy = buildReviewedDetailsCopy(therapist);
-  var tags = (therapist.specialties || [])
-    .slice(0, 3)
-    .map(function (specialty) {
-      return '<span class="tag">' + escapeHtml(specialty) + "</span>";
-    })
-    .join("");
-  var trustTags = [
-    quality.score >= 90 ? quality.label : "",
-    therapist.verification_status === "editorially_verified" ? "Verified" : "",
-    getEditoriallyVerifiedOperationalCount(therapist)
-      ? getEditoriallyVerifiedOperationalCount(therapist) +
-        " key detail" +
-        (getEditoriallyVerifiedOperationalCount(therapist) > 1 ? "s" : "") +
-        " verified"
-      : "",
-    therapist.bipolar_years_experience
-      ? therapist.bipolar_years_experience + " yrs bipolar care"
-      : "",
-    readinessCopy !== "Reviewed profile" ? readinessCopy : "",
-    responsivenessSignal ? responsivenessSignal.label : "",
-    therapist.medication_management ? "Medication management" : "",
-  ]
-    .filter(Boolean)
-    .map(function (tag) {
-      return '<span class="tag tele">' + escapeHtml(tag) + "</span>";
-    })
-    .join("");
-  var mode = [
-    therapist.accepts_telehealth ? '<span class="tag tele">Telehealth</span>' : "",
-    therapist.accepts_in_person ? '<span class="tag inperson">In-Person</span>' : "",
-  ].join("");
-  var accepting = getHomeAvailabilityLabel(therapist);
-  var operationalTrustCopy = getOperationalTrustSummary(therapist);
-  var recentApplied = getRecentAppliedSummary(therapist);
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-
-  return (
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug) +
-    '" class="t-card"><div class="t-card-top"><div class="t-avatar">' +
-    avatar +
-    '</div><div class="t-info"><div class="t-name">' +
-    escapeHtml(therapist.name) +
-    '</div><div class="t-creds">' +
-    escapeHtml(therapist.credentials || "") +
-    " " +
-    escapeHtml(therapist.title ? "· " + therapist.title : "") +
-    '</div><div class="t-loc">📍 ' +
-    escapeHtml(therapist.city) +
-    ", " +
-    escapeHtml(therapist.state) +
-    '</div></div></div><div class="t-bio">' +
-    bio +
-    '</div><div class="card-fit-note"><strong>Why this may be a strong start:</strong> ' +
-    escapeHtml(standoutCopy) +
-    '</div><div class="card-fit-note">' +
-    escapeHtml(likelyFitCopy) +
-    '</div><div class="card-contact-detail"><strong>Best next step:</strong> ' +
-    escapeHtml(reachabilityCopy) +
-    '</div><div class="card-contact-detail">' +
-    escapeHtml(reviewedDetailsCopy) +
-    "</div>" +
-    (operationalTrustCopy
-      ? '<div class="card-contact-detail">' + escapeHtml(operationalTrustCopy) + "</div>"
-      : "") +
-    (recentApplied
-      ? '<div class="card-contact-detail">' + escapeHtml(recentApplied.note) + "</div>"
-      : "") +
-    (recentConfirmation
-      ? '<div class="card-contact-detail">' + escapeHtml(recentConfirmation.note) + "</div>"
-      : "") +
-    '<div class="tags">' +
-    tags +
-    trustTags +
-    mode +
-    '</div><div class="t-footer">' +
-    accepting +
-    '<span class="view-link">View Profile →</span></div></a>'
-  );
-}
-
 function sortTherapistsForMerchandising(therapists) {
   return (Array.isArray(therapists) ? therapists.slice() : []).sort(function (a, b) {
     var aQuality = getTherapistMerchandisingQuality(a);
@@ -805,32 +533,6 @@ function renderStepsSection(section) {
   );
 }
 
-function renderFeaturedSection(section, fallbackTherapists) {
-  var therapists =
-    Array.isArray(section.therapists) && section.therapists.length
-      ? sortTherapistsForHomeFeatured(section.therapists)
-      : sortTherapistsForHomeFeatured(fallbackTherapists);
-  var cards = therapists.length
-    ? therapists.slice(0, 6).map(renderTherapistCard).join("")
-    : '<p style="text-align:center;color:var(--muted);grid-column:1/-1">No therapists found</p>';
-
-  return (
-    '<section style="background: var(--white)"><div class="section-header"><div class="eyebrow">' +
-    escapeHtml(section.eyebrow || "") +
-    "</div><h2>" +
-    escapeHtml(section.title || "") +
-    '</h2><p class="section-sub">' +
-    escapeHtml(section.description || "") +
-    '</p></div><div class="therapist-grid">' +
-    cards +
-    '</div><div class="center-btn"><a href="' +
-    escapeHtml(section.buttonUrl || "directory.html") +
-    '" class="btn-p">' +
-    escapeHtml(section.buttonLabel || "View All Therapists →") +
-    "</a></div></section>"
-  );
-}
-
 function renderTestimonialsSection(section) {
   var items = Array.isArray(section.items) ? section.items : [];
   return (
@@ -876,7 +578,7 @@ function renderCtaSection(section) {
   );
 }
 
-function defaultSectionsFromLegacy(homePage, featuredTherapists) {
+function defaultSectionsFromLegacy(homePage) {
   return [
     {
       _type: "iconCardsSection",
@@ -1011,7 +713,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
   ];
 }
 
-function renderPageSections(homePage, featuredTherapists) {
+function renderPageSections(homePage, _featuredTherapists) {
   var root = document.getElementById("pageSections");
   if (!root) {
     return;
@@ -1020,7 +722,7 @@ function renderPageSections(homePage, featuredTherapists) {
   var sections =
     homePage && Array.isArray(homePage.sections) && homePage.sections.length
       ? homePage.sections
-      : defaultSectionsFromLegacy(homePage, featuredTherapists);
+      : defaultSectionsFromLegacy(homePage);
 
   root.innerHTML = sections
     .map(function (section) {

@@ -223,7 +223,7 @@ export async function fetchPublicTherapists() {
   } catch (error) {
     console.error("Failed to load therapists from Sanity.", error);
     setCmsState("error", error);
-    return [];
+    return getTherapists();
   }
 }
 
