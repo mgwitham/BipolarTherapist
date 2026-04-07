@@ -107,6 +107,7 @@ function applySiteSettings(siteSettings) {
 
 function syncHomeZipResolvedLabel(value) {
   var resolved = document.getElementById("homeZipResolved");
+  var inline = resolved ? resolved.closest(".zip-inline") : null;
   if (!resolved) {
     return;
   }
@@ -115,12 +116,18 @@ function syncHomeZipResolvedLabel(value) {
   if (!zipStatus.place) {
     resolved.textContent = "";
     resolved.classList.remove("is-visible");
+    if (inline) {
+      inline.classList.remove("is-resolved");
+    }
     return;
   }
 
   resolved.textContent =
     zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
   resolved.classList.add("is-visible");
+  if (inline) {
+    inline.classList.add("is-resolved");
+  }
 }
 
 function syncHeroSearchState() {
@@ -289,6 +296,22 @@ function initHeroCareDropdown() {
   });
 
   syncHeroSearchState();
+}
+
+function initHeroZipFocusRow() {
+  var zipField = document.querySelector(".search-field--zip");
+  var zipInput = document.getElementById("location");
+
+  if (!zipField || !zipInput) {
+    return;
+  }
+
+  zipField.addEventListener("click", function (event) {
+    if (event.target === zipInput) {
+      return;
+    }
+    zipInput.focus();
+  });
 }
 
 function buildLikelyFitCopy(therapist) {
@@ -1162,6 +1185,7 @@ function renderPageSections(homePage, featuredTherapists) {
     }
     if (interest === "therapist") {
       params.set("care_intent", "Therapy");
+      params.set("care_format", "In-Person");
       params.set("needs_medication_management", "No");
     } else if (interest === "psychiatrist") {
       params.set("care_intent", "Psychiatry");
@@ -1173,6 +1197,7 @@ function renderPageSections(homePage, featuredTherapists) {
   };
 
   initHeroCareDropdown();
+  initHeroZipFocusRow();
   var locationInput = document.getElementById("location");
   if (locationInput) {
     locationInput.addEventListener("input", syncHeroSearchState);

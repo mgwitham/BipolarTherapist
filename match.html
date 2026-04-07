@@ -732,6 +732,93 @@
         color: var(--teal-dark);
         font-weight: 600;
       }
+      .match-support-panel {
+        margin-top: 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 18px;
+        overflow: hidden;
+        background:
+          linear-gradient(90deg, rgba(26, 122, 143, 0.08), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-support-panel-static {
+        padding: 1rem 1.05rem;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbfc;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+      }
+      .match-support-panel-title {
+        margin: 0 0 0.2rem;
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-support-panel-copy {
+        margin: 0;
+        font-size: 0.83rem;
+        color: var(--muted);
+      }
+      .match-support-panel-body {
+        padding: 1rem 1.05rem;
+      }
+      .outreach-carousel-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .outreach-carousel-count {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .outreach-carousel-nav {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .outreach-carousel-frame {
+        position: relative;
+      }
+      .outreach-carousel-card[hidden] {
+        display: none;
+      }
+      .outreach-card-route {
+        margin-top: 0.8rem;
+        padding: 0.85rem 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .outreach-note-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .outreach-note-body {
+        margin-top: 0.35rem;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: var(--slate);
+      }
+      .outreach-card-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-top: 0.85rem;
+      }
+      .outreach-card-actions .btn-primary,
+      .outreach-card-actions .btn-secondary {
+        width: auto;
+      }
       .match-card {
         border: 1px solid rgba(26, 122, 143, 0.12);
         border-radius: 18px;
@@ -1638,9 +1725,19 @@
           font-size: 0.8rem;
         }
         .first-contact-top,
+        .match-support-panel-static,
         .match-outreach-header,
         .insight-item-top {
           flex-direction: column;
+        }
+        .outreach-carousel-meta,
+        .outreach-carousel-nav,
+        .outreach-card-actions {
+          width: 100%;
+        }
+        .outreach-card-actions .btn-primary,
+        .outreach-card-actions .btn-secondary {
+          width: 100%;
         }
         .first-contact-actions,
         .match-outreach-actions {

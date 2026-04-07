@@ -53,8 +53,5 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "vite": "^8.0.3"
-  },
-  "dependencies": {
-    "zipcodes": "^8.0.0"
   }
 }

@@ -107,14 +107,14 @@
       }
       .hero {
         background: linear-gradient(135deg, #0e4d5f 0%, #1a7a8f 55%, #2a9cb3 100%);
-        padding: 4.5rem 1.5rem 3rem;
+        padding: 5.25rem 1.5rem 3.5rem;
         color: white;
       }
       .hero-inner {
-        max-width: 760px;
+        max-width: 860px;
         margin: 0 auto;
         display: grid;
-        gap: 1.35rem;
+        gap: 1.6rem;
         justify-items: center;
         text-align: center;
       }
@@ -132,33 +132,36 @@
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 24px;
-        padding: 1.1rem;
+        padding: 1.2rem;
         box-shadow: 0 28px 60px rgba(3, 25, 31, 0.2);
         backdrop-filter: blur(6px);
-        width: min(100%, 520px);
+        width: min(100%, 600px);
       }
       .tool-card {
         background: white;
         color: var(--navy);
         border-radius: 18px;
-        padding: 1.25rem;
+        padding: 1.4rem;
         box-shadow: 0 14px 36px rgba(10, 45, 56, 0.16);
       }
       .tool-card p {
         color: var(--slate);
-        font-size: 0.94rem;
-        margin-bottom: 1rem;
+        font-size: 0.96rem;
+        line-height: 1.6;
+        max-width: 31rem;
+        margin: 0 auto 1.05rem;
       }
       .search-box {
         background: #f7fbfc;
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 0.9rem;
+        padding: 1.05rem;
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.9rem;
+        gap: 1rem;
       }
       .cms-banner {
+        display: none;
         margin: 1rem auto 0;
         max-width: 660px;
         padding: 0.75rem 1rem;
@@ -203,6 +206,7 @@
         border-bottom: 2px solid rgba(29, 58, 74, 0.16);
         border-radius: 0;
         background: transparent;
+        cursor: text;
       }
       .search-field--zip label {
         position: absolute;
@@ -222,27 +226,41 @@
         color: #8a88a9;
         text-align: left;
         padding: 0 0 0.55rem;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0;
+        -webkit-appearance: none;
+        appearance: none;
       }
       .search-field--zip .zip-inline {
         display: flex;
         align-items: flex-end;
         gap: 0.7rem;
+        width: 100%;
+        justify-content: flex-start;
       }
       .search-field--zip .zip-inline input {
-        flex: 0 0 7.2ch;
+        flex: 1 1 100%;
+        width: 100%;
         min-width: 0;
+      }
+      .search-field--zip .zip-inline.is-resolved input {
+        flex: 0 0 6.5ch;
+        width: 6.5ch;
+        min-width: 6.5ch;
       }
       .search-field--zip .zip-resolved {
         display: none;
-        flex: 1 1 auto;
+        flex: 0 1 auto;
         min-width: 0;
         font-family: "Lora", serif;
         font-size: clamp(0.84rem, 1.55vw, 1rem);
         line-height: 1.3;
         color: #8a88a9;
         text-align: left;
-        white-space: normal;
-        overflow-wrap: anywhere;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         padding-bottom: 0.6rem;
       }
       .search-field--zip .zip-resolved.is-visible {
@@ -254,6 +272,13 @@
       }
       .search-field--zip input:focus {
         color: var(--navy);
+      }
+      .search-field--zip input:-webkit-autofill,
+      .search-field--zip input:-webkit-autofill:hover,
+      .search-field--zip input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--navy);
+        transition: background-color 9999s ease-out 0s;
+        -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
       }
       .search-field select {
         border: none;
@@ -481,32 +506,6 @@
       .hero-link.secondary:hover {
         background: rgba(255, 255, 255, 0.18);
       }
-      .hero-stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(120px, 1fr));
-        gap: 0.9rem;
-        margin-top: 1rem;
-        width: 100%;
-      }
-      .hero-stat {
-        text-align: center;
-        color: var(--navy);
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(21, 95, 112, 0.1);
-        border-radius: 14px;
-        padding: 0.85rem 0.75rem;
-      }
-      .hero-stat-num {
-        font-size: 1.7rem;
-        font-weight: 700;
-        line-height: 1;
-      }
-      .hero-stat-label {
-        font-size: 0.82rem;
-        color: var(--slate);
-        margin-top: 0.35rem;
-        line-height: 1.3;
-      }
       .start-here {
         padding: 0 1.5rem 1rem;
         margin-top: -1.1rem;
@@ -590,23 +589,20 @@
         scroll-margin-top: 84px;
       }
       .ease-strip-card {
-        max-width: 1080px;
+        max-width: 980px;
         margin: 0 auto;
-        background: #eef7f9;
+        background: #ffffff;
         border: 1px solid var(--border);
         border-radius: 18px;
-        padding: 1rem 1.1rem;
+        padding: 1rem 1.1rem 1.1rem;
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.04);
       }
       .ease-strip-top {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: end;
-        flex-wrap: wrap;
-        margin-top: 0.95rem;
+        display: block;
+        margin-top: 1rem;
       }
       .ease-strip-copy {
-        max-width: 700px;
+        max-width: 680px;
       }
       .ease-strip-kicker {
         font-size: 0.74rem;
@@ -616,11 +612,12 @@
         letter-spacing: 0.05em;
       }
       .ease-strip-card h2 {
-        font-size: 1.2rem;
-        margin-top: 0.15rem;
+        font-size: 1.08rem;
+        margin-top: 0.1rem;
       }
       .ease-strip-card p {
         color: var(--slate);
+        margin-top: 0.35rem;
       }
       .ease-strip-grid {
         display: grid;
@@ -653,8 +650,8 @@
         margin-top: 0.25rem;
       }
       .home-teaser {
-        max-width: 1080px;
-        margin: 0.35rem auto 0;
+        max-width: 980px;
+        margin: 0.4rem auto 0;
         padding: 0 1.5rem 1.5rem;
         position: relative;
         z-index: 2;
@@ -667,11 +664,8 @@
         box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
       }
       .home-teaser-top {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
-        align-items: flex-start;
-        margin-bottom: 0.95rem;
+        display: block;
+        margin-bottom: 0.65rem;
       }
       .home-teaser-kicker {
         font-size: 0.74rem;
@@ -682,21 +676,21 @@
         margin-bottom: 0.35rem;
       }
       .home-teaser-top h2 {
-        font-size: 1.08rem;
+        font-size: 1rem;
         margin: 0 0 0.15rem;
-        max-width: 26ch;
+        max-width: 32ch;
       }
       .home-teaser-top p {
         margin: 0;
         color: var(--slate);
-        max-width: 58ch;
+        max-width: 60ch;
+        font-size: 0.9rem;
       }
       .home-teaser-helper {
-        font-size: 0.78rem;
-        color: var(--muted);
+        display: none;
       }
       .home-teaser-tabs {
-        display: flex;
+        display: none;
         gap: 0.45rem;
         flex-wrap: wrap;
         padding: 0.18rem;
@@ -722,9 +716,7 @@
         box-shadow: 0 4px 12px rgba(14, 77, 95, 0.06);
       }
       .home-teaser-body {
-        display: grid;
-        grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
-        gap: 0.85rem;
+        display: block;
       }
       .home-teaser-explainer {
         padding: 1rem;
@@ -747,11 +739,7 @@
         line-height: 1.45;
       }
       .home-teaser-preview {
-        padding: 1rem;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #f6fbfc 0%, #edf6f8 100%);
-        color: var(--navy);
-        border: 1px solid rgba(26, 122, 143, 0.1);
+        display: none;
       }
       .home-teaser-preview-label {
         font-size: 0.72rem;
@@ -887,8 +875,8 @@
         margin: 0 auto;
       }
       .ranking-note {
-        max-width: 920px;
-        margin: 0 auto 1.25rem;
+        max-width: 820px;
+        margin: 0 auto 0;
         padding: 1rem 1.1rem;
         border-radius: 14px;
         border: 1px solid var(--border);
@@ -1244,6 +1232,20 @@
           min-width: 0;
           width: 100%;
         }
+        .tool-card {
+          padding: 1.15rem 1rem 1rem;
+        }
+        .tool-card p {
+          font-size: 0.98rem;
+          line-height: 1.45;
+        }
+        .hero-actions {
+          justify-content: center;
+        }
+        .hero-link {
+          width: 100%;
+          justify-content: center;
+        }
         .search-divider {
           display: none;
         }
@@ -1430,24 +1432,6 @@
               a calmer path to care.
             </p>
           </div>
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="hero-stat-num" id="statT">—</div>
-              <div class="hero-stat-label">Reviewed Specialists</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-num" id="statS">—</div>
-              <div class="hero-stat-label">Licensed States</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-num" id="statTH">—</div>
-              <div class="hero-stat-label">Offer Telehealth</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-num" id="statAcc">—</div>
-              <div class="hero-stat-label">Accepting Patients</div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -1457,10 +1441,10 @@
         <div class="home-teaser-top">
           <div>
             <div class="home-teaser-kicker">Shortlist Preview</div>
-            <h2>See what the shortlist can emphasize after your first pass</h2>
+            <h2>After your first pass, you can refine what matters most.</h2>
             <p>
-              After the first shortlist, you can refine what matters most. This preview shows how
-              different priorities can change which profiles rise first.
+              Use a second pass to lean toward reviewed details, speed, specialization, or
+              follow-through after you see your first shortlist.
             </p>
           </div>
           <div class="home-teaser-tabs" id="homeTeaserTabs"></div>

@@ -7,12 +7,12 @@ const CHECKS = [
   {
     name: "Homepage shell",
     file: "index.html",
-    includes: ["Get matched", "Browse reviewed specialists", "Start Here"],
+    includes: ["Find bipolar care near you", "What type of care do you want?", "Enter zip code"],
   },
   {
     name: "Match shell",
     file: "match.html",
-    includes: ["Tell us what you need", "Optional refinements", "Get my shortlist"],
+    includes: ["Top matches", "Search again", "Saved Providers"],
   },
   {
     name: "Directory shell",

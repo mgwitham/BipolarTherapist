@@ -26,6 +26,7 @@ var latestEntries = [];
 var latestLearningSignals = null;
 var currentJourneyId = null;
 var compareFocusSlug = "";
+var outreachFocusSlug = "";
 var activeShortcutContext = null;
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var SAVED_SHORTLIST_KEY = "bth_saved_match_shortlist_v1";
@@ -34,13 +35,13 @@ var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var activeSecondPassMode = "balanced";
 var OUTREACH_OUTCOME_OPTIONS = [
-  { value: "reached_out", label: "Reached out", tone: "positive" },
+  { value: "reached_out", label: "Contacted", tone: "positive" },
   { value: "heard_back", label: "Heard back", tone: "positive" },
-  { value: "booked_consult", label: "Booked consult", tone: "positive" },
-  { value: "good_fit_call", label: "Good fit call", tone: "positive" },
-  { value: "insurance_mismatch", label: "Insurance mismatch", tone: "negative" },
-  { value: "waitlist", label: "Hit a waitlist", tone: "negative" },
-  { value: "no_response", label: "No response yet", tone: "negative" },
+  { value: "booked_consult", label: "Booked", tone: "positive" },
+  { value: "good_fit_call", label: "Good fit", tone: "positive" },
+  { value: "insurance_mismatch", label: "Insurance issue", tone: "negative" },
+  { value: "waitlist", label: "Waitlist", tone: "negative" },
+  { value: "no_response", label: "No response", tone: "negative" },
 ];
 var FEEDBACK_REASON_OPTIONS = [
   "Insurance mismatch",
@@ -744,6 +745,35 @@ function formatOutcomeLabel(outcome) {
   return option ? option.label : String(outcome || "").replace(/_/g, " ");
 }
 
+function shouldAdvanceOutreachFocus(outcome) {
+  return ["no_response", "waitlist", "insurance_mismatch"].indexOf(String(outcome || "")) !== -1;
+}
+
+function getNextOutreachSlug(currentSlug) {
+  var shortlist = Array.isArray(latestEntries)
+    ? latestEntries.slice(0, PRIMARY_SHORTLIST_LIMIT)
+    : [];
+  var currentIndex = shortlist.findIndex(function (entry) {
+    return entry && entry.therapist && entry.therapist.slug === currentSlug;
+  });
+  if (currentIndex === -1) {
+    return "";
+  }
+  var nextEntry = shortlist[currentIndex + 1];
+  return nextEntry && nextEntry.therapist ? nextEntry.therapist.slug : "";
+}
+
+function formatTherapistLocationLine(therapist) {
+  var city = String((therapist && therapist.city) || "").trim();
+  var state = String((therapist && therapist.state) || "").trim();
+  var zip = String((therapist && therapist.zip) || "").trim();
+  var cityState = [city, state].filter(Boolean).join(", ");
+  if (cityState && /^\d{5}$/.test(zip)) {
+    return cityState + " " + zip;
+  }
+  return cityState || zip;
+}
+
 function buildJourneyId(profile, entries) {
   return [
     Date.now(),
@@ -1341,17 +1371,7 @@ function getCompareDecisionLenses(entries, profile) {
 function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
   var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
-  var decisionLenses = getCompareDecisionLenses(entries, latestProfile);
   var contactPlan = buildContactOrderPlan(latestProfile, entries);
-
-  if (compareFocusSlug) {
-    topEntries = topEntries.slice().sort(function (a, b) {
-      return (
-        Number(b.therapist.slug === compareFocusSlug) -
-        Number(a.therapist.slug === compareFocusSlug)
-      );
-    });
-  }
 
   if (topEntries.length < 2) {
     root.innerHTML = "";
@@ -1360,13 +1380,7 @@ function renderComparison(entries) {
 
   var rows = [
     {
-      label: "Decision logic",
-      getValue: function (therapist) {
-        return decisionLenses[therapist.slug] || [];
-      },
-    },
-    {
-      label: "Contact plan role",
+      label: "Order",
       getValue: function (therapist) {
         return getContactPlanRole(contactPlan, therapist.slug);
       },
@@ -1378,7 +1392,7 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Care format",
+      label: "Format",
       getValue: function (therapist) {
         return [
           therapist.accepts_telehealth ? "Telehealth" : "",
@@ -1389,7 +1403,23 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Medication management",
+      label: "Insurance / payment",
+      getValue: function (therapist) {
+        var accepted = (therapist.insurance_accepted || []).slice(0, 3);
+        if (accepted.length) {
+          return accepted;
+        }
+        return therapist.sliding_scale ? "Sliding scale available" : "Private pay";
+      },
+    },
+    {
+      label: "Languages",
+      getValue: function (therapist) {
+        return therapist.languages || [];
+      },
+    },
+    {
+      label: "Medication support",
       getValue: function (therapist) {
         return therapist.medication_management;
       },
@@ -1400,46 +1430,6 @@ function renderComparison(entries) {
         return therapist.bipolar_years_experience
           ? therapist.bipolar_years_experience + " years"
           : "";
-      },
-    },
-    {
-      label: "Typical wait time",
-      getValue: function (therapist) {
-        return therapist.estimated_wait_time;
-      },
-    },
-    {
-      label: "Best way to reach them",
-      getValue: function (therapist) {
-        if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
-          return "Booking link";
-        }
-        if (therapist.preferred_contact_method === "website" && therapist.website) {
-          return "Website intake";
-        }
-        if (therapist.preferred_contact_method === "phone" && therapist.phone) {
-          return "Phone";
-        }
-        if (
-          therapist.preferred_contact_method === "email" &&
-          therapist.email &&
-          therapist.email !== "contact@example.com"
-        ) {
-          return "Email";
-        }
-        if (therapist.booking_url) {
-          return "Booking link";
-        }
-        if (therapist.website) {
-          return "Website";
-        }
-        if (therapist.phone) {
-          return "Phone";
-        }
-        if (therapist.email && therapist.email !== "contact@example.com") {
-          return "Email";
-        }
-        return "";
       },
     },
     {
@@ -1457,29 +1447,11 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Insurance",
-      getValue: function (therapist) {
-        return (therapist.insurance_accepted || []).slice(0, 4);
-      },
-    },
-    {
-      label: "Languages",
-      getValue: function (therapist) {
-        return therapist.languages || [];
-      },
-    },
-    {
-      label: "Contact responsiveness",
-      getValue: function (therapist) {
-        return getResponsivenessSignalLabel(therapist) || "";
-      },
-    },
-    {
-      label: "Trust signal",
+      label: "Reviewed details",
       getValue: function (therapist) {
         return therapist.verification_status === "editorially_verified"
-          ? "Editorially verified"
-          : "Profile under review";
+          ? "Verified"
+          : "Profile details available";
       },
     },
   ];
@@ -1491,11 +1463,7 @@ function renderComparison(entries) {
           '<div class="compare-cell header"><div class="compare-name">' +
           escapeHtml(entry.therapist.name) +
           '</div><div class="compare-sub">' +
-          escapeHtml(
-            entry.evaluation && entry.evaluation.shortlist_priority
-              ? entry.evaluation.shortlist_priority
-              : "Top " + (index + 1) + " match",
-          ) +
+          escapeHtml(formatTherapistLocationLine(entry.therapist)) +
           "</div></div>"
         );
       }),
@@ -1522,33 +1490,10 @@ function renderComparison(entries) {
     .join("");
 
   root.innerHTML =
-    '<section class="match-compare"><div class="match-compare-header"><h3>Compare the shortlist side by side</h3><p>Use this to narrow down the top options before opening full profiles.</p>' +
-    (contactPlan && contactPlan.first
-      ? '<p class="compare-focus-note" style="margin-top:0.55rem">' +
-        escapeHtml(
-          "If you are only contacting one person first, start with " +
-            contactPlan.first.therapist.name +
-            (contactPlan.fallback && contactPlan.fallback.therapist
-              ? " and hold " + contactPlan.fallback.therapist.name + " as backup."
-              : "."),
-        ) +
-        "</p>"
-      : "") +
-    (compareFocusSlug
-      ? '<div class="compare-focus-note">Focused on: ' +
-        escapeHtml(
-          (
-            topEntries.find(function (entry) {
-              return entry.therapist.slug === compareFocusSlug;
-            }) || topEntries[0]
-          ).therapist.name,
-        ) +
-        "</div>"
-      : "") +
-    '</div><div class="compare-grid">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Use this to spot the biggest practical differences fast.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Side-by-side comparison</h3><p>Start with order and next move, then check format, insurance, and language.</p></div><div class="compare-grid">' +
     headerCells +
     bodyCells +
-    "</div></section>";
+    "</div></section></div></section>";
 
   triggerMotion(root, "motion-enter");
 }
@@ -4641,10 +4586,28 @@ function recordEntryOutreachOutcome(slug, outcome) {
   if (latestProfile) {
     latestEntries = rankEntriesForProfile(latestProfile);
   }
+  if (shouldAdvanceOutreachFocus(outcome)) {
+    outreachFocusSlug = getNextOutreachSlug(slug) || "";
+  } else {
+    outreachFocusSlug = slug;
+  }
   renderResults(latestEntries, latestProfile);
+  if (shouldAdvanceOutreachFocus(outcome)) {
+    var nextSlug = getNextOutreachSlug(slug);
+    var nextEntry = (latestEntries || []).find(function (item) {
+      return item && item.therapist && item.therapist.slug === nextSlug;
+    });
+    setActionState(
+      true,
+      nextEntry
+        ? "Saved. Next up: " + nextEntry.therapist.name + "."
+        : "Saved. That signals it may be time to move to your next option.",
+    );
+    return;
+  }
   setActionState(
     true,
-    "Outreach outcome saved for " + entry.therapist.name + ": " + formatOutcomeLabel(outcome) + ".",
+    "Saved for " + entry.therapist.name + ": " + formatOutcomeLabel(outcome) + ".",
   );
 }
 
@@ -4807,82 +4770,21 @@ function renderFallbackRecommendation(profile, entries) {
   }
 
   var fallback = buildFallbackRecommendation(profile, entries);
-  var executionCopy = getExecutionStrategyCopy(profile);
   if (!fallback) {
     root.innerHTML = "";
     return;
   }
 
   root.innerHTML =
-    '<section class="first-contact-reco"><div class="first-contact-header"><h3>' +
-    escapeHtml(executionCopy.fallbackHeader) +
-    "</h3><p>" +
-    escapeHtml(executionCopy.fallbackBody) +
-    '</p></div><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Recommended backup outreach</div><div class="first-contact-name">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Keep a backup ready</div><div class="match-support-panel-copy">Hold one strong backup in case your first outreach does not move.</div></div></div><div class="match-support-panel-body"><section class="first-contact-reco"><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Backup option</div><div class="first-contact-name">' +
     escapeHtml(fallback.therapist.name) +
     '</div><div class="first-contact-meta">' +
-    escapeHtml(fallback.therapist.credentials || "") +
-    (fallback.therapist.title ? " · " + escapeHtml(fallback.therapist.title) : "") +
-    " · " +
-    escapeHtml(fallback.route) +
+    escapeHtml(formatTherapistLocationLine(fallback.therapist) || "") +
     '</div></div><a href="therapist.html?slug=' +
     encodeURIComponent(fallback.therapist.slug) +
     '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
     escapeHtml(fallback.therapist.slug) +
-    '" data-profile-link-context="fallback">Review profile</a></div><div class="first-contact-body"><p><strong>Why pivot now:</strong> ' +
-    escapeHtml(
-      "The first outreach is currently marked as " +
-        fallback.triggerLabel.toLowerCase() +
-        ", so this is the best next option.",
-    ) +
-    "</p><p><strong>Why this backup:</strong> " +
-    escapeHtml(fallback.rationale) +
-    "</p>" +
-    (fallback.learningWins
-      ? '<div class="first-contact-signal"><strong>Why this backup is reinforced:</strong> ' +
-        escapeHtml(
-          "Similar fallback journeys have produced " +
-            fallback.learningWins +
-            " strong outcome" +
-            (fallback.learningWins > 1 ? "s" : "") +
-            (fallback.learningAttempts
-              ? " across " +
-                fallback.learningAttempts +
-                " tracked backup attempt" +
-                (fallback.learningAttempts > 1 ? "s" : "")
-              : "") +
-            ".",
-        ) +
-        "</div>"
-      : "") +
-    (fallback.routeLearning && fallback.routeLearning.success
-      ? '<div class="first-contact-signal"><strong>Why this route may recover better:</strong> ' +
-        escapeHtml(
-          "Similar users have seen stronger backup outcomes through " +
-            fallback.routeLearning.routeType.replace(/_/g, " ") +
-            " outreach.",
-        ) +
-        "</div>"
-      : "") +
-    '<div class="first-contact-signal"><strong>How to approach this backup:</strong> ' +
-    escapeHtml(fallback.nextMove) +
-    '</div><div class="first-contact-actions"><button type="button" class="btn-primary" id="fallbackOutreachAction">' +
-    escapeHtml(executionCopy.fallbackPrimary) +
-    '</button><button type="button" class="btn-secondary" id="copyFallbackDraft">' +
-    escapeHtml(executionCopy.fallbackSecondary) +
-    "</button></div></div></div></section>";
-
-  var startButton = document.getElementById("fallbackOutreachAction");
-  if (startButton) {
-    startButton.addEventListener("click", openFallbackOutreach);
-  }
-
-  var copyButton = document.getElementById("copyFallbackDraft");
-  if (copyButton) {
-    copyButton.addEventListener("click", function () {
-      copyFallbackOutreachDraft();
-    });
-  }
+    '" data-profile-link-context="fallback">Review profile</a></div></div></section></div></section>';
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -5338,113 +5240,74 @@ function renderOutreachPanel(entries) {
     root.innerHTML = "";
     return;
   }
-  var contactPlan = buildContactOrderPlan(latestProfile, entries);
-  var shortcutInfluence = getShortcutInfluence(latestProfile, entries.slice(0, 3));
-  var executionCopy = getExecutionStrategyCopy(latestProfile);
-  var gentleStrategyExplanation = getGentleStrategyExplanation(latestProfile);
+  var topEntries = entries.slice(0, 3);
+  var focusSlug = outreachFocusSlug || (topEntries[0] ? topEntries[0].therapist.slug : "");
+  var focusIndex = Math.max(
+    0,
+    topEntries.findIndex(function (entry) {
+      return entry.therapist.slug === focusSlug;
+    }),
+  );
+  if (!topEntries[focusIndex]) {
+    focusIndex = 0;
+  }
+  var activeEntry = topEntries[focusIndex];
 
   root.innerHTML =
-    '<section class="match-outreach"><div class="match-outreach-header"><div><h3>' +
-    escapeHtml(executionCopy.outreachHeader) +
-    "</h3><p>" +
-    escapeHtml(executionCopy.outreachBody) +
-    '</p><p class="subtle" style="margin-top:0.45rem">' +
-    escapeHtml(gentleStrategyExplanation) +
-    '</p></div><div class="match-outreach-actions"><button type="button" class="btn-secondary" id="copyOutreachPlan">' +
-    escapeHtml(executionCopy.copyPlanLabel) +
-    '</button><button type="button" class="btn-primary" id="requestShortlistHelp">' +
-    escapeHtml(executionCopy.helpLabel) +
-    "</button></div></div>" +
-    (contactPlan
-      ? '<div class="outreach-plan"><div class="outreach-plan-title">' +
-        escapeHtml(executionCopy.contactOrderTitle) +
-        '</div><div class="outreach-plan-copy"><strong>Start with:</strong> ' +
-        escapeHtml(contactPlan.first.therapist.name) +
-        " via " +
-        escapeHtml(contactPlan.first.route) +
-        '.</div><div class="outreach-plan-copy"><strong>Pivot window:</strong> ' +
-        escapeHtml(contactPlan.trigger) +
-        '</div><div class="outreach-plan-copy"><strong>Follow up by:</strong> ' +
-        escapeHtml(contactPlan.pivotAtLabel) +
-        "</div>" +
-        (contactPlan.routeRationale
-          ? '<div class="outreach-plan-copy"><strong>Why this route first:</strong> ' +
-            escapeHtml(contactPlan.routeRationale) +
-            "</div>"
-          : "") +
-        (contactPlan.shortcutRationale
-          ? '<div class="outreach-plan-copy"><strong>Why this shortcut logic supports it:</strong> ' +
-            escapeHtml(contactPlan.shortcutRationale) +
-            "</div>"
-          : "") +
-        (contactPlan.timingRationale
-          ? '<div class="outreach-plan-copy"><strong>Why this timing:</strong> ' +
-            escapeHtml(contactPlan.timingRationale) +
-            "</div>"
-          : "") +
-        (contactPlan.fallback
-          ? '<div class="outreach-plan-copy"><strong>Backup path:</strong> If the first option stalls, try ' +
-            escapeHtml(contactPlan.fallback.therapist.name) +
-            " via " +
-            escapeHtml(contactPlan.fallback.route) +
-            ".</div>"
-          : "") +
-        '<div class="outreach-plan-actions"><button type="button" class="outreach-link outreach-link-button" id="copyPivotReminder">' +
-        escapeHtml(executionCopy.pivotReminderLabel) +
-        "</button></div>" +
-        "</div>"
-      : "") +
-    '<div class="outreach-grid">' +
-    entries
-      .slice(0, 3)
-      .map(function (entry) {
-        var primaryContact = getPreferredOutreach(entry);
-        var responsivenessLabel = getResponsivenessSignalLabel(entry.therapist);
-        var segmentCue = getEntrySegmentCue(latestProfile, entry);
-        var latestOutcome = getLatestOutreachOutcome(entry.therapist.slug);
-        var shortcutSignal = shortcutInfluence[entry.therapist.slug] || null;
-        var contactPlanRole = getContactPlanRole(contactPlan, entry.therapist.slug);
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Outreach progress</div><div class="match-support-panel-copy">Move through one provider at a time and keep your next step updated as you go.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
+    escapeHtml(String(focusIndex + 1) + " of " + String(topEntries.length)) +
+    '</div><div class="outreach-carousel-nav"><button type="button" class="btn-secondary" id="outreachPrev"' +
+    (focusIndex === 0 ? " disabled" : "") +
+    '>Previous</button><button type="button" class="btn-secondary" id="outreachNext"' +
+    (focusIndex === topEntries.length - 1 ? " disabled" : "") +
+    '>Next</button></div></div></div><div class="match-support-panel-body"><div class="outreach-carousel-frame">' +
+    topEntries
+      .map(function (entry, index) {
+        var therapist = entry.therapist;
+        var preferredRoute = getPreferredOutreach(entry);
+        var latestOutcome = getLatestOutreachOutcome(therapist.slug);
+        var role = index === 0 ? "Contact first" : index === 1 ? "Contact second" : "Contact third";
+        var script = buildEntryOutreachDraft(entry, latestProfile).replace(/\n+/g, " ").trim();
         return (
-          '<article class="outreach-card"><div class="outreach-card-top"><div><h4>' +
-          escapeHtml(entry.therapist.name) +
+          '<article class="outreach-carousel-card"' +
+          (index === focusIndex ? "" : " hidden") +
+          ' data-outreach-card="' +
+          escapeHtml(therapist.slug) +
+          '"><div class="outreach-card-top"><div><h4>' +
+          escapeHtml(therapist.name) +
           "</h4><p>" +
-          escapeHtml(entry.therapist.credentials || "") +
-          (entry.therapist.title ? " · " + escapeHtml(entry.therapist.title) : "") +
-          "</p></div>" +
-          (contactPlanRole
-            ? '<span class="match-summary-pill">' + escapeHtml(contactPlanRole) + "</span>"
-            : entry.evaluation.shortlist_priority
-              ? '<span class="match-summary-pill">' +
-                escapeHtml(entry.evaluation.shortlist_priority) +
-                "</span>"
-              : "") +
-          "</div>" +
-          (entry.evaluation.shortlist_note
-            ? '<div class="outreach-note">Your note: ' +
-              escapeHtml(entry.evaluation.shortlist_note) +
-              "</div>"
+          escapeHtml(
+            (therapist.credentials || "") + (therapist.title ? " · " + therapist.title : ""),
+          ) +
+          '</p><div class="outreach-note">' +
+          escapeHtml(formatTherapistLocationLine(therapist)) +
+          '</div></div><span class="match-summary-pill">' +
+          escapeHtml(role) +
+          '</span></div><div class="outreach-card-route"><div class="outreach-note-label">Best route</div><div class="outreach-note-body">' +
+          escapeHtml(preferredRoute ? preferredRoute.label : "Open profile") +
+          '</div></div><div class="outreach-card-route"><div class="outreach-note-label">Script</div><div class="outreach-note-body">' +
+          escapeHtml(script) +
+          '</div></div><div class="outreach-card-actions">' +
+          (preferredRoute
+            ? '<a class="btn-primary" href="' +
+              escapeHtml(preferredRoute.href) +
+              '"' +
+              (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+              ' data-entry-contact-link="' +
+              escapeHtml(therapist.slug) +
+              '" data-entry-route-label="' +
+              escapeHtml(preferredRoute.label) +
+              '">' +
+              escapeHtml(preferredRoute.label) +
+              "</a>"
             : "") +
-          (responsivenessLabel
-            ? '<div class="outreach-note">Responsiveness: ' +
-              escapeHtml(responsivenessLabel) +
-              "</div>"
-            : "") +
-          (segmentCue
-            ? '<div class="outreach-note outreach-note-strong">Suggested emphasis: ' +
-              escapeHtml(segmentCue) +
-              "</div>"
-            : "") +
-          (shortcutSignal
-            ? '<div class="outreach-note">Shortcut signal: ' +
-              escapeHtml(getShortcutInfluenceCopy(shortcutSignal)) +
-              "</div>"
-            : "") +
-          (entry.therapist.contact_guidance
-            ? '<div class="outreach-note">Contact note: ' +
-              escapeHtml(entry.therapist.contact_guidance) +
-              "</div>"
-            : "") +
-          '<div class="first-contact-tracker"><div class="first-contact-tracker-title">Track what happened</div><div class="first-contact-tracker-actions">' +
+          '<button type="button" class="btn-secondary" data-copy-entry-draft="' +
+          escapeHtml(therapist.slug) +
+          '">Copy draft</button><a class="btn-secondary" href="therapist.html?slug=' +
+          encodeURIComponent(therapist.slug) +
+          '" data-match-profile-link="' +
+          escapeHtml(therapist.slug) +
+          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Update progress</div><div class="first-contact-tracker-actions">' +
           OUTREACH_OUTCOME_OPTIONS.map(function (option) {
             return (
               '<button type="button" class="feedback-btn' +
@@ -5454,7 +5317,7 @@ function renderOutreachPanel(entries) {
                   : " active-positive"
                 : "") +
               '" data-entry-outreach="' +
-              escapeHtml(entry.therapist.slug) +
+              escapeHtml(therapist.slug) +
               '" data-entry-outcome="' +
               escapeHtml(option.value) +
               '">' +
@@ -5462,84 +5325,27 @@ function renderOutreachPanel(entries) {
               "</button>"
             );
           }).join("") +
-          "</div></div>" +
-          '<div class="outreach-links">' +
-          (primaryContact
-            ? '<a class="outreach-link" href="' +
-              escapeHtml(primaryContact.href) +
-              '"' +
-              (primaryContact.external ? ' target="_blank" rel="noopener"' : "") +
-              ' data-entry-contact-link="' +
-              escapeHtml(entry.therapist.slug) +
-              '" data-entry-route-label="' +
-              escapeHtml(primaryContact.label) +
-              '"' +
-              ">" +
-              escapeHtml(primaryContact.label) +
-              "</a>"
-            : '<span class="outreach-link" style="color:var(--muted)">Contact route not listed</span>') +
-          '<button type="button" class="outreach-link outreach-link-button" data-copy-entry-draft="' +
-          escapeHtml(entry.therapist.slug) +
-          '">Copy tailored draft</button>' +
-          '<a class="outreach-link" href="therapist.html?slug=' +
-          encodeURIComponent(entry.therapist.slug) +
-          '" data-match-profile-link="' +
-          escapeHtml(entry.therapist.slug) +
-          '" data-profile-link-context="outreach-card' +
-          '">Review profile</a>' +
-          "</div></article>"
+          "</div></div></article>"
         );
       })
       .join("") +
-    '</div><div class="concierge-panel" id="conciergePanel"><div class="concierge-panel-top"><div><h4>Want a second set of eyes before reaching out?</h4><p>Save a structured help request here if you want help narrowing the shortlist or deciding who to contact first.</p></div><div class="concierge-pill">Help request</div></div><div class="concierge-shortlist">Focused on: ' +
-    entries
-      .slice(0, 3)
-      .map(function (entry) {
-        return escapeHtml(entry.therapist.name);
-      })
-      .join(" • ") +
-    '</div><form class="concierge-form" id="conciergeForm"><div class="concierge-grid"><div class="match-group"><label for="concierge_name">First Name</label><input id="concierge_name" name="requester_name" type="text" placeholder="Optional" /></div><div class="match-group"><label for="concierge_followup">Preferred Follow-Up</label><select id="concierge_followup" name="follow_up_preference"><option value="Email me later">Email me later</option><option value="Text me later">Text me later</option><option value="Call me later">Call me later</option><option value="No follow-up yet">No follow-up yet</option></select></div><div class="match-group"><label for="concierge_topic">What do you want help with?</label><select id="concierge_topic" name="help_topic"><option value="Who should I contact first?">Who should I contact first?</option><option value="Which option seems like the best fit?">Which option seems like the best fit?</option><option value="Help me think through insurance and cost">Help me think through insurance and cost</option><option value="Help me compare availability and practicality">Help me compare availability and practicality</option></select></div><div class="match-group"><label for="concierge_note">What feels uncertain?</label><textarea id="concierge_note" name="request_note" rows="4" placeholder="Examples: I need evening availability, I am unsure about medication support, I only want to contact one person first, I am worried about insurance coverage."></textarea></div></div><div class="concierge-actions"><button type="button" class="btn-secondary" id="saveConciergeRequest">Save help request</button><button type="button" class="btn-primary" id="copyConciergeBrief">Copy help summary</button></div><div class="concierge-status" id="conciergeStatus">Saved on this device so you can come back to it later.</div></form></div></section>';
+    "</div></div></section>";
 
-  var copyButton = document.getElementById("copyOutreachPlan");
-  if (copyButton) {
-    copyButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(buildOutreachPlan(entries));
-        trackFunnelEvent("match_outreach_plan_copied", {
-          result_count: entries.length,
-          top_slug: entries[0] ? entries[0].therapist.slug : "",
-          strategy: buildAdaptiveStrategySnapshot(latestProfile),
-        });
-        setActionState(true, "Outreach plan copied.");
-      } catch (_error) {
-        setActionState(
-          true,
-          "Unable to copy automatically. You can still use the contact links below.",
-        );
-      }
+  var prevButton = document.getElementById("outreachPrev");
+  if (prevButton) {
+    prevButton.addEventListener("click", function () {
+      var nextIndex = Math.max(0, focusIndex - 1);
+      outreachFocusSlug = topEntries[nextIndex].therapist.slug;
+      renderOutreachPanel(entries);
     });
   }
 
-  var reminderButton = document.getElementById("copyPivotReminder");
-  if (reminderButton && contactPlan) {
-    reminderButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(buildPivotReminderText(contactPlan));
-        trackFunnelEvent("match_pivot_reminder_copied", {
-          therapist_slug:
-            contactPlan.first && contactPlan.first.therapist
-              ? contactPlan.first.therapist.slug
-              : "",
-          fallback_slug:
-            contactPlan.fallback && contactPlan.fallback.therapist
-              ? contactPlan.fallback.therapist.slug
-              : "",
-          strategy: buildAdaptiveStrategySnapshot(latestProfile),
-        });
-        setActionState(true, "Pivot reminder copied.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the pivot reminder automatically.");
-      }
+  var nextButton = document.getElementById("outreachNext");
+  if (nextButton) {
+    nextButton.addEventListener("click", function () {
+      var nextIndex = Math.min(topEntries.length - 1, focusIndex + 1);
+      outreachFocusSlug = topEntries[nextIndex].therapist.slug;
+      renderOutreachPanel(entries);
     });
   }
 
@@ -5599,22 +5405,31 @@ function renderOutreachPanel(entries) {
         button.getAttribute("data-entry-outreach"),
         button.getAttribute("data-entry-outcome"),
       );
+      renderOutreachPanel(entries);
     });
   });
 
-  var conciergeButton = document.getElementById("requestShortlistHelp");
-  if (conciergeButton) {
-    conciergeButton.addEventListener("click", function (event) {
-      event.preventDefault();
-      scrollToConciergePanel();
-      setActionState(
-        true,
-        "Use the concierge request form below if you want a second set of eyes before reaching out.",
-      );
+  var frame = root.querySelector(".outreach-carousel-frame");
+  if (frame) {
+    var touchStartX = 0;
+    frame.addEventListener("touchstart", function (event) {
+      touchStartX = event.touches[0] ? event.touches[0].clientX : 0;
+    });
+    frame.addEventListener("touchend", function (event) {
+      var touchEndX = event.changedTouches[0] ? event.changedTouches[0].clientX : 0;
+      var delta = touchEndX - touchStartX;
+      if (Math.abs(delta) < 40) {
+        return;
+      }
+      if (delta < 0 && focusIndex < topEntries.length - 1) {
+        outreachFocusSlug = topEntries[focusIndex + 1].therapist.slug;
+        renderOutreachPanel(entries);
+      } else if (delta > 0 && focusIndex > 0) {
+        outreachFocusSlug = topEntries[focusIndex - 1].therapist.slug;
+        renderOutreachPanel(entries);
+      }
     });
   }
-
-  bindConciergePanel(entries);
 }
 
 function renderResults(entries, profile) {

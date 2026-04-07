@@ -86,13 +86,20 @@ const therapistProjection = `{
 }`;
 
 function normalizeTherapist(doc) {
+  function normalizeDisplayRole(value) {
+    return String(value || "")
+      .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
+      .replace(/\bclinical psychologist\b/gi, "Therapist")
+      .replace(/\bpsychologist\b/gi, "Therapist");
+  }
+
   return {
     id: doc._id,
     name: doc.name || "",
     credentials: doc.credentials || "",
-    title: doc.title || "",
-    bio: doc.bio || "",
-    bio_preview: doc.bioPreview || doc.bio || "",
+    title: normalizeDisplayRole(doc.title || ""),
+    bio: normalizeDisplayRole(doc.bio || ""),
+    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio || ""),
     photo_url: doc.photo_url || null,
     photo_source_type: doc.photoSourceType || "",
     photo_reviewed_at: doc.photoReviewedAt || "",

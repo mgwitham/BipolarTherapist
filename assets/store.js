@@ -99,9 +99,25 @@ function normalizeApplication(item) {
 
 export function getTherapists() {
   ensureSeeded();
-  return clone(readJson(THERAPISTS_KEY, SEEDED_THERAPISTS)).filter(function (item) {
-    return item.listing_active !== false && item.status !== "archived";
-  });
+  function normalizeDisplayRole(value) {
+    return String(value || "")
+      .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
+      .replace(/\bclinical psychologist\b/gi, "Therapist")
+      .replace(/\bpsychologist\b/gi, "Therapist");
+  }
+
+  return clone(readJson(THERAPISTS_KEY, SEEDED_THERAPISTS))
+    .filter(function (item) {
+      return item.listing_active !== false && item.status !== "archived";
+    })
+    .map(function (item) {
+      return {
+        ...item,
+        title: normalizeDisplayRole(item.title || ""),
+        bio: normalizeDisplayRole(item.bio || ""),
+        bio_preview: normalizeDisplayRole(item.bio_preview || item.bio || ""),
+      };
+    });
 }
 
 export function getTherapistBySlug(slug) {
