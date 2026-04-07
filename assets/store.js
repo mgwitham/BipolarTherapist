@@ -61,6 +61,16 @@ function ensureSeeded() {
   }
 }
 
+function normalizeDisplayRole(value) {
+  return String(value || "")
+    .replace(/\blicensed clinical psychologist\b/gi, "Therapist")
+    .replace(/\bclinical psychologist\b/gi, "Therapist")
+    .replace(/\bpsychologist\b/gi, "Therapist")
+    .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function normalizeApplication(item) {
   var application = item || {};
   return {
@@ -99,12 +109,6 @@ function normalizeApplication(item) {
 
 export function getTherapists() {
   ensureSeeded();
-  function normalizeDisplayRole(value) {
-    return String(value || "")
-      .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
-      .replace(/\bclinical psychologist\b/gi, "Therapist")
-      .replace(/\bpsychologist\b/gi, "Therapist");
-  }
 
   return clone(readJson(THERAPISTS_KEY, SEEDED_THERAPISTS))
     .filter(function (item) {

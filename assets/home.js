@@ -821,7 +821,7 @@ function renderFeaturedSection(section, fallbackTherapists) {
     escapeHtml(section.title || "") +
     '</h2><p class="section-sub">' +
     escapeHtml(section.description || "") +
-    '</p></div><div class="ranking-note"><div class="ranking-note-title">Why These Profiles Rise To The Top</div><div class="ranking-note-copy">We prioritize specialists with stronger reviewed details, clearer first-contact paths, better bipolar-specific detail, and profiles that make it easier to decide and act.</div><div class="ranking-note-list"><span class="ranking-note-pill">Reviewed details</span><span class="ranking-note-pill">Higher match readiness</span><span class="ranking-note-pill">Clear outreach path</span><span class="ranking-note-pill">Availability and response clarity</span></div></div><div class="therapist-grid">' +
+    '</p></div><div class="therapist-grid">' +
     cards +
     '</div><div class="center-btn"><a href="' +
     escapeHtml(section.buttonUrl || "directory.html") +
@@ -954,26 +954,6 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
             ],
     },
     {
-      _type: "featuredTherapistsSection",
-      eyebrow:
-        homePage && homePage.featuredEyebrow ? homePage.featuredEyebrow : "Featured Specialists",
-      title:
-        homePage && homePage.featuredTitle
-          ? homePage.featuredTitle
-          : "Start with a few reviewed specialists",
-      description:
-        homePage && homePage.featuredDescription
-          ? homePage.featuredDescription
-          : "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
-      buttonLabel:
-        homePage && homePage.featuredButtonLabel
-          ? homePage.featuredButtonLabel
-          : "View All Therapists →",
-      buttonUrl:
-        homePage && homePage.featuredButtonUrl ? homePage.featuredButtonUrl : "directory.html",
-      therapists: featuredTherapists,
-    },
-    {
       _type: "testimonialsSection",
       eyebrow:
         homePage && homePage.testimonialsEyebrow ? homePage.testimonialsEyebrow : "Patient Stories",
@@ -1054,10 +1034,6 @@ function renderPageSections(homePage, featuredTherapists) {
 
       if (section._type === "stepsSection") {
         return renderStepsSection(section);
-      }
-
-      if (section._type === "featuredTherapistsSection") {
-        return renderFeaturedSection(section, featuredTherapists);
       }
 
       if (section._type === "testimonialsSection") {

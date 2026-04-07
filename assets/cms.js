@@ -85,14 +85,17 @@ const therapistProjection = `{
   "slug": slug.current
 }`;
 
-function normalizeTherapist(doc) {
-  function normalizeDisplayRole(value) {
-    return String(value || "")
-      .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
-      .replace(/\bclinical psychologist\b/gi, "Therapist")
-      .replace(/\bpsychologist\b/gi, "Therapist");
-  }
+function normalizeDisplayRole(value) {
+  return String(value || "")
+    .replace(/\blicensed clinical psychologist\b/gi, "Therapist")
+    .replace(/\bclinical psychologist\b/gi, "Therapist")
+    .replace(/\bpsychologist\b/gi, "Therapist")
+    .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
+function normalizeTherapist(doc) {
   return {
     id: doc._id,
     name: doc.name || "",

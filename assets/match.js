@@ -854,6 +854,7 @@ function formatSegmentLabel(segment) {
 
 function syncMatchCareSelectTrigger() {
   var select = document.getElementById("care_intent");
+  var careFormat = document.getElementById("care_format");
   var trigger = document.querySelector("[data-match-custom-select] .custom-select-trigger");
   var options = Array.from(
     document.querySelectorAll("[data-match-custom-select] .custom-select-option"),
@@ -863,7 +864,10 @@ function syncMatchCareSelectTrigger() {
     return;
   }
 
-  var selectedValue = String(select.value || "Either");
+  var selectedValue =
+    careFormat && String(careFormat.value || "") === "Telehealth"
+      ? "Telehealth"
+      : String(select.value || "Therapy");
   var selectedOption = options.find(function (option) {
     return option.dataset.value === selectedValue;
   });
@@ -880,8 +884,9 @@ function syncMatchCareSelectTrigger() {
 function initMatchCareDropdown() {
   var selectRoot = document.querySelector("[data-match-custom-select]");
   var select = document.getElementById("care_intent");
+  var careFormat = document.getElementById("care_format");
 
-  if (!selectRoot || !select) {
+  if (!selectRoot || !select || !careFormat) {
     return;
   }
 
@@ -904,7 +909,15 @@ function initMatchCareDropdown() {
   }
 
   function setSelectedValue(value) {
-    select.value = value || "Either";
+    if (value === "Telehealth") {
+      select.value = "Therapy";
+      careFormat.value = "Telehealth";
+    } else {
+      select.value = value || "Therapy";
+      if (String(careFormat.value || "") === "Telehealth") {
+        careFormat.value = "In-Person";
+      }
+    }
     syncMatchCareSelectTrigger();
   }
 
@@ -930,7 +943,7 @@ function initMatchCareDropdown() {
 
   options.forEach(function (option, index) {
     option.addEventListener("click", function () {
-      setSelectedValue(option.dataset.value || "Either");
+      setSelectedValue(option.dataset.value || "Therapy");
       closeMenu();
       if (trigger) {
         trigger.focus();
@@ -1386,9 +1399,13 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Next move if you choose this",
+      label: "Best route",
       getValue: function (therapist) {
-        return getContactPlanNextMove(contactPlan, therapist.slug);
+        var entry = topEntries.find(function (item) {
+          return item.therapist.slug === therapist.slug;
+        });
+        var preferredRoute = entry ? getPreferredOutreach(entry) : null;
+        return preferredRoute ? preferredRoute.label : "Open profile";
       },
     },
     {
@@ -1432,33 +1449,11 @@ function renderComparison(entries) {
           : "";
       },
     },
-    {
-      label: "Session fees",
-      getValue: function (therapist) {
-        if (therapist.session_fee_min || therapist.session_fee_max) {
-          return (
-            "$" +
-            (therapist.session_fee_min || "") +
-            (therapist.session_fee_max ? "–$" + therapist.session_fee_max : "") +
-            "/session"
-          );
-        }
-        return therapist.sliding_scale ? "Sliding scale available" : "";
-      },
-    },
-    {
-      label: "Reviewed details",
-      getValue: function (therapist) {
-        return therapist.verification_status === "editorially_verified"
-          ? "Verified"
-          : "Profile details available";
-      },
-    },
   ];
 
   var headerCells = ['<div class="compare-cell label header">Compare</div>']
     .concat(
-      topEntries.map(function (entry, index) {
+      topEntries.map(function (entry) {
         return (
           '<div class="compare-cell header"><div class="compare-name">' +
           escapeHtml(entry.therapist.name) +
@@ -3817,8 +3812,8 @@ function restoreProfileFromUrl() {
   var locationQuery = params.get("location_query") || "";
   var profile = buildUserMatchProfile({
     care_state: deriveStateFromLocation(locationQuery) || params.get("care_state") || "",
-    care_format: params.get("care_format") || "Either",
-    care_intent: params.get("care_intent") || "Either",
+    care_format: params.get("care_format") || "In-Person",
+    care_intent: params.get("care_intent") || "Therapy",
     needs_medication_management: params.get("needs_medication_management") || "Open to either",
     insurance: params.get("insurance") || "",
     budget_max: params.get("budget_max") || "",
@@ -3851,8 +3846,8 @@ function hydrateForm(profile) {
   var form = document.getElementById("matchForm");
   form.elements.location_query.value = profile.location_query || profile.care_state || "";
   syncZipResolvedLabel(form.elements.location_query.value);
-  form.elements.care_format.value = profile.care_format || "Either";
-  form.elements.care_intent.value = profile.care_intent || "Either";
+  form.elements.care_format.value = profile.care_format || "In-Person";
+  form.elements.care_intent.value = profile.care_intent || "Therapy";
   form.elements.needs_medication_management.value =
     profile.needs_medication_management || "Open to either";
   form.elements.insurance.value = profile.insurance || "";
@@ -4804,158 +4799,7 @@ function renderFirstContactRecommendation(profile, entries) {
   if (!root) {
     return;
   }
-
-  var recommendation = buildFirstContactRecommendation(profile, entries);
-  if (!recommendation) {
-    root.innerHTML = "";
-    return;
-  }
-  var latestOutcome = getLatestOutreachOutcome(recommendation.therapist.slug);
-  var responsivenessLabel = getResponsivenessSignalLabel(recommendation.therapist);
-  var responsivenessNote = getResponsivenessSignalNote(recommendation.therapist);
-  var actionCopy = getRecommendationActionCopy(profile);
-  var gentleStrategyExplanation = getGentleStrategyExplanation(profile);
-  var routeSpecificPrimaryLabel = getRouteSpecificPrimaryLabel(recommendation.entry, actionCopy);
-  var routeSpecificCopy = buildRouteSpecificCopy(recommendation);
-  var messageFocus = buildRecommendedMessageFocus(profile, recommendation);
-
-  root.innerHTML =
-    '<section class="first-contact-reco"><div class="first-contact-header"><h3>' +
-    escapeHtml(actionCopy.header) +
-    "</h3><p>" +
-    escapeHtml(actionCopy.intro) +
-    '</p></div><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">' +
-    escapeHtml(actionCopy.kicker) +
-    '</div><div class="first-contact-name">' +
-    escapeHtml(recommendation.therapist.name) +
-    '</div><div class="first-contact-meta">' +
-    escapeHtml(recommendation.therapist.credentials || "") +
-    (recommendation.therapist.title ? " · " + escapeHtml(recommendation.therapist.title) : "") +
-    " · " +
-    escapeHtml(recommendation.route) +
-    '</div></div><a href="therapist.html?slug=' +
-    encodeURIComponent(recommendation.therapist.slug) +
-    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
-    escapeHtml(recommendation.therapist.slug) +
-    '" data-profile-link-context="recommended">Review profile</a></div><div class="first-contact-body"><p><strong>Why start here:</strong> ' +
-    escapeHtml(
-      "This therapist is a strong first outreach because " + recommendation.rationale + ".",
-    ) +
-    "</p><p><strong>What likely happens next:</strong> " +
-    escapeHtml(recommendation.firstStep) +
-    "</p>" +
-    '<div class="first-contact-summary-grid">' +
-    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">Best route</div><div class="first-contact-summary-value">' +
-    escapeHtml(recommendation.route) +
-    "</div></div>" +
-    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">Likely next step</div><div class="first-contact-summary-value">' +
-    escapeHtml(recommendation.firstStep) +
-    "</div></div>" +
-    '<div class="first-contact-summary-card"><div class="first-contact-summary-label">What to lead with</div><div class="first-contact-summary-value">' +
-    escapeHtml(messageFocus) +
-    "</div></div></div>" +
-    '<div class="first-contact-signal"><strong>How to use this route:</strong> ' +
-    escapeHtml(routeSpecificCopy) +
-    "</div>" +
-    (recommendation.segmentCue
-      ? '<div class="first-contact-signal"><strong>How to approach this outreach:</strong> ' +
-        escapeHtml(recommendation.segmentCue) +
-        "</div>"
-      : "") +
-    (recommendation.segmentLearning
-      ? '<div class="first-contact-signal"><strong>Why this is reinforced:</strong> ' +
-        escapeHtml(recommendation.segmentLearning) +
-        "</div>"
-      : "") +
-    (recommendation.shortcutSignal && recommendation.shortcutSignal.preference.strong > 0
-      ? '<div class="first-contact-signal"><strong>Why this shortcut logic carries through:</strong> ' +
-        escapeHtml(
-          "This recommendation also lines up with the " +
-            recommendation.shortcutSignal.title.toLowerCase() +
-            " shortcut, which has produced " +
-            recommendation.shortcutSignal.preference.strong +
-            " strong outcome" +
-            (recommendation.shortcutSignal.preference.strong === 1 ? "" : "s") +
-            " for similar users.",
-        ) +
-        "</div>"
-      : "") +
-    '<div class="first-contact-signal"><strong>' +
-    escapeHtml(actionCopy.signalTitle) +
-    ":</strong> " +
-    escapeHtml(actionCopy.signalBody) +
-    "</div>" +
-    '<div class="first-contact-signal"><strong>Why this flow is leaning this way:</strong> ' +
-    escapeHtml(gentleStrategyExplanation) +
-    "</div>" +
-    (responsivenessLabel
-      ? '<div class="first-contact-signal"><strong>Contact responsiveness:</strong> ' +
-        escapeHtml(responsivenessLabel) +
-        (responsivenessNote
-          ? '<div class="first-contact-signal-note">' + escapeHtml(responsivenessNote) + "</div>"
-          : "") +
-        "</div>"
-      : "") +
-    '<div class="first-contact-actions"><button type="button" class="btn-primary" id="recommendedOutreachAction">' +
-    escapeHtml(routeSpecificPrimaryLabel) +
-    '</button><button type="button" class="btn-secondary" id="copyRecommendedDraft">' +
-    escapeHtml(actionCopy.secondaryLabel) +
-    '</button></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">What happened after outreach?</div><div class="first-contact-tracker-actions">' +
-    OUTREACH_OUTCOME_OPTIONS.map(function (option) {
-      return (
-        '<button type="button" class="feedback-btn' +
-        (latestOutcome && latestOutcome.outcome === option.value
-          ? option.tone === "negative"
-            ? " active-negative"
-            : " active-positive"
-          : "") +
-        '" data-outreach-outcome="' +
-        escapeHtml(option.value) +
-        '">' +
-        escapeHtml(option.label) +
-        "</button>"
-      );
-    }).join("") +
-    '</div><div class="first-contact-tracker-note">' +
-    escapeHtml(
-      latestOutcome
-        ? "Latest outcome: " +
-            formatOutcomeLabel(latestOutcome.outcome) +
-            " on " +
-            new Date(latestOutcome.recorded_at).toLocaleDateString()
-        : "Track both responsiveness and conversion quality so the product can learn from real follow-through.",
-    ) +
-    "</div></div></div></div></section>";
-
-  var startButton = document.getElementById("recommendedOutreachAction");
-  if (startButton) {
-    startButton.addEventListener("click", openRecommendedOutreach);
-  }
-
-  var copyButton = document.getElementById("copyRecommendedDraft");
-  if (copyButton) {
-    copyButton.addEventListener("click", function () {
-      copyRecommendedOutreachDraft();
-    });
-  }
-
-  root.querySelectorAll("[data-outreach-outcome]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      recordRecommendedOutreachOutcome(button.getAttribute("data-outreach-outcome"));
-    });
-  });
-
-  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
-    link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
-      trackFunnelEvent(
-        "match_result_profile_opened",
-        buildMatchTrackingPayload(slug, {
-          context: link.getAttribute("data-profile-link-context") || "result",
-        }),
-      );
-    });
-  });
+  root.innerHTML = "";
 }
 
 function getBaseFallbackWaitMs(profile) {
@@ -5254,7 +5098,7 @@ function renderOutreachPanel(entries) {
   var activeEntry = topEntries[focusIndex];
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Outreach progress</div><div class="match-support-panel-copy">Move through one provider at a time and keep your next step updated as you go.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Outreach Help</div><div class="match-support-panel-copy">Move through one provider at a time and keep your next step updated as you go.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
     escapeHtml(String(focusIndex + 1) + " of " + String(topEntries.length)) +
     '</div><div class="outreach-carousel-nav"><button type="button" class="btn-secondary" id="outreachPrev"' +
     (focusIndex === 0 ? " disabled" : "") +
@@ -5307,7 +5151,7 @@ function renderOutreachPanel(entries) {
           encodeURIComponent(therapist.slug) +
           '" data-match-profile-link="' +
           escapeHtml(therapist.slug) +
-          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Update progress</div><div class="first-contact-tracker-actions">' +
+          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Share what happened</div><div class="first-contact-tracker-actions">' +
           OUTREACH_OUTCOME_OPTIONS.map(function (option) {
             return (
               '<button type="button" class="feedback-btn' +
@@ -5432,6 +5276,104 @@ function renderOutreachPanel(entries) {
   }
 }
 
+function renderPrimaryMatchCards(entries, profile) {
+  var root = document.getElementById("matchResults");
+  if (!root) {
+    return;
+  }
+
+  var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  var contactPlan = buildContactOrderPlan(profile, entries || []);
+
+  if (!primaryEntries.length) {
+    root.className = "match-empty";
+    return;
+  }
+
+  root.className = "match-list";
+  root.innerHTML = primaryEntries
+    .map(function (entry, index) {
+      var therapist = entry && entry.therapist ? entry.therapist : {};
+      var tier = getMatchTier((entry && entry.evaluation) || { score: 0, confidence_score: 0 });
+      var contactPlanRole = getContactPlanRole(contactPlan, therapist.slug);
+      var preferredRoute = getPreferredOutreach(entry);
+      var locationLine = [therapist.city, therapist.state, therapist.zip]
+        .filter(Boolean)
+        .join(", ");
+      if (therapist.state && therapist.zip) {
+        locationLine = [therapist.city, therapist.state + " " + therapist.zip]
+          .filter(Boolean)
+          .join(", ");
+      }
+
+      return (
+        '<article class="match-card' +
+        (index === 0 ? " lead-card" : "") +
+        '">' +
+        '<div class="match-card-header">' +
+        '<div class="match-card-badges"><div class="match-rank">Top ' +
+        (index + 1) +
+        ' match</div><div class="match-confidence tone-' +
+        escapeHtml(tier.tone) +
+        '">' +
+        escapeHtml(tier.label) +
+        "</div></div>" +
+        '<a href="therapist.html?slug=' +
+        encodeURIComponent(therapist.slug || "") +
+        '" class="btn-secondary match-card-profile-link">View profile</a>' +
+        "</div>" +
+        '<div class="match-card-body">' +
+        "<h3>" +
+        escapeHtml(therapist.name || "") +
+        "</h3>" +
+        (locationLine ? '<div class="match-meta">' + escapeHtml(locationLine) + "</div>" : "") +
+        "</div>" +
+        '<div class="match-summary-pills">' +
+        getShortlistSummary(entry) +
+        (contactPlanRole
+          ? '<span class="match-summary-pill">' + escapeHtml(contactPlanRole) + "</span>"
+          : "") +
+        "</div>" +
+        '<div class="match-card-footer"><div class="outreach-card-actions">' +
+        '<a href="' +
+        escapeHtml(
+          preferredRoute
+            ? preferredRoute.href
+            : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
+        ) +
+        '" class="btn-primary"' +
+        (preferredRoute && preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ">" +
+        escapeHtml(preferredRoute ? preferredRoute.label : "Contact") +
+        "</a></div></div>" +
+        "</article>"
+      );
+    })
+    .join("");
+}
+
+function safeRenderResults(entries, profile) {
+  try {
+    renderResults(entries, profile);
+  } catch (error) {
+    console.error("Fell back to primary match cards after richer match rendering failed.", error);
+    renderPrimaryMatchCards(entries, profile);
+    var meta = document.getElementById("resultsMeta");
+    var summary = document.getElementById("matchSummary");
+    if (meta) {
+      meta.textContent = buildLocationAwareResultsMeta(
+        profile,
+        entries,
+        hasMeaningfulRefinements(profile),
+      );
+    }
+    if (summary) {
+      summary.textContent = buildRequestSummary(profile);
+    }
+    setActionState(true, "Top matches loaded. Some secondary sections did not finish rendering.");
+  }
+}
+
 function renderResults(entries, profile) {
   var root = document.getElementById("matchResults");
   var meta = document.getElementById("resultsMeta");
@@ -5506,6 +5448,8 @@ function renderResults(entries, profile) {
     currentJourneyId = buildJourneyId(profile, entries);
   }
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
+  renderPrimaryMatchCards(entries, profile);
+  triggerMotion(root, "motion-enter");
   renderAdaptiveMatchActions(profile, entries);
   renderFirstContactRecommendation(profile, primaryEntries);
   renderFallbackRecommendation(profile, primaryEntries);
@@ -5514,249 +5458,6 @@ function renderResults(entries, profile) {
   if (feedbackBar) {
     feedbackBar.hidden = false;
   }
-  var shortcutInfluence = getShortcutInfluence(profile, primaryEntries);
-
-  root.className = "match-list";
-  root.innerHTML =
-    (isInternalMode ? renderEditorialShortcuts(entries, profile) : "") +
-    primaryEntries
-      .map(function (entry, index) {
-        var therapist = entry.therapist;
-        var evaluation = entry.evaluation;
-        var tier = getMatchTier(evaluation);
-        var contactReadiness = getContactReadiness(entry);
-        var responsivenessLabel = getResponsivenessSignalLabel(therapist);
-        var responsivenessNote = getResponsivenessSignalNote(therapist);
-        var segmentLearning = getSegmentLearningCopy(evaluation);
-        var shortcutSignal = shortcutInfluence[therapist.slug] || null;
-        var standoutCopy = buildMatchStandoutCopy(entry);
-        var trustSnapshot = buildMatchTrustSnapshot(entry);
-        var reachabilitySnapshot = buildMatchReachabilitySnapshot(entry);
-        var contactPlanRole = getContactPlanRole(contactPlan, therapist.slug);
-        var contactPlanNextMove = getContactPlanNextMove(contactPlan, therapist.slug);
-        var showScoredPills =
-          Boolean(profile) &&
-          (Number(evaluation.confidence_score || 0) > 0 ||
-            Number(evaluation.completeness_score || 0) > 0 ||
-            Boolean(responsivenessLabel));
-        var reasons = (evaluation.reasons || [])
-          .map(function (reason) {
-            return "<li>" + escapeHtml(reason) + "</li>";
-          })
-          .join("");
-        var cautions = (evaluation.cautions || [])
-          .map(function (caution) {
-            return "<li>" + escapeHtml(caution) + "</li>";
-          })
-          .join("");
-
-        return (
-          '<article class="match-card">' +
-          '<div class="match-card-top">' +
-          "<div>" +
-          '<div class="match-card-badges"><div class="match-rank">Top ' +
-          (index + 1) +
-          ' match</div><div class="match-confidence tone-' +
-          tier.tone +
-          '">' +
-          escapeHtml(tier.label) +
-          "</div></div>" +
-          "<h3>" +
-          escapeHtml(therapist.name) +
-          "</h3>" +
-          '<div class="match-meta">' +
-          escapeHtml(therapist.credentials) +
-          (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
-          " · " +
-          escapeHtml(therapist.city) +
-          ", " +
-          escapeHtml(therapist.state) +
-          "</div>" +
-          "</div>" +
-          '<a href="therapist.html?slug=' +
-          encodeURIComponent(therapist.slug) +
-          '" class="btn-secondary" style="width:auto">View Profile</a>' +
-          "</div>" +
-          '<div class="match-summary-pills">' +
-          getShortlistSummary(entry) +
-          (contactPlanRole
-            ? '<span class="match-summary-pill">' + escapeHtml(contactPlanRole) + "</span>"
-            : "") +
-          "</div>" +
-          '<p class="match-explanation">' +
-          escapeHtml(
-            profile
-              ? buildMatchExplanation(entry)
-              : "Saved directly from the directory for side-by-side comparison. Use the decision snapshot and contact readiness to judge who feels strongest to contact first.",
-          ) +
-          "</p>" +
-          '<div class="match-section"><h4>Decision snapshot</h4><div class="match-snapshot-grid">' +
-          '<div class="match-snapshot-card"><div class="match-snapshot-label">Why this stands out</div><div class="match-snapshot-copy">' +
-          escapeHtml(standoutCopy) +
-          "</div></div>" +
-          '<div class="match-snapshot-card"><div class="match-snapshot-label">Trust snapshot</div><div class="match-snapshot-copy">' +
-          escapeHtml(trustSnapshot) +
-          "</div></div>" +
-          '<div class="match-snapshot-card"><div class="match-snapshot-label">Reachability</div><div class="match-snapshot-copy">' +
-          escapeHtml(reachabilitySnapshot) +
-          "</div></div>" +
-          '<div class="match-snapshot-card"><div class="match-snapshot-label">Contact plan</div><div class="match-snapshot-copy">' +
-          escapeHtml(contactPlanNextMove) +
-          "</div></div></div></div>" +
-          (segmentLearning
-            ? '<div class="match-segment-learning">' + escapeHtml(segmentLearning) + "</div>"
-            : "") +
-          (shortcutSignal
-            ? '<div class="match-segment-learning">' +
-              escapeHtml(getShortcutInfluenceCopy(shortcutSignal)) +
-              "</div>"
-            : "") +
-          (showScoredPills
-            ? '<div class="match-summary-pills">' +
-              renderTags([
-                "Confidence " + evaluation.confidence_score + "/100",
-                "Profile completeness " + evaluation.completeness_score + "/100",
-                responsivenessLabel,
-              ]) +
-              "</div>"
-            : "") +
-          (contactReadiness
-            ? '<div class="match-section"><h4>Contact readiness</h4><div class="contact-readiness-card tone-' +
-              escapeHtml(contactReadiness.tone) +
-              '"><div class="contact-readiness-item"><div class="contact-readiness-label">Best route</div><div class="contact-readiness-value">' +
-              escapeHtml(contactReadiness.route) +
-              "</div></div>" +
-              (contactReadiness.wait
-                ? '<div class="contact-readiness-item"><div class="contact-readiness-label">Timing</div><div class="contact-readiness-value">' +
-                  escapeHtml(contactReadiness.wait) +
-                  "</div></div>"
-                : "") +
-              (contactReadiness.guidance
-                ? '<div class="contact-readiness-item"><div class="contact-readiness-label">What to include</div><div class="contact-readiness-value">' +
-                  escapeHtml(contactReadiness.guidance) +
-                  "</div></div>"
-                : "") +
-              '<div class="contact-readiness-item"><div class="contact-readiness-label">What happens next</div><div class="contact-readiness-value">' +
-              escapeHtml(
-                contactReadiness.firstStep ||
-                  "After first contact, the next step is usually a fit conversation or intake review before a full appointment is scheduled.",
-              ) +
-              "</div></div>" +
-              (responsivenessLabel
-                ? '<div class="contact-readiness-item"><div class="contact-readiness-label">Responsiveness signal</div><div class="contact-readiness-value">' +
-                  escapeHtml(responsivenessLabel) +
-                  (responsivenessNote
-                    ? '<div class="contact-readiness-note">' +
-                      escapeHtml(responsivenessNote) +
-                      "</div>"
-                    : "") +
-                  "</div></div>"
-                : "") +
-              "</div></div>"
-            : "") +
-          (reasons
-            ? '<div class="match-section"><h4>Why it rose to the top</h4><ul class="match-reasons">' +
-              reasons +
-              "</ul></div>"
-            : "") +
-          (cautions
-            ? '<div class="match-section"><h4>Things to double-check</h4><ul class="match-cautions">' +
-              cautions +
-              "</ul></div>"
-            : "") +
-          '<div class="match-section"><h4>Feedback signal</h4><div class="match-feedback-actions">' +
-          '<button type="button" class="feedback-btn" data-feedback-slug="' +
-          escapeHtml(therapist.slug) +
-          '" data-feedback-value="positive">This felt right</button>' +
-          '<button type="button" class="feedback-btn" data-feedback-slug="' +
-          escapeHtml(therapist.slug) +
-          '" data-feedback-value="negative">Not a fit</button>' +
-          '</div><div class="feedback-reasons" data-reason-scope="' +
-          escapeHtml(therapist.slug) +
-          '" style="display:none">' +
-          FEEDBACK_REASON_OPTIONS.map(function (reason) {
-            return (
-              '<label class="feedback-reason"><input type="checkbox" value="' +
-              escapeHtml(reason) +
-              '" /> ' +
-              escapeHtml(reason) +
-              "</label>"
-            );
-          }).join("") +
-          "</div></div>" +
-          (isInternalMode
-            ? '<div class="match-section"><h4>Score breakdown</h4><div class="match-summary-pills">' +
-              renderTags([
-                "Access " + evaluation.score_breakdown.access,
-                "Practical " + evaluation.score_breakdown.practical,
-                "Clinical " + evaluation.score_breakdown.clinical,
-                "Trust " + evaluation.score_breakdown.trust,
-                "Uncertainty " + evaluation.score_breakdown.uncertainty,
-                "Learning " + evaluation.score_breakdown.learned,
-              ]) +
-              '</div><p class="match-score-note">' +
-              escapeHtml(
-                "This rank is built from eligibility, practical fit, clinical fit, reviewed details, uncertainty penalties, and a light feedback-learning layer.",
-              ) +
-              "</p></div>"
-            : '<div class="match-section"><h4>Why the rank looks this way</h4><p class="match-score-note">' +
-              escapeHtml(
-                profile ? buildPublicRankingCopy(entry) : buildCompareModeRankingCopy(entry),
-              ) +
-              "</p></div>") +
-          "</article>"
-        );
-      })
-      .join("");
-  triggerMotion(root, "motion-enter");
-  root.querySelectorAll("[data-feedback-slug]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      recordTherapistFeedback(
-        button.getAttribute("data-feedback-slug"),
-        button.getAttribute("data-feedback-value"),
-      );
-    });
-  });
-  root.querySelectorAll("[data-shortcut-draft]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-shortcut-draft");
-      var shortcutType = button.getAttribute("data-shortcut-type") || "";
-      var entry = (entries || []).find(function (item) {
-        return item.therapist.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(
-          buildEntryOutreachDraft(entry, profile || latestProfile),
-        );
-        recordShortcutInteraction(shortcutType, "copy_draft", slug);
-        setActionState(true, "Tailored outreach draft copied for " + entry.therapist.name + ".");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the tailored draft automatically.");
-      }
-    });
-  });
-  root.querySelectorAll("[data-shortcut-compare]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-shortcut-compare");
-      var shortcutType = button.getAttribute("data-shortcut-type") || "";
-      var entry = (entries || []).find(function (item) {
-        return item.therapist.slug === slug;
-      });
-      compareFocusSlug = slug;
-      recordShortcutInteraction(shortcutType, "focus_compare", slug);
-      renderComparison(entries);
-      triggerMotion("#matchCompare", "motion-focus");
-      document
-        .getElementById("matchCompare")
-        .scrollIntoView({ behavior: "smooth", block: "start" });
-      if (entry) {
-        setActionState(true, "Focused comparison on " + entry.therapist.name + ".");
-      }
-    });
-  });
   renderOutreachPanel(entries);
   renderComparison(entries);
 }
@@ -5801,7 +5502,7 @@ function handleSubmit(event) {
   latestProfile = profile;
   latestEntries = entries;
   serializeProfileToUrl(profile);
-  renderResults(entries, profile);
+  safeRenderResults(entries, profile);
 }
 
 function renderDirectoryShortlist(slugs) {
@@ -5862,7 +5563,7 @@ function renderDirectoryShortlist(slugs) {
   currentJourneyId = buildJourneyId(null, selected);
   document.getElementById("resultsMeta").textContent =
     "Comparing " + selected.length + " saved therapist" + (selected.length > 1 ? "s" : "") + ".";
-  renderResults(selected, null);
+  safeRenderResults(selected, null);
   setActionState(
     true,
     "You can compare these saved therapists or run the full intake for ranked recommendations.",
@@ -6014,7 +5715,7 @@ function resetForm() {
     latestProfile = restoredProfile;
     activeSecondPassMode = "balanced";
     latestEntries = rankEntriesForProfile(restoredProfile);
-    renderResults(latestEntries, restoredProfile);
+    safeRenderResults(latestEntries, restoredProfile);
   } else if (!restoredProfile && restoredShortlist.length) {
     renderDirectoryShortlist(restoredShortlist);
   } else {

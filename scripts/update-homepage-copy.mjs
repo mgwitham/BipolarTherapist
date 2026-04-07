@@ -169,9 +169,8 @@ async function main() {
         if (section?._type === "featuredTherapistsSection") {
           return {
             ...section,
-            title: "Start with a few reviewed specialists",
-            description:
-              "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
+            title: "",
+            description: "",
             therapists: featuredTherapistRefs,
           };
         }
@@ -187,9 +186,8 @@ async function main() {
     locationLabel: "ZIP code",
     locationPlaceholder: "Enter zip code",
     searchButtonLabel: "Find",
-    featuredTitle: "Start with a few reviewed specialists",
-    featuredDescription:
-      "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
+    featuredTitle: "",
+    featuredDescription: "",
     featuredTherapists: featuredTherapistRefs,
     whyTitle: "Built to make the first good decision easier",
     whyDescription:
