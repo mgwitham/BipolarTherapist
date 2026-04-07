@@ -18,6 +18,7 @@ import {
   summarizeAdaptiveSignals,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
+import { getZipMarketStatus } from "./zip-lookup.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -31,6 +32,7 @@ var SAVED_SHORTLIST_KEY = "bth_saved_match_shortlist_v1";
 var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+var activeSecondPassMode = "balanced";
 var OUTREACH_OUTCOME_OPTIONS = [
   { value: "reached_out", label: "Reached out", tone: "positive" },
   { value: "heard_back", label: "Heard back", tone: "positive" },
@@ -50,6 +52,31 @@ var FEEDBACK_REASON_OPTIONS = [
 ];
 var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
+var PRIMARY_SHORTLIST_LIMIT = 3;
+var SHORTLIST_QUEUE_LIMIT = 8;
+var SECOND_PASS_MODES = [
+  {
+    id: "reviewed",
+    label: "Reviewed details",
+    summary:
+      "Second pass: lean harder toward profiles with stronger reviewed details and higher decision-readiness.",
+  },
+  {
+    id: "speed",
+    label: "Speed",
+    summary: "Second pass: lean harder toward specialists who look easier to act on quickly.",
+  },
+  {
+    id: "specialization",
+    label: "Specialization",
+    summary: "Second pass: lean harder toward bipolar-specific depth and specialization.",
+  },
+  {
+    id: "followthrough",
+    label: "Follow-through",
+    summary: "Second pass: lean harder toward contact paths and follow-through potential.",
+  },
+];
 var MATCH_PRIORITY_SLUGS = Array.isArray(launchProfileControls?.matchPrioritySlugs)
   ? launchProfileControls.matchPrioritySlugs
       .map(function (value) {
@@ -142,6 +169,236 @@ function applyMatchPriorityProminence(entries) {
   });
 }
 
+function getRequestedZip(profile) {
+  var raw = normalizeLocationQuery((profile && profile.location_query) || "");
+  return /^\d{5}$/.test(raw) ? raw : "";
+}
+
+function getTherapistZipValue(therapist) {
+  var zip = String((therapist && therapist.zip) || "").trim();
+  return /^\d{5}$/.test(zip) ? zip : "";
+}
+
+function getZipDistance(fromZip, toZip) {
+  if (!/^\d{5}$/.test(String(fromZip || "")) || !/^\d{5}$/.test(String(toZip || ""))) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.abs(Number(fromZip) - Number(toZip));
+}
+
+function syncZipResolvedLabel(value) {
+  var resolved = document.getElementById("matchZipResolved");
+  if (!resolved) {
+    return;
+  }
+
+  var zipStatus = getZipMarketStatus(value);
+  if (!zipStatus.place) {
+    resolved.textContent = "";
+    resolved.classList.remove("is-visible");
+    return;
+  }
+
+  resolved.textContent =
+    zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
+  resolved.classList.add("is-visible");
+}
+
+function applyZipAwareOrdering(entries, profile) {
+  var requestedZip = getRequestedZip(profile);
+  if (!requestedZip) {
+    return (entries || []).slice();
+  }
+
+  return (entries || []).slice().sort(function (a, b) {
+    var aScore = Number(a?.evaluation?.score) || 0;
+    var bScore = Number(b?.evaluation?.score) || 0;
+    var scoreDiff = Math.abs(aScore - bScore);
+    var aZip = getTherapistZipValue(a && a.therapist);
+    var bZip = getTherapistZipValue(b && b.therapist);
+    var aDistance = getZipDistance(requestedZip, aZip);
+    var bDistance = getZipDistance(requestedZip, bZip);
+    var aExact = aZip === requestedZip;
+    var bExact = bZip === requestedZip;
+
+    if (aExact !== bExact && scoreDiff <= 18) {
+      return Number(bExact) - Number(aExact);
+    }
+
+    if (
+      aDistance !== bDistance &&
+      Number.isFinite(aDistance) &&
+      Number.isFinite(bDistance) &&
+      scoreDiff <= 14
+    ) {
+      return aDistance - bDistance;
+    }
+
+    if (Number.isFinite(aDistance) !== Number.isFinite(bDistance) && scoreDiff <= 10) {
+      return Number(Number.isFinite(aDistance)) - Number(Number.isFinite(bDistance));
+    }
+
+    return 0;
+  });
+}
+
+function orderMatchEntries(entries, profile) {
+  return applyMatchPriorityProminence(applyZipAwareOrdering(entries, profile));
+}
+
+function getSecondPassModeConfig(mode) {
+  return SECOND_PASS_MODES.find(function (item) {
+    return item.id === mode;
+  });
+}
+
+function getMatchAvailabilityBonus(therapist) {
+  if (!therapist) {
+    return 0;
+  }
+  var bonus = 0;
+  if (therapist.accepting_new_patients) {
+    bonus += 8;
+  }
+  if (therapist.estimated_wait_time && therapist.estimated_wait_time !== "Waitlist only") {
+    bonus += 4;
+  }
+  return bonus;
+}
+
+function getMatchContactClarityBonus(entry) {
+  var readiness = getContactReadiness(entry);
+  if (!readiness) {
+    return 0;
+  }
+  var bonus = readiness.tone === "high" ? 8 : readiness.tone === "medium" ? 5 : 2;
+  if (readiness.guidance) {
+    bonus += 2;
+  }
+  if (readiness.firstStep) {
+    bonus += 2;
+  }
+  return bonus;
+}
+
+function getSecondPassScore(entry, profile, mode) {
+  var evaluation = entry && entry.evaluation ? entry.evaluation : {};
+  var breakdown = evaluation.score_breakdown || {};
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var base = Number(evaluation.score || 0) || 0;
+  var trust = Number(breakdown.trust || 0) || 0;
+  var clinical = Number(breakdown.clinical || 0) || 0;
+  var access = Number(breakdown.access || 0) || 0;
+  var practical = Number(breakdown.practical || 0) || 0;
+  var learned = Number(breakdown.learned || 0) || 0;
+  var confidence = Number(evaluation.confidence_score || 0) || 0;
+  var completeness = Number(evaluation.completeness_score || 0) || 0;
+  var bipolarYears = Math.min(Number(therapist.bipolar_years_experience || 0) || 0, 15);
+  var responsiveness = getPublicResponsivenessSignal(therapist) ? 3 : 0;
+  var availability = getMatchAvailabilityBonus(therapist);
+  var contactClarity = getMatchContactClarityBonus(entry);
+
+  if (mode === "reviewed") {
+    return (
+      base * 0.62 +
+      trust * 1.55 +
+      completeness * 0.14 +
+      confidence * 0.12 +
+      practical * 0.24 +
+      (therapist.verification_status === "editorially_verified" ? 8 : 0)
+    );
+  }
+
+  if (mode === "speed") {
+    return base * 0.58 + access * 1.5 + availability + contactClarity * 0.8 + responsiveness;
+  }
+
+  if (mode === "specialization") {
+    return (
+      base * 0.58 +
+      clinical * 1.6 +
+      bipolarYears * 1.2 +
+      (profile && profile.needs_medication_management === "Yes" && therapist.medication_management
+        ? 5
+        : 0)
+    );
+  }
+
+  if (mode === "followthrough") {
+    return (
+      base * 0.58 +
+      access * 1.15 +
+      learned * 0.8 +
+      contactClarity +
+      responsiveness +
+      availability * 0.35
+    );
+  }
+
+  return base;
+}
+
+function applySecondPassRefinement(entries, profile, mode) {
+  if (!mode || mode === "balanced") {
+    return (entries || []).slice();
+  }
+
+  return (entries || []).slice().sort(function (a, b) {
+    var aScore = getSecondPassScore(a, profile, mode);
+    var bScore = getSecondPassScore(b, profile, mode);
+
+    return (
+      bScore - aScore ||
+      (Number(b?.evaluation?.score) || 0) - (Number(a?.evaluation?.score) || 0) ||
+      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || ""))
+    );
+  });
+}
+
+function rankEntriesForProfile(profile) {
+  var baseEntries = orderMatchEntries(
+    rankTherapistsForUser(therapists, profile, latestLearningSignals),
+    profile,
+  );
+  return applySecondPassRefinement(baseEntries, profile, activeSecondPassMode);
+}
+
+function getClosestZipSuggestions(profile, sourceEntries) {
+  var requestedZip = getRequestedZip(profile);
+  if (!requestedZip) {
+    return [];
+  }
+
+  var suggestions = [];
+  var seen = new Set();
+
+  (sourceEntries || []).forEach(function (entry) {
+    var zip = getTherapistZipValue(entry && entry.therapist);
+    if (!zip || zip === requestedZip || seen.has(zip)) {
+      return;
+    }
+    seen.add(zip);
+    suggestions.push({
+      zip: zip,
+      distance: getZipDistance(requestedZip, zip),
+    });
+  });
+
+  return suggestions
+    .sort(function (a, b) {
+      return a.distance - b.distance || a.zip.localeCompare(b.zip);
+    })
+    .slice(0, 3);
+}
+
+function formatZipSuggestionList(items) {
+  return (items || [])
+    .map(function (item) {
+      return item.zip;
+    })
+    .join(", ");
+}
+
 function renderMatchLaunchExplainer(entries, profile) {
   var root = document.getElementById("matchLaunchExplainer");
   if (!root) {
@@ -169,12 +426,76 @@ function renderMatchLaunchExplainer(entries, profile) {
 
   if (topIsPriority && closeCall) {
     root.textContent =
-      "Because the top options were already close, this shortlist gave a light edge to a profile with especially strong reviewed trust detail, decision-readiness, and contact clarity.";
+      "Because the top options were already close, this shortlist gave a light edge to a profile with especially strong reviewed details, decision-readiness, and contact clarity.";
     return;
   }
 
   root.textContent =
     "This shortlist is led mainly by your location, practical fit, bipolar-related fit, and the clearest next step.";
+}
+
+function renderSecondPassControls(profile, entries) {
+  var bar = document.getElementById("matchRefineBar");
+  var copy = document.getElementById("matchRefineCopy");
+  var optionsRoot = document.getElementById("matchRefineOptions");
+  var resetButton = document.getElementById("matchRefineReset");
+
+  if (!bar || !copy || !optionsRoot || !resetButton) {
+    return;
+  }
+
+  if (!profile || !Array.isArray(entries) || !entries.length) {
+    bar.hidden = true;
+    optionsRoot.innerHTML = "";
+    resetButton.hidden = true;
+    return;
+  }
+
+  bar.hidden = false;
+  copy.textContent =
+    activeSecondPassMode === "balanced"
+      ? "The first pass stays balanced by default. Use a second pass only if you want the shortlist to lean more toward one specific priority."
+      : (getSecondPassModeConfig(activeSecondPassMode) || {}).summary ||
+        "This shortlist is leaning toward one specific second-pass priority.";
+
+  optionsRoot.innerHTML = SECOND_PASS_MODES.map(function (mode) {
+    return (
+      '<button type="button" class="match-refine-option' +
+      (mode.id === activeSecondPassMode ? " active" : "") +
+      '" data-second-pass-mode="' +
+      escapeHtml(mode.id) +
+      '">' +
+      escapeHtml(mode.label) +
+      "</button>"
+    );
+  }).join("");
+
+  resetButton.hidden = activeSecondPassMode === "balanced";
+
+  optionsRoot.querySelectorAll("[data-second-pass-mode]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var nextMode = button.getAttribute("data-second-pass-mode") || "balanced";
+      activeSecondPassMode = nextMode;
+      latestEntries = rankEntriesForProfile(latestProfile);
+      trackFunnelEvent("match_second_pass_refined", {
+        mode: activeSecondPassMode,
+        result_count: latestEntries.length,
+        top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
+      });
+      renderResults(latestEntries, latestProfile);
+    });
+  });
+
+  resetButton.onclick = function () {
+    activeSecondPassMode = "balanced";
+    latestEntries = rankEntriesForProfile(latestProfile);
+    trackFunnelEvent("match_second_pass_refined", {
+      mode: "balanced",
+      result_count: latestEntries.length,
+      top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
+    });
+    renderResults(latestEntries, latestProfile);
+  };
 }
 
 function collectCheckedValues(form, name) {
@@ -205,6 +526,10 @@ function deriveStateFromLocation(value) {
   }
 
   var upper = normalized.toUpperCase();
+  if (/^\d{5}$/.test(normalized)) {
+    var zipStatus = getZipMarketStatus(normalized);
+    return zipStatus.place ? zipStatus.place.state : "";
+  }
   if (/^[A-Z]{2}$/.test(upper)) {
     return upper;
   }
@@ -247,6 +572,7 @@ function getLocationIntent(profile) {
   }
 
   var upper = raw.toUpperCase();
+  var isZipCode = /^\d{5}$/.test(raw);
   var cityMatch = therapists.find(function (therapist) {
     return (
       String(therapist.city || "")
@@ -256,6 +582,16 @@ function getLocationIntent(profile) {
   });
   var isStateOnly = /^[A-Z]{2}$/.test(upper) || Boolean(US_STATE_MAP[upper]);
   var mentionsTelehealth = upper.indexOf("TELEHEALTH") !== -1 || upper.indexOf("VIRTUAL") !== -1;
+
+  if (isZipCode) {
+    return {
+      type: "zip",
+      label: raw,
+      shortLabel: raw,
+      state: profile.care_state || "CA",
+      telehealth: mentionsTelehealth,
+    };
+  }
 
   if (cityMatch) {
     return {
@@ -300,7 +636,7 @@ function buildLocationAwareSummary(profile, hasRefinements) {
   var intent = getLocationIntent(profile);
   if (!intent) {
     return hasRefinements
-      ? "We balance care constraints first, then bipolar-specific fit and trust signals."
+      ? "We balance care constraints first, then bipolar-specific fit and reviewed details."
       : "Start with location, then add optional refinements only if you want a tighter shortlist.";
   }
 
@@ -308,7 +644,15 @@ function buildLocationAwareSummary(profile, hasRefinements) {
     return (
       "We anchored this shortlist to " +
       intent.shortLabel +
-      " first, then widened carefully to bipolar fit, trust, and the clearest next step. Add refinements if you want a narrower result set."
+      " first, then widened carefully to bipolar fit, reviewed details, and the clearest next step. Add refinements if you want a narrower result set."
+    );
+  }
+
+  if (!hasRefinements && intent.type === "zip") {
+    return (
+      "We anchored this shortlist to ZIP code " +
+      intent.shortLabel +
+      " first, then widened carefully to bipolar fit, reviewed details, and the clearest next step. Add refinements if you want a narrower result set."
     );
   }
 
@@ -316,20 +660,22 @@ function buildLocationAwareSummary(profile, hasRefinements) {
     return (
       "We treated this as a broader " +
       (intent.state ? intent.state + " " : "") +
-      "telehealth-style search, then ranked for bipolar fit, trust, and practical next steps. Add refinements if you want a tighter shortlist."
+      "telehealth-style search, then ranked for bipolar fit, reviewed details, and practical next steps. Add refinements if you want a tighter shortlist."
     );
   }
 
   if (!hasRefinements) {
-    return "We anchored this shortlist to your location first, then balanced bipolar fit, trust, and the clearest next step. Add refinements if you want a narrower result set.";
+    return "We anchored this shortlist to your location first, then balanced bipolar fit, reviewed details, and the clearest next step. Add refinements if you want a narrower result set.";
   }
 
-  return "We balance care constraints first, then bipolar-specific fit, trust, and the next move that seems most usable.";
+  return "We balance care constraints first, then bipolar-specific fit, reviewed details, and the next move that seems most usable.";
 }
 
 function buildLocationAwareResultsMeta(profile, entries, hasRefinements) {
   var intent = getLocationIntent(profile);
   var count = Math.min((entries || []).length, 3);
+  var requestedZip = getRequestedZip(profile);
+  var zipSuggestions = getClosestZipSuggestions(profile, entries);
   if (!intent) {
     return hasRefinements
       ? "Showing " + count + " ranked match" + (count > 1 ? "es" : "") + "."
@@ -338,6 +684,26 @@ function buildLocationAwareResultsMeta(profile, entries, hasRefinements) {
           " strong location-based option" +
           (count > 1 ? "s" : "") +
           ". Add refinements if you want a narrower shortlist.";
+  }
+
+  if (requestedZip) {
+    var exactZipMatch = (entries || []).some(function (entry) {
+      return getTherapistZipValue(entry && entry.therapist) === requestedZip;
+    });
+
+    if (!exactZipMatch && zipSuggestions.length) {
+      return (
+        "No exact reviewed profile is live in ZIP " +
+        requestedZip +
+        " yet. Showing the nearest reviewed ZIPs instead: " +
+        zipSuggestions
+          .map(function (item) {
+            return item.zip;
+          })
+          .join(", ") +
+        "."
+      );
+    }
   }
 
   if (!hasRefinements && intent.type === "city") {
@@ -454,6 +820,123 @@ function formatSegmentLabel(segment) {
   return String(segment || "")
     .split(":")[1]
     .replace(/-/g, " ");
+}
+
+function syncMatchCareSelectTrigger() {
+  var select = document.getElementById("care_intent");
+  var trigger = document.querySelector("[data-match-custom-select] .custom-select-trigger");
+  var options = Array.from(
+    document.querySelectorAll("[data-match-custom-select] .custom-select-option"),
+  );
+
+  if (!select || !trigger) {
+    return;
+  }
+
+  var selectedValue = String(select.value || "Either");
+  var selectedOption = options.find(function (option) {
+    return option.dataset.value === selectedValue;
+  });
+
+  trigger.textContent = selectedOption
+    ? selectedOption.textContent.trim()
+    : "What type of care do you want?";
+
+  options.forEach(function (option) {
+    option.setAttribute("aria-selected", String(option.dataset.value === selectedValue));
+  });
+}
+
+function initMatchCareDropdown() {
+  var selectRoot = document.querySelector("[data-match-custom-select]");
+  var select = document.getElementById("care_intent");
+
+  if (!selectRoot || !select) {
+    return;
+  }
+
+  var field = selectRoot.closest(".search-field--prompt");
+  var trigger = selectRoot.querySelector(".custom-select-trigger");
+  var options = Array.from(selectRoot.querySelectorAll(".custom-select-option"));
+
+  function setOpenState(isOpen) {
+    selectRoot.classList.toggle("is-open", isOpen);
+    if (field) {
+      field.classList.toggle("is-open", isOpen);
+    }
+    if (trigger) {
+      trigger.setAttribute("aria-expanded", String(isOpen));
+    }
+  }
+
+  function closeMenu() {
+    setOpenState(false);
+  }
+
+  function setSelectedValue(value) {
+    select.value = value || "Either";
+    syncMatchCareSelectTrigger();
+  }
+
+  syncMatchCareSelectTrigger();
+
+  if (trigger) {
+    trigger.addEventListener("click", function () {
+      setOpenState(!selectRoot.classList.contains("is-open"));
+    });
+
+    trigger.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setOpenState(true);
+        if (options[0]) {
+          options[0].focus();
+        }
+      } else if (event.key === "Escape") {
+        closeMenu();
+      }
+    });
+  }
+
+  options.forEach(function (option, index) {
+    option.addEventListener("click", function () {
+      setSelectedValue(option.dataset.value || "Either");
+      closeMenu();
+      if (trigger) {
+        trigger.focus();
+      }
+    });
+
+    option.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu();
+        if (trigger) {
+          trigger.focus();
+        }
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        (options[index + 1] || options[0]).focus();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        (options[index - 1] || options[options.length - 1]).focus();
+      }
+    });
+  });
+
+  select.addEventListener("change", syncMatchCareSelectTrigger);
+
+  document.addEventListener("click", function (event) {
+    if (!selectRoot.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      closeMenu();
+    }
+  });
 }
 
 function getSegmentLearningCopy(evaluation) {
@@ -668,7 +1151,7 @@ function buildMatchTrustSnapshot(entry) {
         : "A few details may still be worth confirming directly.")
     );
   }
-  return "Core fit details are present, but some practical trust details may still need direct confirmation.";
+  return "Core fit details are present, but some practical reviewed details may still need direct confirmation.";
 }
 
 function buildMatchReachabilitySnapshot(entry) {
@@ -709,7 +1192,7 @@ function buildPublicRankingCopy(entry) {
   var weighted = [
     { label: "practical fit", value: Number(breakdown.practical || 0) || 0 },
     { label: "bipolar-specific fit", value: Number(breakdown.clinical || 0) || 0 },
-    { label: "reviewed trust signals", value: Number(breakdown.trust || 0) || 0 },
+    { label: "reviewed details", value: Number(breakdown.trust || 0) || 0 },
     { label: "access and follow-through", value: Number(breakdown.access || 0) || 0 },
   ]
     .sort(function (a, b) {
@@ -800,7 +1283,7 @@ function getContactPlanNextMove(plan, slug) {
 }
 
 function getCompareDecisionLenses(entries, profile) {
-  var shortlist = (entries || []).slice(0, 3);
+  var shortlist = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
   var lensesBySlug = {};
   var shortcutInfluence = getShortcutInfluence(profile, shortlist);
 
@@ -857,7 +1340,7 @@ function getCompareDecisionLenses(entries, profile) {
 
 function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
-  var topEntries = entries.slice(0, 3);
+  var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
   var decisionLenses = getCompareDecisionLenses(entries, latestProfile);
   var contactPlan = buildContactOrderPlan(latestProfile, entries);
 
@@ -1083,7 +1566,7 @@ function getWaitPriority(value) {
 }
 
 function getEditorialShortcuts(entries, profile) {
-  var shortlist = (entries || []).slice(0, 3);
+  var shortlist = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
   var shortcutLearningMap = buildShortcutLearningMap(readStoredFeedback(), readOutreachOutcomes());
   var psychiatry = shortlist
     .filter(function (entry) {
@@ -1440,15 +1923,17 @@ function buildIntakeTradeoffPreviews(profile) {
     return [];
   }
 
-  var baseEntries = applyMatchPriorityProminence(
+  var baseEntries = orderMatchEntries(
     rankTherapistsForUser(therapists, profile, latestLearningSignals),
+    profile,
   );
   var baseTop = baseEntries[0] ? baseEntries[0].therapist.name : "";
   var scenarios = [];
 
   function addScenario(field, label, variantProfile, bodyBuilder) {
-    var variantEntries = applyMatchPriorityProminence(
+    var variantEntries = orderMatchEntries(
       rankTherapistsForUser(therapists, variantProfile, latestLearningSignals),
+      variantProfile,
     );
     if (!variantEntries.length) {
       return;
@@ -1581,7 +2066,7 @@ function recordShortcutInteraction(shortcutType, action, therapistSlug) {
     created_at: activeShortcutContext.created_at,
     context: {
       profile: latestProfile,
-      therapist_slugs: latestEntries.slice(0, 3).map(function (entry) {
+      therapist_slugs: latestEntries.slice(0, SHORTLIST_QUEUE_LIMIT).map(function (entry) {
         return entry.therapist.slug;
       }),
     },
@@ -2883,9 +3368,7 @@ function recordShortlistFeedback(value) {
     value === "positive"
       ? "Saved: this shortlist felt useful."
       : "Saved: this shortlist needs work.";
-  latestEntries = applyMatchPriorityProminence(
-    rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
-  );
+  latestEntries = rankEntriesForProfile(latestProfile);
   renderResults(latestEntries, latestProfile);
   renderFeedbackInsights();
 }
@@ -2921,15 +3404,13 @@ function recordTherapistFeedback(slug, value) {
         return therapist.slug === slug;
       }).name +
     ".";
-  latestEntries = applyMatchPriorityProminence(
-    rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
-  );
+  latestEntries = rankEntriesForProfile(latestProfile);
   renderResults(latestEntries, latestProfile);
   renderFeedbackInsights();
 }
 
 function setActionState(enabled, message) {
-  ["saveShortlist", "copyShareLink", "requestHelp"].forEach(function (id) {
+  ["saveShortlist", "copyShareLink", "emailShortlist", "requestHelp"].forEach(function (id) {
     document.getElementById(id).disabled = !enabled;
   });
   if (message) {
@@ -2939,6 +3420,86 @@ function setActionState(enabled, message) {
     void status.offsetWidth;
     status.classList.add("motion-pulse");
   }
+}
+
+function buildEmailShortlistBody(entries, profile) {
+  var requestSummary = profile
+    ? buildRequestSummary(profile)
+    : "Saved shortlist from BipolarTherapyHub";
+  var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  var reserveEntries = (entries || []).slice(PRIMARY_SHORTLIST_LIMIT, SHORTLIST_QUEUE_LIMIT);
+  var lines = [
+    "Here is your BipolarTherapyHub shortlist.",
+    "",
+    "Search summary:",
+    requestSummary,
+    "",
+    "Top matches:",
+  ];
+
+  primaryEntries.forEach(function (entry, index) {
+    var therapist = entry.therapist;
+    var bestRoute = getPreferredOutreach(entry);
+    var routeLabel = bestRoute ? bestRoute.label : "Review profile";
+    var planNote = getContactPlanNextMove(
+      buildContactOrderPlan(profile, primaryEntries),
+      therapist.slug,
+    );
+    lines.push(
+      [
+        index + 1 + ". " + therapist.name,
+        therapist.credentials ? therapist.credentials : "",
+        therapist.city && therapist.state ? therapist.city + ", " + therapist.state : "",
+        buildMatchStandoutCopy(entry),
+        "Best route: " + routeLabel,
+        planNote ? "Next move: " + planNote : "",
+        "Profile: " +
+          window.location.origin +
+          "/therapist.html?slug=" +
+          encodeURIComponent(therapist.slug),
+      ]
+        .filter(Boolean)
+        .join(" — "),
+    );
+  });
+
+  if (reserveEntries.length) {
+    lines.push("");
+    lines.push("Keep in reserve:");
+    reserveEntries.forEach(function (entry, index) {
+      lines.push(
+        PRIMARY_SHORTLIST_LIMIT +
+          index +
+          1 +
+          ". " +
+          entry.therapist.name +
+          " — " +
+          buildQueueReserveCopy(entry),
+      );
+    });
+  }
+
+  lines.push("");
+  lines.push("Open this shortlist:");
+  lines.push(window.location.href);
+
+  return lines.join("\n");
+}
+
+function openEmailShortlist() {
+  if (!latestEntries.length) {
+    return;
+  }
+
+  var subject = "My BipolarTherapyHub shortlist";
+  var body = buildEmailShortlistBody(latestEntries, latestProfile);
+  trackFunnelEvent("match_shortlist_emailed", {
+    result_count: latestEntries.length,
+    top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
+    strategy: buildAdaptiveStrategySnapshot(latestProfile),
+  });
+  window.location.href =
+    "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
 function getMatchAdaptiveStrategy(profile) {
@@ -3344,6 +3905,7 @@ function hydrateForm(profile) {
 
   var form = document.getElementById("matchForm");
   form.elements.location_query.value = profile.location_query || profile.care_state || "";
+  syncZipResolvedLabel(form.elements.location_query.value);
   form.elements.care_format.value = profile.care_format || "Either";
   form.elements.care_intent.value = profile.care_intent || "Either";
   form.elements.needs_medication_management.value =
@@ -3360,6 +3922,7 @@ function hydrateForm(profile) {
       input.checked = selected.has(input.value);
     });
   });
+  syncMatchCareSelectTrigger();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
 }
@@ -3512,7 +4075,7 @@ function getContactReadiness(entry) {
 function buildAdaptiveGuidance(profile, entries) {
   var requests = readConciergeRequests();
   var patterns = analyzeConciergePatterns(requests);
-  var topEntries = (entries || []).slice(0, 3);
+  var topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
   var items = [];
   var topEvaluation = topEntries[0] && topEntries[0].evaluation ? topEntries[0].evaluation : null;
   var segmentCue = getSegmentAwareRecommendationCue(profile, topEvaluation);
@@ -3594,6 +4157,11 @@ function renderAdaptiveGuidance(profile, entries) {
     return;
   }
 
+  if (!isInternalMode) {
+    root.innerHTML = "";
+    return;
+  }
+
   var items = buildAdaptiveGuidance(profile, entries);
   if (!items.length) {
     root.innerHTML = "";
@@ -3616,6 +4184,89 @@ function renderAdaptiveGuidance(profile, entries) {
       })
       .join("") +
     "</div></section>";
+}
+
+function buildQueueReserveCopy(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var parts = [];
+
+  if (therapist.accepting_new_patients) {
+    parts.push("Looks open to new patients");
+  }
+  if (therapist.estimated_wait_time) {
+    parts.push("availability note: " + therapist.estimated_wait_time);
+  }
+  if (therapist.bipolar_years_experience) {
+    parts.push(therapist.bipolar_years_experience + " years of bipolar-focused experience");
+  }
+  if (therapist.medication_management) {
+    parts.push("offers medication support");
+  }
+
+  if (!parts.length) {
+    return "Worth keeping in reserve if your top options do not feel quite right.";
+  }
+
+  return (
+    parts.slice(0, 2).join(" and ") +
+    ". Keep this profile in reserve if you want a broader fallback set."
+  );
+}
+
+function renderShortlistQueue(entries) {
+  var root = document.getElementById("matchQueue");
+  if (!root) {
+    return;
+  }
+
+  var queueEntries = (entries || []).slice(PRIMARY_SHORTLIST_LIMIT, SHORTLIST_QUEUE_LIMIT);
+  if (!queueEntries.length) {
+    root.hidden = true;
+    root.innerHTML = "";
+    return;
+  }
+
+  root.hidden = false;
+  root.innerHTML =
+    '<div class="match-queue-header"><h3>Keep these in reserve</h3><p>Your main recommendation set stays focused on the best 3 options. These extra profiles give you a deeper queue if you want more to compare or fall back to.</p></div><div class="match-queue-list">' +
+    queueEntries
+      .map(function (entry, index) {
+        var therapist = entry.therapist;
+        return (
+          '<article class="match-queue-card"><div><div class="match-queue-rank">Reserve ' +
+          escapeHtml(String(PRIMARY_SHORTLIST_LIMIT + index + 1)) +
+          '</div><div class="match-queue-name">' +
+          escapeHtml(therapist.name) +
+          '</div><div class="match-queue-meta">' +
+          escapeHtml(therapist.credentials || "") +
+          (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
+          " · " +
+          escapeHtml(therapist.city || "") +
+          (therapist.state ? ", " + escapeHtml(therapist.state) : "") +
+          '</div><div class="match-queue-copy">' +
+          escapeHtml(buildQueueReserveCopy(entry)) +
+          "</div></div>" +
+          '<a href="therapist.html?slug=' +
+          encodeURIComponent(therapist.slug) +
+          '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+          escapeHtml(therapist.slug) +
+          '" data-profile-link-context="queue">View Profile</a></article>'
+        );
+      })
+      .join("") +
+    "</div>";
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "queue",
+        }),
+      );
+    });
+  });
 }
 
 function getRoutePriority(contactReadiness) {
@@ -3646,7 +4297,7 @@ function hasCostClarity(therapist) {
 }
 
 function pickRecommendedFirstContact(profile, entries) {
-  var shortlist = (entries || []).slice(0, 3);
+  var shortlist = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
   if (!shortlist.length) {
     return null;
   }
@@ -3936,9 +4587,7 @@ function recordRecommendedOutreachOutcome(outcome) {
   writeOutreachOutcomes(outcomes.slice(0, 100));
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   if (latestProfile) {
-    latestEntries = applyMatchPriorityProminence(
-      rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
-    );
+    latestEntries = rankEntriesForProfile(latestProfile);
   }
   renderResults(latestEntries, latestProfile);
   renderFirstContactRecommendation(latestProfile, latestEntries);
@@ -3990,9 +4639,7 @@ function recordEntryOutreachOutcome(slug, outcome) {
   writeOutreachOutcomes(outcomes.slice(0, 150));
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   if (latestProfile) {
-    latestEntries = applyMatchPriorityProminence(
-      rankTherapistsForUser(therapists, latestProfile, latestLearningSignals),
-    );
+    latestEntries = rankEntriesForProfile(latestProfile);
   }
   renderResults(latestEntries, latestProfile);
   setActionState(
@@ -4979,32 +5626,65 @@ function renderResults(entries, profile) {
   var adaptiveGuidance = document.getElementById("matchAdaptiveGuidance");
   var firstContact = document.getElementById("matchFirstContact");
   var fallbackContact = document.getElementById("matchFallbackContact");
+  var feedbackBar = document.getElementById("matchFeedbackBar");
+  var queue = document.getElementById("matchQueue");
   var hasRefinements = hasMeaningfulRefinements(profile);
   var contactPlan = buildContactOrderPlan(profile, entries);
+  var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  renderSecondPassControls(profile, entries);
 
   if (!entries.length) {
+    var requestedZip = getRequestedZip(profile);
+    var zipSuggestions = getClosestZipSuggestions(
+      profile,
+      (therapists || []).map(function (therapist) {
+        return { therapist: therapist };
+      }),
+    );
     meta.textContent = hasRefinements
       ? "No good match surfaced from the current constraints."
-      : "No strong match surfaced for this location yet.";
+      : requestedZip && zipSuggestions.length
+        ? "No exact reviewed profile is live in ZIP " +
+          requestedZip +
+          " yet. Try the nearest reviewed ZIPs: " +
+          formatZipSuggestionList(zipSuggestions) +
+          "."
+        : "No strong match surfaced for this location yet.";
     summary.textContent = buildRequestSummary(profile);
     renderMatchLaunchExplainer([], profile);
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     root.className = "match-empty";
     root.innerHTML = hasRefinements
       ? "No strong match appeared with the current requirements. Try widening care format, insurance, or urgency."
-      : "No strong match surfaced for this location yet. Try a nearby city, California telehealth, or a few optional refinements.";
+      : requestedZip && zipSuggestions.length
+        ? "No exact reviewed profile is live in this ZIP code yet. Try one of the nearest reviewed ZIP codes: " +
+          formatZipSuggestionList(zipSuggestions) +
+          ", or widen to California telehealth."
+        : "No strong match surfaced for this ZIP code yet. Try a nearby ZIP code, California telehealth, or a few optional refinements.";
     outreach.innerHTML = "";
     compare.innerHTML = "";
     adaptiveGuidance.innerHTML = "";
     firstContact.innerHTML = "";
     fallbackContact.innerHTML = "";
+    if (queue) {
+      queue.hidden = true;
+      queue.innerHTML = "";
+    }
+    if (feedbackBar) {
+      feedbackBar.hidden = true;
+    }
     renderAdaptiveMatchActions(profile, entries);
     return;
   }
 
   meta.textContent = buildLocationAwareResultsMeta(profile, entries, hasRefinements);
   summary.textContent = profile
-    ? buildRequestSummary(profile)
+    ? buildRequestSummary(profile) +
+      (activeSecondPassMode !== "balanced"
+        ? " Second pass is currently leaning toward " +
+          ((getSecondPassModeConfig(activeSecondPassMode) || {}).label || "a refined ranking") +
+          "."
+        : "")
     : "Comparing a shortlist saved from the directory.";
   renderMatchLaunchExplainer(entries, profile);
   if (!currentJourneyId) {
@@ -5012,16 +5692,19 @@ function renderResults(entries, profile) {
   }
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderAdaptiveMatchActions(profile, entries);
-  renderFirstContactRecommendation(profile, entries);
-  renderFallbackRecommendation(profile, entries);
+  renderFirstContactRecommendation(profile, primaryEntries);
+  renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
-  var shortcutInfluence = getShortcutInfluence(profile, entries.slice(0, 3));
+  renderShortlistQueue(entries);
+  if (feedbackBar) {
+    feedbackBar.hidden = false;
+  }
+  var shortcutInfluence = getShortcutInfluence(profile, primaryEntries);
 
   root.className = "match-list";
   root.innerHTML =
-    renderEditorialShortcuts(entries, profile) +
-    entries
-      .slice(0, 3)
+    (isInternalMode ? renderEditorialShortcuts(entries, profile) : "") +
+    primaryEntries
       .map(function (entry, index) {
         var therapist = entry.therapist;
         var evaluation = entry.evaluation;
@@ -5198,7 +5881,7 @@ function renderResults(entries, profile) {
               ]) +
               '</div><p class="match-score-note">' +
               escapeHtml(
-                "This rank is built from eligibility, practical fit, clinical fit, trust signals, uncertainty penalties, and a light feedback-learning layer.",
+                "This rank is built from eligibility, practical fit, clinical fit, reviewed details, uncertainty penalties, and a light feedback-learning layer.",
               ) +
               "</p></div>"
             : '<div class="match-section"><h4>Why the rank looks this way</h4><p class="match-score-note">' +
@@ -5266,17 +5949,31 @@ function renderResults(entries, profile) {
 function handleSubmit(event) {
   event.preventDefault();
   var profile = readCurrentIntakeProfile();
+  var zipStatus = getZipMarketStatus(profile && profile.location_query);
 
-  if (!profile.care_state) {
+  if (zipStatus.status === "out_of_state") {
     document.getElementById("resultsMeta").textContent =
-      "Enter a location we can match, like Los Angeles, Pasadena, or CA.";
+      zipStatus.message + " We’re currently focused on California ZIP codes.";
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
-  var entries = applyMatchPriorityProminence(
-    rankTherapistsForUser(therapists, profile, latestLearningSignals),
-  );
+  if (zipStatus.status === "unknown") {
+    document.getElementById("resultsMeta").textContent =
+      "Enter a valid California ZIP code so we can build your shortlist.";
+    renderIntakeTradeoffPreview(profile);
+    return;
+  }
+
+  if (!profile.care_state) {
+    document.getElementById("resultsMeta").textContent =
+      "Enter a California ZIP code or California telehealth search we can match, like 90025 or Telehealth.";
+    renderIntakeTradeoffPreview(profile);
+    return;
+  }
+
+  activeSecondPassMode = "balanced";
+  var entries = rankEntriesForProfile(profile);
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
     care_intent: profile.care_intent,
@@ -5361,27 +6058,33 @@ function renderDirectoryShortlist(slugs) {
 function resetForm() {
   var form = document.getElementById("matchForm");
   form.reset();
+  syncZipResolvedLabel("");
+  syncMatchCareSelectTrigger();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
   document.getElementById("resultsMeta").textContent =
-    "Start with location first. We will suggest up to 3 strong options, and you can add refinements if you want a narrower shortlist.";
+    "Start with your ZIP code first. We will lead with the best 3 options and keep up to 8 in reserve if you want more depth.";
   document.getElementById("matchSummary").textContent =
-    "Start with location, then add optional refinements only if you want a tighter shortlist.";
+    "Start with your ZIP code, then add optional refinements only if you want a tighter shortlist.";
+  activeSecondPassMode = "balanced";
   latestProfile = null;
   latestEntries = [];
   currentJourneyId = null;
   compareFocusSlug = "";
   window.history.replaceState({}, "", "match.html");
-  setActionState(
-    false,
-    "Run a match to save, share, or get a little help narrowing your shortlist.",
-  );
+  setActionState(false, "Run a match to save, share, or email your shortlist.");
   document.getElementById("matchResults").className = "match-empty";
   document.getElementById("matchResults").innerHTML =
-    "Start with your location. We’ll turn it into a calmer shortlist with clearer reasons, trust snapshots, and next steps.";
+    "Start with your ZIP code. We’ll turn it into a calmer shortlist with clearer reasons, trust snapshots, and next steps.";
+  var queue = document.getElementById("matchQueue");
+  if (queue) {
+    queue.hidden = true;
+    queue.innerHTML = "";
+  }
   document.getElementById("matchFirstContact").innerHTML = "";
   document.getElementById("matchFallbackContact").innerHTML = "";
   document.getElementById("matchAdaptiveGuidance").innerHTML = "";
+  renderSecondPassControls(null, []);
   renderAdaptiveMatchActions(null, []);
   document.getElementById("matchOutreach").innerHTML = "";
   document.getElementById("matchCompare").innerHTML = "";
@@ -5394,15 +6097,18 @@ function resetForm() {
   therapists = await fetchPublicTherapists();
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   latestAdaptiveSignals = getMatchAdaptiveStrategy();
+  initMatchCareDropdown();
   var matchForm = document.getElementById("matchForm");
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function () {
     var profile = readCurrentIntakeProfile();
+    syncZipResolvedLabel(matchForm.elements.location_query.value);
     renderAdaptiveIntakeGuidance(profile);
     renderIntakeTradeoffPreview(profile);
   });
   matchForm.addEventListener("change", function () {
     var profile = readCurrentIntakeProfile();
+    syncZipResolvedLabel(matchForm.elements.location_query.value);
     renderAdaptiveIntakeGuidance(profile);
     renderIntakeTradeoffPreview(profile);
   });
@@ -5415,7 +6121,7 @@ function resetForm() {
     var payload = {
       saved_at: new Date().toISOString(),
       profile: latestProfile,
-      therapist_slugs: latestEntries.slice(0, 3).map(function (entry) {
+      therapist_slugs: latestEntries.slice(0, SHORTLIST_QUEUE_LIMIT).map(function (entry) {
         return entry.therapist.slug;
       }),
     };
@@ -5454,6 +6160,13 @@ function resetForm() {
       );
     }
   });
+  document.getElementById("emailShortlist").addEventListener("click", function () {
+    if (!latestEntries.length) {
+      return;
+    }
+    openEmailShortlist();
+    setActionState(true, "Email draft opened with your shortlist.");
+  });
   document.getElementById("requestHelp").addEventListener("click", function () {
     if (!latestProfile || !latestEntries.length) {
       return;
@@ -5484,14 +6197,14 @@ function resetForm() {
   if (restoredProfile) {
     hydrateForm(restoredProfile);
     latestProfile = restoredProfile;
-    latestEntries = applyMatchPriorityProminence(
-      rankTherapistsForUser(therapists, restoredProfile, latestLearningSignals),
-    );
+    activeSecondPassMode = "balanced";
+    latestEntries = rankEntriesForProfile(restoredProfile);
     renderResults(latestEntries, restoredProfile);
   } else if (!restoredProfile && restoredShortlist.length) {
     renderDirectoryShortlist(restoredShortlist);
   } else {
-    setActionState(false, "Run a match to save, share, or ask for help comparing your shortlist.");
+    syncZipResolvedLabel(matchForm.elements.location_query.value);
+    setActionState(false, "Run a match to save, share, or email your shortlist.");
     renderAdaptiveMatchActions(null, []);
     updateShortlistFeedbackUi("");
   }

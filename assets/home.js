@@ -13,6 +13,7 @@ import {
   summarizeAdaptiveSignals,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
+import { getZipMarketStatus } from "./zip-lookup.js";
 
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 
@@ -102,6 +103,192 @@ function applySiteSettings(siteSettings) {
   if (footerContactLink && siteSettings.supportEmail) {
     footerContactLink.href = "mailto:" + siteSettings.supportEmail;
   }
+}
+
+function syncHomeZipResolvedLabel(value) {
+  var resolved = document.getElementById("homeZipResolved");
+  if (!resolved) {
+    return;
+  }
+
+  var zipStatus = getZipMarketStatus(value);
+  if (!zipStatus.place) {
+    resolved.textContent = "";
+    resolved.classList.remove("is-visible");
+    return;
+  }
+
+  resolved.textContent =
+    zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
+  resolved.classList.add("is-visible");
+}
+
+function syncHeroSearchState() {
+  var hiddenInput = document.getElementById("homepage_interest");
+  var locationInput = document.getElementById("location");
+
+  if (!hiddenInput || !locationInput) {
+    return;
+  }
+
+  var isReady =
+    Boolean(String(hiddenInput.value || "").trim()) && Boolean(locationInput.value.trim());
+  syncHomeZipResolvedLabel(locationInput.value);
+  if (isReady) {
+    hideHeroValidationPopup();
+  }
+}
+
+function getHeroValidationMessages() {
+  var hiddenInput = document.getElementById("homepage_interest");
+  var locationInput = document.getElementById("location");
+  var messages = [];
+  var zipStatus = locationInput ? getZipMarketStatus(locationInput.value) : null;
+
+  if (!hiddenInput || !locationInput) {
+    return messages;
+  }
+
+  if (!String(hiddenInput.value || "").trim()) {
+    messages.push("Choose the kind of care you want.");
+  }
+
+  if (!locationInput.value.trim()) {
+    messages.push("Enter your ZIP code to get matched.");
+  } else if (zipStatus && zipStatus.status === "out_of_state") {
+    messages.push(zipStatus.message + " We’re currently focused on California ZIP codes.");
+  } else if (zipStatus && zipStatus.status === "unknown") {
+    messages.push("Enter a valid California ZIP code to get matched.");
+  }
+
+  return messages;
+}
+
+function showHeroValidationPopup(messages) {
+  var popup = document.getElementById("heroValidationPopup");
+  var list = document.getElementById("heroValidationList");
+
+  if (!popup || !list) {
+    return;
+  }
+
+  list.innerHTML = (messages || [])
+    .map(function (message) {
+      return "<div>" + escapeHtml(message) + "</div>";
+    })
+    .join("");
+  popup.classList.add("is-visible");
+}
+
+function hideHeroValidationPopup() {
+  var popup = document.getElementById("heroValidationPopup");
+  var list = document.getElementById("heroValidationList");
+
+  if (!popup || !list) {
+    return;
+  }
+
+  popup.classList.remove("is-visible");
+  list.innerHTML = "";
+}
+
+function initHeroCareDropdown() {
+  var selectRoot = document.querySelector("[data-custom-select]");
+  var hiddenInput = document.getElementById("homepage_interest");
+
+  if (!selectRoot || !hiddenInput) {
+    return;
+  }
+
+  var field = selectRoot.closest(".search-field--prompt");
+  var trigger = selectRoot.querySelector(".custom-select-trigger");
+  var options = Array.from(selectRoot.querySelectorAll(".custom-select-option"));
+  var defaultLabel = "What type of care do you want?";
+
+  function setOpenState(isOpen) {
+    selectRoot.classList.toggle("is-open", isOpen);
+    if (field) {
+      field.classList.toggle("is-open", isOpen);
+    }
+    if (trigger) {
+      trigger.setAttribute("aria-expanded", String(isOpen));
+    }
+  }
+
+  function closeMenu() {
+    setOpenState(false);
+  }
+
+  function setSelectedValue(value, label) {
+    hiddenInput.value = value || "";
+    if (trigger) {
+      trigger.textContent = label || defaultLabel;
+    }
+    options.forEach(function (option) {
+      option.setAttribute("aria-selected", String(option.dataset.value === value));
+    });
+    syncHeroSearchState();
+  }
+
+  if (trigger) {
+    trigger.textContent = defaultLabel;
+    trigger.addEventListener("click", function () {
+      var willOpen = !selectRoot.classList.contains("is-open");
+      setOpenState(willOpen);
+    });
+
+    trigger.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setOpenState(true);
+        if (options[0]) {
+          options[0].focus();
+        }
+      } else if (event.key === "Escape") {
+        closeMenu();
+      }
+    });
+  }
+
+  options.forEach(function (option, index) {
+    option.addEventListener("click", function () {
+      setSelectedValue(option.dataset.value || "", option.textContent.trim());
+      closeMenu();
+      if (trigger) {
+        trigger.focus();
+      }
+    });
+
+    option.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu();
+        if (trigger) {
+          trigger.focus();
+        }
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        (options[index + 1] || options[0]).focus();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        (options[index - 1] || options[options.length - 1]).focus();
+      }
+    });
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!selectRoot.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      closeMenu();
+    }
+  });
+
+  syncHeroSearchState();
 }
 
 function buildLikelyFitCopy(therapist) {
@@ -441,67 +628,43 @@ function renderHomeMatchingTeaser(featuredTherapists) {
   var modes = [
     {
       id: "trust",
-      label: "Trust",
-      title: "Start with the most decision-ready profile",
-      copy: "When trust leads, the product favors therapists with stronger verification, better bipolar-specific detail, clearer first-contact paths, and higher match readiness.",
-      pills: ["Editorial verification", "Profile completeness", "Clear outreach path"],
+      label: "Reviewed",
+      title: "Profiles with stronger reviewed details rise first",
+      copy: "This view favors specialists with stronger verification, clearer profile detail, and a more decision-ready first impression.",
     },
     {
       id: "speed",
-      label: "Speed",
-      title: "Shift toward the fastest realistic next step",
-      copy: "When speed matters, the ranking leans harder on availability clarity, accepting-new-patient status, and lower-friction outreach routes like booking links or direct intake paths.",
-      pills: ["Soonest availability", "Accepting patients", "Lower-friction outreach"],
+      label: "Fastest",
+      title: "Profiles with the quickest-looking next step rise first",
+      copy: "This view leans harder on availability clarity, accepting-new-patient status, and lower-friction outreach routes.",
     },
     {
       id: "specialization",
-      label: "Specialization",
-      title: "Lean into deeper bipolar-specific expertise",
-      copy: "When specialization matters more, the product gives extra weight to bipolar-specific years of experience, focus areas, and profile evidence that the therapist works with the realities of bipolar care.",
-      pills: ["Bipolar experience", "Subtype relevance", "Clinical depth"],
+      label: "Depth",
+      title: "Profiles with deeper bipolar specialization rise first",
+      copy: "This view gives extra weight to bipolar-specific experience, focus areas, and evidence of deeper specialization.",
     },
     {
       id: "contact",
       label: "Follow-through",
-      title: "Favor the path most likely to actually move",
-      copy: "Matching is not finished when a profile looks good. The system also pays attention to contact readiness and early responsiveness cues so the best next step is practical, not just impressive.",
-      pills: ["Contact readiness", "Responsive contact", "Easier first move"],
+      title: "Profiles with clearer contact paths rise first",
+      copy: "This view leans harder on contact readiness, responsiveness cues, and which next step looks easiest to actually use.",
     },
   ];
   var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
   var activeMode = adaptiveSignals.preferred_home_mode || "trust";
 
   function getAdaptiveHomeNote(modeId) {
-    var basis =
-      adaptiveSignals && adaptiveSignals.match_action_basis === "outcomes"
-        ? "what has worked best"
-        : "how people tend to move";
     if (modeId === "speed") {
-      return (
-        "Right now, the product is leaning a little more toward speed and easier next steps because that best reflects " +
-        basis +
-        " in current browsing patterns."
-      );
+      return "This preview brings easier next steps and lower-friction options to the top.";
     }
     if (modeId === "specialization") {
-      return (
-        "Right now, the product is leaning a little more toward specialization because that best reflects " +
-        basis +
-        " in current browsing patterns."
-      );
+      return "This preview brings bipolar-specific depth and specialization to the top.";
     }
     if (modeId === "contact") {
-      return (
-        "Right now, the product is leaning a little more toward follow-through because that best reflects " +
-        basis +
-        " in current browsing patterns."
-      );
+      return "This preview brings the clearest contact paths and follow-through potential to the top.";
     }
-    return (
-      "Right now, the product is leaning a little more toward trust and decision-readiness because that best reflects " +
-      basis +
-      " in current browsing patterns."
-    );
+    return "This preview brings stronger reviewed details and decision-readiness to the top.";
   }
 
   function render() {
@@ -530,35 +693,29 @@ function renderHomeMatchingTeaser(featuredTherapists) {
       escapeHtml(mode.title) +
       '</div><div class="home-teaser-copy">' +
       escapeHtml(mode.copy) +
-      '</div><div class="home-teaser-copy">' +
+      '</div><div class="home-teaser-note">' +
       escapeHtml(getAdaptiveHomeNote(mode.id)) +
-      '</div><div class="home-teaser-pills">' +
-      mode.pills
-        .map(function (pill) {
-          return '<span class="home-teaser-pill">' + escapeHtml(pill) + "</span>";
-        })
-        .join("") +
       "</div>";
 
     previewRoot.innerHTML = therapist
-      ? '<div class="home-teaser-preview-label">Example preview</div><div class="home-teaser-preview-name">' +
+      ? '<div class="home-teaser-preview-label">Example profile</div><div class="home-teaser-preview-name">' +
         escapeHtml(therapist.name) +
         '</div><div class="home-teaser-preview-copy">' +
         escapeHtml(
           activeMode === "speed"
             ? therapist.name +
-                " is the kind of profile that rises when speed matters because timing and first-step friction look stronger."
+                " is the kind of profile that can move up when speed matters because the next step looks lower-friction."
             : activeMode === "specialization"
               ? therapist.name +
-                " is the kind of profile that rises when specialization matters because bipolar-specific depth appears stronger."
+                " is the kind of profile that can move up when deeper bipolar specialization matters more."
               : activeMode === "contact"
                 ? therapist.name +
-                  " is the kind of profile that rises when follow-through matters because the contact path looks clearer and more likely to move."
+                  " is the kind of profile that can move up when the contact path looks clearer and more usable."
                 : therapist.name +
-                  " is the kind of profile that rises when trust leads because the profile looks more complete, credible, and decision-ready.",
+                  " is the kind of profile that can move up when reviewed details are especially strong.",
         ) +
         "</div>"
-      : '<div class="home-teaser-preview-label">Example preview</div><div class="home-teaser-preview-copy">As therapist supply grows, this will preview how different decision priorities change which profiles rise first.</div>';
+      : '<div class="home-teaser-preview-label">Example profile</div><div class="home-teaser-preview-copy">As therapist supply grows, this preview will show how different second-pass priorities can change which profiles rise first.</div>';
 
     tabsRoot.querySelectorAll("[data-home-mode]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -641,7 +798,7 @@ function renderFeaturedSection(section, fallbackTherapists) {
     escapeHtml(section.title || "") +
     '</h2><p class="section-sub">' +
     escapeHtml(section.description || "") +
-    '</p></div><div class="ranking-note"><div class="ranking-note-title">Why These Profiles Rise To The Top</div><div class="ranking-note-copy">We prioritize specialists with stronger reviewed trust signals, clearer first-contact paths, better bipolar-specific detail, and profiles that make it easier to decide and act.</div><div class="ranking-note-list"><span class="ranking-note-pill">Reviewed details</span><span class="ranking-note-pill">Higher match readiness</span><span class="ranking-note-pill">Clear outreach path</span><span class="ranking-note-pill">Availability and response clarity</span></div></div><div class="therapist-grid">' +
+    '</p></div><div class="ranking-note"><div class="ranking-note-title">Why These Profiles Rise To The Top</div><div class="ranking-note-copy">We prioritize specialists with stronger reviewed details, clearer first-contact paths, better bipolar-specific detail, and profiles that make it easier to decide and act.</div><div class="ranking-note-list"><span class="ranking-note-pill">Reviewed details</span><span class="ranking-note-pill">Higher match readiness</span><span class="ranking-note-pill">Clear outreach path</span><span class="ranking-note-pill">Availability and response clarity</span></div></div><div class="therapist-grid">' +
     cards +
     '</div><div class="center-btn"><a href="' +
     escapeHtml(section.buttonUrl || "directory.html") +
@@ -708,7 +865,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       description:
         homePage && homePage.whyDescription
           ? homePage.whyDescription
-          : "The goal is not to overwhelm you with profiles. It is to help you narrow the field, trust what you are seeing, and know what to do next.",
+          : "The goal is not to overwhelm you with profiles. It is to help you narrow the field, understand what has been reviewed, and know what to do next.",
       cards:
         homePage && Array.isArray(homePage.whyCards) && homePage.whyCards.length
           ? homePage.whyCards
@@ -721,7 +878,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
               },
               {
                 icon: "✅",
-                title: "Trust you can see",
+                title: "Reviewed details you can see",
                 description:
                   "See reviewed details, freshness cues, and contact clarity before you decide who to reach out to.",
               },
@@ -762,7 +919,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
                 stepLabel: "Step 2",
                 title: "Compare a smaller, calmer set of options",
                 description:
-                  "Review profiles with clearer trust, fit, and reachability detail before deciding who deserves the first outreach.",
+                  "Review profiles with clearer reviewed details, fit, and reachability information before deciding who deserves the first outreach.",
               },
               {
                 icon: "📞",
@@ -784,7 +941,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       description:
         homePage && homePage.featuredDescription
           ? homePage.featuredDescription
-          : "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
+          : "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
       buttonLabel:
         homePage && homePage.featuredButtonLabel
           ? homePage.featuredButtonLabel
@@ -837,7 +994,7 @@ function defaultSectionsFromLegacy(homePage, featuredTherapists) {
       description:
         homePage && homePage.ctaDescription
           ? homePage.ctaDescription
-          : "Join a bipolar-specialist platform built around trust, fit quality, and better patient decision-making from first match through outreach.",
+          : "Join a bipolar-specialist platform built around reviewed details, fit quality, and better patient decision-making from first match through outreach.",
       primaryLabel:
         homePage && homePage.ctaPrimaryLabel ? homePage.ctaPrimaryLabel : "List Your Practice",
       primaryUrl: homePage && homePage.ctaPrimaryUrl ? homePage.ctaPrimaryUrl : "signup.html",
@@ -960,13 +1117,66 @@ function renderPageSections(homePage, featuredTherapists) {
   window.handleSearch = function (event) {
     event.preventDefault();
     var loc = document.getElementById("location").value.trim();
+    var interest = document.getElementById("homepage_interest").value || "";
+    var validationMessages = getHeroValidationMessages();
+    var zipStatus = getZipMarketStatus(loc);
+
+    if (validationMessages.length) {
+      showHeroValidationPopup(validationMessages);
+    }
+
+    if (!interest) {
+      var trigger = document.querySelector(".custom-select-trigger");
+      if (trigger) {
+        trigger.focus();
+      }
+      syncHeroSearchState();
+      return;
+    }
+
+    if (!loc) {
+      var locationInput = document.getElementById("location");
+      if (locationInput) {
+        locationInput.focus();
+      }
+      syncHeroSearchState();
+      return;
+    }
+
+    if (zipStatus.status === "out_of_state" || zipStatus.status === "unknown") {
+      var locationField = document.getElementById("location");
+      if (locationField) {
+        locationField.focus();
+      }
+      syncHeroSearchState();
+      return;
+    }
+
     trackFunnelEvent("home_location_submitted", {
       has_location: Boolean(loc),
+      interest_type: interest || "unspecified",
     });
     var params = new URLSearchParams();
     if (loc) {
       params.set("location_query", loc);
     }
+    if (interest === "therapist") {
+      params.set("care_intent", "Therapy");
+      params.set("needs_medication_management", "No");
+    } else if (interest === "psychiatrist") {
+      params.set("care_intent", "Psychiatry");
+      params.set("needs_medication_management", "Yes");
+    } else if (interest === "telehealth") {
+      params.set("care_format", "Telehealth");
+    }
     window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
   };
+
+  initHeroCareDropdown();
+  var locationInput = document.getElementById("location");
+  if (locationInput) {
+    locationInput.addEventListener("input", syncHeroSearchState);
+    locationInput.addEventListener("change", syncHeroSearchState);
+  }
+  syncHeroSearchState();
 })();

@@ -249,7 +249,7 @@ function renderProfile(t) {
     ? "This clinician may be worth shortlisting because " +
       fitReasons.slice(0, 3).join(", ") +
       ". You should still confirm availability, insurance, and personal fit directly."
-    : "Use this profile to compare trust, access, and bipolar-specific fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
+    : "Use this profile to compare reviewed details, access, and bipolar-specific fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
   var likelyFitAudience = [];
   if (t.medication_management) {
     likelyFitAudience.push("people who may need psychiatry or medication support");
@@ -284,7 +284,7 @@ function renderProfile(t) {
     ? "Reviewed details currently include " +
       reviewedDetails.slice(0, 3).join(", ") +
       ". This is a trust and clarity check, not a quality rating."
-    : "This profile includes useful trust signals, but some details may still need direct confirmation.";
+    : "This profile includes useful reviewed details, but some details may still need direct confirmation.";
   var operationalTrustSummary = getOperationalTrustSummary(t);
   var standoutReasons = [];
   if (t.verification_status === "editorially_verified") {

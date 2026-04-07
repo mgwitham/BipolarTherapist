@@ -171,7 +171,7 @@ async function main() {
             ...section,
             title: "Start with a few reviewed specialists",
             description:
-              "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
+              "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
             therapists: featuredTherapistRefs,
           };
         }
@@ -181,14 +181,15 @@ async function main() {
     : undefined;
 
   const patch = {
+    heroTitle: "Find bipolar care near you",
     heroDescription:
-      "Find reviewed bipolar-specialist therapy or psychiatry with clearer trust signals, simpler comparison, and a calmer path to first contact in Los Angeles and across California telehealth.",
-    locationLabel: "Location",
-    locationPlaceholder: "Los Angeles, Pasadena, Telehealth",
-    searchButtonLabel: "Start matching →",
+      "Find reviewed bipolar specialists with clearer profile details, easier comparison, and a calmer path to care.",
+    locationLabel: "ZIP code",
+    locationPlaceholder: "Enter zip code",
+    searchButtonLabel: "Find",
     featuredTitle: "Start with a few reviewed specialists",
     featuredDescription:
-      "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
+      "These profiles rise because they combine stronger reviewed details, clearer contact paths, and next-step detail that is easier to actually use.",
     featuredTherapists: featuredTherapistRefs,
     whyTitle: "Built to make the first good decision easier",
     whyDescription:

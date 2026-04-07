@@ -128,7 +128,7 @@ import {
             ? "leaning a little harder on bipolar-specific depth"
             : filters.sortBy === "lowest_fee"
               ? "leaning a little harder on fee visibility"
-              : "balancing trust, fit, and decision-readiness";
+              : "balancing reviewed details, fit, and decision-readiness";
 
     root.textContent =
       "For " +
@@ -162,7 +162,7 @@ import {
 
     if (!visiblePriorityCount) {
       root.textContent =
-        "The strongest profiles here still rise on trust, fit, and next-step clarity, even when no launch-priority profile is in view.";
+        "The strongest profiles here still rise on reviewed details, fit, and next-step clarity, even when no launch-priority profile is in view.";
       return;
     }
 
@@ -170,7 +170,7 @@ import {
       visiblePriorityCount +
       " profile" +
       (visiblePriorityCount === 1 ? " is" : "s are") +
-      " currently getting a light visibility boost because the profile looks especially strong on reviewed trust detail, decision-readiness, and contact clarity. That boost only matters when options are already close.";
+      " currently getting a light visibility boost because the profile looks especially strong on reviewed details, decision-readiness, and contact clarity. That boost only matters when options are already close.";
   }
 
   function escapeHtml(value) {
@@ -673,7 +673,7 @@ import {
       return "Reviewed details include license, location, care format, and contact path.";
     }
 
-    return "Core profile details are present, but some trust details may still need confirmation.";
+    return "Core profile details are present, but some reviewed details may still need confirmation.";
   }
 
   function buildCardStandoutCopy(therapist) {
