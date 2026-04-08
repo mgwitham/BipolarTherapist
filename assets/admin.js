@@ -49,6 +49,9 @@ import { renderApplicationsPanel } from "./admin-application-review.js";
 import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
 import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
 import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
+import { renderConfirmationSprintPanel } from "./admin-confirmation-sprint.js";
+import { renderConfirmationQueuePanel } from "./admin-confirmation-queue.js";
+import { renderConciergeQueuePanel } from "./admin-concierge-queue.js";
 import {
   buildCoverageInsights,
   renderCoverageIntelligencePanel,
@@ -6929,799 +6932,94 @@ function renderImportBlockerSprint() {
 }
 
 function renderConfirmationSprint() {
-  const root = document.getElementById("confirmationSprint");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const queue = getPublishedTherapistConfirmationQueue().slice(0, 5);
-  const sprintRows = getConfirmationSprintRows(5);
-  const blockerRows = getImportBlockerSprintRows(3);
-  const overlappingAsk = getOverlappingAskDetails(blockerRows, sprintRows);
-  const readySprintRows = buildConfirmationApplyCsvRows(sprintRows);
-  const recommendation = applyOverlapRecommendationContext(
-    getConfirmationSprintRecommendation(sprintRows),
-    blockerRows,
-    sprintRows,
-  );
-  const miniLanes = getConfirmationSprintMiniLanes(sprintRows);
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-summary"><strong>' +
-    escapeHtml(getConfirmationSprintHealthSummary(sprintRows)) +
-    '</strong></div><div class="queue-summary subtle">' +
-    escapeHtml(getConfirmationSprintBottleneckSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(
-      getPrimaryAskHeaderLine(getConfirmationSprintThemeDetails(sprintRows)?.field || ""),
-    ) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getConfirmationSprintThemeSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getBlockerConfirmationThemeBridge(blockerRows, sprintRows)) +
-    "</div>" +
-    (overlappingAsk
-      ? '<div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelMixSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
-        ) +
-        '</div><div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelNextMoveSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
-        ) +
-        "</div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        ".</span></div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-insights"><div class="queue-insights-title">Shared Ask Wave</div><div class="subtle" style="margin-bottom:0.7rem">This same ask currently spans ' +
-        escapeHtml(String(overlappingAsk.blocker_count)) +
-        " blocker profile" +
-        (overlappingAsk.blocker_count === 1 ? "" : "s") +
-        " and " +
-        escapeHtml(String(overlappingAsk.confirmation_count)) +
-        " confirmation sprint profile" +
-        (overlappingAsk.confirmation_count === 1 ? "" : "s") +
-        '.</div><div class="subtle" style="margin-bottom:0.7rem">Primary shared ask right now: ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        '.</div><div class="queue-insights-grid"><div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        '</strong></div><div class="queue-insight-note">Shared ask across both queues</div><div class="queue-insight-action"><button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button></div></div></div></div>'
-      : "") +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-confirmation-sprint-recommendation="' +
-    escapeHtml(recommendation.mode) +
-    '"' +
-    (recommendation.slug ? ' data-slug="' + escapeHtml(recommendation.slug) + '"' : "") +
-    (recommendation.targetId ? ' data-target="' + escapeHtml(recommendation.targetId) + '"' : "") +
-    ">" +
-    escapeHtml(recommendation.label) +
-    "</button>" +
-    (overlappingAsk
-      ? '<button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-confirmation-copy-top-wave>Copy top outreach wave</button>'
-      : "") +
-    '<button class="btn-secondary" data-confirmation-sprint-export="markdown">Copy sprint markdown</button><button class="btn-secondary" data-confirmation-sprint-export="csv">Copy sprint CSV</button>' +
-    (readySprintRows.length
-      ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-sprint-export="apply-checklist">Copy apply checklist</button>'
-      : "") +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(recommendation.note) +
-    "</div>" +
-    (miniLanes.length
-      ? miniLanes
-          .map(function (lane) {
-            return (
-              '<div class="queue-insights"><div class="queue-insights-title">' +
-              escapeHtml(lane.title) +
-              '</div><div class="subtle" style="margin-bottom:0.7rem">' +
-              escapeHtml(lane.note) +
-              '</div><div class="queue-insights-grid">' +
-              lane.rows
-                .map(function (row) {
-                  return (
-                    '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-                    escapeHtml(row.name) +
-                    '</strong></div><div class="queue-insight-note">' +
-                    escapeHtml(row.result) +
-                    '</div><div class="queue-insight-action">' +
-                    (lane.filter === "confirmed" || lane.filter === "applied"
-                      ? '<button class="btn-secondary" data-confirmation-mini-apply="' +
-                        escapeHtml(row.slug) +
-                        '">Copy apply brief</button>'
-                      : '<button class="btn-secondary" data-confirmation-mini-lane="' +
-                        escapeHtml(lane.filter) +
-                        '">' +
-                        escapeHtml("Show in queue") +
-                        "</button>") +
-                    "</div></div>"
-                  );
-                })
-                .join("") +
-              "</div></div>"
-            );
-          })
-          .join("")
-      : "") +
-    '<div class="review-coach-status" id="confirmationSprintExportStatus"></div>' +
-    queue
-      .map(function (entry) {
-        const item = entry.item;
-        const agenda = entry.agenda;
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const graceWindowNote = getConfirmationGraceWindowNote(item);
-        const confirmationLink = buildConfirmationLink(item.slug);
-        const sprintRow = sprintRows.find(function (row) {
-          return row.slug === item.slug;
-        });
-        const orderedUnknownFields = sprintRow
-          ? getPreferredFieldOrder(agenda.unknown_fields || [], sprintRow.primary_ask_field || "")
-          : agenda.unknown_fields || [];
-        const primaryAskField = sprintRow?.primary_ask_field || orderedUnknownFields[0] || "";
-        const addOnAskFields = sprintRow?.add_on_ask_fields
-          ? String(sprintRow.add_on_ask_fields)
-              .split("|")
-              .map(function (field) {
-                return field.trim();
-              })
-              .filter(Boolean)
-          : orderedUnknownFields.slice(1);
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(String(queue.indexOf(entry) + 1) + ". " + item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(agenda.summary) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(agenda.priority)) +
-          ' priority</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Status:</strong> ' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</div><div class="queue-summary"><strong>Result:</strong> ' +
-          escapeHtml(getConfirmationResultLabel(workflow.status)) +
-          '</div><div class="queue-summary"><strong>Target:</strong> ' +
-          escapeHtml(getConfirmationTarget(item)) +
-          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
-          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-          (graceWindowNote
-            ? '</div><div class="queue-summary"><strong>Grace window:</strong> ' +
-              escapeHtml(graceWindowNote)
-            : "") +
-          '</div><div class="queue-summary"><strong>Needs:</strong> ' +
-          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
-          "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              escapeHtml(formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
-          "</div>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          '<div class="queue-actions" style="margin-top:0.8rem"><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="sent">Mark sent</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="waiting_on_therapist">Mark waiting</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="confirmed">Mark confirmed</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="applied">Mark applied</button><button class="btn-secondary" data-confirmation-show-queue="' +
-          escapeHtml(item.slug) +
-          '" data-current-status="' +
-          escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="queue-shortlist"><div class="queue-shortlist-item">[ ] Review current profile and source trail</div><div class="queue-shortlist-item">[ ] Send request through preferred channel</div><div class="queue-shortlist-item">[ ] Record send state in admin</div><div class="queue-shortlist-item">[ ] Mark reply or follow-up outcome</div></div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
-            : "") +
-          '<a class="btn-secondary btn-inline" href="' +
-          escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a></div><div class="review-coach-status" data-confirmation-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-confirmation-sprint-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-sprint-export");
-      var text =
-        mode === "apply-csv"
-          ? buildConfirmationApplyCsv(sprintRows)
-          : mode === "apply-summary"
-            ? buildConfirmationApplySummary(sprintRows, "# Confirmation Sprint Apply Summary")
-            : mode === "apply-checklist"
-              ? buildConfirmationApplyOperatorChecklist(
-                  sprintRows,
-                  "# Confirmation Sprint Apply Checklist",
-                )
-              : mode === "csv"
-                ? buildConfirmationSprintCsv(sprintRows)
-                : buildConfirmationSprintMarkdown(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "apply-csv"
-            ? "Confirmation sprint apply CSV copied."
-            : mode === "apply-summary"
-              ? "Confirmation sprint apply summary copied."
-              : mode === "apply-checklist"
-                ? "Confirmation sprint apply checklist copied."
-                : "Confirmation sprint " + mode.toUpperCase() + " copied."
-          : mode === "apply-csv"
-            ? "Could not copy confirmation sprint apply CSV."
-            : mode === "apply-summary"
-              ? "Could not copy confirmation sprint apply summary."
-              : mode === "apply-checklist"
-                ? "Could not copy confirmation sprint apply checklist."
-                : "Could not copy confirmation sprint " + mode.toUpperCase() + ".";
-      }
-    });
-  });
-
-  root
-    .querySelector("[data-confirmation-copy-overlap]")
-    ?.addEventListener("click", async function () {
-      var text = buildOverlappingAskPacket(blockerRows, sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? "Unified outreach wave copied."
-          : "Could not copy the unified outreach wave.";
-      }
-    });
-
-  root
-    .querySelector("[data-confirmation-copy-top-wave]")
-    ?.addEventListener("click", async function () {
-      var text = buildTopOutreachWavePacket(blockerRows, sprintRows, 3);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top outreach wave copied."
-          : "Could not copy the top outreach wave.";
-      }
-    });
-
-  root.querySelectorAll("[data-confirmation-sprint-recommendation]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-sprint-recommendation");
-      if (mode === "copy_request") {
-        var slug = button.getAttribute("data-slug");
-        var sprintRow = sprintRows.find(function (row) {
-          return row.slug === slug;
-        });
-        if (!sprintRow) {
-          return;
-        }
-        var text = [
-          sprintRow.request_message,
-          "",
-          "Confirmation form:",
-          buildConfirmationLink(slug),
-        ]
-          .filter(Boolean)
-          .join("\n");
-        var success = await copyText(text);
-        var status = root.querySelector("#confirmationSprintExportStatus");
-        if (status) {
-          status.textContent = success
-            ? "Top therapist request copied."
-            : "Could not copy the top therapist request.";
-        }
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-        return;
-      }
-
-      if (mode === "copy_apply_brief") {
-        var applySlug = button.getAttribute("data-slug");
-        var applyEntry = queue.find(function (item) {
-          return item.item && item.item.slug === applySlug;
-        });
-        var applySprintRow = sprintRows.find(function (row) {
-          return row.slug === applySlug;
-        });
-        if (!applyEntry) {
-          return;
-        }
-        var applyText = buildConfirmationApplyBrief(
-          applyEntry.item,
-          applyEntry.agenda,
-          getConfirmationQueueEntry(applySlug),
-          applySprintRow?.primary_ask_field || "",
-        );
-        var applySuccess = await copyText(applyText);
-        var applyStatus = root.querySelector("#confirmationSprintExportStatus");
-        if (applyStatus) {
-          applyStatus.textContent = applySuccess
-            ? "Apply brief copied."
-            : "Could not copy apply brief.";
-        }
-        return;
-      }
-
-      var targetId = button.getAttribute("data-target");
-      var target = targetId ? document.getElementById(targetId) : null;
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-mini-lane]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      confirmationQueueFilter = button.getAttribute("data-confirmation-mini-lane") || "";
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-mini-apply]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-mini-apply");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      var sprintRow = sprintRows.find(function (row) {
-        return row.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-        sprintRow?.primary_ask_field || "",
-      );
-      var success = await copyText(text);
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-quick-status]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-confirmation-quick-status");
-      var nextStatus = button.getAttribute("data-next-status");
-      if (!slug || !nextStatus) {
-        return;
-      }
-      updateConfirmationQueueEntry(slug, {
-        status: nextStatus,
-        last_sent_at:
-          nextStatus === "sent"
-            ? new Date().toISOString()
-            : getConfirmationQueueEntry(slug).last_sent_at,
-        confirmation_applied_at:
-          nextStatus === "applied"
-            ? new Date().toISOString()
-            : nextStatus === "confirmed" ||
-                nextStatus === "waiting_on_therapist" ||
-                nextStatus === "sent" ||
-                nextStatus === "not_started"
-              ? ""
-              : getConfirmationQueueEntry(slug).confirmation_applied_at,
-      });
-      renderStats();
-      renderImportBlockerSprint();
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-show-queue]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var currentStatus = button.getAttribute("data-current-status") || "";
-      confirmationQueueFilter = currentStatus;
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-apply-brief");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var queuePrimaryField = getConfirmationQueuePrimaryField(queue);
-      var orderedUnknownFields = getPreferredFieldOrder(
-        entry.agenda.unknown_fields || [],
-        queuePrimaryField,
-      );
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-        orderedUnknownFields[0] || "",
-      );
-      var success = await copyText(text);
-      var status = root.querySelector('[data-confirmation-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
-      }
-    });
+  renderConfirmationSprintPanel({
+    authRequired: authRequired,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationSprintRows: getConfirmationSprintRows,
+    getImportBlockerSprintRows: getImportBlockerSprintRows,
+    getOverlappingAskDetails: getOverlappingAskDetails,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    applyOverlapRecommendationContext: applyOverlapRecommendationContext,
+    getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
+    getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
+    escapeHtml: escapeHtml,
+    getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
+    getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
+    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+    getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
+    getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
+    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+    getTopOutreachWaveRows: getTopOutreachWaveRows,
+    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+    formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationResultLabel: getConfirmationResultLabel,
+    getConfirmationTarget: getConfirmationTarget,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    buildConfirmationSprintCsv: buildConfirmationSprintCsv,
+    buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
+    copyText: copyText,
+    buildOverlappingAskPacket: buildOverlappingAskPacket,
+    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    setConfirmationQueueFilter: function (value) {
+      confirmationQueueFilter = value;
+    },
   });
 }
 
 function renderConfirmationQueue() {
-  const root = document.getElementById("confirmationQueue");
-  const statusFilter = document.getElementById("confirmationQueueStatusFilter");
-  const countLabel = document.getElementById("confirmationQueueCount");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  if (statusFilter) {
-    statusFilter.value = confirmationQueueFilter;
-  }
-
-  const queue = getPublishedTherapistConfirmationQueue();
-  const preferredPrimaryField = getConfirmationQueuePrimaryField(queue);
-  const filteredQueue = queue.filter(function (entry) {
-    if (!confirmationQueueFilter) {
-      return true;
-    }
-    return getConfirmationQueueEntry(entry.item.slug).status === confirmationQueueFilter;
+  renderConfirmationQueuePanel({
+    root: document.getElementById("confirmationQueue"),
+    statusFilter: document.getElementById("confirmationQueueStatusFilter"),
+    countLabel: document.getElementById("confirmationQueueCount"),
+    authRequired: authRequired,
+    confirmationQueueFilter: confirmationQueueFilter,
+    confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    formatStatusLabel: formatStatusLabel,
+    formatFieldLabel: formatFieldLabel,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    copyText: copyText,
+    buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
+    setConfirmationActionStatus: setConfirmationActionStatus,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationChecklist: buildConfirmationChecklist,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    bindConfirmationResponseCapture: bindConfirmationResponseCapture,
   });
-  const readyQueueRows = buildConfirmationApplyCsvRows(queue);
-
-  if (countLabel) {
-    countLabel.textContent =
-      filteredQueue.length +
-      " of " +
-      queue.length +
-      " profile" +
-      (queue.length === 1 ? "" : "s") +
-      (confirmationQueueFilter ? " in this status" : " in queue");
-  }
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
-    return;
-  }
-
-  if (!filteredQueue.length) {
-    root.innerHTML =
-      '<div class="subtle">No profiles match the current confirmation status filter.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-actions" style="margin-bottom:0.8rem">' +
-    (readyQueueRows.length
-      ? '<button class="btn-secondary" data-confirmation-queue-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-queue-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-queue-export="apply-checklist">Copy apply checklist</button>'
-      : "") +
-    '</div><div class="review-coach-status" id="confirmationQueueExportStatus"></div>' +
-    filteredQueue
-      .map(function (entry) {
-        const item = entry.item;
-        const agenda = entry.agenda;
-        const confirmationLink = buildConfirmationLink(item.slug);
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const orderedUnknownFields = getPreferredFieldOrder(
-          agenda.unknown_fields || [],
-          preferredPrimaryField,
-        );
-        const primaryAskField = orderedUnknownFields[0] || "";
-        const addOnAskFields = orderedUnknownFields.slice(1);
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(formatStatusLabel(agenda.priority) + " priority") +
-          '</div><div class="subtle">' +
-          escapeHtml(agenda.summary) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(agenda.priority)) +
-          ' priority</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Needs:</strong> ' +
-          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
-          "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              escapeHtml(formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
-          "</div>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          '<div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="confirmation-status-' +
-          escapeHtml(item.slug) +
-          '">Confirmation status</label><select class="queue-select" id="confirmation-status-' +
-          escapeHtml(item.slug) +
-          '" data-confirmation-status="' +
-          escapeHtml(item.slug) +
-          '">' +
-          CONFIRMATION_STATUS_OPTIONS.map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (workflow.status === option ? " selected" : "") +
-              ">" +
-              escapeHtml(formatStatusLabel(option)) +
-              "</option>"
-            );
-          }).join("") +
-          "</select></div>" +
-          (workflow.last_sent_at
-            ? '<div class="queue-summary"><strong>Last request copied:</strong> ' +
-              escapeHtml(formatDate(workflow.last_sent_at)) +
-              "</div>"
-            : "") +
-          '</div><div class="queue-shortlist">' +
-          (agenda.asks || [])
-            .map(function (ask) {
-              return '<div class="queue-shortlist-item">' + escapeHtml(ask) + "</div>";
-            })
-            .join("") +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
-            : "") +
-          '<button class="btn-secondary" data-confirmation-checklist="' +
-          escapeHtml(item.slug) +
-          '">Copy internal checklist</button><a class="btn-secondary btn-inline" href="' +
-          escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile</a></div><div class="review-coach-status" data-confirmation-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-confirmation-queue-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-queue-export");
-      var text =
-        mode === "apply-csv"
-          ? buildConfirmationApplyCsv(queue)
-          : mode === "apply-summary"
-            ? buildConfirmationApplySummary(queue, "# Confirmation Queue Apply Summary")
-            : mode === "apply-checklist"
-              ? buildConfirmationApplyOperatorChecklist(
-                  queue,
-                  "# Confirmation Queue Apply Checklist",
-                )
-              : "";
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationQueueExportStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "apply-summary"
-            ? "Confirmation queue apply summary copied."
-            : mode === "apply-checklist"
-              ? "Confirmation queue apply checklist copied."
-              : "Confirmation queue apply CSV copied."
-          : mode === "apply-summary"
-            ? "Could not copy confirmation queue apply summary."
-            : mode === "apply-checklist"
-              ? "Could not copy confirmation queue apply checklist."
-              : "Could not copy confirmation queue apply CSV.";
-      }
-    });
-  });
-
-  [document.getElementById("confirmationSprint"), root].forEach(function (scope) {
-    if (!scope) {
-      return;
-    }
-
-    scope.querySelectorAll("[data-confirmation-copy]").forEach(function (button) {
-      button.addEventListener("click", async function () {
-        var slug = button.getAttribute("data-confirmation-copy");
-        var entry = queue.find(function (item) {
-          return item.item && item.item.slug === slug;
-        });
-
-        if (!entry) {
-          return;
-        }
-
-        var text = [
-          buildOrderedConfirmationRequestMessage(
-            entry.item,
-            entry.agenda.unknown_fields || [],
-            preferredPrimaryField,
-          ),
-          "",
-          "Confirmation form:",
-          buildConfirmationLink(slug),
-        ]
-          .filter(Boolean)
-          .join("\n");
-        var success = await copyText(text);
-        setConfirmationActionStatus(
-          scope,
-          slug,
-          success
-            ? "Therapist confirmation request copied."
-            : "Could not copy confirmation request.",
-        );
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-      });
-    });
-
-    scope.querySelectorAll("[data-confirmation-link]").forEach(function (button) {
-      button.addEventListener("click", async function () {
-        var slug = button.getAttribute("data-confirmation-link");
-        var success = await copyText(buildConfirmationLink(slug));
-        setConfirmationActionStatus(
-          scope,
-          slug,
-          success ? "Confirmation link copied." : "Could not copy confirmation link.",
-        );
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-      });
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-checklist]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-checklist");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-
-      if (!entry) {
-        return;
-      }
-
-      var text = buildConfirmationChecklist(entry.item, entry.agenda, preferredPrimaryField);
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Internal checklist copied." : "Could not copy internal checklist.",
-      );
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-apply-brief");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-
-      if (!entry) {
-        return;
-      }
-
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-      );
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Apply brief copied." : "Could not copy apply brief.",
-      );
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      var slug = select.getAttribute("data-confirmation-status");
-      updateConfirmationQueueEntry(slug, {
-        status: select.value,
-      });
-      renderStats();
-      renderImportBlockerSprint();
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  bindConfirmationResponseCapture(root);
 }
 
 function renderApplications() {
@@ -8108,328 +7406,25 @@ function renderCandidateQueue() {
 }
 
 function renderConciergeQueue() {
-  const root = document.getElementById("conciergeQueue");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const requests = readConciergeRequests();
-  const outreachOutcomes = readOutreachOutcomes();
-  if (!requests.length) {
-    root.innerHTML =
-      '<div class="empty">No concierge requests captured yet. Once users ask for help in the match flow, they will appear here on this device.</div>';
-    return;
-  }
-
-  const filteredRequests = requests
-    .map(function (request, requestIndex) {
-      return {
-        request: request,
-        requestIndex: requestIndex,
-      };
-    })
-    .filter(function (entry) {
-      if (!conciergeFilters.status) {
-        return true;
-      }
-      if (conciergeFilters.status === "open") {
-        return entry.request.request_status !== "resolved";
-      }
-      return entry.request.request_status === conciergeFilters.status;
-    });
-  const countLabel = document.getElementById("conciergeQueueCount");
-  if (countLabel) {
-    countLabel.textContent =
-      filteredRequests.length === requests.length
-        ? String(requests.length) + " of " + String(requests.length) + " requests shown"
-        : String(filteredRequests.length) + " of " + String(requests.length) + " requests shown";
-  }
-
-  const patterns = analyzeConciergePatterns(requests);
-  const outcomeSummary = analyzeOutreachOutcomes(outreachOutcomes);
-  const journeySummary = analyzeOutreachJourneys(outreachOutcomes);
-  const timingSummary = analyzePivotTiming(outreachOutcomes);
-  const insightsHtml = patterns.length
-    ? '<div class="queue-insights"><div class="queue-insights-title">Stuck patterns we are seeing</div><div class="queue-insights-grid">' +
-      patterns
-        .slice(0, 5)
-        .map(function (pattern) {
-          return (
-            '<div class="queue-insight-card"><div class="queue-insight-value">' +
-            escapeHtml(pattern.count) +
-            '</div><div class="queue-insight-label">' +
-            escapeHtml(pattern.label) +
-            "</div></div>"
-          );
-        })
-        .join("") +
-      "</div></div>"
-    : "";
-  const outcomeHtml = outreachOutcomes.length
-    ? '<div class="queue-insights"><div class="queue-insights-title">Recommended outreach outcomes</div><div class="queue-insights-grid">' +
-      [
-        { label: "Reached out", count: outcomeSummary.reached_out },
-        { label: "Heard back", count: outcomeSummary.heard_back },
-        { label: "Booked consult", count: outcomeSummary.booked_consult },
-        { label: "Good fit call", count: outcomeSummary.good_fit_call },
-        { label: "Insurance mismatch", count: outcomeSummary.insurance_mismatch },
-        { label: "Hit a waitlist", count: outcomeSummary.waitlist },
-        { label: "No response yet", count: outcomeSummary.no_response },
-      ]
-        .map(function (item) {
-          return (
-            '<div class="queue-insight-card"><div class="queue-insight-value">' +
-            escapeHtml(item.count) +
-            '</div><div class="queue-insight-label">' +
-            escapeHtml(item.label) +
-            "</div></div>"
-          );
-        })
-        .join("") +
-      "</div></div>"
-    : "";
-  const journeyHtml =
-    journeySummary.fallback_after_no_response ||
-    journeySummary.fallback_after_waitlist ||
-    journeySummary.fallback_after_insurance_mismatch ||
-    journeySummary.second_choice_success
-      ? '<div class="queue-insights"><div class="queue-insights-title">Fallback journey patterns</div><div class="queue-insights-grid">' +
-        [
-          {
-            label: "Fallback after no response",
-            count: journeySummary.fallback_after_no_response,
-          },
-          {
-            label: "Fallback after waitlist",
-            count: journeySummary.fallback_after_waitlist,
-          },
-          {
-            label: "Fallback after insurance mismatch",
-            count: journeySummary.fallback_after_insurance_mismatch,
-          },
-          {
-            label: "Second-choice success",
-            count: journeySummary.second_choice_success,
-          },
-        ]
-          .filter(function (item) {
-            return item.count > 0;
-          })
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-value">' +
-              escapeHtml(item.count) +
-              '</div><div class="queue-insight-label">' +
-              escapeHtml(item.label) +
-              "</div></div>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "";
-  const timingHtml =
-    timingSummary.on_time_pivots || timingSummary.early_pivots || timingSummary.late_pivots
-      ? '<div class="queue-insights"><div class="queue-insights-title">Pivot timing patterns</div><div class="queue-insights-grid">' +
-        [
-          { label: "On-time pivots", count: timingSummary.on_time_pivots },
-          { label: "Early pivots", count: timingSummary.early_pivots },
-          { label: "Late pivots", count: timingSummary.late_pivots },
-        ]
-          .filter(function (item) {
-            return item.count > 0;
-          })
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-value">' +
-              escapeHtml(item.count) +
-              '</div><div class="queue-insight-label">' +
-              escapeHtml(item.label) +
-              "</div></div>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "";
-
-  root.innerHTML =
-    insightsHtml +
-    outcomeHtml +
-    journeyHtml +
-    timingHtml +
-    (filteredRequests.length
-      ? ""
-      : '<div class="empty">No concierge requests match the current filter.</div>') +
-    filteredRequests
-      .slice(0, 12)
-      .map(function (entry, index) {
-        const request = entry.request;
-        const requestIndex = entry.requestIndex;
-        const shortlist = Array.isArray(request.shortlist) ? request.shortlist : [];
-        const note = String(request.request_note || "").trim();
-        const summary = String(request.request_summary || "No request summary captured.");
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(request.requester_name || "Unnamed concierge request") +
-          '</h3><div class="subtle">' +
-          formatDate(request.created_at) +
-          (request.follow_up_preference ? " · " + escapeHtml(request.follow_up_preference) : "") +
-          (request.help_topic ? " · " + escapeHtml(request.help_topic) : "") +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(request.request_status)) +
-          '</span><span class="tag">Request ' +
-          (index + 1) +
-          '</span></div></div><div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="request-status-' +
-          requestIndex +
-          '">Request status</label><select class="queue-select" id="request-status-' +
-          requestIndex +
-          '" data-request-status="' +
-          requestIndex +
-          '">' +
-          REQUEST_STATUS_OPTIONS.map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (request.request_status === option ? " selected" : "") +
-              ">" +
-              escapeHtml(formatStatusLabel(option)) +
-              "</option>"
-            );
-          }).join("") +
-          "</select></div>" +
-          '<div class="queue-summary"><strong>Request summary:</strong> ' +
-          escapeHtml(summary) +
-          "</div>" +
-          (note
-            ? '<div class="queue-summary"><strong>What feels uncertain:</strong> ' +
-              escapeHtml(note) +
-              "</div>"
-            : "") +
-          (shortlist.length
-            ? '<div class="queue-shortlist">' +
-              shortlist
-                .map(function (item, shortlistIndex) {
-                  return (
-                    '<div class="queue-shortlist-item"><strong>' +
-                    escapeHtml(item.name || "Unknown therapist") +
-                    "</strong>" +
-                    (item.priority ? " · " + escapeHtml(item.priority) : "") +
-                    (item.note
-                      ? '<div class="subtle" style="margin-top:0.25rem">Note: ' +
-                        escapeHtml(item.note) +
-                        "</div>"
-                      : "") +
-                    '<div class="subtle" style="margin-top:0.25rem">Best route: ' +
-                    escapeHtml(item.outreach || "Not listed") +
-                    '</div><div class="queue-item-controls"><label class="queue-select-label" for="shortlist-status-' +
-                    requestIndex +
-                    "-" +
-                    shortlistIndex +
-                    '">Therapist follow-up</label><select class="queue-select" id="shortlist-status-' +
-                    requestIndex +
-                    "-" +
-                    shortlistIndex +
-                    '" data-shortlist-status="' +
-                    requestIndex +
-                    ":" +
-                    shortlistIndex +
-                    '">' +
-                    THERAPIST_FOLLOW_UP_OPTIONS.map(function (option) {
-                      return (
-                        '<option value="' +
-                        escapeHtml(option) +
-                        '"' +
-                        (item.follow_up_status === option ? " selected" : "") +
-                        ">" +
-                        escapeHtml(formatStatusLabel(option)) +
-                        "</option>"
-                      );
-                    }).join("") +
-                    "</select></div></div>"
-                  );
-                })
-                .join("") +
-              "</div>"
-            : "") +
-          '<div class="queue-actions"><button class="btn-secondary" data-concierge-copy="' +
-          requestIndex +
-          '">Copy brief</button>' +
-          (request.share_link
-            ? '<a class="btn-secondary btn-inline" href="' +
-              escapeHtml(request.share_link) +
-              '" target="_blank" rel="noopener">Open match context</a>'
-            : "") +
-          "</div></article>"
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-concierge-copy]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const request = requests[Number(button.getAttribute("data-concierge-copy"))];
-      if (!request) {
-        return;
-      }
-
-      const brief = [
-        "BipolarTherapyHub concierge request",
-        "",
-        request.requester_name ? "Name: " + request.requester_name : "",
-        request.follow_up_preference ? "Preferred follow-up: " + request.follow_up_preference : "",
-        request.help_topic ? "Help topic: " + request.help_topic : "",
-        "Request summary: " + (request.request_summary || "No request summary captured."),
-        "",
-        "Shortlist:",
-        (request.shortlist || [])
-          .map(function (item, itemIndex) {
-            return (
-              itemIndex +
-              1 +
-              ". " +
-              (item.name || "Unknown therapist") +
-              (item.priority ? " — " + item.priority : "") +
-              (item.note ? " — Note: " + item.note : "") +
-              (item.outreach ? " — Best route: " + item.outreach : "")
-            );
-          })
-          .join("\n"),
-        "",
-        request.request_note ? "What feels uncertain:\n" + request.request_note : "",
-        request.share_link ? "Share link:\n" + request.share_link : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      try {
-        await navigator.clipboard.writeText(brief);
-        button.textContent = "Copied";
-      } catch (_error) {
-        button.textContent = "Copy failed";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-request-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      updateConciergeRequestStatus(
-        Number(select.getAttribute("data-request-status")),
-        select.value,
-      );
-      renderAll();
-    });
-  });
-
-  root.querySelectorAll("[data-shortlist-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      var parts = String(select.getAttribute("data-shortlist-status") || "").split(":");
-      updateConciergeShortlistStatus(Number(parts[0]), Number(parts[1]), select.value);
-      renderAll();
-    });
+  renderConciergeQueuePanel({
+    root: document.getElementById("conciergeQueue"),
+    countLabel: document.getElementById("conciergeQueueCount"),
+    authRequired: authRequired,
+    conciergeStatusFilter: conciergeFilters.status,
+    readConciergeRequests: readConciergeRequests,
+    readOutreachOutcomes: readOutreachOutcomes,
+    analyzeConciergePatterns: analyzeConciergePatterns,
+    analyzeOutreachOutcomes: analyzeOutreachOutcomes,
+    analyzeOutreachJourneys: analyzeOutreachJourneys,
+    analyzePivotTiming: analyzePivotTiming,
+    requestStatusOptions: REQUEST_STATUS_OPTIONS,
+    therapistFollowUpOptions: THERAPIST_FOLLOW_UP_OPTIONS,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
+    formatStatusLabel: formatStatusLabel,
+    updateConciergeRequestStatus: updateConciergeRequestStatus,
+    updateConciergeShortlistStatus: updateConciergeShortlistStatus,
+    renderAll: renderAll,
   });
 }
 
