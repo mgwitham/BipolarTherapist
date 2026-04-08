@@ -460,6 +460,7 @@ function buildApplicationDiffRows(item, therapist) {
               ? "missing"
               : "empty";
       return {
+        fieldKey: row.fieldKey,
         label: row.label,
         application: applicationValue || "Not provided",
         live: liveValue || "Not listed",
@@ -486,6 +487,16 @@ function getApplicationDiffSummary(rows) {
   );
 }
 
+function getLastAppliedLiveFieldsEntry(item) {
+  var history = Array.isArray(item && item.revision_history) ? item.revision_history : [];
+  for (var index = history.length - 1; index >= 0; index -= 1) {
+    if (history[index] && history[index].type === "applied_live_fields") {
+      return history[index];
+    }
+  }
+  return null;
+}
+
 function renderApplicationDiffHtml(item, therapist) {
   var rows = buildApplicationDiffRows(item, therapist);
   if (!rows.length) {
@@ -493,9 +504,34 @@ function renderApplicationDiffHtml(item, therapist) {
   }
 
   var summary = getApplicationDiffSummary(rows);
+  var changedRows = rows.filter(function (row) {
+    return row.status === "changed" || row.status === "new" || row.status === "missing";
+  });
+  var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+  var lastAppliedHtml = lastAppliedEntry
+    ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Last applied:</strong> ' +
+      escapeHtml(
+        lastAppliedEntry.message || "Live fields were applied on the previous review pass.",
+      ) +
+      "</div>"
+    : "";
+  var remainingDiffHtml = changedRows.length
+    ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Still different:</strong> ' +
+      escapeHtml(
+        changedRows
+          .map(function (row) {
+            return row.label;
+          })
+          .join(", "),
+      ) +
+      "</div>"
+    : '<div class="mini-status" style="margin-top:0.55rem"><strong>Live sync:</strong> No remaining differences across the core operational fields shown here.</div>';
   return (
     '<div class="review-snapshot-box"><div class="review-snapshot-title">Live profile diff</div><div class="review-snapshot-copy">' +
     escapeHtml(summary) +
+    "</div>" +
+    lastAppliedHtml +
+    remainingDiffHtml +
     '</div><div class="queue-actions" style="margin-top:0.75rem;margin-bottom:0.75rem"><button class="btn-primary" type="button" data-apply-live-fields="' +
     escapeHtml(item.id) +
     '">Apply selected fields</button><button class="btn-secondary" type="button" data-select-all-live-fields="' +
@@ -1862,6 +1898,40 @@ function hasPreferredPhotoSource(value) {
   return value === "therapist_uploaded" || value === "practice_uploaded";
 }
 
+function getAfterClaimReviewStall(item) {
+  if (!item) {
+    return { stalled: false, ageDays: 0, label: "", note: "" };
+  }
+
+  var portalState = String(item.portal_state || "");
+  if (portalState !== "profile_in_review_after_claim") {
+    return { stalled: false, ageDays: 0, label: "", note: "" };
+  }
+
+  var updatedAt = item.updated_at ? new Date(item.updated_at) : null;
+  var ageDays =
+    updatedAt && !Number.isNaN(updatedAt.getTime())
+      ? Math.max(
+          0,
+          Math.floor((new Date().getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)),
+        )
+      : 0;
+
+  if (ageDays >= 5) {
+    return {
+      stalled: true,
+      ageDays: ageDays,
+      label: "Review aging",
+      note:
+        "This after-claim profile has been sitting in review for " +
+        ageDays +
+        " days and is at risk of losing therapist momentum.",
+    };
+  }
+
+  return { stalled: false, ageDays: ageDays, label: "", note: "" };
+}
+
 function getApplicationReviewSnapshot(item) {
   var readiness = getTherapistMatchReadiness(item);
   var isConfirmationRefresh = isConfirmationRefreshApplication(item);
@@ -1869,6 +1939,7 @@ function getApplicationReviewSnapshot(item) {
     item &&
     ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(item.portal_state);
   var claimFollowUpUrgency = getClaimFollowUpUrgency(item);
+  var afterClaimReviewStall = getAfterClaimReviewStall(item);
   var missingCriticalFields = [];
   var photoSourceType = item.photo_source_type || "";
   var hasPhotoAsset = Boolean(item.photo_url);
@@ -1905,6 +1976,10 @@ function getApplicationReviewSnapshot(item) {
     label = "Follow-up due now";
     note =
       "This approved claim is at risk of stalling because follow-up has not gone out in time. Treat it as immediate founder-ops work.";
+  } else if (afterClaimReviewStall.stalled) {
+    focus = "stalled_after_claim_review";
+    label = "Stalled after-claim review";
+    note = afterClaimReviewStall.note;
   } else if (isClaimConversion) {
     focus = "claim_conversion";
     label = "After-claim profile";
@@ -1949,17 +2024,19 @@ function getApplicationReviewSnapshot(item) {
     nextMove:
       focus === "claim_follow_up_due"
         ? "Send the follow-up now or move the therapist forward if they already responded."
-        : focus === "claim_conversion"
-          ? "Review the fuller profile quickly and move it toward publish or request changes."
-          : focus === "confirmation_refresh"
-            ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
-            : focus === "needs_changes"
-              ? "Request changes before publishing."
-              : focus === "publish_ready"
-                ? "Do a final trust pass, then publish."
-                : item.status === "pending"
-                  ? "Move into reviewing and decide what still blocks trust."
-                  : "Keep reviewing and make the next decision explicit.",
+        : focus === "stalled_after_claim_review"
+          ? "Finish the review decision now so this strong after-claim profile does not lose momentum."
+          : focus === "claim_conversion"
+            ? "Review the fuller profile quickly and move it toward publish or request changes."
+            : focus === "confirmation_refresh"
+              ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
+              : focus === "needs_changes"
+                ? "Request changes before publishing."
+                : focus === "publish_ready"
+                  ? "Do a final trust pass, then publish."
+                  : item.status === "pending"
+                    ? "Move into reviewing and decide what still blocks trust."
+                    : "Keep reviewing and make the next decision explicit.",
   };
 }
 
@@ -1970,6 +2047,8 @@ function getApplicationPriorityScore(item) {
 
   if (snapshot.focus === "claim_follow_up_due") {
     score += 145;
+  } else if (snapshot.focus === "stalled_after_claim_review") {
+    score += 138;
   } else if (snapshot.focus === "claim_conversion") {
     score += 130;
   } else if (snapshot.focus === "publish_ready") {
@@ -2072,6 +2151,8 @@ function getGoalAdjustedApplicationPriorityScore(item, goal) {
   if (goal === "publish_now") {
     if (snapshot.focus === "claim_follow_up_due") {
       score += 120;
+    } else if (snapshot.focus === "stalled_after_claim_review") {
+      score += 115;
     } else if (snapshot.focus === "claim_conversion") {
       score += 110;
     } else if (snapshot.focus === "publish_ready") {
@@ -2118,6 +2199,9 @@ function getApplicationBatchReason(item, goal) {
     if (snapshot.focus === "claim_follow_up_due") {
       return "This approved claim is already overdue for follow-up, so it is the fastest place to prevent drop-off in the therapist funnel.";
     }
+    if (snapshot.focus === "stalled_after_claim_review") {
+      return "This after-claim profile is already in review and has started aging. Clearing it now protects both supply growth and therapist trust.";
+    }
     if (snapshot.focus === "claim_conversion") {
       return "This is the highest-leverage follow-through work: a therapist converted from claim to fuller profile and now needs a decisive review pass.";
     }
@@ -2149,6 +2233,9 @@ function getApplicationBatchReason(item, goal) {
 
   if (snapshot.focus === "claim_follow_up_due") {
     return "This approved claim needs an immediate follow-up send before the therapist goes cold.";
+  }
+  if (snapshot.focus === "stalled_after_claim_review") {
+    return "This after-claim profile has been in review too long and needs a decisive next call now.";
   }
   if (snapshot.focus === "claim_conversion") {
     return "This therapist completed the fuller profile after claim approval and should be reviewed before the follow-through momentum cools.";
@@ -2195,6 +2282,9 @@ function getApplicationFilterChips() {
 function getApplicationFocusLabel(value) {
   if (value === "claim_follow_up_due") {
     return "Follow-up due now";
+  }
+  if (value === "stalled_after_claim_review") {
+    return "Stalled after-claim review";
   }
   if (value === "claimed_ready_for_profile") {
     return "Approved claims awaiting full profile";
@@ -2308,6 +2398,29 @@ function getClaimLaunchCandidates(applications) {
     .slice(0, 4);
 }
 
+function getStalledAfterClaimReviews(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var stall = getAfterClaimReviewStall(item);
+      if (!stall.stalled) {
+        return null;
+      }
+      var readiness = getTherapistMatchReadiness(item);
+      return {
+        id: item.id,
+        name: item.name || "Unknown therapist",
+        stall: stall,
+        readiness: readiness,
+        nextMove: getApplicationReviewSnapshot(item).nextMove,
+      };
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return b.stall.ageDays - a.stall.ageDays || b.readiness.score - a.readiness.score;
+    })
+    .slice(0, 4);
+}
+
 function buildClaimLaunchPriorityPacket(items) {
   var rows = getClaimLaunchCandidates(items);
 
@@ -2341,9 +2454,41 @@ function buildClaimLaunchPriorityPacket(items) {
     .join("\n");
 }
 
+function buildStalledAfterClaimReviewPacket(items) {
+  var rows = getStalledAfterClaimReviews(items);
+
+  if (!rows.length) {
+    return "";
+  }
+
+  return [
+    "# Stalled After-Claim Reviews",
+    "",
+    "After-claim profiles already in review that need a decisive next call before therapist momentum cools further.",
+    "",
+  ]
+    .concat(
+      rows.map(function (row, index) {
+        return [
+          index + 1 + ". " + row.name,
+          "- Review age: " + row.stall.ageDays + " days",
+          "- Stall signal: " + row.stall.label,
+          "- Why now: " + row.stall.note,
+          "- Readiness: " + row.readiness.label + " (" + row.readiness.score + "/100)",
+          "- Next move: " + row.nextMove,
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
 function getClaimFunnelBottleneck(claimFunnel, rates) {
   if ((claimFunnel && claimFunnel.followUpDue) > 0) {
     return "Biggest leak: approved claims are sitting without timely follow-up. Clear that queue first.";
+  }
+  if ((claimFunnel && claimFunnel.stalledReviews) > 0) {
+    return "Biggest leak: therapists already finished the fuller profile, but some after-claim reviews are aging too long.";
   }
   if ((rates && rates.followUpRate) < 60 && (claimFunnel && claimFunnel.approved) > 0) {
     return "Biggest leak: approved claims are not consistently getting follow-up sent.";
@@ -2378,6 +2523,14 @@ function getClaimActionQueue(applications) {
           lane: "Overdue follow-up",
           note: urgency.note,
           priority: 300 + ageDays,
+        };
+      } else if (getAfterClaimReviewStall(item).stalled) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Stalled after-claim review",
+          note: getAfterClaimReviewStall(item).note,
+          priority: 285 + ageDays,
         };
       } else if (
         ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState) &&
@@ -8468,12 +8621,19 @@ function renderApplications() {
           return false;
         }
         if (
+          applicationFilters.focus === "stalled_after_claim_review" &&
+          snapshot.focus !== "stalled_after_claim_review"
+        ) {
+          return false;
+        }
+        if (
           ![
             "claim_flow",
             "full_profile_flow",
             "claim_follow_up_due",
             "claimed_ready_for_profile",
             "claim_conversion",
+            "stalled_after_claim_review",
           ].includes(applicationFilters.focus) &&
           snapshot.focus !== applicationFilters.focus
         ) {
@@ -8521,6 +8681,8 @@ function renderApplications() {
       accumulator.full_profiles += item.submission_intent === "claim" ? 0 : 1;
       accumulator.approved_claims += item.portal_state === "claimed_ready_for_profile" ? 1 : 0;
       accumulator.claim_follow_up_due += snapshot.focus === "claim_follow_up_due" ? 1 : 0;
+      accumulator.stalled_after_claim_review +=
+        snapshot.focus === "stalled_after_claim_review" ? 1 : 0;
       accumulator.claim_conversions += snapshot.focus === "claim_conversion" ? 1 : 0;
       accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
       accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
@@ -8534,6 +8696,7 @@ function renderApplications() {
       full_profiles: 0,
       approved_claims: 0,
       claim_follow_up_due: 0,
+      stalled_after_claim_review: 0,
       claim_conversions: 0,
       publish_ready: 0,
       needs_changes: 0,
@@ -8564,6 +8727,9 @@ function renderApplications() {
     followUpDue: applications.filter(function (item) {
       return getClaimFollowUpUrgency(item).tone === "urgent";
     }).length,
+    stalledReviews: applications.filter(function (item) {
+      return getAfterClaimReviewStall(item).stalled;
+    }).length,
   };
   const claimApprovalRate = claimFunnel.submitted
     ? (claimFunnel.approved / claimFunnel.submitted) * 100
@@ -8582,6 +8748,7 @@ function renderApplications() {
   const claimBottleneck = getClaimFunnelBottleneck(claimFunnel, claimRates);
   const claimActionQueue = getClaimActionQueue(applications);
   const claimLaunchCandidates = getClaimLaunchCandidates(applications);
+  const stalledAfterClaimReviews = getStalledAfterClaimReviews(applications);
   const overdueClaims = applications
     .filter(function (item) {
       return getClaimFollowUpUrgency(item).tone === "urgent";
@@ -8594,7 +8761,7 @@ function renderApplications() {
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
     escapeHtml(claimBottleneck) +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="launch">Copy fast-track supply batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="stalled_after_claim_review">Show stalled reviews</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="launch">Copy fast-track supply batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="stalled">Copy stalled review batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
     [
       {
         label: "Claims submitted",
@@ -8625,6 +8792,11 @@ function renderApplications() {
         label: "Fast-track supply",
         value: claimLaunchCandidates.length,
         note: "After-claim profiles that are close enough to live supply to deserve accelerated review.",
+      },
+      {
+        label: "Stalled in review",
+        value: claimFunnel.stalledReviews,
+        note: "After-claim profiles that have already been in review too long and need a decisive call.",
       },
       {
         label: "Follow-up due now",
@@ -8687,6 +8859,29 @@ function renderApplications() {
           .join("") +
         "</div></div>"
       : "") +
+    (stalledAfterClaimReviews.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Stalled after-claim reviews</div><div class="subtle" style="margin-bottom:0.7rem">These therapists already came back after claim approval, but their fuller profiles have started aging in review.</div><div class="queue-insights-grid">' +
+        stalledAfterClaimReviews
+          .map(function (item) {
+            return (
+              '<button type="button" class="queue-insight-card" data-application-jump="' +
+              escapeHtml(item.id) +
+              '"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(item.stall.label) +
+              " · " +
+              escapeHtml(item.stall.ageDays) +
+              ' days</div><div class="queue-insight-note">' +
+              escapeHtml(item.stall.note) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(item.nextMove) +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     (overdueClaims.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Urgent follow-up queue</div><div class="subtle" style="margin-bottom:0.7rem">These approved claims are the most likely to cool off if you do not send follow-up now.</div><div class="queue-insights-grid">' +
         overdueClaims
@@ -8738,6 +8933,13 @@ function renderApplications() {
         label: "Follow-up due",
         value: summaryCounts.claim_follow_up_due,
         note: "Approved claims that are already overdue for outreach and risk cooling off.",
+      },
+      {
+        status: "",
+        focus: "stalled_after_claim_review",
+        label: "Stalled reviews",
+        value: summaryCounts.stalled_after_claim_review,
+        note: "After-claim profiles already in review that now need a decisive next call.",
       },
       {
         status: "",
@@ -8873,6 +9075,7 @@ function renderApplications() {
         const freshness = getDataFreshnessSummary(item);
         const coaching = getTherapistReviewCoaching(item);
         const reviewSnapshot = getApplicationReviewSnapshot(item);
+        const afterClaimReviewStall = getAfterClaimReviewStall(item);
         const portalStateLabel =
           item.portal_state_label || formatStatusLabel(item.status || "pending");
         const portalNextStep = item.portal_next_step || reviewSnapshot.nextMove;
@@ -9029,6 +9232,11 @@ function renderApplications() {
           " · " +
           escapeHtml(readiness.score) +
           "/100</span>" +
+          (afterClaimReviewStall.stalled
+            ? '<span class="tag">' +
+              escapeHtml("Review age · " + afterClaimReviewStall.ageDays + " days") +
+              "</span>"
+            : "") +
           "</div>" +
           (item.care_approach
             ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
@@ -9340,19 +9548,25 @@ function renderApplications() {
       var text =
         mode === "launch"
           ? buildClaimLaunchPriorityPacket(applications)
-          : mode === "overdue"
-            ? buildOverdueClaimFollowUpPacket(applications)
-            : "";
+          : mode === "stalled"
+            ? buildStalledAfterClaimReviewPacket(applications)
+            : mode === "overdue"
+              ? buildOverdueClaimFollowUpPacket(applications)
+              : "";
       var success = text ? await copyText(text) : false;
       var status = root.querySelector("#claimFunnelExportStatus");
       if (status) {
         status.textContent = success
           ? mode === "launch"
             ? "Fast-track supply batch copied."
-            : "Overdue follow-up batch copied."
+            : mode === "stalled"
+              ? "Stalled review batch copied."
+              : "Overdue follow-up batch copied."
           : mode === "launch"
             ? "Could not copy fast-track supply batch."
-            : "Could not copy overdue follow-up batch.";
+            : mode === "stalled"
+              ? "Could not copy stalled review batch."
+              : "Could not copy overdue follow-up batch.";
       }
     });
   });
