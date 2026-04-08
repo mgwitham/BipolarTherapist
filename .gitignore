@@ -8,3 +8,5 @@ studio/dist/
 studio/.env
 data/import/*.csv
 !data/import/therapists-template.csv
+!data/import/therapist-candidates-template.csv
+!data/import/therapist-source-seeds-template.csv

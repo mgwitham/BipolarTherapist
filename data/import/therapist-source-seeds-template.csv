@@ -1,0 +1,2 @@
+sourceUrl,sourceType,name,credentials,title,practiceName,city,state,zip,country,licenseState,licenseNumber,email,phone,website,bookingUrl,supportingSourceUrls,clientPopulations,insuranceAccepted,telehealthStates,estimatedWaitTime,sessionFeeMin,sessionFeeMax,slidingScale,notes
+https://example.com/about,manual_research,,,,Los Angeles,CA,90025,US,,,,,,,,Adults|Couples,Aetna|Self-Pay,CA,2 weeks,180,240,false,High-priority westside bipolar lead
