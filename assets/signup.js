@@ -497,95 +497,328 @@ function applySignupFocusField() {
   }, 120);
 }
 
-function getSuccessStateDetails(intent, isRevision, isConfirmation, isClaimConversion, source) {
+function buildSuccessDetails(config) {
+  return {
+    title: config.title,
+    message: config.message,
+    nextTitle: "What happens next",
+    nextSteps: config.nextSteps,
+    adminLabel: config.adminLabel,
+    secondaryHref: config.secondaryHref,
+    secondaryLabel: config.secondaryLabel,
+    secondaryHint: config.secondaryHint,
+    footer: config.footer,
+  };
+}
+
+function getSuccessStateDetails(mode, source) {
   var isSanity = source === "sanity";
+  var intent = mode.intent;
+  var isRevision = mode.isRevision;
+  var isConfirmation = mode.isConfirmation;
+  var isClaimConversion = mode.isClaimConversion;
 
   if (isConfirmation) {
-    return {
+    return buildSuccessDetails({
       title: "Confirmation Update Received!",
       message: isSanity
         ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
         : "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed.",
-      nextTitle: "What happens next",
       nextSteps: [
         "We review the updated operational details before replacing the live profile.",
         "If anything still needs clarification, the next request will point to the exact field.",
         "If everything looks right, the live profile can be refreshed without rebuilding the whole listing.",
       ],
       adminLabel: "Open Review Queue →",
+      secondaryHref: "signup.html",
+      secondaryLabel: "Return to Form",
+      secondaryHint: "Returns to the confirmation form so you can keep refining details if needed.",
       footer:
         "This update stays tied to the existing live profile, so the next step is review rather than a brand-new listing pass.",
-    };
+    });
   }
 
   if (intent === "claim") {
-    return {
+    return buildSuccessDetails({
       title: "Claim Received!",
       message: isSanity
         ? "Your free claim has been sent into the real review queue. Once ownership is verified, you can come back to complete the richer profile details and decide whether to upgrade later."
         : "Your free claim has been saved locally in this working app. Next, review and verify ownership before completing the rest of the profile.",
-      nextTitle: "What happens next",
       nextSteps: [
         "First, ownership gets reviewed so the listing can be safely associated with the practice.",
         "After claim approval, the fuller profile becomes the next high-value step.",
         "Nothing else is required right now unless the review team asks for a clarification.",
       ],
       adminLabel: "Open Claim Review →",
+      secondaryHref: "signup.html",
+      secondaryLabel: "Return to Claim Flow",
+      secondaryHint:
+        "Returns to the claim flow so you can keep building toward the fuller profile when you are ready.",
       footer:
         "A free claim secures accuracy and ownership first. The richer profile can come after that.",
-    };
+    });
   }
 
   if (isClaimConversion) {
-    return {
+    return buildSuccessDetails({
       title: "Full Profile Received!",
       message: isSanity
         ? "Your fuller profile has been sent in after claim approval. It is now back in the review queue so we can assess trust, fit, and listing readiness."
         : "Your fuller profile has been saved locally after claim approval. It is now ready to move through review as a real listing candidate.",
-      nextTitle: "What happens next",
       nextSteps: [
         "The profile goes through a fuller trust and listing-readiness review.",
         "If the review team needs anything else, they can request a focused revision instead of restarting the process.",
         "If the profile clears review, it can move toward publish readiness.",
       ],
       adminLabel: "Open Full Profile Review →",
+      secondaryHref: "signup.html",
+      secondaryLabel: "Return to Profile Flow",
+      secondaryHint:
+        "Returns to the fuller profile flow and, when possible, reopens near the next useful field.",
       footer: "This is the handoff from ownership verification into listing-quality review.",
-    };
+    });
   }
 
   if (isRevision) {
-    return {
+    return buildSuccessDetails({
       title: "Revision Received!",
       message: isSanity
         ? "Your revised profile has been sent back into the real review queue. The review request has been cleared and the updated version is ready for another review pass."
         : "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published.",
-      nextTitle: "What happens next",
       nextSteps: [
         "The review team checks the revised fields against the earlier request.",
         "If the requested fixes are covered, the profile can move forward without another full restart.",
         "If anything is still unclear, the next request should stay focused on the remaining gaps.",
       ],
       adminLabel: "Open Revision Review →",
+      secondaryHref: "signup.html",
+      secondaryLabel: "Return to Revision Flow",
+      secondaryHint:
+        "Returns to the revision workspace and, when possible, reopens near the next requested fix.",
       footer:
         "A revision submission is meant to tighten specific gaps, not send you back to the beginning.",
-    };
+    });
   }
 
-  return {
+  return buildSuccessDetails({
     title: "Application Received!",
     message: isSanity
       ? "Your application has been sent into the real review queue. Open the admin review page or Sanity Studio to approve and publish it."
       : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.",
-    nextTitle: "What happens next",
     nextSteps: [
       "The profile goes through review for trust, fit, and listing readiness.",
       "If anything important is missing, the next step can come back as a focused revision request.",
       "If the profile clears review, it can move toward publishing across search, matching, and the public profile.",
     ],
     adminLabel: "Open Admin Review →",
+    secondaryHref: "directory.html",
+    secondaryLabel: "Browse Directory",
+    secondaryHint:
+      "If you are done here, the directory is the best place to sanity-check how the product is shaping up.",
     footer:
       "The strongest next step from here is review and publish, not more form-filling unless a revision is requested.",
+  });
+}
+
+function getSuccessReturnHref(context, returnTarget, application) {
+  var nextField = returnTarget;
+  var focusSuffix =
+    nextField && nextField.field ? "&focus=" + encodeURIComponent(nextField.field) : "";
+
+  if (context.isRevision && revisionApplicationId) {
+    return "signup.html?revise=" + encodeURIComponent(revisionApplicationId) + focusSuffix;
+  }
+
+  if (context.isConfirmation && confirmationTherapistSlug) {
+    return "signup.html?confirm=" + encodeURIComponent(confirmationTherapistSlug) + focusSuffix;
+  }
+
+  if (
+    context.intent === "claim" &&
+    application &&
+    application.target_therapist_slug &&
+    application.target_therapist_slug !== application.slug
+  ) {
+    return (
+      "signup.html?confirm=" + encodeURIComponent(application.target_therapist_slug) + focusSuffix
+    );
+  }
+
+  return (
+    "signup.html" +
+    (nextField && nextField.field ? "?focus=" + encodeURIComponent(nextField.field) : "")
+  );
+}
+
+function getSuccessReturnTarget(application) {
+  return application ? getNextRecommendedField(application) : null;
+}
+
+function getSuccessMode(application) {
+  return {
+    intent:
+      application && application.submission_intent ? application.submission_intent : "full_profile",
+    isRevision: Boolean(revisionApplicationId || (application && application.revision_count)),
+    isConfirmation: Boolean(confirmationTherapistSlug && !revisionApplicationId),
+    isClaimConversion: Boolean(
+      application &&
+      application.portal_state &&
+      ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
+        application.portal_state,
+      ),
+    ),
   };
+}
+
+function getSuccessPortalState(application) {
+  return {
+    label:
+      application && application.portal_state_label
+        ? application.portal_state_label
+        : "Pending review",
+    nextStep:
+      application && application.portal_next_step
+        ? application.portal_next_step
+        : "We will review the submission and confirm the next step.",
+  };
+}
+
+function getSuccessContext(application, source) {
+  var mode = getSuccessMode(application);
+  var portalState = getSuccessPortalState(application);
+
+  return {
+    intent: mode.intent,
+    isRevision: mode.isRevision,
+    isConfirmation: mode.isConfirmation,
+    isClaimConversion: mode.isClaimConversion,
+    portalState: portalState,
+    details: getSuccessStateDetails(mode, source),
+  };
+}
+
+function getSuccessHandoff(context, returnTarget, application) {
+  var isDirectoryReturn = context.details.secondaryHref === "directory.html";
+  var successReturnHref = isDirectoryReturn
+    ? context.details.secondaryHref
+    : getSuccessReturnHref(context, returnTarget, application);
+  var handoffLabel = "Profile flow";
+
+  if (isDirectoryReturn) {
+    handoffLabel = "Directory";
+  } else if (context.isRevision) {
+    handoffLabel = "Revision flow";
+  } else if (context.isConfirmation) {
+    handoffLabel = "Confirmation flow";
+  } else if (context.intent === "claim") {
+    handoffLabel = "Claim flow";
+  } else if (context.isClaimConversion) {
+    handoffLabel = "Full profile flow";
+  }
+
+  return {
+    href: successReturnHref,
+    path: successReturnHref.replace(/^https?:\/\/[^/]+/i, ""),
+    label: handoffLabel,
+    focus: !isDirectoryReturn && returnTarget && returnTarget.label ? returnTarget.label : "",
+  };
+}
+
+function getSuccessViewModel(application, source) {
+  var context = getSuccessContext(application, source);
+  var returnTarget = getSuccessReturnTarget(application);
+
+  return {
+    application: application,
+    context: context,
+    returnTarget: returnTarget,
+    handoff: getSuccessHandoff(context, returnTarget, application),
+  };
+}
+
+function renderSuccessStateHtml(successState) {
+  var application = successState.application;
+  var context = successState.context;
+  var details = context.details;
+  var handoff = successState.handoff;
+  var portalState = context.portalState;
+
+  return (
+    '<div class="success-state"><div class="success-icon">🎉</div><h2>' +
+    details.title +
+    "</h2><p>" +
+    details.message +
+    '</p><div style="margin: 0 auto 1.1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fbfdfe; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .3rem;">Current status</div><div style="font-size: .98rem; font-weight: 700; color: var(--navy); margin-bottom: .25rem;">' +
+    portalState.label +
+    '</div><div style="font-size: .82rem; color: var(--slate); line-height: 1.6;">' +
+    portalState.nextStep +
+    '</div></div><div style="margin: 0 auto 1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .45rem;">' +
+    details.nextTitle +
+    '</div><ul style="margin:0;padding-left:1rem;color:var(--slate);font-size:.82rem;line-height:1.65"><li>' +
+    details.nextSteps.join("</li><li>") +
+    '</li></ul></div><div style="display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap"><a href="admin.html" class="btn-pay">' +
+    details.adminLabel +
+    '</a><a href="' +
+    handoff.href +
+    '" style="display:inline-block;background:transparent;color:var(--teal-dark);padding:1rem 1.6rem;border-radius:12px;font-weight:700;font-size:1rem;text-decoration:none;border:1.5px solid rgba(26, 122, 143, 0.2)">' +
+    details.secondaryLabel +
+    '</a><button type="button" id="successCopyLink" style="display:inline-block;background:#fff;color:var(--slate);padding:1rem 1.2rem;border-radius:12px;font-weight:700;font-size:0.95rem;border:1.5px solid var(--border);font-family:inherit;cursor:pointer">Copy return link</button></div><p style="font-size:.78rem;color:var(--muted);margin:.75rem auto 0;max-width:440px">' +
+    details.secondaryHint +
+    '</p><div style="margin:.45rem auto 0;max-width:440px;text-align:left;border:1px dashed var(--border);border-radius:10px;background:#fbfdfe;padding:.65rem .75rem"><div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.22rem"><div style="font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Return path</div><div style="font-size:.68rem;font-weight:700;color:var(--teal-dark)">' +
+    handoff.label +
+    '</div></div><div style="font-size:.78rem;color:var(--navy);word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' +
+    handoff.path +
+    "</div>" +
+    (handoff.focus
+      ? '<div style="font-size:.73rem;color:var(--muted);margin-top:.35rem">Likely focus target: ' +
+        handoff.focus +
+        "</div>"
+      : "") +
+    '</div><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
+    application.name +
+    "</strong> with status <strong>" +
+    portalState.label +
+    "</strong>.<br/>" +
+    details.footer +
+    "</p></div>"
+  );
+}
+
+async function copySuccessReturnLink(href) {
+  if (!href || typeof window === "undefined") {
+    return;
+  }
+
+  var resolvedHref = new URL(href, window.location.href).toString();
+  var button = document.getElementById("successCopyLink");
+  var originalLabel = button ? button.textContent : "";
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(resolvedHref);
+    } else {
+      var input = document.createElement("input");
+      input.value = resolvedHref;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+
+    if (button) {
+      button.textContent = "Link copied";
+      window.setTimeout(function () {
+        button.textContent = originalLabel;
+      }, 1800);
+    }
+  } catch (_error) {
+    if (button) {
+      button.textContent = "Copy failed";
+      window.setTimeout(function () {
+        button.textContent = originalLabel;
+      }, 1800);
+    }
+  }
 }
 
 function showSuccess(application, source) {
@@ -593,54 +826,17 @@ function showSuccess(application, source) {
   clearSignupDraft();
   draftSavePending = false;
   setDraftStatus("");
-  var intent =
-    application && application.submission_intent ? application.submission_intent : "full_profile";
-  var isRevision = Boolean(revisionApplicationId || (application && application.revision_count));
-  var isConfirmation = Boolean(confirmationTherapistSlug && !revisionApplicationId);
-  var portalLabel =
-    application && application.portal_state_label
-      ? application.portal_state_label
-      : "Pending review";
-  var portalNextStep =
-    application && application.portal_next_step
-      ? application.portal_next_step
-      : "We will review the submission and confirm the next step.";
-  var isClaimConversion =
-    application &&
-    application.portal_state &&
-    ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
-      application.portal_state,
-    );
-  var details = getSuccessStateDetails(
-    intent,
-    isRevision,
-    isConfirmation,
-    isClaimConversion,
-    source,
-  );
+  var successState = getSuccessViewModel(application, source);
 
-  document.getElementById("formCard").innerHTML =
-    '<div class="success-state"><div class="success-icon">🎉</div><h2>' +
-    details.title +
-    "</h2><p>" +
-    details.message +
-    '</p><div style="margin: 0 auto 1.1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fbfdfe; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .3rem;">Current status</div><div style="font-size: .98rem; font-weight: 700; color: var(--navy); margin-bottom: .25rem;">' +
-    portalLabel +
-    '</div><div style="font-size: .82rem; color: var(--slate); line-height: 1.6;">' +
-    portalNextStep +
-    '</div></div><div style="margin: 0 auto 1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .45rem;">' +
-    details.nextTitle +
-    '</div><ul style="margin:0;padding-left:1rem;color:var(--slate);font-size:.82rem;line-height:1.65"><li>' +
-    details.nextSteps.join("</li><li>") +
-    '</li></ul></div><a href="admin.html" class="btn-pay">' +
-    details.adminLabel +
-    '</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
-    application.name +
-    "</strong> with status <strong>" +
-    portalLabel +
-    "</strong>.<br/>" +
-    details.footer +
-    "</p></div>";
+  document.getElementById("formCard").innerHTML = renderSuccessStateHtml(successState);
+
+  var copyButton = document.getElementById("successCopyLink");
+  if (copyButton) {
+    copyButton.addEventListener("click", function () {
+      copySuccessReturnLink(successState.handoff.href);
+    });
+  }
+
   window.scrollTo(0, 0);
 }
 
@@ -2934,37 +3130,50 @@ async function initSignupContext() {
   restoreSignupDraft();
 }
 
-initSignupContext();
+async function initSignupPage() {
+  await initSignupContext();
+  applySignupFocusField();
+  initSignupFormUi();
+}
+
+function initSignupFormUi() {
+  var form = document.getElementById("applyForm");
+  if (!form) {
+    return;
+  }
+
+  if (
+    form.elements.therapist_reported_confirmed_at &&
+    !form.elements.therapist_reported_confirmed_at.value
+  ) {
+    form.elements.therapist_reported_confirmed_at.value = getTodayDateString();
+  }
+
+  form.addEventListener("input", renderReadiness);
+  form.addEventListener("change", renderReadiness);
+  form.addEventListener("input", renderFieldCoaching);
+  form.addEventListener("change", renderFieldCoaching);
+  form.addEventListener("change", renderPhotoUploadStatus);
+  form.addEventListener("input", renderCompletionNudges);
+  form.addEventListener("change", renderCompletionNudges);
+  form.addEventListener("input", scheduleSignupDraftSave);
+  form.addEventListener("change", scheduleSignupDraftSave);
+  form.addEventListener("input", handleFieldCalloutProgress);
+  form.addEventListener("change", handleFieldCalloutProgress);
+
+  renderReadiness();
+  renderFieldCoaching();
+  renderPhotoUploadStatus();
+  renderCompletionNudges();
+  refreshSignupWorkspace();
+}
+
 var fullProfileDisclosure = document.getElementById("fullProfileDetails");
 if (fullProfileDisclosure) {
   fullProfileDisclosure.addEventListener("toggle", syncFullProfileDisclosure);
   syncFullProfileDisclosure();
 }
-applySignupFocusField();
-if (
-  document.getElementById("applyForm") &&
-  document.getElementById("applyForm").elements.therapist_reported_confirmed_at &&
-  !document.getElementById("applyForm").elements.therapist_reported_confirmed_at.value
-) {
-  document.getElementById("applyForm").elements.therapist_reported_confirmed_at.value =
-    getTodayDateString();
-}
-document.getElementById("applyForm").addEventListener("input", renderReadiness);
-document.getElementById("applyForm").addEventListener("change", renderReadiness);
-document.getElementById("applyForm").addEventListener("input", renderFieldCoaching);
-document.getElementById("applyForm").addEventListener("change", renderFieldCoaching);
-document.getElementById("applyForm").addEventListener("change", renderPhotoUploadStatus);
-document.getElementById("applyForm").addEventListener("input", renderCompletionNudges);
-document.getElementById("applyForm").addEventListener("change", renderCompletionNudges);
-document.getElementById("applyForm").addEventListener("input", scheduleSignupDraftSave);
-document.getElementById("applyForm").addEventListener("change", scheduleSignupDraftSave);
-document.getElementById("applyForm").addEventListener("input", handleFieldCalloutProgress);
-document.getElementById("applyForm").addEventListener("change", handleFieldCalloutProgress);
-renderReadiness();
-renderFieldCoaching();
-renderPhotoUploadStatus();
-renderCompletionNudges();
-refreshSignupWorkspace();
+initSignupPage();
 
 window.addEventListener("beforeunload", saveSignupDraft);
 document.addEventListener("visibilitychange", function () {
