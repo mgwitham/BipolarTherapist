@@ -5250,6 +5250,116 @@ function buildCoverageSourcingRecommendations(insights) {
   });
 }
 
+function buildCoverageSourcingPacket(recommendations) {
+  const rows = Array.isArray(recommendations) ? recommendations : [];
+  if (!rows.length) {
+    return "";
+  }
+
+  return [
+    "# Coverage Sourcing Packet",
+    "",
+    "Use these recommendations to guide the next therapist discovery wave.",
+    "",
+  ]
+    .concat(
+      rows.map(function (item, index) {
+        return [
+          index + 1 + ". " + item.city,
+          "- Role to prioritize: " + item.role,
+          "- Gaps: " + (item.gaps.length ? item.gaps.join(", ") : "general coverage"),
+          "- Search query: " + item.query,
+          "- Target sources: " + item.targetSources,
+          "- Operator note: " + item.avoidNote,
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
+function buildCoverageSourceSeedCsv(recommendations) {
+  const rows = Array.isArray(recommendations) ? recommendations : [];
+  if (!rows.length) {
+    return "";
+  }
+
+  const headers = [
+    "sourceUrl",
+    "sourceType",
+    "name",
+    "credentials",
+    "title",
+    "practiceName",
+    "city",
+    "state",
+    "zip",
+    "country",
+    "licenseState",
+    "licenseNumber",
+    "email",
+    "phone",
+    "website",
+    "bookingUrl",
+    "supportingSourceUrls",
+    "clientPopulations",
+    "insuranceAccepted",
+    "telehealthStates",
+    "estimatedWaitTime",
+    "sessionFeeMin",
+    "sessionFeeMax",
+    "slidingScale",
+    "notes",
+  ];
+
+  const lines = [headers.join(",")];
+  rows.forEach(function (item) {
+    const parts = String(item.city || "")
+      .split(",")
+      .map(function (part) {
+        return part.trim();
+      });
+    const city = parts[0] || "";
+    const state = parts[1] || "";
+    const values = [
+      "",
+      "manual_research",
+      "",
+      "",
+      item.role === "psychiatrist" ? "Psychiatrist" : "Therapist",
+      "",
+      city,
+      state,
+      "",
+      "US",
+      state,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      item.gaps.includes("telehealth") ? state : "",
+      "",
+      "",
+      "",
+      "false",
+      [
+        "Coverage-guided sourcing target",
+        "Role: " + item.role,
+        "Gaps: " + (item.gaps.length ? item.gaps.join("|") : "general_coverage"),
+        "Query: " + item.query,
+        "Target sources: " + item.targetSources,
+      ].join(" · "),
+    ];
+    lines.push(values.map(csvEscape).join(","));
+  });
+
+  return lines.join("\n");
+}
+
 function renderCoverageIntelligence() {
   const root = document.getElementById("coverageIntelligence");
   if (!root) {
@@ -5299,6 +5409,7 @@ function renderCoverageIntelligence() {
       })
       .join("") +
     "</div></div>" +
+    '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-coverage-export="packet">Copy sourcing packet</button><button class="btn-secondary" data-coverage-export="seed-csv">Copy source-seed CSV</button></div><div class="review-coach-status" id="coverageSourcingStatus"></div>' +
     '<div class="queue-insights"><div class="queue-insights-title">Recommended sourcing moves</div><div class="subtle" style="margin-bottom:0.7rem">Use these as the next founder-ops queries when you want to add therapists efficiently.</div><div class="queue-insights-grid">' +
     sourcingRecommendations
       .map(function (item) {
@@ -5366,6 +5477,27 @@ function renderCoverageIntelligence() {
       })
       .join("") +
     "</div></div>";
+
+  root.querySelectorAll("[data-coverage-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const mode = button.getAttribute("data-coverage-export");
+      const text =
+        mode === "seed-csv"
+          ? buildCoverageSourceSeedCsv(sourcingRecommendations)
+          : buildCoverageSourcingPacket(sourcingRecommendations);
+      const success = text ? await copyText(text) : false;
+      const status = root.querySelector("#coverageSourcingStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "seed-csv"
+            ? "Source-seed CSV copied."
+            : "Sourcing packet copied."
+          : mode === "seed-csv"
+            ? "Could not copy source-seed CSV."
+            : "Could not copy sourcing packet.";
+      }
+    });
+  });
 }
 
 function renderFunnelInsights() {
