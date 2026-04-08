@@ -367,6 +367,47 @@ function getTherapistFieldTrustAttentionCount(item) {
   return getTherapistFieldTrustSummary(item).watchFields.length;
 }
 
+function getTherapistTrustRecommendation(item, freshness, trustSummary) {
+  const summary = trustSummary || getTherapistFieldTrustSummary(item);
+  const watchedEntries = (summary.entries || []).filter(function (entry) {
+    const tier = getFieldTrustTier(entry.meta);
+    return tier === "stale" || tier === "watch" || tier === "unknown";
+  });
+  const watchedKeys = watchedEntries.map(function (entry) {
+    return entry.key;
+  });
+
+  if (item.source_health_status && !["healthy", "redirected"].includes(item.source_health_status)) {
+    return "Check the source page first, then confirm any unsupported operational fields.";
+  }
+  if (watchedKeys.includes("insurance_accepted") && watchedKeys.includes("estimated_wait_time")) {
+    return "Confirm insurance and wait time first. Those are the highest-value trust gaps.";
+  }
+  if (watchedKeys.includes("telehealth_states") && watchedKeys.includes("insurance_accepted")) {
+    return "Reconfirm telehealth states and insurance before leaving the profile live as-is.";
+  }
+  if (watchedKeys.includes("estimated_wait_time")) {
+    return "Update the wait-time signal before spending time on lower-value fields.";
+  }
+  if (watchedKeys.includes("insurance_accepted")) {
+    return "Confirm insurance acceptance next so this profile stays decision-ready.";
+  }
+  if (watchedKeys.includes("telehealth_states")) {
+    return "Recheck telehealth states next to keep location routing trustworthy.";
+  }
+  if (watchedKeys.includes("bipolar_years_experience")) {
+    return "Reconfirm bipolar experience next so trust and ranking stay defensible.";
+  }
+  if (freshness && freshness.needs_reconfirmation_fields.length) {
+    return (
+      "Reconfirm " +
+      freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ") +
+      " next."
+    );
+  }
+  return "Refresh source review and keep the strongest operational fields current.";
+}
+
 function renderFieldTrustChips(summary, limit) {
   if (!summary || !Array.isArray(summary.entries)) {
     return "";
@@ -5074,6 +5115,259 @@ function renderStats() {
   });
 }
 
+function inferCoverageRole(item) {
+  const title = String(item.title || "").toLowerCase();
+  const credentials = String(item.credentials || "").toLowerCase();
+  if (item.medication_management || title.includes("psychiatrist") || credentials.includes("md")) {
+    return "psychiatry";
+  }
+  return "therapy";
+}
+
+function buildCoverageInsights(therapists) {
+  const byCity = new Map();
+  const sourceDomains = new Map();
+
+  (therapists || []).forEach(function (item) {
+    const cityKey = [item.city, item.state].filter(Boolean).join(", ") || "Unknown";
+    const entry = byCity.get(cityKey) || {
+      city: item.city || "Unknown",
+      state: item.state || "",
+      total: 0,
+      therapy: 0,
+      psychiatry: 0,
+      telehealth: 0,
+      accepting: 0,
+      trustRisk: 0,
+    };
+    entry.total += 1;
+    entry[inferCoverageRole(item)] += 1;
+    if (item.accepts_telehealth) {
+      entry.telehealth += 1;
+    }
+    if (item.accepting_new_patients) {
+      entry.accepting += 1;
+    }
+    if (getTherapistFieldTrustAttentionCount(item) > 0) {
+      entry.trustRisk += 1;
+    }
+    byCity.set(cityKey, entry);
+
+    const sourceUrl = item.source_url || item.sourceUrl || "";
+    if (sourceUrl) {
+      try {
+        const domain = new URL(sourceUrl).hostname.replace(/^www\./, "");
+        const sourceEntry = sourceDomains.get(domain) || { domain: domain, count: 0 };
+        sourceEntry.count += 1;
+        sourceDomains.set(domain, sourceEntry);
+      } catch (_error) {
+        // Ignore malformed source URLs in the coverage rollup.
+      }
+    }
+  });
+
+  const cityRows = Array.from(byCity.values()).sort(function (a, b) {
+    const aNeedsPsychiatry = a.psychiatry === 0 ? 2 : 0;
+    const bNeedsPsychiatry = b.psychiatry === 0 ? 2 : 0;
+    const aNeedsTelehealth = a.telehealth === 0 ? 1 : 0;
+    const bNeedsTelehealth = b.telehealth === 0 ? 1 : 0;
+    const aScore = aNeedsPsychiatry + aNeedsTelehealth + (a.accepting === 0 ? 1 : 0);
+    const bScore = bNeedsPsychiatry + bNeedsTelehealth + (b.accepting === 0 ? 1 : 0);
+    return bScore - aScore || a.total - b.total || a.city.localeCompare(b.city);
+  });
+
+  const thinnestCities = cityRows
+    .filter(function (row) {
+      return row.total <= 3 || row.psychiatry === 0 || row.telehealth === 0 || row.accepting === 0;
+    })
+    .slice(0, 6);
+
+  const sourceConcentration = Array.from(sourceDomains.values())
+    .sort(function (a, b) {
+      return b.count - a.count || a.domain.localeCompare(b.domain);
+    })
+    .slice(0, 5);
+
+  const roleTotals = cityRows.reduce(
+    function (acc, row) {
+      acc.therapy += row.therapy;
+      acc.psychiatry += row.psychiatry;
+      acc.telehealth += row.telehealth;
+      acc.trustRisk += row.trustRisk;
+      return acc;
+    },
+    { therapy: 0, psychiatry: 0, telehealth: 0, trustRisk: 0 },
+  );
+
+  return {
+    thinnestCities: thinnestCities,
+    sourceConcentration: sourceConcentration,
+    roleTotals: roleTotals,
+    cityCount: cityRows.length,
+  };
+}
+
+function buildCoverageSourcingRecommendations(insights) {
+  const concentratedDomains = (insights.sourceConcentration || [])
+    .filter(function (item) {
+      return item.count >= 2;
+    })
+    .map(function (item) {
+      return item.domain;
+    });
+
+  return (insights.thinnestCities || []).slice(0, 4).map(function (row) {
+    const missingPsychiatry = row.psychiatry === 0;
+    const missingTelehealth = row.telehealth === 0;
+    const missingAccepting = row.accepting === 0;
+    const role = missingPsychiatry ? "psychiatrist" : "therapist";
+    const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
+    const searchParts = ["bipolar", role, cityLabel];
+    if (missingTelehealth) {
+      searchParts.push("telehealth");
+    }
+    if (missingAccepting) {
+      searchParts.push("accepting new patients");
+    }
+
+    const avoidNote = concentratedDomains.length
+      ? "Lean away from overused domains like " + concentratedDomains.slice(0, 2).join(", ") + "."
+      : "Add net-new source domains if possible.";
+
+    return {
+      city: cityLabel,
+      role: role,
+      gaps: []
+        .concat(missingPsychiatry ? ["psychiatry"] : [])
+        .concat(missingTelehealth ? ["telehealth"] : [])
+        .concat(missingAccepting ? ["accepting"] : []),
+      query: searchParts.join(" "),
+      targetSources: missingPsychiatry
+        ? "Practice sites, psychiatry clinics, medication-management groups"
+        : "Private practice sites, therapy group practices, bipolar-focused clinician pages",
+      avoidNote: avoidNote,
+    };
+  });
+}
+
+function renderCoverageIntelligence() {
+  const root = document.getElementById("coverageIntelligence");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  if (!therapists.length) {
+    root.innerHTML =
+      '<div class="empty">No live therapist graph available yet. Publish listings to generate sourcing intelligence.</div>';
+    return;
+  }
+
+  const insights = buildCoverageInsights(therapists);
+  const sourcingRecommendations = buildCoverageSourcingRecommendations(insights);
+
+  root.innerHTML =
+    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians.</div><div class="queue-insights-grid">' +
+    insights.thinnestCities
+      .map(function (row) {
+        const gaps = [];
+        if (row.psychiatry === 0) gaps.push("No psychiatry");
+        if (row.telehealth === 0) gaps.push("No telehealth");
+        if (row.accepting === 0) gaps.push("No accepting listings");
+        if (row.trustRisk > 0) gaps.push(String(row.trustRisk) + " trust-risk listings");
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml([row.city, row.state].filter(Boolean).join(", ")) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(
+            row.total +
+              " listings · " +
+              row.therapy +
+              " therapy · " +
+              row.psychiatry +
+              " psychiatry",
+          ) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(gaps.join(" · ") || "Balanced coverage") +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Recommended sourcing moves</div><div class="subtle" style="margin-bottom:0.7rem">Use these as the next founder-ops queries when you want to add therapists efficiently.</div><div class="queue-insights-grid">' +
+    sourcingRecommendations
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml(item.city) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(
+            "Go get more " +
+              item.role +
+              " coverage" +
+              (item.gaps.length ? " for " + item.gaps.join(", ") : ""),
+          ) +
+          '</div><div class="queue-insight-note"><strong>Query:</strong> ' +
+          escapeHtml(item.query) +
+          '</div><div class="queue-insight-note"><strong>Target sources:</strong> ' +
+          escapeHtml(item.targetSources) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.avoidNote) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Graph balance</div><div class="queue-insights-grid">' +
+    [
+      {
+        label: "Cities represented",
+        count: insights.cityCount,
+      },
+      {
+        label: "Therapy listings",
+        count: insights.roleTotals.therapy,
+      },
+      {
+        label: "Psychiatry listings",
+        count: insights.roleTotals.psychiatry,
+      },
+      {
+        label: "Listings with trust risk",
+        count: insights.roleTotals.trustRisk,
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Source concentration</div><div class="subtle" style="margin-bottom:0.7rem">Watch for over-reliance on a small number of domains. That is a sourcing risk and a freshness risk.</div><div class="queue-insights-grid">' +
+    insights.sourceConcentration
+      .map(function (source) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml(source.domain) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(String(source.count) + " live listing" + (source.count === 1 ? "" : "s")) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>";
+}
+
 function renderFunnelInsights() {
   const root = document.getElementById("funnelInsights");
   if (!root) {
@@ -5849,10 +6143,7 @@ function renderRefreshQueue() {
         const item = entry.item;
         const freshness = entry.freshness;
         const trustSummary = getTherapistFieldTrustSummary(item);
-        const nextMove = freshness.needs_reconfirmation_fields.length
-          ? "Re-confirm " +
-            freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
-          : "Refresh source review";
+        const nextMove = getTherapistTrustRecommendation(item, freshness, trustSummary);
         return (
           '<div class="mini-card"><div><strong>' +
           escapeHtml(item.name) +
@@ -7881,6 +8172,330 @@ function getCandidateOpsEvidence(item) {
   return evidence.slice(0, 3).join(" · ");
 }
 
+function getCandidateTrustSummary(item) {
+  const strong = [];
+  const attention = [];
+
+  const hasSourceTrail =
+    Boolean(item.source_url) ||
+    (Array.isArray(item.supporting_source_urls) && item.supporting_source_urls.length);
+  const extractionConfidence = Number(item.extraction_confidence || 0);
+
+  if (hasSourceTrail) {
+    strong.push("Source trail");
+  } else {
+    attention.push("Source trail");
+  }
+
+  if (extractionConfidence >= 0.8) {
+    strong.push("Extraction confidence");
+  } else if (extractionConfidence > 0) {
+    attention.push("Extraction confidence");
+  }
+
+  if (item.license_number && item.license_state) {
+    strong.push("License identity");
+  } else {
+    attention.push("License identity");
+  }
+
+  if (item.website || item.booking_url || item.email || item.phone) {
+    strong.push("Contact path");
+  } else {
+    attention.push("Contact path");
+  }
+
+  if (
+    (Array.isArray(item.insurance_accepted) && item.insurance_accepted.length) ||
+    (Array.isArray(item.telehealth_states) && item.telehealth_states.length) ||
+    item.estimated_wait_time
+  ) {
+    strong.push("Operational details");
+  } else {
+    attention.push("Operational details");
+  }
+
+  if (item.dedupe_status === "possible_duplicate") {
+    attention.unshift("Duplicate risk");
+  }
+
+  const watchFields = attention.slice(0, 3);
+  const headline = watchFields.length
+    ? "Watch " + watchFields.join(", ")
+    : strong.length
+      ? "Strong on " + strong.slice(0, 2).join(", ")
+      : "Trust signals still building";
+
+  return {
+    strong: strong,
+    attention: attention,
+    watchFields: watchFields,
+    headline: headline,
+  };
+}
+
+function getCandidateTrustRecommendation(item, summary) {
+  const trust = summary || getCandidateTrustSummary(item);
+  if (item.dedupe_status === "possible_duplicate") {
+    return "Resolve duplicate risk before doing any publish or confirmation work.";
+  }
+  if (trust.attention.includes("Source trail") && trust.attention.includes("Contact path")) {
+    return "Confirm source trail and contact path first. Without those, this is not publish-ready.";
+  }
+  if (trust.attention.includes("License identity")) {
+    return "Tighten license identity next so the provider graph stays clean.";
+  }
+  if (trust.attention.includes("Operational details")) {
+    return "Confirm insurance, telehealth, or wait-time details before publishing.";
+  }
+  if (trust.attention.includes("Extraction confidence")) {
+    return "Review the source extraction next before trusting this candidate as publish-ready.";
+  }
+  return "This candidate has enough trust detail to move quickly if the source still looks clean.";
+}
+
+function renderCandidateTrustChips(summary, limit) {
+  if (!summary) {
+    return "";
+  }
+  const chips = []
+    .concat(
+      summary.attention.slice(0, limit || 3).map(function (label) {
+        return {
+          label: label + ": Watch",
+          className: "status rejected",
+        };
+      }),
+    )
+    .concat(
+      summary.strong
+        .slice(0, Math.max(0, (limit || 3) - summary.attention.length))
+        .map(function (label) {
+          return {
+            label: label + ": Strong",
+            className: "status approved",
+          };
+        }),
+    );
+
+  if (!chips.length) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-filters" style="margin-top:0.7rem">' +
+    chips
+      .slice(0, limit || 3)
+      .map(function (chip) {
+        return '<span class="' + chip.className + '">' + escapeHtml(chip.label) + "</span>";
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function findCandidateMergeTarget(item) {
+  if (!item) {
+    return null;
+  }
+
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
+
+  if (item.matched_therapist_slug) {
+    const therapist = therapists.find(function (entry) {
+      return entry.slug === item.matched_therapist_slug;
+    });
+    if (therapist) {
+      return {
+        kind: "therapist",
+        label: "Existing therapist",
+        record: therapist,
+      };
+    }
+  }
+
+  if (item.matched_therapist_id) {
+    const therapistById = therapists.find(function (entry) {
+      return entry.id === item.matched_therapist_id || entry._id === item.matched_therapist_id;
+    });
+    if (therapistById) {
+      return {
+        kind: "therapist",
+        label: "Existing therapist",
+        record: therapistById,
+      };
+    }
+  }
+
+  if (item.matched_application_id) {
+    const application = applications.find(function (entry) {
+      return entry.id === item.matched_application_id;
+    });
+    if (application) {
+      return {
+        kind: "application",
+        label: "Existing application",
+        record: application,
+      };
+    }
+  }
+
+  return null;
+}
+
+function formatMergeLocation(record) {
+  return [record.city, record.state, record.zip]
+    .filter(Boolean)
+    .join(", ")
+    .replace(/, (?=\d{5}$)/, " ");
+}
+
+function formatMergeContact(record) {
+  return (
+    record.website ||
+    record.booking_url ||
+    record.bookingUrl ||
+    record.email ||
+    record.phone ||
+    "Not listed"
+  );
+}
+
+function formatMergeLicense(record) {
+  const state = record.license_state || record.licenseState || "";
+  const number = record.license_number || record.licenseNumber || "";
+  return [state, number].filter(Boolean).join(" ");
+}
+
+function formatMergeSource(record, kind) {
+  if (kind === "therapist") {
+    return record.source_url || record.sourceUrl || "Live listing";
+  }
+  return record.source_url || record.sourceUrl || "Application intake";
+}
+
+function renderCandidateMergeWorkbench(item) {
+  const target = findCandidateMergeTarget(item);
+  if (!target) {
+    return "";
+  }
+
+  const candidateLocation = formatMergeLocation(item);
+  const targetLocation = formatMergeLocation(target.record);
+  const candidateLicense = formatMergeLicense(item);
+  const targetLicense = formatMergeLicense(target.record);
+  const candidateContact = formatMergeContact(item);
+  const targetContact = formatMergeContact(target.record);
+  const candidateSource = formatMergeSource(item, "candidate");
+  const targetSource = formatMergeSource(target.record, target.kind);
+
+  const rows = [
+    {
+      label: "Name",
+      candidate: item.name || "Not listed",
+      target: target.record.name || "Not listed",
+    },
+    {
+      label: "Location",
+      candidate: candidateLocation || "Not listed",
+      target: targetLocation || "Not listed",
+    },
+    {
+      label: "Credentials",
+      candidate: item.credentials || "Not listed",
+      target: target.record.credentials || "Not listed",
+    },
+    {
+      label: "License",
+      candidate: candidateLicense || "Not listed",
+      target: targetLicense || "Not listed",
+    },
+    {
+      label: "Contact path",
+      candidate: candidateContact,
+      target: targetContact,
+    },
+    {
+      label: "Source",
+      candidate: candidateSource,
+      target: targetSource,
+    },
+  ];
+
+  return (
+    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Merge workbench</div><div class="subtle" style="margin-bottom:0.7rem">Compare this candidate against the matched ' +
+    escapeHtml(target.label.toLowerCase()) +
+    ' before merging or rejecting as duplicate.</div><div class="queue-summary-grid">' +
+    rows
+      .map(function (row) {
+        const valuesMatch = row.candidate === row.target;
+        return (
+          '<div class="queue-kpi"><div class="queue-kpi-label">' +
+          escapeHtml(row.label + " · Candidate") +
+          '</div><div class="queue-kpi-value">' +
+          escapeHtml(row.candidate) +
+          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">' +
+          escapeHtml(row.label + " · " + target.label) +
+          '</div><div class="queue-kpi-value">' +
+          escapeHtml(row.target) +
+          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Comparison</div><div class="queue-kpi-value">' +
+          escapeHtml(valuesMatch ? "Matches" : "Review") +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>"
+  );
+}
+
+function renderCandidateMergePreview(item) {
+  const target = findCandidateMergeTarget(item);
+  if (!target) {
+    return "";
+  }
+
+  const candidateSources = []
+    .concat(item.source_url ? [item.source_url] : [])
+    .concat(Array.isArray(item.supporting_source_urls) ? item.supporting_source_urls : [])
+    .concat(item.website ? [item.website] : []);
+  const targetSources = []
+    .concat(target.record.source_url ? [target.record.source_url] : [])
+    .concat(target.record.sourceUrl ? [target.record.sourceUrl] : [])
+    .concat(
+      Array.isArray(target.record.supporting_source_urls)
+        ? target.record.supporting_source_urls
+        : Array.isArray(target.record.supportingSourceUrls)
+          ? target.record.supportingSourceUrls
+          : [],
+    );
+  const novelSourceCount = candidateSources.filter(function (url) {
+    return url && !targetSources.includes(url);
+  }).length;
+
+  const preserves = [
+    "Preserves the candidate review history and archives the duplicate candidate record",
+    novelSourceCount
+      ? "Adds " + novelSourceCount + " new source URL" + (novelSourceCount === 1 ? "" : "s")
+      : "Keeps the existing source trail intact",
+    item.source_reviewed_at
+      ? "Carries forward the latest source-reviewed timestamp"
+      : "Keeps the target's current source-reviewed timestamp",
+  ];
+
+  if (target.kind === "therapist") {
+    preserves.push("Recomputes field-trust metadata on the live therapist after merge");
+  } else {
+    preserves.push("Appends merge notes to the existing application for future review");
+  }
+
+  return (
+    '<div class="queue-summary" style="margin-top:0.75rem"><strong>Merge preview:</strong> ' +
+    escapeHtml(preserves.join(" · ")) +
+    "</div>"
+  );
+}
+
 function getTherapistOpsReason(freshness, item) {
   const trustSummary = getTherapistFieldTrustSummary(item);
   if (trustSummary.watchFields.length) {
@@ -8052,6 +8667,9 @@ function renderOpsInbox() {
     const match =
       item.matched_therapist_slug || item.matched_application_id || "No linked duplicate yet";
     const evidence = getCandidateOpsEvidence(item);
+    const trustSummary = getCandidateTrustSummary(item);
+    const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
+    const mergePreview = renderCandidateMergePreview(item);
     return (
       '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
       escapeHtml(item.name || "Unnamed candidate") +
@@ -8066,6 +8684,12 @@ function renderOpsInbox() {
       escapeHtml(item.next_review_due_at ? formatDate(item.next_review_due_at) : "Now") +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Recommendation</div><div class="ops-card-kpi-value">' +
       escapeHtml(item.publish_recommendation || "Review") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
+      escapeHtml(
+        trustSummary.watchFields.length
+          ? String(trustSummary.watchFields.length) + " signals"
+          : "Stable",
+      ) +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Existing match</div><div class="ops-card-kpi-value">' +
       escapeHtml(match) +
       '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
@@ -8074,6 +8698,12 @@ function renderOpsInbox() {
       (evidence
         ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
         : "") +
+      '<div class="subtle" style="margin-top:0.35rem">' +
+      escapeHtml(trustRecommendation) +
+      "</div>" +
+      renderCandidateTrustChips(trustSummary, 3) +
+      renderCandidateMergeWorkbench(item) +
+      mergePreview +
       '<div class="ops-card-actions">' +
       buildCandidateDecisionActions(item) +
       (item.source_url
@@ -8091,10 +8721,7 @@ function renderOpsInbox() {
     const item = entry.item;
     const freshness = entry.freshness;
     const trustSummary = getTherapistFieldTrustSummary(item);
-    const nextMove = freshness.needs_reconfirmation_fields.length
-      ? "Re-confirm " +
-        freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
-      : "Refresh source review";
+    const nextMove = getTherapistTrustRecommendation(item, freshness, trustSummary);
     const evidence = [
       item.source_health_status ? "Source " + item.source_health_status : "",
       freshness.source_review_age_days != null
@@ -8337,6 +8964,10 @@ function renderCandidateQueue() {
           .join(", ")
           .replace(/, (?=\d{5}$)/, " ");
         const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
+        const trustSummary = getCandidateTrustSummary(item);
+        const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
+        const mergeWorkbench = renderCandidateMergeWorkbench(item);
+        const mergePreview = renderCandidateMergePreview(item);
         const recommendation =
           item.publish_recommendation === "ready"
             ? "Strong publish candidate."
@@ -8371,6 +9002,12 @@ function renderCandidateQueue() {
           '<div class="queue-summary"><strong>Readiness:</strong> ' +
           escapeHtml(item.readiness_score == null ? "Not scored" : item.readiness_score + "/100") +
           "</div>" +
+          '<div class="queue-summary"><strong>Trust:</strong> ' +
+          escapeHtml(trustSummary.headline) +
+          "</div>" +
+          '<div class="queue-summary"><strong>Next trust move:</strong> ' +
+          escapeHtml(trustRecommendation) +
+          "</div>" +
           (sourceTrail
             ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
               escapeHtml(sourceTrail) +
@@ -8391,6 +9028,9 @@ function renderCandidateQueue() {
               escapeHtml(item.notes) +
               "</div>"
             : "") +
+          renderCandidateTrustChips(trustSummary, 4) +
+          mergeWorkbench +
+          mergePreview +
           '<div class="queue-actions">' +
           buildCandidateDecisionActions(item) +
           (item.source_url
@@ -8878,6 +9518,7 @@ function renderPortalRequestsQueue() {
 function renderAll() {
   renderStats();
   renderOpsInbox();
+  renderCoverageIntelligence();
   renderFunnelInsights();
   renderListings();
   renderRefreshQueue();
