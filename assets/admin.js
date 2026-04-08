@@ -46,6 +46,8 @@ import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
 import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
 import { renderCandidateQueuePanel } from "./admin-candidate-queue.js";
 import { renderApplicationsPanel } from "./admin-application-review.js";
+import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
+import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
 import {
   buildCoverageInsights,
   renderCoverageIntelligencePanel,
@@ -6859,100 +6861,18 @@ function renderListings() {
 }
 
 function renderRefreshQueue() {
-  const root = document.getElementById("refreshQueue");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const recentlyMaintained = therapists
-    .filter(function (item) {
-      return Boolean(getConfirmationGraceWindowNote(item));
-    })
-    .slice(0, 4);
-  const queue = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
-      };
-    })
-    .filter(function (entry) {
-      return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
-    })
-    .sort(function (a, b) {
-      const weight = {
-        aging: 0,
-        watch: 1,
-        fresh: 2,
-      };
-      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
-      if (trustDiff) {
-        return trustDiff;
-      }
-      return (
-        (b.freshness.needs_reconfirmation_fields || []).length -
-        (a.freshness.needs_reconfirmation_fields || []).length
-      );
-    });
-
-  if (!queue.length && !recentlyMaintained.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles are currently flagged for refresh.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    (recentlyMaintained.length
-      ? '<div class="queue-insights" id="recentlyMaintainedRefresh"><div class="queue-insights-title">Recently maintained</div><div class="subtle" style="margin-bottom:0.7rem">These profiles were updated recently and are currently in a short freshness grace window.</div><div class="queue-insights-grid">' +
-        recentlyMaintained
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-              escapeHtml(item.name) +
-              '</strong></div><div class="queue-insight-note">' +
-              escapeHtml(getConfirmationGraceWindowNote(item)) +
-              '</div><div class="queue-insight-action"><a href="therapist.html?slug=' +
-              encodeURIComponent(item.slug) +
-              '">Open profile</a></div></div>'
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    queue
-      .map(function (entry) {
-        const item = entry.item;
-        const freshness = entry.freshness;
-        const trustSummary = getTherapistFieldTrustSummary(item);
-        const nextMove = getTherapistTrustRecommendation(item, freshness, trustSummary);
-        return (
-          '<div class="mini-card"><div><strong>' +
-          escapeHtml(item.name) +
-          '</strong><div class="subtle">' +
-          escapeHtml(freshness.label) +
-          '</div><div class="subtle">' +
-          escapeHtml(freshness.note) +
-          '</div><div class="subtle">Next move: ' +
-          escapeHtml(nextMove) +
-          '</div><div class="subtle">Trust: ' +
-          escapeHtml(trustSummary.headline) +
-          '</div></div><a href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile</a></div>'
-        );
-      })
-      .join("");
+  renderRefreshQueuePanel({
+    authRequired: authRequired,
+    dataMode: dataMode,
+    publishedTherapists: publishedTherapists,
+    getTherapists: getTherapists,
+    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    escapeHtml: escapeHtml,
+  });
 }
 
 function renderImportBlockerSprint() {
@@ -8823,130 +8743,21 @@ function formatPortalRequestType(value) {
 }
 
 function renderPortalRequestsQueue() {
-  const root = document.getElementById("portalRequestsQueue");
-  const countEl = document.getElementById("portalRequestCount");
-  if (!root || !countEl) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    countEl.textContent = "";
-    return;
-  }
-
-  const requests = dataMode === "sanity" ? remotePortalRequests : [];
-  const filtered = requests.filter(function (item) {
-    if (portalRequestFilters.status && item.status !== portalRequestFilters.status) {
-      return false;
-    }
-    return true;
-  });
-
-  countEl.textContent =
-    filtered.length +
-    " of " +
-    requests.length +
-    " portal request" +
-    (requests.length === 1 ? "" : "s");
-
-  if (!requests.length) {
-    root.innerHTML =
-      '<div class="empty">No therapist portal requests yet. Claims, pause requests, and removal requests will appear here.</div>';
-    return;
-  }
-
-  if (!filtered.length) {
-    root.innerHTML = '<div class="empty">No portal requests match the current filter.</div>';
-    return;
-  }
-
-  root.innerHTML = filtered
-    .map(function (item) {
-      var canMarkInReview = item.status !== "in_review";
-      var canResolve = item.status !== "resolved";
-      return (
-        '<article class="queue-card"><div class="queue-head"><div><h3>' +
-        escapeHtml(item.therapist_name || item.therapist_slug) +
-        '</h3><div class="subtle">' +
-        escapeHtml(item.requester_name || "Unknown requester") +
-        (item.requester_email ? " · " + escapeHtml(item.requester_email) : "") +
-        '</div></div><div class="queue-head-actions"><span class="tag">' +
-        escapeHtml(formatPortalRequestType(item.request_type)) +
-        '</span><span class="tag">' +
-        escapeHtml(String(item.status || "open").replace(/_/g, " ")) +
-        "</span></div></div>" +
-        '<div class="queue-summary"><strong>Requested:</strong> ' +
-        escapeHtml(formatDate(item.requested_at)) +
-        "</div>" +
-        '<div class="queue-summary"><strong>Profile slug:</strong> ' +
-        escapeHtml(item.therapist_slug || "Unknown") +
-        "</div>" +
-        '<div class="queue-summary"><strong>License number:</strong> ' +
-        escapeHtml(item.license_number || "Not provided") +
-        "</div>" +
-        (item.reviewed_at
-          ? '<div class="queue-summary"><strong>Last reviewed:</strong> ' +
-            escapeHtml(formatDate(item.reviewed_at)) +
-            "</div>"
-          : "") +
-        '<div class="queue-summary"><strong>Message:</strong> ' +
-        escapeHtml(item.message || "No extra message provided.") +
-        '</div><div class="queue-actions">' +
-        (canMarkInReview
-          ? '<button class="btn-primary" data-portal-request-update="' +
-            escapeHtml(item.id) +
-            '" data-next-status="in_review">Mark in review</button>'
-          : "") +
-        (canResolve
-          ? '<button class="btn-secondary" data-portal-request-update="' +
-            escapeHtml(item.id) +
-            '" data-next-status="resolved">Resolve</button>'
-          : "") +
-        '<a class="btn-secondary" href="portal.html?slug=' +
-        encodeURIComponent(item.therapist_slug || "") +
-        '">Open portal</a><a class="btn-secondary" href="therapist.html?slug=' +
-        encodeURIComponent(item.therapist_slug || "") +
-        '">View profile</a></div><div class="review-coach-status" data-portal-request-status-id="' +
-        escapeHtml(item.id) +
-        '"></div></article>'
-      );
-    })
-    .join("");
-
-  root.querySelectorAll("[data-portal-request-update]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var requestId = button.getAttribute("data-portal-request-update");
-      var nextStatus = button.getAttribute("data-next-status");
-      if (!requestId || !nextStatus) {
-        return;
-      }
-
-      var priorLabel = button.textContent;
-      button.disabled = true;
-      button.textContent = nextStatus === "resolved" ? "Resolving..." : "Updating...";
-
-      try {
-        var updated = await updateTherapistPortalRequest(requestId, {
-          status: nextStatus,
-        });
-        remotePortalRequests = remotePortalRequests.map(function (item) {
-          return item.id === requestId ? updated : item;
-        });
-        renderStats();
-        renderPortalRequestsQueue();
-      } catch (_error) {
-        setPortalRequestActionStatus(
-          root,
-          requestId,
-          nextStatus === "resolved"
-            ? "Could not resolve this portal request."
-            : "Could not update this portal request.",
-        );
-        button.disabled = false;
-        button.textContent = priorLabel;
-      }
-    });
+  renderPortalRequestsQueuePanel({
+    authRequired: authRequired,
+    dataMode: dataMode,
+    remotePortalRequests: remotePortalRequests,
+    portalRequestFilters: portalRequestFilters,
+    escapeHtml: escapeHtml,
+    formatPortalRequestType: formatPortalRequestType,
+    formatDate: formatDate,
+    updateTherapistPortalRequest: updateTherapistPortalRequest,
+    setRemotePortalRequests: function (nextRequests) {
+      remotePortalRequests = nextRequests;
+    },
+    renderStats: renderStats,
+    renderPortalRequestsQueue: renderPortalRequestsQueue,
+    setPortalRequestActionStatus: setPortalRequestActionStatus,
   });
 }
 
