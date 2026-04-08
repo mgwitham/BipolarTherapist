@@ -8093,9 +8093,25 @@ function renderApplications() {
   const claimConversionRate = claimFunnel.approved
     ? (claimFunnel.fullProfileSubmitted / claimFunnel.approved) * 100
     : 0;
+  const claimRates = {
+    approvalRate: claimApprovalRate,
+    followUpRate: claimFollowUpRate,
+    conversionRate: claimConversionRate,
+  };
+  const claimBottleneck = getClaimFunnelBottleneck(claimFunnel, claimRates);
+  const overdueClaims = applications
+    .filter(function (item) {
+      return getClaimFollowUpUrgency(item).tone === "urgent";
+    })
+    .sort(function (a, b) {
+      return new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
+    })
+    .slice(0, 3);
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
+    escapeHtml(claimBottleneck) +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
     [
       {
         label: "Claims submitted",
@@ -8140,7 +8156,30 @@ function renderApplications() {
         );
       })
       .join("") +
-    '</div></div><div class="review-priority-grid">' +
+    "</div></div>" +
+    (overdueClaims.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Urgent follow-up queue</div><div class="subtle" style="margin-bottom:0.7rem">These approved claims are the most likely to cool off if you do not send follow-up now.</div><div class="queue-insights-grid">' +
+        overdueClaims
+          .map(function (item) {
+            var urgency = getClaimFollowUpUrgency(item);
+            return (
+              '<button type="button" class="queue-insight-card" data-application-jump="' +
+              escapeHtml(item.id) +
+              '"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(urgency.label) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(urgency.note) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(item.email || "No email on file") +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    '<div class="review-priority-grid">' +
     [
       {
         status: "pending",
@@ -8767,6 +8806,18 @@ function renderApplications() {
           ? "Overdue follow-up batch copied."
           : "Could not copy overdue follow-up batch.";
       }
+    });
+  });
+
+  root.querySelectorAll("[data-claim-funnel-focus]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var focus = button.getAttribute("data-claim-funnel-focus") || "";
+      applicationFilters.focus = focus;
+      var focusFilter = document.getElementById("applicationFocusFilter");
+      if (focusFilter) {
+        focusFilter.value = focus;
+      }
+      renderApplications();
     });
   });
 

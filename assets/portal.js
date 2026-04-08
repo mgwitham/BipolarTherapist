@@ -236,6 +236,75 @@ function buildPortalProgressData(application) {
   };
 }
 
+function buildPortalNextAction(therapist, application) {
+  if (!application) {
+    return {
+      title: "Claim your profile first",
+      body: "Once your claim is verified, this portal can show your exact progress and next step.",
+      ctaLabel: "",
+      href: "",
+    };
+  }
+
+  var revisionHref = "signup.html?revise=" + encodeURIComponent(application.id);
+  var liveProfileHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug);
+  var portalState = application.portal_state || "";
+
+  if (portalState === "claimed_ready_for_profile") {
+    return {
+      title: "Complete your full profile",
+      body: "Your claim is approved. Add the richer trust, fit, and care details that let us review your listing for publish readiness.",
+      ctaLabel: "Complete full profile",
+      href: revisionHref,
+    };
+  }
+
+  if (portalState === "profile_submitted_after_claim") {
+    return {
+      title: "Full profile received",
+      body: "Your fuller profile arrived after claim approval and is queued for review.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  if (portalState === "profile_in_review_after_claim") {
+    return {
+      title: "Full profile in review",
+      body: "We are reviewing trust, fit, and listing readiness before this profile moves toward publish.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  if (portalState === "claim_needs_attention") {
+    return {
+      title: "Your claim needs one more pass",
+      body: "We still need a few ownership or profile basics tightened before we can finish verifying the claim.",
+      ctaLabel: "Update claim details",
+      href: revisionHref,
+    };
+  }
+
+  if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
+    return {
+      title: "Claim review in progress",
+      body: "We are verifying ownership and your core profile details. Once that clears, your next step will be the fuller profile.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  return {
+    title: "Your profile is moving",
+    body:
+      application.portal_next_step ||
+      "We will keep this portal aligned to your current review step.",
+    ctaLabel: "View live profile",
+    href: liveProfileHref,
+  };
+}
+
 function renderLookupState() {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -290,6 +359,7 @@ function renderPortal(therapist, options) {
     ? getRelatedApplication(therapist, { claimedEmail: claimedEmail })
     : null;
   var progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
+  var nextAction = buildPortalNextAction(therapist, relatedApplication);
 
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">Claim and manage your profile</p><h1>' +
@@ -356,6 +426,19 @@ function renderPortal(therapist, options) {
         ".</span>"
       : "") +
     "</div></article>" +
+    '<article class="portal-card"><h2>Recommended next step</h2><div class="portal-list"><div><strong>' +
+    escapeHtml(nextAction.title) +
+    "</strong></div><div>" +
+    escapeHtml(nextAction.body) +
+    "</div></div>" +
+    (nextAction.href && nextAction.ctaLabel
+      ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
+        escapeHtml(nextAction.href) +
+        '">' +
+        escapeHtml(nextAction.ctaLabel) +
+        "</a></div>"
+      : "") +
+    "</article>" +
     (progress
       ? '<article class="portal-card"><h2>Your progress</h2><div class="portal-list"><div><strong>Current status:</strong> ' +
         escapeHtml(progress.statusLabel) +
