@@ -4458,6 +4458,23 @@ function buildImprovementRequest(item, coaching) {
   return [greeting, "", intro, "", bullets, "", close].join("\n");
 }
 
+function buildClaimReviewRequest(item) {
+  var greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
+  var close =
+    "Once those basics are confirmed, we can move your claim forward.\n\nThank you,\nBipolarTherapyHub Review";
+  return [
+    greeting,
+    "",
+    "Thanks for claiming your profile on BipolarTherapyHub. Before we can verify ownership, we need a few core details tightened.",
+    "",
+    "- Confirm the license state and license number exactly as they should appear for review.",
+    "- Double-check your contact email and any practice basics that identify the listing.",
+    "- If this claim is tied to an existing live profile, clarify any mismatch between the current listing and your submitted details.",
+    "",
+    close,
+  ].join("\n");
+}
+
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -7907,6 +7924,7 @@ function renderApplications() {
         const portalStateLabel =
           item.portal_state_label || formatStatusLabel(item.status || "pending");
         const portalNextStep = item.portal_next_step || reviewSnapshot.nextMove;
+        const isClaimFlow = item.submission_intent === "claim";
         const isConfirmationRefresh = isConfirmationRefreshApplication(item);
         const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
           ? item.therapist_reported_fields
@@ -7918,6 +7936,7 @@ function renderApplications() {
           return !item[fieldName] && item[fieldName] !== false;
         });
         const improvementRequest = buildImprovementRequest(item, coaching);
+        const claimRequest = buildClaimReviewRequest(item);
         const revisionLink = new URL(
           "signup.html?revise=" + encodeURIComponent(item.id),
           window.location.href,
@@ -7936,27 +7955,41 @@ function renderApplications() {
           item.status === "pending"
             ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
               item.id +
-              '">Mark Reviewing</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
+              '">' +
+              (isClaimFlow ? "Start claim review" : "Mark Reviewing") +
+              '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
               item.id +
               '" data-request="' +
-              escapeHtml(improvementRequest) +
+              escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
               '" data-link="' +
               escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-              '">Request Changes</button><button class="btn-primary" data-action="publish" data-id="' +
+              '">' +
+              (isClaimFlow ? "Request claim fixes" : "Request Changes") +
+              '</button><button class="btn-primary" data-action="' +
+              (isClaimFlow ? "approve_claim" : "publish") +
+              '" data-id="' +
               item.id +
-              '">Publish</button><button class="btn-secondary" data-action="reject" data-id="' +
+              '">' +
+              (isClaimFlow ? "Approve claim" : "Publish") +
+              '</button><button class="btn-secondary" data-action="reject" data-id="' +
               item.id +
               '">Reject</button>'
             : item.status === "reviewing"
-              ? '<button class="btn-primary" data-action="publish" data-id="' +
+              ? '<button class="btn-primary" data-action="' +
+                (isClaimFlow ? "approve_claim" : "publish") +
+                '" data-id="' +
                 item.id +
-                '">Publish</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
+                '">' +
+                (isClaimFlow ? "Approve claim" : "Publish") +
+                '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
                 item.id +
                 '" data-request="' +
-                escapeHtml(improvementRequest) +
+                escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
                 '" data-link="' +
                 escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                '">Request Changes</button><button class="btn-secondary" data-action="pending" data-id="' +
+                '">' +
+                (isClaimFlow ? "Request claim fixes" : "Request Changes") +
+                '</button><button class="btn-secondary" data-action="pending" data-id="' +
                 item.id +
                 '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
                 item.id +
@@ -7967,12 +8000,25 @@ function renderApplications() {
                   '" data-link="' +
                   escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
                   '">' +
-                  (isConfirmationRefresh ? "Copy confirmation link" : "Copy revision link") +
+                  (isConfirmationRefresh
+                    ? "Copy confirmation link"
+                    : isClaimFlow
+                      ? "Copy claim fix link"
+                      : "Copy revision link") +
                   '</button><button class="btn-secondary" data-action="pending" data-id="' +
                   item.id +
                   '">Move to Pending</button>'
                 : item.status === "approved"
-                  ? '<span class="status approved">approved</span>'
+                  ? '<span class="status approved">' +
+                    escapeHtml(isClaimFlow ? "claim approved" : "approved") +
+                    "</span>" +
+                    (isClaimFlow
+                      ? '<button class="btn-secondary" data-action="copy-revision-link" data-id="' +
+                        item.id +
+                        '" data-link="' +
+                        escapeHtml(revisionLink) +
+                        '">Copy full-profile link</button>'
+                      : "")
                   : '<span class="status ' + item.status + '">' + item.status + "</span>";
 
         return (
@@ -8361,6 +8407,9 @@ function renderApplications() {
             );
             return;
           }
+          if (action === "approve_claim") {
+            await updateTherapistApplication(id, { status: "approved" });
+          }
           if (action === "publish") await approveTherapistApplication(id);
           if (action === "reject") await rejectTherapistApplicationRemote(id);
           if (action === "reviewing") {
@@ -8419,6 +8468,7 @@ function renderApplications() {
           if (action === "requested_changes") {
             requestApplicationChanges(id, button.getAttribute("data-request") || "");
           }
+          if (action === "approve_claim") approveApplication(id);
           if (action === "publish") publishApplication(id);
           if (action === "reject") rejectApplication(id);
           renderAll();

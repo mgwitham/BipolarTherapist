@@ -161,6 +161,14 @@ function showSuccess(application, source) {
     application && application.submission_intent ? application.submission_intent : "full_profile";
   var isRevision = Boolean(revisionApplicationId || (application && application.revision_count));
   var isConfirmation = Boolean(confirmationTherapistSlug && !revisionApplicationId);
+  var portalLabel =
+    application && application.portal_state_label
+      ? application.portal_state_label
+      : "Pending review";
+  var portalNextStep =
+    application && application.portal_next_step
+      ? application.portal_next_step
+      : "We will review the submission and confirm the next step.";
   var message =
     source === "sanity"
       ? isConfirmation
@@ -187,9 +195,15 @@ function showSuccess(application, source) {
         : "Application Received!") +
     "</h2><p>" +
     message +
-    '</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
+    '</p><div style="margin: 0 auto 1.1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fbfdfe; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .3rem;">Current status</div><div style="font-size: .98rem; font-weight: 700; color: var(--navy); margin-bottom: .25rem;">' +
+    portalLabel +
+    '</div><div style="font-size: .82rem; color: var(--slate); line-height: 1.6;">' +
+    portalNextStep +
+    '</div></div><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
     application.name +
-    "</strong> with status <strong>pending</strong>.<br/>Once published, the listing will appear in search, guided matching, and public profile pages.</p></div>";
+    "</strong> with status <strong>" +
+    portalLabel +
+    "</strong>.<br/>Once published, the listing will appear in search, guided matching, and public profile pages.</p></div>";
   window.scrollTo(0, 0);
 }
 

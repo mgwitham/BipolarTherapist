@@ -16,11 +16,124 @@ function getDefaultReviewApiBaseUrl() {
 const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
 
+function getApplicationPortalState(application) {
+  var status = String((application && application.status) || "pending").trim() || "pending";
+  var intent =
+    String((application && application.submission_intent) || "full_profile").trim() ||
+    "full_profile";
+  var intakeType = String((application && application.intake_type) || "new_listing").trim();
+
+  if (status === "published") {
+    return {
+      state: "live",
+      label: "Live profile",
+      next_step: "Your profile is live in the directory and matching flow.",
+      upgrade_eligible: intent !== "claim",
+    };
+  }
+
+  if (status === "rejected") {
+    return {
+      state: "not_approved",
+      label: "Not approved",
+      next_step:
+        intent === "claim"
+          ? "Ownership could not be verified yet. Review the details and resubmit if needed."
+          : "Review feedback from the team and decide whether to revise and resubmit.",
+      upgrade_eligible: false,
+    };
+  }
+
+  if (status === "requested_changes") {
+    return {
+      state: intent === "claim" ? "claim_needs_attention" : "profile_needs_changes",
+      label: intent === "claim" ? "Claim needs attention" : "Profile needs changes",
+      next_step:
+        intent === "claim"
+          ? "Update the requested ownership or profile basics so we can finish verification."
+          : "Tighten the requested details and resubmit the fuller profile for review.",
+      upgrade_eligible: false,
+    };
+  }
+
+  if (status === "approved") {
+    return {
+      state:
+        intent === "claim"
+          ? "claimed_ready_for_profile"
+          : intakeType === "confirmation_update"
+            ? "confirmed_update_ready"
+            : "approved_ready_to_publish",
+      label:
+        intent === "claim"
+          ? "Claim approved"
+          : intakeType === "confirmation_update"
+            ? "Update approved"
+            : "Approved for publish",
+      next_step:
+        intent === "claim"
+          ? "Ownership is verified. Complete the fuller profile when you are ready."
+          : intakeType === "confirmation_update"
+            ? "Your confirmed updates are ready to be applied to the live profile."
+            : "This profile is approved and ready to publish live.",
+      upgrade_eligible: intent !== "claim",
+    };
+  }
+
+  if (status === "reviewing") {
+    return {
+      state:
+        intent === "claim"
+          ? "claim_in_review"
+          : intakeType === "confirmation_update"
+            ? "update_in_review"
+            : "profile_in_review",
+      label:
+        intent === "claim"
+          ? "Claim in review"
+          : intakeType === "confirmation_update"
+            ? "Update in review"
+            : "Profile in review",
+      next_step:
+        intent === "claim"
+          ? "We are verifying ownership and the core profile details."
+          : intakeType === "confirmation_update"
+            ? "We are reviewing the refreshed operational details before applying them live."
+            : "We are reviewing trust, fit, and readiness details before publishing.",
+      upgrade_eligible: false,
+    };
+  }
+
+  return {
+    state:
+      intent === "claim"
+        ? "claim_pending_review"
+        : intakeType === "confirmation_update"
+          ? "update_pending_review"
+          : "profile_pending_review",
+    label:
+      intent === "claim"
+        ? "Claim pending review"
+        : intakeType === "confirmation_update"
+          ? "Update pending review"
+          : "Profile pending review",
+    next_step:
+      intent === "claim"
+        ? "We received your free claim and will verify ownership before the fuller profile step."
+        : intakeType === "confirmation_update"
+          ? "We received your updated operational details and queued them for review."
+          : "We received your full profile and queued it for editorial review.",
+    upgrade_eligible: false,
+  };
+}
+
 function sanitizeApplication(application) {
   var fieldReviewStates = application.field_review_states || {};
+  var portalState = getApplicationPortalState(application);
   return {
     ...application,
     intake_type: application.intake_type || "new_listing",
+    submission_intent: application.submission_intent || "full_profile",
     target_therapist_slug: application.target_therapist_slug || "",
     target_therapist_id: application.target_therapist_id || "",
     photo_url: application.photo_url || "",
@@ -51,6 +164,10 @@ function sanitizeApplication(application) {
       : [],
     review_request_message: application.review_request_message || "",
     revision_count: Number(application.revision_count || 0) || 0,
+    portal_state: portalState.state,
+    portal_state_label: portalState.label,
+    portal_next_step: portalState.next_step,
+    upgrade_eligible: Boolean(portalState.upgrade_eligible),
   };
 }
 
