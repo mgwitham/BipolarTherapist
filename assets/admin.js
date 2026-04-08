@@ -6520,6 +6520,138 @@ function renderCoverageIntelligence() {
   });
 }
 
+function renderIngestionScorecard() {
+  const root = document.getElementById("ingestionScorecard");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  const candidates = dataMode === "sanity" ? remoteCandidates : [];
+  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
+  const coverageInsights = buildCoverageInsights(therapists);
+
+  const publishableCandidates = candidates.filter(function (item) {
+    return item.review_lane === "publish_now";
+  }).length;
+  const duplicateCandidates = candidates.filter(function (item) {
+    return item.dedupe_status === "possible_duplicate";
+  }).length;
+  const confirmationCandidates = candidates.filter(function (item) {
+    return item.review_lane === "needs_confirmation";
+  }).length;
+  const staleTherapists = therapists.filter(function (item) {
+    const freshness = getDataFreshnessSummary(item);
+    return freshness && freshness.tone !== "fresh";
+  }).length;
+  const trustRiskTherapists = therapists.filter(function (item) {
+    return getTherapistFieldTrustSummary(item).watchFields.length > 0;
+  }).length;
+  const thinCities = (coverageInsights.thinnestCities || []).filter(function (city) {
+    return Number(city.total || 0) < 3;
+  }).length;
+  const updateApplications = applications.filter(function (item) {
+    return ["claim_existing", "update_existing", "confirmation_update"].includes(
+      String(item.intake_type || ""),
+    );
+  }).length;
+
+  const duplicateRate = candidates.length
+    ? Math.round((duplicateCandidates / candidates.length) * 100)
+    : 0;
+  const confirmationRate = candidates.length
+    ? Math.round((confirmationCandidates / candidates.length) * 100)
+    : 0;
+  const freshnessRiskRate = therapists.length
+    ? Math.round((staleTherapists / therapists.length) * 100)
+    : 0;
+
+  const scorecards = [
+    {
+      label: "Publishable now",
+      value: publishableCandidates,
+      note: "Candidates already sitting in the publish lane.",
+    },
+    {
+      label: "Duplicate drag",
+      value: duplicateRate + "%",
+      note:
+        duplicateCandidates +
+        " candidate" +
+        (duplicateCandidates === 1 ? "" : "s") +
+        " need identity resolution.",
+    },
+    {
+      label: "Confirmation burden",
+      value: confirmationRate + "%",
+      note:
+        confirmationCandidates +
+        " candidate" +
+        (confirmationCandidates === 1 ? "" : "s") +
+        " still need a trust pass.",
+    },
+    {
+      label: "Live freshness risk",
+      value: freshnessRiskRate + "%",
+      note:
+        staleTherapists +
+        " listed therapist" +
+        (staleTherapists === 1 ? "" : "s") +
+        " are outside the fresh zone.",
+    },
+    {
+      label: "Trust-watch listings",
+      value: trustRiskTherapists,
+      note: "Live profiles with field-level trust signals that need attention.",
+    },
+    {
+      label: "Thin-city gaps",
+      value: thinCities,
+      note: "Cities with fewer than 3 live listings in the graph.",
+    },
+    {
+      label: "Live update flow",
+      value: updateApplications,
+      note: "Applications that can sync directly into existing live therapists.",
+    },
+  ];
+
+  const nextMove =
+    publishableCandidates > 0
+      ? "Publish-ready candidates are the fastest quality gain right now."
+      : duplicateCandidates > 0
+        ? "Resolve duplicate drag next so sourcing throughput stays clean."
+        : staleTherapists > 0
+          ? "Freshness is the next bottleneck. Work the refresh lane."
+          : thinCities > 0
+            ? "Coverage gaps are now the main opportunity. Run the next sourcing wave."
+            : "The graph looks healthy. Focus on strategic sourcing and trust upgrades.";
+
+  root.innerHTML =
+    '<div class="queue-insights"><div class="queue-insights-title">System health</div><div class="subtle" style="margin-bottom:0.7rem">Use this to understand whether the bottleneck is publish throughput, duplicate cleanup, confirmation, freshness, or graph coverage.</div><div class="queue-insights-grid">' +
+    scorecards
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.value) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.note) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div></div><div class="queue-insights"><div class="queue-insights-title">What to do next</div><div class="mini-status"><strong>Primary bottleneck:</strong> ' +
+    escapeHtml(nextMove) +
+    "</div></div>";
+}
+
 function buildSourcePerformanceInsights(candidates) {
   const bySourceType = new Map();
 
@@ -11587,6 +11719,7 @@ function renderPortalRequestsQueue() {
 
 function renderAll() {
   renderStats();
+  renderIngestionScorecard();
   renderOpsInbox();
   renderCoverageIntelligence();
   renderSourcePerformance();
