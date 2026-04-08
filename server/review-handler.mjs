@@ -1507,6 +1507,91 @@ function buildTherapistOpsEvent(therapist, updates) {
   };
 }
 
+function buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso) {
+  const allowed = new Set([
+    "credentials",
+    "title",
+    "location",
+    "website",
+    "email",
+    "phone",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "insurance_accepted",
+    "telehealth_states",
+    "accepting_new_patients",
+    "medication_management",
+  ]);
+  const fields = Array.isArray(selectedFields)
+    ? selectedFields.map((field) => String(field || "").trim()).filter((field) => allowed.has(field))
+    : [];
+
+  const patch = {};
+  fields.forEach(function (field) {
+    if (field === "credentials") patch.credentials = application.credentials || "";
+    else if (field === "title") patch.title = application.title || "";
+    else if (field === "location") {
+      patch.city = application.city || "";
+      patch.state = application.state || "";
+      patch.zip = application.zip || "";
+    } else if (field === "website") patch.website = application.website || "";
+    else if (field === "email") patch.email = application.email || "";
+    else if (field === "phone") patch.phone = application.phone || "";
+    else if (field === "preferred_contact_method")
+      patch.preferredContactMethod = application.preferredContactMethod || "";
+    else if (field === "preferred_contact_label")
+      patch.preferredContactLabel = application.preferredContactLabel || "";
+    else if (field === "insurance_accepted")
+      patch.insuranceAccepted = splitList(application.insuranceAccepted);
+    else if (field === "telehealth_states")
+      patch.telehealthStates = splitList(application.telehealthStates);
+    else if (field === "accepting_new_patients")
+      patch.acceptingNewPatients = parseBoolean(application.acceptingNewPatients, true);
+    else if (field === "medication_management")
+      patch.medicationManagement = parseBoolean(application.medicationManagement, false);
+  });
+
+  const mergedDraft = {
+    ...therapist,
+    ...patch,
+    sourceUrl: therapist.sourceUrl || application.sourceUrl || application.website || "",
+    supportingSourceUrls: mergeUniqueUrls(
+      therapist.sourceUrl,
+      therapist.supportingSourceUrls,
+      mergeUniqueUrls(
+        application.sourceUrl,
+        application.supportingSourceUrls,
+        application.website ? [application.website] : [],
+      ),
+    ),
+    sourceReviewedAt: application.sourceReviewedAt || therapist.sourceReviewedAt || nowIso,
+    therapistReportedConfirmedAt:
+      application.therapistReportedConfirmedAt || therapist.therapistReportedConfirmedAt || "",
+    fieldReviewStates: therapist.fieldReviewStates || {},
+    therapistReportedFields: Array.from(
+      new Set([].concat(therapist.therapistReportedFields || []).concat(application.therapistReportedFields || [])),
+    ),
+  };
+  const verificationMeta = computeTherapistVerificationMeta(mergedDraft);
+
+  return {
+    patch: {
+      ...patch,
+      supportingSourceUrls: mergedDraft.supportingSourceUrls,
+      sourceReviewedAt: mergedDraft.sourceReviewedAt,
+      therapistReportedConfirmedAt: mergedDraft.therapistReportedConfirmedAt,
+      therapistReportedFields: mergedDraft.therapistReportedFields,
+      fieldTrustMeta: buildFieldTrustMeta(mergedDraft),
+      lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
+      nextReviewDueAt: verificationMeta.nextReviewDueAt,
+      verificationPriority: verificationMeta.verificationPriority,
+      verificationLane: verificationMeta.verificationLane,
+      dataCompletenessScore: verificationMeta.dataCompletenessScore,
+    },
+    appliedFields: fields,
+  };
+}
+
 function mergeUniqueUrls(primary, supporting, extra) {
   const urls = []
     .concat(primary ? [primary] : [])
@@ -2309,6 +2394,109 @@ export function createReviewApiHandler(configOverride) {
         const body = await parseBody(request);
         const updated = await updateApplicationFields(client, applicationId, body);
         sendJson(response, 200, normalizeApplication(updated), origin, config);
+        return;
+      }
+
+      const applyLiveFieldsMatch = routePath.match(/^\/applications\/([^/]+)\/apply-live-fields$/);
+      if (request.method === "POST" && applyLiveFieldsMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const applicationId = decodeURIComponent(applyLiveFieldsMatch[1]);
+        const application = await client.getDocument(applicationId);
+        if (!application || application._type !== "therapistApplication") {
+          sendJson(response, 404, { error: "Application not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const selectedFields = Array.isArray(body.fields) ? body.fields : [];
+        if (!selectedFields.length) {
+          sendJson(response, 400, { error: "No fields selected." }, origin, config);
+          return;
+        }
+
+        const therapistId =
+          application.targetTherapistId ||
+          application.publishedTherapistId ||
+          (application.targetTherapistSlug ? `therapist-${application.targetTherapistSlug}` : "");
+        if (!therapistId) {
+          sendJson(
+            response,
+            409,
+            { error: "This application is not linked to a live therapist yet." },
+            origin,
+            config,
+          );
+          return;
+        }
+
+        const therapist = await client.getDocument(therapistId);
+        if (!therapist || therapist._type !== "therapist") {
+          sendJson(response, 404, { error: "Linked therapist not found." }, origin, config);
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        const nextPatch = buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso);
+        if (!nextPatch.appliedFields.length) {
+          sendJson(
+            response,
+            400,
+            { error: "No supported changed fields were selected." },
+            origin,
+            config,
+          );
+          return;
+        }
+
+        const transaction = client.transaction();
+        transaction.patch(therapistId, function (patch) {
+          return patch.set(nextPatch.patch);
+        });
+        transaction.patch(applicationId, function (patch) {
+          return patch
+            .set({
+              status: "approved",
+              updatedAt: nowIso,
+              publishedTherapistId: therapistId,
+            })
+            .setIfMissing({ revisionHistory: [] })
+            .append("revisionHistory", [
+              {
+                _key: `${Date.now()}`,
+                type: "applied_live_fields",
+                at: nowIso,
+                message: `Applied live fields: ${nextPatch.appliedFields.join(", ")}`,
+              },
+            ]);
+        });
+        transaction.create(
+          buildTherapistOpsEvent(therapist, {
+            eventType: "therapist_live_fields_applied",
+            decision: "apply_live_fields",
+            notes: `Application ${applicationId} applied fields: ${nextPatch.appliedFields.join(", ")}`,
+            changedFields: nextPatch.appliedFields,
+          }),
+        );
+
+        await transaction.commit({ visibility: "sync" });
+        const updatedTherapist = await client.getDocument(therapistId);
+        const updatedApplication = await client.getDocument(applicationId);
+        sendJson(
+          response,
+          200,
+          {
+            ok: true,
+            therapist: updatedTherapist,
+            application: normalizeApplication(updatedApplication),
+            applied_fields: nextPatch.appliedFields,
+          },
+          origin,
+          config,
+        );
         return;
       }
 

@@ -12,6 +12,7 @@ import {
 import { fetchPublicTherapists } from "./cms.js";
 import {
   approveTherapistApplication,
+  applyTherapistApplicationFields,
   checkReviewApiHealth,
   decideTherapistCandidate,
   decideTherapistOps,
@@ -327,36 +328,43 @@ function buildApplicationDiffRows(item, therapist) {
 
   var rows = [
     {
+      fieldKey: "credentials",
       label: "Credentials",
       application: normalizeListValue(getRecordValue(item, ["credentials"])),
       live: normalizeListValue(getRecordValue(therapist, ["credentials"])),
     },
     {
+      fieldKey: "title",
       label: "Title",
       application: normalizeListValue(getRecordValue(item, ["title"])),
       live: normalizeListValue(getRecordValue(therapist, ["title"])),
     },
     {
+      fieldKey: "location",
       label: "Location",
       application: normalizeListValue(formatLocationLine(item)),
       live: normalizeListValue(formatLocationLine(therapist)),
     },
     {
+      fieldKey: "website",
       label: "Website",
       application: normalizeListValue(getRecordValue(item, ["website"])),
       live: normalizeListValue(getRecordValue(therapist, ["website"])),
     },
     {
+      fieldKey: "email",
       label: "Email",
       application: normalizeListValue(getRecordValue(item, ["email"])),
       live: normalizeListValue(getRecordValue(therapist, ["email"])),
     },
     {
+      fieldKey: "phone",
       label: "Phone",
       application: normalizeListValue(getRecordValue(item, ["phone"])),
       live: normalizeListValue(getRecordValue(therapist, ["phone"])),
     },
     {
+      fieldKey: "preferred_contact_method",
       label: "Preferred contact",
       application: normalizeListValue(
         getRecordValue(item, ["preferred_contact_method", "preferredContactMethod"]),
@@ -366,6 +374,7 @@ function buildApplicationDiffRows(item, therapist) {
       ),
     },
     {
+      fieldKey: "preferred_contact_label",
       label: "Primary CTA",
       application: normalizeListValue(
         getRecordValue(item, ["preferred_contact_label", "preferredContactLabel"]),
@@ -375,6 +384,7 @@ function buildApplicationDiffRows(item, therapist) {
       ),
     },
     {
+      fieldKey: "insurance_accepted",
       label: "Insurance",
       application: normalizeListValue(
         getRecordValue(item, ["insurance_accepted", "insuranceAccepted"]),
@@ -384,6 +394,7 @@ function buildApplicationDiffRows(item, therapist) {
       ),
     },
     {
+      fieldKey: "telehealth_states",
       label: "Telehealth states",
       application: normalizeListValue(
         getRecordValue(item, ["telehealth_states", "telehealthStates"]),
@@ -393,6 +404,7 @@ function buildApplicationDiffRows(item, therapist) {
       ),
     },
     {
+      fieldKey: "accepting_new_patients",
       label: "Accepting new patients",
       application: String(
         getBooleanRecordValue(item, ["accepting_new_patients", "acceptingNewPatients"]) === true
@@ -413,6 +425,7 @@ function buildApplicationDiffRows(item, therapist) {
       ),
     },
     {
+      fieldKey: "medication_management",
       label: "Medication management",
       application: String(
         getBooleanRecordValue(item, ["medication_management", "medicationManagement"]) === true
@@ -483,11 +496,27 @@ function renderApplicationDiffHtml(item, therapist) {
   return (
     '<div class="review-snapshot-box"><div class="review-snapshot-title">Live profile diff</div><div class="review-snapshot-copy">' +
     escapeHtml(summary) +
-    '</div><div class="candidate-compare-grid" style="margin-top:0.75rem">' +
+    '</div><div class="queue-actions" style="margin-top:0.75rem;margin-bottom:0.75rem"><button class="btn-primary" type="button" data-apply-live-fields="' +
+    escapeHtml(item.id) +
+    '">Apply selected fields</button><button class="btn-secondary" type="button" data-select-all-live-fields="' +
+    escapeHtml(item.id) +
+    '">Select all changes</button></div><div class="review-coach-status" data-apply-live-fields-status="' +
+    escapeHtml(item.id) +
+    '"></div><div class="candidate-compare-grid" style="margin-top:0.75rem">' +
     rows
       .map(function (row) {
+        var isSelectable = row.status !== "match";
         return (
           '<div class="candidate-compare-card"><div class="mini-status"><strong>' +
+          (isSelectable
+            ? '<label style="display:inline-flex;align-items:center;gap:0.4rem;margin-right:0.45rem"><input type="checkbox" data-application-apply-field="' +
+              escapeHtml(item.id) +
+              '" value="' +
+              escapeHtml(row.fieldKey) +
+              '"' +
+              (row.status === "changed" || row.status === "new" ? " checked" : "") +
+              ">Apply</label>"
+            : "") +
           escapeHtml(row.label) +
           '</strong> <span class="' +
           escapeHtml(
@@ -2223,6 +2252,95 @@ function buildOverdueClaimFollowUpPacket(items) {
     .join("\n");
 }
 
+function getClaimLaunchCandidates(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var portalState = String(item.portal_state || "");
+      var readiness = getTherapistMatchReadiness(item);
+      var snapshot = getApplicationReviewSnapshot(item);
+      var ageMs =
+        new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
+      var ageDays = Number.isFinite(ageMs)
+        ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
+        : 0;
+
+      if (
+        !["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState)
+      ) {
+        return null;
+      }
+
+      if (!["pending", "reviewing"].includes(String(item.status || ""))) {
+        return null;
+      }
+
+      if (
+        readiness.score < 80 ||
+        readiness.completeness_score < 75 ||
+        snapshot.missingCriticalFields.length > 1
+      ) {
+        return null;
+      }
+
+      return {
+        id: item.id,
+        name: item.name || "Unknown therapist",
+        readiness: readiness,
+        snapshot: snapshot,
+        ageDays: ageDays,
+        reason:
+          readiness.score >= 90
+            ? "Exceptionally strong after-claim profile with enough trust detail to be close to live."
+            : "Strong after-claim profile with a realistic path to live after a focused review pass.",
+        priority:
+          readiness.score * 2 +
+          readiness.completeness_score +
+          (item.status === "reviewing" ? 8 : 0) -
+          ageDays,
+      };
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return (
+        b.priority - a.priority || b.readiness.score - a.readiness.score || a.ageDays - b.ageDays
+      );
+    })
+    .slice(0, 4);
+}
+
+function buildClaimLaunchPriorityPacket(items) {
+  var rows = getClaimLaunchCandidates(items);
+
+  if (!rows.length) {
+    return "";
+  }
+
+  return [
+    "# Fast-Track Live Supply Candidates",
+    "",
+    "After-claim profiles that are closest to becoming trustworthy live supply if reviewed decisively now.",
+    "",
+  ]
+    .concat(
+      rows.map(function (row, index) {
+        return [
+          index + 1 + ". " + row.name,
+          "- Readiness: " + row.readiness.label + " (" + row.readiness.score + "/100)",
+          "- Completeness: " + row.readiness.completeness_score + "/100",
+          "- Review lane: " + row.snapshot.label,
+          "- Why prioritize: " + row.reason,
+          "- Next move: " + row.snapshot.nextMove,
+          "- Missing critical fields: " +
+            (row.snapshot.missingCriticalFields.length
+              ? row.snapshot.missingCriticalFields.join(", ")
+              : "None currently flagged"),
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
 function getClaimFunnelBottleneck(claimFunnel, rates) {
   if ((claimFunnel && claimFunnel.followUpDue) > 0) {
     return "Biggest leak: approved claims are sitting without timely follow-up. Clear that queue first.";
@@ -2244,6 +2362,8 @@ function getClaimActionQueue(applications) {
     .map(function (item) {
       var urgency = getClaimFollowUpUrgency(item);
       var portalState = String(item.portal_state || "");
+      var readiness = getTherapistMatchReadiness(item);
+      var snapshot = getApplicationReviewSnapshot(item);
       var ageMs =
         new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
       var ageDays = Number.isFinite(ageMs)
@@ -2258,6 +2378,19 @@ function getClaimActionQueue(applications) {
           lane: "Overdue follow-up",
           note: urgency.note,
           priority: 300 + ageDays,
+        };
+      } else if (
+        ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState) &&
+        readiness.score >= 85 &&
+        readiness.completeness_score >= 80 &&
+        snapshot.missingCriticalFields.length <= 1
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Fast-track live supply",
+          note: "This after-claim profile is strong enough that a decisive review could turn it into live supply quickly.",
+          priority: 270 + readiness.score - ageDays,
         };
       } else if (portalState === "profile_submitted_after_claim") {
         action = {
@@ -5058,6 +5191,13 @@ function appendImprovementRequestToNotes(root, id, requestText) {
 
 function setCoachActionStatus(root, id, message) {
   var status = root.querySelector('[data-coach-status-id="' + id + '"]');
+  if (status) {
+    status.textContent = message;
+  }
+}
+
+function setApplyLiveFieldsStatus(root, id, message) {
+  var status = root.querySelector('[data-apply-live-fields-status="' + id + '"]');
   if (status) {
     status.textContent = message;
   }
@@ -8441,6 +8581,7 @@ function renderApplications() {
   };
   const claimBottleneck = getClaimFunnelBottleneck(claimFunnel, claimRates);
   const claimActionQueue = getClaimActionQueue(applications);
+  const claimLaunchCandidates = getClaimLaunchCandidates(applications);
   const overdueClaims = applications
     .filter(function (item) {
       return getClaimFollowUpUrgency(item).tone === "urgent";
@@ -8453,7 +8594,7 @@ function renderApplications() {
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
     escapeHtml(claimBottleneck) +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="launch">Copy fast-track supply batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
     [
       {
         label: "Claims submitted",
@@ -8479,6 +8620,11 @@ function renderApplications() {
         label: "Full profile submitted",
         value: claimFunnel.fullProfileSubmitted,
         note: formatPercent(claimConversionRate) + " of approved claims",
+      },
+      {
+        label: "Fast-track supply",
+        value: claimLaunchCandidates.length,
+        note: "After-claim profiles that are close enough to live supply to deserve accelerated review.",
       },
       {
         label: "Follow-up due now",
@@ -8512,6 +8658,29 @@ function renderApplications() {
               escapeHtml(item.lane) +
               '</div><div class="queue-insight-note">' +
               escapeHtml(item.note) +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    (claimLaunchCandidates.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Fastest path to live supply</div><div class="subtle" style="margin-bottom:0.7rem">These after-claim profiles are the strongest candidates to turn into trustworthy live supply with one focused review pass.</div><div class="queue-insights-grid">' +
+        claimLaunchCandidates
+          .map(function (item) {
+            return (
+              '<button type="button" class="queue-insight-card" data-application-jump="' +
+              escapeHtml(item.id) +
+              '"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.name) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(item.readiness.label) +
+              " · " +
+              escapeHtml(item.readiness.score) +
+              '/100</div><div class="queue-insight-note">' +
+              escapeHtml(item.reason) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(item.snapshot.nextMove) +
               "</div></button>"
             );
           })
@@ -9168,13 +9337,22 @@ function renderApplications() {
   root.querySelectorAll("[data-claim-funnel-export]").forEach(function (button) {
     button.addEventListener("click", async function () {
       var mode = button.getAttribute("data-claim-funnel-export");
-      var text = mode === "overdue" ? buildOverdueClaimFollowUpPacket(applications) : "";
+      var text =
+        mode === "launch"
+          ? buildClaimLaunchPriorityPacket(applications)
+          : mode === "overdue"
+            ? buildOverdueClaimFollowUpPacket(applications)
+            : "";
       var success = text ? await copyText(text) : false;
       var status = root.querySelector("#claimFunnelExportStatus");
       if (status) {
         status.textContent = success
-          ? "Overdue follow-up batch copied."
-          : "Could not copy overdue follow-up batch.";
+          ? mode === "launch"
+            ? "Fast-track supply batch copied."
+            : "Overdue follow-up batch copied."
+          : mode === "launch"
+            ? "Could not copy fast-track supply batch."
+            : "Could not copy overdue follow-up batch.";
       }
     });
   });
@@ -9384,6 +9562,65 @@ function renderApplications() {
           if (action === "reject") rejectApplication(id);
           renderAll();
         }
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-select-all-live-fields]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-select-all-live-fields");
+      root
+        .querySelectorAll('[data-application-apply-field="' + id + '"]')
+        .forEach(function (input) {
+          input.checked = true;
+        });
+      setApplyLiveFieldsStatus(root, id, "Selected all changed fields.");
+    });
+  });
+
+  root.querySelectorAll("[data-apply-live-fields]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var id = button.getAttribute("data-apply-live-fields");
+      var selectedFields = Array.from(
+        root.querySelectorAll('[data-application-apply-field="' + id + '"]:checked'),
+      ).map(function (input) {
+        return input.value;
+      });
+
+      if (!selectedFields.length) {
+        setApplyLiveFieldsStatus(root, id, "Select at least one changed field first.");
+        return;
+      }
+
+      button.disabled = true;
+      try {
+        if (dataMode === "sanity") {
+          await applyTherapistApplicationFields(id, selectedFields);
+          await loadData();
+          setApplyLiveFieldsStatus(
+            root,
+            id,
+            "Applied " +
+              selectedFields.length +
+              " selected field" +
+              (selectedFields.length === 1 ? "" : "s") +
+              " to the live profile.",
+          );
+        } else {
+          setApplyLiveFieldsStatus(
+            root,
+            id,
+            "Live field application is only available in Sanity mode.",
+          );
+        }
+      } catch (error) {
+        setApplyLiveFieldsStatus(
+          root,
+          id,
+          error && error.message ? error.message : "Could not apply selected fields.",
+        );
       } finally {
         button.disabled = false;
       }

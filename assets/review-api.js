@@ -441,6 +441,14 @@ export async function updateTherapistApplication(applicationId, updates) {
   });
 }
 
+export async function applyTherapistApplicationFields(applicationId, fields) {
+  return request(`/applications/${encodeURIComponent(applicationId)}/apply-live-fields`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ fields: Array.isArray(fields) ? fields : [] }),
+  });
+}
+
 export async function checkReviewApiHealth() {
   return request("/health", {
     method: "GET",
