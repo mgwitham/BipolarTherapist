@@ -239,6 +239,286 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function getRecordValue(record, keys) {
+  if (!record || typeof record !== "object") {
+    return "";
+  }
+  for (var index = 0; index < keys.length; index += 1) {
+    var key = keys[index];
+    if (record[key] !== undefined && record[key] !== null && String(record[key]).trim() !== "") {
+      return record[key];
+    }
+  }
+  return "";
+}
+
+function getBooleanRecordValue(record, keys) {
+  if (!record || typeof record !== "object") {
+    return null;
+  }
+  for (var index = 0; index < keys.length; index += 1) {
+    var key = keys[index];
+    if (record[key] === true || record[key] === false) {
+      return record[key];
+    }
+  }
+  return null;
+}
+
+function normalizeListValue(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(function (item) {
+        return String(item || "").trim();
+      })
+      .filter(Boolean)
+      .sort()
+      .join(", ");
+  }
+  return String(value || "").trim();
+}
+
+function formatLocationLine(record) {
+  var city = getRecordValue(record, ["city"]);
+  var state = getRecordValue(record, ["state"]);
+  var zip = getRecordValue(record, ["zip"]);
+  return [city, state ? (city ? state : state) : "", zip]
+    .filter(Boolean)
+    .join(city && state ? ", " : " ");
+}
+
+function getApplicationLinkedTherapist(item) {
+  if (!item) {
+    return null;
+  }
+
+  var therapistPool = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  if (!Array.isArray(therapistPool) || !therapistPool.length) {
+    return null;
+  }
+
+  var targetId = String(item.target_therapist_id || "").trim();
+  var targetSlug = String(item.target_therapist_slug || item.slug || "").trim();
+  var providerId = String(item.provider_id || item.providerId || "").trim();
+  var email = String(item.email || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    therapistPool.find(function (therapist) {
+      return (
+        (targetId && String(therapist.id || therapist._id || "").trim() === targetId) ||
+        (targetSlug && String(therapist.slug || "").trim() === targetSlug) ||
+        (providerId &&
+          String(therapist.provider_id || therapist.providerId || "").trim() === providerId) ||
+        (email &&
+          String(therapist.email || "")
+            .trim()
+            .toLowerCase() === email)
+      );
+    }) || null
+  );
+}
+
+function buildApplicationDiffRows(item, therapist) {
+  if (!item || !therapist) {
+    return [];
+  }
+
+  var rows = [
+    {
+      label: "Credentials",
+      application: normalizeListValue(getRecordValue(item, ["credentials"])),
+      live: normalizeListValue(getRecordValue(therapist, ["credentials"])),
+    },
+    {
+      label: "Title",
+      application: normalizeListValue(getRecordValue(item, ["title"])),
+      live: normalizeListValue(getRecordValue(therapist, ["title"])),
+    },
+    {
+      label: "Location",
+      application: normalizeListValue(formatLocationLine(item)),
+      live: normalizeListValue(formatLocationLine(therapist)),
+    },
+    {
+      label: "Website",
+      application: normalizeListValue(getRecordValue(item, ["website"])),
+      live: normalizeListValue(getRecordValue(therapist, ["website"])),
+    },
+    {
+      label: "Email",
+      application: normalizeListValue(getRecordValue(item, ["email"])),
+      live: normalizeListValue(getRecordValue(therapist, ["email"])),
+    },
+    {
+      label: "Phone",
+      application: normalizeListValue(getRecordValue(item, ["phone"])),
+      live: normalizeListValue(getRecordValue(therapist, ["phone"])),
+    },
+    {
+      label: "Preferred contact",
+      application: normalizeListValue(
+        getRecordValue(item, ["preferred_contact_method", "preferredContactMethod"]),
+      ),
+      live: normalizeListValue(
+        getRecordValue(therapist, ["preferred_contact_method", "preferredContactMethod"]),
+      ),
+    },
+    {
+      label: "Primary CTA",
+      application: normalizeListValue(
+        getRecordValue(item, ["preferred_contact_label", "preferredContactLabel"]),
+      ),
+      live: normalizeListValue(
+        getRecordValue(therapist, ["preferred_contact_label", "preferredContactLabel"]),
+      ),
+    },
+    {
+      label: "Insurance",
+      application: normalizeListValue(
+        getRecordValue(item, ["insurance_accepted", "insuranceAccepted"]),
+      ),
+      live: normalizeListValue(
+        getRecordValue(therapist, ["insurance_accepted", "insuranceAccepted"]),
+      ),
+    },
+    {
+      label: "Telehealth states",
+      application: normalizeListValue(
+        getRecordValue(item, ["telehealth_states", "telehealthStates"]),
+      ),
+      live: normalizeListValue(
+        getRecordValue(therapist, ["telehealth_states", "telehealthStates"]),
+      ),
+    },
+    {
+      label: "Accepting new patients",
+      application: String(
+        getBooleanRecordValue(item, ["accepting_new_patients", "acceptingNewPatients"]) === true
+          ? "Yes"
+          : getBooleanRecordValue(item, ["accepting_new_patients", "acceptingNewPatients"]) ===
+              false
+            ? "No"
+            : "",
+      ),
+      live: String(
+        getBooleanRecordValue(therapist, ["accepting_new_patients", "acceptingNewPatients"]) ===
+          true
+          ? "Yes"
+          : getBooleanRecordValue(therapist, ["accepting_new_patients", "acceptingNewPatients"]) ===
+              false
+            ? "No"
+            : "",
+      ),
+    },
+    {
+      label: "Medication management",
+      application: String(
+        getBooleanRecordValue(item, ["medication_management", "medicationManagement"]) === true
+          ? "Yes"
+          : getBooleanRecordValue(item, ["medication_management", "medicationManagement"]) === false
+            ? "No"
+            : "",
+      ),
+      live: String(
+        getBooleanRecordValue(therapist, ["medication_management", "medicationManagement"]) === true
+          ? "Yes"
+          : getBooleanRecordValue(therapist, ["medication_management", "medicationManagement"]) ===
+              false
+            ? "No"
+            : "",
+      ),
+    },
+  ];
+
+  return rows
+    .map(function (row) {
+      var applicationValue = row.application || "";
+      var liveValue = row.live || "";
+      var status =
+        applicationValue && liveValue
+          ? applicationValue === liveValue
+            ? "match"
+            : "changed"
+          : applicationValue && !liveValue
+            ? "new"
+            : !applicationValue && liveValue
+              ? "missing"
+              : "empty";
+      return {
+        label: row.label,
+        application: applicationValue || "Not provided",
+        live: liveValue || "Not listed",
+        status: status,
+      };
+    })
+    .filter(function (row) {
+      return row.status !== "empty";
+    });
+}
+
+function getApplicationDiffSummary(rows) {
+  var changed = rows.filter(function (row) {
+    return row.status === "changed" || row.status === "new" || row.status === "missing";
+  });
+  if (!changed.length) {
+    return "The incoming profile matches the live listing on the core operational fields shown here.";
+  }
+  return (
+    changed.length +
+    " core field" +
+    (changed.length === 1 ? " needs" : "s need") +
+    " review before you apply this update."
+  );
+}
+
+function renderApplicationDiffHtml(item, therapist) {
+  var rows = buildApplicationDiffRows(item, therapist);
+  if (!rows.length) {
+    return "";
+  }
+
+  var summary = getApplicationDiffSummary(rows);
+  return (
+    '<div class="review-snapshot-box"><div class="review-snapshot-title">Live profile diff</div><div class="review-snapshot-copy">' +
+    escapeHtml(summary) +
+    '</div><div class="candidate-compare-grid" style="margin-top:0.75rem">' +
+    rows
+      .map(function (row) {
+        return (
+          '<div class="candidate-compare-card"><div class="mini-status"><strong>' +
+          escapeHtml(row.label) +
+          '</strong> <span class="' +
+          escapeHtml(
+            row.status === "match"
+              ? "status approved"
+              : row.status === "changed"
+                ? "status reviewing"
+                : "status rejected",
+          ) +
+          '">' +
+          escapeHtml(
+            row.status === "match"
+              ? "Matches"
+              : row.status === "changed"
+                ? "Changed"
+                : row.status === "new"
+                  ? "New data"
+                  : "Live only",
+          ) +
+          '</span></div><div class="queue-insight-note"><strong>Incoming:</strong> ' +
+          escapeHtml(row.application) +
+          '</div><div class="queue-insight-note"><strong>Live:</strong> ' +
+          escapeHtml(row.live) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>"
+  );
+}
+
 function formatDate(value) {
   return new Date(value).toLocaleString();
 }
@@ -1957,6 +2237,67 @@ function getClaimFunnelBottleneck(claimFunnel, rates) {
     return "Biggest bottleneck: claims are entering the funnel but not yet getting approved.";
   }
   return "The loop is moving. Keep approved-claim follow-up and after-claim reviews tight so momentum does not cool off.";
+}
+
+function getClaimActionQueue(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var urgency = getClaimFollowUpUrgency(item);
+      var portalState = String(item.portal_state || "");
+      var ageMs =
+        new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
+      var ageDays = Number.isFinite(ageMs)
+        ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
+        : 0;
+      var action = null;
+
+      if (urgency.tone === "urgent") {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Overdue follow-up",
+          note: urgency.note,
+          priority: 300 + ageDays,
+        };
+      } else if (portalState === "profile_submitted_after_claim") {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Review after-claim profile",
+          note: "The therapist completed the fuller profile. Review it before the follow-through momentum cools.",
+          priority: 240 + ageDays,
+        };
+      } else if (
+        portalState === "claimed_ready_for_profile" &&
+        item.claim_follow_up_status === "responded"
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Nudge full-profile completion",
+          note: "The therapist has responded. The next leverage is getting the fuller profile finished.",
+          priority: 220 + ageDays,
+        };
+      } else if (
+        ["claim_pending_review", "claim_in_review"].includes(portalState) &&
+        ageDays >= 3
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Clear claim review",
+          note: "This claim has been waiting " + ageDays + " days and should get a clear decision.",
+          priority: 180 + ageDays,
+        };
+      }
+
+      return action;
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return b.priority - a.priority || a.title.localeCompare(b.title);
+    })
+    .slice(0, 3);
 }
 
 function buildRecommendedReviewBatchPacket(items, goal) {
@@ -8099,6 +8440,7 @@ function renderApplications() {
     conversionRate: claimConversionRate,
   };
   const claimBottleneck = getClaimFunnelBottleneck(claimFunnel, claimRates);
+  const claimActionQueue = getClaimActionQueue(applications);
   const overdueClaims = applications
     .filter(function (item) {
       return getClaimFollowUpUrgency(item).tone === "urgent";
@@ -8157,6 +8499,25 @@ function renderApplications() {
       })
       .join("") +
     "</div></div>" +
+    (claimActionQueue.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Top claim actions right now</div><div class="subtle" style="margin-bottom:0.7rem">These are the highest-leverage therapist funnel moves based on delay risk and follow-through value.</div><div class="queue-insights-grid">' +
+        claimActionQueue
+          .map(function (item) {
+            return (
+              '<button type="button" class="queue-insight-card" data-application-jump="' +
+              escapeHtml(item.id) +
+              '"><div class="queue-insight-label"><strong>' +
+              escapeHtml(item.title) +
+              '</strong></div><div class="queue-insight-note">' +
+              escapeHtml(item.lane) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(item.note) +
+              "</div></button>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     (overdueClaims.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Urgent follow-up queue</div><div class="subtle" style="margin-bottom:0.7rem">These approved claims are the most likely to cool off if you do not send follow-up now.</div><div class="queue-insights-grid">' +
         overdueClaims
@@ -8367,6 +8728,14 @@ function renderApplications() {
           window.location.href,
         ).toString();
         const confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
+        const linkedTherapist = getApplicationLinkedTherapist(item);
+        const applicationDiffHtml =
+          linkedTherapist &&
+          ["claim_existing", "update_existing", "confirmation_update"].includes(
+            String(item.intake_type || ""),
+          )
+            ? renderApplicationDiffHtml(item, linkedTherapist)
+            : "";
         const fitTags = []
           .concat(item.treatment_modalities || [])
           .concat(item.client_populations || [])
@@ -8528,6 +8897,7 @@ function renderApplications() {
               "</div>"
             : "") +
           "</div>" +
+          applicationDiffHtml +
           '<p class="application-bio">' +
           escapeHtml(item.bio) +
           "</p>" +
