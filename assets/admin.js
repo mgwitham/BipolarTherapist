@@ -48,6 +48,7 @@ let remoteApplications = [];
 let remoteCandidates = [];
 let remotePortalRequests = [];
 let publishedTherapists = [];
+let applicationLiveApplySummaries = {};
 let authRequired = false;
 let rankingRiskFilter = "";
 let confirmationQueueFilter = "";
@@ -563,11 +564,18 @@ function renderApplicationDiffHtml(item, therapist) {
       ) +
       "</div>"
     : "";
+  var recentApplySummary = applicationLiveApplySummaries[item.id] || null;
+  var recentApplyHtml = recentApplySummary
+    ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Just updated:</strong> ' +
+      escapeHtml(recentApplySummary.message) +
+      "</div>"
+    : "";
   return (
     '<div class="review-snapshot-box"><div class="review-snapshot-title">Live profile diff</div><div class="review-snapshot-copy">' +
     escapeHtml(summary) +
     "</div>" +
     syncProgressHtml +
+    recentApplyHtml +
     lastAppliedHtml +
     trustCriticalHtml +
     remainingDiffHtml +
@@ -637,14 +645,54 @@ function getApplicationLiveSyncSnapshot(item, therapist) {
   }
 
   var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+  var recentApplySummary = applicationLiveApplySummaries[item.id] || null;
   var changedCount = rows.filter(function (row) {
     return row.status === "changed" || row.status === "new" || row.status === "missing";
   }).length;
 
   return {
     changedCount: changedCount,
-    lastAppliedLabel: lastAppliedEntry ? "Live fields applied" : "",
+    lastAppliedLabel: recentApplySummary
+      ? recentApplySummary.tagLabel
+      : lastAppliedEntry
+        ? "Live fields applied"
+        : "",
     syncLabel: changedCount ? changedCount + " fields still differ" : "Live profile in sync",
+  };
+}
+
+function buildApplicationApplySummary(id, application, therapist, appliedFields) {
+  if (!id || !application || !therapist) {
+    return null;
+  }
+
+  var rows = buildApplicationDiffRows(application, therapist);
+  var changedCount = rows.filter(function (row) {
+    return row.status === "changed" || row.status === "new" || row.status === "missing";
+  }).length;
+  var labels = rows
+    .filter(function (row) {
+      return Array.isArray(appliedFields) && appliedFields.includes(row.fieldKey);
+    })
+    .map(function (row) {
+      return row.label;
+    });
+  var labelText = labels.length ? labels.join(", ") : "selected live fields";
+  return {
+    tagLabel:
+      "Updated " +
+      (Array.isArray(appliedFields) ? appliedFields.length : 0) +
+      " field" +
+      (Array.isArray(appliedFields) && appliedFields.length === 1 ? "" : "s"),
+    message:
+      "Applied " +
+      labelText +
+      (changedCount
+        ? ". " +
+          changedCount +
+          " field" +
+          (changedCount === 1 ? " still differs." : "s still differ.")
+        : ". Live profile is now in sync."),
   };
 }
 
@@ -9913,16 +9961,27 @@ function renderApplications() {
       button.disabled = true;
       try {
         if (dataMode === "sanity") {
-          await applyTherapistApplicationFields(id, selectedFields);
+          var result = await applyTherapistApplicationFields(id, selectedFields);
+          var applySummary = buildApplicationApplySummary(
+            id,
+            result && result.application ? result.application : null,
+            result && result.therapist ? result.therapist : null,
+            result && Array.isArray(result.applied_fields) ? result.applied_fields : selectedFields,
+          );
+          if (applySummary) {
+            applicationLiveApplySummaries[id] = applySummary;
+          }
           await loadData();
           setApplyLiveFieldsStatus(
             root,
             id,
-            "Applied " +
-              selectedFields.length +
-              " selected field" +
-              (selectedFields.length === 1 ? "" : "s") +
-              " to the live profile.",
+            applySummary
+              ? applySummary.message
+              : "Applied " +
+                  selectedFields.length +
+                  " selected field" +
+                  (selectedFields.length === 1 ? "" : "s") +
+                  " to the live profile.",
           );
         } else {
           setApplyLiveFieldsStatus(
@@ -10179,6 +10238,86 @@ function getCandidateTrustRecommendation(item, summary) {
     return "Review the source extraction next before trusting this candidate as publish-ready.";
   }
   return "This candidate has enough trust detail to move quickly if the source still looks clean.";
+}
+
+function getCandidatePublishPacket(item, summary) {
+  const trust = summary || getCandidateTrustSummary(item);
+  const strong = [];
+  const watch = [];
+  const blockers = [];
+
+  if (item.dedupe_status === "possible_duplicate") {
+    blockers.push("Duplicate risk");
+  }
+  if (item.review_status === "needs_confirmation") {
+    watch.push("Confirmation pass");
+  }
+  if (item.review_status === "needs_review" && item.publish_recommendation !== "ready") {
+    watch.push("Editorial review");
+  }
+
+  if (trust.strong.includes("Source trail")) {
+    strong.push("Source trail");
+  } else {
+    blockers.push("Source trail");
+  }
+  if (trust.strong.includes("License identity")) {
+    strong.push("License identity");
+  } else {
+    blockers.push("License identity");
+  }
+  if (trust.strong.includes("Contact path")) {
+    strong.push("Contact path");
+  } else {
+    watch.push("Contact path");
+  }
+  if (trust.strong.includes("Operational details")) {
+    strong.push("Operational details");
+  } else {
+    watch.push("Operational details");
+  }
+  if (trust.strong.includes("Extraction confidence")) {
+    strong.push("Extraction confidence");
+  } else if (trust.attention.includes("Extraction confidence")) {
+    watch.push("Extraction confidence");
+  }
+
+  const uniqueStrong = Array.from(new Set(strong));
+  const uniqueWatch = Array.from(new Set(watch)).filter(function (label) {
+    return !blockers.includes(label);
+  });
+  const uniqueBlockers = Array.from(new Set(blockers));
+  const decision = uniqueBlockers.length
+    ? "Hold publish"
+    : uniqueWatch.length
+      ? "Close, but verify"
+      : "Publish ready";
+
+  return {
+    decision: decision,
+    strong: uniqueStrong,
+    watch: uniqueWatch,
+    blockers: uniqueBlockers,
+  };
+}
+
+function renderCandidatePublishPacket(packet) {
+  if (!packet) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Publish packet</div><div class="queue-summary-grid">' +
+    '<div class="queue-kpi"><div class="queue-kpi-label">Decision</div><div class="queue-kpi-value">' +
+    escapeHtml(packet.decision) +
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Strong enough now</div><div class="queue-kpi-value">' +
+    escapeHtml(packet.strong.length ? packet.strong.join(", ") : "Still building") +
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Watch next</div><div class="queue-kpi-value">' +
+    escapeHtml(packet.watch.length ? packet.watch.join(", ") : "None") +
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Publish blockers</div><div class="queue-kpi-value">' +
+    escapeHtml(packet.blockers.length ? packet.blockers.join(", ") : "None") +
+    "</div></div></div></div>"
+  );
 }
 
 function renderCandidateTrustChips(summary, limit) {
@@ -10596,6 +10735,7 @@ function renderOpsInbox() {
     const evidence = getCandidateOpsEvidence(item);
     const trustSummary = getCandidateTrustSummary(item);
     const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
+    const publishPacket = getCandidatePublishPacket(item, trustSummary);
     const mergePreview = renderCandidateMergePreview(item);
     return (
       '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
@@ -10628,6 +10768,7 @@ function renderOpsInbox() {
       '<div class="subtle" style="margin-top:0.35rem">' +
       escapeHtml(trustRecommendation) +
       "</div>" +
+      renderCandidatePublishPacket(publishPacket) +
       renderCandidateTrustChips(trustSummary, 3) +
       renderCandidateMergeWorkbench(item) +
       mergePreview +
@@ -10893,6 +11034,7 @@ function renderCandidateQueue() {
         const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
         const trustSummary = getCandidateTrustSummary(item);
         const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
+        const publishPacket = getCandidatePublishPacket(item, trustSummary);
         const mergeWorkbench = renderCandidateMergeWorkbench(item);
         const mergePreview = renderCandidateMergePreview(item);
         const recommendation =
@@ -10935,6 +11077,7 @@ function renderCandidateQueue() {
           '<div class="queue-summary"><strong>Next trust move:</strong> ' +
           escapeHtml(trustRecommendation) +
           "</div>" +
+          renderCandidatePublishPacket(publishPacket) +
           (sourceTrail
             ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
               escapeHtml(sourceTrail) +
