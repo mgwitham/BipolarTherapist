@@ -5,9 +5,14 @@ on:
     - cron: "0 13 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ingestion-ops-daily
+  cancel-in-progress: false
+
 jobs:
   run-ingestion-ops:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
       SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
@@ -30,6 +35,10 @@ jobs:
       - name: Run ingestion automation
         run: npm run cms:run:ingestion-automation
 
+      - name: Publish run summary
+        if: always()
+        run: cat data/import/generated-ingestion-automation-status.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload ingestion artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -38,6 +47,7 @@ jobs:
           path: |
             data/import/generated-ingestion-automation-status.json
             data/import/generated-ingestion-automation-status.md
+            data/import/generated-ingestion-automation-history.json
             data/import/generated-source-health-checks.csv
             data/import/generated-source-health-checks.md
             data/import/generated-operational-drift-checks.csv
