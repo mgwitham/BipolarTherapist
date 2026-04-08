@@ -490,6 +490,11 @@
         font-size: 0.8rem;
         color: var(--muted);
       }
+      .submit-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
       .btn-submit {
         background: var(--teal);
         color: white;
@@ -504,9 +509,17 @@
           transform 0.1s;
         font-family: inherit;
       }
+      .btn-submit-secondary {
+        background: transparent;
+        color: var(--teal-dark);
+        border: 1.5px solid rgba(26, 122, 143, 0.24);
+      }
       .btn-submit:hover {
         background: var(--teal-dark);
         transform: translateY(-1px);
+      }
+      .btn-submit-secondary:hover {
+        background: var(--teal-faint);
       }
       .btn-submit:disabled {
         opacity: 0.6;
@@ -845,6 +858,7 @@
     <div class="wrap">
       <div class="form-card" id="formCard">
         <form id="applyForm" onsubmit="handleSubmit(event)" novalidate>
+          <input type="hidden" name="submission_intent" value="full_profile" />
           <div class="claim-note">
             <h3>Claim first. Pay for growth, not accuracy.</h3>
             <p>
@@ -878,6 +892,10 @@
             <p>
               Start with the essentials needed to verify ownership: identity, licensure, core
               contact details, and a few basics that make the profile trustworthy.
+            </p>
+            <p class="field-hint" style="margin: 0.5rem 0 0">
+              For a free claim, you only need the fields in this first section. Open Step 2 when you
+              want to complete the fuller profile for review.
             </p>
           </div>
           <div class="form-section">
@@ -1004,7 +1022,7 @@
             </div>
           </div>
 
-          <details class="funnel-disclosure" open>
+          <details class="funnel-disclosure" id="fullProfileDetails">
             <summary>
               <div class="funnel-disclosure-copy">
                 <strong>Step 2: Complete your full profile</strong>
@@ -1013,7 +1031,9 @@
                   useful in matching and more compelling to the right clients.
                 </span>
               </div>
-              <span class="funnel-disclosure-toggle">Open profile details</span>
+              <span class="funnel-disclosure-toggle" id="fullProfileToggleLabel">
+                Open profile details
+              </span>
             </summary>
             <div class="funnel-disclosure-body">
               <div class="form-section">
@@ -1608,12 +1628,22 @@
 
           <div class="form-submit">
             <div class="submit-note">
-              Submit your claim or listing details now. Paid plans unlock live growth features like
-              enhanced visibility, match placement, and stronger conversion tools after review.
+              Save a free claim now, or submit the fuller profile when you are ready. Paid plans
+              come later, after review, when you want visibility and growth features.
             </div>
-            <button type="submit" class="btn-submit" id="submitBtn">
-              Claim or Submit Profile →
-            </button>
+            <div class="submit-actions">
+              <button
+                type="submit"
+                class="btn-submit btn-submit-secondary"
+                id="claimBtn"
+                data-submit-intent="claim"
+              >
+                Save Free Claim
+              </button>
+              <button type="submit" class="btn-submit" id="submitBtn" data-submit-intent="full">
+                Submit Full Profile
+              </button>
+            </div>
           </div>
         </form>
       </div>

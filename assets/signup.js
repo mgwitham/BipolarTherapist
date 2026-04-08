@@ -110,25 +110,81 @@ function showErr(msg) {
   element.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+function syncFullProfileDisclosure() {
+  var disclosure = document.getElementById("fullProfileDetails");
+  var toggleLabel = document.getElementById("fullProfileToggleLabel");
+  if (!disclosure || !toggleLabel) {
+    return;
+  }
+
+  toggleLabel.textContent = disclosure.open ? "Hide profile details" : "Open profile details";
+}
+
+function openFullProfileDisclosure() {
+  var disclosure = document.getElementById("fullProfileDetails");
+  if (!disclosure) {
+    return;
+  }
+
+  if (!disclosure.open) {
+    disclosure.open = true;
+    syncFullProfileDisclosure();
+  }
+}
+
+function revealField(name) {
+  if (!name) {
+    return;
+  }
+
+  var field = document.querySelector('[name="' + name + '"]');
+  if (!field) {
+    return;
+  }
+
+  field.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (typeof field.focus === "function") {
+    field.focus({ preventScroll: true });
+  }
+}
+
+function showValidationError(msg, fieldName, shouldOpenFullProfile) {
+  if (shouldOpenFullProfile) {
+    openFullProfileDisclosure();
+  }
+  showErr(msg);
+  revealField(fieldName);
+}
+
 function showSuccess(application, source) {
+  var intent =
+    application && application.submission_intent ? application.submission_intent : "full_profile";
   var isRevision = Boolean(revisionApplicationId || (application && application.revision_count));
   var isConfirmation = Boolean(confirmationTherapistSlug && !revisionApplicationId);
   var message =
     source === "sanity"
       ? isConfirmation
         ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
-        : isRevision
-          ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
-          : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
+        : intent === "claim"
+          ? "Your free claim has been sent into the real review queue. Once ownership is verified, you can come back to complete the richer profile details and decide whether to upgrade later."
+          : isRevision
+            ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
+            : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
       : isConfirmation
         ? "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed."
-        : isRevision
-          ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
-          : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
+        : intent === "claim"
+          ? "Your free claim has been saved locally in this working app. Next, review and verify ownership before completing the rest of the profile."
+          : isRevision
+            ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
+            : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
 
   document.getElementById("formCard").innerHTML =
     '<div class="success-state"><div class="success-icon">🎉</div><h2>' +
-    (isConfirmation ? "Confirmation Update Received!" : "Application Received!") +
+    (isConfirmation
+      ? "Confirmation Update Received!"
+      : intent === "claim"
+        ? "Claim Received!"
+        : "Application Received!") +
     "</h2><p>" +
     message +
     '</p><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
@@ -259,7 +315,9 @@ function renderRevisionWorkspace(data) {
 
 function collectFormData(form) {
   var applicationIntakeType = confirmationTherapistSlug ? "confirmation_update" : "new_listing";
+  var intentInput = form.elements.submission_intent;
   return {
+    submission_intent: intentInput ? String(intentInput.value || "full_profile") : "full_profile",
     application_intake_type: applicationIntakeType,
     target_therapist_slug: confirmationTherapistSlug || "",
     target_therapist_id: confirmationTherapistId || "",
@@ -527,43 +585,86 @@ async function handleSubmit(event) {
 
   var form = document.getElementById("applyForm");
   var button = document.getElementById("submitBtn");
+  var claimButton = document.getElementById("claimBtn");
+  var submitter = event.submitter || button;
+  var submitIntent =
+    submitter && submitter.dataset && submitter.dataset.submitIntent
+      ? submitter.dataset.submitIntent
+      : "full";
   document.getElementById("formError").style.display = "none";
+  if (form.elements.submission_intent) {
+    form.elements.submission_intent.value = submitIntent === "claim" ? "claim" : "full_profile";
+  }
 
   var data = collectFormData(form);
 
-  if (!data.name) return showErr("Please enter your name.");
-  if (!data.credentials) return showErr("Please enter your credentials or license.");
+  if (!data.name) return showValidationError("Please enter your name.", "name", false);
+  if (!data.credentials)
+    return showValidationError("Please enter your credentials or license.", "credentials", false);
   if (!data.email || !data.email.includes("@"))
-    return showErr("Please enter a valid email address.");
-  if (!data.city) return showErr("Please enter your city.");
-  if (!data.state) return showErr("Please select your state.");
-  if (!data.bio || data.bio.length < 50)
-    return showErr("Please write a bio of at least 50 characters.");
-  if (!data.license_state) return showErr("Please enter the state where your license is issued.");
-  if (!data.license_number)
-    return showErr("Please enter your license number so we can review the listing.");
-  if (!data.care_approach || data.care_approach.length < 40)
-    return showErr("Please add a short statement about how you help bipolar clients.");
-  if (!data.specialties.length) return showErr("Please choose at least one specialty.");
-  if (!data.treatment_modalities.length)
-    return showErr("Please choose at least one treatment modality.");
-  if (!data.accepts_telehealth && !data.accepts_in_person)
-    return showErr("Choose at least one session format.");
-  if (!data.therapist_reported_fields.length)
-    return showErr(
-      "Please choose at least one therapist-confirmed field so the trust layer can separate your submitted operational details from reviewed facts.",
+    return showValidationError("Please enter a valid email address.", "email", false);
+  if (!data.license_state)
+    return showValidationError(
+      "Please enter the state where your license is issued.",
+      "license_state",
+      false,
     );
+  if (!data.license_number)
+    return showValidationError(
+      "Please enter your license number so we can review the listing.",
+      "license_number",
+      false,
+    );
+  if (submitIntent !== "claim") {
+    if (!data.city) return showValidationError("Please enter your city.", "city", true);
+    if (!data.state) return showValidationError("Please select your state.", "state", true);
+    if (!data.bio || data.bio.length < 50)
+      return showValidationError("Please write a bio of at least 50 characters.", "bio", true);
+    if (!data.care_approach || data.care_approach.length < 40)
+      return showValidationError(
+        "Please add a short statement about how you help bipolar clients.",
+        "care_approach",
+        true,
+      );
+    if (!data.specialties.length)
+      return showValidationError("Please choose at least one specialty.", "specialties", true);
+    if (!data.treatment_modalities.length)
+      return showValidationError(
+        "Please choose at least one treatment modality.",
+        "treatment_modalities",
+        true,
+      );
+    if (!data.accepts_telehealth && !data.accepts_in_person)
+      return showValidationError("Choose at least one session format.", "accepts_telehealth", true);
+    if (!data.therapist_reported_fields.length)
+      return showValidationError(
+        "Please choose at least one therapist-confirmed field so the trust layer can separate your submitted operational details from reviewed facts.",
+        "therapist_reported_fields",
+        true,
+      );
+  }
   if (form.elements.photo_file.files && form.elements.photo_file.files[0]) {
     if (!data.photo_source_type) {
-      return showErr("Choose the source for the uploaded headshot.");
+      return showValidationError(
+        "Choose the source for the uploaded headshot.",
+        "photo_source_type",
+        false,
+      );
     }
     if (!data.photo_usage_permission_confirmed) {
-      return showErr("Please confirm that the uploaded headshot can be used on the live profile.");
+      return showValidationError(
+        "Please confirm that the uploaded headshot can be used on the live profile.",
+        "photo_usage_permission_confirmed",
+        false,
+      );
     }
   }
 
   button.disabled = true;
-  button.textContent = "Submitting...";
+  if (claimButton) {
+    claimButton.disabled = true;
+  }
+  submitter.textContent = submitIntent === "claim" ? "Saving claim..." : "Submitting...";
 
   try {
     data = {
@@ -590,7 +691,13 @@ async function handleSubmit(event) {
     showSuccess(application, source);
   } catch (error) {
     button.disabled = false;
-    button.textContent = "Submit Application →";
+    if (claimButton) {
+      claimButton.disabled = false;
+    }
+    button.textContent = "Submit Full Profile";
+    if (claimButton) {
+      claimButton.textContent = "Save Free Claim";
+    }
     showErr(
       error && error.message
         ? error.message
@@ -854,6 +961,11 @@ async function initSignupContext() {
 }
 
 initSignupContext();
+var fullProfileDisclosure = document.getElementById("fullProfileDetails");
+if (fullProfileDisclosure) {
+  fullProfileDisclosure.addEventListener("toggle", syncFullProfileDisclosure);
+  syncFullProfileDisclosure();
+}
 if (
   document.getElementById("applyForm") &&
   document.getElementById("applyForm").elements.therapist_reported_confirmed_at &&
