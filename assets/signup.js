@@ -497,6 +497,97 @@ function applySignupFocusField() {
   }, 120);
 }
 
+function getSuccessStateDetails(intent, isRevision, isConfirmation, isClaimConversion, source) {
+  var isSanity = source === "sanity";
+
+  if (isConfirmation) {
+    return {
+      title: "Confirmation Update Received!",
+      message: isSanity
+        ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
+        : "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed.",
+      nextTitle: "What happens next",
+      nextSteps: [
+        "We review the updated operational details before replacing the live profile.",
+        "If anything still needs clarification, the next request will point to the exact field.",
+        "If everything looks right, the live profile can be refreshed without rebuilding the whole listing.",
+      ],
+      adminLabel: "Open Review Queue →",
+      footer:
+        "This update stays tied to the existing live profile, so the next step is review rather than a brand-new listing pass.",
+    };
+  }
+
+  if (intent === "claim") {
+    return {
+      title: "Claim Received!",
+      message: isSanity
+        ? "Your free claim has been sent into the real review queue. Once ownership is verified, you can come back to complete the richer profile details and decide whether to upgrade later."
+        : "Your free claim has been saved locally in this working app. Next, review and verify ownership before completing the rest of the profile.",
+      nextTitle: "What happens next",
+      nextSteps: [
+        "First, ownership gets reviewed so the listing can be safely associated with the practice.",
+        "After claim approval, the fuller profile becomes the next high-value step.",
+        "Nothing else is required right now unless the review team asks for a clarification.",
+      ],
+      adminLabel: "Open Claim Review →",
+      footer:
+        "A free claim secures accuracy and ownership first. The richer profile can come after that.",
+    };
+  }
+
+  if (isClaimConversion) {
+    return {
+      title: "Full Profile Received!",
+      message: isSanity
+        ? "Your fuller profile has been sent in after claim approval. It is now back in the review queue so we can assess trust, fit, and listing readiness."
+        : "Your fuller profile has been saved locally after claim approval. It is now ready to move through review as a real listing candidate.",
+      nextTitle: "What happens next",
+      nextSteps: [
+        "The profile goes through a fuller trust and listing-readiness review.",
+        "If the review team needs anything else, they can request a focused revision instead of restarting the process.",
+        "If the profile clears review, it can move toward publish readiness.",
+      ],
+      adminLabel: "Open Full Profile Review →",
+      footer: "This is the handoff from ownership verification into listing-quality review.",
+    };
+  }
+
+  if (isRevision) {
+    return {
+      title: "Revision Received!",
+      message: isSanity
+        ? "Your revised profile has been sent back into the real review queue. The review request has been cleared and the updated version is ready for another review pass."
+        : "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published.",
+      nextTitle: "What happens next",
+      nextSteps: [
+        "The review team checks the revised fields against the earlier request.",
+        "If the requested fixes are covered, the profile can move forward without another full restart.",
+        "If anything is still unclear, the next request should stay focused on the remaining gaps.",
+      ],
+      adminLabel: "Open Revision Review →",
+      footer:
+        "A revision submission is meant to tighten specific gaps, not send you back to the beginning.",
+    };
+  }
+
+  return {
+    title: "Application Received!",
+    message: isSanity
+      ? "Your application has been sent into the real review queue. Open the admin review page or Sanity Studio to approve and publish it."
+      : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.",
+    nextTitle: "What happens next",
+    nextSteps: [
+      "The profile goes through review for trust, fit, and listing readiness.",
+      "If anything important is missing, the next step can come back as a focused revision request.",
+      "If the profile clears review, it can move toward publishing across search, matching, and the public profile.",
+    ],
+    adminLabel: "Open Admin Review →",
+    footer:
+      "The strongest next step from here is review and publish, not more form-filling unless a revision is requested.",
+  };
+}
+
 function showSuccess(application, source) {
   updateSignupFocusParam("");
   clearSignupDraft();
@@ -520,45 +611,36 @@ function showSuccess(application, source) {
     ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
       application.portal_state,
     );
-  var message =
-    source === "sanity"
-      ? isConfirmation
-        ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
-        : intent === "claim"
-          ? "Your free claim has been sent into the real review queue. Once ownership is verified, you can come back to complete the richer profile details and decide whether to upgrade later."
-          : isClaimConversion
-            ? "Your fuller profile has been sent in after claim approval. It is now back in the review queue so we can assess trust, fit, and listing readiness."
-            : isRevision
-              ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
-              : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
-      : isConfirmation
-        ? "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed."
-        : intent === "claim"
-          ? "Your free claim has been saved locally in this working app. Next, review and verify ownership before completing the rest of the profile."
-          : isClaimConversion
-            ? "Your fuller profile has been saved locally after claim approval. It is now ready to move through review as a real listing candidate."
-            : isRevision
-              ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
-              : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
+  var details = getSuccessStateDetails(
+    intent,
+    isRevision,
+    isConfirmation,
+    isClaimConversion,
+    source,
+  );
 
   document.getElementById("formCard").innerHTML =
     '<div class="success-state"><div class="success-icon">🎉</div><h2>' +
-    (isConfirmation
-      ? "Confirmation Update Received!"
-      : intent === "claim"
-        ? "Claim Received!"
-        : "Application Received!") +
+    details.title +
     "</h2><p>" +
-    message +
+    details.message +
     '</p><div style="margin: 0 auto 1.1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fbfdfe; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .3rem;">Current status</div><div style="font-size: .98rem; font-weight: 700; color: var(--navy); margin-bottom: .25rem;">' +
     portalLabel +
     '</div><div style="font-size: .82rem; color: var(--slate); line-height: 1.6;">' +
     portalNextStep +
-    '</div></div><a href="admin.html" class="btn-pay">Open Admin Review →</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
+    '</div></div><div style="margin: 0 auto 1rem; max-width: 440px; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 0.95rem 1rem;"><div style="font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .45rem;">' +
+    details.nextTitle +
+    '</div><ul style="margin:0;padding-left:1rem;color:var(--slate);font-size:.82rem;line-height:1.65"><li>' +
+    details.nextSteps.join("</li><li>") +
+    '</li></ul></div><a href="admin.html" class="btn-pay">' +
+    details.adminLabel +
+    '</a><br/><p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Saved as <strong>' +
     application.name +
     "</strong> with status <strong>" +
     portalLabel +
-    "</strong>.<br/>Once published, the listing will appear in search, guided matching, and public profile pages.</p></div>";
+    "</strong>.<br/>" +
+    details.footer +
+    "</p></div>";
   window.scrollTo(0, 0);
 }
 
