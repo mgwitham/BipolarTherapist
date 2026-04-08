@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import crypto from "node:crypto";
 import { createClient } from "@sanity/client";
 
 const ROOT = process.cwd();
@@ -334,7 +335,7 @@ function computeTherapistVerificationMeta(record) {
 function buildTherapistOpsEvent(therapist, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${therapist._id}-${Date.now()}`,
+    _id: `therapist-publish-event-${therapist._id}-${crypto.randomUUID()}`,
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: therapist.providerId || "",

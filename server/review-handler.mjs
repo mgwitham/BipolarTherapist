@@ -1470,7 +1470,7 @@ function normalizeCandidate(doc) {
 function buildCandidateReviewEvent(candidate, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${candidate.candidateId || candidate._id}-${Date.now()}`,
+    _id: `therapist-publish-event-${candidate.candidateId || candidate._id}-${crypto.randomUUID()}`,
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: candidate.providerId || buildProviderId(candidate),
@@ -1490,7 +1490,7 @@ function buildCandidateReviewEvent(candidate, updates) {
 function buildTherapistOpsEvent(therapist, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${therapist._id}-${Date.now()}`,
+    _id: `therapist-publish-event-${therapist._id}-${crypto.randomUUID()}`,
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: therapist.providerId || buildProviderId(therapist),
