@@ -685,17 +685,7 @@ function buildLocationAwareResultsMeta(profile, entries, hasRefinements) {
     });
 
     if (!exactZipMatch && zipSuggestions.length) {
-      return (
-        "No exact reviewed profile is live in ZIP " +
-        requestedZip +
-        " yet. Showing the nearest reviewed ZIPs instead: " +
-        zipSuggestions
-          .map(function (item) {
-            return item.zip;
-          })
-          .join(", ") +
-        "."
-      );
+      return "";
     }
   }
 
@@ -4328,6 +4318,7 @@ function renderPrimaryMatchCards(entries, _profile) {
     .map(function (entry, index) {
       var therapist = entry && entry.therapist ? entry.therapist : {};
       var preferredRoute = getPreferredOutreach(entry);
+      var routeType = getPreferredRouteType(entry);
       var locationLine = [therapist.city, therapist.state, therapist.zip]
         .filter(Boolean)
         .join(", ");
@@ -4336,6 +4327,37 @@ function renderPrimaryMatchCards(entries, _profile) {
           .filter(Boolean)
           .join(", ");
       }
+      var credentialLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+      var actionTitle =
+        routeType === "booking"
+          ? "Book the consultation"
+          : routeType === "phone"
+            ? "Call the practice"
+            : routeType === "email"
+              ? "Send a short email"
+              : routeType === "website"
+                ? "Open the intake page"
+                : "Open the full profile";
+      var ctaLabel =
+        routeType === "booking"
+          ? "Book now"
+          : routeType === "phone"
+            ? "Call now"
+            : routeType === "email"
+              ? "Email now"
+              : routeType === "website"
+                ? "Visit site"
+                : "Open profile";
+      var actionHint =
+        routeType === "booking"
+          ? "Fastest way to check availability and get started."
+          : routeType === "phone"
+            ? "Best for confirming fit, timing, and next steps quickly."
+            : routeType === "email"
+              ? "Good if you want a written first contact."
+              : routeType === "website"
+                ? "Best if this provider uses a web-based intake flow."
+                : "Open the strongest next step for this provider.";
 
       return (
         '<article class="match-card' +
@@ -4353,23 +4375,30 @@ function renderPrimaryMatchCards(entries, _profile) {
         "<h3>" +
         escapeHtml(therapist.name || "") +
         "</h3>" +
+        (credentialLine
+          ? '<div class="match-credentials">' + escapeHtml(credentialLine) + "</div>"
+          : "") +
         (locationLine ? '<div class="match-meta">' + escapeHtml(locationLine) + "</div>" : "") +
         "</div>" +
         '<div class="match-summary-pills">' +
         getShortlistSummary(entry) +
         "</div>" +
-        '<div class="match-card-footer"><div class="outreach-card-actions">' +
+        '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="match-card-action-title">' +
+        escapeHtml(actionTitle) +
+        '</div><div class="match-card-action-copy">' +
+        escapeHtml(actionHint) +
+        '</div><div class="outreach-card-actions">' +
         '<a href="' +
         escapeHtml(
           preferredRoute
             ? preferredRoute.href
             : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
         ) +
-        '" class="btn-primary"' +
+        '" class="btn-primary match-card-cta"' +
         (preferredRoute && preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
         ">" +
-        escapeHtml(preferredRoute ? preferredRoute.label : "Contact") +
-        "</a></div></div>" +
+        escapeHtml(ctaLabel) +
+        "</a></div></div></div>" +
         "</article>"
       );
     })
