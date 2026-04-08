@@ -28,6 +28,7 @@ let highlightTimer = 0;
 let lastFieldCallout = null;
 let lastFieldCalloutTarget = "";
 let formBannerTimer = 0;
+let signupRestoreMode = "";
 
 var SIGNUP_DRAFT_KEY_PREFIX = "bt_signup_draft_v1";
 
@@ -200,11 +201,21 @@ function showErr(msg) {
   showFormBanner(msg, "error");
 }
 
-function showFormBanner(message, tone) {
+function showFormBanner(message, tone, options) {
   var element = document.getElementById("formError");
   if (!element) {
     return;
   }
+  var shouldScroll = Boolean(
+    options && Object.prototype.hasOwnProperty.call(options, "scroll")
+      ? options.scroll
+      : tone === "error",
+  );
+  var shouldAutoHide = Boolean(
+    options && Object.prototype.hasOwnProperty.call(options, "autoHide")
+      ? options.autoHide
+      : tone === "success" || tone === "info",
+  );
 
   element.textContent = message;
   element.style.display = "block";
@@ -228,9 +239,11 @@ function showFormBanner(message, tone) {
     element.style.color = "var(--red)";
   }
 
-  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (shouldScroll) {
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-  if (tone === "success" || tone === "info") {
+  if (shouldAutoHide) {
     formBannerTimer = window.setTimeout(
       function () {
         element.style.display = "none";
@@ -453,39 +466,26 @@ function applySignupFocusField() {
     return;
   }
 
+  var form = document.getElementById("applyForm");
+  if (form) {
+    var data = collectFormData(form);
+    if (isSignupFieldFilled(data, fieldName)) {
+      updateSignupFocusParam("");
+      return;
+    }
+  }
+
   var field = document.querySelector('[name="' + fieldName + '"]');
   if (!field) {
     return;
   }
 
-  var stepTwoFieldNames = [
-    "city",
-    "state",
-    "practice_name",
-    "preferred_contact_method",
-    "preferred_contact_label",
-    "contact_guidance",
-    "first_step_expectation",
-    "booking_url",
-    "bio",
-    "care_approach",
-    "specialties",
-    "treatment_modalities",
-    "estimated_wait_time",
-    "telehealth_states",
-    "insurance_accepted",
-    "session_fee_min",
-    "session_fee_max",
-    "accepts_telehealth",
-    "accepts_in_person",
-  ];
-
-  if (stepTwoFieldNames.includes(fieldName)) {
+  if (shouldFieldOpenFullProfile(fieldName)) {
     openFullProfileDisclosure();
   }
 
   var formError = document.getElementById("formError");
-  if (formError) {
+  if (formError && draftStatusMessage !== "Draft restored") {
     showFormBanner(
       "Resume here: finish " + getSignupFocusLabel(fieldName) + " to keep your profile moving.",
       "info",
@@ -824,6 +824,20 @@ async function copySuccessReturnLink(href) {
 function showSuccess(application, source) {
   updateSignupFocusParam("");
   clearSignupDraft();
+  clearSignupRestoreMode();
+  clearFieldCallout();
+  if (lastHighlightedField) {
+    lastHighlightedField.style.boxShadow = "";
+    lastHighlightedField.style.background = "";
+    lastHighlightedField.style.transition = "";
+    lastHighlightedField = null;
+  }
+  if (highlightTimer) {
+    window.clearTimeout(highlightTimer);
+    highlightTimer = 0;
+  }
+  lastValidationTarget = "";
+  lastValidationSection = "";
   draftSavePending = false;
   setDraftStatus("");
   var successState = getSuccessViewModel(application, source);
@@ -2522,6 +2536,8 @@ function renderCompletionNudges() {
   var confirmationStats = mode === "confirmation" ? getConfirmationProgressStats(data) : null;
   var nextField = getNextRecommendedField(data);
   var nextFieldLabel = nextField ? nextField.label : "";
+  var shouldShowRestorePrefix =
+    signupRestoreMode && String(draftStatusMessage || "").trim() !== "Draft restored";
 
   configureSecondaryAction();
   refreshSignupWorkspace();
@@ -2552,6 +2568,9 @@ function renderCompletionNudges() {
           "/" +
           fullStats.total +
           " fuller-profile checkpoints covered.";
+    if (signupRestoreMode === "revision" && shouldShowRestorePrefix) {
+      submitNote.textContent = "Revision workspace restored. " + submitNote.textContent;
+    }
     if (lastValidationTarget && nextFieldLabel) {
       submitNote.textContent += " Current blocker: " + nextFieldLabel + ".";
     }
@@ -2581,6 +2600,9 @@ function renderCompletionNudges() {
         "/" +
         fullStats.total +
         " fuller-profile checkpoints covered.";
+    if (signupRestoreMode === "confirmation" && shouldShowRestorePrefix) {
+      submitNote.textContent = "Confirmation workspace restored. " + submitNote.textContent;
+    }
     if (lastValidationTarget && nextFieldLabel) {
       submitNote.textContent += " Current blocker: " + nextFieldLabel + ".";
     }
@@ -2844,6 +2866,7 @@ function applyDraftData(form, draft) {
 function restoreSignupDraft() {
   var form = document.getElementById("applyForm");
   var draft = readSignupDraft();
+  var explicitFocusField = getSignupFocusField();
   if (!form || !draft) {
     return;
   }
@@ -2861,14 +2884,16 @@ function restoreSignupDraft() {
     showFormBanner(
       "Restored your saved draft from this browser" +
         (draft.saved_at ? " (" + new Date(draft.saved_at).toLocaleString() + ")." : ".") +
-        (nextField
-          ? " Best next step: " + nextField.label + "."
-          : " This draft looks ready to submit."),
+        (explicitFocusField
+          ? " Resuming near " + getSignupFocusLabel(explicitFocusField) + "."
+          : nextField
+            ? " Best next step: " + nextField.label + "."
+            : " This draft looks ready to submit."),
       "info",
     );
   }
 
-  if (nextField) {
+  if (nextField && !explicitFocusField) {
     window.setTimeout(function () {
       jumpToSignupField(nextField.field);
     }, 120);
@@ -2888,6 +2913,7 @@ function applyRevisionContext(application) {
   revisionBaseline = application;
   confirmationTherapistSlug = "";
   confirmationTherapistId = application.published_therapist_id || "";
+  signupRestoreMode = "revision";
   setActiveRequestedFields(getRevisionRequestedFields(application.review_request_message));
   [
     "name",
@@ -2975,6 +3001,7 @@ function applyConfirmationContext(therapist) {
   revisionBaseline = therapist;
   confirmationTherapistSlug = therapist.slug || "";
   confirmationTherapistId = therapist.id || "";
+  signupRestoreMode = "confirmation";
   setActiveRequestedFields(agenda.unknown_fields);
 
   [
@@ -3131,9 +3158,66 @@ async function initSignupContext() {
 }
 
 async function initSignupPage() {
-  await initSignupContext();
-  applySignupFocusField();
-  initSignupFormUi();
+  var search =
+    typeof window !== "undefined" && window.location ? String(window.location.search || "") : "";
+  var isRevisionRoute = search.includes("revise=");
+  var isConfirmationRoute = search.includes("confirm=");
+  var activeFocusField = "";
+
+  try {
+    await initSignupContext();
+  } catch (error) {
+    console.error("Could not finish loading signup context.", error);
+  } finally {
+    applySignupFocusField();
+    initSignupFormUi();
+    activeFocusField = getSignupFocusField();
+  }
+
+  var formError = document.getElementById("formError");
+  if (formError && (isRevisionRoute || isConfirmationRoute)) {
+    if (isRevisionRoute) {
+      if (revisionApplicationId) {
+        if (draftStatusMessage !== "Draft restored" && !activeFocusField) {
+          showFormBanner(
+            "Revision workspace restored. You can keep tightening the requested fields.",
+            "info",
+          );
+        }
+      } else {
+        showFormBanner(
+          "We could not fully restore the requested revision context. You can still keep editing this form.",
+          "info",
+          { autoHide: false, scroll: true },
+        );
+      }
+    } else if (isConfirmationRoute && !revisionApplicationId) {
+      if (confirmationTherapistSlug) {
+        if (draftStatusMessage !== "Draft restored" && !activeFocusField) {
+          showFormBanner(
+            "Confirmation workspace restored. You can keep refining this live profile update.",
+            "info",
+          );
+        }
+      } else {
+        showFormBanner(
+          "We could not fully restore the confirmation context. You can still keep editing this form.",
+          "info",
+          { autoHide: false, scroll: true },
+        );
+      }
+    }
+  } else {
+    clearSignupRestoreMode();
+  }
+}
+
+function clearSignupRestoreMode() {
+  if (!signupRestoreMode) {
+    return;
+  }
+
+  signupRestoreMode = "";
 }
 
 function initSignupFormUi() {
@@ -3154,6 +3238,8 @@ function initSignupFormUi() {
   form.addEventListener("input", renderFieldCoaching);
   form.addEventListener("change", renderFieldCoaching);
   form.addEventListener("change", renderPhotoUploadStatus);
+  form.addEventListener("input", clearSignupRestoreMode);
+  form.addEventListener("change", clearSignupRestoreMode);
   form.addEventListener("input", renderCompletionNudges);
   form.addEventListener("change", renderCompletionNudges);
   form.addEventListener("input", scheduleSignupDraftSave);

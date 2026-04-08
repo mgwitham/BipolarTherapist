@@ -338,6 +338,10 @@ function renderProfile(t) {
           : "Reachability is moderate here: the contact path is clear, but live timing still needs direct confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
   document.getElementById("breadcrumbName").textContent = t.name;
+  var footerClaimLink = document.getElementById("footerClaimLink");
+  if (footerClaimLink) {
+    footerClaimLink.href = "signup.html?confirm=" + encodeURIComponent(t.slug);
+  }
 
   var initials = (t.name || "")
     .split(" ")

@@ -248,10 +248,7 @@ function buildPortalNextAction(therapist, application) {
 
   var focusField = getPortalResumeField(application);
   var focusLabel = getPortalResumeFieldLabel(focusField);
-  var revisionHref =
-    "signup.html?revise=" +
-    encodeURIComponent(application.id) +
-    (focusField ? "&focus=" + encodeURIComponent(focusField) : "");
+  var resumeHref = getPortalSignupHref(therapist, application, focusField);
   var liveProfileHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug);
   var portalState = application.portal_state || "";
 
@@ -263,7 +260,7 @@ function buildPortalNextAction(therapist, application) {
         focusLabel +
         " so we can review your listing for trust, fit, and publish readiness.",
       ctaLabel: "Complete full profile",
-      href: revisionHref,
+      href: resumeHref,
     };
   }
 
@@ -293,7 +290,7 @@ function buildPortalNextAction(therapist, application) {
         focusLabel +
         ".",
       ctaLabel: "Update claim details",
-      href: revisionHref,
+      href: resumeHref,
     };
   }
 
@@ -365,6 +362,22 @@ function getPortalResumeFieldLabel(fieldName) {
   if (fieldName === "estimated_wait_time") return "your wait-time details";
   if (fieldName === "telehealth_states") return "your telehealth states";
   return "your profile details";
+}
+
+function getPortalSignupHref(therapist, application, focusField) {
+  var focusSuffix = focusField ? "&focus=" + encodeURIComponent(focusField) : "";
+  var targetSlug =
+    (application && application.target_therapist_slug) || (therapist && therapist.slug) || "";
+
+  if (application && application.portal_state === "claim_needs_attention" && application.id) {
+    return "signup.html?revise=" + encodeURIComponent(application.id) + focusSuffix;
+  }
+
+  if (targetSlug) {
+    return "signup.html?confirm=" + encodeURIComponent(targetSlug) + focusSuffix;
+  }
+
+  return "signup.html" + (focusField ? "?focus=" + encodeURIComponent(focusField) : "");
 }
 
 function buildPortalProfileCoaching(application) {
@@ -832,8 +845,14 @@ function renderPortal(therapist, options) {
           })
           .join("") +
         (relatedApplication && relatedApplication.portal_state === "claimed_ready_for_profile"
-          ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="signup.html?revise=' +
-            encodeURIComponent(relatedApplication.id) +
+          ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
+            escapeHtml(
+              getPortalSignupHref(
+                therapist,
+                relatedApplication,
+                getPortalResumeField(relatedApplication),
+              ),
+            ) +
             '">Complete full profile</a></div>'
           : "") +
         "</div></article>"
