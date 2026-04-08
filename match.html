@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Find Your Best Match — BipolarTherapyHub</title>
+    <title>Get Matched with Bipolar-Informed Care — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Answer a few questions and get a calm, high-trust shortlist of bipolar therapists who may fit your needs."
+      content="Answer a few questions and get a clearer shortlist of therapists or psychiatrists who may fit your bipolar-related care needs."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,6 +25,38 @@
         max-width: 1080px;
         margin: 0 auto;
         padding: 1.4rem 1.5rem 0;
+      }
+      .match-hero-copy {
+        text-align: left;
+      }
+      .match-hero-copy h1 {
+        margin: 0 0 0.45rem;
+        font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+        line-height: 1.12;
+        color: var(--navy);
+      }
+      .match-hero-copy p {
+        margin: 0;
+        color: var(--slate);
+        font-size: 1rem;
+        line-height: 1.65;
+      }
+      .match-trust-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+      .match-trust-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.45rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.8rem;
+        font-weight: 700;
       }
       .match-layout {
         max-width: 1080px;
@@ -87,6 +119,13 @@
         color: var(--slate);
         font-size: 0.96rem;
         margin-bottom: 1rem;
+        text-align: center;
+      }
+      .match-action-status {
+        margin-top: 0.9rem;
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.5;
         text-align: center;
       }
       .match-search-box {
@@ -2046,21 +2085,32 @@
       class="match-results match-results-hero match-empty"
       style="margin-top: 0.4rem"
     >
-      Start with your ZIP code and care type. We’ll turn it into a calmer shortlist with clearer
-      reasons and next steps.
+      <div class="match-hero-copy">
+        <h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1>
+        <p>
+          Answer a few practical questions and we’ll turn your search into a smaller, clearer
+          shortlist of therapists or psychiatrists who may fit your needs.
+        </p>
+        <div class="match-trust-strip" aria-label="Trust highlights">
+          <span class="match-trust-pill">Built for bipolar-specific care</span>
+          <span class="match-trust-pill">Reviewed profile details where available</span>
+          <span class="match-trust-pill">Clear next-step guidance</span>
+        </div>
+      </div>
     </div>
 
     <div class="match-layout">
       <section class="match-results">
         <div class="match-builder">
           <div class="match-builder-header">
-            <h2>Refine Search</h2>
+            <h2>Start your match</h2>
           </div>
           <form id="matchForm" class="match-form">
             <div class="match-tool-shell">
               <div class="match-tool-card">
                 <p class="match-tool-copy">
-                  Enter your ZIP and care type. We’ll surface the best matches.
+                  Tell us what kind of care you want and any practical constraints that matter.
+                  We’ll build a more focused shortlist.
                 </p>
                 <div class="match-search-box">
                   <div class="search-field search-field--prompt" data-match-care-field>
@@ -2082,7 +2132,7 @@
                         aria-expanded="false"
                         aria-controls="match_care_menu"
                       >
-                        What type of care do you want?
+                        What kind of care are you looking for?
                       </button>
                       <div
                         class="custom-select-menu"
@@ -2097,7 +2147,7 @@
                           data-value="Therapy"
                           aria-selected="false"
                         >
-                          Therapist
+                          Therapy
                         </button>
                         <button
                           type="button"
@@ -2106,16 +2156,7 @@
                           data-value="Psychiatry"
                           aria-selected="false"
                         >
-                          Psychiatrist
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          role="option"
-                          data-value="Telehealth"
-                          aria-selected="false"
-                        >
-                          Telehealth
+                          Psychiatry
                         </button>
                       </div>
                     </div>
@@ -2128,7 +2169,7 @@
                         id="location_query"
                         name="location_query"
                         type="text"
-                        placeholder="Enter zip code"
+                        placeholder="Enter your ZIP code"
                         inputmode="numeric"
                         required
                       />
@@ -2140,12 +2181,15 @@
                     </div>
                   </div>
 
-                  <button type="submit" class="match-search-btn">Find</button>
+                  <button type="submit" class="match-search-btn">See my top matches</button>
+                </div>
+                <div class="match-action-status" id="matchActionStatus" aria-live="polite">
+                  Run a match to review your top options.
                 </div>
                 <details class="match-refinements">
                   <summary>
                     <span class="match-refinements-title">
-                      <strong>Add details</strong>
+                      <strong>Add preferences</strong>
                     </span>
                     <span class="match-refinements-toggle" aria-hidden="true"></span>
                   </summary>
@@ -2171,7 +2215,7 @@
                     </div>
 
                     <div class="match-group" data-intake-field="care_format">
-                      <label for="care_format">Care Format</label>
+                      <label for="care_format">How do you want to meet?</label>
                       <select id="care_format" name="care_format" required>
                         <option>In-Person</option>
                         <option>Telehealth</option>
@@ -2179,7 +2223,9 @@
                     </div>
 
                     <div class="match-group" data-intake-field="needs_medication_management">
-                      <label for="needs_medication_management">Medication Management</label>
+                      <label for="needs_medication_management"
+                        >Do you need medication management?</label
+                      >
                       <select
                         id="needs_medication_management"
                         name="needs_medication_management"
@@ -2203,7 +2249,7 @@
                     </div>
 
                     <div class="match-group" data-intake-field="priority_mode">
-                      <label for="priority_mode">What Matters Most</label>
+                      <label for="priority_mode">What matters most right now?</label>
                       <select id="priority_mode" name="priority_mode" required>
                         <option>Best overall fit</option>
                         <option>Soonest availability</option>
@@ -2340,7 +2386,7 @@
                   </div>
                   <input type="hidden" id="urgency" name="urgency" value="ASAP" />
                   <div class="match-refinement-actions">
-                    <button type="submit" class="btn-primary">Find</button>
+                    <button type="submit" class="btn-primary">See my top matches</button>
                     <button type="button" class="btn-secondary" id="resetMatch">Reset</button>
                   </div>
                 </details>
@@ -2384,7 +2430,7 @@
             <label class="feedback-reason"><input type="checkbox" value="Other" /> Other</label>
           </div>
           <div class="feedback-note" id="feedbackStatus">
-            Your feedback helps improve future match quality.
+            Your feedback helps us improve which providers rise for searches like yours.
           </div>
         </div>
         <div id="matchAdaptiveGuidance"></div>

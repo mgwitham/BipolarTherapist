@@ -1,5 +1,4 @@
 import { fetchPublicTherapists } from "./cms.js";
-import launchProfileControls from "../data/import/launch-profile-controls.json";
 import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
 import {
   readFunnelEvents,
@@ -7,7 +6,7 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import { getZipMarketStatus } from "./zip-lookup.js";
+import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -42,13 +41,7 @@ var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 var PRIMARY_SHORTLIST_LIMIT = 3;
 var SHORTLIST_QUEUE_LIMIT = 8;
-var MATCH_PRIORITY_SLUGS = Array.isArray(launchProfileControls?.matchPrioritySlugs)
-  ? launchProfileControls.matchPrioritySlugs
-      .map(function (value) {
-        return String(value || "").trim();
-      })
-      .filter(Boolean)
-  : [];
+var MATCH_PRIORITY_SLUGS = [];
 var US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
@@ -112,6 +105,30 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function normalizePrioritySlugs(controls) {
+  return Array.isArray(controls && controls.matchPrioritySlugs)
+    ? controls.matchPrioritySlugs
+        .map(function (value) {
+          return String(value || "").trim();
+        })
+        .filter(Boolean)
+    : [];
+}
+
+async function loadLaunchProfileControls() {
+  try {
+    var response = await fetch(
+      new URL("../data/import/launch-profile-controls.json", import.meta.url),
+    );
+    if (!response.ok) {
+      return {};
+    }
+    return await response.json();
+  } catch (_error) {
+    return {};
+  }
+}
+
 function applyMatchPriorityProminence(entries) {
   var prioritySet = new Set(MATCH_PRIORITY_SLUGS);
   return (entries || []).slice().sort(function (a, b) {
@@ -158,6 +175,12 @@ function syncZipResolvedLabel(value) {
   }
 
   var zipStatus = getZipMarketStatus(value);
+  if (zipStatus.status === "invalid") {
+    resolved.textContent = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
+    resolved.classList.toggle("is-visible", Boolean(String(value || "").trim()));
+    return;
+  }
+
   if (!zipStatus.place) {
     resolved.textContent = "";
     resolved.classList.remove("is-visible");
@@ -531,7 +554,6 @@ function formatSegmentLabel(segment) {
 
 function syncMatchCareSelectTrigger() {
   var select = document.getElementById("care_intent");
-  var careFormat = document.getElementById("care_format");
   var trigger = document.querySelector("[data-match-custom-select] .custom-select-trigger");
   var options = Array.from(
     document.querySelectorAll("[data-match-custom-select] .custom-select-option"),
@@ -541,17 +563,14 @@ function syncMatchCareSelectTrigger() {
     return;
   }
 
-  var selectedValue =
-    careFormat && String(careFormat.value || "") === "Telehealth"
-      ? "Telehealth"
-      : String(select.value || "Therapy");
+  var selectedValue = String(select.value || "Therapy");
   var selectedOption = options.find(function (option) {
     return option.dataset.value === selectedValue;
   });
 
   trigger.textContent = selectedOption
     ? selectedOption.textContent.trim()
-    : "What kind of support are you looking for?";
+    : "What kind of care are you looking for?";
 
   options.forEach(function (option) {
     option.setAttribute("aria-selected", String(option.dataset.value === selectedValue));
@@ -561,9 +580,8 @@ function syncMatchCareSelectTrigger() {
 function initMatchCareDropdown() {
   var selectRoot = document.querySelector("[data-match-custom-select]");
   var select = document.getElementById("care_intent");
-  var careFormat = document.getElementById("care_format");
 
-  if (!selectRoot || !select || !careFormat) {
+  if (!selectRoot || !select) {
     return;
   }
 
@@ -586,15 +604,7 @@ function initMatchCareDropdown() {
   }
 
   function setSelectedValue(value) {
-    if (value === "Telehealth") {
-      select.value = "Therapy";
-      careFormat.value = "Telehealth";
-    } else {
-      select.value = value || "Therapy";
-      if (String(careFormat.value || "") === "Telehealth") {
-        careFormat.value = "In-Person";
-      }
-    }
+    select.value = value || "Therapy";
     syncMatchCareSelectTrigger();
   }
 
@@ -959,7 +969,7 @@ function renderComparison(entries) {
     .join("");
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">See the practical differences that most often change who feels strongest to contact.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Start with language, medication support, cost, format, and insurance.</p></div><div class="compare-grid">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Check the practical differences that usually decide who to contact first: format, insurance, cost, medication support, and language.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Use this view to pressure-test the shortlist before you reach out.</p></div><div class="compare-grid">' +
     headerCells +
     bodyCells +
     "</div></section></div></section>";
@@ -2997,7 +3007,7 @@ function renderShortlistQueue(entries) {
 
   root.hidden = false;
   root.innerHTML =
-    '<details class="match-queue-disclosure"><summary><span class="match-queue-title">More providers</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
+    '<details class="match-queue-disclosure"><summary><span class="match-queue-title">More options to consider</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
     queueEntries
       .map(function (entry, index) {
         var therapist = entry.therapist;
@@ -3408,7 +3418,7 @@ function renderFallbackRecommendation(profile, entries) {
   }
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Keep a backup ready</div><div class="match-support-panel-copy">Hold one strong backup in case your first outreach does not move.</div></div></div><div class="match-support-panel-body"><section class="first-contact-reco"><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Backup option</div><div class="first-contact-name">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Keep a backup ready</div><div class="match-support-panel-copy">If your first choice is not available or does not respond, this is the next option to try.</div></div></div><div class="match-support-panel-body"><section class="first-contact-reco"><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Backup option</div><div class="first-contact-name">' +
     escapeHtml(fallback.therapist.name) +
     '</div><div class="first-contact-meta">' +
     escapeHtml(formatTherapistLocationLine(fallback.therapist) || "") +
@@ -3560,7 +3570,7 @@ function renderOutreachPanel(entries) {
     focusIndex = 0;
   }
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Take the next step</div><div class="match-support-panel-copy">Move through one provider at a time.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">What to do next</div><div class="match-support-panel-copy">Start with one provider, then move to your backup if the first option stalls.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
     escapeHtml(String(focusIndex + 1) + " of " + String(topEntries.length)) +
     '</div><div class="outreach-carousel-nav"><button type="button" class="btn-secondary" id="outreachPrev"' +
     (focusIndex === 0 ? " disabled" : "") +
@@ -3590,7 +3600,7 @@ function renderOutreachPanel(entries) {
           '</div></div><span class="match-summary-pill">' +
           escapeHtml(role) +
           '</span></div><div class="outreach-compact-grid"><div class="outreach-card-route"><div class="outreach-note-label">Start here</div><div class="outreach-note-body outreach-note-body-compact">' +
-          escapeHtml(preferredRoute ? preferredRoute.label : "Open profile") +
+          escapeHtml(preferredRoute ? preferredRoute.label : "View full profile") +
           '</div></div><div class="outreach-card-route outreach-card-script"><div class="outreach-note-label">What to say</div><div class="outreach-note-body outreach-script-preview">' +
           escapeHtml(script) +
           '</div></div></div><div class="outreach-card-actions">' +
@@ -3768,14 +3778,14 @@ function renderPrimaryMatchCards(entries, _profile) {
       var credentialLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
       var ctaLabel =
         routeType === "booking"
-          ? "Book now"
+          ? "Start with this provider"
           : routeType === "phone"
-            ? "Call now"
+            ? "Call this provider"
             : routeType === "email"
-              ? "Email now"
+              ? "Email this provider"
               : routeType === "website"
-                ? "Visit site"
-                : "Open profile";
+                ? "Visit provider site"
+                : "View full profile";
       return (
         '<article class="match-card' +
         (index === 0 ? " lead-card" : "") +
@@ -3824,7 +3834,10 @@ function safeRenderResults(entries, profile) {
   } catch (error) {
     console.error("Fell back to primary match cards after richer match rendering failed.", error);
     renderPrimaryMatchCards(entries, profile);
-    setActionState(true, "Top matches loaded. Some secondary sections did not finish rendering.");
+    setActionState(
+      true,
+      "Your shortlist is ready. Some secondary sections did not finish rendering.",
+    );
   }
 }
 
@@ -3857,12 +3870,12 @@ function renderResults(entries, profile) {
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     root.className = "match-empty";
     root.innerHTML = hasRefinements
-      ? "No strong bipolar-relevant option appeared with the current requirements. Try widening care format, insurance, or budget."
+      ? "We do not have a strong match for this search yet. Try widening your format, insurance, or budget preferences to see more options."
       : requestedZip && zipSuggestions.length
         ? "No exact reviewed profile is live in this ZIP code yet. Try one of the nearest reviewed ZIP codes: " +
           formatZipSuggestionList(zipSuggestions) +
           ", or widen to telehealth."
-        : "No strong bipolar-relevant option surfaced for this ZIP code yet. Try a nearby ZIP code, telehealth, or a few optional refinements.";
+        : "We do not have a strong match for this ZIP code yet. Try a nearby ZIP code, telehealth, or a few optional refinements.";
     outreach.innerHTML = "";
     compare.innerHTML = "";
     adaptiveGuidance.innerHTML = "";
@@ -3900,17 +3913,29 @@ function handleSubmit(event) {
   var profile = readCurrentIntakeProfile();
   var zipStatus = getZipMarketStatus(profile && profile.location_query);
 
+  if (zipStatus.status === "invalid") {
+    setActionState(false, "Enter a valid 5-digit ZIP code to review your top options.");
+    renderIntakeTradeoffPreview(profile);
+    return;
+  }
+
   if (zipStatus.status === "out_of_state") {
+    setActionState(false, zipStatus.message || "We are not currently live in that state yet.");
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
   if (zipStatus.status === "unknown") {
+    setActionState(
+      false,
+      "No exact reviewed profile is live in this ZIP code yet. Try a nearby ZIP or widen to telehealth.",
+    );
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
   if (!profile.care_state) {
+    setActionState(false, "Enter a valid 5-digit ZIP code to review your top options.");
     renderIntakeTradeoffPreview(profile);
     return;
   }
@@ -4009,10 +4034,10 @@ function resetForm() {
   latestEntries = [];
   currentJourneyId = null;
   window.history.replaceState({}, "", "match.html");
-  setActionState(false, "Run a match to review your shortlist.");
+  setActionState(false, "Run a match to review your top options.");
   document.getElementById("matchResults").className = "match-empty";
   document.getElementById("matchResults").innerHTML =
-    "Start with your ZIP code. We’ll narrow the field toward bipolar-relevant options with clearer reasons, trust snapshots, and next steps.";
+    '<div class="match-hero-copy"><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
   var queue = document.getElementById("matchQueue");
   if (queue) {
     queue.hidden = true;
@@ -4025,10 +4050,13 @@ function resetForm() {
   document.getElementById("matchCompare").innerHTML = "";
   updateShortlistFeedbackUi("");
   document.getElementById("feedbackStatus").textContent =
-    "Your feedback helps improve future match quality.";
+    "Your feedback helps us improve which providers rise for searches like yours.";
 }
 
 (async function init() {
+  var launchProfileControls = await loadLaunchProfileControls();
+  MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(launchProfileControls);
+  await preloadZipcodes();
   therapists = await fetchPublicTherapists();
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   latestAdaptiveSignals = getMatchAdaptiveStrategy();

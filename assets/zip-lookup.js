@@ -1,4 +1,5 @@
-import californiaZipcodes from "./ca-zipcodes.json";
+var californiaZipcodes = {};
+var californiaZipcodesReady = null;
 
 var US_STATE_NAMES = {
   AL: "Alabama",
@@ -115,6 +116,28 @@ var ZIP3_STATE_RANGES = [
 function normalizeZip(zip) {
   var normalizedZip = String(zip || "").trim();
   return /^\d{5}$/.test(normalizedZip) ? normalizedZip : "";
+}
+
+export function preloadZipcodes() {
+  if (!californiaZipcodesReady) {
+    californiaZipcodesReady = fetch(new URL("./ca-zipcodes.json", import.meta.url))
+      .then(function (response) {
+        if (!response.ok) {
+          return {};
+        }
+        return response.json();
+      })
+      .then(function (payload) {
+        californiaZipcodes = payload && typeof payload === "object" ? payload : {};
+        return californiaZipcodes;
+      })
+      .catch(function () {
+        californiaZipcodes = {};
+        return californiaZipcodes;
+      });
+  }
+
+  return californiaZipcodesReady;
 }
 
 function inferStateFromZip(zip) {

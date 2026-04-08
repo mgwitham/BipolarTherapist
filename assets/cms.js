@@ -1,23 +1,15 @@
-import { createClient } from "@sanity/client";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
-const projectId = import.meta.env.VITE_SANITY_PROJECT_ID;
-const dataset = import.meta.env.VITE_SANITY_DATASET;
-const apiVersion = import.meta.env.VITE_SANITY_API_VERSION || "2026-04-02";
-const useCdn = import.meta.env.VITE_SANITY_USE_CDN !== "false";
+const env = (import.meta && import.meta.env) || {};
+const projectId = env.VITE_SANITY_PROJECT_ID;
+const dataset = env.VITE_SANITY_DATASET;
+const apiVersion = env.VITE_SANITY_API_VERSION || "2026-04-02";
+const useCdn = env.VITE_SANITY_USE_CDN !== "false";
 
 export const cmsEnabled = Boolean(projectId && dataset);
-export const cmsStudioUrl = import.meta.env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
+export const cmsStudioUrl = env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
 
-const client = cmsEnabled
-  ? createClient({
-      projectId: projectId,
-      dataset: dataset,
-      apiVersion: apiVersion,
-      useCdn: useCdn,
-      perspective: "published",
-    })
-  : null;
+let clientPromise = null;
 
 const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
@@ -201,10 +193,28 @@ export function getCmsState() {
 }
 
 async function fetchFromSanity(query, params) {
-  if (!client) {
+  if (!cmsEnabled) {
     throw new Error("Sanity client not configured");
   }
 
+  if (!clientPromise) {
+    clientPromise = import("https://esm.sh/@sanity/client")
+      .then(function (module) {
+        return module.createClient({
+          projectId: projectId,
+          dataset: dataset,
+          apiVersion: apiVersion,
+          useCdn: useCdn,
+          perspective: "published",
+        });
+      })
+      .catch(function (error) {
+        clientPromise = null;
+        throw error;
+      });
+  }
+
+  const client = await clientPromise;
   return client.fetch(query, params || {});
 }
 
