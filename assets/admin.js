@@ -7629,6 +7629,263 @@ function buildCandidateDecisionActions(item) {
   return actions.join("");
 }
 
+function getCandidateReviewLaneLabel(value) {
+  if (value === "publish_now") return "Publish now";
+  if (value === "needs_confirmation") return "Needs confirmation";
+  if (value === "resolve_duplicates") return "Resolve duplicates";
+  if (value === "archived") return "Archived";
+  return "Editorial review";
+}
+
+function getVerificationLaneLabel(value) {
+  if (value === "needs_verification") return "Needs verification";
+  if (value === "needs_reconfirmation") return "Needs re-confirmation";
+  if (value === "refresh_now") return "Refresh now";
+  if (value === "refresh_soon") return "Refresh soon";
+  return "Fresh";
+}
+
+function bindCandidateDecisionButtons(root) {
+  if (!root) {
+    return;
+  }
+
+  root.querySelectorAll("[data-candidate-decision]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-candidate-decision");
+      const decision = button.getAttribute("data-candidate-next");
+      if (!id || !decision) {
+        return;
+      }
+
+      const prior = button.textContent;
+      button.disabled = true;
+      button.textContent = decision === "publish" ? "Publishing..." : "Updating...";
+      try {
+        await decideTherapistCandidate(id, { decision: decision });
+        await loadData();
+      } catch (_error) {
+        const status = root.querySelector('[data-candidate-status-id="' + id + '"]');
+        if (status) {
+          status.textContent =
+            decision === "publish"
+              ? "Could not publish this candidate."
+              : "Could not update this candidate.";
+        }
+        button.disabled = false;
+        button.textContent = prior;
+      }
+    });
+  });
+}
+
+function renderOpsInbox() {
+  const root = document.getElementById("opsInbox");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const candidates = dataMode === "sanity" ? remoteCandidates : [];
+  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+
+  const publishNow = candidates
+    .filter(function (item) {
+      return item.review_lane === "publish_now" && item.review_status !== "published";
+    })
+    .sort(function (a, b) {
+      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
+    })
+    .slice(0, 3);
+
+  const duplicateQueue = candidates
+    .filter(function (item) {
+      return item.review_lane === "resolve_duplicates" && item.review_status !== "archived";
+    })
+    .sort(function (a, b) {
+      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
+    })
+    .slice(0, 3);
+
+  const confirmationQueue = candidates
+    .filter(function (item) {
+      return item.review_lane === "needs_confirmation" && item.review_status !== "archived";
+    })
+    .sort(function (a, b) {
+      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
+    })
+    .slice(0, 3);
+
+  const refreshQueue = therapists
+    .map(function (item) {
+      return {
+        item: item,
+        freshness: getDataFreshnessSummary(item),
+      };
+    })
+    .filter(function (entry) {
+      return entry.item.verificationLane && entry.item.verificationLane !== "fresh";
+    })
+    .sort(function (a, b) {
+      return (
+        (Number(b.item.verificationPriority) || 0) - (Number(a.item.verificationPriority) || 0)
+      );
+    })
+    .slice(0, 4);
+
+  const totalActions =
+    publishNow.length + duplicateQueue.length + confirmationQueue.length + refreshQueue.length;
+
+  if (!totalActions) {
+    root.innerHTML =
+      '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>No urgent ops work right now.</strong><div class="subtle" style="margin-top:0.35rem">The publish, duplicate, confirmation, and refresh queues are currently clear.</div></div></div>';
+    return;
+  }
+
+  function renderCandidateOpsCard(item) {
+    const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
+    const match =
+      item.matched_therapist_slug || item.matched_application_id || "No linked duplicate yet";
+    return (
+      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      escapeHtml(item.name || "Unnamed candidate") +
+      '</h3><div class="ops-card-meta">' +
+      escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
+      '</div></div><span class="tag">' +
+      escapeHtml(getCandidateReviewLaneLabel(item.review_lane)) +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
+      escapeHtml(item.review_priority == null ? "Not scored" : item.review_priority + "/100") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
+      escapeHtml(item.next_review_due_at ? formatDate(item.next_review_due_at) : "Now") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Recommendation</div><div class="ops-card-kpi-value">' +
+      escapeHtml(item.publish_recommendation || "Review") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Existing match</div><div class="ops-card-kpi-value">' +
+      escapeHtml(match) +
+      '</div></div></div><div class="ops-card-actions">' +
+      buildCandidateDecisionActions(item) +
+      (item.source_url
+        ? '<a class="btn-secondary btn-inline" href="' +
+          escapeHtml(item.source_url) +
+          '" target="_blank" rel="noopener">Open source</a>'
+        : "") +
+      '</div><div class="review-coach-status" data-candidate-status-id="' +
+      escapeHtml(item.id) +
+      '"></div></article>'
+    );
+  }
+
+  function renderTherapistOpsCard(entry) {
+    const item = entry.item;
+    const freshness = entry.freshness;
+    const nextMove = freshness.needs_reconfirmation_fields.length
+      ? "Re-confirm " +
+        freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
+      : "Refresh source review";
+    return (
+      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      escapeHtml(item.name) +
+      '</h3><div class="ops-card-meta">' +
+      escapeHtml(
+        [item.credentials, [item.city, item.state, item.zip].filter(Boolean).join(", ")]
+          .filter(Boolean)
+          .join(" · "),
+      ) +
+      '</div></div><span class="tag">' +
+      escapeHtml(getVerificationLaneLabel(item.verificationLane)) +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
+      escapeHtml(
+        item.verificationPriority == null
+          ? "Not scored"
+          : String(item.verificationPriority) + "/100",
+      ) +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
+      escapeHtml(item.nextReviewDueAt ? formatDate(item.nextReviewDueAt) : "Now") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness</div><div class="ops-card-kpi-value">' +
+      escapeHtml(freshness.label) +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
+      escapeHtml(nextMove) +
+      '</div></div></div><div class="ops-card-actions"><a class="btn-primary" href="therapist.html?slug=' +
+      encodeURIComponent(item.slug) +
+      '">Open profile</a>' +
+      (item.sourceUrl
+        ? '<a class="btn-secondary" href="' +
+          escapeHtml(item.sourceUrl) +
+          '" target="_blank" rel="noopener">Open source</a>'
+        : "") +
+      "</div></article>"
+    );
+  }
+
+  function renderGroup(title, note, rowsHtml) {
+    return (
+      '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">' +
+      escapeHtml(title) +
+      '</h3><div class="subtle">' +
+      escapeHtml(note) +
+      '</div></div></div><div class="ops-list">' +
+      rowsHtml +
+      "</div></section>"
+    );
+  }
+
+  root.innerHTML =
+    '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>Today’s work</strong><div class="subtle" style="margin-top:0.35rem">Start with the highest-priority publish, duplicate, confirmation, and refresh items. This is the shortest path to a healthier therapist graph.</div><div class="ops-inbox-grid">' +
+    [
+      { value: publishNow.length, label: "Publish now" },
+      { value: duplicateQueue.length, label: "Resolve duplicates" },
+      { value: confirmationQueue.length, label: "Needs confirmation" },
+      { value: refreshQueue.length, label: "Refresh live profiles" },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="ops-kpi"><div class="ops-kpi-value">' +
+          escapeHtml(item.value) +
+          '</div><div class="ops-kpi-label">' +
+          escapeHtml(item.label) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    renderGroup(
+      "Publish now",
+      "High-readiness candidates that are closest to becoming live therapists.",
+      publishNow.length
+        ? publishNow.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">No immediate publish candidates right now.</div>',
+    ) +
+    renderGroup(
+      "Resolve duplicates",
+      "Protect the provider graph before adding anything new.",
+      duplicateQueue.length
+        ? duplicateQueue.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">No duplicate work is blocking the queue right now.</div>',
+    ) +
+    renderGroup(
+      "Needs confirmation",
+      "Good candidates that need one more trust pass before publish.",
+      confirmationQueue.length
+        ? confirmationQueue.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">No confirmation-driven candidate work is waiting right now.</div>',
+    ) +
+    renderGroup(
+      "Refresh live profiles",
+      "Keep listed therapists fresh so the product stays trustworthy and ranking stays healthy.",
+      refreshQueue.length
+        ? refreshQueue.map(renderTherapistOpsCard).join("")
+        : '<div class="subtle">No live profiles currently need refresh attention.</div>',
+    ) +
+    "</div>";
+
+  bindCandidateDecisionButtons(root);
+}
+
 function renderCandidateQueue() {
   const root = document.getElementById("candidateQueue");
   const countEl = document.getElementById("candidateQueueCount");
@@ -7808,33 +8065,7 @@ function renderCandidateQueue() {
       })
       .join("");
 
-  root.querySelectorAll("[data-candidate-decision]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const id = button.getAttribute("data-candidate-decision");
-      const decision = button.getAttribute("data-candidate-next");
-      if (!id || !decision) {
-        return;
-      }
-
-      const prior = button.textContent;
-      button.disabled = true;
-      button.textContent = decision === "publish" ? "Publishing..." : "Updating...";
-      try {
-        await decideTherapistCandidate(id, { decision: decision });
-        await loadData();
-      } catch (_error) {
-        const status = root.querySelector('[data-candidate-status-id="' + id + '"]');
-        if (status) {
-          status.textContent =
-            decision === "publish"
-              ? "Could not publish this candidate."
-              : "Could not update this candidate.";
-        }
-        button.disabled = false;
-        button.textContent = prior;
-      }
-    });
-  });
+  bindCandidateDecisionButtons(root);
 }
 
 function renderConciergeQueue() {
@@ -8301,6 +8532,7 @@ function renderPortalRequestsQueue() {
 
 function renderAll() {
   renderStats();
+  renderOpsInbox();
   renderFunnelInsights();
   renderListings();
   renderRefreshQueue();

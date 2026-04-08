@@ -361,6 +361,112 @@
         flex-wrap: wrap;
         margin-top: 0.9rem;
       }
+      .ops-inbox {
+        display: grid;
+        gap: 1rem;
+      }
+      .ops-inbox-hero {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f6fbfc 100%);
+        padding: 1rem 1.05rem;
+      }
+      .ops-inbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.9rem;
+      }
+      .ops-kpi {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.82rem 0.9rem;
+        background: #fff;
+      }
+      .ops-kpi-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .ops-kpi-label {
+        margin-top: 0.2rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+      }
+      .ops-group {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: #fff;
+        padding: 0.95rem 1rem;
+      }
+      .ops-group-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 0.8rem;
+      }
+      .ops-group-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .ops-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .ops-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.9rem 0.95rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+      }
+      .ops-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: start;
+      }
+      .ops-card-title {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .ops-card-meta {
+        margin-top: 0.3rem;
+        font-size: 0.84rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .ops-card-body {
+        margin-top: 0.7rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.55rem;
+      }
+      .ops-card-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.65rem 0.7rem;
+      }
+      .ops-card-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ops-card-kpi-value {
+        margin-top: 0.2rem;
+        font-size: 0.84rem;
+        color: var(--navy);
+        line-height: 1.45;
+      }
+      .ops-card-actions {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.8rem;
+      }
       .queue-insights {
         margin-bottom: 1rem;
         border: 1px solid var(--border);
@@ -966,6 +1072,14 @@
           </aside>
 
           <main>
+            <div class="panel" id="opsInboxPanel" style="margin-bottom: 1rem">
+              <h2>Operations Inbox</h2>
+              <p class="subtle" style="margin-top: 0">
+                One place to work the highest-value publish, merge, confirmation, and refresh
+                actions next.
+              </p>
+              <div id="opsInbox"></div>
+            </div>
             <div class="panel" id="funnelAnalyticsPanel" style="margin-bottom: 1rem">
               <h2>Funnel Analytics</h2>
               <p class="subtle" style="margin-top: 0">
