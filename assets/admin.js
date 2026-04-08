@@ -43,14 +43,8 @@ import {
   summarizeFunnelEvents,
 } from "./funnel-analytics.js";
 import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
-import {
-  bindCandidateDecisionButtons,
-  renderCandidateMergePreview,
-  renderCandidateMergeWorkbench,
-  renderCandidatePublishPacket,
-  renderCandidateTrustChips,
-} from "./admin-candidate-review.js";
 import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
+import { renderCandidateQueuePanel } from "./admin-candidate-queue.js";
 import {
   buildCoverageInsights,
   renderCoverageIntelligencePanel,
@@ -9757,212 +9751,22 @@ function renderOpsInbox() {
 }
 
 function renderCandidateQueue() {
-  const root = document.getElementById("candidateQueue");
-  const countEl = document.getElementById("candidateQueueCount");
-  if (!root || !countEl) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    countEl.textContent = "";
-    return;
-  }
-
-  const candidates = dataMode === "sanity" ? remoteCandidates : [];
-  const filtered = candidates.filter(function (item) {
-    const haystack = [
-      item.name,
-      item.city,
-      item.state,
-      item.credentials,
-      item.practice_name,
-      item.website,
-      item.source_type,
-    ]
-      .concat(item.specialties || [])
-      .join(" ")
-      .toLowerCase();
-
-    if (candidateFilters.q && !haystack.includes(candidateFilters.q.toLowerCase())) {
-      return false;
-    }
-    if (candidateFilters.review_status && item.review_status !== candidateFilters.review_status) {
-      return false;
-    }
-    if (candidateFilters.dedupe_status && item.dedupe_status !== candidateFilters.dedupe_status) {
-      return false;
-    }
-    if (candidateFilters.review_lane && item.review_lane !== candidateFilters.review_lane) {
-      return false;
-    }
-    return true;
-  });
-
-  countEl.textContent =
-    filtered.length +
-    " of " +
-    candidates.length +
-    " candidate" +
-    (candidates.length === 1 ? "" : "s");
-
-  if (!candidates.length) {
-    root.innerHTML =
-      '<div class="empty">No sourced therapist candidates yet. Run the discovery or candidate import workflow and they will appear here.</div>';
-    return;
-  }
-
-  const duplicateCount = candidates.filter(function (item) {
-    return item.dedupe_status === "possible_duplicate";
-  }).length;
-  const confirmCount = candidates.filter(function (item) {
-    return item.review_status === "needs_confirmation";
-  }).length;
-  const publishNowCount = candidates.filter(function (item) {
-    return item.review_lane === "publish_now";
-  }).length;
-
-  root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Candidate queue snapshot</div><div class="queue-insights-grid">' +
-    [
-      {
-        value: publishNowCount,
-        label: "Publish now lane",
-        note: "These are the fastest trustworthy wins if the source trail looks clean.",
-      },
-      {
-        value: confirmCount,
-        label: "Needs confirmation",
-        note: "Good candidates that still need one more trust pass before publish.",
-      },
-      {
-        value: duplicateCount,
-        label: "Possible duplicates",
-        note: "Review these before publishing to keep the provider graph clean.",
-      },
-    ]
-      .map(function (item) {
-        return (
-          '<div class="queue-insight-card"><div class="queue-insight-value">' +
-          escapeHtml(item.value) +
-          '</div><div class="queue-insight-label">' +
-          escapeHtml(item.label) +
-          '</div><div class="queue-insight-note">' +
-          escapeHtml(item.note) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>" +
-    (filtered.length ? "" : '<div class="empty">No candidates match the current filters.</div>') +
-    filtered
-      .map(function (item) {
-        const location = [item.city, item.state, item.zip]
-          .filter(Boolean)
-          .join(", ")
-          .replace(/, (?=\d{5}$)/, " ");
-        const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
-        const trustSummary = getCandidateTrustSummary(item);
-        const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
-        const publishPacket = getCandidatePublishPacket(item, trustSummary);
-        const mergeWorkbench = renderCandidateMergeWorkbench(item, {
-          therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-          applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-          escapeHtml: escapeHtml,
-        });
-        const mergePreview = renderCandidateMergePreview(item, {
-          therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-          applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-          escapeHtml: escapeHtml,
-        });
-        const recommendation =
-          item.publish_recommendation === "ready"
-            ? "Strong publish candidate."
-            : item.publish_recommendation === "needs_confirmation"
-              ? "Worth keeping, but needs confirmation."
-              : item.publish_recommendation === "reject"
-                ? "Do not publish without resolving duplication."
-                : "Needs a review decision.";
-
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(item.name || "Unnamed candidate") +
-          '</h3><div class="subtle">' +
-          escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(getCandidateReviewChipLabel(item.review_status)) +
-          '</span><span class="tag">' +
-          escapeHtml(getCandidateDedupeChipLabel(item.dedupe_status)) +
-          "</span></div></div>" +
-          '<div class="queue-summary-grid">' +
-          '<div class="queue-kpi"><div class="queue-kpi-label">Recommendation</div><div class="queue-kpi-value">' +
-          escapeHtml(recommendation) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Ops lane</div><div class="queue-kpi-value">' +
-          escapeHtml(String(item.review_lane || "editorial_review").replace(/_/g, " ")) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Priority</div><div class="queue-kpi-value">' +
-          escapeHtml(
-            item.review_priority == null ? "Not scored" : String(item.review_priority) + "/100",
-          ) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Next review due</div><div class="queue-kpi-value">' +
-          escapeHtml(item.next_review_due_at ? formatDate(item.next_review_due_at) : "Now") +
-          "</div></div></div>" +
-          '<div class="queue-summary"><strong>Readiness:</strong> ' +
-          escapeHtml(item.readiness_score == null ? "Not scored" : item.readiness_score + "/100") +
-          "</div>" +
-          '<div class="queue-summary"><strong>Trust:</strong> ' +
-          escapeHtml(trustSummary.headline) +
-          "</div>" +
-          '<div class="queue-summary"><strong>Next trust move:</strong> ' +
-          escapeHtml(trustRecommendation) +
-          "</div>" +
-          renderCandidatePublishPacket(publishPacket, {
-            escapeHtml: escapeHtml,
-          }) +
-          (sourceTrail
-            ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
-              escapeHtml(sourceTrail) +
-              "</div>"
-            : "") +
-          (item.matched_therapist_slug || item.matched_application_id
-            ? '<div class="queue-summary"><strong>Possible existing match:</strong> ' +
-              escapeHtml(
-                item.matched_therapist_slug ||
-                  item.matched_application_id ||
-                  item.matched_therapist_id ||
-                  "",
-              ) +
-              "</div>"
-            : "") +
-          (item.notes
-            ? '<div class="queue-summary"><strong>Notes:</strong> ' +
-              escapeHtml(item.notes) +
-              "</div>"
-            : "") +
-          renderCandidateTrustChips(trustSummary, 4, {
-            escapeHtml: escapeHtml,
-          }) +
-          mergeWorkbench +
-          mergePreview +
-          '<div class="queue-actions">' +
-          buildCandidateDecisionActions(item) +
-          (item.source_url
-            ? '<a class="btn-secondary btn-inline" href="' +
-              escapeHtml(item.source_url) +
-              '" target="_blank" rel="noopener">Open source</a>'
-            : "") +
-          (item.published_therapist_id
-            ? '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
-              encodeURIComponent(item.matched_therapist_slug || "") +
-              '">View profile</a>'
-            : "") +
-          '</div><div class="review-coach-status" data-candidate-status-id="' +
-          escapeHtml(item.id) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  bindCandidateDecisionButtons(root, {
+  renderCandidateQueuePanel({
+    root: document.getElementById("candidateQueue"),
+    countEl: document.getElementById("candidateQueueCount"),
+    authRequired: authRequired,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    filters: candidateFilters,
+    getCandidateTrustSummary: getCandidateTrustSummary,
+    getCandidateTrustRecommendation: getCandidateTrustRecommendation,
+    getCandidatePublishPacket: getCandidatePublishPacket,
+    getCandidateReviewChipLabel: getCandidateReviewChipLabel,
+    getCandidateDedupeChipLabel: getCandidateDedupeChipLabel,
+    buildCandidateDecisionActions: buildCandidateDecisionActions,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
     decideTherapistCandidate: decideTherapistCandidate,
     loadData: loadData,
   });
