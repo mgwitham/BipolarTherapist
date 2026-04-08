@@ -268,9 +268,6 @@ function renderProfile(t) {
   if (t.accepts_telehealth) {
     likelyFitAudience.push("telehealth access");
   }
-  var likelyFitCopy = likelyFitAudience.length
-    ? "Often a stronger fit for " + likelyFitAudience.slice(0, 3).join(", ") + "."
-    : "Often a stronger fit for people who want clearer bipolar-specific structure before reaching out.";
   var reviewedDetails = [];
   if (t.verification_status === "editorially_verified") {
     reviewedDetails.push("license and location");
@@ -487,14 +484,15 @@ function renderProfile(t) {
   } else {
     feesHtml = '<div class="fee-note">Contact for fee details.</div>';
   }
+  var bestNextStepCopy =
+    firstStepExpectation ||
+    "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
 
   var html =
     '<div class="profile-header">' +
-    '<div class="avatar">' +
+    '<div class="profile-hero-main"><div class="profile-identity"><div class="avatar">' +
     avatar +
-    "</div>" +
-    '<div class="profile-main">' +
-    '<div class="eyebrow">Guided bipolar specialist profile</div>' +
+    '</div><div class="profile-main"><div class="eyebrow">Bipolar specialist profile</div>' +
     "<h1>" +
     escapeHtml(t.name) +
     "</h1>" +
@@ -513,38 +511,39 @@ function renderProfile(t) {
     acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div>" +
-    '<p class="fit-summary">' +
-    escapeHtml(fitSummaryCopy) +
-    "</p>" +
-    (t.care_approach
-      ? '<p class="fit-summary" style="margin-top:0.65rem">' + escapeHtml(t.care_approach) + "</p>"
-      : "") +
     '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
     '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Shortlist label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
     SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
       return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
     }).join("") +
     '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="Add a quick reminder..." /></div>' +
-    "</div>" +
-    '<div class="profile-actions">' +
+    "</div></div>" +
+    '<div class="hero-summary-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this may fit</div><p>' +
+    escapeHtml(fitSummaryCopy) +
+    '</p></div><div class="hero-summary-card"><div class="hero-summary-label">Best next step</div><div class="hero-next-step">' +
+    escapeHtml(primaryContactLabel || contactRouteLabel) +
+    "</div><p>" +
+    escapeHtml(bestNextStepCopy) +
+    "</p></div></div></div>" +
+    '<div class="profile-actions"><div class="profile-cta-stack">' +
     (contactBtns || '<a href="directory.html" class="btn-website">Back to directory</a>') +
+    "</div>" +
     (contactGuidance
-      ? '<div class="profile-contact-guidance">' + escapeHtml(contactGuidance) + "</div>"
+      ? '<div class="action-panel-note">' + escapeHtml(contactGuidance) + "</div>"
       : "") +
     "</div>" +
     "</div>" +
     '<div class="profile-body">' +
     "<div>" +
-    '<div class="profile-section"><h2>Why this profile may fit</h2><div class="bio-text">' +
-    escapeHtml(fitSummaryCopy) +
-    '</div><div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-    escapeHtml(likelyFitCopy) +
-    '</div><div class="trust-summary-card"><div class="trust-summary-label">Why this profile stands out</div><div class="trust-summary-copy">' +
-    escapeHtml(standoutCopy) +
-    '</div></div><div class="trust-summary-card trust-summary-card-soft"><div class="trust-summary-label">Reachability snapshot</div><div class="trust-summary-copy">' +
-    escapeHtml(reachabilityCopy) +
-    "</div></div>" +
-    '<div class="profile-section"><h2>What we reviewed here</h2><div class="bio-text">' +
+    '<div class="profile-section"><h2>About this specialist</h2><div class="bio-text">' +
+    escapeHtml(t.bio || "No bio provided.") +
+    "</div>" +
+    (t.care_approach
+      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+        escapeHtml(t.care_approach) +
+        "</div>"
+      : "") +
+    '</div><div class="profile-section"><h2>What we reviewed</h2><div class="bio-text">' +
     escapeHtml(reviewedDetailsCopy) +
     "</div>" +
     (therapistReportedCopy
@@ -574,9 +573,6 @@ function renderProfile(t) {
         "</div>"
       : "") +
     "</div>" +
-    '<div class="profile-section"><h2>About this clinician</h2><div class="bio-text">' +
-    escapeHtml(t.bio || "No bio provided.") +
-    "</div></div>" +
     (specialties
       ? '<div class="profile-section"><h2>Conditions and focus areas</h2><div class="specialty-grid">' +
         specialties +
@@ -597,7 +593,7 @@ function renderProfile(t) {
         insTags +
         "</div></div>"
       : "") +
-    '<div class="profile-section"><h2>What the first step is likely to feel like</h2><div class="next-step-card">' +
+    '<div class="profile-section"><h2>What to expect after you reach out</h2><div class="next-step-card">' +
     '<div class="next-step-item"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
     escapeHtml(primaryContactLabel || contactRouteLabel) +
     "</div></div>" +
@@ -618,8 +614,8 @@ function renderProfile(t) {
     ) +
     "</div></div></div></div>" +
     "</div>" +
-    "<div>" +
-    '<div class="sidebar-panel trust-panel"><h3>Trust and fit signals</h3>' +
+    '<div class="profile-sidebar-stack">' +
+    '<div class="sidebar-panel trust-panel"><h3>Trust and fit</h3>' +
     '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
     escapeHtml(standoutCopy) +
     "</div>" +
@@ -711,7 +707,7 @@ function renderProfile(t) {
         " years</span></div>"
       : "") +
     "</div>" +
-    '<div class="sidebar-panel"><h3>Practical access details</h3>' +
+    '<div class="sidebar-panel"><h3>Access details</h3>' +
     '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
     escapeHtml(reachabilityCopy) +
     "</div>" +
@@ -752,9 +748,11 @@ function renderProfile(t) {
     '<div class="sidebar-panel"><h3>Session fees</h3>' +
     feesHtml +
     "</div>" +
-    '<div class="contact-section"><h3>Best next step</h3>' +
+    '<div class="sidebar-panel"><h3>Contact</h3>' +
     (contactGuidance
-      ? '<p class="contact-guidance-copy">' + escapeHtml(contactGuidance) + "</p>"
+      ? '<p class="action-panel-note" style="margin-bottom:0.8rem">' +
+        escapeHtml(contactGuidance) +
+        "</p>"
       : "") +
     (t.phone
       ? '<div class="contact-item"><span class="contact-icon">📞</span><a href="tel:' +
@@ -780,7 +778,7 @@ function renderProfile(t) {
     (!t.phone && (!t.email || t.email === "contact@example.com") && !t.website
       ? '<p style="font-size:.85rem;color:var(--muted)">Contact information is not available on this profile yet.</p>'
       : "") +
-    "</div></div></div>" +
+    "</div></div>" +
     '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';
 
   document.getElementById("profileWrap").innerHTML = html;

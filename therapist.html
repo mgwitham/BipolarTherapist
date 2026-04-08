@@ -131,25 +131,36 @@
         text-decoration: underline;
       }
       .profile-wrap {
-        max-width: 900px;
+        max-width: 1120px;
         margin: 2rem auto;
         padding: 0 1.5rem;
       }
       .profile-header {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 2rem;
+        border-radius: 24px;
+        padding: 1.5rem;
         margin-bottom: 1.25rem;
         display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1fr) 310px;
+        gap: 1.35rem;
+        align-items: start;
+        box-shadow: 0 20px 40px rgba(14, 77, 95, 0.06);
+      }
+      .profile-hero-main {
+        display: grid;
+        gap: 1rem;
+      }
+      .profile-identity {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 1rem;
         align-items: start;
       }
       .avatar {
-        width: 96px;
-        height: 96px;
-        border-radius: 50%;
+        width: 88px;
+        height: 88px;
+        border-radius: 24px;
         background: linear-gradient(135deg, var(--teal), var(--teal-light));
         display: flex;
         align-items: center;
@@ -167,13 +178,13 @@
       }
       .profile-main h1 {
         font-family: "Lora", serif;
-        font-size: 1.9rem;
+        font-size: 2.1rem;
         font-weight: 600;
         color: var(--navy);
-        line-height: 1.2;
+        line-height: 1.06;
       }
       .eyebrow {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -181,20 +192,20 @@
         margin-bottom: 0.45rem;
       }
       .profile-main .creds {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         font-weight: 600;
         color: var(--teal);
-        margin-top: 0.2rem;
+        margin-top: 0.3rem;
       }
       .profile-main .title-text {
-        font-size: 0.875rem;
+        font-size: 0.92rem;
         color: var(--slate);
-        margin-top: 0.1rem;
+        margin-top: 0.12rem;
       }
       .profile-main .location {
-        font-size: 0.875rem;
+        font-size: 0.9rem;
         color: var(--muted);
-        margin-top: 0.3rem;
+        margin-top: 0.45rem;
         display: flex;
         align-items: center;
         gap: 0.4rem;
@@ -204,7 +215,8 @@
         font-weight: 500;
       }
       .hero-meta {
-        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.7rem;
       }
       .status-badge {
         display: inline-flex;
@@ -227,7 +239,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
-        margin-top: 0.75rem;
       }
       .trust-pill {
         font-size: 0.77rem;
@@ -238,17 +249,52 @@
         color: var(--teal-dark);
       }
       .fit-summary {
-        margin-top: 1rem;
-        font-size: 0.96rem;
+        font-size: 0.95rem;
         line-height: 1.7;
         color: var(--slate);
-        max-width: 58ch;
+        max-width: 62ch;
+      }
+      .hero-summary-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        gap: 0.85rem;
+      }
+      .hero-summary-card {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 18px;
+        padding: 1rem 1.05rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .hero-summary-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .hero-summary-card p {
+        font-size: 0.88rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .hero-next-step {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 0.3rem;
       }
       .profile-actions {
         display: flex;
         flex-direction: column;
         gap: 0.6rem;
-        min-width: 160px;
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #fbfdfe 0%, #f3fafb 100%);
+        position: sticky;
+        top: 88px;
       }
       .btn-contact {
         display: block;
@@ -292,10 +338,10 @@
         color: var(--teal-dark);
       }
       .profile-shortlist-status {
-        margin-top: 0.75rem;
+        margin-top: 0.1rem;
         font-size: 0.82rem;
         color: var(--muted);
-        max-width: 48ch;
+        line-height: 1.55;
       }
       .profile-shortlist-priority {
         margin-top: 0.85rem;
@@ -322,28 +368,27 @@
       }
       .profile-body {
         display: grid;
-        grid-template-columns: 1fr 320px;
-        gap: 1.25rem;
+        grid-template-columns: minmax(0, 1.2fr) 320px;
+        gap: 1rem;
       }
       .profile-section {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.5rem;
-        margin-bottom: 1.25rem;
+        border-radius: 20px;
+        padding: 1.2rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 14px 30px rgba(14, 77, 95, 0.04);
       }
       .profile-section h2 {
-        font-size: 1rem;
-        font-weight: 700;
+        font-size: 0.96rem;
+        font-weight: 800;
         color: var(--navy);
-        margin-bottom: 1rem;
-        padding-bottom: 0.6rem;
-        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.9rem;
       }
       .bio-text {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         color: var(--slate);
-        line-height: 1.75;
+        line-height: 1.7;
         white-space: pre-line;
       }
       .specialty-grid {
@@ -380,18 +425,21 @@
       .sidebar-panel {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.35rem;
-        margin-bottom: 1.25rem;
+        border-radius: 20px;
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 14px 30px rgba(14, 77, 95, 0.04);
       }
       .trust-panel {
         background: linear-gradient(180deg, #f9fcfd 0%, #eef7f9 100%);
       }
       .sidebar-panel h3 {
-        font-size: 0.875rem;
-        font-weight: 700;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
         color: var(--navy);
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.8rem;
       }
       .info-row {
         display: flex;
@@ -435,6 +483,19 @@
         border: 1px solid var(--border);
         border-radius: 14px;
         padding: 1.35rem;
+      }
+      .action-panel-note {
+        font-size: 0.8rem;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .profile-cta-stack {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .profile-sidebar-stack {
+        display: grid;
+        gap: 1rem;
       }
       .contact-section h3 {
         font-size: 0.875rem;
@@ -550,25 +611,27 @@
       }
       @media (max-width: 720px) {
         .profile-header {
-          grid-template-columns: auto 1fr;
-          grid-template-rows: auto auto;
+          grid-template-columns: 1fr;
         }
         .profile-actions {
-          grid-column: 1/-1;
-          flex-direction: row;
+          position: static;
         }
         .profile-body {
           grid-template-columns: 1fr;
         }
+        .hero-summary-grid {
+          grid-template-columns: 1fr;
+        }
       }
       @media (max-width: 480px) {
-        .profile-header {
+        .profile-identity {
           grid-template-columns: 1fr;
         }
         .avatar {
           width: 72px;
           height: 72px;
           font-size: 1.5rem;
+          border-radius: 20px;
         }
         .profile-actions {
           flex-direction: column;
