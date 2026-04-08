@@ -13,6 +13,14 @@ export const therapistType = defineType({
   ],
   fields: [
     defineField({
+      name: "providerId",
+      title: "Provider ID",
+      type: "string",
+      group: "profile",
+      readOnly: true,
+      description: "Canonical therapist identity key shared across candidates, applications, and live listings.",
+    }),
+    defineField({
       name: "name",
       title: "Full name",
       type: "string",

@@ -173,6 +173,24 @@ function compareDuplicateIdentity(identity, candidate) {
   return reasons;
 }
 
+function parseApplicationIntakeType(input) {
+  const requested = String(input.application_intake_type || input.intake_type || "").trim();
+  if (
+    requested === "new_listing" ||
+    requested === "claim_existing" ||
+    requested === "update_existing" ||
+    requested === "confirmation_update"
+  ) {
+    return requested;
+  }
+
+  if (String(input.published_therapist_id || "").trim() || String(input.slug || "").trim()) {
+    return "confirmation_update";
+  }
+
+  return "new_listing";
+}
+
 async function findDuplicateTherapistEntity(client, input) {
   const identity = buildDuplicateIdentity(input);
   const [therapists, applications] = await Promise.all([
@@ -611,6 +629,34 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeKeySegment(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeLicenseSegment(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function buildProviderId(input) {
+  const licenseState = normalizeKeySegment(input.license_state || input.licenseState);
+  const licenseNumber = normalizeLicenseSegment(input.license_number || input.licenseNumber);
+  if (licenseState && licenseNumber) {
+    return `provider-${licenseState}-${licenseNumber}`;
+  }
+
+  const fallback = normalizeKeySegment(
+    [input.name, input.city, input.state].filter(Boolean).join(" "),
+  );
+  return `provider-${fallback || Date.now()}`;
+}
+
 function parsePhotoSourceType(value) {
   const normalized = String(value || "")
     .trim()
@@ -687,6 +733,8 @@ async function buildApplicationDocument(client, input) {
   const now = new Date().toISOString();
   const photo = await uploadPhotoAssetIfPresent(client, input);
   const photoSourceType = parsePhotoSourceType(input.photo_source_type);
+  const intakeType = parseApplicationIntakeType(input);
+  const providerId = buildProviderId(input);
 
   if (
     !input.name ||
@@ -705,6 +753,12 @@ async function buildApplicationDocument(client, input) {
   return {
     _id: `therapist-application-${slug || Date.now()}-${Date.now()}`,
     _type: "therapistApplication",
+    intakeType: intakeType,
+    providerId: providerId,
+    targetTherapistSlug: String(input.target_therapist_slug || input.slug || "").trim(),
+    targetTherapistId: String(
+      input.target_therapist_id || input.published_therapist_id || "",
+    ).trim(),
     name: input.name.trim(),
     email: input.email.trim(),
     credentials: input.credentials.trim(),
@@ -743,6 +797,9 @@ async function buildApplicationDocument(client, input) {
     estimatedWaitTime: (input.estimated_wait_time || "").trim(),
     medicationManagement: parseBoolean(input.medication_management, false),
     verificationStatus: "under_review",
+    sourceUrl: (input.source_url || input.website || "").trim(),
+    supportingSourceUrls: splitList(input.supporting_source_urls),
+    sourceReviewedAt: (input.source_reviewed_at || "").trim(),
     therapistReportedFields: splitList(input.therapist_reported_fields),
     therapistReportedConfirmedAt: (input.therapist_reported_confirmed_at || "").trim() || now,
     fieldReviewStates: {
@@ -810,6 +867,9 @@ async function buildRevisionFieldUpdates(client, input, existingApplication) {
     telehealthStates: splitList(input.telehealth_states),
     estimatedWaitTime: String(input.estimated_wait_time || "").trim(),
     medicationManagement: parseBoolean(input.medication_management, false),
+    sourceUrl: String(input.source_url || input.website || "").trim(),
+    supportingSourceUrls: splitList(input.supporting_source_urls),
+    sourceReviewedAt: String(input.source_reviewed_at || "").trim(),
     therapistReportedFields: splitList(input.therapist_reported_fields),
     therapistReportedConfirmedAt: String(input.therapist_reported_confirmed_at || "").trim(),
     fieldReviewStates: {
@@ -858,6 +918,7 @@ function buildTherapistDocument(application, existingId) {
   return {
     _id: therapistId,
     _type: "therapist",
+    providerId: application.providerId || buildProviderId(application),
     name: application.name,
     slug: {
       _type: "slug",
@@ -903,6 +964,9 @@ function buildTherapistDocument(application, existingId) {
     careApproach: application.careApproach || "",
     medicationManagement: parseBoolean(application.medicationManagement, false),
     verificationStatus: "editorially_verified",
+    sourceUrl: application.sourceUrl || application.website || "",
+    supportingSourceUrls: splitList(application.supportingSourceUrls),
+    sourceReviewedAt: application.sourceReviewedAt || "",
     therapistReportedFields: Array.isArray(application.therapistReportedFields)
       ? application.therapistReportedFields
       : [],
@@ -921,6 +985,10 @@ function normalizeApplication(doc) {
     created_at: doc.submittedAt || doc._createdAt,
     updated_at: doc.updatedAt || doc._updatedAt || doc.submittedAt || doc._createdAt,
     status: doc.status || "pending",
+    intake_type: doc.intakeType || "new_listing",
+    provider_id: doc.providerId || buildProviderId(doc),
+    target_therapist_slug: doc.targetTherapistSlug || "",
+    target_therapist_id: doc.targetTherapistId || "",
     slug: doc.submittedSlug || "",
     name: doc.name || "",
     credentials: doc.credentials || "",
@@ -959,6 +1027,9 @@ function normalizeApplication(doc) {
     care_approach: doc.careApproach || "",
     medication_management: Boolean(doc.medicationManagement),
     verification_status: doc.verificationStatus || "",
+    source_url: doc.sourceUrl || "",
+    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
+    source_reviewed_at: doc.sourceReviewedAt || "",
     therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
       ? doc.therapistReportedFields
       : [],
@@ -1559,6 +1630,7 @@ export function createReviewApiHandler(configOverride) {
                   duplicate_slug: duplicate.slug,
                   duplicate_name: duplicate.name,
                   duplicate_reasons: duplicate.reasons,
+                  recommended_intake_type: "claim_existing",
                 }
               : {
                   error:
@@ -1569,6 +1641,7 @@ export function createReviewApiHandler(configOverride) {
                   duplicate_name: duplicate.name,
                   duplicate_status: duplicate.status,
                   duplicate_reasons: duplicate.reasons,
+                  recommended_intake_type: "update_existing",
                 };
           sendJson(response, 409, responsePayload, origin, config);
           return;

@@ -38,6 +38,14 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeKeySegment(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function createUniqueSlug(name, city, state, existingSlugs) {
   const base = slugify([name, city, state].filter(Boolean).join(" "));
   let slug = base || "listing";
@@ -79,6 +87,19 @@ function normalizeLower(value) {
 
 function normalizeLicense(value) {
   return normalizeLower(value).replace(/[^a-z0-9]/g, "");
+}
+
+function buildProviderId(input) {
+  var licenseState = normalizeKeySegment(input.license_state || input.licenseState);
+  var licenseNumber = normalizeLicense(input.license_number || input.licenseNumber);
+  if (licenseState && licenseNumber) {
+    return "provider-" + licenseState + "-" + licenseNumber;
+  }
+
+  var fallback = normalizeKeySegment(
+    [input.name, input.city, input.state].filter(Boolean).join(" "),
+  );
+  return "provider-" + (fallback || Date.now());
 }
 
 function normalizeEmail(value) {
@@ -203,10 +224,32 @@ function findDuplicateEntity(therapists, applications, input) {
   return null;
 }
 
+function resolveApplicationIntakeType(input) {
+  var requested = String(input.application_intake_type || input.intake_type || "").trim();
+  if (
+    requested === "new_listing" ||
+    requested === "claim_existing" ||
+    requested === "update_existing" ||
+    requested === "confirmation_update"
+  ) {
+    return requested;
+  }
+
+  if (String(input.published_therapist_id || "").trim() || String(input.slug || "").trim()) {
+    return "confirmation_update";
+  }
+
+  return "new_listing";
+}
+
 function normalizeApplication(item) {
   var application = item || {};
   return {
     ...application,
+    provider_id: application.provider_id || buildProviderId(application),
+    intake_type: application.intake_type || "new_listing",
+    target_therapist_slug: application.target_therapist_slug || "",
+    target_therapist_id: application.target_therapist_id || "",
     photo_url: application.photo_url || "",
     photo_source_type: application.photo_source_type || "",
     photo_reviewed_at: application.photo_reviewed_at || "",
@@ -236,6 +279,11 @@ function normalizeApplication(item) {
       : [],
     review_request_message: application.review_request_message || "",
     revision_count: Number(application.revision_count || 0) || 0,
+    source_url: application.source_url || "",
+    supporting_source_urls: Array.isArray(application.supporting_source_urls)
+      ? application.supporting_source_urls
+      : [],
+    source_reviewed_at: application.source_reviewed_at || "",
   };
 }
 
@@ -344,6 +392,10 @@ export function submitApplication(input) {
     created_at: timestamp,
     updated_at: timestamp,
     status: "pending",
+    provider_id: buildProviderId(input),
+    intake_type: resolveApplicationIntakeType(input),
+    target_therapist_slug: input.target_therapist_slug || input.slug || "",
+    target_therapist_id: input.target_therapist_id || input.published_therapist_id || "",
     slug: slug,
     published_therapist_id: input.published_therapist_id || "",
     name: input.name,
@@ -384,6 +436,11 @@ export function submitApplication(input) {
     care_approach: input.care_approach || "",
     medication_management: !!input.medication_management,
     verification_status: "under_review",
+    source_url: input.source_url || input.website || "",
+    supporting_source_urls: Array.isArray(input.supporting_source_urls)
+      ? input.supporting_source_urls
+      : [],
+    source_reviewed_at: input.source_reviewed_at || "",
     therapist_reported_fields: therapistReportedFields,
     therapist_reported_confirmed_at: input.therapist_reported_confirmed_at || timestamp,
     field_review_states: {
@@ -424,6 +481,7 @@ export function publishApplication(applicationId) {
       therapists.reduce(function (max, item) {
         return Math.max(max, Number(item.id) || 0);
       }, 0) + 1,
+    provider_id: target.provider_id || buildProviderId(target),
     name: target.name,
     credentials: target.credentials,
     title: target.title,
@@ -463,6 +521,9 @@ export function publishApplication(applicationId) {
     care_approach: target.care_approach || "",
     medication_management: !!target.medication_management,
     verification_status: "editorially_verified",
+    source_url: target.source_url || target.website || "",
+    supporting_source_urls: target.supporting_source_urls || [],
+    source_reviewed_at: target.source_reviewed_at || "",
     therapist_reported_fields: target.therapist_reported_fields || [],
     therapist_reported_confirmed_at: target.therapist_reported_confirmed_at || "",
     session_fee_min: target.session_fee_min,

@@ -27,6 +27,7 @@
     "cms:check:confirmation-responses": "node scripts/check-confirmation-responses.mjs",
     "cms:apply:confirmation-responses": "node scripts/apply-confirmation-responses.mjs",
     "cms:apply:confirmation-safe": "npm run cms:check:confirmation-responses && npm run cms:apply:confirmation-responses && npm run lint && npm run build",
+    "cms:import:candidates": "node scripts/import-therapist-candidates.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
     "lint": "eslint .",

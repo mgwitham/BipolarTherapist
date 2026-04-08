@@ -20,6 +20,9 @@ function sanitizeApplication(application) {
   var fieldReviewStates = application.field_review_states || {};
   return {
     ...application,
+    intake_type: application.intake_type || "new_listing",
+    target_therapist_slug: application.target_therapist_slug || "",
+    target_therapist_id: application.target_therapist_id || "",
     photo_url: application.photo_url || "",
     photo_source_type: application.photo_source_type || "",
     photo_reviewed_at: application.photo_reviewed_at || "",
@@ -38,6 +41,11 @@ function sanitizeApplication(application) {
       bipolar_years_experience: fieldReviewStates.bipolar_years_experience || "therapist_confirmed",
     },
     languages: Array.isArray(application.languages) ? application.languages : ["English"],
+    source_url: application.source_url || "",
+    supporting_source_urls: Array.isArray(application.supporting_source_urls)
+      ? application.supporting_source_urls
+      : [],
+    source_reviewed_at: application.source_reviewed_at || "",
     revision_history: Array.isArray(application.revision_history)
       ? application.revision_history
       : [],

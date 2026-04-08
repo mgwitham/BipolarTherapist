@@ -6,6 +6,40 @@ export const therapistApplicationType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "intakeType",
+      title: "Intake type",
+      type: "string",
+      options: {
+        list: [
+          { title: "New listing", value: "new_listing" },
+          { title: "Claim existing profile", value: "claim_existing" },
+          { title: "Update existing profile", value: "update_existing" },
+          { title: "Confirmation update", value: "confirmation_update" },
+        ],
+      },
+      initialValue: "new_listing",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "targetTherapistSlug",
+      title: "Target therapist slug",
+      type: "string",
+      readOnly: true,
+    }),
+    defineField({
+      name: "targetTherapistId",
+      title: "Target therapist document ID",
+      type: "string",
+      readOnly: true,
+    }),
+    defineField({
+      name: "providerId",
+      title: "Provider ID",
+      type: "string",
+      readOnly: true,
+      description: "Canonical therapist identity key used to unify candidates, applications, and live listings.",
+    }),
+    defineField({
       name: "name",
       title: "Applicant name",
       type: "string",
@@ -263,6 +297,26 @@ export const therapistApplicationType = defineType({
         ],
       },
       initialValue: "under_review",
+    }),
+    defineField({
+      name: "sourceUrl",
+      title: "Primary source URL",
+      type: "url",
+      description:
+        "Primary public source tied to this application, usually the therapist or practice website.",
+    }),
+    defineField({
+      name: "supportingSourceUrls",
+      title: "Supporting source URLs",
+      type: "array",
+      of: [defineArrayMember({ type: "url" })],
+    }),
+    defineField({
+      name: "sourceReviewedAt",
+      title: "Source reviewed at",
+      type: "datetime",
+      description:
+        "When this application was last checked against public sources during editorial review.",
     }),
     defineField({
       name: "therapistReportedFields",

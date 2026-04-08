@@ -193,6 +193,32 @@ function parseClaimStatus(value) {
   return "unclaimed";
 }
 
+function normalizeKeySegment(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeLicenseSegment(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function buildProviderId(row) {
+  const licenseState = normalizeKeySegment(row.licenseState);
+  const licenseNumber = normalizeLicenseSegment(row.licenseNumber);
+  if (licenseState && licenseNumber) {
+    return `provider-${licenseState}-${licenseNumber}`;
+  }
+
+  const fallback = normalizeKeySegment([row.name, row.city, row.state].filter(Boolean).join(" "));
+  return `provider-${fallback || Date.now()}`;
+}
+
 function buildTherapistDocument(row) {
   const slug = row.slug || slugify([row.name, row.city, row.state].filter(Boolean).join(" "));
   if (!row.name || !slug || !row.city || !row.state || !row.bio || !row.credentials) {
@@ -206,6 +232,7 @@ function buildTherapistDocument(row) {
   return {
     _id: documentId,
     _type: "therapist",
+    providerId: row.providerId || buildProviderId(row),
     name: row.name,
     slug: {
       _type: "slug",

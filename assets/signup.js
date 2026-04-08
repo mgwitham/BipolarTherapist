@@ -258,7 +258,11 @@ function renderRevisionWorkspace(data) {
 }
 
 function collectFormData(form) {
+  var applicationIntakeType = confirmationTherapistSlug ? "confirmation_update" : "new_listing";
   return {
+    application_intake_type: applicationIntakeType,
+    target_therapist_slug: confirmationTherapistSlug || "",
+    target_therapist_id: confirmationTherapistId || "",
     slug: confirmationTherapistSlug || "",
     published_therapist_id: confirmationTherapistId || "",
     name: form.elements.name.value.trim(),
@@ -289,6 +293,9 @@ function collectFormData(form) {
     estimated_wait_time: form.elements.estimated_wait_time.value.trim(),
     bio: form.elements.bio.value.trim(),
     care_approach: form.elements.care_approach.value.trim(),
+    source_url: form.elements.website.value.trim(),
+    supporting_source_urls: [],
+    source_reviewed_at: "",
     specialties: collectCheckedValues(form, "specialties"),
     treatment_modalities: collectCheckedValues(form, "treatment_modalities"),
     client_populations: collectCheckedValues(form, "client_populations"),
