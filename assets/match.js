@@ -4328,16 +4328,6 @@ function renderPrimaryMatchCards(entries, _profile) {
           .join(", ");
       }
       var credentialLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-      var actionTitle =
-        routeType === "booking"
-          ? "Book the consultation"
-          : routeType === "phone"
-            ? "Call the practice"
-            : routeType === "email"
-              ? "Send a short email"
-              : routeType === "website"
-                ? "Open the intake page"
-                : "Open the full profile";
       var ctaLabel =
         routeType === "booking"
           ? "Book now"
@@ -4348,17 +4338,6 @@ function renderPrimaryMatchCards(entries, _profile) {
               : routeType === "website"
                 ? "Visit site"
                 : "Open profile";
-      var actionHint =
-        routeType === "booking"
-          ? "Fastest way to check availability and get started."
-          : routeType === "phone"
-            ? "Best for confirming fit, timing, and next steps quickly."
-            : routeType === "email"
-              ? "Good if you want a written first contact."
-              : routeType === "website"
-                ? "Best if this provider uses a web-based intake flow."
-                : "Open the strongest next step for this provider.";
-
       return (
         '<article class="match-card' +
         (index === 0 ? " lead-card" : "") +
@@ -4383,11 +4362,7 @@ function renderPrimaryMatchCards(entries, _profile) {
         '<div class="match-summary-pills">' +
         getShortlistSummary(entry) +
         "</div>" +
-        '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="match-card-action-title">' +
-        escapeHtml(actionTitle) +
-        '</div><div class="match-card-action-copy">' +
-        escapeHtml(actionHint) +
-        '</div><div class="outreach-card-actions">' +
+        '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="outreach-card-actions">' +
         '<a href="' +
         escapeHtml(
           preferredRoute
