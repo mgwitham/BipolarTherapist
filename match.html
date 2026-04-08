@@ -1191,9 +1191,18 @@
         font-size: 0.9rem;
         line-height: 1.2;
         text-align: center;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
         text-decoration: none;
         box-shadow: 0 14px 28px rgba(26, 122, 143, 0.16);
+      }
+      .match-card-cta,
+      .match-card-cta:link,
+      .match-card-cta:visited,
+      .match-card-cta:hover,
+      .match-card-cta:focus {
+        text-decoration: none;
       }
       .match-card-action-block .outreach-card-actions {
         display: flex;
@@ -1462,12 +1471,14 @@
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        text-align: center;
       }
       .first-contact-tracker-actions {
         display: flex;
         gap: 0.6rem;
         flex-wrap: wrap;
         margin-top: 0.7rem;
+        justify-content: center;
       }
       .first-contact-tracker-note {
         margin-top: 0.65rem;
@@ -2269,43 +2280,6 @@
               </div>
             </div>
           </form>
-        </div>
-        <div class="results-intro">
-          <div class="match-subtle" id="resultsMeta">
-            Start with your ZIP and care type. We’ll lead with the top 3 matches.
-          </div>
-        </div>
-        <div class="match-summary-bar">
-          <span class="match-summary-kicker">Your shortlist</span>
-          <div class="match-summary-text" id="matchSummary">
-            Top matches based on your ZIP, care type, and the details you added.
-          </div>
-          <div class="match-subtle" id="matchLaunchExplainer" style="margin: 0.45rem 0 0"></div>
-          <div class="match-refine-bar" id="matchRefineBar" hidden>
-            <div class="match-refine-top">
-              <div>
-                <div class="match-refine-title">Adjust ranking</div>
-                <div class="match-refine-copy" id="matchRefineCopy">
-                  Choose what to emphasize next.
-                </div>
-              </div>
-              <button type="button" class="match-refine-reset" id="matchRefineReset" hidden>
-                Back to balanced
-              </button>
-            </div>
-            <div class="match-refine-options" id="matchRefineOptions"></div>
-          </div>
-          <div class="match-summary-actions">
-            <button type="button" class="btn-secondary" id="saveShortlist" disabled>
-              Save shortlist
-            </button>
-            <button type="button" class="btn-secondary" id="copyShareLink" disabled>
-              Copy link
-            </button>
-            <button type="button" class="btn-secondary" id="emailShortlist" disabled>
-              Email shortlist
-            </button>
-          </div>
         </div>
         <div id="matchFirstContact"></div>
         <div id="matchFallbackContact"></div>

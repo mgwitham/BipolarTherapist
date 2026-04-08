@@ -4430,16 +4430,20 @@ function renderResults(entries, profile) {
         return { therapist: therapist };
       }),
     );
-    meta.textContent = hasRefinements
-      ? "No good match surfaced from the current constraints."
-      : requestedZip && zipSuggestions.length
-        ? "No exact reviewed profile is live in ZIP " +
-          requestedZip +
-          " yet. Try the nearest reviewed ZIPs: " +
-          formatZipSuggestionList(zipSuggestions) +
-          "."
-        : "No strong match surfaced for this location yet.";
-    summary.textContent = buildRequestSummary(profile);
+    if (meta) {
+      meta.textContent = hasRefinements
+        ? "No good match surfaced from the current constraints."
+        : requestedZip && zipSuggestions.length
+          ? "No exact reviewed profile is live in ZIP " +
+            requestedZip +
+            " yet. Try the nearest reviewed ZIPs: " +
+            formatZipSuggestionList(zipSuggestions) +
+            "."
+          : "No strong match surfaced for this location yet.";
+    }
+    if (summary) {
+      summary.textContent = buildRequestSummary(profile);
+    }
     renderMatchLaunchExplainer([], profile);
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     root.className = "match-empty";
@@ -4466,15 +4470,19 @@ function renderResults(entries, profile) {
     return;
   }
 
-  meta.textContent = buildLocationAwareResultsMeta(profile, entries, hasRefinements);
-  summary.textContent = profile
-    ? buildRequestSummary(profile) +
-      (activeSecondPassMode !== "balanced"
-        ? " Second pass is currently leaning toward " +
-          ((getSecondPassModeConfig(activeSecondPassMode) || {}).label || "a refined ranking") +
-          "."
-        : "")
-    : "Comparing a shortlist saved from the directory.";
+  if (meta) {
+    meta.textContent = buildLocationAwareResultsMeta(profile, entries, hasRefinements);
+  }
+  if (summary) {
+    summary.textContent = profile
+      ? buildRequestSummary(profile) +
+        (activeSecondPassMode !== "balanced"
+          ? " Second pass is currently leaning toward " +
+            ((getSecondPassModeConfig(activeSecondPassMode) || {}).label || "a refined ranking") +
+            "."
+          : "")
+      : "Comparing a shortlist saved from the directory.";
+  }
   renderMatchLaunchExplainer(entries, profile);
   if (!currentJourneyId) {
     currentJourneyId = buildJourneyId(profile, entries);
@@ -4500,22 +4508,30 @@ function handleSubmit(event) {
   var zipStatus = getZipMarketStatus(profile && profile.location_query);
 
   if (zipStatus.status === "out_of_state") {
-    document.getElementById("resultsMeta").textContent =
-      zipStatus.message + " We’re currently focused on California ZIP codes.";
+    var outOfStateMeta = document.getElementById("resultsMeta");
+    if (outOfStateMeta) {
+      outOfStateMeta.textContent =
+        zipStatus.message + " We’re currently focused on California ZIP codes.";
+    }
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
   if (zipStatus.status === "unknown") {
-    document.getElementById("resultsMeta").textContent =
-      "Enter a valid California ZIP code so we can build your shortlist.";
+    var unknownMeta = document.getElementById("resultsMeta");
+    if (unknownMeta) {
+      unknownMeta.textContent = "Enter a valid California ZIP code so we can build your shortlist.";
+    }
     renderIntakeTradeoffPreview(profile);
     return;
   }
 
   if (!profile.care_state) {
-    document.getElementById("resultsMeta").textContent =
-      "Enter a California ZIP code or California telehealth search we can match, like 90025 or Telehealth.";
+    var missingStateMeta = document.getElementById("resultsMeta");
+    if (missingStateMeta) {
+      missingStateMeta.textContent =
+        "Enter a California ZIP code or California telehealth search we can match, like 90025 or Telehealth.";
+    }
     renderIntakeTradeoffPreview(profile);
     return;
   }
@@ -4593,8 +4609,11 @@ function renderDirectoryShortlist(slugs) {
   latestProfile = null;
   latestEntries = selected;
   currentJourneyId = buildJourneyId(null, selected);
-  document.getElementById("resultsMeta").textContent =
-    "Comparing " + selected.length + " saved therapist" + (selected.length > 1 ? "s" : "") + ".";
+  var directoryMeta = document.getElementById("resultsMeta");
+  if (directoryMeta) {
+    directoryMeta.textContent =
+      "Comparing " + selected.length + " saved therapist" + (selected.length > 1 ? "s" : "") + ".";
+  }
   safeRenderResults(selected, null);
   setActionState(
     true,
@@ -4610,10 +4629,16 @@ function resetForm() {
   syncMatchCareSelectTrigger();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
-  document.getElementById("resultsMeta").textContent =
-    "Start with your ZIP code first. We will lead with the best 3 options and keep up to 8 in reserve if you want more depth.";
-  document.getElementById("matchSummary").textContent =
-    "Start with your ZIP code, then add optional refinements only if you want a tighter shortlist.";
+  var resetMeta = document.getElementById("resultsMeta");
+  var resetSummary = document.getElementById("matchSummary");
+  if (resetMeta) {
+    resetMeta.textContent =
+      "Start with your ZIP code first. We will lead with the best 3 options and keep up to 8 in reserve if you want more depth.";
+  }
+  if (resetSummary) {
+    resetSummary.textContent =
+      "Start with your ZIP code, then add optional refinements only if you want a tighter shortlist.";
+  }
   activeSecondPassMode = "balanced";
   latestProfile = null;
   latestEntries = [];
@@ -4663,60 +4688,69 @@ function resetForm() {
   if (resetMatchButton) {
     resetMatchButton.addEventListener("click", resetForm);
   }
-  document.getElementById("saveShortlist").addEventListener("click", function () {
-    if (!latestProfile || !latestEntries.length) {
-      return;
-    }
+  var saveShortlistButton = document.getElementById("saveShortlist");
+  if (saveShortlistButton) {
+    saveShortlistButton.addEventListener("click", function () {
+      if (!latestProfile || !latestEntries.length) {
+        return;
+      }
 
-    var payload = {
-      saved_at: new Date().toISOString(),
-      profile: latestProfile,
-      therapist_slugs: latestEntries.slice(0, SHORTLIST_QUEUE_LIMIT).map(function (entry) {
-        return entry.therapist.slug;
-      }),
-    };
+      var payload = {
+        saved_at: new Date().toISOString(),
+        profile: latestProfile,
+        therapist_slugs: latestEntries.slice(0, SHORTLIST_QUEUE_LIMIT).map(function (entry) {
+          return entry.therapist.slug;
+        }),
+      };
 
-    try {
-      window.localStorage.setItem(SAVED_SHORTLIST_KEY, JSON.stringify(payload));
-      trackFunnelEvent("match_shortlist_saved", {
-        result_count: latestEntries.length,
-        top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
-        strategy: buildAdaptiveStrategySnapshot(latestProfile),
-      });
-      setActionState(true, "Shortlist saved on this device.");
-    } catch (_error) {
-      setActionState(
-        true,
-        "We could not save locally on this device, but you can still copy the link.",
-      );
-    }
-  });
-  document.getElementById("copyShareLink").addEventListener("click", async function () {
-    if (!latestProfile || !latestEntries.length) {
-      return;
-    }
+      try {
+        window.localStorage.setItem(SAVED_SHORTLIST_KEY, JSON.stringify(payload));
+        trackFunnelEvent("match_shortlist_saved", {
+          result_count: latestEntries.length,
+          top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
+          strategy: buildAdaptiveStrategySnapshot(latestProfile),
+        });
+        setActionState(true, "Shortlist saved on this device.");
+      } catch (_error) {
+        setActionState(
+          true,
+          "We could not save locally on this device, but you can still copy the link.",
+        );
+      }
+    });
+  }
+  var copyShareLinkButton = document.getElementById("copyShareLink");
+  if (copyShareLinkButton) {
+    copyShareLinkButton.addEventListener("click", async function () {
+      if (!latestProfile || !latestEntries.length) {
+        return;
+      }
 
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      trackFunnelEvent("match_share_link_copied", {
-        result_count: latestEntries.length,
-        strategy: buildAdaptiveStrategySnapshot(latestProfile),
-      });
-      setActionState(true, "Share link copied.");
-    } catch (_error) {
-      setActionState(
-        true,
-        "Unable to copy automatically. You can still copy the URL in your browser.",
-      );
-    }
-  });
-  document.getElementById("emailShortlist").addEventListener("click", function () {
-    if (!latestEntries.length) {
-      return;
-    }
-    openEmailShortlist();
-    setActionState(true, "Email draft opened with your shortlist.");
-  });
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        trackFunnelEvent("match_share_link_copied", {
+          result_count: latestEntries.length,
+          strategy: buildAdaptiveStrategySnapshot(latestProfile),
+        });
+        setActionState(true, "Share link copied.");
+      } catch (_error) {
+        setActionState(
+          true,
+          "Unable to copy automatically. You can still copy the URL in your browser.",
+        );
+      }
+    });
+  }
+  var emailShortlistButton = document.getElementById("emailShortlist");
+  if (emailShortlistButton) {
+    emailShortlistButton.addEventListener("click", function () {
+      if (!latestEntries.length) {
+        return;
+      }
+      openEmailShortlist();
+      setActionState(true, "Email draft opened with your shortlist.");
+    });
+  }
   var requestHelpButton = document.getElementById("requestHelp");
   if (requestHelpButton) {
     requestHelpButton.addEventListener("click", function () {
