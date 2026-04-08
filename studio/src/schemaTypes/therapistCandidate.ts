@@ -342,6 +342,20 @@ export const therapistCandidateType = defineType({
       group: "review",
     }),
     defineField({
+      name: "publishedTherapistId",
+      title: "Published therapist ID",
+      type: "string",
+      group: "review",
+      readOnly: true,
+    }),
+    defineField({
+      name: "publishedAt",
+      title: "Published at",
+      type: "datetime",
+      group: "review",
+      readOnly: true,
+    }),
+    defineField({
       name: "reviewStatus",
       title: "Review status",
       type: "string",
@@ -385,6 +399,23 @@ export const therapistCandidateType = defineType({
       type: "text",
       rows: 5,
       group: "review",
+    }),
+    defineField({
+      name: "reviewHistory",
+      title: "Review history",
+      type: "array",
+      group: "review",
+      of: [
+        defineArrayMember({
+          type: "object",
+          fields: [
+            defineField({ name: "type", title: "Type", type: "string" }),
+            defineField({ name: "at", title: "At", type: "datetime" }),
+            defineField({ name: "decision", title: "Decision", type: "string" }),
+            defineField({ name: "note", title: "Note", type: "text", rows: 3 }),
+          ],
+        }),
+      ],
     }),
   ],
   preview: {

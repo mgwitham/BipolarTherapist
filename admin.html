@@ -1020,6 +1020,39 @@
                 </button>
               </div>
             </div>
+            <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
+              <h2>Candidate Review Queue</h2>
+              <p class="subtle" style="margin-top: 0">
+                Sourced therapist candidates land here before they become live listings. Review
+                duplicates, trust readiness, and publish decisions in one place.
+              </p>
+              <div class="toolbar" style="margin-bottom: 0.8rem">
+                <input
+                  type="search"
+                  id="candidateSearch"
+                  placeholder="Search candidates, cities, source types..."
+                />
+                <select id="candidateReviewStatusFilter">
+                  <option value="">All review statuses</option>
+                  <option value="queued">Queued</option>
+                  <option value="needs_review">Needs review</option>
+                  <option value="needs_confirmation">Needs confirmation</option>
+                  <option value="ready_to_publish">Ready to publish</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select id="candidateDedupeStatusFilter">
+                  <option value="">All dedupe states</option>
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="unique">Unique</option>
+                  <option value="possible_duplicate">Possible duplicate</option>
+                  <option value="rejected_duplicate">Rejected duplicate</option>
+                  <option value="merged">Merged</option>
+                </select>
+                <div class="subtle" id="candidateQueueCount"></div>
+              </div>
+              <div id="candidateQueue"></div>
+            </div>
             <div id="applicationsList"></div>
           </main>
         </div>

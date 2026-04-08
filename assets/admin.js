@@ -12,6 +12,8 @@ import { fetchPublicTherapists } from "./cms.js";
 import {
   approveTherapistApplication,
   checkReviewApiHealth,
+  decideTherapistCandidate,
+  fetchTherapistCandidates,
   fetchTherapistPortalRequests,
   getAdminSessionToken,
   fetchTherapistApplications,
@@ -40,6 +42,7 @@ import {
 
 let dataMode = "local";
 let remoteApplications = [];
+let remoteCandidates = [];
 let remotePortalRequests = [];
 let publishedTherapists = [];
 let authRequired = false;
@@ -143,6 +146,11 @@ let applicationFilters = {
   status: "",
   focus: "",
   goal: "balanced",
+};
+let candidateFilters = {
+  q: "",
+  review_status: "",
+  dedupe_status: "",
 };
 let launchProfileFilters = {
   state: "",
@@ -7546,6 +7554,275 @@ function renderApplications() {
   });
 }
 
+function getCandidateReviewChipLabel(status) {
+  if (status === "ready_to_publish") return "Ready to publish";
+  if (status === "needs_confirmation") return "Needs confirmation";
+  if (status === "needs_review") return "Needs review";
+  if (status === "published") return "Published";
+  if (status === "archived") return "Archived";
+  return "Queued";
+}
+
+function getCandidateDedupeChipLabel(status) {
+  if (status === "possible_duplicate") return "Possible duplicate";
+  if (status === "rejected_duplicate") return "Rejected duplicate";
+  if (status === "merged") return "Merged";
+  if (status === "unique") return "Unique";
+  return "Unreviewed";
+}
+
+function buildCandidateDecisionActions(item) {
+  if (item.review_status === "published") {
+    return '<span class="status approved">published</span>';
+  }
+
+  if (item.review_status === "archived") {
+    return (
+      '<button class="btn-secondary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="needs_review">Reopen review</button>'
+    );
+  }
+
+  var actions = [];
+  if (item.review_status !== "ready_to_publish") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="mark_ready">Mark ready</button>',
+    );
+  }
+  if (item.review_status !== "needs_confirmation") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="needs_confirmation">Needs confirmation</button>',
+    );
+  }
+  if (item.dedupe_status !== "rejected_duplicate") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="reject_duplicate">Mark duplicate</button>',
+    );
+  }
+  if (item.matched_therapist_id) {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="merge_to_therapist">Merge into therapist</button>',
+    );
+  }
+  if (item.matched_application_id) {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="merge_to_application">Merge into application</button>',
+    );
+  }
+  actions.push(
+    '<button class="btn-primary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish therapist</button>',
+  );
+  return actions.join("");
+}
+
+function renderCandidateQueue() {
+  const root = document.getElementById("candidateQueue");
+  const countEl = document.getElementById("candidateQueueCount");
+  if (!root || !countEl) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    countEl.textContent = "";
+    return;
+  }
+
+  const candidates = dataMode === "sanity" ? remoteCandidates : [];
+  const filtered = candidates.filter(function (item) {
+    const haystack = [
+      item.name,
+      item.city,
+      item.state,
+      item.credentials,
+      item.practice_name,
+      item.website,
+      item.source_type,
+    ]
+      .concat(item.specialties || [])
+      .join(" ")
+      .toLowerCase();
+
+    if (candidateFilters.q && !haystack.includes(candidateFilters.q.toLowerCase())) {
+      return false;
+    }
+    if (candidateFilters.review_status && item.review_status !== candidateFilters.review_status) {
+      return false;
+    }
+    if (candidateFilters.dedupe_status && item.dedupe_status !== candidateFilters.dedupe_status) {
+      return false;
+    }
+    return true;
+  });
+
+  countEl.textContent =
+    filtered.length +
+    " of " +
+    candidates.length +
+    " candidate" +
+    (candidates.length === 1 ? "" : "s");
+
+  if (!candidates.length) {
+    root.innerHTML =
+      '<div class="empty">No sourced therapist candidates yet. Run the discovery or candidate import workflow and they will appear here.</div>';
+    return;
+  }
+
+  const readyCount = candidates.filter(function (item) {
+    return item.review_status === "ready_to_publish";
+  }).length;
+  const duplicateCount = candidates.filter(function (item) {
+    return item.dedupe_status === "possible_duplicate";
+  }).length;
+  const confirmCount = candidates.filter(function (item) {
+    return item.review_status === "needs_confirmation";
+  }).length;
+
+  root.innerHTML =
+    '<div class="queue-insights"><div class="queue-insights-title">Candidate queue snapshot</div><div class="queue-insights-grid">' +
+    [
+      {
+        value: readyCount,
+        label: "Ready to publish",
+        note: "These are the fastest trustworthy wins if the source trail looks clean.",
+      },
+      {
+        value: confirmCount,
+        label: "Needs confirmation",
+        note: "Good candidates that still need one more trust pass before publish.",
+      },
+      {
+        value: duplicateCount,
+        label: "Possible duplicates",
+        note: "Review these before publishing to keep the provider graph clean.",
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.value) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.note) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    (filtered.length ? "" : '<div class="empty">No candidates match the current filters.</div>') +
+    filtered
+      .map(function (item) {
+        const location = [item.city, item.state, item.zip]
+          .filter(Boolean)
+          .join(", ")
+          .replace(/, (?=\d{5}$)/, " ");
+        const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
+        const recommendation =
+          item.publish_recommendation === "ready"
+            ? "Strong publish candidate."
+            : item.publish_recommendation === "needs_confirmation"
+              ? "Worth keeping, but needs confirmation."
+              : item.publish_recommendation === "reject"
+                ? "Do not publish without resolving duplication."
+                : "Needs a review decision.";
+
+        return (
+          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          escapeHtml(item.name || "Unnamed candidate") +
+          '</h3><div class="subtle">' +
+          escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
+          '</div></div><div class="queue-head-actions"><span class="tag">' +
+          escapeHtml(getCandidateReviewChipLabel(item.review_status)) +
+          '</span><span class="tag">' +
+          escapeHtml(getCandidateDedupeChipLabel(item.dedupe_status)) +
+          "</span></div></div>" +
+          '<div class="queue-summary"><strong>Recommendation:</strong> ' +
+          escapeHtml(recommendation) +
+          '</div><div class="queue-summary"><strong>Readiness:</strong> ' +
+          escapeHtml(item.readiness_score == null ? "Not scored" : item.readiness_score + "/100") +
+          "</div>" +
+          (sourceTrail
+            ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
+              escapeHtml(sourceTrail) +
+              "</div>"
+            : "") +
+          (item.matched_therapist_slug || item.matched_application_id
+            ? '<div class="queue-summary"><strong>Possible existing match:</strong> ' +
+              escapeHtml(
+                item.matched_therapist_slug ||
+                  item.matched_application_id ||
+                  item.matched_therapist_id ||
+                  "",
+              ) +
+              "</div>"
+            : "") +
+          (item.notes
+            ? '<div class="queue-summary"><strong>Notes:</strong> ' +
+              escapeHtml(item.notes) +
+              "</div>"
+            : "") +
+          '<div class="queue-actions">' +
+          buildCandidateDecisionActions(item) +
+          (item.source_url
+            ? '<a class="btn-secondary btn-inline" href="' +
+              escapeHtml(item.source_url) +
+              '" target="_blank" rel="noopener">Open source</a>'
+            : "") +
+          (item.published_therapist_id
+            ? '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
+              encodeURIComponent(item.matched_therapist_slug || "") +
+              '">View profile</a>'
+            : "") +
+          '</div><div class="review-coach-status" data-candidate-status-id="' +
+          escapeHtml(item.id) +
+          '"></div></article>'
+        );
+      })
+      .join("");
+
+  root.querySelectorAll("[data-candidate-decision]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-candidate-decision");
+      const decision = button.getAttribute("data-candidate-next");
+      if (!id || !decision) {
+        return;
+      }
+
+      const prior = button.textContent;
+      button.disabled = true;
+      button.textContent = decision === "publish" ? "Publishing..." : "Updating...";
+      try {
+        await decideTherapistCandidate(id, { decision: decision });
+        await loadData();
+      } catch (_error) {
+        const status = root.querySelector('[data-candidate-status-id="' + id + '"]');
+        if (status) {
+          status.textContent =
+            decision === "publish"
+              ? "Could not publish this candidate."
+              : "Could not update this candidate.";
+        }
+        button.disabled = false;
+        button.textContent = prior;
+      }
+    });
+  });
+}
+
 function renderConciergeQueue() {
   const root = document.getElementById("conciergeQueue");
   if (!root) {
@@ -8019,6 +8296,7 @@ function renderAll() {
   renderConfirmationQueue();
   renderConciergeQueue();
   renderPortalRequestsQueue();
+  renderCandidateQueue();
   renderApplications();
 }
 
@@ -8072,6 +8350,7 @@ async function loadData() {
   if (reviewApiAvailable && !getAdminSessionToken()) {
     dataMode = "sanity";
     remoteApplications = [];
+    remoteCandidates = [];
     remotePortalRequests = [];
     publishedTherapists = [];
     authRequired = true;
@@ -8081,12 +8360,14 @@ async function loadData() {
   }
 
   try {
-    const [applications, portalRequests, therapists] = await Promise.all([
+    const [applications, candidates, portalRequests, therapists] = await Promise.all([
       fetchTherapistApplications(),
+      fetchTherapistCandidates(),
       fetchTherapistPortalRequests(),
       fetchPublicTherapists(),
     ]);
     remoteApplications = applications;
+    remoteCandidates = candidates;
     remotePortalRequests = Array.isArray(portalRequests) ? portalRequests : [];
     publishedTherapists = therapists;
     dataMode = "sanity";
@@ -8095,12 +8376,14 @@ async function loadData() {
     if (reviewApiAvailable || getAdminSessionToken()) {
       dataMode = "sanity";
       remoteApplications = [];
+      remoteCandidates = [];
       remotePortalRequests = [];
       publishedTherapists = [];
       authRequired = true;
     } else {
       dataMode = "local";
       remoteApplications = [];
+      remoteCandidates = [];
       remotePortalRequests = [];
       publishedTherapists = [];
       authRequired = false;
@@ -8158,6 +8441,7 @@ document.getElementById("signOutAdmin").addEventListener("click", async function
   authRequired = false;
   dataMode = "local";
   remoteApplications = [];
+  remoteCandidates = [];
   publishedTherapists = [];
   setAuthUiState();
   renderAll();
@@ -8215,6 +8499,21 @@ document.getElementById("conciergeStatusFilter").addEventListener("change", func
 document.getElementById("portalRequestStatusFilter").addEventListener("change", function (event) {
   portalRequestFilters.status = event.target.value || "";
   renderPortalRequestsQueue();
+});
+
+document.getElementById("candidateSearch").addEventListener("input", function (event) {
+  candidateFilters.q = event.target.value.trim();
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateReviewStatusFilter").addEventListener("change", function (event) {
+  candidateFilters.review_status = event.target.value || "";
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateDedupeStatusFilter").addEventListener("change", function (event) {
+  candidateFilters.dedupe_status = event.target.value || "";
+  renderCandidateQueue();
 });
 
 if (getAdminSessionToken()) {

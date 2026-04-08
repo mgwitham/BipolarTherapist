@@ -54,6 +54,30 @@ function sanitizeApplication(application) {
   };
 }
 
+function sanitizeCandidate(candidate) {
+  return {
+    ...candidate,
+    supporting_source_urls: Array.isArray(candidate.supporting_source_urls)
+      ? candidate.supporting_source_urls
+      : [],
+    specialties: Array.isArray(candidate.specialties) ? candidate.specialties : [],
+    treatment_modalities: Array.isArray(candidate.treatment_modalities)
+      ? candidate.treatment_modalities
+      : [],
+    client_populations: Array.isArray(candidate.client_populations)
+      ? candidate.client_populations
+      : [],
+    insurance_accepted: Array.isArray(candidate.insurance_accepted)
+      ? candidate.insurance_accepted
+      : [],
+    languages: Array.isArray(candidate.languages) ? candidate.languages : [],
+    telehealth_states: Array.isArray(candidate.telehealth_states)
+      ? candidate.telehealth_states
+      : [],
+    review_history: Array.isArray(candidate.review_history) ? candidate.review_history : [],
+  };
+}
+
 async function request(path, options) {
   let response;
   try {
@@ -220,6 +244,28 @@ export async function fetchTherapistApplications() {
   });
 
   return payload.map(sanitizeApplication);
+}
+
+export async function fetchTherapistCandidates() {
+  const payload = await request("/candidates", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+
+  return payload.map(sanitizeCandidate);
+}
+
+export async function decideTherapistCandidate(candidateId, decisionPayload) {
+  const payload = await request(`/candidates/${encodeURIComponent(candidateId)}/decision`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(decisionPayload),
+  });
+
+  return {
+    ...payload,
+    candidate: payload && payload.candidate ? sanitizeCandidate(payload.candidate) : null,
+  };
 }
 
 export async function approveTherapistApplication(applicationId) {

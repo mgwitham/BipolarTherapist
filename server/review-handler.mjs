@@ -979,6 +979,164 @@ function buildTherapistDocument(application, existingId) {
   };
 }
 
+function buildTherapistDocumentFromCandidate(candidate, existingId) {
+  const slug = slugify([candidate.name, candidate.city, candidate.state].filter(Boolean).join(" "));
+  const therapistId =
+    existingId || candidate.matchedTherapistId || candidate.publishedTherapistId || `therapist-${slug}`;
+
+  return {
+    _id: therapistId,
+    _type: "therapist",
+    providerId: candidate.providerId || buildProviderId(candidate),
+    name: candidate.name || "",
+    slug: {
+      _type: "slug",
+      current: slug,
+    },
+    credentials: candidate.credentials || "",
+    title: candidate.title || "",
+    bio: candidate.careApproach || "",
+    bioPreview: candidate.careApproach || "",
+    practiceName: candidate.practiceName || "",
+    email: candidate.email || "",
+    phone: candidate.phone || "",
+    website: candidate.website || "",
+    preferredContactMethod: "",
+    preferredContactLabel: "",
+    contactGuidance: "",
+    firstStepExpectation: "",
+    bookingUrl: candidate.bookingUrl || "",
+    city: candidate.city || "",
+    state: candidate.state || "",
+    zip: candidate.zip || "",
+    country: candidate.country || "US",
+    licenseState: candidate.licenseState || "",
+    licenseNumber: candidate.licenseNumber || "",
+    specialties: splitList(candidate.specialties),
+    treatmentModalities: splitList(candidate.treatmentModalities),
+    clientPopulations: splitList(candidate.clientPopulations),
+    insuranceAccepted: splitList(candidate.insuranceAccepted),
+    languages: splitList(candidate.languages).length
+      ? splitList(candidate.languages)
+      : ["English"],
+    yearsExperience: undefined,
+    bipolarYearsExperience: undefined,
+    acceptsTelehealth: parseBoolean(candidate.acceptsTelehealth, true),
+    acceptsInPerson: parseBoolean(candidate.acceptsInPerson, true),
+    acceptingNewPatients: parseBoolean(candidate.acceptingNewPatients, true),
+    telehealthStates: splitList(candidate.telehealthStates),
+    estimatedWaitTime: candidate.estimatedWaitTime || "",
+    careApproach: candidate.careApproach || "",
+    medicationManagement: parseBoolean(candidate.medicationManagement, false),
+    verificationStatus:
+      candidate.sourceReviewedAt || candidate.reviewStatus === "published"
+        ? "editorially_verified"
+        : "under_review",
+    sourceUrl: candidate.sourceUrl || candidate.website || "",
+    supportingSourceUrls: splitList(candidate.supportingSourceUrls),
+    sourceReviewedAt: candidate.sourceReviewedAt || "",
+    therapistReportedFields: [],
+    therapistReportedConfirmedAt: "",
+    sessionFeeMin: parseNumber(candidate.sessionFeeMin),
+    sessionFeeMax: parseNumber(candidate.sessionFeeMax),
+    slidingScale: parseBoolean(candidate.slidingScale, false),
+    listingActive: true,
+    status: "active",
+  };
+}
+
+function normalizeCandidate(doc) {
+  return {
+    id: doc._id,
+    candidate_id: doc.candidateId || "",
+    provider_id: doc.providerId || buildProviderId(doc),
+    provider_fingerprint: doc.providerFingerprint || "",
+    name: doc.name || "",
+    credentials: doc.credentials || "",
+    title: doc.title || "",
+    practice_name: doc.practiceName || "",
+    city: doc.city || "",
+    state: doc.state || "",
+    zip: doc.zip || "",
+    country: doc.country || "US",
+    license_state: doc.licenseState || "",
+    license_number: doc.licenseNumber || "",
+    email: doc.email || "",
+    phone: doc.phone || "",
+    website: doc.website || "",
+    booking_url: doc.bookingUrl || "",
+    source_type: doc.sourceType || "",
+    source_url: doc.sourceUrl || "",
+    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
+    raw_source_snapshot: doc.rawSourceSnapshot || "",
+    extracted_at: doc.extractedAt || "",
+    source_reviewed_at: doc.sourceReviewedAt || "",
+    extraction_version: doc.extractionVersion || "",
+    extraction_confidence:
+      typeof doc.extractionConfidence === "number" ? doc.extractionConfidence : null,
+    care_approach: doc.careApproach || "",
+    specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
+    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
+    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
+    insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
+    languages: Array.isArray(doc.languages) ? doc.languages : [],
+    accepts_telehealth: doc.acceptsTelehealth !== false,
+    accepts_in_person: doc.acceptsInPerson !== false,
+    accepting_new_patients: doc.acceptingNewPatients !== false,
+    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
+    estimated_wait_time: doc.estimatedWaitTime || "",
+    medication_management: Boolean(doc.medicationManagement),
+    session_fee_min: typeof doc.sessionFeeMin === "number" ? doc.sessionFeeMin : null,
+    session_fee_max: typeof doc.sessionFeeMax === "number" ? doc.sessionFeeMax : null,
+    sliding_scale: Boolean(doc.slidingScale),
+    dedupe_status: doc.dedupeStatus || "unreviewed",
+    dedupe_confidence: typeof doc.dedupeConfidence === "number" ? doc.dedupeConfidence : null,
+    matched_therapist_slug: doc.matchedTherapistSlug || "",
+    matched_therapist_id: doc.matchedTherapistId || "",
+    matched_application_id: doc.matchedApplicationId || "",
+    published_therapist_id: doc.publishedTherapistId || "",
+    published_at: doc.publishedAt || "",
+    review_status: doc.reviewStatus || "queued",
+    readiness_score: typeof doc.readinessScore === "number" ? doc.readinessScore : null,
+    publish_recommendation: doc.publishRecommendation || "",
+    notes: doc.notes || "",
+    review_history: Array.isArray(doc.reviewHistory) ? doc.reviewHistory : [],
+  };
+}
+
+function buildCandidateReviewEvent(candidate, updates) {
+  const now = new Date().toISOString();
+  return {
+    _id: `therapist-publish-event-${candidate.candidateId || candidate._id}-${Date.now()}`,
+    _type: "therapistPublishEvent",
+    eventType: updates.eventType,
+    providerId: candidate.providerId || buildProviderId(candidate),
+    candidateId: candidate.candidateId || "",
+    candidateDocumentId: candidate._id,
+    applicationId: updates.applicationId || candidate.matchedApplicationId || "",
+    therapistId: updates.therapistId || candidate.matchedTherapistId || "",
+    decision: updates.decision || "",
+    reviewStatus: updates.reviewStatus || "",
+    publishRecommendation: updates.publishRecommendation || "",
+    notes: updates.notes || "",
+    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
+    createdAt: now,
+  };
+}
+
+function mergeUniqueUrls(primary, supporting, extra) {
+  const urls = []
+    .concat(primary ? [primary] : [])
+    .concat(Array.isArray(supporting) ? supporting : [])
+    .concat(Array.isArray(extra) ? extra : [])
+    .map(function (value) {
+      return String(value || "").trim();
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(urls));
+}
+
 function normalizeApplication(doc) {
   return {
     id: doc._id,
@@ -1416,6 +1574,22 @@ export function createReviewApiHandler(configOverride) {
         return;
       }
 
+      if (request.method === "GET" && routePath === "/candidates") {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const docs = await client.fetch(
+          `*[_type == "therapistCandidate"] | order(coalesce(readinessScore, 0) desc, _updatedAt desc){
+            ...
+          }`,
+        );
+
+        sendJson(response, 200, docs.map(normalizeCandidate), origin, config);
+        return;
+      }
+
       if (request.method === "GET" && routePath === "/portal/requests") {
         if (!isAuthorized(request, config)) {
           sendJson(response, 401, { error: "Unauthorized." }, origin, config);
@@ -1745,6 +1919,225 @@ export function createReviewApiHandler(configOverride) {
         const body = await parseBody(request);
         const updated = await updateApplicationFields(client, applicationId, body);
         sendJson(response, 200, normalizeApplication(updated), origin, config);
+        return;
+      }
+
+      const candidateDecisionMatch = routePath.match(/^\/candidates\/([^/]+)\/decision$/);
+      if (request.method === "POST" && candidateDecisionMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const candidateId = decodeURIComponent(candidateDecisionMatch[1]);
+        const candidate = await client.getDocument(candidateId);
+        if (!candidate || candidate._type !== "therapistCandidate") {
+          sendJson(response, 404, { error: "Candidate not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const decision = String(body.decision || "").trim();
+        const notes = String(body.notes || "").trim();
+        const allowedDecisions = new Set([
+          "mark_ready",
+          "needs_review",
+          "needs_confirmation",
+          "archive",
+          "reject_duplicate",
+          "merge_to_therapist",
+          "merge_to_application",
+          "publish",
+        ]);
+
+        if (!allowedDecisions.has(decision)) {
+          sendJson(response, 400, { error: "Unsupported candidate decision." }, origin, config);
+          return;
+        }
+
+        const now = new Date().toISOString();
+        const historyEntry = {
+          _key: `${Date.now()}`,
+          type: "review_decision",
+          at: now,
+          decision,
+          note: notes,
+        };
+
+        let reviewStatus = candidate.reviewStatus || "queued";
+        let publishRecommendation = candidate.publishRecommendation || "";
+        let dedupeStatus = candidate.dedupeStatus || "unreviewed";
+        let eventType = "candidate_reviewed";
+        let therapistId = "";
+        let applicationId = "";
+        const changedFields = ["reviewStatus", "publishRecommendation", "notes", "reviewHistory"];
+
+        if (decision === "mark_ready") {
+          reviewStatus = "ready_to_publish";
+          publishRecommendation = "ready";
+        } else if (decision === "needs_review") {
+          reviewStatus = "needs_review";
+        } else if (decision === "needs_confirmation") {
+          reviewStatus = "needs_confirmation";
+          publishRecommendation = "needs_confirmation";
+        } else if (decision === "archive") {
+          reviewStatus = "archived";
+          publishRecommendation = "hold";
+          eventType = "candidate_archived";
+        } else if (decision === "reject_duplicate") {
+          reviewStatus = "archived";
+          publishRecommendation = "reject";
+          dedupeStatus = "rejected_duplicate";
+          eventType = "candidate_marked_duplicate";
+          changedFields.push("dedupeStatus");
+        } else if (decision === "merge_to_therapist") {
+          therapistId = candidate.matchedTherapistId || "";
+          if (!therapistId) {
+            sendJson(
+              response,
+              409,
+              { error: "This candidate is not linked to an existing therapist yet." },
+              origin,
+              config,
+            );
+            return;
+          }
+          reviewStatus = "archived";
+          publishRecommendation = "hold";
+          dedupeStatus = "merged";
+          eventType = "candidate_merged";
+          changedFields.push("matchedTherapistId", "dedupeStatus");
+        } else if (decision === "publish") {
+          const nextTherapist = buildTherapistDocumentFromCandidate(
+            candidate,
+            candidate.matchedTherapistId,
+          );
+          therapistId = nextTherapist._id;
+          reviewStatus = "published";
+          publishRecommendation = "ready";
+          eventType = "candidate_published";
+          changedFields.push("publishedTherapistId", "publishedAt", "matchedTherapistId");
+        } else if (decision === "merge_to_application") {
+          applicationId = candidate.matchedApplicationId || "";
+          if (!applicationId) {
+            sendJson(
+              response,
+              409,
+              { error: "This candidate is not linked to an existing application yet." },
+              origin,
+              config,
+            );
+            return;
+          }
+          reviewStatus = "archived";
+          publishRecommendation = "hold";
+          dedupeStatus = "merged";
+          eventType = "candidate_merged";
+          changedFields.push("matchedApplicationId", "dedupeStatus");
+        }
+
+        const transaction = client.transaction();
+        if (decision === "publish") {
+          transaction.createOrReplace(buildTherapistDocumentFromCandidate(candidate, therapistId));
+          transaction.delete(`drafts.${therapistId}`);
+        } else if (decision === "merge_to_therapist") {
+          const therapist = await client.getDocument(therapistId);
+          if (!therapist || therapist._type !== "therapist") {
+            sendJson(response, 404, { error: "Matched therapist not found." }, origin, config);
+            return;
+          }
+
+          transaction.patch(therapistId, function (patch) {
+            return patch.set({
+              supportingSourceUrls: mergeUniqueUrls(
+                therapist.sourceUrl,
+                therapist.supportingSourceUrls,
+                mergeUniqueUrls(
+                  candidate.sourceUrl,
+                  candidate.supportingSourceUrls,
+                  candidate.website ? [candidate.website] : [],
+                ),
+              ),
+              sourceReviewedAt: candidate.sourceReviewedAt || therapist.sourceReviewedAt || now,
+            });
+          });
+        } else if (decision === "merge_to_application") {
+          const application = await client.getDocument(applicationId);
+          if (!application || application._type !== "therapistApplication") {
+            sendJson(response, 404, { error: "Matched application not found." }, origin, config);
+            return;
+          }
+
+          transaction.patch(applicationId, function (patch) {
+            return patch.set({
+              supportingSourceUrls: mergeUniqueUrls(
+                application.sourceUrl,
+                application.supportingSourceUrls,
+                mergeUniqueUrls(
+                  candidate.sourceUrl,
+                  candidate.supportingSourceUrls,
+                  candidate.website ? [candidate.website] : [],
+                ),
+              ),
+              sourceReviewedAt: candidate.sourceReviewedAt || application.sourceReviewedAt || now,
+              notes: [application.notes, notes, `Merged candidate: ${candidate.name || candidate.candidateId}`]
+                .filter(Boolean)
+                .join("\n\n"),
+            });
+          });
+        }
+
+        transaction.patch(candidateId, function (patch) {
+          return patch
+            .set({
+              reviewStatus,
+              publishRecommendation,
+              dedupeStatus,
+              notes,
+              sourceReviewedAt: candidate.sourceReviewedAt || now,
+              ...(therapistId
+                ? {
+                    matchedTherapistId: therapistId,
+                    ...(decision === "publish"
+                      ? {
+                          publishedTherapistId: therapistId,
+                          publishedAt: now,
+                        }
+                      : {}),
+                  }
+                : {}),
+              ...(applicationId ? { matchedApplicationId: applicationId } : {}),
+            })
+            .setIfMissing({ reviewHistory: [] })
+            .append("reviewHistory", [historyEntry]);
+        });
+
+        transaction.create(
+          buildCandidateReviewEvent(candidate, {
+            eventType,
+            therapistId,
+            applicationId,
+            decision,
+            reviewStatus,
+            publishRecommendation,
+            notes,
+            changedFields,
+          }),
+        );
+
+        await transaction.commit({ visibility: "sync" });
+        const updatedCandidate = await client.getDocument(candidateId);
+        sendJson(
+          response,
+          200,
+          {
+            ok: true,
+            candidate: normalizeCandidate(updatedCandidate),
+            therapistId: therapistId || updatedCandidate.publishedTherapistId || "",
+          },
+          origin,
+          config,
+        );
         return;
       }
 
