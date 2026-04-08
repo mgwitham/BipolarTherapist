@@ -47,19 +47,29 @@ function sanitizeApplication(application) {
 }
 
 async function request(path, options) {
-  const response = await fetch(`${reviewApiBaseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options && options.headers ? options.headers : {}),
-    },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options && options.headers ? options.headers : {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    const networkError = new Error(error && error.message ? error.message : "Request failed.");
+    networkError.isNetworkError = true;
+    throw networkError;
+  }
 
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(payload && payload.error ? payload.error : "Request failed.");
+    const requestError = new Error(payload && payload.error ? payload.error : "Request failed.");
+    requestError.status = response.status;
+    requestError.payload = payload;
+    throw requestError;
   }
 
   return payload;

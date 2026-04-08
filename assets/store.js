@@ -71,6 +71,138 @@ function normalizeDisplayRole(value) {
     .trim();
 }
 
+function normalizeLower(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeLicense(value) {
+  return normalizeLower(value).replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeEmail(value) {
+  return normalizeLower(value);
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/[^0-9]/g, "");
+}
+
+function normalizeWebsite(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  try {
+    const url = new URL(raw);
+    const pathname = url.pathname.replace(/\/+$/, "");
+    return `${url.hostname.toLowerCase()}${pathname}`;
+  } catch (_error) {
+    return raw
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/+$/, "");
+  }
+}
+
+function buildDuplicateIdentity(input) {
+  return {
+    slug: slugify(input.slug || [input.name, input.city, input.state].filter(Boolean).join(" ")),
+    name: normalizeLower(input.name),
+    city: normalizeLower(input.city),
+    state: normalizeLower(input.state),
+    credentials: normalizeLower(input.credentials),
+    email: normalizeEmail(input.email),
+    phone: normalizePhone(input.phone),
+    website: normalizeWebsite(input.website || input.booking_url),
+    licenseState: normalizeLower(input.license_state),
+    licenseNumber: normalizeLicense(input.license_number),
+  };
+}
+
+function findDuplicateEntity(therapists, applications, input) {
+  const identity = buildDuplicateIdentity(input);
+
+  function duplicateReasons(candidate) {
+    const reasons = [];
+    const candidateSlug = slugify(candidate.slug || "");
+    const candidateLicenseState = normalizeLower(candidate.license_state || candidate.licenseState);
+    const candidateLicenseNumber = normalizeLicense(
+      candidate.license_number || candidate.licenseNumber,
+    );
+    const candidateEmail = normalizeEmail(candidate.email);
+    const candidatePhone = normalizePhone(candidate.phone);
+    const candidateWebsite = normalizeWebsite(candidate.website || candidate.booking_url);
+    const sameNamePlace =
+      identity.name &&
+      identity.city &&
+      identity.state &&
+      identity.name === normalizeLower(candidate.name) &&
+      identity.city === normalizeLower(candidate.city) &&
+      identity.state === normalizeLower(candidate.state);
+
+    if (
+      identity.licenseState &&
+      identity.licenseNumber &&
+      identity.licenseState === candidateLicenseState &&
+      identity.licenseNumber === candidateLicenseNumber
+    ) {
+      reasons.push("license");
+    }
+    if (identity.slug && identity.slug === candidateSlug) {
+      reasons.push("slug");
+    }
+    if (identity.email && identity.email === candidateEmail) {
+      reasons.push("email");
+    }
+    if (
+      sameNamePlace &&
+      ((identity.phone && identity.phone === candidatePhone) ||
+        (identity.website && identity.website === candidateWebsite) ||
+        (identity.credentials && identity.credentials === normalizeLower(candidate.credentials)))
+    ) {
+      reasons.push("name_location");
+    }
+    return reasons;
+  }
+
+  const therapistMatch = (therapists || []).find(function (candidate) {
+    return (
+      candidate.listing_active !== false &&
+      candidate.status !== "archived" &&
+      duplicateReasons(candidate).length > 0
+    );
+  });
+  if (therapistMatch) {
+    return {
+      kind: "therapist",
+      id: therapistMatch.id || "",
+      slug: therapistMatch.slug || "",
+      name: therapistMatch.name || "",
+    };
+  }
+
+  const applicationMatch = (applications || []).find(function (candidate) {
+    return (
+      ["pending", "reviewing", "requested_changes", "approved"].includes(candidate.status) &&
+      duplicateReasons(candidate).length > 0
+    );
+  });
+  if (applicationMatch) {
+    return {
+      kind: "application",
+      id: applicationMatch.id || "",
+      slug: applicationMatch.slug || "",
+      name: applicationMatch.name || "",
+      status: applicationMatch.status || "pending",
+    };
+  }
+
+  return null;
+}
+
 function normalizeApplication(item) {
   var application = item || {};
   return {
@@ -173,6 +305,14 @@ export function submitApplication(input) {
 
   const therapists = readJson(THERAPISTS_KEY, clone(SEEDED_THERAPISTS));
   const applications = readJson(APPLICATIONS_KEY, []).map(normalizeApplication);
+  const duplicate = findDuplicateEntity(therapists, applications, input);
+  if (duplicate) {
+    throw new Error(
+      duplicate.kind === "therapist"
+        ? "This therapist already has a listing. Please claim or update the existing profile instead of creating a new application."
+        : "An application is already in progress for this therapist. Please continue that application instead of starting a new one.",
+    );
+  }
   const existingSlugs = new Set(
     therapists.map(function (item) {
       return item.slug;

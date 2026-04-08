@@ -62,6 +62,209 @@ function signValue(value, secret) {
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeLower(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function normalizeSlugCandidate(value) {
+  return slugify(value || "");
+}
+
+function normalizeLicense(value) {
+  return normalizeLower(value).replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeEmail(value) {
+  return normalizeLower(value);
+}
+
+function normalizePhone(value) {
+  return normalizeText(value).replace(/[^0-9]/g, "");
+}
+
+function normalizeWebsite(value) {
+  const raw = normalizeText(value);
+  if (!raw) {
+    return "";
+  }
+
+  try {
+    const url = new URL(raw);
+    const pathname = url.pathname.replace(/\/+$/, "");
+    return `${url.hostname.toLowerCase()}${pathname}`;
+  } catch (_error) {
+    return normalizeLower(raw).replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  }
+}
+
+function buildDuplicateIdentity(input) {
+  const name = normalizeLower(input.name);
+  const city = normalizeLower(input.city);
+  const state = normalizeLower(input.state);
+  const credentials = normalizeLower(input.credentials);
+  const website = normalizeWebsite(input.website || input.booking_url);
+  const phone = normalizePhone(input.phone);
+  return {
+    slug: normalizeSlugCandidate(input.slug || [input.name, input.city, input.state].join(" ")),
+    name,
+    city,
+    state,
+    credentials,
+    email: normalizeEmail(input.email),
+    phone,
+    website,
+    licenseState: normalizeLower(input.license_state),
+    licenseNumber: normalizeLicense(input.license_number),
+  };
+}
+
+function compareDuplicateIdentity(identity, candidate) {
+  const candidateSlug = normalizeSlugCandidate(candidate.slug);
+  const candidateEmail = normalizeEmail(candidate.email);
+  const candidatePhone = normalizePhone(candidate.phone);
+  const candidateWebsite = normalizeWebsite(candidate.website || candidate.bookingUrl || candidate.booking_url);
+  const candidateLicenseState = normalizeLower(candidate.licenseState || candidate.license_state);
+  const candidateLicenseNumber = normalizeLicense(candidate.licenseNumber || candidate.license_number);
+  const candidateName = normalizeLower(candidate.name);
+  const candidateCity = normalizeLower(candidate.city);
+  const candidateState = normalizeLower(candidate.state);
+  const candidateCredentials = normalizeLower(candidate.credentials);
+  const reasons = [];
+
+  if (
+    identity.licenseState &&
+    identity.licenseNumber &&
+    identity.licenseState === candidateLicenseState &&
+    identity.licenseNumber === candidateLicenseNumber
+  ) {
+    reasons.push("license");
+  }
+
+  if (identity.slug && identity.slug === candidateSlug) {
+    reasons.push("slug");
+  }
+
+  if (identity.email && identity.email === candidateEmail) {
+    reasons.push("email");
+  }
+
+  const sameNamePlace =
+    identity.name &&
+    identity.city &&
+    identity.state &&
+    identity.name === candidateName &&
+    identity.city === candidateCity &&
+    identity.state === candidateState;
+
+  if (sameNamePlace) {
+    if (
+      (identity.phone && identity.phone === candidatePhone) ||
+      (identity.website && identity.website === candidateWebsite) ||
+      (identity.credentials && identity.credentials === candidateCredentials)
+    ) {
+      reasons.push("name_location");
+    }
+  }
+
+  return reasons;
+}
+
+async function findDuplicateTherapistEntity(client, input) {
+  const identity = buildDuplicateIdentity(input);
+  const [therapists, applications] = await Promise.all([
+    client.fetch(
+      `*[_type == "therapist"]{
+        _id,
+        name,
+        credentials,
+        email,
+        phone,
+        website,
+        bookingUrl,
+        city,
+        state,
+        licenseState,
+        licenseNumber,
+        "slug": slug.current,
+        listingActive,
+        status
+      }`,
+    ),
+    client.fetch(
+      `*[_type == "therapistApplication" && status in ["pending", "reviewing", "requested_changes", "approved"]]{
+        _id,
+        name,
+        credentials,
+        email,
+        phone,
+        website,
+        bookingUrl,
+        city,
+        state,
+        licenseState,
+        licenseNumber,
+        submittedSlug,
+        status,
+        publishedTherapistId
+      }`,
+    ),
+  ]);
+
+  const therapistMatch = (therapists || []).find(function (candidate) {
+    const reasons = compareDuplicateIdentity(identity, candidate);
+    if (
+      reasons.length &&
+      candidate.listingActive !== false &&
+      String(candidate.status || "active").toLowerCase() !== "archived"
+    ) {
+      candidate.__duplicateReasons = reasons;
+      return true;
+    }
+    return false;
+  });
+
+  if (therapistMatch) {
+    return {
+      kind: "therapist",
+      id: therapistMatch._id,
+      slug: therapistMatch.slug || "",
+      name: therapistMatch.name || "",
+      reasons: therapistMatch.__duplicateReasons || [],
+    };
+  }
+
+  const applicationMatch = (applications || []).find(function (candidate) {
+    const shapedCandidate = {
+      ...candidate,
+      slug: candidate.submittedSlug || "",
+    };
+    const reasons = compareDuplicateIdentity(identity, shapedCandidate);
+    if (reasons.length) {
+      candidate.__duplicateReasons = reasons;
+      return true;
+    }
+    return false;
+  });
+
+  if (applicationMatch) {
+    return {
+      kind: "application",
+      id: applicationMatch._id,
+      slug: applicationMatch.submittedSlug || "",
+      name: applicationMatch.name || "",
+      status: applicationMatch.status || "pending",
+      publishedTherapistId: applicationMatch.publishedTherapistId || "",
+      reasons: applicationMatch.__duplicateReasons || [],
+    };
+  }
+
+  return null;
+}
+
 export function getReviewApiConfig() {
   const rootEnv = readEnvFile(path.join(ROOT, ".env"));
   const studioEnv = readEnvFile(path.join(ROOT, "studio", ".env"));
@@ -1344,6 +1547,32 @@ export function createReviewApiHandler(configOverride) {
 
       if (request.method === "POST" && routePath === "/applications") {
         const body = await parseBody(request);
+        const duplicate = await findDuplicateTherapistEntity(client, body);
+        if (duplicate) {
+          const responsePayload =
+            duplicate.kind === "therapist"
+              ? {
+                  error:
+                    "This therapist already has a listing. Please claim or update the existing profile instead of creating a new application.",
+                  duplicate_kind: duplicate.kind,
+                  duplicate_id: duplicate.id,
+                  duplicate_slug: duplicate.slug,
+                  duplicate_name: duplicate.name,
+                  duplicate_reasons: duplicate.reasons,
+                }
+              : {
+                  error:
+                    "An application is already in progress for this therapist. Please continue that application instead of starting a new one.",
+                  duplicate_kind: duplicate.kind,
+                  duplicate_id: duplicate.id,
+                  duplicate_slug: duplicate.slug,
+                  duplicate_name: duplicate.name,
+                  duplicate_status: duplicate.status,
+                  duplicate_reasons: duplicate.reasons,
+                };
+          sendJson(response, 409, responsePayload, origin, config);
+          return;
+        }
         const document = await buildApplicationDocument(client, body);
         const created = await client.create(document);
         try {

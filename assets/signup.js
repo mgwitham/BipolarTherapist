@@ -570,7 +570,10 @@ async function handleSubmit(event) {
       application = revisionApplicationId
         ? await submitTherapistApplicationRevision(revisionApplicationId, data)
         : await submitTherapistApplication(data);
-    } catch (_error) {
+    } catch (error) {
+      if (error && error.status) {
+        throw error;
+      }
       application = revisionApplicationId
         ? reviseApplication(revisionApplicationId, data)
         : submitApplication(data);
@@ -578,10 +581,14 @@ async function handleSubmit(event) {
     }
 
     showSuccess(application, source);
-  } catch (_error) {
+  } catch (error) {
     button.disabled = false;
     button.textContent = "Submit Application →";
-    showErr("Something went wrong while saving the application. Please try again.");
+    showErr(
+      error && error.message
+        ? error.message
+        : "Something went wrong while saving the application. Please try again.",
+    );
   }
 }
 
