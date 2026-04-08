@@ -138,6 +138,13 @@ function normalizeTherapist(doc) {
     source_url: doc.sourceUrl || "",
     supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
     source_reviewed_at: doc.sourceReviewedAt || "",
+    source_health_status: doc.sourceHealthStatus || "",
+    source_health_checked_at: doc.sourceHealthCheckedAt || "",
+    source_health_status_code:
+      typeof doc.sourceHealthStatusCode === "number" ? doc.sourceHealthStatusCode : null,
+    source_health_final_url: doc.sourceHealthFinalUrl || "",
+    source_health_error: doc.sourceHealthError || "",
+    source_drift_signals: Array.isArray(doc.sourceDriftSignals) ? doc.sourceDriftSignals : [],
     therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
       ? doc.therapistReportedFields
       : [],

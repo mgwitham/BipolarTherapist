@@ -7679,6 +7679,15 @@ function getCandidateOpsEvidence(item) {
 }
 
 function getTherapistOpsReason(freshness, item) {
+  if (item.source_health_status && !["healthy", "redirected"].includes(item.source_health_status)) {
+    return (
+      "Primary source health degraded" +
+      (item.source_health_error ? ": " + item.source_health_error : ".")
+    );
+  }
+  if (Array.isArray(item.source_drift_signals) && item.source_drift_signals.length) {
+    return "Drift signals: " + item.source_drift_signals.slice(0, 3).join(", ");
+  }
   if (freshness.needs_reconfirmation_fields.length) {
     return (
       "Operational fields need reconfirmation: " +
@@ -7872,8 +7881,12 @@ function renderOpsInbox() {
         freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
       : "Refresh source review";
     const evidence = [
+      item.source_health_status ? "Source " + item.source_health_status : "",
       freshness.source_review_age_days != null
         ? "Source age " + freshness.source_review_age_days + "d"
+        : "",
+      item.source_health_checked_at
+        ? "Health checked " + formatDate(item.source_health_checked_at)
         : "",
       freshness.therapist_confirmation_age_days != null
         ? "Therapist confirmation age " + freshness.therapist_confirmation_age_days + "d"

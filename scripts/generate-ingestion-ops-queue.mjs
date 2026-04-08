@@ -105,6 +105,12 @@ function buildCandidateAction(candidate) {
 }
 
 function buildTherapistAction(therapist) {
+  if (
+    therapist.sourceHealthStatus &&
+    !["healthy", "redirected"].includes(String(therapist.sourceHealthStatus))
+  ) {
+    return "Repair source path now";
+  }
   if (therapist.verificationLane === "needs_verification") {
     return "Verify source and contact path";
   }
@@ -157,6 +163,9 @@ async function fetchData(client) {
       dataCompletenessScore,
       sourceReviewedAt,
       therapistReportedConfirmedAt,
+      sourceHealthStatus,
+      sourceHealthCheckedAt,
+      sourceDriftSignals,
       "slug": slug.current
     }
   }`);
@@ -198,10 +207,22 @@ function buildRows(data) {
       action: buildTherapistAction(therapist),
       status: "live",
       recommendation: "",
-      trust_signal: therapist.dataCompletenessScore == null
-        ? ""
-        : `Completeness ${therapist.dataCompletenessScore}/100`,
-      source: [formatDate(therapist.sourceReviewedAt), formatDate(therapist.therapistReportedConfirmedAt)]
+      trust_signal: [
+        therapist.sourceHealthStatus ? `Source ${therapist.sourceHealthStatus}` : "",
+        therapist.dataCompletenessScore == null
+          ? ""
+          : `Completeness ${therapist.dataCompletenessScore}/100`,
+        Array.isArray(therapist.sourceDriftSignals) && therapist.sourceDriftSignals.length
+          ? therapist.sourceDriftSignals[0]
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      source: [
+        formatDate(therapist.sourceReviewedAt),
+        formatDate(therapist.sourceHealthCheckedAt),
+        formatDate(therapist.therapistReportedConfirmedAt),
+      ]
         .filter(Boolean)
         .join(" · "),
       profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",

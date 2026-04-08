@@ -2,6 +2,21 @@ import { spawnSync } from "node:child_process";
 
 const steps = [
   {
+    label: "Source health checks",
+    cmd: "npm",
+    args: ["run", "cms:run:source-health-checks"],
+  },
+  {
+    label: "Operational drift checks",
+    cmd: "npm",
+    args: ["run", "cms:run:operational-drift-checks"],
+  },
+  {
+    label: "Source domain health report",
+    cmd: "npm",
+    args: ["run", "cms:generate:source-domain-health-report"],
+  },
+  {
     label: "Ingestion ops queue",
     cmd: "npm",
     args: ["run", "cms:generate:ingestion-ops-queue"],
