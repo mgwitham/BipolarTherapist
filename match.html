@@ -73,6 +73,8 @@
         border-radius: 24px;
         padding: 1rem;
         box-shadow: 0 22px 48px rgba(10, 45, 56, 0.08);
+        width: min(100%, 600px);
+        margin: 0 auto;
       }
       .match-tool-card {
         background: white;
@@ -513,6 +515,33 @@
         gap: 1rem;
         padding: 0.9rem 0 0;
       }
+      .match-refinement-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 1rem;
+      }
+      .match-refinement-actions .btn-primary,
+      .match-refinement-actions .btn-secondary {
+        width: auto;
+      }
+      .match-refinement-actions .btn-primary {
+        padding: 0.82rem 1.25rem;
+        border-radius: 12px;
+      }
+      .match-refinement-actions .btn-secondary {
+        padding: 0.82rem 1.1rem;
+        border-radius: 12px;
+        background: #f7fbfc;
+        color: var(--muted);
+        border-color: rgba(14, 77, 95, 0.08);
+        box-shadow: none;
+      }
+      .match-refinement-actions .btn-secondary:hover {
+        background: #f0f7f9;
+        color: var(--slate);
+      }
       .intake-adaptive-coach {
         display: grid;
         gap: 0.75rem;
@@ -594,25 +623,45 @@
       .match-queue[hidden] {
         display: none;
       }
-      .match-queue-header {
+      .match-queue-disclosure {
         padding: 0.95rem 1rem;
-        border-bottom: 1px solid var(--border);
-        background: #f8fbfc;
       }
-      .match-queue-header h3 {
-        margin: 0 0 0.18rem;
-        font-size: 0.96rem;
+      .match-queue-disclosure summary {
+        list-style: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
       }
-      .match-queue-header p {
-        margin: 0;
-        font-size: 0.82rem;
-        color: var(--muted);
-        line-height: 1.55;
+      .match-queue-disclosure summary::-webkit-details-marker {
+        display: none;
+      }
+      .match-queue-title {
+        color: var(--teal-dark);
+        font-size: 0.95rem;
+        font-weight: 800;
+      }
+      .match-queue-toggle {
+        color: var(--teal);
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+      }
+      .match-queue-toggle::before {
+        content: "›";
+        font-size: 1.05rem;
+        line-height: 1;
+        transform: rotate(90deg);
+        transition: transform 180ms ease;
+      }
+      .match-queue-disclosure[open] .match-queue-toggle::before {
+        transform: rotate(180deg);
       }
       .match-queue-list {
         display: grid;
         gap: 0.8rem;
-        padding: 1rem;
+        padding: 0.95rem 0 0;
       }
       .match-queue-card {
         display: grid;
@@ -744,8 +793,9 @@
       }
       .match-support-panel-copy {
         margin: 0;
-        font-size: 0.83rem;
+        font-size: 0.8rem;
         color: var(--muted);
+        line-height: 1.45;
       }
       .match-support-panel-body {
         padding: 1rem 1.05rem;
@@ -1001,7 +1051,7 @@
       }
       .match-card h3 {
         margin: 0;
-        font-size: clamp(1.24rem, 1.35vw, 1.6rem);
+        font-size: clamp(1.12rem, 1.2vw, 1.42rem);
         line-height: 1.08;
         letter-spacing: -0.03em;
         max-width: 100%;
@@ -1011,14 +1061,14 @@
       }
       .match-credentials {
         color: var(--muted);
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         font-weight: 700;
         line-height: 1.35;
         letter-spacing: 0.01em;
       }
       .match-meta {
         color: var(--muted);
-        font-size: 0.9rem;
+        font-size: 0.64rem;
         font-weight: 600;
         line-height: 1.35;
       }
@@ -1185,7 +1235,7 @@
       }
       .match-summary-bar {
         margin-bottom: 1rem;
-        padding: 1rem 1.05rem;
+        padding: 0.9rem 1rem;
         border-radius: 16px;
         background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
         border: 1px solid var(--border);
@@ -1203,42 +1253,15 @@
         display: flex;
         gap: 0.65rem;
         flex-wrap: wrap;
-        margin-top: 0.9rem;
+        margin-top: 0.75rem;
       }
-      .match-summary-actions .btn-secondary,
-      .match-summary-actions .btn-primary {
+      .match-summary-actions .btn-secondary {
         width: auto;
-      }
-      .match-adaptive-next-step {
-        display: grid;
-        gap: 0.25rem;
-        margin-top: 0.8rem;
-        padding: 0.8rem 0.9rem;
-        border-radius: 14px;
-        border: 1px solid rgba(14, 77, 95, 0.12);
-        background: linear-gradient(180deg, #f7fbfc 0%, #ffffff 100%);
-      }
-      .match-adaptive-next-step.is-empty {
-        display: none;
-      }
-      .match-adaptive-next-step-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .match-adaptive-next-step-body {
-        color: var(--slate);
-        font-size: 0.82rem;
       }
       .match-summary-text {
         font-size: 0.88rem;
         color: var(--slate);
         line-height: 1.6;
-      }
-      .match-action-status {
-        margin-top: 0.7rem;
-        font-size: 0.82rem;
-        color: var(--muted);
       }
       .match-feedback-bar {
         margin: 1rem 0 0;
@@ -2238,6 +2261,10 @@
                       </div>
                     </div>
                   </div>
+                  <div class="match-refinement-actions">
+                    <button type="submit" class="btn-primary">Find</button>
+                    <button type="button" class="btn-secondary" id="resetMatch">Reset</button>
+                  </div>
                 </details>
               </div>
             </div>
@@ -2245,23 +2272,21 @@
         </div>
         <div class="results-intro">
           <div class="match-subtle" id="resultsMeta">
-            Start with your ZIP code first. We will lead with the best 3 options and keep up to 8 in
-            reserve if you want more depth.
+            Start with your ZIP and care type. We’ll lead with the top 3 matches.
           </div>
         </div>
         <div class="match-summary-bar">
-          <span class="match-summary-kicker">What we are prioritizing</span>
+          <span class="match-summary-kicker">Your shortlist</span>
           <div class="match-summary-text" id="matchSummary">
-            We balance practical fit, bipolar-specific fit, reviewed details, and a next step you
-            can actually use.
+            Top matches based on your ZIP, care type, and the details you added.
           </div>
           <div class="match-subtle" id="matchLaunchExplainer" style="margin: 0.45rem 0 0"></div>
           <div class="match-refine-bar" id="matchRefineBar" hidden>
             <div class="match-refine-top">
               <div>
-                <div class="match-refine-title">Refine this shortlist</div>
+                <div class="match-refine-title">Adjust ranking</div>
                 <div class="match-refine-copy" id="matchRefineCopy">
-                  Run a second pass if you want the ranking to lean toward one specific priority.
+                  Choose what to emphasize next.
                 </div>
               </div>
               <button type="button" class="match-refine-reset" id="matchRefineReset" hidden>
@@ -2270,7 +2295,6 @@
             </div>
             <div class="match-refine-options" id="matchRefineOptions"></div>
           </div>
-          <div class="match-adaptive-next-step is-empty" id="matchAdaptiveNextStep"></div>
           <div class="match-summary-actions">
             <button type="button" class="btn-secondary" id="saveShortlist" disabled>
               Save shortlist
@@ -2281,12 +2305,6 @@
             <button type="button" class="btn-secondary" id="emailShortlist" disabled>
               Email shortlist
             </button>
-            <button type="button" class="btn-primary" id="requestHelp" disabled>
-              Help me narrow this
-            </button>
-          </div>
-          <div class="match-action-status" id="matchActionStatus">
-            Run a match to save, share, or email your shortlist.
           </div>
         </div>
         <div id="matchFirstContact"></div>

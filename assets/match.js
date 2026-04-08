@@ -447,9 +447,9 @@ function renderSecondPassControls(profile, entries) {
   bar.hidden = false;
   copy.textContent =
     activeSecondPassMode === "balanced"
-      ? "The first pass stays balanced by default. Use a second pass only if you want the shortlist to lean more toward one specific priority."
+      ? "Choose what to emphasize next."
       : (getSecondPassModeConfig(activeSecondPassMode) || {}).summary ||
-        "This shortlist is leaning toward one specific second-pass priority.";
+        "This shortlist is now leaning toward one ranking priority.";
 
   optionsRoot.innerHTML = SECOND_PASS_MODES.map(function (mode) {
     return (
@@ -1282,7 +1282,7 @@ function renderComparison(entries) {
     .join("");
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Use this to spot the biggest practical differences fast.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Side-by-side comparison</h3><p>Start with order and next move, then check format, insurance, and language.</p></div><div class="compare-grid">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Scan the differences that matter most before you decide.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Start with order and best route, then check format, insurance, and language.</p></div><div class="compare-grid">' +
     headerCells +
     bodyCells +
     "</div></section></div></section>";
@@ -2895,14 +2895,19 @@ function recordShortlistFeedback(value) {
 
 function setActionState(enabled, message) {
   ["saveShortlist", "copyShareLink", "emailShortlist", "requestHelp"].forEach(function (id) {
-    document.getElementById(id).disabled = !enabled;
+    var button = document.getElementById(id);
+    if (button) {
+      button.disabled = !enabled;
+    }
   });
   if (message) {
     var status = document.getElementById("matchActionStatus");
-    status.textContent = message;
-    status.classList.remove("motion-pulse");
-    void status.offsetWidth;
-    status.classList.add("motion-pulse");
+    if (status) {
+      status.textContent = message;
+      status.classList.remove("motion-pulse");
+      void status.offsetWidth;
+      status.classList.add("motion-pulse");
+    }
   }
 }
 
@@ -3553,12 +3558,12 @@ function renderShortlistQueue(entries) {
 
   root.hidden = false;
   root.innerHTML =
-    '<div class="match-queue-header"><h3>Keep these in reserve</h3><p>Your main recommendation set stays focused on the best 3 options. These extra profiles give you a deeper queue if you want more to compare or fall back to.</p></div><div class="match-queue-list">' +
+    '<details class="match-queue-disclosure"><summary><span class="match-queue-title">More providers</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
     queueEntries
       .map(function (entry, index) {
         var therapist = entry.therapist;
         return (
-          '<article class="match-queue-card"><div><div class="match-queue-rank">Reserve ' +
+          '<article class="match-queue-card"><div><div class="match-queue-rank">Option ' +
           escapeHtml(String(PRIMARY_SHORTLIST_LIMIT + index + 1)) +
           '</div><div class="match-queue-name">' +
           escapeHtml(therapist.name) +
@@ -3579,7 +3584,7 @@ function renderShortlistQueue(entries) {
         );
       })
       .join("") +
-    "</div>";
+    "</div></details>";
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -4122,7 +4127,7 @@ function renderOutreachPanel(entries) {
     focusIndex = 0;
   }
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Outreach Help</div><div class="match-support-panel-copy">Move through one provider at a time and keep your next step updated as you go.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Take the next step</div><div class="match-support-panel-copy">Start with one provider and update the outcome as you go.</div></div><div class="outreach-carousel-meta"><div class="outreach-carousel-count">' +
     escapeHtml(String(focusIndex + 1) + " of " + String(topEntries.length)) +
     '</div><div class="outreach-carousel-nav"><button type="button" class="btn-secondary" id="outreachPrev"' +
     (focusIndex === 0 ? " disabled" : "") +
@@ -4151,9 +4156,9 @@ function renderOutreachPanel(entries) {
           escapeHtml(formatTherapistLocationLine(therapist)) +
           '</div></div><span class="match-summary-pill">' +
           escapeHtml(role) +
-          '</span></div><div class="outreach-card-route"><div class="outreach-note-label">Best route</div><div class="outreach-note-body">' +
+          '</span></div><div class="outreach-card-route"><div class="outreach-note-label">Start here</div><div class="outreach-note-body">' +
           escapeHtml(preferredRoute ? preferredRoute.label : "Open profile") +
-          '</div></div><div class="outreach-card-route"><div class="outreach-note-label">Script</div><div class="outreach-note-body">' +
+          '</div></div><div class="outreach-card-route"><div class="outreach-note-label">What to say</div><div class="outreach-note-body">' +
           escapeHtml(script) +
           '</div></div><div class="outreach-card-actions">' +
           (preferredRoute
@@ -4171,11 +4176,11 @@ function renderOutreachPanel(entries) {
             : "") +
           '<button type="button" class="btn-secondary" data-copy-entry-draft="' +
           escapeHtml(therapist.slug) +
-          '">Copy draft</button><a class="btn-secondary" href="therapist.html?slug=' +
+          '">Copy script</button><a class="btn-secondary" href="therapist.html?slug=' +
           encodeURIComponent(therapist.slug) +
           '" data-match-profile-link="' +
           escapeHtml(therapist.slug) +
-          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Share what happened</div><div class="first-contact-tracker-actions">' +
+          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Update outcome</div><div class="first-contact-tracker-actions">' +
           OUTREACH_OUTCOME_OPTIONS.map(function (option) {
             return (
               '<button type="button" class="feedback-btn' +
@@ -4712,23 +4717,26 @@ function resetForm() {
     openEmailShortlist();
     setActionState(true, "Email draft opened with your shortlist.");
   });
-  document.getElementById("requestHelp").addEventListener("click", function () {
-    if (!latestProfile || !latestEntries.length) {
-      return;
-    }
+  var requestHelpButton = document.getElementById("requestHelp");
+  if (requestHelpButton) {
+    requestHelpButton.addEventListener("click", function () {
+      if (!latestProfile || !latestEntries.length) {
+        return;
+      }
 
-    var supportTarget =
-      document.getElementById("matchOutreach") || document.getElementById("matchCompare");
-    if (supportTarget) {
-      supportTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    trackFunnelEvent("match_help_requested", {
-      result_count: latestEntries.length,
-      top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
-      strategy: buildAdaptiveStrategySnapshot(latestProfile),
+      var supportTarget =
+        document.getElementById("matchOutreach") || document.getElementById("matchCompare");
+      if (supportTarget) {
+        supportTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      trackFunnelEvent("match_help_requested", {
+        result_count: latestEntries.length,
+        top_slug: latestEntries[0] ? latestEntries[0].therapist.slug : "",
+        strategy: buildAdaptiveStrategySnapshot(latestProfile),
+      });
+      setActionState(true, "Use outreach help or compare to narrow your next step.");
     });
-    setActionState(true, "Use outreach help or compare to narrow your next step.");
-  });
+  }
   document.getElementById("feedbackShortlistPositive").addEventListener("click", function () {
     recordShortlistFeedback("positive");
   });
