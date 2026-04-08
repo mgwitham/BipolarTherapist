@@ -1556,6 +1556,9 @@ function hasPreferredPhotoSource(value) {
 function getApplicationReviewSnapshot(item) {
   var readiness = getTherapistMatchReadiness(item);
   var isConfirmationRefresh = isConfirmationRefreshApplication(item);
+  var isClaimConversion =
+    item &&
+    ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(item.portal_state);
   var missingCriticalFields = [];
   var photoSourceType = item.photo_source_type || "";
   var hasPhotoAsset = Boolean(item.photo_url);
@@ -1587,7 +1590,12 @@ function getApplicationReviewSnapshot(item) {
   var note =
     "Keep tightening the operational truth and make a clear decision on publish versus request changes.";
 
-  if (isConfirmationRefresh) {
+  if (isClaimConversion) {
+    focus = "claim_conversion";
+    label = "After-claim profile";
+    note =
+      "This therapist already cleared claim review and finished the fuller profile. Treat this as high-leverage follow-through work so the claim loop does not stall.";
+  } else if (isConfirmationRefresh) {
     focus = "confirmation_refresh";
     label = "Confirmation refresh";
     note =
@@ -1624,15 +1632,17 @@ function getApplicationReviewSnapshot(item) {
           : "Treat this as a temporary photo fallback and prefer a therapist- or practice-uploaded headshot next.",
     missingCriticalFields: missingCriticalFields,
     nextMove:
-      focus === "confirmation_refresh"
-        ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
-        : focus === "needs_changes"
-          ? "Request changes before publishing."
-          : focus === "publish_ready"
-            ? "Do a final trust pass, then publish."
-            : item.status === "pending"
-              ? "Move into reviewing and decide what still blocks trust."
-              : "Keep reviewing and make the next decision explicit.",
+      focus === "claim_conversion"
+        ? "Review the fuller profile quickly and move it toward publish or request changes."
+        : focus === "confirmation_refresh"
+          ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
+          : focus === "needs_changes"
+            ? "Request changes before publishing."
+            : focus === "publish_ready"
+              ? "Do a final trust pass, then publish."
+              : item.status === "pending"
+                ? "Move into reviewing and decide what still blocks trust."
+                : "Keep reviewing and make the next decision explicit.",
   };
 }
 
@@ -1641,7 +1651,9 @@ function getApplicationPriorityScore(item) {
   var readiness = getTherapistMatchReadiness(item);
   var score = 0;
 
-  if (snapshot.focus === "publish_ready") {
+  if (snapshot.focus === "claim_conversion") {
+    score += 130;
+  } else if (snapshot.focus === "publish_ready") {
     score += 120;
   } else if (snapshot.focus === "confirmation_refresh") {
     score += 95;
@@ -1739,7 +1751,9 @@ function getGoalAdjustedApplicationPriorityScore(item, goal) {
   var score = getApplicationPriorityScore(item);
 
   if (goal === "publish_now") {
-    if (snapshot.focus === "publish_ready") {
+    if (snapshot.focus === "claim_conversion") {
+      score += 110;
+    } else if (snapshot.focus === "publish_ready") {
       score += 90;
     } else if (snapshot.focus === "active_review") {
       score += 20;
@@ -1780,6 +1794,9 @@ function getApplicationBatchReason(item, goal) {
   var snapshot = getApplicationReviewSnapshot(item);
 
   if (goal === "publish_now") {
+    if (snapshot.focus === "claim_conversion") {
+      return "This is the highest-leverage follow-through work: a therapist converted from claim to fuller profile and now needs a decisive review pass.";
+    }
     if (snapshot.focus === "publish_ready") {
       return "Strong trust signals make this a fast publish decision candidate.";
     }
@@ -1806,6 +1823,9 @@ function getApplicationBatchReason(item, goal) {
     return "This is supporting review work after the refresh-specific items are cleared.";
   }
 
+  if (snapshot.focus === "claim_conversion") {
+    return "This therapist completed the fuller profile after claim approval and should be reviewed before the follow-through momentum cools.";
+  }
   if (snapshot.focus === "publish_ready") {
     return "This is strong, near-finish review work that can create momentum quickly.";
   }
@@ -1837,12 +1857,32 @@ function getApplicationFilterChips() {
     chips.push("Status: " + formatStatusLabel(applicationFilters.status));
   }
   if (applicationFilters.focus) {
-    chips.push("Focus: " + formatFieldLabel(applicationFilters.focus));
+    chips.push("Focus: " + getApplicationFocusLabel(applicationFilters.focus));
   }
   if (applicationFilters.q) {
     chips.push('Search: "' + applicationFilters.q + '"');
   }
   return chips;
+}
+
+function getApplicationFocusLabel(value) {
+  if (value === "claimed_ready_for_profile") {
+    return "Approved claims awaiting full profile";
+  }
+  if (value === "claim_conversion") {
+    return "Full profiles submitted after claim approval";
+  }
+  if (value === "claim_flow") {
+    return "Claim submissions";
+  }
+  if (value === "full_profile_flow") {
+    return "Full-profile submissions";
+  }
+  return formatFieldLabel(value);
+}
+
+function formatPercent(value) {
+  return Math.max(0, Math.round(Number(value || 0))) + "%";
 }
 
 function buildRecommendedReviewBatchPacket(items, goal) {
@@ -4472,6 +4512,37 @@ function buildClaimReviewRequest(item) {
     "- If this claim is tied to an existing live profile, clarify any mismatch between the current listing and your submitted details.",
     "",
     close,
+  ].join("\n");
+}
+
+function getClaimFollowUpLabel(value) {
+  if (value === "sent") return "Follow-up sent";
+  if (value === "responded") return "Therapist responded";
+  if (value === "full_profile_started") return "Full profile started";
+  return "Not started";
+}
+
+function buildClaimFollowUpMessage(item) {
+  var revisionLink = new URL(
+    "signup.html?revise=" + encodeURIComponent(item.id),
+    window.location.href,
+  ).toString();
+  return [
+    "Subject: Finish your BipolarTherapyHub profile",
+    "",
+    "Hi " + (item && item.name ? item.name : "") + ",",
+    "",
+    "Your profile claim has been approved on BipolarTherapyHub.",
+    "",
+    "The next step is to complete your fuller profile so we can review your trust details, care fit, and public listing readiness.",
+    "",
+    "Complete your profile here:",
+    revisionLink,
+    "",
+    "Once you submit the fuller profile, we can move it through review.",
+    "",
+    "Thank you,",
+    "BipolarTherapyHub Review",
   ].join("\n");
 }
 
@@ -7713,7 +7784,24 @@ function renderApplications() {
           return false;
         }
         if (
-          !["claim_flow", "full_profile_flow"].includes(applicationFilters.focus) &&
+          applicationFilters.focus === "claimed_ready_for_profile" &&
+          item.portal_state !== "claimed_ready_for_profile"
+        ) {
+          return false;
+        }
+        if (
+          applicationFilters.focus === "claim_conversion" &&
+          snapshot.focus !== "claim_conversion"
+        ) {
+          return false;
+        }
+        if (
+          ![
+            "claim_flow",
+            "full_profile_flow",
+            "claimed_ready_for_profile",
+            "claim_conversion",
+          ].includes(applicationFilters.focus) &&
           snapshot.focus !== applicationFilters.focus
         ) {
           return false;
@@ -7758,6 +7846,8 @@ function renderApplications() {
       accumulator.reviewing += item.status === "reviewing" ? 1 : 0;
       accumulator.claims += item.submission_intent === "claim" ? 1 : 0;
       accumulator.full_profiles += item.submission_intent === "claim" ? 0 : 1;
+      accumulator.approved_claims += item.portal_state === "claimed_ready_for_profile" ? 1 : 0;
+      accumulator.claim_conversions += snapshot.focus === "claim_conversion" ? 1 : 0;
       accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
       accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
       accumulator.confirmation_refresh += snapshot.focus === "confirmation_refresh" ? 1 : 0;
@@ -7768,6 +7858,8 @@ function renderApplications() {
       reviewing: 0,
       claims: 0,
       full_profiles: 0,
+      approved_claims: 0,
+      claim_conversions: 0,
       publish_ready: 0,
       needs_changes: 0,
       confirmation_refresh: 0,
@@ -7776,9 +7868,77 @@ function renderApplications() {
   const recommendedBatch = filteredApplications.slice(0, 3);
   const topReviewTarget = recommendedBatch[0] || null;
   const activeFilterChips = getApplicationFilterChips();
+  const claimFunnel = {
+    submitted: applications.filter(function (item) {
+      return item.submission_intent === "claim";
+    }).length,
+    approved: applications.filter(function (item) {
+      return item.portal_state === "claimed_ready_for_profile";
+    }).length,
+    followUpSent: applications.filter(function (item) {
+      return ["sent", "responded", "full_profile_started"].includes(item.claim_follow_up_status);
+    }).length,
+    fullProfileStarted: applications.filter(function (item) {
+      return item.claim_follow_up_status === "full_profile_started";
+    }).length,
+    fullProfileSubmitted: applications.filter(function (item) {
+      return ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
+        item.portal_state,
+      );
+    }).length,
+  };
+  const claimApprovalRate = claimFunnel.submitted
+    ? (claimFunnel.approved / claimFunnel.submitted) * 100
+    : 0;
+  const claimFollowUpRate = claimFunnel.approved
+    ? (claimFunnel.followUpSent / claimFunnel.approved) * 100
+    : 0;
+  const claimConversionRate = claimFunnel.approved
+    ? (claimFunnel.fullProfileSubmitted / claimFunnel.approved) * 100
+    : 0;
 
   root.innerHTML =
-    '<div class="review-priority-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="queue-insights-grid">' +
+    [
+      {
+        label: "Claims submitted",
+        value: claimFunnel.submitted,
+        note: "Total free-claim entries in the application queue.",
+      },
+      {
+        label: "Claims approved",
+        value: claimFunnel.approved,
+        note: formatPercent(claimApprovalRate) + " of submitted claims",
+      },
+      {
+        label: "Follow-up sent",
+        value: claimFunnel.followUpSent,
+        note: formatPercent(claimFollowUpRate) + " of approved claims",
+      },
+      {
+        label: "Full profile started",
+        value: claimFunnel.fullProfileStarted,
+        note: "Approved claims where the therapist has re-entered the fuller profile flow.",
+      },
+      {
+        label: "Full profile submitted",
+        value: claimFunnel.fullProfileSubmitted,
+        note: formatPercent(claimConversionRate) + " of approved claims",
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml(String(item.value)) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(item.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.note) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div></div><div class="review-priority-grid">' +
     [
       {
         status: "pending",
@@ -7800,6 +7960,20 @@ function renderApplications() {
         label: "Claims",
         value: summaryCounts.claims,
         note: "Free-claim submissions that mainly need ownership and core-detail verification.",
+      },
+      {
+        status: "",
+        focus: "claimed_ready_for_profile",
+        label: "Approved claims",
+        value: summaryCounts.approved_claims,
+        note: "Claims that are approved and now need follow-up to get the fuller profile completed.",
+      },
+      {
+        status: "",
+        focus: "claim_conversion",
+        label: "After-claim profiles",
+        value: summaryCounts.claim_conversions,
+        note: "Therapists who came back after claim approval and submitted the fuller profile for real review.",
       },
       {
         status: "",
@@ -7925,6 +8099,7 @@ function renderApplications() {
           item.portal_state_label || formatStatusLabel(item.status || "pending");
         const portalNextStep = item.portal_next_step || reviewSnapshot.nextMove;
         const isClaimFlow = item.submission_intent === "claim";
+        const claimFollowUpLabel = getClaimFollowUpLabel(item.claim_follow_up_status);
         const isConfirmationRefresh = isConfirmationRefreshApplication(item);
         const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
           ? item.therapist_reported_fields
@@ -7937,6 +8112,7 @@ function renderApplications() {
         });
         const improvementRequest = buildImprovementRequest(item, coaching);
         const claimRequest = buildClaimReviewRequest(item);
+        const claimFollowUpMessage = buildClaimFollowUpMessage(item);
         const revisionLink = new URL(
           "signup.html?revise=" + encodeURIComponent(item.id),
           window.location.href,
@@ -8193,6 +8369,34 @@ function renderApplications() {
           actions +
           "</div>" +
           '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +
+          (item.portal_state === "claimed_ready_for_profile"
+            ? '<div class="notes-box"><label><strong>Approved-claim follow-up</strong></label><div class="subtle"><strong>Status:</strong> ' +
+              escapeHtml(claimFollowUpLabel) +
+              "</div>" +
+              (item.claim_follow_up_sent_at
+                ? '<div class="subtle"><strong>Last sent:</strong> ' +
+                  escapeHtml(formatDate(item.claim_follow_up_sent_at)) +
+                  "</div>"
+                : "") +
+              (item.claim_follow_up_response_at
+                ? '<div class="subtle"><strong>Last response:</strong> ' +
+                  escapeHtml(formatDate(item.claim_follow_up_response_at)) +
+                  "</div>"
+                : "") +
+              '<div class="subtle" style="margin-top:0.4rem">Use this once the claim is approved and you need the therapist to finish the fuller profile.</div><div class="review-coach-actions"><button class="btn-secondary" data-action="copy-claim-follow-up" data-id="' +
+              item.id +
+              '" data-request="' +
+              escapeHtml(claimFollowUpMessage) +
+              '">Copy follow-up email</button><button class="btn-secondary" data-action="mark-claim-follow-up-sent" data-id="' +
+              item.id +
+              '">Mark sent</button><button class="btn-secondary" data-action="mark-claim-follow-up-responded" data-id="' +
+              item.id +
+              '">Mark responded</button><button class="btn-secondary" data-action="mark-full-profile-started" data-id="' +
+              item.id +
+              '">Mark full profile started</button><span class="review-coach-status" data-coach-status-id="' +
+              item.id +
+              '">Ready for follow-up</span></div></div>'
+            : "") +
           (isConfirmationRefresh
             ? '<div class="notes-box"><label><strong>Confirmation refresh</strong></label><div class="subtle">This submission is tied to an existing live therapist profile and is meant to refresh high-value operational details without creating a brand-new listing.</div>' +
               (item.published_therapist_id
@@ -8397,6 +8601,16 @@ function renderApplications() {
             );
             return;
           }
+          if (action === "copy-claim-follow-up") {
+            const requestText = button.getAttribute("data-request") || "";
+            const copied = await copyText(requestText);
+            setCoachActionStatus(
+              root,
+              id,
+              copied ? "Claim follow-up email copied" : "Copy failed on this browser",
+            );
+            return;
+          }
           if (action === "append-improvement-request") {
             const requestText = button.getAttribute("data-request") || "";
             const appended = appendImprovementRequestToNotes(root, id, requestText);
@@ -8409,6 +8623,24 @@ function renderApplications() {
           }
           if (action === "approve_claim") {
             await updateTherapistApplication(id, { status: "approved" });
+          }
+          if (action === "mark-claim-follow-up-sent") {
+            await updateTherapistApplication(id, {
+              claim_follow_up_status: "sent",
+              claim_follow_up_sent_at: new Date().toISOString(),
+            });
+          }
+          if (action === "mark-claim-follow-up-responded") {
+            await updateTherapistApplication(id, {
+              claim_follow_up_status: "responded",
+              claim_follow_up_response_at: new Date().toISOString(),
+            });
+          }
+          if (action === "mark-full-profile-started") {
+            await updateTherapistApplication(id, {
+              claim_follow_up_status: "full_profile_started",
+              claim_follow_up_response_at: new Date().toISOString(),
+            });
           }
           if (action === "publish") await approveTherapistApplication(id);
           if (action === "reject") await rejectTherapistApplicationRemote(id);
@@ -8455,6 +8687,16 @@ function renderApplications() {
             );
             return;
           }
+          if (action === "copy-claim-follow-up") {
+            const requestText = button.getAttribute("data-request") || "";
+            const copied = await copyText(requestText);
+            setCoachActionStatus(
+              root,
+              id,
+              copied ? "Claim follow-up email copied" : "Copy failed on this browser",
+            );
+            return;
+          }
           if (action === "append-improvement-request") {
             const requestText = button.getAttribute("data-request") || "";
             const appended = appendImprovementRequestToNotes(root, id, requestText);
@@ -8469,6 +8711,24 @@ function renderApplications() {
             requestApplicationChanges(id, button.getAttribute("data-request") || "");
           }
           if (action === "approve_claim") approveApplication(id);
+          if (action === "mark-claim-follow-up-sent") {
+            updateApplicationReviewMetadata(id, {
+              claim_follow_up_status: "sent",
+              claim_follow_up_sent_at: new Date().toISOString(),
+            });
+          }
+          if (action === "mark-claim-follow-up-responded") {
+            updateApplicationReviewMetadata(id, {
+              claim_follow_up_status: "responded",
+              claim_follow_up_response_at: new Date().toISOString(),
+            });
+          }
+          if (action === "mark-full-profile-started") {
+            updateApplicationReviewMetadata(id, {
+              claim_follow_up_status: "full_profile_started",
+              claim_follow_up_response_at: new Date().toISOString(),
+            });
+          }
           if (action === "publish") publishApplication(id);
           if (action === "reject") rejectApplication(id);
           renderAll();

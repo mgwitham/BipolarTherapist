@@ -169,22 +169,32 @@ function showSuccess(application, source) {
     application && application.portal_next_step
       ? application.portal_next_step
       : "We will review the submission and confirm the next step.";
+  var isClaimConversion =
+    application &&
+    application.portal_state &&
+    ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
+      application.portal_state,
+    );
   var message =
     source === "sanity"
       ? isConfirmation
         ? "Your confirmation update has been sent into the real review queue. We will review the updated operational details before they replace the live profile."
         : intent === "claim"
           ? "Your free claim has been sent into the real review queue. Once ownership is verified, you can come back to complete the richer profile details and decide whether to upgrade later."
-          : isRevision
-            ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
-            : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
+          : isClaimConversion
+            ? "Your fuller profile has been sent in after claim approval. It is now back in the review queue so we can assess trust, fit, and listing readiness."
+            : isRevision
+              ? "Your revised profile has been sent back into the real Sanity review queue. The review request has been cleared and the updated version is ready for another review pass."
+              : "Your application has been sent into the real Sanity review queue. Open the admin review page or Sanity Studio to approve and publish it."
       : isConfirmation
         ? "Your confirmation update has been saved locally in this working app and is ready for review before the live profile is refreshed."
         : intent === "claim"
           ? "Your free claim has been saved locally in this working app. Next, review and verify ownership before completing the rest of the profile."
-          : isRevision
-            ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
-            : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
+          : isClaimConversion
+            ? "Your fuller profile has been saved locally after claim approval. It is now ready to move through review as a real listing candidate."
+            : isRevision
+              ? "Your revised profile has been saved locally in this working app. It is now back in review so the updated version can be checked and published."
+              : "Your practice has been saved locally in this working app. Next, review and publish it from the admin page to make it appear in the directory and matching flow.";
 
   document.getElementById("formCard").innerHTML =
     '<div class="success-state"><div class="success-icon">🎉</div><h2>' +

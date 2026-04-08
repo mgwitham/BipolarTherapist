@@ -22,6 +22,9 @@ function getApplicationPortalState(application) {
     String((application && application.submission_intent) || "full_profile").trim() ||
     "full_profile";
   var intakeType = String((application && application.intake_type) || "new_listing").trim();
+  var claimFollowUpStatus =
+    String((application && application.claim_follow_up_status) || "not_started").trim() ||
+    "not_started";
 
   if (status === "published") {
     return {
@@ -81,6 +84,15 @@ function getApplicationPortalState(application) {
   }
 
   if (status === "reviewing") {
+    if (intent !== "claim" && claimFollowUpStatus === "full_profile_started") {
+      return {
+        state: "profile_in_review_after_claim",
+        label: "Full profile in review",
+        next_step:
+          "The fuller profile arrived after claim approval and is now in review for trust, fit, and publish readiness.",
+        upgrade_eligible: false,
+      };
+    }
     return {
       state:
         intent === "claim"
@@ -106,23 +118,29 @@ function getApplicationPortalState(application) {
 
   return {
     state:
-      intent === "claim"
-        ? "claim_pending_review"
-        : intakeType === "confirmation_update"
-          ? "update_pending_review"
-          : "profile_pending_review",
+      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
+        ? "profile_submitted_after_claim"
+        : intent === "claim"
+          ? "claim_pending_review"
+          : intakeType === "confirmation_update"
+            ? "update_pending_review"
+            : "profile_pending_review",
     label:
-      intent === "claim"
-        ? "Claim pending review"
-        : intakeType === "confirmation_update"
-          ? "Update pending review"
-          : "Profile pending review",
+      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
+        ? "Full profile submitted"
+        : intent === "claim"
+          ? "Claim pending review"
+          : intakeType === "confirmation_update"
+            ? "Update pending review"
+            : "Profile pending review",
     next_step:
-      intent === "claim"
-        ? "We received your free claim and will verify ownership before the fuller profile step."
-        : intakeType === "confirmation_update"
-          ? "We received your updated operational details and queued them for review."
-          : "We received your full profile and queued it for editorial review.",
+      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
+        ? "The therapist finished the fuller profile after claim approval. Review it like a live candidate for publish readiness."
+        : intent === "claim"
+          ? "We received your free claim and will verify ownership before the fuller profile step."
+          : intakeType === "confirmation_update"
+            ? "We received your updated operational details and queued them for review."
+            : "We received your full profile and queued it for editorial review.",
     upgrade_eligible: false,
   };
 }
@@ -164,6 +182,9 @@ function sanitizeApplication(application) {
       : [],
     review_request_message: application.review_request_message || "",
     revision_count: Number(application.revision_count || 0) || 0,
+    claim_follow_up_status: application.claim_follow_up_status || "not_started",
+    claim_follow_up_sent_at: application.claim_follow_up_sent_at || "",
+    claim_follow_up_response_at: application.claim_follow_up_response_at || "",
     portal_state: portalState.state,
     portal_state_label: portalState.label,
     portal_next_step: portalState.next_step,
