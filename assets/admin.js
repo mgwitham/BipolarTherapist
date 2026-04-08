@@ -250,6 +250,183 @@ function formatFieldLabel(value) {
     });
 }
 
+const FIELD_TRUST_META_KEYS = [
+  "estimated_wait_time",
+  "insurance_accepted",
+  "telehealth_states",
+  "bipolar_years_experience",
+];
+
+function getFieldTrustValue(entry, camelKey, snakeKey) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  if (entry[camelKey] !== undefined) {
+    return entry[camelKey];
+  }
+  if (entry[snakeKey] !== undefined) {
+    return entry[snakeKey];
+  }
+  return null;
+}
+
+function getFieldTrustEntries(item) {
+  const fieldTrust = item && item.field_trust_meta ? item.field_trust_meta : {};
+  return FIELD_TRUST_META_KEYS.map(function (key) {
+    return {
+      key: key,
+      label: formatFieldLabel(key),
+      meta: fieldTrust[key] || null,
+    };
+  });
+}
+
+function getFieldTrustTier(meta) {
+  if (!meta) {
+    return "unknown";
+  }
+
+  const reviewState = getFieldTrustValue(meta, "reviewState", "review_state");
+  const confidenceScore = Number(
+    getFieldTrustValue(meta, "confidenceScore", "confidence_score") || 0,
+  );
+  const staleAfterAt = getFieldTrustValue(meta, "staleAfterAt", "stale_after_at");
+  const staleAt = staleAfterAt ? new Date(staleAfterAt).getTime() : null;
+
+  if (staleAt && Number.isFinite(staleAt) && staleAt < Date.now()) {
+    return "stale";
+  }
+  if (reviewState === "needs_reconfirmation" || reviewState === "needs_review") {
+    return "watch";
+  }
+  if (confidenceScore >= 85) {
+    return "high";
+  }
+  if (confidenceScore >= 65) {
+    return "medium";
+  }
+  if (confidenceScore > 0) {
+    return "watch";
+  }
+  return "unknown";
+}
+
+function getFieldTrustChipClass(tier) {
+  if (tier === "high") return "status approved";
+  if (tier === "medium") return "status reviewing";
+  if (tier === "watch" || tier === "stale") return "status rejected";
+  return "status";
+}
+
+function getTherapistFieldTrustSummary(item) {
+  const entries = getFieldTrustEntries(item);
+  const strong = [];
+  const attention = [];
+  const stale = [];
+  const unknown = [];
+
+  entries.forEach(function (entry) {
+    const tier = getFieldTrustTier(entry.meta);
+    if (tier === "high") {
+      strong.push(entry.label);
+      return;
+    }
+    if (tier === "medium") {
+      return;
+    }
+    if (tier === "stale") {
+      stale.push(entry.label);
+      return;
+    }
+    if (tier === "watch") {
+      attention.push(entry.label);
+      return;
+    }
+    unknown.push(entry.label);
+  });
+
+  const watchFields = stale.concat(attention).concat(unknown).slice(0, 3);
+  const headline = watchFields.length
+    ? "Watch " + watchFields.join(", ")
+    : strong.length
+      ? "High confidence on " + strong.slice(0, 2).join(", ")
+      : "Trust signals still building";
+
+  return {
+    entries: entries,
+    strong: strong,
+    attention: attention,
+    stale: stale,
+    unknown: unknown,
+    watchFields: watchFields,
+    headline: headline,
+  };
+}
+
+function getTherapistFieldTrustAttentionCount(item) {
+  return getTherapistFieldTrustSummary(item).watchFields.length;
+}
+
+function renderFieldTrustChips(summary, limit) {
+  if (!summary || !Array.isArray(summary.entries)) {
+    return "";
+  }
+
+  const ordered = []
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "stale";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "watch";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "medium";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "high";
+      }),
+    )
+    .slice(0, limit || 4);
+
+  if (!ordered.length) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-filters" style="margin-top:0.7rem">' +
+    ordered
+      .map(function (entry) {
+        const tier = getFieldTrustTier(entry.meta);
+        const tierLabel =
+          tier === "stale"
+            ? "Needs refresh"
+            : tier === "watch"
+              ? "Watch"
+              : tier === "medium"
+                ? "Okay"
+                : tier === "high"
+                  ? "Strong"
+                  : "Unknown";
+        return (
+          '<span class="' +
+          getFieldTrustChipClass(tier) +
+          '">' +
+          escapeHtml(entry.label + ": " + tierLabel) +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
 function buildConfirmationChecklist(item, agenda, preferredPrimaryField) {
   var orderedFields = getPreferredFieldOrder(
     (agenda && agenda.unknown_fields) || [],
@@ -4699,7 +4876,12 @@ function renderStats() {
     return item.outcome === "booked_consult";
   }).length;
   const profilesNeedingRefresh = therapists.filter(function (item) {
-    return getDataFreshnessSummary(item).status !== "fresh";
+    return (
+      getDataFreshnessSummary(item).status !== "fresh" || getTherapistFieldTrustAttentionCount(item)
+    );
+  }).length;
+  const profilesWithFieldTrustAttention = therapists.filter(function (item) {
+    return getTherapistFieldTrustAttentionCount(item) > 0;
   }).length;
   const recentlyMaintainedCount = therapists.filter(function (item) {
     return Boolean(getConfirmationGraceWindowNote(item));
@@ -4725,10 +4907,11 @@ function renderStats() {
       return {
         item: item,
         freshness: getDataFreshnessSummary(item),
+        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
       };
     })
     .filter(function (entry) {
-      return entry.freshness.status !== "fresh";
+      return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
     })
     .sort(function (a, b) {
       const weight = {
@@ -4739,6 +4922,10 @@ function renderStats() {
       const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
       if (statusDiff) {
         return statusDiff;
+      }
+      const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
+      if (trustDiff) {
+        return trustDiff;
       }
       return (
         (b.freshness.needs_reconfirmation_fields || []).length -
@@ -4775,7 +4962,15 @@ function renderStats() {
       actionLabel: "Open portal queue",
     }),
     buildActionStatCard(profilesNeedingRefresh, "Profiles needing refresh", "refreshQueue", {
-      meta: topRefreshProfile ? "Top: " + topRefreshProfile : "",
+      meta: topRefreshProfile
+        ? "Top: " +
+          topRefreshProfile +
+          (profilesWithFieldTrustAttention
+            ? " · " + profilesWithFieldTrustAttention + " with trust risk"
+            : "")
+        : profilesWithFieldTrustAttention
+          ? profilesWithFieldTrustAttention + " with trust risk"
+          : "",
       actionLabel: "Open refresh queue",
     }),
     buildActionStatCard(strictImportBlockerCount, "Strict import blockers", "importBlockerSprint", {
@@ -5599,10 +5794,11 @@ function renderRefreshQueue() {
       return {
         item: item,
         freshness: getDataFreshnessSummary(item),
+        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
       };
     })
     .filter(function (entry) {
-      return entry.freshness.status !== "fresh";
+      return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
     })
     .sort(function (a, b) {
       const weight = {
@@ -5613,6 +5809,10 @@ function renderRefreshQueue() {
       const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
       if (statusDiff) {
         return statusDiff;
+      }
+      const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
+      if (trustDiff) {
+        return trustDiff;
       }
       return (
         (b.freshness.needs_reconfirmation_fields || []).length -
@@ -5648,6 +5848,7 @@ function renderRefreshQueue() {
       .map(function (entry) {
         const item = entry.item;
         const freshness = entry.freshness;
+        const trustSummary = getTherapistFieldTrustSummary(item);
         const nextMove = freshness.needs_reconfirmation_fields.length
           ? "Re-confirm " +
             freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
@@ -5661,6 +5862,8 @@ function renderRefreshQueue() {
           escapeHtml(freshness.note) +
           '</div><div class="subtle">Next move: ' +
           escapeHtml(nextMove) +
+          '</div><div class="subtle">Trust: ' +
+          escapeHtml(trustSummary.headline) +
           '</div></div><a href="therapist.html?slug=' +
           encodeURIComponent(item.slug) +
           '">Open profile</a></div>'
@@ -7679,6 +7882,10 @@ function getCandidateOpsEvidence(item) {
 }
 
 function getTherapistOpsReason(freshness, item) {
+  const trustSummary = getTherapistFieldTrustSummary(item);
+  if (trustSummary.watchFields.length) {
+    return "Field trust attention needed: " + trustSummary.watchFields.join(", ") + ".";
+  }
   if (item.source_health_status && !["healthy", "redirected"].includes(item.source_health_status)) {
     return (
       "Primary source health degraded" +
@@ -7812,15 +8019,22 @@ function renderOpsInbox() {
       return {
         item: item,
         freshness: getDataFreshnessSummary(item),
+        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
       };
     })
     .filter(function (entry) {
-      return entry.item.verificationLane && entry.item.verificationLane !== "fresh";
+      return (
+        (entry.item.verificationLane && entry.item.verificationLane !== "fresh") ||
+        entry.trustAttentionCount > 0
+      );
     })
     .sort(function (a, b) {
-      return (
-        (Number(b.item.verificationPriority) || 0) - (Number(a.item.verificationPriority) || 0)
-      );
+      const priorityDiff =
+        (Number(b.item.verificationPriority) || 0) - (Number(a.item.verificationPriority) || 0);
+      if (priorityDiff) {
+        return priorityDiff;
+      }
+      return (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
     })
     .slice(0, 4);
 
@@ -7876,6 +8090,7 @@ function renderOpsInbox() {
   function renderTherapistOpsCard(entry) {
     const item = entry.item;
     const freshness = entry.freshness;
+    const trustSummary = getTherapistFieldTrustSummary(item);
     const nextMove = freshness.needs_reconfirmation_fields.length
       ? "Re-confirm " +
         freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
@@ -7916,6 +8131,12 @@ function renderOpsInbox() {
       escapeHtml(item.nextReviewDueAt ? formatDate(item.nextReviewDueAt) : "Now") +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness</div><div class="ops-card-kpi-value">' +
       escapeHtml(freshness.label) +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
+      escapeHtml(
+        trustSummary.watchFields.length
+          ? String(trustSummary.watchFields.length) + " fields"
+          : "Stable",
+      ) +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
       escapeHtml(nextMove) +
       '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
@@ -7924,6 +8145,7 @@ function renderOpsInbox() {
       (evidence
         ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
         : "") +
+      renderFieldTrustChips(trustSummary, 4) +
       '<div class="ops-card-actions"><button class="btn-primary" data-therapist-ops="' +
       escapeHtml(item.id || item._id || "") +
       '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
