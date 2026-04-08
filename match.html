@@ -730,34 +730,78 @@
       }
       .compare-grid {
         display: grid;
-        grid-template-columns: 180px repeat(3, minmax(0, 1fr));
+        grid-template-columns: 160px repeat(3, minmax(0, 1fr));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #fff;
       }
       .compare-cell {
-        padding: 0.85rem 0.9rem;
+        padding: 0.95rem 1rem;
         border-right: 1px solid var(--border);
         border-bottom: 1px solid var(--border);
         font-size: 0.84rem;
         color: var(--slate);
+        line-height: 1.5;
+        background: rgba(255, 255, 255, 0.94);
       }
       .compare-grid .compare-cell:nth-child(4n) {
         border-right: none;
       }
+      .compare-grid .compare-cell:nth-last-child(-n + 4) {
+        border-bottom: none;
+      }
       .compare-cell.label {
-        background: #f9fcfd;
+        background: #f7fbfc;
         font-weight: 700;
         color: var(--navy);
+        font-size: 0.8rem;
+        letter-spacing: 0.01em;
       }
       .compare-cell.header {
-        background: #f3fafb;
+        background: linear-gradient(180deg, #f7fbfc 0%, #f1f8fa 100%);
       }
       .compare-name {
-        font-weight: 700;
+        font-weight: 800;
         color: var(--navy);
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.24rem;
+        font-size: 0.98rem;
       }
       .compare-sub {
         font-size: 0.76rem;
         color: var(--muted);
+      }
+      .compare-list-item {
+        display: block;
+      }
+      .compare-list-item + .compare-list-item {
+        margin-top: 0.22rem;
+      }
+      .compare-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .compare-chip + .compare-chip {
+        margin-left: 0.35rem;
+      }
+      .compare-chip-neutral {
+        background: #eef7fa;
+        color: var(--teal-dark);
+      }
+      .compare-chip-positive {
+        background: #edf8f1;
+        color: #21724e;
+      }
+      .compare-chip-secondary {
+        background: #fff8ee;
+        color: #9f6a18;
       }
       .compare-focus-note {
         margin-top: 0.55rem;

@@ -1126,10 +1126,47 @@ function buildMatchStandoutCopy(entry) {
   return "This option stands out because " + reasons.slice(0, 2).join(" and ") + ".";
 }
 
-function renderCompareValue(value) {
+function renderCompareValue(value, kind) {
+  if (kind === "order") {
+    var tone =
+      value === "Contact first"
+        ? "positive"
+        : value === "Backup if stalled"
+          ? "secondary"
+          : "neutral";
+    return '<span class="compare-chip compare-chip-' + tone + '">' + escapeHtml(value) + "</span>";
+  }
+  if (kind === "format") {
+    if (Array.isArray(value)) {
+      return value.length
+        ? value
+            .map(function (item) {
+              return (
+                '<span class="compare-chip compare-chip-neutral">' + escapeHtml(item) + "</span>"
+              );
+            })
+            .join("")
+        : '<span class="compare-sub">Not listed</span>';
+    }
+    return value
+      ? '<span class="compare-chip compare-chip-neutral">' + escapeHtml(String(value)) + "</span>"
+      : '<span class="compare-sub">Not listed</span>';
+  }
+  if (kind === "boolean") {
+    if (value === true) {
+      return '<span class="compare-chip compare-chip-positive">Available</span>';
+    }
+    if (value === false) {
+      return '<span class="compare-sub">Not listed</span>';
+    }
+  }
   if (Array.isArray(value)) {
     return value.length
-      ? escapeHtml(value.join(", "))
+      ? value
+          .map(function (item) {
+            return '<span class="compare-list-item">' + escapeHtml(item) + "</span>";
+          })
+          .join("")
       : '<span class="compare-sub">Not listed</span>';
   }
   if (value === true) {
@@ -1142,19 +1179,6 @@ function renderCompareValue(value) {
     return '<span class="compare-sub">Not listed</span>';
   }
   return escapeHtml(String(value));
-}
-
-function getContactPlanRole(plan, slug) {
-  if (!plan || !slug) {
-    return "";
-  }
-  if (plan.first && plan.first.therapist && plan.first.therapist.slug === slug) {
-    return "Contact first";
-  }
-  if (plan.fallback && plan.fallback.therapist && plan.fallback.therapist.slug === slug) {
-    return "Backup if stalled";
-  }
-  return "Keep in reserve";
 }
 
 function getContactPlanNextMove(plan, slug) {
@@ -1181,7 +1205,6 @@ function getContactPlanNextMove(plan, slug) {
 function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
   var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
-  var contactPlan = buildContactOrderPlan(latestProfile, entries);
 
   if (topEntries.length < 2) {
     root.innerHTML = "";
@@ -1190,50 +1213,15 @@ function renderComparison(entries) {
 
   var rows = [
     {
-      label: "Order",
-      getValue: function (therapist) {
-        return getContactPlanRole(contactPlan, therapist.slug);
-      },
-    },
-    {
-      label: "Best route",
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item.therapist.slug === therapist.slug;
-        });
-        var preferredRoute = entry ? getPreferredOutreach(entry) : null;
-        return preferredRoute ? preferredRoute.label : "Open profile";
-      },
-    },
-    {
-      label: "Format",
-      getValue: function (therapist) {
-        return [
-          therapist.accepts_telehealth ? "Telehealth" : "",
-          therapist.accepts_in_person ? "In-person" : "",
-        ]
-          .filter(Boolean)
-          .join(" / ");
-      },
-    },
-    {
-      label: "Insurance / payment",
-      getValue: function (therapist) {
-        var accepted = (therapist.insurance_accepted || []).slice(0, 3);
-        if (accepted.length) {
-          return accepted;
-        }
-        return therapist.sliding_scale ? "Sliding scale available" : "Private pay";
-      },
-    },
-    {
       label: "Languages",
+      alwaysShow: true,
       getValue: function (therapist) {
         return therapist.languages || [];
       },
     },
     {
       label: "Medication support",
+      kind: "boolean",
       getValue: function (therapist) {
         return therapist.medication_management;
       },
@@ -1246,7 +1234,59 @@ function renderComparison(entries) {
           : "";
       },
     },
+    {
+      label: "Format",
+      kind: "format",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return [
+          therapist.accepts_telehealth ? "Telehealth" : "",
+          therapist.accepts_in_person ? "In-person" : "",
+        ].filter(Boolean);
+      },
+    },
+    {
+      label: "Insurance",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var accepted = (therapist.insurance_accepted || []).slice(0, 3);
+        return accepted.length ? accepted : [];
+      },
+    },
+    {
+      label: "Cost",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var min = therapist.session_fee_min;
+        var max = therapist.session_fee_max;
+        if (min && max && min !== max) {
+          return "$" + min + "–$" + max + " per session";
+        }
+        if (min) {
+          return "$" + min + " per session";
+        }
+        if (max) {
+          return "Up to $" + max + " per session";
+        }
+        if (therapist.sliding_scale) {
+          return "Sliding scale available";
+        }
+        return "";
+      },
+    },
   ];
+
+  var visibleRows = rows.filter(function (row) {
+    var values = topEntries.map(function (entry) {
+      return row.getValue(entry.therapist);
+    });
+    if (row.alwaysShow) {
+      return true;
+    }
+    return values.some(function (value) {
+      return Array.isArray(value) ? value.length : Boolean(value);
+    });
+  });
 
   var headerCells = ['<div class="compare-cell label header">Compare</div>']
     .concat(
@@ -1262,7 +1302,7 @@ function renderComparison(entries) {
     )
     .join("");
 
-  var bodyCells = rows
+  var bodyCells = visibleRows
     .map(function (row) {
       return (
         '<div class="compare-cell label">' +
@@ -1272,7 +1312,7 @@ function renderComparison(entries) {
           .map(function (entry) {
             return (
               '<div class="compare-cell">' +
-              renderCompareValue(row.getValue(entry.therapist)) +
+              renderCompareValue(row.getValue(entry.therapist), row.kind) +
               "</div>"
             );
           })
@@ -1282,7 +1322,7 @@ function renderComparison(entries) {
     .join("");
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Scan the differences that matter most before you decide.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Start with order and best route, then check format, insurance, and language.</p></div><div class="compare-grid">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Spot the practical differences that change who you contact first.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Start with contact order and best route, then scan format, insurance, and language.</p></div><div class="compare-grid">' +
     headerCells +
     bodyCells +
     "</div></section></div></section>";
@@ -3563,16 +3603,15 @@ function renderShortlistQueue(entries) {
       .map(function (entry, index) {
         var therapist = entry.therapist;
         return (
-          '<article class="match-queue-card"><div><div class="match-queue-rank">Option ' +
+          '<article class="match-queue-card"><div><div class="match-queue-rank">Top ' +
           escapeHtml(String(PRIMARY_SHORTLIST_LIMIT + index + 1)) +
-          '</div><div class="match-queue-name">' +
+          ' match</div><div class="match-queue-name">' +
           escapeHtml(therapist.name) +
           '</div><div class="match-queue-meta">' +
           escapeHtml(therapist.credentials || "") +
           (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
           " · " +
-          escapeHtml(therapist.city || "") +
-          (therapist.state ? ", " + escapeHtml(therapist.state) : "") +
+          escapeHtml(formatTherapistLocationLine(therapist)) +
           '</div><div class="match-queue-copy">' +
           escapeHtml(buildQueueReserveCopy(entry)) +
           "</div></div>" +
