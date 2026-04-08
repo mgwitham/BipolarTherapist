@@ -1592,6 +1592,19 @@ function buildTherapistApplicationFieldPatch(application, therapist, selectedFie
   };
 }
 
+function buildAppliedFieldReviewStatePatch(selectedFields) {
+  const nextStates = {};
+  (Array.isArray(selectedFields) ? selectedFields : []).forEach(function (field) {
+    if (field === "insurance_accepted") {
+      nextStates.insuranceAccepted = "editorially_verified";
+    }
+    if (field === "telehealth_states") {
+      nextStates.telehealthStates = "editorially_verified";
+    }
+  });
+  return nextStates;
+}
+
 function mergeUniqueUrls(primary, supporting, extra) {
   const urls = []
     .concat(primary ? [primary] : [])
@@ -2441,6 +2454,7 @@ export function createReviewApiHandler(configOverride) {
 
         const nowIso = new Date().toISOString();
         const nextPatch = buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso);
+        const fieldReviewStatePatch = buildAppliedFieldReviewStatePatch(selectedFields);
         if (!nextPatch.appliedFields.length) {
           sendJson(
             response,
@@ -2454,7 +2468,17 @@ export function createReviewApiHandler(configOverride) {
 
         const transaction = client.transaction();
         transaction.patch(therapistId, function (patch) {
-          return patch.set(nextPatch.patch);
+          return patch.set({
+            ...nextPatch.patch,
+            ...(Object.keys(fieldReviewStatePatch).length
+              ? {
+                  fieldReviewStates: {
+                    ...(therapist.fieldReviewStates || {}),
+                    ...fieldReviewStatePatch,
+                  },
+                }
+              : {}),
+          });
         });
         transaction.patch(applicationId, function (patch) {
           return patch
@@ -2462,6 +2486,14 @@ export function createReviewApiHandler(configOverride) {
               status: "approved",
               updatedAt: nowIso,
               publishedTherapistId: therapistId,
+              ...(Object.keys(fieldReviewStatePatch).length
+                ? {
+                    fieldReviewStates: {
+                      ...(application.fieldReviewStates || {}),
+                      ...fieldReviewStatePatch,
+                    },
+                  }
+                : {}),
             })
             .setIfMissing({ revisionHistory: [] })
             .append("revisionHistory", [

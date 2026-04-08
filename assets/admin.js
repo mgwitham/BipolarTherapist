@@ -497,6 +497,20 @@ function getLastAppliedLiveFieldsEntry(item) {
   return null;
 }
 
+function isTrustCriticalApplicationField(fieldKey) {
+  return [
+    "website",
+    "email",
+    "phone",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "insurance_accepted",
+    "telehealth_states",
+    "accepting_new_patients",
+    "medication_management",
+  ].includes(fieldKey);
+}
+
 function renderApplicationDiffHtml(item, therapist) {
   var rows = buildApplicationDiffRows(item, therapist);
   if (!rows.length) {
@@ -504,10 +518,18 @@ function renderApplicationDiffHtml(item, therapist) {
   }
 
   var summary = getApplicationDiffSummary(rows);
+  var matchedRows = rows.filter(function (row) {
+    return row.status === "match";
+  });
   var changedRows = rows.filter(function (row) {
     return row.status === "changed" || row.status === "new" || row.status === "missing";
   });
+  var trustCriticalRows = changedRows.filter(function (row) {
+    return isTrustCriticalApplicationField(row.fieldKey);
+  });
   var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+  var syncProgressText =
+    matchedRows.length + " of " + rows.length + " core fields already match the live profile.";
   var lastAppliedHtml = lastAppliedEntry
     ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Last applied:</strong> ' +
       escapeHtml(
@@ -515,6 +537,10 @@ function renderApplicationDiffHtml(item, therapist) {
       ) +
       "</div>"
     : "";
+  var syncProgressHtml =
+    '<div class="mini-status" style="margin-top:0.55rem"><strong>Sync progress:</strong> ' +
+    escapeHtml(syncProgressText) +
+    "</div>";
   var remainingDiffHtml = changedRows.length
     ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Still different:</strong> ' +
       escapeHtml(
@@ -526,15 +552,30 @@ function renderApplicationDiffHtml(item, therapist) {
       ) +
       "</div>"
     : '<div class="mini-status" style="margin-top:0.55rem"><strong>Live sync:</strong> No remaining differences across the core operational fields shown here.</div>';
+  var trustCriticalHtml = trustCriticalRows.length
+    ? '<div class="mini-status" style="margin-top:0.55rem"><strong>High-value changes:</strong> ' +
+      escapeHtml(
+        trustCriticalRows
+          .map(function (row) {
+            return row.label;
+          })
+          .join(", "),
+      ) +
+      "</div>"
+    : "";
   return (
     '<div class="review-snapshot-box"><div class="review-snapshot-title">Live profile diff</div><div class="review-snapshot-copy">' +
     escapeHtml(summary) +
     "</div>" +
+    syncProgressHtml +
     lastAppliedHtml +
+    trustCriticalHtml +
     remainingDiffHtml +
     '</div><div class="queue-actions" style="margin-top:0.75rem;margin-bottom:0.75rem"><button class="btn-primary" type="button" data-apply-live-fields="' +
     escapeHtml(item.id) +
-    '">Apply selected fields</button><button class="btn-secondary" type="button" data-select-all-live-fields="' +
+    '">Apply selected fields</button><button class="btn-secondary" type="button" data-select-trust-live-fields="' +
+    escapeHtml(item.id) +
+    '">Select trust-critical</button><button class="btn-secondary" type="button" data-select-all-live-fields="' +
     escapeHtml(item.id) +
     '">Select all changes</button></div><div class="review-coach-status" data-apply-live-fields-status="' +
     escapeHtml(item.id) +
@@ -550,6 +591,7 @@ function renderApplicationDiffHtml(item, therapist) {
               '" value="' +
               escapeHtml(row.fieldKey) +
               '"' +
+              (isTrustCriticalApplicationField(row.fieldKey) ? ' data-trust-critical="true"' : "") +
               (row.status === "changed" || row.status === "new" ? " checked" : "") +
               ">Apply</label>"
             : "") +
@@ -582,6 +624,28 @@ function renderApplicationDiffHtml(item, therapist) {
       .join("") +
     "</div></div>"
   );
+}
+
+function getApplicationLiveSyncSnapshot(item, therapist) {
+  if (!item || !therapist) {
+    return null;
+  }
+
+  var rows = buildApplicationDiffRows(item, therapist);
+  if (!rows.length) {
+    return null;
+  }
+
+  var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+  var changedCount = rows.filter(function (row) {
+    return row.status === "changed" || row.status === "new" || row.status === "missing";
+  }).length;
+
+  return {
+    changedCount: changedCount,
+    lastAppliedLabel: lastAppliedEntry ? "Live fields applied" : "",
+    syncLabel: changedCount ? changedCount + " fields still differ" : "Live profile in sync",
+  };
 }
 
 function formatDate(value) {
@@ -9101,6 +9165,13 @@ function renderApplications() {
         ).toString();
         const confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
         const linkedTherapist = getApplicationLinkedTherapist(item);
+        const liveSyncSnapshot =
+          linkedTherapist &&
+          ["claim_existing", "update_existing", "confirmation_update"].includes(
+            String(item.intake_type || ""),
+          )
+            ? getApplicationLiveSyncSnapshot(item, linkedTherapist)
+            : null;
         const applicationDiffHtml =
           linkedTherapist &&
           ["claim_existing", "update_existing", "confirmation_update"].includes(
@@ -9232,6 +9303,12 @@ function renderApplications() {
           " · " +
           escapeHtml(readiness.score) +
           "/100</span>" +
+          (liveSyncSnapshot && liveSyncSnapshot.lastAppliedLabel
+            ? '<span class="tag">' + escapeHtml(liveSyncSnapshot.lastAppliedLabel) + "</span>"
+            : "") +
+          (liveSyncSnapshot
+            ? '<span class="tag">' + escapeHtml(liveSyncSnapshot.syncLabel) + "</span>"
+            : "") +
           (afterClaimReviewStall.stalled
             ? '<span class="tag">' +
               escapeHtml("Review age · " + afterClaimReviewStall.ageDays + " days") +
@@ -9791,6 +9868,31 @@ function renderApplications() {
           input.checked = true;
         });
       setApplyLiveFieldsStatus(root, id, "Selected all changed fields.");
+    });
+  });
+
+  root.querySelectorAll("[data-select-trust-live-fields]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-select-trust-live-fields");
+      var allInputs = root.querySelectorAll('[data-application-apply-field="' + id + '"]');
+      var trustInputs = root.querySelectorAll(
+        '[data-application-apply-field="' + id + '"][data-trust-critical="true"]',
+      );
+
+      allInputs.forEach(function (input) {
+        input.checked = false;
+      });
+      trustInputs.forEach(function (input) {
+        input.checked = true;
+      });
+
+      setApplyLiveFieldsStatus(
+        root,
+        id,
+        trustInputs.length
+          ? "Selected the highest-value trust-critical changes."
+          : "No trust-critical changed fields are currently available.",
+      );
     });
   });
 
