@@ -44,6 +44,14 @@ import {
 } from "./funnel-analytics.js";
 import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
 import {
+  bindCandidateDecisionButtons,
+  renderCandidateMergePreview,
+  renderCandidateMergeWorkbench,
+  renderCandidatePublishPacket,
+  renderCandidateTrustChips,
+} from "./admin-candidate-review.js";
+import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
+import {
   buildCoverageInsights,
   renderCoverageIntelligencePanel,
   renderSourcePerformancePanel,
@@ -9719,629 +9727,33 @@ function getCandidatePublishPacket(item, summary) {
   };
 }
 
-function renderCandidatePublishPacket(packet) {
-  if (!packet) {
-    return "";
-  }
-
-  return (
-    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Publish packet</div><div class="queue-summary-grid">' +
-    '<div class="queue-kpi"><div class="queue-kpi-label">Decision</div><div class="queue-kpi-value">' +
-    escapeHtml(packet.decision) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Strong enough now</div><div class="queue-kpi-value">' +
-    escapeHtml(packet.strong.length ? packet.strong.join(", ") : "Still building") +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Watch next</div><div class="queue-kpi-value">' +
-    escapeHtml(packet.watch.length ? packet.watch.join(", ") : "None") +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Publish blockers</div><div class="queue-kpi-value">' +
-    escapeHtml(packet.blockers.length ? packet.blockers.join(", ") : "None") +
-    "</div></div></div></div>"
-  );
-}
-
-function renderCandidateTrustChips(summary, limit) {
-  if (!summary) {
-    return "";
-  }
-  const chips = []
-    .concat(
-      summary.attention.slice(0, limit || 3).map(function (label) {
-        return {
-          label: label + ": Watch",
-          className: "status rejected",
-        };
-      }),
-    )
-    .concat(
-      summary.strong
-        .slice(0, Math.max(0, (limit || 3) - summary.attention.length))
-        .map(function (label) {
-          return {
-            label: label + ": Strong",
-            className: "status approved",
-          };
-        }),
-    );
-
-  if (!chips.length) {
-    return "";
-  }
-
-  return (
-    '<div class="queue-filters" style="margin-top:0.7rem">' +
-    chips
-      .slice(0, limit || 3)
-      .map(function (chip) {
-        return '<span class="' + chip.className + '">' + escapeHtml(chip.label) + "</span>";
-      })
-      .join("") +
-    "</div>"
-  );
-}
-
-function findCandidateMergeTarget(item) {
-  if (!item) {
-    return null;
-  }
-
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
-
-  if (item.matched_therapist_slug) {
-    const therapist = therapists.find(function (entry) {
-      return entry.slug === item.matched_therapist_slug;
-    });
-    if (therapist) {
-      return {
-        kind: "therapist",
-        label: "Existing therapist",
-        record: therapist,
-      };
-    }
-  }
-
-  if (item.matched_therapist_id) {
-    const therapistById = therapists.find(function (entry) {
-      return entry.id === item.matched_therapist_id || entry._id === item.matched_therapist_id;
-    });
-    if (therapistById) {
-      return {
-        kind: "therapist",
-        label: "Existing therapist",
-        record: therapistById,
-      };
-    }
-  }
-
-  if (item.matched_application_id) {
-    const application = applications.find(function (entry) {
-      return entry.id === item.matched_application_id;
-    });
-    if (application) {
-      return {
-        kind: "application",
-        label: "Existing application",
-        record: application,
-      };
-    }
-  }
-
-  return null;
-}
-
-function formatMergeLocation(record) {
-  return [record.city, record.state, record.zip]
-    .filter(Boolean)
-    .join(", ")
-    .replace(/, (?=\d{5}$)/, " ");
-}
-
-function formatMergeContact(record) {
-  return (
-    record.website ||
-    record.booking_url ||
-    record.bookingUrl ||
-    record.email ||
-    record.phone ||
-    "Not listed"
-  );
-}
-
-function formatMergeLicense(record) {
-  const state = record.license_state || record.licenseState || "";
-  const number = record.license_number || record.licenseNumber || "";
-  return [state, number].filter(Boolean).join(" ");
-}
-
-function formatMergeSource(record, kind) {
-  if (kind === "therapist") {
-    return record.source_url || record.sourceUrl || "Live listing";
-  }
-  return record.source_url || record.sourceUrl || "Application intake";
-}
-
-function renderCandidateMergeWorkbench(item) {
-  const target = findCandidateMergeTarget(item);
-  if (!target) {
-    return "";
-  }
-
-  const candidateLocation = formatMergeLocation(item);
-  const targetLocation = formatMergeLocation(target.record);
-  const candidateLicense = formatMergeLicense(item);
-  const targetLicense = formatMergeLicense(target.record);
-  const candidateContact = formatMergeContact(item);
-  const targetContact = formatMergeContact(target.record);
-  const candidateSource = formatMergeSource(item, "candidate");
-  const targetSource = formatMergeSource(target.record, target.kind);
-
-  const rows = [
-    {
-      label: "Name",
-      candidate: item.name || "Not listed",
-      target: target.record.name || "Not listed",
-    },
-    {
-      label: "Location",
-      candidate: candidateLocation || "Not listed",
-      target: targetLocation || "Not listed",
-    },
-    {
-      label: "Credentials",
-      candidate: item.credentials || "Not listed",
-      target: target.record.credentials || "Not listed",
-    },
-    {
-      label: "License",
-      candidate: candidateLicense || "Not listed",
-      target: targetLicense || "Not listed",
-    },
-    {
-      label: "Contact path",
-      candidate: candidateContact,
-      target: targetContact,
-    },
-    {
-      label: "Source",
-      candidate: candidateSource,
-      target: targetSource,
-    },
-  ];
-
-  return (
-    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Merge workbench</div><div class="subtle" style="margin-bottom:0.7rem">Compare this candidate against the matched ' +
-    escapeHtml(target.label.toLowerCase()) +
-    ' before merging or rejecting as duplicate.</div><div class="queue-summary-grid">' +
-    rows
-      .map(function (row) {
-        const valuesMatch = row.candidate === row.target;
-        return (
-          '<div class="queue-kpi"><div class="queue-kpi-label">' +
-          escapeHtml(row.label + " · Candidate") +
-          '</div><div class="queue-kpi-value">' +
-          escapeHtml(row.candidate) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">' +
-          escapeHtml(row.label + " · " + target.label) +
-          '</div><div class="queue-kpi-value">' +
-          escapeHtml(row.target) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Comparison</div><div class="queue-kpi-value">' +
-          escapeHtml(valuesMatch ? "Matches" : "Review") +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>"
-  );
-}
-
-function renderCandidateMergePreview(item) {
-  const target = findCandidateMergeTarget(item);
-  if (!target) {
-    return "";
-  }
-
-  const candidateSources = []
-    .concat(item.source_url ? [item.source_url] : [])
-    .concat(Array.isArray(item.supporting_source_urls) ? item.supporting_source_urls : [])
-    .concat(item.website ? [item.website] : []);
-  const targetSources = []
-    .concat(target.record.source_url ? [target.record.source_url] : [])
-    .concat(target.record.sourceUrl ? [target.record.sourceUrl] : [])
-    .concat(
-      Array.isArray(target.record.supporting_source_urls)
-        ? target.record.supporting_source_urls
-        : Array.isArray(target.record.supportingSourceUrls)
-          ? target.record.supportingSourceUrls
-          : [],
-    );
-  const novelSourceCount = candidateSources.filter(function (url) {
-    return url && !targetSources.includes(url);
-  }).length;
-
-  const preserves = [
-    "Preserves the candidate review history and archives the duplicate candidate record",
-    novelSourceCount
-      ? "Adds " + novelSourceCount + " new source URL" + (novelSourceCount === 1 ? "" : "s")
-      : "Keeps the existing source trail intact",
-    item.source_reviewed_at
-      ? "Carries forward the latest source-reviewed timestamp"
-      : "Keeps the target's current source-reviewed timestamp",
-  ];
-
-  if (target.kind === "therapist") {
-    preserves.push("Recomputes field-trust metadata on the live therapist after merge");
-  } else {
-    preserves.push("Appends merge notes to the existing application for future review");
-  }
-
-  return (
-    '<div class="queue-summary" style="margin-top:0.75rem"><strong>Merge preview:</strong> ' +
-    escapeHtml(preserves.join(" · ")) +
-    "</div>"
-  );
-}
-
-function getTherapistOpsReason(freshness, item) {
-  const trustSummary = getTherapistFieldTrustSummary(item);
-  if (trustSummary.watchFields.length) {
-    return "Field trust attention needed: " + trustSummary.watchFields.join(", ") + ".";
-  }
-  if (item.source_health_status && !["healthy", "redirected"].includes(item.source_health_status)) {
-    return (
-      "Primary source health degraded" +
-      (item.source_health_error ? ": " + item.source_health_error : ".")
-    );
-  }
-  if (Array.isArray(item.source_drift_signals) && item.source_drift_signals.length) {
-    return "Drift signals: " + item.source_drift_signals.slice(0, 3).join(", ");
-  }
-  if (freshness.needs_reconfirmation_fields.length) {
-    return (
-      "Operational fields need reconfirmation: " +
-      freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 3).join(", ")
-    );
-  }
-  if (item.verificationLane === "needs_verification") {
-    return "This profile does not have a reliable recent operational review yet.";
-  }
-  return freshness.note || "Source-backed details are aging and should be refreshed.";
-}
-
-function bindCandidateDecisionButtons(root) {
-  if (!root) {
-    return;
-  }
-
-  root.querySelectorAll("[data-candidate-decision]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const id = button.getAttribute("data-candidate-decision");
-      const decision = button.getAttribute("data-candidate-next");
-      if (!id || !decision) {
-        return;
-      }
-
-      const prior = button.textContent;
-      button.disabled = true;
-      button.textContent = decision === "publish" ? "Publishing..." : "Updating...";
-      try {
-        await decideTherapistCandidate(id, { decision: decision });
-        await loadData();
-      } catch (_error) {
-        const status = root.querySelector('[data-candidate-status-id="' + id + '"]');
-        if (status) {
-          status.textContent =
-            decision === "publish"
-              ? "Could not publish this candidate."
-              : "Could not update this candidate.";
-        }
-        button.disabled = false;
-        button.textContent = prior;
-      }
-    });
-  });
-}
-
-function bindTherapistOpsButtons(root) {
-  if (!root) {
-    return;
-  }
-
-  root.querySelectorAll("[data-therapist-ops]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const id = button.getAttribute("data-therapist-ops");
-      const decision = button.getAttribute("data-therapist-next");
-      if (!id || !decision) {
-        return;
-      }
-
-      const prior = button.textContent;
-      button.disabled = true;
-      button.textContent = decision === "mark_reviewed" ? "Saving..." : "Deferring...";
-
-      try {
-        await decideTherapistOps(id, { decision: decision });
-        await loadData();
-      } catch (_error) {
-        const status = root.querySelector('[data-therapist-status-id="' + id + '"]');
-        if (status) {
-          status.textContent = "Could not update this therapist.";
-        }
-        button.disabled = false;
-        button.textContent = prior;
-      }
-    });
-  });
-}
-
 function renderOpsInbox() {
-  const root = document.getElementById("opsInbox");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const candidates = dataMode === "sanity" ? remoteCandidates : [];
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-
-  const publishNow = candidates
-    .filter(function (item) {
-      return item.review_lane === "publish_now" && item.review_status !== "published";
-    })
-    .sort(function (a, b) {
-      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
-    })
-    .slice(0, 3);
-
-  const duplicateQueue = candidates
-    .filter(function (item) {
-      return item.review_lane === "resolve_duplicates" && item.review_status !== "archived";
-    })
-    .sort(function (a, b) {
-      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
-    })
-    .slice(0, 3);
-
-  const confirmationQueue = candidates
-    .filter(function (item) {
-      return item.review_lane === "needs_confirmation" && item.review_status !== "archived";
-    })
-    .sort(function (a, b) {
-      return (Number(b.review_priority) || 0) - (Number(a.review_priority) || 0);
-    })
-    .slice(0, 3);
-
-  const refreshQueue = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
-      };
-    })
-    .filter(function (entry) {
-      return (
-        (entry.item.verificationLane && entry.item.verificationLane !== "fresh") ||
-        entry.trustAttentionCount > 0
-      );
-    })
-    .sort(function (a, b) {
-      const priorityDiff =
-        (Number(b.item.verificationPriority) || 0) - (Number(a.item.verificationPriority) || 0);
-      if (priorityDiff) {
-        return priorityDiff;
-      }
-      return (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
-    })
-    .slice(0, 4);
-
-  const totalActions =
-    publishNow.length + duplicateQueue.length + confirmationQueue.length + refreshQueue.length;
-
-  if (!totalActions) {
-    root.innerHTML =
-      '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>No urgent ops work right now.</strong><div class="subtle" style="margin-top:0.35rem">The publish, duplicate, confirmation, and refresh queues are currently clear.</div></div></div>';
-    return;
-  }
-
-  function renderCandidateOpsCard(item) {
-    const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
-    const match =
-      item.matched_therapist_slug || item.matched_application_id || "No linked duplicate yet";
-    const evidence = getCandidateOpsEvidence(item);
-    const trustSummary = getCandidateTrustSummary(item);
-    const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
-    const publishPacket = getCandidatePublishPacket(item, trustSummary);
-    const mergePreview = renderCandidateMergePreview(item);
-    return (
-      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
-      escapeHtml(item.name || "Unnamed candidate") +
-      '</h3><div class="ops-card-meta">' +
-      escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
-      '</div></div><span class="tag">' +
-      escapeHtml(getCandidateReviewLaneLabel(item.review_lane)) +
-      '</span></div><div class="ops-card-body">' +
-      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
-      escapeHtml(item.review_priority == null ? "Not scored" : item.review_priority + "/100") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
-      escapeHtml(item.next_review_due_at ? formatDate(item.next_review_due_at) : "Now") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Recommendation</div><div class="ops-card-kpi-value">' +
-      escapeHtml(item.publish_recommendation || "Review") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
-      escapeHtml(
-        trustSummary.watchFields.length
-          ? String(trustSummary.watchFields.length) + " signals"
-          : "Stable",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Existing match</div><div class="ops-card-kpi-value">' +
-      escapeHtml(match) +
-      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
-      escapeHtml(getCandidateOpsReason(item)) +
-      "</div>" +
-      (evidence
-        ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
-        : "") +
-      '<div class="subtle" style="margin-top:0.35rem">' +
-      escapeHtml(trustRecommendation) +
-      "</div>" +
-      renderCandidatePublishPacket(publishPacket) +
-      renderCandidateTrustChips(trustSummary, 3) +
-      renderCandidateMergeWorkbench(item) +
-      mergePreview +
-      '<div class="ops-card-actions">' +
-      buildCandidateDecisionActions(item) +
-      (item.source_url
-        ? '<a class="btn-secondary btn-inline" href="' +
-          escapeHtml(item.source_url) +
-          '" target="_blank" rel="noopener">Open source</a>'
-        : "") +
-      '</div><div class="review-coach-status" data-candidate-status-id="' +
-      escapeHtml(item.id) +
-      '"></div></article>'
-    );
-  }
-
-  function renderTherapistOpsCard(entry) {
-    const item = entry.item;
-    const freshness = entry.freshness;
-    const trustSummary = getTherapistFieldTrustSummary(item);
-    const nextMove = getTherapistTrustRecommendation(item, freshness, trustSummary);
-    const evidence = [
-      item.source_health_status ? "Source " + item.source_health_status : "",
-      freshness.source_review_age_days != null
-        ? "Source age " + freshness.source_review_age_days + "d"
-        : "",
-      item.source_health_checked_at
-        ? "Health checked " + formatDate(item.source_health_checked_at)
-        : "",
-      freshness.therapist_confirmation_age_days != null
-        ? "Therapist confirmation age " + freshness.therapist_confirmation_age_days + "d"
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    return (
-      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
-      escapeHtml(item.name) +
-      '</h3><div class="ops-card-meta">' +
-      escapeHtml(
-        [item.credentials, [item.city, item.state, item.zip].filter(Boolean).join(", ")]
-          .filter(Boolean)
-          .join(" · "),
-      ) +
-      '</div></div><span class="tag">' +
-      escapeHtml(getVerificationLaneLabel(item.verificationLane)) +
-      '</span></div><div class="ops-card-body">' +
-      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
-      escapeHtml(
-        item.verificationPriority == null
-          ? "Not scored"
-          : String(item.verificationPriority) + "/100",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
-      escapeHtml(item.nextReviewDueAt ? formatDate(item.nextReviewDueAt) : "Now") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness</div><div class="ops-card-kpi-value">' +
-      escapeHtml(freshness.label) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
-      escapeHtml(
-        trustSummary.watchFields.length
-          ? String(trustSummary.watchFields.length) + " fields"
-          : "Stable",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
-      escapeHtml(nextMove) +
-      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
-      escapeHtml(getTherapistOpsReason(freshness, item)) +
-      "</div>" +
-      (evidence
-        ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
-        : "") +
-      renderFieldTrustChips(trustSummary, 4) +
-      '<div class="ops-card-actions"><button class="btn-primary" data-therapist-ops="' +
-      escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
-      escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="snooze_7d">Defer 7 days</button><button class="btn-secondary" data-therapist-ops="' +
-      escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="snooze_30d">Defer 30 days</button><a class="btn-secondary" href="therapist.html?slug=' +
-      encodeURIComponent(item.slug) +
-      '">Open profile</a>' +
-      (item.sourceUrl
-        ? '<a class="btn-secondary" href="' +
-          escapeHtml(item.sourceUrl) +
-          '" target="_blank" rel="noopener">Open source</a>'
-        : "") +
-      '</div><div class="review-coach-status" data-therapist-status-id="' +
-      escapeHtml(item.id || item._id || "") +
-      '"></div></article>'
-    );
-  }
-
-  function renderGroup(title, note, rowsHtml) {
-    return (
-      '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">' +
-      escapeHtml(title) +
-      '</h3><div class="subtle">' +
-      escapeHtml(note) +
-      '</div></div></div><div class="ops-list">' +
-      rowsHtml +
-      "</div></section>"
-    );
-  }
-
-  root.innerHTML =
-    '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>Today’s work</strong><div class="subtle" style="margin-top:0.35rem">Start with the highest-priority publish, duplicate, confirmation, and refresh items. This is the shortest path to a healthier therapist graph.</div><div class="ops-inbox-grid">' +
-    [
-      { value: publishNow.length, label: "Publish now" },
-      { value: duplicateQueue.length, label: "Resolve duplicates" },
-      { value: confirmationQueue.length, label: "Needs confirmation" },
-      { value: refreshQueue.length, label: "Refresh live profiles" },
-    ]
-      .map(function (item) {
-        return (
-          '<div class="ops-kpi"><div class="ops-kpi-value">' +
-          escapeHtml(item.value) +
-          '</div><div class="ops-kpi-label">' +
-          escapeHtml(item.label) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>" +
-    renderGroup(
-      "Publish now",
-      "High-readiness candidates that are closest to becoming live therapists.",
-      publishNow.length
-        ? publishNow.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No immediate publish candidates right now.</div>',
-    ) +
-    renderGroup(
-      "Resolve duplicates",
-      "Protect the provider graph before adding anything new.",
-      duplicateQueue.length
-        ? duplicateQueue.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No duplicate work is blocking the queue right now.</div>',
-    ) +
-    renderGroup(
-      "Needs confirmation",
-      "Good candidates that need one more trust pass before publish.",
-      confirmationQueue.length
-        ? confirmationQueue.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No confirmation-driven candidate work is waiting right now.</div>',
-    ) +
-    renderGroup(
-      "Refresh live profiles",
-      "Keep listed therapists fresh so the product stays trustworthy and ranking stays healthy.",
-      refreshQueue.length
-        ? refreshQueue.map(renderTherapistOpsCard).join("")
-        : '<div class="subtle">No live profiles currently need refresh attention.</div>',
-    ) +
-    "</div>";
-
-  bindCandidateDecisionButtons(root);
-  bindTherapistOpsButtons(root);
+  renderOpsInboxPanel({
+    root: document.getElementById("opsInbox"),
+    authRequired: authRequired,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    getCandidateOpsEvidence: getCandidateOpsEvidence,
+    getCandidateTrustSummary: getCandidateTrustSummary,
+    getCandidateTrustRecommendation: getCandidateTrustRecommendation,
+    getCandidatePublishPacket: getCandidatePublishPacket,
+    getCandidateReviewLaneLabel: getCandidateReviewLaneLabel,
+    getCandidateOpsReason: getCandidateOpsReason,
+    buildCandidateDecisionActions: buildCandidateDecisionActions,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    renderFieldTrustChips: renderFieldTrustChips,
+    getVerificationLaneLabel: getVerificationLaneLabel,
+    formatFieldLabel: formatFieldLabel,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    decideTherapistCandidate: decideTherapistCandidate,
+    decideTherapistOps: decideTherapistOps,
+    loadData: loadData,
+  });
 }
 
 function renderCandidateQueue() {
@@ -10453,8 +9865,16 @@ function renderCandidateQueue() {
         const trustSummary = getCandidateTrustSummary(item);
         const trustRecommendation = getCandidateTrustRecommendation(item, trustSummary);
         const publishPacket = getCandidatePublishPacket(item, trustSummary);
-        const mergeWorkbench = renderCandidateMergeWorkbench(item);
-        const mergePreview = renderCandidateMergePreview(item);
+        const mergeWorkbench = renderCandidateMergeWorkbench(item, {
+          therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+          applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+          escapeHtml: escapeHtml,
+        });
+        const mergePreview = renderCandidateMergePreview(item, {
+          therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+          applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+          escapeHtml: escapeHtml,
+        });
         const recommendation =
           item.publish_recommendation === "ready"
             ? "Strong publish candidate."
@@ -10495,7 +9915,9 @@ function renderCandidateQueue() {
           '<div class="queue-summary"><strong>Next trust move:</strong> ' +
           escapeHtml(trustRecommendation) +
           "</div>" +
-          renderCandidatePublishPacket(publishPacket) +
+          renderCandidatePublishPacket(publishPacket, {
+            escapeHtml: escapeHtml,
+          }) +
           (sourceTrail
             ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
               escapeHtml(sourceTrail) +
@@ -10516,7 +9938,9 @@ function renderCandidateQueue() {
               escapeHtml(item.notes) +
               "</div>"
             : "") +
-          renderCandidateTrustChips(trustSummary, 4) +
+          renderCandidateTrustChips(trustSummary, 4, {
+            escapeHtml: escapeHtml,
+          }) +
           mergeWorkbench +
           mergePreview +
           '<div class="queue-actions">' +
@@ -10538,7 +9962,10 @@ function renderCandidateQueue() {
       })
       .join("");
 
-  bindCandidateDecisionButtons(root);
+  bindCandidateDecisionButtons(root, {
+    decideTherapistCandidate: decideTherapistCandidate,
+    loadData: loadData,
+  });
 }
 
 function renderConciergeQueue() {
