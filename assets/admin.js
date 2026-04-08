@@ -48,6 +48,7 @@ import { renderCandidateQueuePanel } from "./admin-candidate-queue.js";
 import { renderApplicationsPanel } from "./admin-application-review.js";
 import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
 import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
+import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
 import {
   buildCoverageInsights,
   renderCoverageIntelligencePanel,
@@ -6876,356 +6877,54 @@ function renderRefreshQueue() {
 }
 
 function renderImportBlockerSprint() {
-  const root = document.getElementById("importBlockerSprint");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const queue = getPublishedTherapistImportBlockerQueue().slice(0, 3);
-  const sprintRows = getImportBlockerSprintRows(3);
-  const confirmationRows = getConfirmationSprintRows(5);
-  const overlappingAsk = getOverlappingAskDetails(sprintRows, confirmationRows);
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No strong-warning profiles are currently blocking the strict safe-import gate.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-summary"><strong>' +
-    escapeHtml(getImportBlockerSprintSummary(sprintRows)) +
-    '</strong></div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintBottleneck(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(
-      getPrimaryAskHeaderLine(getImportBlockerSprintSharedAskDetails(sprintRows)?.field || ""),
-    ) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintWaveShape(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintFieldPattern(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAsk(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAskStatus(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAskImpact(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getBlockerConfirmationThemeBridge(sprintRows, confirmationRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerRecommendationNote(sprintRows, confirmationRows)) +
-    "</div>" +
-    (overlappingAsk
-      ? '<div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelMixSummary(getTopOutreachWaveRows(sprintRows, confirmationRows, 3)),
-        ) +
-        '</div><div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelNextMoveSummary(
-            getTopOutreachWaveRows(sprintRows, confirmationRows, 3),
-          ),
-        ) +
-        "</div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        ".</span></div>"
-      : "") +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-import-blocker-copy-top>Copy top blocker request</button><button class="btn-secondary" data-import-blocker-copy-shared-ask>Copy shared ask</button><button class="btn-secondary" data-import-blocker-copy-shared-packet>Copy shared ask packet</button>' +
-    (overlappingAsk
-      ? '<button class="btn-secondary" data-import-blocker-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-import-blocker-copy-top-wave>Copy top outreach wave</button>'
-      : "") +
-    '<button class="btn-secondary" data-import-blocker-copy-packet>Copy top 3 blocker packet</button><button class="btn-secondary" data-import-blocker-open-queue>Show in confirmation queue</button><button class="btn-secondary" data-import-blocker-export="markdown">Copy blocker sprint markdown</button><button class="btn-secondary" data-import-blocker-export="csv">Copy blocker sprint CSV</button></div><div class="review-coach-status" id="importBlockerSprintStatus"></div>' +
-    queue
-      .map(function (entry, index) {
-        const item = entry.item;
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const blockerBuckets = getImportBlockerFieldBuckets(entry.blocker_unknown_fields);
-        const blockerRow =
-          sprintRows.find(function (row) {
-            return row.slug === item.slug;
-          }) || null;
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(String(index + 1) + ". " + item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(
-            "Blocking fields: " + entry.blocker_unknown_fields.map(formatFieldLabel).join(", "),
-          ) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml((blockerRow && blockerRow.blocker_mode) || "Blocker") +
-          '</span><span class="tag">' +
-          escapeHtml(
-            String(entry.blocker_unknown_fields.length) +
-              " blocker" +
-              (entry.blocker_unknown_fields.length === 1 ? "" : "s"),
-          ) +
-          '</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Strict gate impact:</strong> ' +
-          escapeHtml(
-            (blockerRow && blockerRow.why_it_matters) ||
-              item.name +
-                " still prevents the safe importer from passing while these strong-warning fields remain unresolved.",
-          ) +
-          '</div><div class="queue-summary"><strong>Source path status:</strong> ' +
-          escapeHtml(
-            (blockerRow && blockerRow.source_path_status) ||
-              "Public-source path status still needs review.",
-          ) +
-          '</div><div class="queue-summary"><strong>Source-first:</strong> ' +
-          escapeHtml(
-            blockerBuckets.source_first.length
-              ? blockerBuckets.source_first.map(formatFieldLabel).join(", ")
-              : "Complete",
-          ) +
-          '</div><div class="queue-summary"><strong>Therapist-confirmation:</strong> ' +
-          escapeHtml(
-            blockerBuckets.therapist_confirmation.length
-              ? blockerBuckets.therapist_confirmation.map(formatFieldLabel).join(", ")
-              : "None",
-          ) +
-          '</div><div class="queue-summary"><strong>Next move:</strong> ' +
-          escapeHtml((blockerRow && blockerRow.next_best_move) || "") +
-          '</div><div class="queue-summary"><strong>Target:</strong> ' +
-          escapeHtml(getConfirmationTarget(item)) +
-          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
-          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-import-blocker-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy blocker request</button><button class="btn-secondary" data-import-blocker-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button><button class="btn-secondary" data-import-blocker-show-queue="' +
-          escapeHtml(item.slug) +
-          '" data-current-status="' +
-          escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="review-coach-status" data-import-blocker-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root
-    .querySelector("[data-import-blocker-copy-top]")
-    ?.addEventListener("click", async function () {
-      var topEntry = queue[0];
-      if (!topEntry) {
-        return;
-      }
-      var slug = topEntry.item.slug;
-      var blockerRow =
-        sprintRows.find(function (row) {
-          return row.slug === slug;
-        }) || null;
-      var leverageNote = getImportBlockerLeverageNote(sprintRows, topEntry.blocker_unknown_fields);
-      var text = [
-        (blockerRow && blockerRow.request_subject) ||
-          buildImportBlockerRequestSubject(topEntry.item, topEntry.blocker_unknown_fields),
-        "",
-        (blockerRow && blockerRow.request_message) ||
-          buildImportBlockerRequestMessage(topEntry.item, topEntry.blocker_unknown_fields),
-        leverageNote ? "" : null,
-        leverageNote || null,
-        "",
-        "Confirmation form:",
-        buildConfirmationLink(slug),
-      ]
-        .filter(Boolean)
-        .join("\n");
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top blocker request copied."
-          : "Could not copy the top blocker request.";
-      }
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderImportBlockerSprint();
-        renderCaliforniaPriorityConfirmationWave();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-
-  root.querySelector("[data-import-blocker-open-queue]")?.addEventListener("click", function () {
-    confirmationQueueFilter = "";
-    renderCaliforniaPriorityConfirmationWave();
-    renderConfirmationQueue();
-    var queueRoot = document.getElementById("confirmationQueue");
-    if (queueRoot) {
-      queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
-
-  root
-    .querySelector("[data-import-blocker-copy-packet]")
-    ?.addEventListener("click", async function () {
-      var text = buildImportBlockerPacket(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top blocker packet copied."
-          : "Could not copy the top blocker packet.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-shared-ask]")
-    ?.addEventListener("click", async function () {
-      var text = getImportBlockerSprintSharedAskText(sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Shared blocker ask copied."
-          : "Could not copy the shared blocker ask.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-shared-packet]")
-    ?.addEventListener("click", async function () {
-      var text = buildImportBlockerSharedAskPacket(sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Shared ask packet copied."
-          : "Could not copy the shared ask packet.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-overlap]")
-    ?.addEventListener("click", async function () {
-      var text = buildOverlappingAskPacket(sprintRows, confirmationRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Unified outreach wave copied."
-          : "Could not copy the unified outreach wave.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-top-wave]")
-    ?.addEventListener("click", async function () {
-      var text = buildTopOutreachWavePacket(sprintRows, confirmationRows, 3);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top outreach wave copied."
-          : "Could not copy the top outreach wave.";
-      }
-    });
-
-  root.querySelectorAll("[data-import-blocker-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-import-blocker-export");
-      var text =
-        mode === "csv"
-          ? buildImportBlockerSprintCsv(sprintRows)
-          : buildImportBlockerSprintMarkdown(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Import blocker sprint " + mode.toUpperCase() + " copied."
-          : "Could not copy import blocker sprint " + mode.toUpperCase() + ".";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-copy]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-import-blocker-copy");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var blockerRow =
-        sprintRows.find(function (row) {
-          return row.slug === slug;
-        }) || null;
-      var leverageNote = getImportBlockerLeverageNote(sprintRows, entry.blocker_unknown_fields);
-      var text = [
-        (blockerRow && blockerRow.request_subject) ||
-          buildImportBlockerRequestSubject(entry.item, entry.blocker_unknown_fields),
-        "",
-        (blockerRow && blockerRow.request_message) ||
-          buildImportBlockerRequestMessage(entry.item, entry.blocker_unknown_fields),
-        leverageNote ? "" : null,
-        leverageNote || null,
-        "",
-        "Confirmation form:",
-        buildConfirmationLink(slug),
-      ]
-        .filter(Boolean)
-        .join("\n");
-      var success = await copyText(text);
-      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success
-          ? "Blocker request copied."
-          : "Could not copy blocker request.";
-      }
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderImportBlockerSprint();
-        renderCaliforniaPriorityConfirmationWave();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-link]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-import-blocker-link");
-      var success = await copyText(buildConfirmationLink(slug));
-      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success
-          ? "Confirmation link copied."
-          : "Could not copy confirmation link.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-show-queue]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var currentStatus = button.getAttribute("data-current-status") || "";
-      confirmationQueueFilter = currentStatus;
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
+  renderImportBlockerSprintPanel({
+    authRequired: authRequired,
+    getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
+    getImportBlockerSprintRows: getImportBlockerSprintRows,
+    getConfirmationSprintRows: getConfirmationSprintRows,
+    getOverlappingAskDetails: getOverlappingAskDetails,
+    escapeHtml: escapeHtml,
+    getImportBlockerSprintSummary: getImportBlockerSprintSummary,
+    getImportBlockerSprintBottleneck: getImportBlockerSprintBottleneck,
+    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+    getImportBlockerSprintSharedAskDetails: getImportBlockerSprintSharedAskDetails,
+    getImportBlockerSprintWaveShape: getImportBlockerSprintWaveShape,
+    getImportBlockerSprintFieldPattern: getImportBlockerSprintFieldPattern,
+    getImportBlockerSprintSharedAsk: getImportBlockerSprintSharedAsk,
+    getImportBlockerSprintSharedAskStatus: getImportBlockerSprintSharedAskStatus,
+    getImportBlockerSprintSharedAskImpact: getImportBlockerSprintSharedAskImpact,
+    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+    getImportBlockerRecommendationNote: getImportBlockerRecommendationNote,
+    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+    getTopOutreachWaveRows: getTopOutreachWaveRows,
+    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+    formatFieldLabel: formatFieldLabel,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getImportBlockerFieldBuckets: getImportBlockerFieldBuckets,
+    formatStatusLabel: formatStatusLabel,
+    getConfirmationTarget: getConfirmationTarget,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    getImportBlockerLeverageNote: getImportBlockerLeverageNote,
+    buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
+    buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
+    buildConfirmationLink: buildConfirmationLink,
+    copyText: copyText,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    setConfirmationQueueFilter: function (value) {
+      confirmationQueueFilter = value;
+    },
+    buildImportBlockerPacket: buildImportBlockerPacket,
+    getImportBlockerSprintSharedAskText: getImportBlockerSprintSharedAskText,
+    buildImportBlockerSharedAskPacket: buildImportBlockerSharedAskPacket,
+    buildOverlappingAskPacket: buildOverlappingAskPacket,
+    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+    buildImportBlockerSprintCsv: buildImportBlockerSprintCsv,
+    buildImportBlockerSprintMarkdown: buildImportBlockerSprintMarkdown,
   });
 }
 
