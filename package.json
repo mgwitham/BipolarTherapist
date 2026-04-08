@@ -34,6 +34,7 @@
     "cms:run:source-health-checks": "node scripts/run-source-health-checks.mjs",
     "cms:run:operational-drift-checks": "node scripts/run-operational-drift-checks.mjs",
     "cms:generate:source-domain-health-report": "node scripts/generate-source-domain-health-report.mjs",
+    "cms:generate:sourcing-recommendations": "node scripts/generate-sourcing-recommendations.mjs",
     "cms:generate:reverification-batch": "node scripts/generate-reverification-batch.mjs",
     "cms:generate:ops-session": "node scripts/generate-ops-session.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",

@@ -17,6 +17,11 @@ const steps = [
     args: ["run", "cms:generate:source-domain-health-report"],
   },
   {
+    label: "Sourcing recommendations",
+    cmd: "npm",
+    args: ["run", "cms:generate:sourcing-recommendations"],
+  },
+  {
     label: "Ingestion ops queue",
     cmd: "npm",
     args: ["run", "cms:generate:ingestion-ops-queue"],

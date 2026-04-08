@@ -107,6 +107,14 @@ function daysSince(value) {
   return Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000));
 }
 
+function toValidDate(value) {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function formatDate(value) {
   if (!value) {
     return "";

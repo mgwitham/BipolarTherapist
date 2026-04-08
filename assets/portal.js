@@ -1,5 +1,6 @@
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
+import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
   fetchTherapistClaimSession,
@@ -144,6 +145,97 @@ function buildPortalRequestOptions(verifiedClaim, therapist) {
   });
 }
 
+function getRelatedApplication(therapist, options) {
+  if (!therapist) {
+    return null;
+  }
+
+  var claimedEmail = String(
+    (options && options.claimedEmail) || therapist.claimed_by_email || therapist.email || "",
+  )
+    .trim()
+    .toLowerCase();
+  var therapistSlug = String(therapist.slug || "").trim();
+  var applications = getApplications();
+
+  return (
+    applications.find(function (item) {
+      var itemEmail = String(item.email || "")
+        .trim()
+        .toLowerCase();
+      return (
+        item.target_therapist_slug === therapistSlug ||
+        item.slug === therapistSlug ||
+        (claimedEmail && itemEmail === claimedEmail)
+      );
+    }) || null
+  );
+}
+
+function buildPortalProgressData(application) {
+  if (!application) {
+    return null;
+  }
+
+  var portalState = application.portal_state || "";
+  var followUpStatus = application.claim_follow_up_status || "not_started";
+  var stages = [
+    {
+      label: "Claim submitted",
+      done:
+        ["claim_pending_review", "claim_in_review", "claim_needs_attention"].includes(
+          portalState,
+        ) ||
+        application.submission_intent === "claim" ||
+        application.status === "approved",
+    },
+    {
+      label: "Claim approved",
+      done: [
+        "claimed_ready_for_profile",
+        "profile_submitted_after_claim",
+        "profile_in_review_after_claim",
+        "approved_ready_to_publish",
+        "live",
+      ].includes(portalState),
+    },
+    {
+      label: "Follow-up received",
+      done: ["sent", "responded", "full_profile_started"].includes(followUpStatus),
+    },
+    {
+      label: "Full profile started",
+      done: followUpStatus === "full_profile_started",
+    },
+    {
+      label: "Full profile submitted",
+      done: ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
+        portalState,
+      ),
+    },
+  ];
+
+  var nextAction = "Use the update flow if you need to change any operational details.";
+  if (portalState === "claimed_ready_for_profile") {
+    nextAction = "Complete your fuller profile so we can review trust, fit, and listing readiness.";
+  } else if (portalState === "profile_submitted_after_claim") {
+    nextAction = "Your fuller profile is submitted. We are preparing it for review.";
+  } else if (portalState === "profile_in_review_after_claim") {
+    nextAction =
+      "Your fuller profile is in review. We are checking trust, fit, and publish readiness.";
+  } else if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
+    nextAction = "We are still verifying ownership and your core profile details.";
+  } else if (portalState === "claim_needs_attention") {
+    nextAction = "Review the requested fixes so we can finish verifying your claim.";
+  }
+
+  return {
+    statusLabel: application.portal_state_label || "In progress",
+    nextStep: application.portal_next_step || nextAction,
+    stages: stages,
+  };
+}
+
 function renderLookupState() {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -194,6 +286,10 @@ function renderPortal(therapist, options) {
   var requestOptions = buildPortalRequestOptions(verifiedClaim, therapist);
   var quickAttentionItems = getQuickAttentionItems(therapist);
   var claimedEmail = therapist.claimed_by_email || therapist.email || "";
+  var relatedApplication = verifiedClaim
+    ? getRelatedApplication(therapist, { claimedEmail: claimedEmail })
+    : null;
+  var progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
 
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">Claim and manage your profile</p><h1>' +
@@ -260,6 +356,24 @@ function renderPortal(therapist, options) {
         ".</span>"
       : "") +
     "</div></article>" +
+    (progress
+      ? '<article class="portal-card"><h2>Your progress</h2><div class="portal-list"><div><strong>Current status:</strong> ' +
+        escapeHtml(progress.statusLabel) +
+        "</div><div><strong>Next step:</strong> " +
+        escapeHtml(progress.nextStep) +
+        '</div></div><div class="portal-list" style="margin-top:0.85rem">' +
+        progress.stages
+          .map(function (stage) {
+            return "<div>" + (stage.done ? "✓ " : "○ ") + escapeHtml(stage.label) + "</div>";
+          })
+          .join("") +
+        (relatedApplication && relatedApplication.portal_state === "claimed_ready_for_profile"
+          ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="signup.html?revise=' +
+            encodeURIComponent(relatedApplication.id) +
+            '">Complete full profile</a></div>'
+          : "") +
+        "</div></article>"
+      : "") +
     '<article class="portal-card"><h2>What needs attention</h2><div class="portal-list">' +
     quickAttentionItems
       .map(function (item) {

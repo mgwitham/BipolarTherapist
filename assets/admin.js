@@ -1559,6 +1559,7 @@ function getApplicationReviewSnapshot(item) {
   var isClaimConversion =
     item &&
     ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(item.portal_state);
+  var claimFollowUpUrgency = getClaimFollowUpUrgency(item);
   var missingCriticalFields = [];
   var photoSourceType = item.photo_source_type || "";
   var hasPhotoAsset = Boolean(item.photo_url);
@@ -1590,7 +1591,12 @@ function getApplicationReviewSnapshot(item) {
   var note =
     "Keep tightening the operational truth and make a clear decision on publish versus request changes.";
 
-  if (isClaimConversion) {
+  if (claimFollowUpUrgency.tone === "urgent") {
+    focus = "claim_follow_up_due";
+    label = "Follow-up due now";
+    note =
+      "This approved claim is at risk of stalling because follow-up has not gone out in time. Treat it as immediate founder-ops work.";
+  } else if (isClaimConversion) {
     focus = "claim_conversion";
     label = "After-claim profile";
     note =
@@ -1632,17 +1638,19 @@ function getApplicationReviewSnapshot(item) {
           : "Treat this as a temporary photo fallback and prefer a therapist- or practice-uploaded headshot next.",
     missingCriticalFields: missingCriticalFields,
     nextMove:
-      focus === "claim_conversion"
-        ? "Review the fuller profile quickly and move it toward publish or request changes."
-        : focus === "confirmation_refresh"
-          ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
-          : focus === "needs_changes"
-            ? "Request changes before publishing."
-            : focus === "publish_ready"
-              ? "Do a final trust pass, then publish."
-              : item.status === "pending"
-                ? "Move into reviewing and decide what still blocks trust."
-                : "Keep reviewing and make the next decision explicit.",
+      focus === "claim_follow_up_due"
+        ? "Send the follow-up now or move the therapist forward if they already responded."
+        : focus === "claim_conversion"
+          ? "Review the fuller profile quickly and move it toward publish or request changes."
+          : focus === "confirmation_refresh"
+            ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
+            : focus === "needs_changes"
+              ? "Request changes before publishing."
+              : focus === "publish_ready"
+                ? "Do a final trust pass, then publish."
+                : item.status === "pending"
+                  ? "Move into reviewing and decide what still blocks trust."
+                  : "Keep reviewing and make the next decision explicit.",
   };
 }
 
@@ -1651,7 +1659,9 @@ function getApplicationPriorityScore(item) {
   var readiness = getTherapistMatchReadiness(item);
   var score = 0;
 
-  if (snapshot.focus === "claim_conversion") {
+  if (snapshot.focus === "claim_follow_up_due") {
+    score += 145;
+  } else if (snapshot.focus === "claim_conversion") {
     score += 130;
   } else if (snapshot.focus === "publish_ready") {
     score += 120;
@@ -1751,7 +1761,9 @@ function getGoalAdjustedApplicationPriorityScore(item, goal) {
   var score = getApplicationPriorityScore(item);
 
   if (goal === "publish_now") {
-    if (snapshot.focus === "claim_conversion") {
+    if (snapshot.focus === "claim_follow_up_due") {
+      score += 120;
+    } else if (snapshot.focus === "claim_conversion") {
       score += 110;
     } else if (snapshot.focus === "publish_ready") {
       score += 90;
@@ -1794,6 +1806,9 @@ function getApplicationBatchReason(item, goal) {
   var snapshot = getApplicationReviewSnapshot(item);
 
   if (goal === "publish_now") {
+    if (snapshot.focus === "claim_follow_up_due") {
+      return "This approved claim is already overdue for follow-up, so it is the fastest place to prevent drop-off in the therapist funnel.";
+    }
     if (snapshot.focus === "claim_conversion") {
       return "This is the highest-leverage follow-through work: a therapist converted from claim to fuller profile and now needs a decisive review pass.";
     }
@@ -1823,6 +1838,9 @@ function getApplicationBatchReason(item, goal) {
     return "This is supporting review work after the refresh-specific items are cleared.";
   }
 
+  if (snapshot.focus === "claim_follow_up_due") {
+    return "This approved claim needs an immediate follow-up send before the therapist goes cold.";
+  }
   if (snapshot.focus === "claim_conversion") {
     return "This therapist completed the fuller profile after claim approval and should be reviewed before the follow-through momentum cools.";
   }
@@ -1866,6 +1884,9 @@ function getApplicationFilterChips() {
 }
 
 function getApplicationFocusLabel(value) {
+  if (value === "claim_follow_up_due") {
+    return "Follow-up due now";
+  }
   if (value === "claimed_ready_for_profile") {
     return "Approved claims awaiting full profile";
   }
@@ -1883,6 +1904,59 @@ function getApplicationFocusLabel(value) {
 
 function formatPercent(value) {
   return Math.max(0, Math.round(Number(value || 0))) + "%";
+}
+
+function buildOverdueClaimFollowUpPacket(items) {
+  var rows = (Array.isArray(items) ? items : []).filter(function (item) {
+    return getClaimFollowUpUrgency(item).tone === "urgent";
+  });
+
+  if (!rows.length) {
+    return "";
+  }
+
+  return [
+    "# Overdue Claim Follow-Ups",
+    "",
+    "Approved claims that need immediate follow-up so the therapist does not cool off before finishing the fuller profile.",
+    "",
+  ]
+    .concat(
+      rows.map(function (item, index) {
+        var urgency = getClaimFollowUpUrgency(item);
+        var fullProfileLink = new URL(
+          "signup.html?revise=" + encodeURIComponent(item.id),
+          window.location.href,
+        ).toString();
+        return [
+          index + 1 + ". " + (item.name || "Unknown therapist"),
+          "- Portal status: " + (item.portal_state_label || "Claim approved"),
+          "- Follow-up urgency: " + urgency.label,
+          "- Why now: " + urgency.note,
+          "- Email: " + (item.email || "Not provided"),
+          "- Claim status: " + getClaimFollowUpLabel(item.claim_follow_up_status),
+          "- Full profile link: " + fullProfileLink,
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
+function getClaimFunnelBottleneck(claimFunnel, rates) {
+  if ((claimFunnel && claimFunnel.followUpDue) > 0) {
+    return "Biggest leak: approved claims are sitting without timely follow-up. Clear that queue first.";
+  }
+  if ((rates && rates.followUpRate) < 60 && (claimFunnel && claimFunnel.approved) > 0) {
+    return "Biggest leak: approved claims are not consistently getting follow-up sent.";
+  }
+  if ((rates && rates.conversionRate) < 35 && (claimFunnel && claimFunnel.approved) > 0) {
+    return "Biggest leak: therapists are getting approved but too few are returning to finish the fuller profile.";
+  }
+  if ((claimFunnel && claimFunnel.approved) === 0 && (claimFunnel && claimFunnel.submitted) > 0) {
+    return "Biggest bottleneck: claims are entering the funnel but not yet getting approved.";
+  }
+  return "The loop is moving. Keep approved-claim follow-up and after-claim reviews tight so momentum does not cool off.";
 }
 
 function buildRecommendedReviewBatchPacket(items, goal) {
@@ -4522,6 +4596,62 @@ function getClaimFollowUpLabel(value) {
   return "Not started";
 }
 
+function getClaimFollowUpUrgency(application) {
+  if (!application || application.portal_state !== "claimed_ready_for_profile") {
+    return {
+      tone: "steady",
+      label: "Not in approved-claim follow-up",
+      note: "",
+    };
+  }
+
+  var followUpStatus = String(application.claim_follow_up_status || "not_started");
+  var sentAt = application.claim_follow_up_sent_at
+    ? new Date(application.claim_follow_up_sent_at)
+    : null;
+  var approvedAt = application.updated_at ? new Date(application.updated_at) : null;
+  var now = new Date();
+  var msPerDay = 1000 * 60 * 60 * 24;
+  var ageFromApproval =
+    approvedAt && !Number.isNaN(approvedAt.getTime())
+      ? Math.floor((now.getTime() - approvedAt.getTime()) / msPerDay)
+      : 0;
+  var ageFromSend =
+    sentAt && !Number.isNaN(sentAt.getTime())
+      ? Math.floor((now.getTime() - sentAt.getTime()) / msPerDay)
+      : 0;
+
+  if (followUpStatus === "not_started" && ageFromApproval >= 3) {
+    return {
+      tone: "urgent",
+      label: "Follow-up overdue",
+      note: "Claim was approved " + ageFromApproval + " days ago and no follow-up has been sent.",
+    };
+  }
+  if (followUpStatus === "sent" && ageFromSend >= 5) {
+    return {
+      tone: "watch",
+      label: "Reply check due",
+      note: "Follow-up went out " + ageFromSend + " days ago and still needs a response check.",
+    };
+  }
+  if (followUpStatus === "responded") {
+    return {
+      tone: "steady",
+      label: "Waiting on full profile",
+      note: "Therapist has responded. The next leverage is nudging completion of the fuller profile.",
+    };
+  }
+  return {
+    tone: "steady",
+    label: "On track",
+    note:
+      followUpStatus === "sent"
+        ? "Follow-up is in flight."
+        : "Approved claim is still within the normal follow-up window.",
+  };
+}
+
 function buildClaimFollowUpMessage(item) {
   var revisionLink = new URL(
     "signup.html?revise=" + encodeURIComponent(item.id),
@@ -4549,6 +4679,25 @@ function buildClaimFollowUpMessage(item) {
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function downloadText(filename, text, mimeType) {
+  try {
+    const blob = new window.Blob([text], { type: mimeType || "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 0);
     return true;
   } catch (_error) {
     return false;
@@ -5449,6 +5598,14 @@ function buildCoverageSourceSeedCsv(recommendations) {
   return lines.join("\n");
 }
 
+function buildCoverageDiscoveryCommand() {
+  return [
+    "npm run cms:discover:candidates -- data/import/generated-coverage-source-seeds.csv",
+    "npm run cms:import:candidates -- data/import/generated-discovered-therapist-candidates.csv",
+    "npm run cms:generate:candidate-review-queue",
+  ].join("\n");
+}
+
 function renderCoverageIntelligence() {
   const root = document.getElementById("coverageIntelligence");
   if (!root) {
@@ -5498,7 +5655,13 @@ function renderCoverageIntelligence() {
       })
       .join("") +
     "</div></div>" +
-    '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-coverage-export="packet">Copy sourcing packet</button><button class="btn-secondary" data-coverage-export="seed-csv">Copy source-seed CSV</button></div><div class="review-coach-status" id="coverageSourcingStatus"></div>' +
+    '<div class="queue-actions" style="margin-bottom:0.8rem">' +
+    '<button class="btn-primary" data-coverage-export="packet">Copy sourcing packet</button>' +
+    '<button class="btn-secondary" data-coverage-export="seed-csv">Copy source-seed CSV</button>' +
+    '<button class="btn-secondary" data-coverage-export="download-packet">Download packet</button>' +
+    '<button class="btn-secondary" data-coverage-export="download-seed-csv">Download seed CSV</button>' +
+    '<button class="btn-secondary" data-coverage-export="command">Copy discovery command</button>' +
+    '</div><div class="review-coach-status" id="coverageSourcingStatus"></div>' +
     '<div class="queue-insights"><div class="queue-insights-title">Recommended sourcing moves</div><div class="subtle" style="margin-bottom:0.7rem">Use these as the next founder-ops queries when you want to add therapists efficiently.</div><div class="queue-insights-grid">' +
     sourcingRecommendations
       .map(function (item) {
@@ -5570,20 +5733,42 @@ function renderCoverageIntelligence() {
   root.querySelectorAll("[data-coverage-export]").forEach(function (button) {
     button.addEventListener("click", async function () {
       const mode = button.getAttribute("data-coverage-export");
-      const text =
-        mode === "seed-csv"
-          ? buildCoverageSourceSeedCsv(sourcingRecommendations)
-          : buildCoverageSourcingPacket(sourcingRecommendations);
-      const success = text ? await copyText(text) : false;
+      const packetText = buildCoverageSourcingPacket(sourcingRecommendations);
+      const seedCsvText = buildCoverageSourceSeedCsv(sourcingRecommendations);
+      const commandText = buildCoverageDiscoveryCommand();
       const status = root.querySelector("#coverageSourcingStatus");
+      let success = false;
+      let message = "";
+
+      if (mode === "seed-csv") {
+        success = seedCsvText ? await copyText(seedCsvText) : false;
+        message = success ? "Source-seed CSV copied." : "Could not copy source-seed CSV.";
+      } else if (mode === "packet") {
+        success = packetText ? await copyText(packetText) : false;
+        message = success ? "Sourcing packet copied." : "Could not copy sourcing packet.";
+      } else if (mode === "download-packet") {
+        success = packetText
+          ? downloadText("coverage-sourcing-packet.md", packetText, "text/markdown;charset=utf-8")
+          : false;
+        message = success ? "Sourcing packet downloaded." : "Could not download sourcing packet.";
+      } else if (mode === "download-seed-csv") {
+        success = seedCsvText
+          ? downloadText(
+              "generated-coverage-source-seeds.csv",
+              seedCsvText,
+              "text/csv;charset=utf-8",
+            )
+          : false;
+        message = success ? "Source-seed CSV downloaded." : "Could not download source-seed CSV.";
+      } else if (mode === "command") {
+        success = commandText ? await copyText(commandText) : false;
+        message = success
+          ? "Discovery command sequence copied."
+          : "Could not copy discovery command sequence.";
+      }
+
       if (status) {
-        status.textContent = success
-          ? mode === "seed-csv"
-            ? "Source-seed CSV copied."
-            : "Sourcing packet copied."
-          : mode === "seed-csv"
-            ? "Could not copy source-seed CSV."
-            : "Could not copy sourcing packet.";
+        status.textContent = message;
       }
     });
   });
@@ -7790,6 +7975,12 @@ function renderApplications() {
           return false;
         }
         if (
+          applicationFilters.focus === "claim_follow_up_due" &&
+          snapshot.focus !== "claim_follow_up_due"
+        ) {
+          return false;
+        }
+        if (
           applicationFilters.focus === "claim_conversion" &&
           snapshot.focus !== "claim_conversion"
         ) {
@@ -7799,6 +7990,7 @@ function renderApplications() {
           ![
             "claim_flow",
             "full_profile_flow",
+            "claim_follow_up_due",
             "claimed_ready_for_profile",
             "claim_conversion",
           ].includes(applicationFilters.focus) &&
@@ -7847,6 +8039,7 @@ function renderApplications() {
       accumulator.claims += item.submission_intent === "claim" ? 1 : 0;
       accumulator.full_profiles += item.submission_intent === "claim" ? 0 : 1;
       accumulator.approved_claims += item.portal_state === "claimed_ready_for_profile" ? 1 : 0;
+      accumulator.claim_follow_up_due += snapshot.focus === "claim_follow_up_due" ? 1 : 0;
       accumulator.claim_conversions += snapshot.focus === "claim_conversion" ? 1 : 0;
       accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
       accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
@@ -7859,6 +8052,7 @@ function renderApplications() {
       claims: 0,
       full_profiles: 0,
       approved_claims: 0,
+      claim_follow_up_due: 0,
       claim_conversions: 0,
       publish_ready: 0,
       needs_changes: 0,
@@ -7886,6 +8080,9 @@ function renderApplications() {
         item.portal_state,
       );
     }).length,
+    followUpDue: applications.filter(function (item) {
+      return getClaimFollowUpUrgency(item).tone === "urgent";
+    }).length,
   };
   const claimApprovalRate = claimFunnel.submitted
     ? (claimFunnel.approved / claimFunnel.submitted) * 100
@@ -7898,7 +8095,7 @@ function renderApplications() {
     : 0;
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
     [
       {
         label: "Claims submitted",
@@ -7924,6 +8121,11 @@ function renderApplications() {
         label: "Full profile submitted",
         value: claimFunnel.fullProfileSubmitted,
         note: formatPercent(claimConversionRate) + " of approved claims",
+      },
+      {
+        label: "Follow-up due now",
+        value: claimFunnel.followUpDue,
+        note: "Approved claims that have gone too long without a follow-up send.",
       },
     ]
       .map(function (item) {
@@ -7960,6 +8162,13 @@ function renderApplications() {
         label: "Claims",
         value: summaryCounts.claims,
         note: "Free-claim submissions that mainly need ownership and core-detail verification.",
+      },
+      {
+        status: "",
+        focus: "claim_follow_up_due",
+        label: "Follow-up due",
+        value: summaryCounts.claim_follow_up_due,
+        note: "Approved claims that are already overdue for outreach and risk cooling off.",
       },
       {
         status: "",
@@ -8100,6 +8309,7 @@ function renderApplications() {
         const portalNextStep = item.portal_next_step || reviewSnapshot.nextMove;
         const isClaimFlow = item.submission_intent === "claim";
         const claimFollowUpLabel = getClaimFollowUpLabel(item.claim_follow_up_status);
+        const claimFollowUpUrgency = getClaimFollowUpUrgency(item);
         const isConfirmationRefresh = isConfirmationRefreshApplication(item);
         const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
           ? item.therapist_reported_fields
@@ -8372,6 +8582,12 @@ function renderApplications() {
           (item.portal_state === "claimed_ready_for_profile"
             ? '<div class="notes-box"><label><strong>Approved-claim follow-up</strong></label><div class="subtle"><strong>Status:</strong> ' +
               escapeHtml(claimFollowUpLabel) +
+              '</div><div class="subtle"><strong>Urgency:</strong> ' +
+              escapeHtml(claimFollowUpUrgency.label) +
+              "</div>" +
+              (claimFollowUpUrgency.note
+                ? '<div class="subtle">' + escapeHtml(claimFollowUpUrgency.note) + "</div>"
+                : "") +
               "</div>" +
               (item.claim_follow_up_sent_at
                 ? '<div class="subtle"><strong>Last sent:</strong> ' +
@@ -8536,6 +8752,20 @@ function renderApplications() {
             : mode === reviewGoalMeta.primaryActionMode
               ? "Could not copy " + reviewGoalMeta.primaryActionLabel.toLowerCase() + "."
               : "Could not copy review batch packet.";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-claim-funnel-export]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var mode = button.getAttribute("data-claim-funnel-export");
+      var text = mode === "overdue" ? buildOverdueClaimFollowUpPacket(applications) : "";
+      var success = text ? await copyText(text) : false;
+      var status = root.querySelector("#claimFunnelExportStatus");
+      if (status) {
+        status.textContent = success
+          ? "Overdue follow-up batch copied."
+          : "Could not copy overdue follow-up batch.";
       }
     });
   });
