@@ -8,6 +8,18 @@ const API_VERSION = "2026-04-02";
 const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-source-health-checks.csv");
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-source-health-checks.md");
 const HEALTHY_STATUSES = new Set(["healthy", "redirected"]);
+const FIELD_TRUST_KEYS = [
+  "estimatedWaitTime",
+  "insuranceAccepted",
+  "telehealthStates",
+  "bipolarYearsExperience",
+];
+const FIELD_STALE_AFTER_DAYS = {
+  estimatedWaitTime: 21,
+  insuranceAccepted: 45,
+  telehealthStates: 45,
+  bipolarYearsExperience: 180,
+};
 const DEGRADED_STATUS_PRIORITY = {
   missing_source: 99,
   not_found: 99,
@@ -123,6 +135,123 @@ function computeTherapistCompletenessScore(record) {
   ];
   const passed = checks.filter(Boolean).length;
   return Math.round((passed / checks.length) * 100);
+}
+
+function getFieldReviewState(record, fieldName) {
+  return (
+    (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed"
+  );
+}
+
+function getFieldSourceKind(record, fieldName, reviewState) {
+  const hasSourceReview = Boolean(record.sourceReviewedAt);
+  const hasTherapistConfirmation = Boolean(record.therapistReportedConfirmedAt);
+  const reportedFields = Array.isArray(record.therapistReportedFields)
+    ? record.therapistReportedFields
+    : [];
+  const sourceHealthDegraded =
+    record.sourceHealthStatus &&
+    !["healthy", "redirected"].includes(String(record.sourceHealthStatus));
+
+  if (sourceHealthDegraded && reviewState === "needs_reconfirmation") {
+    return "degraded_source";
+  }
+  if (
+    reviewState === "editorially_verified" &&
+    hasSourceReview &&
+    hasTherapistConfirmation &&
+    reportedFields.includes(fieldName)
+  ) {
+    return "blended";
+  }
+  if (reviewState === "editorially_verified" && hasSourceReview) {
+    return "editorial_source_review";
+  }
+  if (hasTherapistConfirmation && reportedFields.includes(fieldName)) {
+    return "therapist_confirmed";
+  }
+  if (hasSourceReview && hasTherapistConfirmation) {
+    return "blended";
+  }
+  return "unknown";
+}
+
+function getFieldVerifiedAt(record, fieldName, sourceKind) {
+  const sourceReviewedAt = toValidDate(record.sourceReviewedAt);
+  const therapistConfirmedAt = toValidDate(record.therapistReportedConfirmedAt);
+
+  if (sourceKind === "editorial_source_review" && sourceReviewedAt) {
+    return sourceReviewedAt.toISOString();
+  }
+  if (sourceKind === "therapist_confirmed" && therapistConfirmedAt) {
+    return therapistConfirmedAt.toISOString();
+  }
+  if (sourceKind === "blended") {
+    const dates = [sourceReviewedAt, therapistConfirmedAt].filter(Boolean);
+    if (dates.length) {
+      return new Date(Math.max(...dates.map((value) => value.getTime()))).toISOString();
+    }
+  }
+  if (therapistConfirmedAt && Array.isArray(record.therapistReportedFields)) {
+    if (record.therapistReportedFields.includes(fieldName)) {
+      return therapistConfirmedAt.toISOString();
+    }
+  }
+  if (sourceReviewedAt) {
+    return sourceReviewedAt.toISOString();
+  }
+  if (therapistConfirmedAt) {
+    return therapistConfirmedAt.toISOString();
+  }
+  return "";
+}
+
+function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
+  let score =
+    reviewState === "editorially_verified"
+      ? 92
+      : reviewState === "needs_reconfirmation"
+        ? 44
+        : 76;
+
+  if (sourceKind === "blended") score += 3;
+  else if (sourceKind === "degraded_source") score -= 16;
+  else if (sourceKind === "unknown") score -= 10;
+
+  const sourceAgeDays = toValidDate(record.sourceReviewedAt)
+    ? Math.max(0, Math.floor((Date.now() - new Date(record.sourceReviewedAt).getTime()) / 86400000))
+    : null;
+  const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
+    ? Math.max(
+        0,
+        Math.floor((Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
+      )
+    : null;
+
+  if (sourceAgeDays !== null && sourceAgeDays >= 120) score -= 12;
+  else if (sourceAgeDays !== null && sourceAgeDays >= 75) score -= 6;
+  if (confirmationAgeDays !== null && confirmationAgeDays >= 120) score -= 16;
+  else if (confirmationAgeDays !== null && confirmationAgeDays >= 60) score -= 8;
+
+  return Math.max(5, Math.min(99, score));
+}
+
+function buildFieldTrustMeta(record) {
+  return FIELD_TRUST_KEYS.reduce((accumulator, fieldName) => {
+    const reviewState = getFieldReviewState(record, fieldName);
+    const sourceKind = getFieldSourceKind(record, fieldName, reviewState);
+    const verifiedAt = getFieldVerifiedAt(record, fieldName, sourceKind);
+    const staleAfterDays = FIELD_STALE_AFTER_DAYS[fieldName];
+    accumulator[fieldName] = {
+      reviewState,
+      confidenceScore: computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind),
+      sourceKind,
+      verifiedAt,
+      staleAfterDays,
+      staleAfterAt: verifiedAt ? addDays(verifiedAt, staleAfterDays) : "",
+    };
+    return accumulator;
+  }, {});
 }
 
 function computeTherapistVerificationMeta(record) {
@@ -262,6 +391,7 @@ async function fetchTherapists(client) {
     sourceHealthFinalUrl,
     sourceHealthError,
     sourceDriftSignals,
+    therapistReportedFields,
     therapistReportedConfirmedAt,
     fieldReviewStates,
     verificationLane,
@@ -492,6 +622,7 @@ async function main() {
       "verificationPriority",
       "nextReviewDueAt",
       "dataCompletenessScore",
+      "fieldTrustMeta",
     ];
 
     const patch = {
@@ -505,6 +636,10 @@ async function main() {
       verificationPriority: verificationPatch.verificationPriority,
       nextReviewDueAt: verificationPatch.nextReviewDueAt,
       dataCompletenessScore: verificationPatch.dataCompletenessScore,
+      fieldTrustMeta: buildFieldTrustMeta({
+        ...therapist,
+        sourceHealthStatus: result.status,
+      }),
       ...(verificationPatch.lastOperationalReviewAt
         ? { lastOperationalReviewAt: verificationPatch.lastOperationalReviewAt }
         : {}),

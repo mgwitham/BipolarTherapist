@@ -594,6 +594,79 @@ export const therapistType = defineType({
         "Field-level trust state for hard-to-source operational details. Use this to distinguish therapist-confirmed details from editor-verified or stale details.",
     }),
     defineField({
+      name: "fieldTrustMeta",
+      title: "Field trust metadata",
+      type: "object",
+      group: "trust",
+      fields: ["estimatedWaitTime", "insuranceAccepted", "telehealthStates", "bipolarYearsExperience"].map(
+        (fieldName) =>
+          defineField({
+            name: fieldName,
+            title:
+              fieldName === "estimatedWaitTime"
+                ? "Estimated wait time"
+                : fieldName === "insuranceAccepted"
+                  ? "Insurance accepted"
+                  : fieldName === "telehealthStates"
+                    ? "Telehealth states"
+                    : "Bipolar-specific years of experience",
+            type: "object",
+            fields: [
+              defineField({
+                name: "reviewState",
+                title: "Review state",
+                type: "string",
+                options: {
+                  list: [
+                    { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+                    { title: "Editorially verified", value: "editorially_verified" },
+                    { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+                  ],
+                },
+              }),
+              defineField({
+                name: "confidenceScore",
+                title: "Confidence score",
+                type: "number",
+                validation: (rule) => rule.min(0).max(100),
+              }),
+              defineField({
+                name: "sourceKind",
+                title: "Source kind",
+                type: "string",
+                options: {
+                  list: [
+                    { title: "Editorial source review", value: "editorial_source_review" },
+                    { title: "Therapist confirmed", value: "therapist_confirmed" },
+                    { title: "Blended", value: "blended" },
+                    { title: "Degraded source", value: "degraded_source" },
+                    { title: "Unknown", value: "unknown" },
+                  ],
+                },
+              }),
+              defineField({
+                name: "verifiedAt",
+                title: "Verified at",
+                type: "datetime",
+              }),
+              defineField({
+                name: "staleAfterDays",
+                title: "Stale after days",
+                type: "number",
+                validation: (rule) => rule.min(1).max(3650),
+              }),
+              defineField({
+                name: "staleAfterAt",
+                title: "Stale after at",
+                type: "datetime",
+              }),
+            ],
+          }),
+      ),
+      description:
+        "World-class field-level trust spine for high-value operational fields. Stores confidence, source, verification date, and stale-after timing for ranking and ops.",
+    }),
+    defineField({
       name: "sessionFeeMin",
       title: "Minimum session fee",
       type: "number",

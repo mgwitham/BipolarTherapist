@@ -160,6 +160,13 @@ function normalizeTherapist(doc) {
         (doc.fieldReviewStates && doc.fieldReviewStates.bipolarYearsExperience) ||
         "therapist_confirmed",
     },
+    field_trust_meta: {
+      estimated_wait_time: (doc.fieldTrustMeta && doc.fieldTrustMeta.estimatedWaitTime) || null,
+      insurance_accepted: (doc.fieldTrustMeta && doc.fieldTrustMeta.insuranceAccepted) || null,
+      telehealth_states: (doc.fieldTrustMeta && doc.fieldTrustMeta.telehealthStates) || null,
+      bipolar_years_experience:
+        (doc.fieldTrustMeta && doc.fieldTrustMeta.bipolarYearsExperience) || null,
+    },
     session_fee_min: doc.sessionFeeMin || null,
     session_fee_max: doc.sessionFeeMax || null,
     sliding_scale: Boolean(doc.slidingScale),
