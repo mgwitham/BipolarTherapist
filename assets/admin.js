@@ -1,4 +1,5 @@
 import {
+  approveApplication,
   getApplications,
   getStats,
   getTherapists,
@@ -5500,6 +5501,225 @@ function renderCoverageIntelligence() {
   });
 }
 
+function buildSourcePerformanceInsights(candidates) {
+  const bySourceType = new Map();
+
+  (candidates || []).forEach(function (item) {
+    const key = item.source_type || "unknown";
+    const entry = bySourceType.get(key) || {
+      key: key,
+      total: 0,
+      ready: 0,
+      published: 0,
+      needsConfirmation: 0,
+      duplicates: 0,
+    };
+
+    entry.total += 1;
+    if (item.review_status === "ready_to_publish" || item.publish_recommendation === "ready") {
+      entry.ready += 1;
+    }
+    if (item.review_status === "published") {
+      entry.published += 1;
+    }
+    if (
+      item.review_status === "needs_confirmation" ||
+      item.publish_recommendation === "needs_confirmation"
+    ) {
+      entry.needsConfirmation += 1;
+    }
+    if (
+      item.dedupe_status === "possible_duplicate" ||
+      item.dedupe_status === "rejected_duplicate"
+    ) {
+      entry.duplicates += 1;
+    }
+
+    bySourceType.set(key, entry);
+  });
+
+  return Array.from(bySourceType.values())
+    .map(function (item) {
+      const total = item.total || 1;
+      return {
+        ...item,
+        publishableRate: Math.round(((item.ready + item.published) / total) * 100),
+        duplicateRate: Math.round((item.duplicates / total) * 100),
+        confirmationRate: Math.round((item.needsConfirmation / total) * 100),
+      };
+    })
+    .sort(function (a, b) {
+      return (
+        b.publishableRate - a.publishableRate ||
+        a.duplicateRate - b.duplicateRate ||
+        b.total - a.total
+      );
+    });
+}
+
+function getSourcePerformanceRecommendation(item) {
+  if (item.publishableRate >= 60 && item.duplicateRate <= 20) {
+    return "Lean in. This source type is producing strong publishable yield.";
+  }
+  if (item.duplicateRate >= 40) {
+    return "Use carefully. This source type is creating a lot of duplicate review work.";
+  }
+  if (item.confirmationRate >= 50) {
+    return "Useful, but expect confirmation-heavy ops work before publish.";
+  }
+  return "Mixed quality. Keep using it, but favor cleaner source classes first.";
+}
+
+function buildBestSourcingBets(coverageInsights, sourceInsights) {
+  const sourceRank = new Map(
+    (sourceInsights || []).map(function (item) {
+      return [item.key, item];
+    }),
+  );
+
+  function chooseSourceType(role, gaps) {
+    const options =
+      role === "psychiatrist"
+        ? ["practice_website", "manual_research", "directory_profile"]
+        : ["practice_website", "directory_profile", "manual_research"];
+
+    return options
+      .map(function (key) {
+        const source = sourceRank.get(key) || {
+          key: key,
+          publishableRate: 0,
+          duplicateRate: 0,
+          confirmationRate: 0,
+        };
+        const gapBonus =
+          (gaps.includes("psychiatry") && key === "practice_website" ? 15 : 0) +
+          (gaps.includes("telehealth") && key !== "directory_profile" ? 10 : 0);
+        const score =
+          source.publishableRate -
+          source.duplicateRate -
+          Math.round(source.confirmationRate / 2) +
+          gapBonus;
+        return {
+          source: source,
+          score: score,
+        };
+      })
+      .sort(function (a, b) {
+        return b.score - a.score;
+      })[0];
+  }
+
+  return (coverageInsights.thinnestCities || [])
+    .slice(0, 4)
+    .map(function (city) {
+      const gaps = []
+        .concat(city.psychiatry === 0 ? ["psychiatry"] : [])
+        .concat(city.telehealth === 0 ? ["telehealth"] : [])
+        .concat(city.accepting === 0 ? ["accepting"] : []);
+      const role = city.psychiatry === 0 ? "psychiatrist" : "therapist";
+      const sourceChoice = chooseSourceType(role, gaps);
+      return {
+        city: [city.city, city.state].filter(Boolean).join(", "),
+        role: role,
+        gaps: gaps,
+        recommendedSourceType: sourceChoice.source.key,
+        expectedPublishableRate: sourceChoice.source.publishableRate,
+        expectedDuplicateRate: sourceChoice.source.duplicateRate,
+        recommendation:
+          "Start with " +
+          String(sourceChoice.source.key).replace(/_/g, " ") +
+          " in " +
+          [city.city, city.state].filter(Boolean).join(", ") +
+          ".",
+      };
+    })
+    .sort(function (a, b) {
+      return (
+        b.expectedPublishableRate - a.expectedPublishableRate ||
+        a.expectedDuplicateRate - b.expectedDuplicateRate
+      );
+    });
+}
+
+function renderSourcePerformance() {
+  const root = document.getElementById("sourcePerformance");
+  if (!root) {
+    return;
+  }
+
+  if (authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const candidates = dataMode === "sanity" ? remoteCandidates : [];
+  if (!candidates.length) {
+    root.innerHTML =
+      '<div class="empty">No sourced candidates yet. Once discovery runs, source performance will appear here.</div>';
+    return;
+  }
+
+  const insights = buildSourcePerformanceInsights(candidates);
+  const coverageInsights = buildCoverageInsights(
+    dataMode === "sanity" ? publishedTherapists : getTherapists(),
+  );
+  const bestBets = buildBestSourcingBets(coverageInsights, insights);
+
+  root.innerHTML =
+    '<div class="queue-insights"><div class="queue-insights-title">Best sourcing bets</div><div class="subtle" style="margin-bottom:0.7rem">These combine coverage gaps with actual source yield so you can work the highest-leverage acquisition moves first.</div><div class="queue-insights-grid">' +
+    bestBets
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml(item.city) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(
+            "Go get more " +
+              item.role +
+              (item.gaps.length ? " for " + item.gaps.join(", ") : " coverage"),
+          ) +
+          '</div><div class="queue-insight-note"><strong>Best source type:</strong> ' +
+          escapeHtml(String(item.recommendedSourceType).replace(/_/g, " ")) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(
+            item.expectedPublishableRate +
+              "% publishable expected · " +
+              item.expectedDuplicateRate +
+              "% duplicate risk",
+          ) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.recommendation) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Source-type yield</div><div class="subtle" style="margin-bottom:0.7rem">Use this to decide which source classes deserve more discovery energy.</div><div class="queue-insights-grid">' +
+    insights
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          escapeHtml(String(item.key).replace(/_/g, " ")) +
+          '</strong></div><div class="queue-insight-note">' +
+          escapeHtml(
+            item.total +
+              " candidates · " +
+              item.publishableRate +
+              "% publishable · " +
+              item.duplicateRate +
+              "% duplicate risk",
+          ) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.confirmationRate + "% confirmation-heavy") +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(getSourcePerformanceRecommendation(item)) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>";
+}
+
 function renderFunnelInsights() {
   const root = document.getElementById("funnelInsights");
   if (!root) {
@@ -7465,8 +7685,22 @@ function renderApplications() {
         return false;
       }
 
-      if (applicationFilters.focus && snapshot.focus !== applicationFilters.focus) {
-        return false;
+      if (applicationFilters.focus) {
+        if (applicationFilters.focus === "claim_flow" && item.submission_intent !== "claim") {
+          return false;
+        }
+        if (
+          applicationFilters.focus === "full_profile_flow" &&
+          item.submission_intent === "claim"
+        ) {
+          return false;
+        }
+        if (
+          !["claim_flow", "full_profile_flow"].includes(applicationFilters.focus) &&
+          snapshot.focus !== applicationFilters.focus
+        ) {
+          return false;
+        }
       }
 
       return true;
@@ -7505,6 +7739,8 @@ function renderApplications() {
       const snapshot = getApplicationReviewSnapshot(item);
       accumulator.pending += item.status === "pending" ? 1 : 0;
       accumulator.reviewing += item.status === "reviewing" ? 1 : 0;
+      accumulator.claims += item.submission_intent === "claim" ? 1 : 0;
+      accumulator.full_profiles += item.submission_intent === "claim" ? 0 : 1;
       accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
       accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
       accumulator.confirmation_refresh += snapshot.focus === "confirmation_refresh" ? 1 : 0;
@@ -7513,6 +7749,8 @@ function renderApplications() {
     {
       pending: 0,
       reviewing: 0,
+      claims: 0,
+      full_profiles: 0,
       publish_ready: 0,
       needs_changes: 0,
       confirmation_refresh: 0,
@@ -7538,6 +7776,20 @@ function renderApplications() {
         label: "Reviewing",
         value: summaryCounts.reviewing,
         note: "Applications already in motion and needing a next clear call.",
+      },
+      {
+        status: "",
+        focus: "claim_flow",
+        label: "Claims",
+        value: summaryCounts.claims,
+        note: "Free-claim submissions that mainly need ownership and core-detail verification.",
+      },
+      {
+        status: "",
+        focus: "full_profile_flow",
+        label: "Full profiles",
+        value: summaryCounts.full_profiles,
+        note: "Richer profile submissions that can move toward publish once trust is cleared.",
       },
       {
         status: "",
@@ -7652,6 +7904,9 @@ function renderApplications() {
         const freshness = getDataFreshnessSummary(item);
         const coaching = getTherapistReviewCoaching(item);
         const reviewSnapshot = getApplicationReviewSnapshot(item);
+        const portalStateLabel =
+          item.portal_state_label || formatStatusLabel(item.status || "pending");
+        const portalNextStep = item.portal_next_step || reviewSnapshot.nextMove;
         const isConfirmationRefresh = isConfirmationRefreshApplication(item);
         const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
           ? item.therapist_reported_fields
@@ -7739,9 +7994,15 @@ function renderApplications() {
           '<div class="tag-row"><span class="tag">' +
           escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
           "</span>" +
+          '<span class="tag">' +
+          escapeHtml(item.submission_intent === "claim" ? "Free claim" : "Full profile") +
+          "</span>" +
           (isConfirmationRefresh
             ? '<span class="tag">Live profile confirmation update</span>'
             : "") +
+          '<span class="tag">' +
+          escapeHtml(portalStateLabel) +
+          "</span>" +
           '<span class="tag">' +
           escapeHtml(reviewSnapshot.label) +
           "</span>" +
@@ -7765,6 +8026,20 @@ function renderApplications() {
               escapeHtml(item.care_approach) +
               "</p>"
             : "") +
+          '<div class="review-snapshot-box"><div class="review-snapshot-title">Therapist-facing lifecycle</div><div class="review-snapshot-copy"><strong>' +
+          escapeHtml(portalStateLabel) +
+          ":</strong> " +
+          escapeHtml(portalNextStep) +
+          '</div><div class="review-snapshot-copy">' +
+          escapeHtml(
+            item.submission_intent === "claim"
+              ? "This therapist is still in the claim-first path. Keep the review focused on ownership, licensure, and core profile trust."
+              : "This therapist has already submitted the fuller profile, so the review can focus on publish readiness, fit clarity, and trust details.",
+          ) +
+          (item.upgrade_eligible
+            ? '</div><div class="review-snapshot-copy"><strong>Upgrade eligibility:</strong> This profile can be offered growth features after review.</div>'
+            : "") +
+          "</div>" +
           '<div class="review-snapshot-box"><div class="review-snapshot-title">Recommended next move</div><div class="review-snapshot-copy">' +
           escapeHtml(reviewSnapshot.nextMove) +
           '</div><div class="review-snapshot-copy">' +
@@ -7807,6 +8082,9 @@ function renderApplications() {
           "</div>" +
           "<div><strong>Photo source:</strong> " +
           escapeHtml(reviewSnapshot.photoStatusLabel) +
+          "</div>" +
+          "<div><strong>Portal lifecycle:</strong> " +
+          escapeHtml(portalStateLabel) +
           "</div>" +
           "<div><strong>Photo permission:</strong> " +
           escapeHtml(item.photo_usage_permission_confirmed ? "Confirmed" : "Not confirmed") +
@@ -7861,6 +8139,9 @@ function renderApplications() {
           "<div><strong>Profile completeness:</strong> " +
           escapeHtml(readiness.completeness_score) +
           "/100</div>" +
+          "<div><strong>Upgrade eligible:</strong> " +
+          escapeHtml(item.upgrade_eligible ? "Yes" : "Not yet") +
+          "</div>" +
           "</div>" +
           '<div class="action-row">' +
           actions +
@@ -9651,6 +9932,7 @@ function renderAll() {
   renderStats();
   renderOpsInbox();
   renderCoverageIntelligence();
+  renderSourcePerformance();
   renderFunnelInsights();
   renderListings();
   renderRefreshQueue();
