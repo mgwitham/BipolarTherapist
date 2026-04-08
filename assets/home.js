@@ -1,14 +1,6 @@
-import { cmsEnabled, cmsStudioUrl, fetchHomePageContent, getCmsState } from "./cms.js";
-import { getTherapistMerchandisingQuality } from "./matching-model.js";
-import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import {
-  readFunnelEvents,
-  summarizeAdaptiveSignals,
-  trackFunnelEvent,
-} from "./funnel-analytics.js";
+import { fetchHomePageContent } from "./cms.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 import { getZipMarketStatus } from "./zip-lookup.js";
-
-var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -24,18 +16,11 @@ function applyHomePageCopy(homePage) {
     return;
   }
 
-  var heroBadge = document.getElementById("heroBadge");
   var heroTitle = document.getElementById("heroTitle");
   var heroDescription = document.getElementById("heroDescription");
-  var searchLabel = document.getElementById("searchLabel");
-  var searchInput = document.getElementById("q");
   var locationLabel = document.getElementById("locationLabel");
   var locationInput = document.getElementById("location");
   var searchButton = document.getElementById("searchButton");
-
-  if (heroBadge && homePage.heroBadge) {
-    heroBadge.textContent = homePage.heroBadge;
-  }
 
   if (heroTitle && homePage.heroTitle) {
     heroTitle.textContent = homePage.heroTitle;
@@ -43,14 +28,6 @@ function applyHomePageCopy(homePage) {
 
   if (heroDescription && homePage.heroDescription) {
     heroDescription.textContent = homePage.heroDescription;
-  }
-
-  if (searchLabel && homePage.searchLabel) {
-    searchLabel.textContent = homePage.searchLabel;
-  }
-
-  if (searchInput && homePage.searchPlaceholder) {
-    searchInput.placeholder = homePage.searchPlaceholder;
   }
 
   if (locationLabel && homePage.locationLabel) {
@@ -203,7 +180,7 @@ function initHeroCareDropdown() {
   var field = selectRoot.closest(".search-field--prompt");
   var trigger = selectRoot.querySelector(".custom-select-trigger");
   var options = Array.from(selectRoot.querySelectorAll(".custom-select-option"));
-  var defaultLabel = "What type of care do you want?";
+  var defaultLabel = "What kind of support are you looking for?";
 
   function setOpenState(isOpen) {
     selectRoot.classList.toggle("is-open", isOpen);
@@ -305,178 +282,6 @@ function initHeroZipFocusRow() {
     }
     zipInput.focus();
   });
-}
-
-function sortTherapistsForMerchandising(therapists) {
-  return (Array.isArray(therapists) ? therapists.slice() : []).sort(function (a, b) {
-    var aQuality = getTherapistMerchandisingQuality(a);
-    var bQuality = getTherapistMerchandisingQuality(b);
-    return (
-      bQuality.score - aQuality.score ||
-      Number(b.accepting_new_patients === true) - Number(a.accepting_new_patients === true) ||
-      Number(b.bipolar_years_experience || 0) - Number(a.bipolar_years_experience || 0) ||
-      String(a.name || "").localeCompare(String(b.name || ""))
-    );
-  });
-}
-
-function getBestTherapistBySignal(therapists, mode) {
-  var pool = Array.isArray(therapists) ? therapists.slice() : [];
-  if (!pool.length) {
-    return null;
-  }
-
-  if (mode === "speed") {
-    var waitRank = {
-      "Immediate availability": 0,
-      "Within 1 week": 1,
-      "Within 2 weeks": 2,
-      "2-4 weeks": 3,
-      "1-2 months": 4,
-      "Waitlist only": 5,
-    };
-    return pool.sort(function (a, b) {
-      return (
-        Number(waitRank[a.estimated_wait_time] ?? 10) -
-          Number(waitRank[b.estimated_wait_time] ?? 10) ||
-        Number(b.accepting_new_patients === true) - Number(a.accepting_new_patients === true) ||
-        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score
-      );
-    })[0];
-  }
-
-  if (mode === "specialization") {
-    return pool.sort(function (a, b) {
-      return (
-        Number(b.bipolar_years_experience || 0) - Number(a.bipolar_years_experience || 0) ||
-        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score
-      );
-    })[0];
-  }
-
-  if (mode === "contact") {
-    return pool.sort(function (a, b) {
-      return (
-        Number(Boolean(getPublicResponsivenessSignal(b))) -
-          Number(Boolean(getPublicResponsivenessSignal(a))) ||
-        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score
-      );
-    })[0];
-  }
-
-  return sortTherapistsForMerchandising(pool)[0];
-}
-
-function renderHomeMatchingTeaser(featuredTherapists) {
-  var tabsRoot = document.getElementById("homeTeaserTabs");
-  var explainerRoot = document.getElementById("homeTeaserExplainer");
-  var previewRoot = document.getElementById("homeTeaserPreview");
-  if (!tabsRoot || !explainerRoot || !previewRoot) {
-    return;
-  }
-
-  var therapists = sortTherapistsForMerchandising(featuredTherapists || []);
-  var modes = [
-    {
-      id: "trust",
-      label: "Reviewed",
-      title: "Profiles with stronger reviewed details rise first",
-      copy: "This view favors specialists with stronger verification, clearer profile detail, and a more decision-ready first impression.",
-    },
-    {
-      id: "speed",
-      label: "Fastest",
-      title: "Profiles with the quickest-looking next step rise first",
-      copy: "This view leans harder on availability clarity, accepting-new-patient status, and lower-friction outreach routes.",
-    },
-    {
-      id: "specialization",
-      label: "Depth",
-      title: "Profiles with deeper bipolar specialization rise first",
-      copy: "This view gives extra weight to bipolar-specific experience, focus areas, and evidence of deeper specialization.",
-    },
-    {
-      id: "contact",
-      label: "Follow-through",
-      title: "Profiles with clearer contact paths rise first",
-      copy: "This view leans harder on contact readiness, responsiveness cues, and which next step looks easiest to actually use.",
-    },
-  ];
-  var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
-  var activeMode = adaptiveSignals.preferred_home_mode || "trust";
-
-  function getAdaptiveHomeNote(modeId) {
-    if (modeId === "speed") {
-      return "This preview brings easier next steps and lower-friction options to the top.";
-    }
-    if (modeId === "specialization") {
-      return "This preview brings bipolar-specific depth and specialization to the top.";
-    }
-    if (modeId === "contact") {
-      return "This preview brings the clearest contact paths and follow-through potential to the top.";
-    }
-    return "This preview brings stronger reviewed details and decision-readiness to the top.";
-  }
-
-  function render() {
-    tabsRoot.innerHTML = modes
-      .map(function (mode) {
-        return (
-          '<button type="button" class="home-teaser-tab' +
-          (mode.id === activeMode ? " active" : "") +
-          '" data-home-mode="' +
-          escapeHtml(mode.id) +
-          '">' +
-          escapeHtml(mode.label) +
-          "</button>"
-        );
-      })
-      .join("");
-
-    var mode =
-      modes.find(function (item) {
-        return item.id === activeMode;
-      }) || modes[0];
-    var therapist = getBestTherapistBySignal(therapists, activeMode);
-
-    explainerRoot.innerHTML =
-      '<div class="home-teaser-title">' +
-      escapeHtml(mode.title) +
-      '</div><div class="home-teaser-copy">' +
-      escapeHtml(mode.copy) +
-      '</div><div class="home-teaser-note">' +
-      escapeHtml(getAdaptiveHomeNote(mode.id)) +
-      "</div>";
-
-    previewRoot.innerHTML = therapist
-      ? '<div class="home-teaser-preview-label">Example profile</div><div class="home-teaser-preview-name">' +
-        escapeHtml(therapist.name) +
-        '</div><div class="home-teaser-preview-copy">' +
-        escapeHtml(
-          activeMode === "speed"
-            ? therapist.name +
-                " is the kind of profile that can move up when speed matters because the next step looks lower-friction."
-            : activeMode === "specialization"
-              ? therapist.name +
-                " is the kind of profile that can move up when deeper bipolar specialization matters more."
-              : activeMode === "contact"
-                ? therapist.name +
-                  " is the kind of profile that can move up when the contact path looks clearer and more usable."
-                : therapist.name +
-                  " is the kind of profile that can move up when reviewed details are especially strong.",
-        ) +
-        "</div>"
-      : '<div class="home-teaser-preview-label">Example profile</div><div class="home-teaser-preview-copy">As therapist supply grows, this preview will show how different second-pass priorities can change which profiles rise first.</div>';
-
-    tabsRoot.querySelectorAll("[data-home-mode]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        activeMode = button.getAttribute("data-home-mode") || "trust";
-        render();
-      });
-    });
-  }
-
-  render();
 }
 
 function renderIconCardsSection(section) {
@@ -586,48 +391,45 @@ function defaultSectionsFromLegacy(homePage) {
       title:
         homePage && homePage.whyTitle
           ? homePage.whyTitle
-          : "Built to make the first good decision easier",
+          : "A calmer way to find bipolar-informed care",
       description:
         homePage && homePage.whyDescription
           ? homePage.whyDescription
-          : "The goal is not to overwhelm you with profiles. It is to help you narrow the field, understand what has been reviewed, and know what to do next.",
+          : "General directories can leave you guessing. This one is built to make therapist search feel more relevant, more understandable, and easier to act on.",
       cards:
         homePage && Array.isArray(homePage.whyCards) && homePage.whyCards.length
           ? homePage.whyCards
           : [
               {
                 icon: "🎯",
-                title: "Clearer bipolar-specific fit",
+                title: "Specialty-first search",
                 description:
-                  "Profiles are structured around bipolar-specific needs, not just generic therapy categories, so it is easier to spot who may actually fit.",
+                  "Bipolar disorder is the starting point, not a buried filter inside a broad therapist marketplace.",
               },
               {
                 icon: "✅",
-                title: "Reviewed details you can see",
+                title: "Trust signals that feel useful",
                 description:
-                  "See reviewed details, freshness cues, and contact clarity before you decide who to reach out to.",
+                  "Profiles are designed to make expertise, fit, and practical details easier to understand before you reach out.",
               },
               {
                 icon: "🧭",
-                title: "Clearer next steps",
+                title: "Less noise, more relevance",
                 description:
-                  "Get a calmer first-contact path, a backup if it stalls, and less guessing about who to contact first.",
+                  "The goal is not to show the most options. It is to help you narrow toward the right ones faster.",
               },
               {
                 icon: "🤝",
-                title: "Help if you still feel stuck",
+                title: "Built for overwhelmed moments",
                 description:
-                  "If the choice still feels hard, the product is already shaped to support a second set of eyes and a calmer recovery path.",
+                  "The experience is meant to reduce stress and make the next step feel more manageable when the search already feels heavy.",
               },
             ],
     },
     {
       _type: "stepsSection",
       eyebrow: homePage && homePage.stepsEyebrow ? homePage.stepsEyebrow : "For Patients",
-      title:
-        homePage && homePage.stepsTitle
-          ? homePage.stepsTitle
-          : "Getting started should feel simple",
+      title: homePage && homePage.stepsTitle ? homePage.stepsTitle : "How the search gets clearer",
       cards:
         homePage && Array.isArray(homePage.stepsCards) && homePage.stepsCards.length
           ? homePage.stepsCards
@@ -635,23 +437,23 @@ function defaultSectionsFromLegacy(homePage) {
               {
                 icon: "🔍",
                 stepLabel: "Step 1",
-                title: "Start with what matters most",
+                title: "Start with your care type and location",
                 description:
-                  "Choose Los Angeles or California telehealth first, then narrow by practical needs like format, insurance, or medication support.",
+                  "Tell us whether you want therapy, psychiatry, or telehealth support, then add your ZIP code to ground the search.",
               },
               {
                 icon: "👤",
                 stepLabel: "Step 2",
-                title: "Compare a smaller, calmer set of options",
+                title: "See bipolar-relevant therapist options",
                 description:
-                  "Review profiles with clearer reviewed details, fit, and reachability information before deciding who deserves the first outreach.",
+                  "Compare profiles built to highlight specialty relevance, fit, and practical details that matter before first contact.",
               },
               {
                 icon: "📞",
                 stepLabel: "Step 3",
-                title: "Reach out with a clearer next step",
+                title: "Choose your next step with confidence",
                 description:
-                  "Use the suggested contact path, practical details, and backup options so you can act without feeling like you are guessing.",
+                  "Move forward with less guesswork about who may understand bipolar care and where to start outreach.",
               },
             ],
     },
@@ -662,7 +464,7 @@ function defaultSectionsFromLegacy(homePage) {
       title:
         homePage && homePage.testimonialsTitle
           ? homePage.testimonialsTitle
-          : "Making the right connection changes everything",
+          : "What a better search experience should feel like",
       items:
         homePage && Array.isArray(homePage.testimonials) && homePage.testimonials.length
           ? homePage.testimonials
@@ -670,21 +472,21 @@ function defaultSectionsFromLegacy(homePage) {
               {
                 stars: "★★★★★",
                 quote:
-                  '"I needed someone in Los Angeles who actually understood bipolar care, not another generic therapist listing. This was the first time the shortlist felt like it reflected what I was actually looking for."',
+                  '"I did not need hundreds of generic listings. I needed a shorter list of therapists who actually seemed prepared for bipolar care."',
                 author: "Alyssa R.",
                 role: "Los Angeles therapy search",
               },
               {
                 stars: "★★★★★",
                 quote:
-                  '"California telehealth made this feel usable right away. I could tell who looked strongest for medication support before I ever reached out."',
+                  '"This felt clearer right away. I could compare options without wondering if bipolar disorder was just another keyword on the profile."',
                 author: "David P.",
                 role: "California telehealth psychiatry search",
               },
               {
                 stars: "★★★★★",
                 quote:
-                  '"As a partner helping someone else look, the family-support angle made a real difference. It narrowed the list to people who actually seemed ready for this kind of care."',
+                  '"As a partner helping with the search, I needed something calmer and easier to trust. The focused approach made a real difference."',
                 author: "Marina K.",
                 role: "Partner helping with bipolar care search",
               },
@@ -695,11 +497,11 @@ function defaultSectionsFromLegacy(homePage) {
       title:
         homePage && homePage.ctaTitle
           ? homePage.ctaTitle
-          : "Are you a bipolar disorder specialist?",
+          : "Are you a therapist with bipolar-related expertise?",
       description:
         homePage && homePage.ctaDescription
           ? homePage.ctaDescription
-          : "Join a bipolar-specialist platform built around reviewed details, fit quality, and better patient decision-making from first match through outreach.",
+          : "Join a focused directory designed to help people looking for bipolar-informed care find and understand your practice more easily.",
       primaryLabel:
         homePage && homePage.ctaPrimaryLabel ? homePage.ctaPrimaryLabel : "List Your Practice",
       primaryUrl: homePage && homePage.ctaPrimaryUrl ? homePage.ctaPrimaryUrl : "signup.html",
@@ -753,67 +555,10 @@ function renderPageSections(homePage, _featuredTherapists) {
 
 (async function () {
   var content = await fetchHomePageContent();
-  var therapists = content.therapists;
-  var stats = content.stats;
-
-  var statT = document.getElementById("statT");
-  var statS = document.getElementById("statS");
-  var statTH = document.getElementById("statTH");
-  var statAcc = document.getElementById("statAcc");
-  if (statT) statT.textContent = stats.total_therapists || therapists.length || 0;
-  if (statS)
-    statS.textContent =
-      stats.states_covered ||
-      new Set(
-        therapists.map(function (therapist) {
-          return therapist.state;
-        }),
-      ).size;
-  if (statTH)
-    statTH.textContent =
-      stats.telehealth_count ||
-      therapists.filter(function (therapist) {
-        return therapist.accepts_telehealth;
-      }).length;
-  if (statAcc)
-    statAcc.textContent =
-      stats.accepting_count ||
-      therapists.filter(function (therapist) {
-        return therapist.accepting_new_patients;
-      }).length;
 
   applyHomePageCopy(content.homePage);
   applySiteSettings(content.siteSettings);
-  renderHomeMatchingTeaser(content.featuredTherapists || therapists || []);
   renderPageSections(content.homePage, content.featuredTherapists || []);
-
-  var cmsBadge = document.getElementById("cmsBadge");
-  if (cmsBadge) {
-    if (!isInternalMode) {
-      cmsBadge.style.display = "none";
-    } else if (cmsEnabled) {
-      var cmsState = getCmsState();
-      if (cmsState.error) {
-        cmsBadge.innerHTML =
-          'Live CMS mode is on, but the public content query failed. Check your published therapist documents, dataset permissions, or browser console. Manage content in <a href="' +
-          cmsStudioUrl +
-          '" target="_blank" rel="noopener">Sanity Studio</a>.';
-      } else if (!therapists.length) {
-        cmsBadge.innerHTML =
-          'Live CMS mode is on, but there are no published public therapist listings yet. Create and publish active therapist documents in <a href="' +
-          cmsStudioUrl +
-          '" target="_blank" rel="noopener">Sanity Studio</a>.';
-      } else {
-        cmsBadge.innerHTML =
-          'Live CMS mode is on. Manage content in <a href="' +
-          cmsStudioUrl +
-          '" target="_blank" rel="noopener">Sanity Studio</a>.';
-      }
-    } else {
-      cmsBadge.textContent =
-        "CMS fallback mode: this preview is still using the seeded local data until Sanity is connected.";
-    }
-  }
 
   window.handleSearch = function (event) {
     event.preventDefault();

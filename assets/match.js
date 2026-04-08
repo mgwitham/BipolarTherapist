@@ -551,7 +551,7 @@ function syncMatchCareSelectTrigger() {
 
   trigger.textContent = selectedOption
     ? selectedOption.textContent.trim()
-    : "What type of care do you want?";
+    : "What kind of support are you looking for?";
 
   options.forEach(function (option) {
     option.setAttribute("aria-selected", String(option.dataset.value === selectedValue));
@@ -3857,12 +3857,12 @@ function renderResults(entries, profile) {
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     root.className = "match-empty";
     root.innerHTML = hasRefinements
-      ? "No strong match appeared with the current requirements. Try widening care format, insurance, or budget."
+      ? "No strong bipolar-relevant option appeared with the current requirements. Try widening care format, insurance, or budget."
       : requestedZip && zipSuggestions.length
         ? "No exact reviewed profile is live in this ZIP code yet. Try one of the nearest reviewed ZIP codes: " +
           formatZipSuggestionList(zipSuggestions) +
           ", or widen to telehealth."
-        : "No strong match surfaced for this ZIP code yet. Try a nearby ZIP code, telehealth, or a few optional refinements.";
+        : "No strong bipolar-relevant option surfaced for this ZIP code yet. Try a nearby ZIP code, telehealth, or a few optional refinements.";
     outreach.innerHTML = "";
     compare.innerHTML = "";
     adaptiveGuidance.innerHTML = "";
@@ -4012,7 +4012,7 @@ function resetForm() {
   setActionState(false, "Run a match to review your shortlist.");
   document.getElementById("matchResults").className = "match-empty";
   document.getElementById("matchResults").innerHTML =
-    "Start with your ZIP code. We’ll turn it into a calmer shortlist with clearer reasons, trust snapshots, and next steps.";
+    "Start with your ZIP code. We’ll narrow the field toward bipolar-relevant options with clearer reasons, trust snapshots, and next steps.";
   var queue = document.getElementById("matchQueue");
   if (queue) {
     queue.hidden = true;
