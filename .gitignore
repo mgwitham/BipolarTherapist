@@ -7,6 +7,8 @@ studio/dist/
 .env
 studio/.env
 data/import/*.csv
+data/import/generated-*.csv
+data/import/generated-*.md
 !data/import/therapists-template.csv
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv

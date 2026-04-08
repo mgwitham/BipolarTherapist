@@ -13,6 +13,7 @@ import {
   approveTherapistApplication,
   checkReviewApiHealth,
   decideTherapistCandidate,
+  decideTherapistOps,
   fetchTherapistCandidates,
   fetchTherapistPortalRequests,
   getAdminSessionToken,
@@ -7645,6 +7646,51 @@ function getVerificationLaneLabel(value) {
   return "Fresh";
 }
 
+function getCandidateOpsReason(item) {
+  if (item.review_lane === "publish_now") {
+    return "High-readiness candidate with enough trust detail to be close to publish.";
+  }
+  if (item.review_lane === "resolve_duplicates") {
+    return item.matched_therapist_slug || item.matched_application_id
+      ? "Likely duplicate found. Resolve the identity before adding anything new."
+      : "Possible duplicate signals need a human merge/reject decision.";
+  }
+  if (item.review_lane === "needs_confirmation") {
+    return "Promising candidate, but one more confirmation pass is needed before publish.";
+  }
+  if (item.review_status === "published") {
+    return "Already published.";
+  }
+  return "Needs editorial review before the next intake step is clear.";
+}
+
+function getCandidateOpsEvidence(item) {
+  const evidence = [];
+  if (typeof item.readiness_score === "number") {
+    evidence.push("Readiness " + item.readiness_score + "/100");
+  }
+  if (typeof item.dedupe_confidence === "number") {
+    evidence.push("Duplicate confidence " + item.dedupe_confidence + "/100");
+  }
+  if (item.source_type) {
+    evidence.push("Source: " + item.source_type);
+  }
+  return evidence.slice(0, 3).join(" · ");
+}
+
+function getTherapistOpsReason(freshness, item) {
+  if (freshness.needs_reconfirmation_fields.length) {
+    return (
+      "Operational fields need reconfirmation: " +
+      freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 3).join(", ")
+    );
+  }
+  if (item.verificationLane === "needs_verification") {
+    return "This profile does not have a reliable recent operational review yet.";
+  }
+  return freshness.note || "Source-backed details are aging and should be refreshed.";
+}
+
 function bindCandidateDecisionButtons(root) {
   if (!root) {
     return;
@@ -7671,6 +7717,38 @@ function bindCandidateDecisionButtons(root) {
             decision === "publish"
               ? "Could not publish this candidate."
               : "Could not update this candidate.";
+        }
+        button.disabled = false;
+        button.textContent = prior;
+      }
+    });
+  });
+}
+
+function bindTherapistOpsButtons(root) {
+  if (!root) {
+    return;
+  }
+
+  root.querySelectorAll("[data-therapist-ops]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-therapist-ops");
+      const decision = button.getAttribute("data-therapist-next");
+      if (!id || !decision) {
+        return;
+      }
+
+      const prior = button.textContent;
+      button.disabled = true;
+      button.textContent = decision === "mark_reviewed" ? "Saving..." : "Deferring...";
+
+      try {
+        await decideTherapistOps(id, { decision: decision });
+        await loadData();
+      } catch (_error) {
+        const status = root.querySelector('[data-therapist-status-id="' + id + '"]');
+        if (status) {
+          status.textContent = "Could not update this therapist.";
         }
         button.disabled = false;
         button.textContent = prior;
@@ -7750,6 +7828,7 @@ function renderOpsInbox() {
     const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
     const match =
       item.matched_therapist_slug || item.matched_application_id || "No linked duplicate yet";
+    const evidence = getCandidateOpsEvidence(item);
     return (
       '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
       escapeHtml(item.name || "Unnamed candidate") +
@@ -7766,7 +7845,13 @@ function renderOpsInbox() {
       escapeHtml(item.publish_recommendation || "Review") +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Existing match</div><div class="ops-card-kpi-value">' +
       escapeHtml(match) +
-      '</div></div></div><div class="ops-card-actions">' +
+      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
+      escapeHtml(getCandidateOpsReason(item)) +
+      "</div>" +
+      (evidence
+        ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
+        : "") +
+      '<div class="ops-card-actions">' +
       buildCandidateDecisionActions(item) +
       (item.source_url
         ? '<a class="btn-secondary btn-inline" href="' +
@@ -7786,6 +7871,16 @@ function renderOpsInbox() {
       ? "Re-confirm " +
         freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
       : "Refresh source review";
+    const evidence = [
+      freshness.source_review_age_days != null
+        ? "Source age " + freshness.source_review_age_days + "d"
+        : "",
+      freshness.therapist_confirmation_age_days != null
+        ? "Therapist confirmation age " + freshness.therapist_confirmation_age_days + "d"
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     return (
       '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
       escapeHtml(item.name) +
@@ -7810,7 +7905,19 @@ function renderOpsInbox() {
       escapeHtml(freshness.label) +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
       escapeHtml(nextMove) +
-      '</div></div></div><div class="ops-card-actions"><a class="btn-primary" href="therapist.html?slug=' +
+      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
+      escapeHtml(getTherapistOpsReason(freshness, item)) +
+      "</div>" +
+      (evidence
+        ? '<div class="subtle" style="margin-top:0.35rem">' + escapeHtml(evidence) + "</div>"
+        : "") +
+      '<div class="ops-card-actions"><button class="btn-primary" data-therapist-ops="' +
+      escapeHtml(item.id || item._id || "") +
+      '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
+      escapeHtml(item.id || item._id || "") +
+      '" data-therapist-next="snooze_7d">Defer 7 days</button><button class="btn-secondary" data-therapist-ops="' +
+      escapeHtml(item.id || item._id || "") +
+      '" data-therapist-next="snooze_30d">Defer 30 days</button><a class="btn-secondary" href="therapist.html?slug=' +
       encodeURIComponent(item.slug) +
       '">Open profile</a>' +
       (item.sourceUrl
@@ -7818,7 +7925,9 @@ function renderOpsInbox() {
           escapeHtml(item.sourceUrl) +
           '" target="_blank" rel="noopener">Open source</a>'
         : "") +
-      "</div></article>"
+      '</div><div class="review-coach-status" data-therapist-status-id="' +
+      escapeHtml(item.id || item._id || "") +
+      '"></div></article>'
     );
   }
 
@@ -7884,6 +7993,7 @@ function renderOpsInbox() {
     "</div>";
 
   bindCandidateDecisionButtons(root);
+  bindTherapistOpsButtons(root);
 }
 
 function renderCandidateQueue() {

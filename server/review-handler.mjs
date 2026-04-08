@@ -1333,6 +1333,26 @@ function buildCandidateReviewEvent(candidate, updates) {
   };
 }
 
+function buildTherapistOpsEvent(therapist, updates) {
+  const now = new Date().toISOString();
+  return {
+    _id: `therapist-publish-event-${therapist._id}-${Date.now()}`,
+    _type: "therapistPublishEvent",
+    eventType: updates.eventType,
+    providerId: therapist.providerId || buildProviderId(therapist),
+    candidateId: "",
+    candidateDocumentId: "",
+    applicationId: "",
+    therapistId: therapist._id,
+    decision: updates.decision || "",
+    reviewStatus: "",
+    publishRecommendation: "",
+    notes: updates.notes || "",
+    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
+    createdAt: now,
+  };
+}
+
 function mergeUniqueUrls(primary, supporting, extra) {
   const urls = []
     .concat(primary ? [primary] : [])
@@ -2367,6 +2387,86 @@ export function createReviewApiHandler(configOverride) {
           origin,
           config,
         );
+        return;
+      }
+
+      const therapistOpsMatch = routePath.match(/^\/therapists\/([^/]+)\/ops$/);
+      if (request.method === "POST" && therapistOpsMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const therapistId = decodeURIComponent(therapistOpsMatch[1]);
+        const therapist = await client.getDocument(therapistId);
+        if (!therapist || therapist._type !== "therapist") {
+          sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const decision = String(body.decision || "").trim();
+        const notes = String(body.notes || "").trim();
+        const allowedDecisions = new Set(["mark_reviewed", "snooze_7d", "snooze_30d"]);
+
+        if (!allowedDecisions.has(decision)) {
+          sendJson(response, 400, { error: "Unsupported therapist ops decision." }, origin, config);
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        let patchFields;
+        let eventType;
+        let changedFields;
+
+        if (decision === "mark_reviewed") {
+          const verificationMeta = computeTherapistVerificationMeta({
+            ...therapist,
+            sourceReviewedAt: nowIso,
+          });
+          patchFields = {
+            sourceReviewedAt: nowIso,
+            lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
+            nextReviewDueAt: verificationMeta.nextReviewDueAt,
+            verificationPriority: verificationMeta.verificationPriority,
+            verificationLane: verificationMeta.verificationLane,
+            dataCompletenessScore: verificationMeta.dataCompletenessScore,
+          };
+          eventType = "therapist_review_completed";
+          changedFields = [
+            "sourceReviewedAt",
+            "lastOperationalReviewAt",
+            "nextReviewDueAt",
+            "verificationPriority",
+            "verificationLane",
+            "dataCompletenessScore",
+          ];
+        } else {
+          const snoozeDays = decision === "snooze_30d" ? 30 : 7;
+          patchFields = {
+            nextReviewDueAt: addDays(nowIso, snoozeDays),
+            verificationLane: "refresh_soon",
+          };
+          eventType = "therapist_review_deferred";
+          changedFields = ["nextReviewDueAt", "verificationLane"];
+        }
+
+        const transaction = client.transaction();
+        transaction.patch(therapistId, function (patch) {
+          return patch.set(patchFields);
+        });
+        transaction.create(
+          buildTherapistOpsEvent(therapist, {
+            eventType,
+            decision,
+            notes,
+            changedFields,
+          }),
+        );
+
+        await transaction.commit({ visibility: "sync" });
+        const updatedTherapist = await client.getDocument(therapistId);
+        sendJson(response, 200, { ok: true, therapist: updatedTherapist }, origin, config);
         return;
       }
 

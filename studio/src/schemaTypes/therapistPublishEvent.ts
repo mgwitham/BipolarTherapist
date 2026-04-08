@@ -23,6 +23,8 @@ export const therapistPublishEventType = defineType({
           { title: "Candidate archived", value: "candidate_archived" },
           { title: "Candidate marked duplicate", value: "candidate_marked_duplicate" },
           { title: "Therapist refresh scheduled", value: "therapist_refresh_scheduled" },
+          { title: "Therapist review completed", value: "therapist_review_completed" },
+          { title: "Therapist review deferred", value: "therapist_review_deferred" },
         ],
       },
       validation: (rule) => rule.required(),

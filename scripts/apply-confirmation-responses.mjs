@@ -26,6 +26,14 @@ const FIELD_TO_REVIEW_COLUMN = {
   telehealthStates: "telehealthStatesReviewState",
 };
 
+const REQUIRED_OPS_HEADERS = [
+  "lastOperationalReviewAt",
+  "nextReviewDueAt",
+  "verificationPriority",
+  "verificationLane",
+  "dataCompletenessScore",
+];
+
 function parseArgs(argv) {
   return argv.reduce(
     function (accumulator, item) {
@@ -160,6 +168,106 @@ function normalizeFieldValue(field, value) {
   return trimmed;
 }
 
+function addDays(isoString, days) {
+  const base = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCDate(fallback.getUTCDate() + days);
+    return fallback.toISOString();
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString();
+}
+
+function computeTherapistCompletenessScore(row) {
+  const checks = [
+    Boolean(row.name),
+    Boolean(row.credentials),
+    Boolean(row.city && row.state),
+    Boolean(row.email || row.phone || row.website || row.bookingUrl),
+    Boolean(row.careApproach || row.bio),
+    splitPipeList(row.specialties).length > 0,
+    splitPipeList(row.insuranceAccepted).length > 0,
+    splitPipeList(row.languages).length > 0,
+    Boolean(row.sourceUrl || row.website),
+    Boolean(row.sourceReviewedAt || row.therapistReportedConfirmedAt),
+  ];
+  const passed = checks.filter(Boolean).length;
+  return Math.round((passed / checks.length) * 100);
+}
+
+function computeTherapistVerificationMeta(row) {
+  const now = new Date();
+  const sourceReviewedAt = row.sourceReviewedAt ? new Date(row.sourceReviewedAt) : null;
+  const therapistConfirmedAt = row.therapistReportedConfirmedAt
+    ? new Date(row.therapistReportedConfirmedAt)
+    : null;
+  const validDates = [sourceReviewedAt, therapistConfirmedAt].filter((value) => {
+    return value instanceof Date && !Number.isNaN(value.getTime());
+  });
+  const lastOperationalReviewAt = validDates.length
+    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
+    : "";
+  const needsReconfirmationCount = [
+    row.estimatedWaitTimeReviewState,
+    row.insuranceAcceptedReviewState,
+    row.telehealthStatesReviewState,
+    row.bipolarYearsExperienceReviewState,
+  ].filter((value) => String(value || "").trim() === "needs_reconfirmation").length;
+  const sourceAgeDays =
+    sourceReviewedAt && !Number.isNaN(sourceReviewedAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - sourceReviewedAt.getTime()) / 86400000))
+      : null;
+
+  if (!lastOperationalReviewAt) {
+    return {
+      lastOperationalReviewAt: "",
+      nextReviewDueAt: now.toISOString(),
+      verificationPriority: 95,
+      verificationLane: "needs_verification",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+
+  if (needsReconfirmationCount) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 7),
+      verificationPriority: Math.min(98, 82 + needsReconfirmationCount * 4),
+      verificationLane: "needs_reconfirmation",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+
+  if (sourceAgeDays !== null && sourceAgeDays >= 120) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+      verificationPriority: 84,
+      verificationLane: "refresh_now",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+
+  if (sourceAgeDays !== null && sourceAgeDays >= 75) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 105),
+      verificationPriority: 61,
+      verificationLane: "refresh_soon",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+
+  return {
+    lastOperationalReviewAt,
+    nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+    verificationPriority: 28,
+    verificationLane: "fresh",
+    dataCompletenessScore: computeTherapistCompletenessScore(row),
+  };
+}
+
 function applyResponses(therapistRows, responseRows) {
   const therapistBySlug = new Map();
   therapistRows.forEach((row) => {
@@ -211,6 +319,13 @@ function applyResponses(therapistRows, responseRows) {
       therapist.therapistReportedConfirmedAt ||
       new Date().toISOString().slice(0, 10);
 
+    const verificationMeta = computeTherapistVerificationMeta(therapist);
+    therapist.lastOperationalReviewAt = verificationMeta.lastOperationalReviewAt;
+    therapist.nextReviewDueAt = verificationMeta.nextReviewDueAt;
+    therapist.verificationPriority = String(verificationMeta.verificationPriority);
+    therapist.verificationLane = verificationMeta.verificationLane;
+    therapist.dataCompletenessScore = String(verificationMeta.dataCompletenessScore);
+
     applied.push({
       slug,
       fields: updatedFields,
@@ -236,6 +351,14 @@ function main() {
 
   const therapistData = mapRowsToObjects(parseCsv(therapistCsv));
   const responseData = mapRowsToObjects(parseCsv(responseCsv));
+  REQUIRED_OPS_HEADERS.forEach((header) => {
+    if (!therapistData.headers.includes(header)) {
+      therapistData.headers.push(header);
+      therapistData.items.forEach((item) => {
+        item[header] = item[header] || "";
+      });
+    }
+  });
 
   const applied = applyResponses(therapistData.items, responseData.items);
 
