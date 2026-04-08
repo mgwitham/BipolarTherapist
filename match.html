@@ -820,81 +820,111 @@
         box-shadow: 0 12px 28px rgba(14, 77, 95, 0.05);
       }
       .match-support-panel-static {
-        padding: 1rem 1.05rem;
+        padding: 0.8rem 0.95rem;
         border-bottom: 1px solid var(--border);
         background: #f8fbfc;
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
-        align-items: start;
+        gap: 0.75rem;
+        align-items: center;
         flex-wrap: wrap;
       }
       .match-support-panel-title {
         margin: 0 0 0.2rem;
-        font-size: 0.98rem;
+        font-size: 0.94rem;
         font-weight: 800;
         color: var(--navy);
       }
       .match-support-panel-copy {
         margin: 0;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         color: var(--muted);
-        line-height: 1.45;
+        line-height: 1.35;
       }
       .match-support-panel-body {
-        padding: 1rem 1.05rem;
+        padding: 0.9rem 0.95rem;
       }
       .outreach-carousel-meta {
         display: flex;
         align-items: center;
-        gap: 0.7rem;
+        gap: 0.55rem;
         flex-wrap: wrap;
         justify-content: flex-end;
       }
       .outreach-carousel-count {
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         font-weight: 700;
         color: var(--muted);
       }
       .outreach-carousel-nav {
         display: flex;
-        gap: 0.55rem;
+        gap: 0.45rem;
         flex-wrap: wrap;
+      }
+      .outreach-carousel-nav .btn-secondary {
+        width: auto;
+        min-width: 88px;
+        padding: 0.5rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
       }
       .outreach-carousel-frame {
         position: relative;
       }
+      .outreach-carousel-card {
+        display: grid;
+        gap: 0.8rem;
+      }
       .outreach-carousel-card[hidden] {
         display: none;
       }
+      .outreach-compact-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+        gap: 0.7rem;
+      }
       .outreach-card-route {
-        margin-top: 0.8rem;
-        padding: 0.85rem 0.9rem;
+        margin-top: 0;
+        padding: 0.72rem 0.8rem;
         border: 1px solid var(--border);
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.92);
       }
+      .outreach-card-script {
+        background: linear-gradient(180deg, #fcfeff 0%, #f7fbfc 100%);
+      }
       .outreach-note-label {
-        font-size: 0.76rem;
+        font-size: 0.72rem;
         font-weight: 700;
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
       .outreach-note-body {
-        margin-top: 0.35rem;
-        font-size: 0.88rem;
-        line-height: 1.6;
+        margin-top: 0.28rem;
+        font-size: 0.84rem;
+        line-height: 1.5;
         color: var(--slate);
+      }
+      .outreach-note-body-compact {
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .outreach-script-preview {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
       .outreach-card-actions {
         display: flex;
-        gap: 0.65rem;
+        gap: 0.55rem;
         flex-wrap: wrap;
       }
       .outreach-card-actions .btn-primary,
       .outreach-card-actions .btn-secondary {
-        width: 100%;
+        width: auto;
+        min-width: 132px;
         justify-content: center;
       }
       .match-card {
@@ -1670,16 +1700,16 @@
       }
       .outreach-card-top h4 {
         margin: 0;
-        font-size: 0.92rem;
+        font-size: 0.9rem;
       }
       .outreach-card-top p {
-        margin: 0.2rem 0 0;
-        font-size: 0.8rem;
+        margin: 0.16rem 0 0;
+        font-size: 0.76rem;
         color: var(--muted);
       }
       .outreach-note {
-        margin-top: 0.5rem;
-        font-size: 0.82rem;
+        margin-top: 0.35rem;
+        font-size: 0.78rem;
         color: var(--slate);
       }
       .outreach-note-strong {
@@ -1949,6 +1979,9 @@
         .outreach-card-actions {
           width: 100%;
         }
+        .outreach-compact-grid {
+          grid-template-columns: 1fr;
+        }
         .outreach-card-actions .btn-primary,
         .outreach-card-actions .btn-secondary {
           width: 100%;
@@ -2140,9 +2173,8 @@
                     <div class="match-group" data-intake-field="care_format">
                       <label for="care_format">Care Format</label>
                       <select id="care_format" name="care_format" required>
-                        <option>Either</option>
-                        <option>Telehealth</option>
                         <option>In-Person</option>
+                        <option>Telehealth</option>
                       </select>
                     </div>
 
@@ -2268,16 +2300,6 @@
                       </div>
                     </div>
 
-                    <div class="match-group" data-intake-field="urgency">
-                      <label for="urgency">Urgency</label>
-                      <select id="urgency" name="urgency" required>
-                        <option>Flexible</option>
-                        <option>Within a month</option>
-                        <option>Within 2 weeks</option>
-                        <option>ASAP</option>
-                      </select>
-                    </div>
-
                     <div class="match-group" data-intake-field="population_fit">
                       <div class="match-section-label">Population Fit</div>
                       <div class="match-options">
@@ -2316,6 +2338,7 @@
                       </div>
                     </div>
                   </div>
+                  <input type="hidden" id="urgency" name="urgency" value="ASAP" />
                   <div class="match-refinement-actions">
                     <button type="submit" class="btn-primary">Find</button>
                     <button type="button" class="btn-secondary" id="resetMatch">Reset</button>

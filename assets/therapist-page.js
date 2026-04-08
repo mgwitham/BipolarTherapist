@@ -1,4 +1,4 @@
-import { fetchPublicTherapistBySlug } from "./cms.js";
+import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import {
   getDataFreshnessSummary,
   getEditoriallyVerifiedOperationalCount,
@@ -188,6 +188,28 @@ function updateShortlistAction(slugValue) {
   }
 }
 
+async function resolveTherapistForProfile(slugValue) {
+  var exact = await fetchPublicTherapistBySlug(slugValue);
+  if (exact) {
+    return exact;
+  }
+
+  var normalizedSlug = String(slugValue || "")
+    .trim()
+    .toLowerCase();
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  var therapists = await fetchPublicTherapists();
+  return (
+    therapists.find(function (item) {
+      var itemSlug = String((item && item.slug) || "").toLowerCase();
+      return itemSlug === normalizedSlug || itemSlug.indexOf(normalizedSlug + "-") === 0;
+    }) || null
+  );
+}
+
 (async function init() {
   if (!slug) {
     document.getElementById("profileWrap").innerHTML =
@@ -195,7 +217,7 @@ function updateShortlistAction(slugValue) {
     return;
   }
 
-  var therapist = await fetchPublicTherapistBySlug(slug);
+  var therapist = await resolveTherapistForProfile(slug);
   if (!therapist) {
     document.getElementById("profileWrap").innerHTML =
       '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active or the link may be incorrect.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
@@ -487,6 +509,47 @@ function renderProfile(t) {
   var bestNextStepCopy =
     firstStepExpectation ||
     "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
+  var primaryButton = buildPreferredContactButton();
+
+  var secondaryButtons =
+    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton">Save to shortlist</button>';
+  if (t.phone && t.preferred_contact_method !== "phone") {
+    secondaryButtons +=
+      '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
+  }
+  if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
+    secondaryButtons +=
+      '<a href="mailto:' + escapeHtml(t.email) + '" class="btn-website">Email</a>';
+  }
+  if (t.website && t.preferred_contact_method !== "website") {
+    secondaryButtons +=
+      '<a href="' +
+      escapeHtml(t.website) +
+      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
+  }
+  if (t.booking_url && t.preferred_contact_method !== "booking") {
+    secondaryButtons +=
+      '<a href="' +
+      escapeHtml(t.booking_url) +
+      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
+  }
+  secondaryButtons +=
+    '<a href="portal.html?slug=' +
+    encodeURIComponent(t.slug) +
+    '" class="btn-website">Claim or manage profile</a>';
+
+  contactBtns =
+    '<div class="profile-actions-header"><div class="profile-actions-kicker">Best next step</div><div class="profile-actions-title">' +
+    escapeHtml(primaryContactLabel || contactRouteLabel) +
+    "</div></div>" +
+    '<div class="profile-primary-action">' +
+    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    '<div class="profile-primary-caption">' +
+    escapeHtml(bestNextStepCopy) +
+    "</div></div>" +
+    '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
+    secondaryButtons +
+    "</div>";
 
   var html =
     '<div class="profile-header">' +
@@ -525,9 +588,8 @@ function renderProfile(t) {
     "</div><p>" +
     escapeHtml(bestNextStepCopy) +
     "</p></div></div></div>" +
-    '<div class="profile-actions"><div class="profile-cta-stack">' +
-    (contactBtns || '<a href="directory.html" class="btn-website">Back to directory</a>') +
-    "</div>" +
+    '<div class="profile-actions">' +
+    contactBtns +
     (contactGuidance
       ? '<div class="action-panel-note">' + escapeHtml(contactGuidance) + "</div>"
       : "") +
