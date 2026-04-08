@@ -1,0 +1,55 @@
+name: Ingestion Ops Daily
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-ingestion-ops:
+    runs-on: ubuntu-latest
+    env:
+      SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
+      SANITY_API_VERSION: ${{ secrets.SANITY_API_VERSION }}
+      SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ingestion automation
+        run: npm run cms:run:ingestion-automation
+
+      - name: Upload ingestion artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ingestion-ops-artifacts
+          path: |
+            data/import/generated-ingestion-automation-status.json
+            data/import/generated-ingestion-automation-status.md
+            data/import/generated-source-health-checks.csv
+            data/import/generated-source-health-checks.md
+            data/import/generated-operational-drift-checks.csv
+            data/import/generated-operational-drift-checks.md
+            data/import/generated-source-domain-health-report.csv
+            data/import/generated-source-domain-health-report.md
+            data/import/generated-sourcing-recommendations.csv
+            data/import/generated-sourcing-recommendations.md
+            data/import/generated-coverage-source-seeds.csv
+            data/import/generated-ingestion-ops-queue.csv
+            data/import/generated-ingestion-ops-queue.md
+            data/import/generated-reverification-batch.csv
+            data/import/generated-reverification-batch.md
+            data/import/generated-candidate-review-queue.csv
+            data/import/generated-candidate-review-queue.md
