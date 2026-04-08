@@ -156,6 +156,73 @@ function showValidationError(msg, fieldName, shouldOpenFullProfile) {
   revealField(fieldName);
 }
 
+function getSignupFocusField() {
+  var params = new URLSearchParams(window.location.search);
+  return String(params.get("focus") || "").trim();
+}
+
+function getSignupFocusLabel(fieldName) {
+  if (fieldName === "bio") return "your professional bio";
+  if (fieldName === "care_approach") return "how you help bipolar clients";
+  if (fieldName === "specialties") return "your specialties";
+  if (fieldName === "treatment_modalities") return "your treatment modalities";
+  if (fieldName === "contact_guidance") return "your contact guidance";
+  if (fieldName === "first_step_expectation") return "what happens after outreach";
+  if (fieldName === "preferred_contact_label") return "your primary contact button";
+  if (fieldName === "estimated_wait_time") return "your wait-time details";
+  if (fieldName === "telehealth_states") return "your telehealth states";
+  return "your profile details";
+}
+
+function applySignupFocusField() {
+  var fieldName = getSignupFocusField();
+  if (!fieldName) {
+    return;
+  }
+
+  var field = document.querySelector('[name="' + fieldName + '"]');
+  if (!field) {
+    return;
+  }
+
+  var stepTwoFieldNames = [
+    "city",
+    "state",
+    "practice_name",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "contact_guidance",
+    "first_step_expectation",
+    "booking_url",
+    "bio",
+    "care_approach",
+    "specialties",
+    "treatment_modalities",
+    "estimated_wait_time",
+    "telehealth_states",
+    "insurance_accepted",
+    "session_fee_min",
+    "session_fee_max",
+    "accepts_telehealth",
+    "accepts_in_person",
+  ];
+
+  if (stepTwoFieldNames.includes(fieldName)) {
+    openFullProfileDisclosure();
+  }
+
+  var formError = document.getElementById("formError");
+  if (formError) {
+    formError.textContent =
+      "Resume here: finish " + getSignupFocusLabel(fieldName) + " to keep your profile moving.";
+    formError.style.display = "block";
+  }
+
+  window.setTimeout(function () {
+    revealField(fieldName);
+  }, 120);
+}
+
 function showSuccess(application, source) {
   var intent =
     application && application.submission_intent ? application.submission_intent : "full_profile";
@@ -990,6 +1057,7 @@ if (fullProfileDisclosure) {
   fullProfileDisclosure.addEventListener("toggle", syncFullProfileDisclosure);
   syncFullProfileDisclosure();
 }
+applySignupFocusField();
 if (
   document.getElementById("applyForm") &&
   document.getElementById("applyForm").elements.therapist_reported_confirmed_at &&
