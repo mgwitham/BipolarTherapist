@@ -9,7 +9,7 @@ export const homePageType = defineType({
       name: "heroBadge",
       title: "Hero badge",
       type: "string",
-      initialValue: "🎗️ Specialized Directory",
+      initialValue: "Focused therapist directory",
     }),
     defineField({
       name: "heroTitle",
@@ -34,7 +34,7 @@ export const homePageType = defineType({
       name: "searchPlaceholder",
       title: "Search field placeholder",
       type: "string",
-      initialValue: "Bipolar I, IPSRT, telehealth...",
+      initialValue: "Therapy, psychiatry, telehealth...",
     }),
     defineField({
       name: "locationLabel",
@@ -46,7 +46,7 @@ export const homePageType = defineType({
       name: "locationPlaceholder",
       title: "Location field placeholder",
       type: "string",
-      initialValue: "City or State",
+      initialValue: "ZIP code",
     }),
     defineField({
       name: "searchButtonLabel",

@@ -143,17 +143,17 @@ async function main() {
                 if (card?.title === "Trust You Can See") {
                   return {
                     ...card,
-                    title: "Trust you can see",
+                    title: "Trust signals that feel useful",
                     description:
-                      "See reviewed details, freshness cues, and contact clarity before you decide who to reach out to.",
+                      "Profiles are designed to make expertise, fit, and practical details easier to understand before you reach out.",
                   };
                 }
                 if (card?.title === "Guided Outreach Plan") {
                   return {
                     ...card,
-                    title: "Clearer next steps",
+                    title: "Less noise, more relevance",
                     description:
-                      "Get a calmer first-contact path, a backup if it stalls, and less guessing about who to contact first.",
+                      "The goal is not to show the most options. It is to help you narrow toward the right ones faster.",
                   };
                 }
                 return card;
@@ -180,18 +180,18 @@ async function main() {
     : undefined;
 
   const patch = {
-    heroTitle: "Find bipolar care near you",
+    heroTitle: "Find therapists who understand bipolar disorder",
     heroDescription:
-      "Find reviewed bipolar specialists with clearer profile details, easier comparison, and a calmer path to care.",
-    locationLabel: "ZIP code",
-    locationPlaceholder: "Enter zip code",
+      "A focused directory built to make finding bipolar-informed care feel clearer, more trustworthy, and less overwhelming.",
+    locationLabel: "Enter your ZIP code",
+    locationPlaceholder: "Enter ZIP code",
     searchButtonLabel: "Find",
     featuredTitle: "",
     featuredDescription: "",
     featuredTherapists: featuredTherapistRefs,
-    whyTitle: "Built to make the first good decision easier",
+    whyTitle: "A calmer way to find bipolar-informed care",
     whyDescription:
-      "The goal is not to overwhelm you with profiles. It is to help you narrow the field, trust what you are seeing, and know what to do next.",
+      "General directories can leave you guessing. This one is built to make therapist search feel more relevant, more understandable, and easier to act on.",
     sections: updatedSections,
   };
 

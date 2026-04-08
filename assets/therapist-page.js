@@ -176,7 +176,7 @@ function updateShortlistAction(slugValue) {
   button.classList.toggle("is-saved", shortlisted);
   status.textContent = shortlisted
     ? "This therapist is saved for comparison in your shortlist."
-    : "Save up to 3 therapists to compare later in the match flow.";
+    : "Save up to 3 therapists to compare later as you narrow toward the right fit.";
 
   var priorityWrap = document.getElementById("profileShortlistPriorityWrap");
   var prioritySelect = document.getElementById("profileShortlistPriority");
@@ -213,14 +213,14 @@ async function resolveTherapistForProfile(slugValue) {
 (async function init() {
   if (!slug) {
     document.getElementById("profileWrap").innerHTML =
-      '<div class="not-found"><h2>No therapist specified</h2><p>Please return to the directory and select a therapist.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+      '<div class="not-found"><h2>No therapist specified</h2><p>Please return to the directory and choose a bipolar-informed therapist profile to review.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
     return;
   }
 
   var therapist = await resolveTherapistForProfile(slug);
   if (!therapist) {
     document.getElementById("profileWrap").innerHTML =
-      '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active or the link may be incorrect.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+      '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active, or the link may be incorrect. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
     return;
   }
 
@@ -271,7 +271,7 @@ function renderProfile(t) {
     ? "This clinician may be worth shortlisting because " +
       fitReasons.slice(0, 3).join(", ") +
       ". You should still confirm availability, insurance, and personal fit directly."
-    : "Use this profile to compare reviewed details, access, and bipolar-specific fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
+    : "Use this profile to compare reviewed details, access, and bipolar-related fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
   var likelyFitAudience = [];
   if (t.medication_management) {
     likelyFitAudience.push("people who may need psychiatry or medication support");
@@ -555,7 +555,7 @@ function renderProfile(t) {
     '<div class="profile-header">' +
     '<div class="profile-hero-main"><div class="profile-identity"><div class="avatar">' +
     avatar +
-    '</div><div class="profile-main"><div class="eyebrow">Bipolar specialist profile</div>' +
+    '</div><div class="profile-main"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
     "<h1>" +
     escapeHtml(t.name) +
     "</h1>" +
@@ -581,7 +581,7 @@ function renderProfile(t) {
     }).join("") +
     '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="Add a quick reminder..." /></div>' +
     "</div></div>" +
-    '<div class="hero-summary-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this may fit</div><p>' +
+    '<div class="hero-summary-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this may be worth considering</div><p>' +
     escapeHtml(fitSummaryCopy) +
     '</p></div><div class="hero-summary-card"><div class="hero-summary-label">Best next step</div><div class="hero-next-step">' +
     escapeHtml(primaryContactLabel || contactRouteLabel) +
@@ -597,7 +597,7 @@ function renderProfile(t) {
     "</div>" +
     '<div class="profile-body">' +
     "<div>" +
-    '<div class="profile-section"><h2>About this specialist</h2><div class="bio-text">' +
+    '<div class="profile-section"><h2>About this therapist</h2><div class="bio-text">' +
     escapeHtml(t.bio || "No bio provided.") +
     "</div>" +
     (t.care_approach

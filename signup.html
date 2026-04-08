@@ -144,6 +144,36 @@
         font-weight: 700;
         margin-bottom: 1.25rem;
       }
+      .offer-strip {
+        max-width: 960px;
+        margin: -1.35rem auto 0;
+        padding: 0 1.5rem;
+      }
+      .offer-card {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.08);
+      }
+      .offer-block h3 {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .offer-block p {
+        font-size: 0.85rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .offer-block strong {
+        color: var(--navy);
+      }
       .wrap {
         max-width: 960px;
         margin: 2rem auto;
@@ -231,6 +261,21 @@
         margin-bottom: 0.35rem;
       }
       .revision-notice p {
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .claim-note {
+        margin: 1.25rem 1.75rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
+      }
+      .claim-note h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+      }
+      .claim-note p {
         font-size: 0.84rem;
         color: var(--slate);
       }
@@ -366,6 +411,72 @@
         border-color: var(--teal);
         background: var(--teal-faint);
       }
+      .funnel-stage {
+        margin: 1.25rem 1.75rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+      }
+      .funnel-stage + .funnel-stage {
+        margin-top: 0.9rem;
+      }
+      .funnel-stage-kicker {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--teal-dark);
+        margin-bottom: 0.25rem;
+      }
+      .funnel-stage h3 {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+      }
+      .funnel-stage p {
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .funnel-disclosure {
+        margin: 1rem 1.75rem 0;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .funnel-disclosure summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 1rem 1.1rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+      }
+      .funnel-disclosure summary::-webkit-details-marker {
+        display: none;
+      }
+      .funnel-disclosure-copy strong {
+        display: block;
+        font-size: 0.96rem;
+        color: var(--navy);
+      }
+      .funnel-disclosure-copy span {
+        display: block;
+        margin-top: 0.18rem;
+        font-size: 0.82rem;
+        color: var(--slate);
+      }
+      .funnel-disclosure-toggle {
+        color: var(--teal);
+        font-size: 0.82rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .funnel-disclosure-body {
+        border-top: 1px solid var(--bg);
+      }
       .form-submit {
         padding: 1.5rem 1.75rem;
         background: var(--bg);
@@ -456,6 +567,56 @@
         font-weight: 700;
         color: var(--navy);
         margin-bottom: 0.9rem;
+      }
+      .plan-grid {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .plan-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem;
+        background: #fff;
+      }
+      .plan-card.featured {
+        border-color: rgba(26, 122, 143, 0.3);
+        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
+      }
+      .plan-kicker {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .plan-card h4 {
+        font-size: 1rem;
+        margin-top: 0.2rem;
+      }
+      .plan-price {
+        margin-top: 0.2rem;
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .plan-price span {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .plan-copy {
+        margin-top: 0.4rem;
+        font-size: 0.82rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .plan-list {
+        margin-top: 0.75rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .plan-list .feature-item {
+        font-size: 0.82rem;
       }
       .price-display {
         display: flex;
@@ -612,6 +773,13 @@
         text-decoration: none;
       }
       @media (max-width: 720px) {
+        .offer-card {
+          grid-template-columns: 1fr;
+        }
+        .funnel-disclosure summary {
+          flex-direction: column;
+          align-items: flex-start;
+        }
         .wrap {
           grid-template-columns: 1fr;
         }
@@ -646,18 +814,45 @@
     </nav>
 
     <div class="signup-hero">
-      <div class="pricing-badge">💼 Match-Ready Professional Listing</div>
-      <h1>Build a bipolar-specialist profile people can trust and act on</h1>
+      <div class="pricing-badge">Claim your profile free. Upgrade when you want growth tools.</div>
+      <h1>Claim your bipolar-specialist profile, then upgrade when you want more visibility</h1>
       <p>
-        Join a bipolar-focused platform built around trust, fit quality, and smoother outreach. The
-        strongest profiles help patients understand why you may fit and what happens when they reach
-        out.
+        Start by taking ownership of your profile and confirming your details. Paid plans are for
+        stronger visibility, clearer trust signals, and better-fit patient inquiries.
       </p>
+    </div>
+
+    <div class="offer-strip">
+      <div class="offer-card">
+        <div class="offer-block">
+          <h3>Free Claim</h3>
+          <p>
+            <strong>Own your profile and make it accurate.</strong> Confirm your identity, fix
+            details, and show patients the basics they need to trust what they are seeing.
+          </p>
+        </div>
+        <div class="offer-block">
+          <h3>Paid Upgrade</h3>
+          <p>
+            <strong>Turn your profile into a patient-acquisition asset.</strong> Unlock better
+            visibility, richer trust signals, and tools that help the right bipolar-care clients
+            contact you first.
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="wrap">
       <div class="form-card" id="formCard">
         <form id="applyForm" onsubmit="handleSubmit(event)" novalidate>
+          <div class="claim-note">
+            <h3>Claim first. Pay for growth, not accuracy.</h3>
+            <p>
+              We do not charge therapists to correct factual details. Paid plans are for enhanced
+              presentation, stronger trust and visibility features, and better conversion from
+              profile views to qualified inquiries.
+            </p>
+          </div>
           <div class="revision-notice" id="revisionNotice">
             <h3 id="revisionTitle">Revision requested</h3>
             <p id="revisionMessage">
@@ -676,6 +871,14 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="funnel-stage">
+            <div class="funnel-stage-kicker">Step 1</div>
+            <h3>Claim your profile basics</h3>
+            <p>
+              Start with the essentials needed to verify ownership: identity, licensure, core
+              contact details, and a few basics that make the profile trustworthy.
+            </p>
           </div>
           <div class="form-section">
             <h2>🧠 Match Readiness</h2>
@@ -801,548 +1004,593 @@
             </div>
           </div>
 
-          <div class="form-section">
-            <h2>🏥 Practice Details</h2>
-            <div class="form-grid">
-              <div class="field full">
-                <label>Practice Name</label
-                ><input
-                  type="text"
-                  name="practice_name"
-                  placeholder="e.g. Serenity Psychiatric Associates"
-                />
+          <details class="funnel-disclosure" open>
+            <summary>
+              <div class="funnel-disclosure-copy">
+                <strong>Step 2: Complete your full profile</strong>
+                <span>
+                  Add the richer trust, fit, pricing, and care details that make your listing more
+                  useful in matching and more compelling to the right clients.
+                </span>
               </div>
-              <div class="field">
-                <label>City *</label
-                ><input type="text" name="city" placeholder="e.g. San Francisco" required />
-              </div>
-              <div class="field">
-                <label>State *</label>
-                <select name="state" required>
-                  <option value="">Select State</option>
-                  <option>AL</option>
-                  <option>AK</option>
-                  <option>AZ</option>
-                  <option>AR</option>
-                  <option>CA</option>
-                  <option>CO</option>
-                  <option>CT</option>
-                  <option>DE</option>
-                  <option>FL</option>
-                  <option>GA</option>
-                  <option>HI</option>
-                  <option>ID</option>
-                  <option>IL</option>
-                  <option>IN</option>
-                  <option>IA</option>
-                  <option>KS</option>
-                  <option>KY</option>
-                  <option>LA</option>
-                  <option>ME</option>
-                  <option>MD</option>
-                  <option>MA</option>
-                  <option>MI</option>
-                  <option>MN</option>
-                  <option>MS</option>
-                  <option>MO</option>
-                  <option>MT</option>
-                  <option>NE</option>
-                  <option>NV</option>
-                  <option>NH</option>
-                  <option>NJ</option>
-                  <option>NM</option>
-                  <option>NY</option>
-                  <option>NC</option>
-                  <option>ND</option>
-                  <option>OH</option>
-                  <option>OK</option>
-                  <option>OR</option>
-                  <option>PA</option>
-                  <option>RI</option>
-                  <option>SC</option>
-                  <option>SD</option>
-                  <option>TN</option>
-                  <option>TX</option>
-                  <option>UT</option>
-                  <option>VT</option>
-                  <option>VA</option>
-                  <option>WA</option>
-                  <option>WV</option>
-                  <option>WI</option>
-                  <option>WY</option>
-                  <option>DC</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>ZIP Code</label><input type="text" name="zip" placeholder="e.g. 94102" />
-              </div>
-              <div class="field">
-                <label>Website URL</label
-                ><input type="url" name="website" placeholder="https://yourpractice.com" />
-              </div>
-              <div class="field">
-                <label>Preferred Contact Path</label>
-                <select name="preferred_contact_method">
-                  <option value="">Choose preferred route</option>
-                  <option value="email">Email me</option>
-                  <option value="phone">Call my practice</option>
-                  <option value="website">Use my website</option>
-                  <option value="booking">Use my booking link</option>
-                </select>
-              </div>
-              <div class="field full">
-                <label>Primary Contact Button Label</label
-                ><input
-                  type="text"
-                  name="preferred_contact_label"
-                  maxlength="40"
-                  placeholder="Examples: Book a consultation, Schedule an intro call, Start with a fit consult"
-                />
-                <p class="field-hint">
-                  Keep this concrete and calm. Strong labels usually describe the first step, not a
-                  marketing slogan.
-                </p>
-              </div>
-              <div class="field full">
-                <label>Contact Guidance</label
-                ><textarea
-                  name="contact_guidance"
-                  rows="3"
-                  maxlength="180"
-                  placeholder="Examples: New clients usually hear back within 1 business day. Please mention your state, whether you are seeking therapy or psychiatry, and any insurance questions."
-                ></textarea>
-                <p class="field-hint">
-                  This is where people decide whether reaching out feels manageable. Clarify
-                  response time, what to include, and anything that helps avoid back-and-forth.
-                </p>
-                <div class="field-example">
-                  <strong>Strong example:</strong> New clients usually hear back within one business
-                  day. Please include your state, whether you are looking for therapy or medication
-                  support, and any insurance questions so we can point you to the right next step.
-                </div>
-                <p class="field-coach" id="contactGuidanceCoach"></p>
-              </div>
-              <div class="field full">
-                <label>What Happens After Someone Reaches Out?</label
-                ><textarea
-                  name="first_step_expectation"
-                  rows="3"
-                  maxlength="220"
-                  placeholder="Examples: I usually start with a 15-minute consult to understand fit, urgency, and whether medication support is needed before booking a full intake."
-                ></textarea>
-                <p class="field-hint">
-                  Reduce uncertainty. A strong answer helps someone picture the first contact,
-                  timeline, and what you are evaluating for fit.
-                </p>
-                <div class="field-example">
-                  <strong>Strong example:</strong> I usually begin with a 15-minute consultation to
-                  understand your goals, urgency, and whether therapy, psychiatry, or coordinated
-                  care makes the most sense before we schedule a full intake.
-                </div>
-                <p class="field-coach" id="firstStepCoach"></p>
-              </div>
-              <div class="field full">
-                <label>Booking URL</label
-                ><input type="url" name="booking_url" placeholder="https://yourpractice.com/book" />
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h2>📝 About Your Practice</h2>
-            <div class="form-grid">
-              <div class="field full">
-                <label>Professional Bio *</label
-                ><textarea
-                  name="bio"
-                  placeholder="Tell potential patients about your background, bipolar-related experience, and the kind of care you provide. This should help someone understand why they may trust you. (Minimum 100 characters)"
-                  required
-                  minlength="50"
-                ></textarea>
-                <p class="field-hint">
-                  Focus on credibility and relevance: your training, who you help, and why bipolar
-                  clients or families may trust your care.
-                </p>
-              </div>
-              <div class="field full">
-                <label>How You Help Bipolar Clients *</label
-                ><textarea
-                  name="care_approach"
-                  placeholder="Describe your approach in a concise, concrete way. Focus on the practical and clinical details a patient would compare before reaching out."
-                  required
-                  minlength="40"
-                ></textarea>
-                <p class="field-hint">
-                  The strongest answers combine who you help, how you work, and what makes your
-                  bipolar-specific care distinct in practice.
-                </p>
-                <div class="field-example">
-                  <strong>Strong example:</strong> I work with adults living with Bipolar I and II
-                  using CBT, psychoeducation, and relapse-prevention planning. I help clients track
-                  sleep and mood patterns, strengthen routines, coordinate with psychiatry when
-                  needed, and build early-warning plans for mood shifts.
-                </div>
-                <p class="field-coach" id="careApproachCoach"></p>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h2>🎯 Specialties</h2>
-            <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-              Select all that apply to your practice
-            </p>
-            <div class="checkbox-grid">
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Bipolar I" /> Bipolar I</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Bipolar II" /> Bipolar II</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Bipolar NOS" /> Bipolar NOS</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Cyclothymia" /> Cyclothymia</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Rapid Cycling" /> Rapid
-                Cycling</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Mixed Episodes" /> Mixed
-                Episodes</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Mood Disorders" /> Mood
-                Disorders</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Depression" /> Depression</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Anxiety" /> Anxiety</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Psychosis" /> Psychosis</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Dual Diagnosis" /> Dual
-                Diagnosis</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Adolescent Bipolar" /> Adolescent
-                Bipolar</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Family Therapy" /> Family
-                Therapy</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="specialties" value="Medication Management" />
-                Medication Management</label
-              >
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h2>🧭 Clinical Fit</h2>
-            <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-              These details make the profile far more useful in matching, shortlist decisions, and
-              first-contact planning.
-            </p>
-            <div class="form-grid">
-              <div class="field full">
-                <label>Treatment Modalities *</label>
-                <div class="checkbox-grid">
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="CBT" /> CBT</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="DBT" /> DBT</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="IPSRT" />
-                    IPSRT</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="ACT" /> ACT</label
-                  >
-                  <label class="check-label"
+              <span class="funnel-disclosure-toggle">Open profile details</span>
+            </summary>
+            <div class="funnel-disclosure-body">
+              <div class="form-section">
+                <h2>🏥 Practice Details</h2>
+                <div class="form-grid">
+                  <div class="field full">
+                    <label>Practice Name</label
                     ><input
-                      type="checkbox"
-                      name="treatment_modalities"
-                      value="Mindfulness-based therapy"
+                      type="text"
+                      name="practice_name"
+                      placeholder="e.g. Serenity Psychiatric Associates"
                     />
-                    Mindfulness-based</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="Family therapy" />
-                    Family therapy</label
-                  >
-                  <label class="check-label"
+                  </div>
+                  <div class="field">
+                    <label>City *</label
+                    ><input type="text" name="city" placeholder="e.g. San Francisco" required />
+                  </div>
+                  <div class="field">
+                    <label>State *</label>
+                    <select name="state" required>
+                      <option value="">Select State</option>
+                      <option>AL</option>
+                      <option>AK</option>
+                      <option>AZ</option>
+                      <option>AR</option>
+                      <option>CA</option>
+                      <option>CO</option>
+                      <option>CT</option>
+                      <option>DE</option>
+                      <option>FL</option>
+                      <option>GA</option>
+                      <option>HI</option>
+                      <option>ID</option>
+                      <option>IL</option>
+                      <option>IN</option>
+                      <option>IA</option>
+                      <option>KS</option>
+                      <option>KY</option>
+                      <option>LA</option>
+                      <option>ME</option>
+                      <option>MD</option>
+                      <option>MA</option>
+                      <option>MI</option>
+                      <option>MN</option>
+                      <option>MS</option>
+                      <option>MO</option>
+                      <option>MT</option>
+                      <option>NE</option>
+                      <option>NV</option>
+                      <option>NH</option>
+                      <option>NJ</option>
+                      <option>NM</option>
+                      <option>NY</option>
+                      <option>NC</option>
+                      <option>ND</option>
+                      <option>OH</option>
+                      <option>OK</option>
+                      <option>OR</option>
+                      <option>PA</option>
+                      <option>RI</option>
+                      <option>SC</option>
+                      <option>SD</option>
+                      <option>TN</option>
+                      <option>TX</option>
+                      <option>UT</option>
+                      <option>VT</option>
+                      <option>VA</option>
+                      <option>WA</option>
+                      <option>WV</option>
+                      <option>WI</option>
+                      <option>WY</option>
+                      <option>DC</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>ZIP Code</label><input type="text" name="zip" placeholder="e.g. 94102" />
+                  </div>
+                  <div class="field">
+                    <label>Website URL</label
+                    ><input type="url" name="website" placeholder="https://yourpractice.com" />
+                  </div>
+                  <div class="field">
+                    <label>Preferred Contact Path</label>
+                    <select name="preferred_contact_method">
+                      <option value="">Choose preferred route</option>
+                      <option value="email">Email me</option>
+                      <option value="phone">Call my practice</option>
+                      <option value="website">Use my website</option>
+                      <option value="booking">Use my booking link</option>
+                    </select>
+                  </div>
+                  <div class="field full">
+                    <label>Primary Contact Button Label</label
                     ><input
-                      type="checkbox"
-                      name="treatment_modalities"
-                      value="Medication management"
+                      type="text"
+                      name="preferred_contact_label"
+                      maxlength="40"
+                      placeholder="Examples: Book a consultation, Schedule an intro call, Start with a fit consult"
                     />
-                    Medication management</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="treatment_modalities" value="Psychoeducation" />
-                    Psychoeducation</label
-                  >
+                    <p class="field-hint">
+                      Keep this concrete and calm. Strong labels usually describe the first step,
+                      not a marketing slogan.
+                    </p>
+                  </div>
+                  <div class="field full">
+                    <label>Contact Guidance</label
+                    ><textarea
+                      name="contact_guidance"
+                      rows="3"
+                      maxlength="180"
+                      placeholder="Examples: New clients usually hear back within 1 business day. Please mention your state, whether you are seeking therapy or psychiatry, and any insurance questions."
+                    ></textarea>
+                    <p class="field-hint">
+                      This is where people decide whether reaching out feels manageable. Clarify
+                      response time, what to include, and anything that helps avoid back-and-forth.
+                    </p>
+                    <div class="field-example">
+                      <strong>Strong example:</strong> New clients usually hear back within one
+                      business day. Please include your state, whether you are looking for therapy
+                      or medication support, and any insurance questions so we can point you to the
+                      right next step.
+                    </div>
+                    <p class="field-coach" id="contactGuidanceCoach"></p>
+                  </div>
+                  <div class="field full">
+                    <label>What Happens After Someone Reaches Out?</label
+                    ><textarea
+                      name="first_step_expectation"
+                      rows="3"
+                      maxlength="220"
+                      placeholder="Examples: I usually start with a 15-minute consult to understand fit, urgency, and whether medication support is needed before booking a full intake."
+                    ></textarea>
+                    <p class="field-hint">
+                      Reduce uncertainty. A strong answer helps someone picture the first contact,
+                      timeline, and what you are evaluating for fit.
+                    </p>
+                    <div class="field-example">
+                      <strong>Strong example:</strong> I usually begin with a 15-minute consultation
+                      to understand your goals, urgency, and whether therapy, psychiatry, or
+                      coordinated care makes the most sense before we schedule a full intake.
+                    </div>
+                    <p class="field-coach" id="firstStepCoach"></p>
+                  </div>
+                  <div class="field full">
+                    <label>Booking URL</label
+                    ><input
+                      type="url"
+                      name="booking_url"
+                      placeholder="https://yourpractice.com/book"
+                    />
+                  </div>
                 </div>
               </div>
-              <div class="field full">
-                <label>Populations Served</label>
-                <div class="checkbox-grid">
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Adults" />
-                    Adults</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Young adults" /> Young
-                    adults</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Adolescents" />
-                    Adolescents</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Couples" />
-                    Couples</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Families" />
-                    Families</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="LGBTQ+" />
-                    LGBTQ+</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="College students" />
-                    College students</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="client_populations" value="Professionals" />
-                    Professionals</label
-                  >
-                </div>
-              </div>
-              <div class="field">
-                <label>Typical Wait Time</label>
-                <select name="estimated_wait_time">
-                  <option value="">Select wait time</option>
-                  <option>Immediate availability</option>
-                  <option>Within 1 week</option>
-                  <option>Within 2 weeks</option>
-                  <option>2-4 weeks</option>
-                  <option>1-2 months</option>
-                  <option>Waitlist only</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Telehealth States</label
-                ><input type="text" name="telehealth_states" placeholder="CA, NY, TX" />
-              </div>
-              <div class="field full">
-                <label class="check-label" style="border: none; padding: 0"
-                  ><input type="checkbox" name="medication_management" value="true" /> I provide
-                  medication management or prescribing support</label
-                >
-              </div>
-            </div>
-          </div>
 
-          <div class="form-section">
-            <h2>🛡️ Trust & Source Clarity</h2>
-            <div class="form-grid">
-              <div class="field full">
-                <label>Which of these details are you directly confirming?</label>
-                <p class="field-hint">
-                  Some details are hard to verify from public sources alone. This lets us
-                  distinguish specialist-confirmed operational details from editorially reviewed
-                  facts.
+              <div class="form-section">
+                <h2>📝 About Your Practice</h2>
+                <div class="form-grid">
+                  <div class="field full">
+                    <label>Professional Bio *</label
+                    ><textarea
+                      name="bio"
+                      placeholder="Tell potential patients about your background, bipolar-related experience, and the kind of care you provide. This should help someone understand why they may trust you. (Minimum 100 characters)"
+                      required
+                      minlength="50"
+                    ></textarea>
+                    <p class="field-hint">
+                      Focus on credibility and relevance: your training, who you help, and why
+                      bipolar clients or families may trust your care.
+                    </p>
+                  </div>
+                  <div class="field full">
+                    <label>How You Help Bipolar Clients *</label
+                    ><textarea
+                      name="care_approach"
+                      placeholder="Describe your approach in a concise, concrete way. Focus on the practical and clinical details a patient would compare before reaching out."
+                      required
+                      minlength="40"
+                    ></textarea>
+                    <p class="field-hint">
+                      The strongest answers combine who you help, how you work, and what makes your
+                      bipolar-specific care distinct in practice.
+                    </p>
+                    <div class="field-example">
+                      <strong>Strong example:</strong> I work with adults living with Bipolar I and
+                      II using CBT, psychoeducation, and relapse-prevention planning. I help clients
+                      track sleep and mood patterns, strengthen routines, coordinate with psychiatry
+                      when needed, and build early-warning plans for mood shifts.
+                    </div>
+                    <p class="field-coach" id="careApproachCoach"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>🎯 Specialties</h2>
+                <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
+                  Select all that apply to your practice
                 </p>
                 <div class="checkbox-grid">
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="estimated_wait_time"
-                      checked
-                    />
-                    Estimated wait time</label
+                    ><input type="checkbox" name="specialties" value="Bipolar I" /> Bipolar I</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="bipolar_years_experience"
-                      checked
-                    />
-                    Years treating bipolar disorder</label
+                    ><input type="checkbox" name="specialties" value="Bipolar II" /> Bipolar
+                    II</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="insurance_accepted"
-                      checked
-                    />
-                    Insurance details</label
+                    ><input type="checkbox" name="specialties" value="Bipolar NOS" /> Bipolar
+                    NOS</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="telehealth_states"
-                      checked
-                    />
-                    Telehealth states</label
+                    ><input type="checkbox" name="specialties" value="Cyclothymia" />
+                    Cyclothymia</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="contact_guidance"
-                      checked
-                    />
-                    Contact guidance</label
+                    ><input type="checkbox" name="specialties" value="Rapid Cycling" /> Rapid
+                    Cycling</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="first_step_expectation"
-                      checked
-                    />
-                    What happens after outreach</label
+                    ><input type="checkbox" name="specialties" value="Mixed Episodes" /> Mixed
+                    Episodes</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="therapist_reported_fields"
-                      value="session_pricing"
-                      checked
-                    />
-                    Session pricing</label
+                    ><input type="checkbox" name="specialties" value="Mood Disorders" /> Mood
+                    Disorders</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Depression" />
+                    Depression</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Anxiety" /> Anxiety</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Psychosis" /> Psychosis</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Dual Diagnosis" /> Dual
+                    Diagnosis</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Adolescent Bipolar" />
+                    Adolescent Bipolar</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Family Therapy" /> Family
+                    Therapy</label
+                  >
+                  <label class="check-label"
+                    ><input type="checkbox" name="specialties" value="Medication Management" />
+                    Medication Management</label
                   >
                 </div>
               </div>
-              <div class="field">
-                <label for="therapist_reported_confirmed_at">Last confirmed by you</label>
-                <input
-                  type="date"
-                  id="therapist_reported_confirmed_at"
-                  name="therapist_reported_confirmed_at"
-                />
-              </div>
-              <div class="field">
-                <label>Why this matters</label>
-                <div class="field-example">
-                  <strong>Trust model:</strong> we treat time-sensitive operational details
-                  differently from facts we can verify independently. That makes the product more
-                  honest and keeps your listing more credible.
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <div class="form-section">
-            <h2>💳 Insurance & Fees</h2>
-            <div class="form-grid">
-              <div class="field full">
-                <label>Insurance Accepted (select all that apply)</label>
-                <p class="field-hint">
-                  If you are out-of-network or self-pay, clear pricing and process details matter
-                  even more for matching and conversion.
+              <div class="form-section">
+                <h2>🧭 Clinical Fit</h2>
+                <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
+                  These details make the profile far more useful in matching, shortlist decisions,
+                  and first-contact planning.
                 </p>
+                <div class="form-grid">
+                  <div class="field full">
+                    <label>Treatment Modalities *</label>
+                    <div class="checkbox-grid">
+                      <label class="check-label"
+                        ><input type="checkbox" name="treatment_modalities" value="CBT" />
+                        CBT</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="treatment_modalities" value="DBT" />
+                        DBT</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="treatment_modalities" value="IPSRT" />
+                        IPSRT</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="treatment_modalities" value="ACT" />
+                        ACT</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="treatment_modalities"
+                          value="Mindfulness-based therapy"
+                        />
+                        Mindfulness-based</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="treatment_modalities"
+                          value="Family therapy"
+                        />
+                        Family therapy</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="treatment_modalities"
+                          value="Medication management"
+                        />
+                        Medication management</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="treatment_modalities"
+                          value="Psychoeducation"
+                        />
+                        Psychoeducation</label
+                      >
+                    </div>
+                  </div>
+                  <div class="field full">
+                    <label>Populations Served</label>
+                    <div class="checkbox-grid">
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Adults" />
+                        Adults</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Young adults" />
+                        Young adults</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Adolescents" />
+                        Adolescents</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Couples" />
+                        Couples</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Families" />
+                        Families</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="LGBTQ+" />
+                        LGBTQ+</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="client_populations"
+                          value="College students"
+                        />
+                        College students</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="client_populations" value="Professionals" />
+                        Professionals</label
+                      >
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Typical Wait Time</label>
+                    <select name="estimated_wait_time">
+                      <option value="">Select wait time</option>
+                      <option>Immediate availability</option>
+                      <option>Within 1 week</option>
+                      <option>Within 2 weeks</option>
+                      <option>2-4 weeks</option>
+                      <option>1-2 months</option>
+                      <option>Waitlist only</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Telehealth States</label
+                    ><input type="text" name="telehealth_states" placeholder="CA, NY, TX" />
+                  </div>
+                  <div class="field full">
+                    <label class="check-label" style="border: none; padding: 0"
+                      ><input type="checkbox" name="medication_management" value="true" /> I provide
+                      medication management or prescribing support</label
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>🛡️ Trust & Source Clarity</h2>
+                <div class="form-grid">
+                  <div class="field full">
+                    <label>Which of these details are you directly confirming?</label>
+                    <p class="field-hint">
+                      Some details are hard to verify from public sources alone. This lets us
+                      distinguish specialist-confirmed operational details from editorially reviewed
+                      facts.
+                    </p>
+                    <div class="checkbox-grid">
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="estimated_wait_time"
+                          checked
+                        />
+                        Estimated wait time</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="bipolar_years_experience"
+                          checked
+                        />
+                        Years treating bipolar disorder</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="insurance_accepted"
+                          checked
+                        />
+                        Insurance details</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="telehealth_states"
+                          checked
+                        />
+                        Telehealth states</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="contact_guidance"
+                          checked
+                        />
+                        Contact guidance</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="first_step_expectation"
+                          checked
+                        />
+                        What happens after outreach</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="therapist_reported_fields"
+                          value="session_pricing"
+                          checked
+                        />
+                        Session pricing</label
+                      >
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="therapist_reported_confirmed_at">Last confirmed by you</label>
+                    <input
+                      type="date"
+                      id="therapist_reported_confirmed_at"
+                      name="therapist_reported_confirmed_at"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>Why this matters</label>
+                    <div class="field-example">
+                      <strong>Trust model:</strong> we treat time-sensitive operational details
+                      differently from facts we can verify independently. That makes the product
+                      more honest and keeps your listing more credible.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>💳 Insurance & Fees</h2>
+                <div class="form-grid">
+                  <div class="field full">
+                    <label>Insurance Accepted (select all that apply)</label>
+                    <p class="field-hint">
+                      If you are out-of-network or self-pay, clear pricing and process details
+                      matter even more for matching and conversion.
+                    </p>
+                    <div class="checkbox-grid">
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Aetna" />
+                        Aetna</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="insurance_accepted"
+                          value="Blue Cross Blue Shield"
+                        />
+                        Blue Cross Blue Shield</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Cigna" />
+                        Cigna</label
+                      >
+                      <label class="check-label"
+                        ><input
+                          type="checkbox"
+                          name="insurance_accepted"
+                          value="United Healthcare"
+                        />
+                        United Healthcare</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Humana" />
+                        Humana</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Medicaid" />
+                        Medicaid</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Medicare" />
+                        Medicare</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Tricare" />
+                        Tricare</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Out-of-Network" />
+                        Out-of-Network</label
+                      >
+                      <label class="check-label"
+                        ><input type="checkbox" name="insurance_accepted" value="Self-Pay" />
+                        Self-Pay Only</label
+                      >
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Session Fee (min $)</label
+                    ><input type="number" name="session_fee_min" placeholder="e.g. 150" min="0" />
+                  </div>
+                  <div class="field">
+                    <label>Session Fee (max $)</label
+                    ><input type="number" name="session_fee_max" placeholder="e.g. 250" min="0" />
+                  </div>
+                  <div class="field full">
+                    <div class="field-example">
+                      <strong>Pricing guidance:</strong> A clear range helps users self-screen
+                      quickly. If your rate varies by intake, therapy type, or med-management
+                      follow-up, use the typical range and clarify the nuance in your contact
+                      guidance.
+                    </div>
+                    <p class="field-coach" id="pricingCoach"></p>
+                  </div>
+                  <div class="field full">
+                    <label class="check-label" style="border: none; padding: 0"
+                      ><input type="checkbox" name="sliding_scale" value="true" /> I offer a sliding
+                      scale fee</label
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>📍 Session Format</h2>
                 <div class="checkbox-grid">
                   <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Aetna" /> Aetna</label
+                    ><input type="checkbox" name="accepts_telehealth" value="true" /> Telehealth /
+                    Virtual Sessions</label
                   >
                   <label class="check-label"
-                    ><input
-                      type="checkbox"
-                      name="insurance_accepted"
-                      value="Blue Cross Blue Shield"
-                    />
-                    Blue Cross Blue Shield</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Cigna" /> Cigna</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="United Healthcare" />
-                    United Healthcare</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Humana" />
-                    Humana</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Medicaid" />
-                    Medicaid</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Medicare" />
-                    Medicare</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Tricare" />
-                    Tricare</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Out-of-Network" />
-                    Out-of-Network</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="insurance_accepted" value="Self-Pay" /> Self-Pay
-                    Only</label
+                    ><input type="checkbox" name="accepts_in_person" value="true" checked />
+                    In-Person Sessions</label
                   >
                 </div>
               </div>
-              <div class="field">
-                <label>Session Fee (min $)</label
-                ><input type="number" name="session_fee_min" placeholder="e.g. 150" min="0" />
-              </div>
-              <div class="field">
-                <label>Session Fee (max $)</label
-                ><input type="number" name="session_fee_max" placeholder="e.g. 250" min="0" />
-              </div>
-              <div class="field full">
-                <div class="field-example">
-                  <strong>Pricing guidance:</strong> A clear range helps users self-screen quickly.
-                  If your rate varies by intake, therapy type, or med-management follow-up, use the
-                  typical range and clarify the nuance in your contact guidance.
-                </div>
-                <p class="field-coach" id="pricingCoach"></p>
-              </div>
-              <div class="field full">
-                <label class="check-label" style="border: none; padding: 0"
-                  ><input type="checkbox" name="sliding_scale" value="true" /> I offer a sliding
-                  scale fee</label
-                >
-              </div>
             </div>
-          </div>
-
-          <div class="form-section">
-            <h2>📍 Session Format</h2>
-            <div class="checkbox-grid">
-              <label class="check-label"
-                ><input type="checkbox" name="accepts_telehealth" value="true" /> Telehealth /
-                Virtual Sessions</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" name="accepts_in_person" value="true" checked /> In-Person
-                Sessions</label
-              >
-            </div>
-          </div>
+          </details>
 
           <div
             id="formError"
@@ -1360,46 +1608,69 @@
 
           <div class="form-submit">
             <div class="submit-note">
-              By submitting, you agree to be listed after completing payment ($39/mo). Cancel
-              anytime.
+              Submit your claim or listing details now. Paid plans unlock live growth features like
+              enhanced visibility, match placement, and stronger conversion tools after review.
             </div>
-            <button type="submit" class="btn-submit" id="submitBtn">Submit Application →</button>
+            <button type="submit" class="btn-submit" id="submitBtn">
+              Claim or Submit Profile →
+            </button>
           </div>
         </form>
       </div>
 
       <div class="sidebar">
         <div class="sidebar-card">
-          <h3>Your Listing Includes</h3>
-          <div class="price-display">
-            <span class="price-num">$39</span><span class="price-per">/month</span>
-          </div>
-          <div class="price-note">Cancel anytime. No long-term commitment.</div>
-          <div class="feature-list">
-            <div class="feature-item">
-              <span class="check">✓</span> Full profile built for trust, fit, and clearer patient
-              decisions
+          <h3>Choose Your Starting Point</h3>
+          <div class="plan-grid">
+            <div class="plan-card">
+              <div class="plan-kicker">Free</div>
+              <h4>Claim your profile</h4>
+              <div class="plan-price">$0 <span>to take ownership</span></div>
+              <div class="plan-copy">
+                Best for correcting details, confirming information, and making your profile
+                accurate.
+              </div>
+              <div class="plan-list">
+                <div class="feature-item">
+                  <span class="check">✓</span> Verify identity and ownership
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Correct core profile details
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Add headshot, bio, and specialties
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Keep your listing current
+                </div>
+              </div>
             </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Inclusion in guided matching, shortlist, and compare
-              flows
-            </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Direct patient outreach through your preferred contact
-              path
-            </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Trust and match-confidence signals on public profiles
-            </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Visibility for bipolar-specific specialties, modalities,
-              and populations served
-            </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Better first-contact framing for motivated patients
-            </div>
-            <div class="feature-item">
-              <span class="check">✓</span> Update your profile anytime as availability changes
+            <div class="plan-card featured">
+              <div class="plan-kicker">Paid</div>
+              <h4>Grow your profile</h4>
+              <div class="plan-price">$39<span>/month</span></div>
+              <div class="plan-copy">
+                Best for therapists who want better visibility, stronger trust presentation, and
+                more qualified inquiries.
+              </div>
+              <div class="plan-list">
+                <div class="feature-item">
+                  <span class="check">✓</span> Inclusion in guided matching and shortlist flows
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Stronger trust and fit signals on public profiles
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Better first-contact framing for motivated patients
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Visibility for bipolar specialties, modalities, and
+                  populations served
+                </div>
+                <div class="feature-item">
+                  <span class="check">✓</span> Direct outreach through your preferred contact path
+                </div>
+              </div>
             </div>
           </div>
         </div>
