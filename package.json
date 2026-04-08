@@ -30,6 +30,7 @@
     "cms:discover:candidates": "node scripts/discover-therapist-candidates.mjs",
     "cms:import:candidates": "node scripts/import-therapist-candidates.mjs",
     "cms:generate:candidate-review-queue": "node scripts/generate-candidate-review-queue.mjs",
+    "cms:generate:ingestion-ops-queue": "node scripts/generate-ingestion-ops-queue.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",

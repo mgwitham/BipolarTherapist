@@ -373,6 +373,43 @@ export const therapistCandidateType = defineType({
       initialValue: "queued",
     }),
     defineField({
+      name: "reviewLane",
+      title: "Review lane",
+      type: "string",
+      group: "review",
+      options: {
+        list: [
+          { title: "Publish now", value: "publish_now" },
+          { title: "Editorial review", value: "editorial_review" },
+          { title: "Needs confirmation", value: "needs_confirmation" },
+          { title: "Resolve duplicates", value: "resolve_duplicates" },
+          { title: "Archived", value: "archived" },
+        ],
+      },
+      initialValue: "editorial_review",
+    }),
+    defineField({
+      name: "reviewPriority",
+      title: "Review priority",
+      type: "number",
+      group: "review",
+      validation: (rule) => rule.min(0).max(100),
+      description: "Operational priority score for queue sorting. Higher numbers should be worked first.",
+    }),
+    defineField({
+      name: "nextReviewDueAt",
+      title: "Next review due at",
+      type: "datetime",
+      group: "review",
+      description: "When this candidate should be revisited if it is not acted on immediately.",
+    }),
+    defineField({
+      name: "lastReviewedAt",
+      title: "Last reviewed at",
+      type: "datetime",
+      group: "review",
+    }),
+    defineField({
       name: "readinessScore",
       title: "Readiness score",
       type: "number",

@@ -219,6 +219,104 @@ function buildProviderId(row) {
   return `provider-${fallback || Date.now()}`;
 }
 
+function addDays(isoString, days) {
+  const base = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCDate(fallback.getUTCDate() + days);
+    return fallback.toISOString();
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString();
+}
+
+function computeTherapistCompletenessScore(row) {
+  const checks = [
+    Boolean(row.name),
+    Boolean(row.credentials),
+    Boolean(row.city && row.state),
+    Boolean(row.email || row.phone || row.website || row.bookingUrl),
+    Boolean(row.careApproach || row.bio),
+    splitList(row.specialties).length > 0,
+    splitList(row.insuranceAccepted).length > 0,
+    splitList(row.languages).length > 0,
+    Boolean(row.sourceUrl || row.website),
+    Boolean(row.sourceReviewedAt || row.therapistReportedConfirmedAt),
+  ];
+  const passed = checks.filter(Boolean).length;
+  return Math.round((passed / checks.length) * 100);
+}
+
+function computeTherapistVerificationMeta(row) {
+  const now = new Date();
+  const sourceReviewedAt = row.sourceReviewedAt ? new Date(row.sourceReviewedAt) : null;
+  const therapistConfirmedAt = row.therapistReportedConfirmedAt
+    ? new Date(row.therapistReportedConfirmedAt)
+    : null;
+  const validDates = [sourceReviewedAt, therapistConfirmedAt].filter(function (value) {
+    return value instanceof Date && !Number.isNaN(value.getTime());
+  });
+  const lastOperationalReviewAt = validDates.length
+    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
+    : "";
+  const needsReconfirmationCount = [
+    row.estimatedWaitTimeReviewState,
+    row.insuranceAcceptedReviewState,
+    row.telehealthStatesReviewState,
+    row.bipolarYearsExperienceReviewState,
+  ].filter(function (value) {
+    return String(value || "").trim() === "needs_reconfirmation";
+  }).length;
+  const sourceAgeDays =
+    sourceReviewedAt && !Number.isNaN(sourceReviewedAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - sourceReviewedAt.getTime()) / 86400000))
+      : null;
+
+  if (!lastOperationalReviewAt) {
+    return {
+      lastOperationalReviewAt: "",
+      nextReviewDueAt: now.toISOString(),
+      verificationPriority: 95,
+      verificationLane: "needs_verification",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+  if (needsReconfirmationCount) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 7),
+      verificationPriority: Math.min(98, 82 + needsReconfirmationCount * 4),
+      verificationLane: "needs_reconfirmation",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+  if (sourceAgeDays !== null && sourceAgeDays >= 120) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+      verificationPriority: 84,
+      verificationLane: "refresh_now",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+  if (sourceAgeDays !== null && sourceAgeDays >= 75) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 105),
+      verificationPriority: 61,
+      verificationLane: "refresh_soon",
+      dataCompletenessScore: computeTherapistCompletenessScore(row),
+    };
+  }
+  return {
+    lastOperationalReviewAt,
+    nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+    verificationPriority: 28,
+    verificationLane: "fresh",
+    dataCompletenessScore: computeTherapistCompletenessScore(row),
+  };
+}
+
 function buildTherapistDocument(row) {
   const slug = row.slug || slugify([row.name, row.city, row.state].filter(Boolean).join(" "));
   if (!row.name || !slug || !row.city || !row.state || !row.bio || !row.credentials) {
@@ -228,6 +326,7 @@ function buildTherapistDocument(row) {
   }
 
   const documentId = `therapist-${slug}`;
+  const verificationMeta = computeTherapistVerificationMeta(row);
 
   return {
     _id: documentId,
@@ -286,6 +385,11 @@ function buildTherapistDocument(row) {
     sourceReviewedAt: row.sourceReviewedAt || "",
     therapistReportedFields: splitList(row.therapistReportedFields),
     therapistReportedConfirmedAt: row.therapistReportedConfirmedAt || "",
+    lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
+    nextReviewDueAt: verificationMeta.nextReviewDueAt,
+    verificationPriority: verificationMeta.verificationPriority,
+    verificationLane: verificationMeta.verificationLane,
+    dataCompletenessScore: verificationMeta.dataCompletenessScore,
     fieldReviewStates: {
       estimatedWaitTime: parseFieldReviewState(row.estimatedWaitTimeReviewState),
       insuranceAccepted: parseFieldReviewState(row.insuranceAcceptedReviewState),

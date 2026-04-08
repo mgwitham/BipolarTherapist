@@ -309,6 +309,32 @@
         font-size: 0.88rem;
         line-height: 1.6;
       }
+      .queue-summary-grid {
+        margin-top: 0.8rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.55rem;
+      }
+      .queue-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fbfdfe;
+        padding: 0.72rem 0.8rem;
+      }
+      .queue-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .queue-kpi-value {
+        margin-top: 0.24rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.45;
+      }
       .queue-shortlist {
         margin-top: 0.8rem;
         display: grid;
@@ -1048,6 +1074,14 @@
                   <option value="possible_duplicate">Possible duplicate</option>
                   <option value="rejected_duplicate">Rejected duplicate</option>
                   <option value="merged">Merged</option>
+                </select>
+                <select id="candidateReviewLaneFilter">
+                  <option value="">All ops lanes</option>
+                  <option value="publish_now">Publish now</option>
+                  <option value="editorial_review">Editorial review</option>
+                  <option value="needs_confirmation">Needs confirmation</option>
+                  <option value="resolve_duplicates">Resolve duplicates</option>
+                  <option value="archived">Archived</option>
                 </select>
                 <div class="subtle" id="candidateQueueCount"></div>
               </div>

@@ -909,11 +909,185 @@ function validateRevisionInput(input) {
   }
 }
 
+function addDays(isoString, days) {
+  const base = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCDate(fallback.getUTCDate() + days);
+    return fallback.toISOString();
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString();
+}
+
+function computeCandidateReviewMeta(candidateLike) {
+  const readiness = Number(candidateLike.readinessScore || 0) || 0;
+  const extractionConfidence = Number(candidateLike.extractionConfidence || 0) || 0;
+  const reviewStatus = String(candidateLike.reviewStatus || "queued").trim().toLowerCase();
+  const dedupeStatus = String(candidateLike.dedupeStatus || "unreviewed").trim().toLowerCase();
+  const recommendation = String(candidateLike.publishRecommendation || "").trim().toLowerCase();
+  const now = new Date().toISOString();
+
+  if (reviewStatus === "published" || reviewStatus === "archived") {
+    return {
+      reviewLane: "archived",
+      reviewPriority: 10,
+      nextReviewDueAt: addDays(now, 30),
+    };
+  }
+
+  if (dedupeStatus === "possible_duplicate") {
+    return {
+      reviewLane: "resolve_duplicates",
+      reviewPriority: 96,
+      nextReviewDueAt: now,
+    };
+  }
+
+  if (reviewStatus === "needs_confirmation" || recommendation === "needs_confirmation") {
+    return {
+      reviewLane: "needs_confirmation",
+      reviewPriority: Math.max(72, Math.min(88, readiness || 72)),
+      nextReviewDueAt: addDays(now, 2),
+    };
+  }
+
+  if (reviewStatus === "ready_to_publish" || recommendation === "ready") {
+    return {
+      reviewLane: "publish_now",
+      reviewPriority: Math.max(85, Math.min(98, readiness || 85)),
+      nextReviewDueAt: now,
+    };
+  }
+
+  return {
+    reviewLane: "editorial_review",
+    reviewPriority: Math.max(
+      52,
+      Math.min(84, Math.round(readiness * 0.7 + extractionConfidence * 20 + 10)),
+    ),
+    nextReviewDueAt: addDays(now, readiness >= 70 ? 1 : 4),
+  };
+}
+
+function computeTherapistCompletenessScore(record) {
+  const checks = [
+    Boolean(record.name),
+    Boolean(record.credentials),
+    Boolean(record.city && record.state),
+    Boolean(record.email || record.phone || record.website || record.bookingUrl),
+    Boolean(record.careApproach || record.bio),
+    Array.isArray(record.specialties) ? record.specialties.length > 0 : Boolean(record.specialties),
+    Array.isArray(record.insuranceAccepted)
+      ? record.insuranceAccepted.length > 0
+      : Boolean(record.insuranceAccepted),
+    Array.isArray(record.languages) ? record.languages.length > 0 : Boolean(record.languages),
+    Boolean(record.sourceUrl),
+    Boolean(record.sourceReviewedAt || record.therapistReportedConfirmedAt),
+  ];
+  const passed = checks.filter(Boolean).length;
+  return Math.round((passed / checks.length) * 100);
+}
+
+function computeTherapistVerificationMeta(record) {
+  const now = new Date();
+  const sourceReviewedAt = record.sourceReviewedAt ? new Date(record.sourceReviewedAt) : null;
+  const therapistConfirmedAt = record.therapistReportedConfirmedAt
+    ? new Date(record.therapistReportedConfirmedAt)
+    : null;
+  const validDates = [sourceReviewedAt, therapistConfirmedAt].filter(function (value) {
+    return value instanceof Date && !Number.isNaN(value.getTime());
+  });
+  const lastOperationalReviewAt = validDates.length
+    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
+    : "";
+  const needsReconfirmationFields = Object.entries(record.fieldReviewStates || {})
+    .filter(function (entry) {
+      return entry[1] === "needs_reconfirmation";
+    })
+    .map(function (entry) {
+      return entry[0];
+    });
+  const sourceAgeDays =
+    sourceReviewedAt && !Number.isNaN(sourceReviewedAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - sourceReviewedAt.getTime()) / 86400000))
+      : null;
+
+  if (!lastOperationalReviewAt) {
+    return {
+      lastOperationalReviewAt: "",
+      nextReviewDueAt: now.toISOString(),
+      verificationPriority: 95,
+      verificationLane: "needs_verification",
+      dataCompletenessScore: computeTherapistCompletenessScore(record),
+    };
+  }
+
+  if (needsReconfirmationFields.length) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 7),
+      verificationPriority: Math.min(98, 82 + needsReconfirmationFields.length * 4),
+      verificationLane: "needs_reconfirmation",
+      dataCompletenessScore: computeTherapistCompletenessScore(record),
+    };
+  }
+
+  if (sourceAgeDays !== null && sourceAgeDays >= 120) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+      verificationPriority: 84,
+      verificationLane: "refresh_now",
+      dataCompletenessScore: computeTherapistCompletenessScore(record),
+    };
+  }
+
+  if (sourceAgeDays !== null && sourceAgeDays >= 75) {
+    return {
+      lastOperationalReviewAt,
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 105),
+      verificationPriority: 61,
+      verificationLane: "refresh_soon",
+      dataCompletenessScore: computeTherapistCompletenessScore(record),
+    };
+  }
+
+  return {
+    lastOperationalReviewAt,
+    nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+    verificationPriority: 28,
+    verificationLane: "fresh",
+    dataCompletenessScore: computeTherapistCompletenessScore(record),
+  };
+}
+
 function buildTherapistDocument(application, existingId) {
   const slug =
     application.submittedSlug ||
     slugify([application.name, application.city, application.state].filter(Boolean).join(" "));
   const therapistId = existingId || `therapist-${slug}`;
+  const draft = {
+    sourceUrl: application.sourceUrl || application.website || "",
+    supportingSourceUrls: splitList(application.supportingSourceUrls),
+    sourceReviewedAt: application.sourceReviewedAt || "",
+    therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
+    fieldReviewStates: application.fieldReviewStates || {},
+    name: application.name,
+    credentials: application.credentials,
+    city: application.city,
+    state: application.state,
+    email: application.email,
+    phone: application.phone,
+    website: application.website,
+    bookingUrl: application.bookingUrl,
+    careApproach: application.careApproach,
+    bio: application.bio,
+    specialties: splitList(application.specialties),
+    insuranceAccepted: splitList(application.insuranceAccepted),
+    languages: splitList(application.languages),
+  };
+  const verificationMeta = computeTherapistVerificationMeta(draft);
 
   return {
     _id: therapistId,
@@ -971,6 +1145,11 @@ function buildTherapistDocument(application, existingId) {
       ? application.therapistReportedFields
       : [],
     therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
+    lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
+    nextReviewDueAt: verificationMeta.nextReviewDueAt,
+    verificationPriority: verificationMeta.verificationPriority,
+    verificationLane: verificationMeta.verificationLane,
+    dataCompletenessScore: verificationMeta.dataCompletenessScore,
     sessionFeeMin: parseNumber(application.sessionFeeMin),
     sessionFeeMax: parseNumber(application.sessionFeeMax),
     slidingScale: parseBoolean(application.slidingScale, false),
@@ -983,6 +1162,27 @@ function buildTherapistDocumentFromCandidate(candidate, existingId) {
   const slug = slugify([candidate.name, candidate.city, candidate.state].filter(Boolean).join(" "));
   const therapistId =
     existingId || candidate.matchedTherapistId || candidate.publishedTherapistId || `therapist-${slug}`;
+  const draft = {
+    sourceUrl: candidate.sourceUrl || candidate.website || "",
+    supportingSourceUrls: splitList(candidate.supportingSourceUrls),
+    sourceReviewedAt: candidate.sourceReviewedAt || "",
+    therapistReportedConfirmedAt: "",
+    fieldReviewStates: {},
+    name: candidate.name,
+    credentials: candidate.credentials,
+    city: candidate.city,
+    state: candidate.state,
+    email: candidate.email,
+    phone: candidate.phone,
+    website: candidate.website,
+    bookingUrl: candidate.bookingUrl,
+    careApproach: candidate.careApproach,
+    bio: candidate.careApproach,
+    specialties: splitList(candidate.specialties),
+    insuranceAccepted: splitList(candidate.insuranceAccepted),
+    languages: splitList(candidate.languages),
+  };
+  const verificationMeta = computeTherapistVerificationMeta(draft);
 
   return {
     _id: therapistId,
@@ -1037,6 +1237,11 @@ function buildTherapistDocumentFromCandidate(candidate, existingId) {
     sourceReviewedAt: candidate.sourceReviewedAt || "",
     therapistReportedFields: [],
     therapistReportedConfirmedAt: "",
+    lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
+    nextReviewDueAt: verificationMeta.nextReviewDueAt,
+    verificationPriority: verificationMeta.verificationPriority,
+    verificationLane: verificationMeta.verificationLane,
+    dataCompletenessScore: verificationMeta.dataCompletenessScore,
     sessionFeeMin: parseNumber(candidate.sessionFeeMin),
     sessionFeeMax: parseNumber(candidate.sessionFeeMax),
     slidingScale: parseBoolean(candidate.slidingScale, false),
@@ -1097,6 +1302,10 @@ function normalizeCandidate(doc) {
     published_therapist_id: doc.publishedTherapistId || "",
     published_at: doc.publishedAt || "",
     review_status: doc.reviewStatus || "queued",
+    review_lane: doc.reviewLane || "editorial_review",
+    review_priority: typeof doc.reviewPriority === "number" ? doc.reviewPriority : null,
+    next_review_due_at: doc.nextReviewDueAt || "",
+    last_reviewed_at: doc.lastReviewedAt || "",
     readiness_score: typeof doc.readinessScore === "number" ? doc.readinessScore : null,
     publish_recommendation: doc.publishRecommendation || "",
     notes: doc.notes || "",
@@ -1581,7 +1790,7 @@ export function createReviewApiHandler(configOverride) {
         }
 
         const docs = await client.fetch(
-          `*[_type == "therapistCandidate"] | order(coalesce(readinessScore, 0) desc, _updatedAt desc){
+          `*[_type == "therapistCandidate"] | order(coalesce(reviewPriority, 0) desc, coalesce(nextReviewDueAt, _updatedAt) asc, _updatedAt desc){
             ...
           }`,
         );
@@ -1970,7 +2179,16 @@ export function createReviewApiHandler(configOverride) {
         let eventType = "candidate_reviewed";
         let therapistId = "";
         let applicationId = "";
-        const changedFields = ["reviewStatus", "publishRecommendation", "notes", "reviewHistory"];
+        const changedFields = [
+          "reviewStatus",
+          "publishRecommendation",
+          "notes",
+          "reviewHistory",
+          "reviewLane",
+          "reviewPriority",
+          "nextReviewDueAt",
+          "lastReviewedAt",
+        ];
 
         if (decision === "mark_ready") {
           reviewStatus = "ready_to_publish";
@@ -2036,6 +2254,13 @@ export function createReviewApiHandler(configOverride) {
           changedFields.push("matchedApplicationId", "dedupeStatus");
         }
 
+        const reviewMeta = computeCandidateReviewMeta({
+          ...candidate,
+          reviewStatus,
+          publishRecommendation,
+          dedupeStatus,
+        });
+
         const transaction = client.transaction();
         if (decision === "publish") {
           transaction.createOrReplace(buildTherapistDocumentFromCandidate(candidate, therapistId));
@@ -2093,6 +2318,10 @@ export function createReviewApiHandler(configOverride) {
               reviewStatus,
               publishRecommendation,
               dedupeStatus,
+              reviewLane: reviewMeta.reviewLane,
+              reviewPriority: reviewMeta.reviewPriority,
+              nextReviewDueAt: reviewMeta.nextReviewDueAt,
+              lastReviewedAt: now,
               notes,
               sourceReviewedAt: candidate.sourceReviewedAt || now,
               ...(therapistId

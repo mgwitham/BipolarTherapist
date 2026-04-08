@@ -75,6 +75,11 @@ function sanitizeCandidate(candidate) {
       ? candidate.telehealth_states
       : [],
     review_history: Array.isArray(candidate.review_history) ? candidate.review_history : [],
+    review_lane: candidate.review_lane || "editorial_review",
+    review_priority:
+      typeof candidate.review_priority === "number" ? candidate.review_priority : null,
+    next_review_due_at: candidate.next_review_due_at || "",
+    last_reviewed_at: candidate.last_reviewed_at || "",
   };
 }
 

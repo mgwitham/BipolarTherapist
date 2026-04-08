@@ -236,6 +236,55 @@ function buildProviderFingerprint(record) {
   return [providerId, website, email, phone].filter(Boolean).join("|");
 }
 
+function addDays(isoString, days) {
+  const base = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCDate(fallback.getUTCDate() + days);
+    return fallback.toISOString();
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString();
+}
+
+function computeCandidateReviewMeta(input) {
+  const readiness = Number(input.readinessScore || 0) || 0;
+  const extractionConfidence = Number(input.extractionConfidence || 0) || 0;
+  const reviewStatus = String(input.reviewStatus || "queued").trim().toLowerCase();
+  const dedupeStatus = String(input.dedupeStatus || "unreviewed").trim().toLowerCase();
+  const publishRecommendation = String(input.publishRecommendation || "").trim().toLowerCase();
+  const now = new Date().toISOString();
+
+  if (reviewStatus === "published" || reviewStatus === "archived") {
+    return { reviewLane: "archived", reviewPriority: 10, nextReviewDueAt: addDays(now, 30) };
+  }
+  if (dedupeStatus === "possible_duplicate") {
+    return { reviewLane: "resolve_duplicates", reviewPriority: 96, nextReviewDueAt: now };
+  }
+  if (reviewStatus === "needs_confirmation" || publishRecommendation === "needs_confirmation") {
+    return {
+      reviewLane: "needs_confirmation",
+      reviewPriority: Math.max(72, Math.min(88, readiness || 72)),
+      nextReviewDueAt: addDays(now, 2),
+    };
+  }
+  if (reviewStatus === "ready_to_publish" || publishRecommendation === "ready") {
+    return {
+      reviewLane: "publish_now",
+      reviewPriority: Math.max(85, Math.min(98, readiness || 85)),
+      nextReviewDueAt: now,
+    };
+  }
+  return {
+    reviewLane: "editorial_review",
+    reviewPriority: Math.max(
+      52,
+      Math.min(84, Math.round(readiness * 0.7 + extractionConfidence * 20 + 10)),
+    ),
+    nextReviewDueAt: addDays(now, readiness >= 70 ? 1 : 4),
+  };
+}
+
 function parseSourceType(value) {
   const normalized = String(value || "")
     .trim()
@@ -382,6 +431,15 @@ function buildCandidateDocument(row, context, index) {
     row.reviewStatus,
     hasDuplicate ? "needs_review" : "queued",
   );
+  const readinessScore = parseNumber(row.readinessScore);
+  const extractionConfidence = parseNumber(row.extractionConfidence);
+  const reviewMeta = computeCandidateReviewMeta({
+    readinessScore,
+    extractionConfidence,
+    reviewStatus,
+    dedupeStatus,
+    publishRecommendation: row.publishRecommendation || (hasDuplicate ? "hold" : ""),
+  });
 
   return {
     _id: `therapist-candidate-${candidateId}`,
@@ -410,7 +468,7 @@ function buildCandidateDocument(row, context, index) {
     extractedAt: row.extractedAt || "",
     sourceReviewedAt: row.sourceReviewedAt || "",
     extractionVersion: row.extractionVersion || "manual-v1",
-    extractionConfidence: parseNumber(row.extractionConfidence),
+    extractionConfidence: extractionConfidence,
     careApproach: row.careApproach || "",
     specialties: splitList(row.specialties),
     treatmentModalities: splitList(row.treatmentModalities),
@@ -433,7 +491,11 @@ function buildCandidateDocument(row, context, index) {
     matchedTherapistId: therapistMatch ? therapistMatch._id || "" : "",
     matchedApplicationId: applicationMatch ? applicationMatch._id || "" : "",
     reviewStatus: reviewStatus,
-    readinessScore: parseNumber(row.readinessScore),
+    reviewLane: row.reviewLane || reviewMeta.reviewLane,
+    reviewPriority: parseNumber(row.reviewPriority) ?? reviewMeta.reviewPriority,
+    nextReviewDueAt: row.nextReviewDueAt || reviewMeta.nextReviewDueAt,
+    lastReviewedAt: row.lastReviewedAt || "",
+    readinessScore: readinessScore,
     publishRecommendation: row.publishRecommendation || (hasDuplicate ? "hold" : ""),
     notes: row.notes || "",
   };

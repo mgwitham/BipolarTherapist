@@ -151,6 +151,7 @@ let candidateFilters = {
   q: "",
   review_status: "",
   dedupe_status: "",
+  review_lane: "",
 };
 let launchProfileFilters = {
   state: "",
@@ -7665,6 +7666,9 @@ function renderCandidateQueue() {
     if (candidateFilters.dedupe_status && item.dedupe_status !== candidateFilters.dedupe_status) {
       return false;
     }
+    if (candidateFilters.review_lane && item.review_lane !== candidateFilters.review_lane) {
+      return false;
+    }
     return true;
   });
 
@@ -7681,22 +7685,22 @@ function renderCandidateQueue() {
     return;
   }
 
-  const readyCount = candidates.filter(function (item) {
-    return item.review_status === "ready_to_publish";
-  }).length;
   const duplicateCount = candidates.filter(function (item) {
     return item.dedupe_status === "possible_duplicate";
   }).length;
   const confirmCount = candidates.filter(function (item) {
     return item.review_status === "needs_confirmation";
   }).length;
+  const publishNowCount = candidates.filter(function (item) {
+    return item.review_lane === "publish_now";
+  }).length;
 
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">Candidate queue snapshot</div><div class="queue-insights-grid">' +
     [
       {
-        value: readyCount,
-        label: "Ready to publish",
+        value: publishNowCount,
+        label: "Publish now lane",
         note: "These are the fastest trustworthy wins if the source trail looks clean.",
       },
       {
@@ -7750,9 +7754,19 @@ function renderCandidateQueue() {
           '</span><span class="tag">' +
           escapeHtml(getCandidateDedupeChipLabel(item.dedupe_status)) +
           "</span></div></div>" +
-          '<div class="queue-summary"><strong>Recommendation:</strong> ' +
+          '<div class="queue-summary-grid">' +
+          '<div class="queue-kpi"><div class="queue-kpi-label">Recommendation</div><div class="queue-kpi-value">' +
           escapeHtml(recommendation) +
-          '</div><div class="queue-summary"><strong>Readiness:</strong> ' +
+          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Ops lane</div><div class="queue-kpi-value">' +
+          escapeHtml(String(item.review_lane || "editorial_review").replace(/_/g, " ")) +
+          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Priority</div><div class="queue-kpi-value">' +
+          escapeHtml(
+            item.review_priority == null ? "Not scored" : String(item.review_priority) + "/100",
+          ) +
+          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Next review due</div><div class="queue-kpi-value">' +
+          escapeHtml(item.next_review_due_at ? formatDate(item.next_review_due_at) : "Now") +
+          "</div></div></div>" +
+          '<div class="queue-summary"><strong>Readiness:</strong> ' +
           escapeHtml(item.readiness_score == null ? "Not scored" : item.readiness_score + "/100") +
           "</div>" +
           (sourceTrail
@@ -8513,6 +8527,11 @@ document.getElementById("candidateReviewStatusFilter").addEventListener("change"
 
 document.getElementById("candidateDedupeStatusFilter").addEventListener("change", function (event) {
   candidateFilters.dedupe_status = event.target.value || "";
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateReviewLaneFilter").addEventListener("change", function (event) {
+  candidateFilters.review_lane = event.target.value || "";
   renderCandidateQueue();
 });
 

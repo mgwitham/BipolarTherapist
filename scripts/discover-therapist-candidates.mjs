@@ -306,6 +306,17 @@ function inferCareApproach(description, text) {
   return snippet;
 }
 
+function addDays(isoString, days) {
+  const base = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCDate(fallback.getUTCDate() + days);
+    return fallback.toISOString();
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString();
+}
+
 function inferBooleans(text) {
   const source = String(text || "").toLowerCase();
   return {
@@ -397,6 +408,7 @@ function buildCandidateRow(seed, html) {
   if (jsonLd.length) confidence += 0.15;
   if (seed.licenseNumber || (personNode && personNode.identifier)) confidence += 0.15;
   confidence = Math.min(0.98, confidence);
+  const nextReviewDueAt = confidence >= 0.8 ? addDays(null, 1) : addDays(null, 4);
 
   return {
     candidateId: candidateId || "",
@@ -446,6 +458,10 @@ function buildCandidateRow(seed, html) {
     dedupeStatus: "",
     dedupeConfidence: "",
     reviewStatus: "queued",
+    reviewLane: "editorial_review",
+    reviewPriority: confidence >= 0.8 ? "78" : confidence >= 0.65 ? "70" : "60",
+    nextReviewDueAt: nextReviewDueAt,
+    lastReviewedAt: "",
     readinessScore: "",
     publishRecommendation: "",
     notes: seed.notes || "",
@@ -495,6 +511,10 @@ function buildCsv(rows) {
     "dedupeStatus",
     "dedupeConfidence",
     "reviewStatus",
+    "reviewLane",
+    "reviewPriority",
+    "nextReviewDueAt",
+    "lastReviewedAt",
     "readinessScore",
     "publishRecommendation",
     "notes",

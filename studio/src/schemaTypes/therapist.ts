@@ -425,6 +425,53 @@ export const therapistType = defineType({
       description: "When the specialist last confirmed the therapist-reported operational details.",
     }),
     defineField({
+      name: "lastOperationalReviewAt",
+      title: "Last operational review at",
+      type: "datetime",
+      group: "trust",
+      description:
+        "Most recent trust or freshness checkpoint for this profile across source review or therapist confirmation.",
+    }),
+    defineField({
+      name: "nextReviewDueAt",
+      title: "Next review due at",
+      type: "datetime",
+      group: "trust",
+      description: "When this profile should next be re-reviewed for freshness or operational accuracy.",
+    }),
+    defineField({
+      name: "verificationPriority",
+      title: "Verification priority",
+      type: "number",
+      group: "trust",
+      validation: (rule) => rule.min(0).max(100),
+      description: "Operational urgency for refresh work. Higher numbers should be reviewed first.",
+    }),
+    defineField({
+      name: "verificationLane",
+      title: "Verification lane",
+      type: "string",
+      group: "trust",
+      options: {
+        list: [
+          { title: "Fresh", value: "fresh" },
+          { title: "Refresh soon", value: "refresh_soon" },
+          { title: "Refresh now", value: "refresh_now" },
+          { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+          { title: "Needs verification", value: "needs_verification" },
+        ],
+      },
+      description: "Primary operational lane for ongoing trust and freshness work.",
+    }),
+    defineField({
+      name: "dataCompletenessScore",
+      title: "Data completeness score",
+      type: "number",
+      group: "trust",
+      validation: (rule) => rule.min(0).max(100),
+      description: "How complete the profile is across identity, contact, access, and trust fields.",
+    }),
+    defineField({
       name: "fieldReviewStates",
       title: "Operational field review states",
       type: "object",
