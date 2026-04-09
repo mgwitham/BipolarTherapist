@@ -47,6 +47,7 @@ import {
   buildMatchOutcomeDocument,
   buildMatchRequestDocument,
 } from "../shared/match-persistence-domain.mjs";
+import { annotateProviderFieldObservationForDisplay } from "../shared/provider-field-observation-domain.mjs";
 import {
   buildApplicationReviewEvent,
   buildCandidateReviewEvent,
@@ -472,6 +473,7 @@ function createReviewRouteModules() {
     {
       handler: handleReadRoutes,
       deps: {
+        annotateProviderFieldObservationForDisplay,
         annotateMatchOutcomeForDisplay,
         annotateMatchRequestForDisplay,
         isAuthorized,

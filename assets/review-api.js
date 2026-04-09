@@ -450,6 +450,37 @@ export async function exportMatchOutcomes(format, options) {
   });
 }
 
+export async function fetchProviderObservations(providerId, options) {
+  const params = new URLSearchParams();
+  params.set("providerId", String(providerId || "").trim());
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/provider-observations?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportProviderObservations(providerId, format, options) {
+  const params = new URLSearchParams();
+  params.set("providerId", String(providerId || "").trim());
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/provider-observations/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/provider-observations/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 export async function decideTherapistCandidate(candidateId, decisionPayload) {
   const payload = await request(`/candidates/${encodeURIComponent(candidateId)}/decision`, {
     method: "POST",

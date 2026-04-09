@@ -119,6 +119,7 @@ export async function handleReadRoutes(context) {
   } = context;
 
   const {
+    annotateProviderFieldObservationForDisplay,
     annotateMatchOutcomeForDisplay,
     annotateMatchRequestForDisplay,
     isAuthorized,
@@ -408,6 +409,112 @@ export async function handleReadRoutes(context) {
         { key: "requestSummary", header: "request_summary" },
         { key: "contextSummary", header: "context_summary" },
         { key: "recordedAt", header: "recorded_at" },
+      ]);
+      const headers = buildTextResponseHeaders(origin, config, "text/csv; charset=utf-8");
+      response.writeHead(200, headers);
+      response.end(csv);
+      return true;
+    }
+
+    sendJson(response, 200, items, origin, config);
+    return true;
+  }
+
+  if (request.method === "GET" && routePath === "/provider-observations") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const providerId = String((url && url.searchParams.get("providerId")) || "").trim();
+    if (!providerId) {
+      sendJson(response, 400, { error: "Missing providerId." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 50, 500);
+    const docs = await client.fetch(
+      `*[_type == "providerFieldObservation" && providerId == $providerId] | order(fieldName asc)[0...$limit]{
+        _id,
+        providerId,
+        fieldName,
+        rawValue,
+        normalizedValue,
+        sourceType,
+        sourceDocumentType,
+        sourceDocumentId,
+        sourceUrl,
+        observedAt,
+        verifiedAt,
+        confidenceScore,
+        verificationMethod,
+        isCurrent
+      }`,
+      { providerId, limit },
+    );
+
+    sendJson(
+      response,
+      200,
+      (Array.isArray(docs) ? docs : []).map(annotateProviderFieldObservationForDisplay),
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  if (request.method === "GET" && routePath === "/provider-observations/export") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const providerId = String((url && url.searchParams.get("providerId")) || "").trim();
+    if (!providerId) {
+      sendJson(response, 400, { error: "Missing providerId." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
+    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const docs = await client.fetch(
+      `*[_type == "providerFieldObservation" && providerId == $providerId] | order(fieldName asc)[0...$limit]{
+        _id,
+        providerId,
+        fieldName,
+        rawValue,
+        normalizedValue,
+        sourceType,
+        sourceDocumentType,
+        sourceDocumentId,
+        sourceUrl,
+        observedAt,
+        verifiedAt,
+        confidenceScore,
+        verificationMethod,
+        isCurrent
+      }`,
+      { providerId, limit },
+    );
+    const items = (Array.isArray(docs) ? docs : []).map(annotateProviderFieldObservationForDisplay);
+
+    if (format === "csv") {
+      const csv = buildCsvResponse(items, [
+        { key: "providerId", header: "provider_id" },
+        { key: "fieldName", header: "field_name" },
+        { key: "rawValue", header: "raw_value" },
+        { key: "normalizedValue", header: "normalized_value" },
+        { key: "parsedRawValue", header: "parsed_raw_value" },
+        { key: "parsedNormalizedValue", header: "parsed_normalized_value" },
+        { key: "sourceType", header: "source_type" },
+        { key: "sourceDocumentType", header: "source_document_type" },
+        { key: "sourceDocumentId", header: "source_document_id" },
+        { key: "sourceUrl", header: "source_url" },
+        { key: "observedAt", header: "observed_at" },
+        { key: "verifiedAt", header: "verified_at" },
+        { key: "confidenceScore", header: "confidence_score" },
+        { key: "verificationMethod", header: "verification_method" },
+        { key: "isCurrent", header: "is_current" },
       ]);
       const headers = buildTextResponseHeaders(origin, config, "text/csv; charset=utf-8");
       response.writeHead(200, headers);

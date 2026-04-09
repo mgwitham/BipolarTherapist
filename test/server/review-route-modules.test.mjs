@@ -1323,3 +1323,54 @@ test("top-level review handler exports authenticated match analytics as csv", as
   assert.match(String(outcomesExportResponse.rawBody || ""), /outcome_id,request_id,provider_id/);
   assert.match(String(outcomesExportResponse.rawBody || ""), /outcome-1,journey-1,/);
 });
+
+test("top-level review handler returns and exports provider observations for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    "provider-observation-1": {
+      _id: "provider-observation-1",
+      _type: "providerFieldObservation",
+      providerId: "provider-ca-88804",
+      fieldName: "languages",
+      rawValue: "[\"English\",\"Spanish\"]",
+      normalizedValue: "[\"English\",\"Spanish\"]",
+      sourceType: "therapist",
+      sourceDocumentType: "therapist",
+      sourceDocumentId: "therapist-aubri-gomez-los-angeles-ca",
+      sourceUrl: "https://example.com/provider",
+      observedAt: "2026-04-09T16:00:00.000Z",
+      verifiedAt: "2026-04-09T16:00:00.000Z",
+      confidenceScore: 90,
+      verificationMethod: "editorial_review",
+      isCurrent: true,
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const observationsResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/provider-observations?providerId=provider-ca-88804&limit=10",
+  });
+  const exportResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/provider-observations/export?providerId=provider-ca-88804&format=csv&limit=10",
+  });
+
+  assert.equal(observationsResponse.statusCode, 200);
+  assert.equal(Array.isArray(observationsResponse.payload), true);
+  assert.equal(observationsResponse.payload[0].providerId, "provider-ca-88804");
+  assert.equal(observationsResponse.payload[0].labels.fieldName, "Languages");
+  assert.deepEqual(observationsResponse.payload[0].parsedNormalizedValue, ["English", "Spanish"]);
+
+  assert.equal(exportResponse.statusCode, 200);
+  assert.match(String(exportResponse.rawBody || ""), /provider_id,field_name,raw_value/);
+  assert.match(String(exportResponse.rawBody || ""), /provider-ca-88804,languages/);
+});

@@ -200,6 +200,12 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (query.includes(`providerFieldObservation`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "providerFieldObservation";
+          });
+        }
+
         return [];
       },
       async create(document) {
