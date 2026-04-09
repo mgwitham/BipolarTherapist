@@ -1132,10 +1132,16 @@
               <div class="hero-validation-title">Almost there</div>
               <div class="hero-validation-list" id="heroValidationList"></div>
             </div>
-            <form class="search-box" id="homeSearchForm">
+            <form
+              class="search-box"
+              id="homeSearchForm"
+              action="match.html"
+              method="get"
+              novalidate
+            >
               <div class="search-field search-field--prompt">
                 <label for="homepage_interest">What kind of support do you want first?</label>
-                <select id="homepage_interest" name="homepage_interest">
+                <select id="homepage_interest" required>
                   <option value="">What kind of support do you want first?</option>
                   <option value="therapist">Therapy</option>
                   <option value="psychiatrist">Psychiatry</option>
@@ -1147,12 +1153,23 @@
                   <input
                     type="text"
                     id="location"
+                    name="location_query"
                     placeholder="Enter ZIP code"
                     inputmode="numeric"
+                    maxlength="5"
+                    pattern="[0-9]{5}"
+                    required
                   />
                   <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
                 </div>
               </div>
+              <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
+              <input
+                type="hidden"
+                id="homepage_medication_need"
+                name="needs_medication_management"
+                value=""
+              />
               <div class="search-launch-note">Currently matching California ZIP codes.</div>
               <button type="submit" class="search-btn" id="searchButton">Start my match</button>
             </form>
@@ -1226,50 +1243,80 @@
     <script>
       (function () {
         var form = document.getElementById("homeSearchForm");
+        var locationInput = document.getElementById("location");
+        var interestInput = document.getElementById("homepage_interest");
+        var careIntentInput = document.getElementById("homepage_care_intent");
+        var medicationNeedInput = document.getElementById("homepage_medication_need");
         if (!form) {
           return;
         }
 
+        function isLikelyCaliforniaZip(loc) {
+          if (!/^\d{5}$/.test(loc)) {
+            return false;
+          }
+
+          var zipPrefix = Number(loc.slice(0, 3));
+          return zipPrefix >= 900 && zipPrefix <= 961;
+        }
+
+        function syncHiddenFields() {
+          var loc = locationInput ? String(locationInput.value || "").trim() : "";
+          var interest = interestInput ? String(interestInput.value || "").trim() : "";
+
+          if (!careIntentInput || !medicationNeedInput) {
+            return;
+          }
+
+          if (interest === "therapist") {
+            careIntentInput.value = "Therapy";
+            medicationNeedInput.value = "No";
+            return;
+          }
+
+          if (interest === "psychiatrist") {
+            careIntentInput.value = "Psychiatry";
+            medicationNeedInput.value = "Yes";
+            return;
+          }
+
+          careIntentInput.value = "";
+          medicationNeedInput.value = "";
+        }
+
         form.addEventListener("submit", function (event) {
+          syncHiddenFields();
+
           if (typeof window.handleSearch === "function") {
             window.handleSearch(event);
             return;
           }
 
-          event.preventDefault();
-
-          var locationInput = document.getElementById("location");
-          var interestInput = document.getElementById("homepage_interest");
           var loc = locationInput ? String(locationInput.value || "").trim() : "";
           var interest = interestInput ? String(interestInput.value || "").trim() : "";
-
           if (!interest) {
+            event.preventDefault();
             if (interestInput) {
               interestInput.focus();
             }
             return;
           }
 
-          if (!/^\d{5}$/.test(loc)) {
+          if (!/^\d{5}$/.test(loc) || !isLikelyCaliforniaZip(loc)) {
+            event.preventDefault();
             if (locationInput) {
               locationInput.focus();
             }
             return;
           }
-
-          var params = new URLSearchParams();
-          params.set("location_query", loc);
-
-          if (interest === "therapist") {
-            params.set("care_intent", "Therapy");
-            params.set("needs_medication_management", "No");
-          } else if (interest === "psychiatrist") {
-            params.set("care_intent", "Psychiatry");
-            params.set("needs_medication_management", "Yes");
-          }
-
-          window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
         });
+
+        var button = document.getElementById("searchButton");
+        if (button) {
+          button.addEventListener("click", function () {
+            syncHiddenFields();
+          });
+        }
       })();
     </script>
     <script type="module" src="assets/home.js"></script>

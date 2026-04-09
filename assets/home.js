@@ -6,7 +6,7 @@ import {
   trackExperimentExposure,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
-import { getZipMarketStatus } from "./zip-lookup.js";
+import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 
 var activeHomeExperimentVariant = "control";
 
@@ -193,7 +193,9 @@ function getHeroValidationMessages() {
   } else if (zipStatus && zipStatus.status === "out_of_state") {
     messages.push(zipStatus.message + " We’re currently matching California ZIP codes.");
   } else if (zipStatus && zipStatus.status === "unknown") {
-    messages.push("Enter a valid California ZIP code to get matched.");
+    messages.push(
+      "We can still start with this California ZIP and tighten the shortlist on the next step.",
+    );
   }
 
   return messages;
@@ -623,11 +625,61 @@ function renderPageSections(homePage, _featuredTherapists) {
     .join("");
 }
 
+function syncHomeSearchHiddenFields(interest) {
+  var careIntentInput = document.getElementById("homepage_care_intent");
+  var medicationNeedInput = document.getElementById("homepage_medication_need");
+
+  if (!careIntentInput || !medicationNeedInput) {
+    return;
+  }
+
+  if (interest === "therapist") {
+    careIntentInput.value = "Therapy";
+    medicationNeedInput.value = "No";
+    return;
+  }
+
+  if (interest === "psychiatrist") {
+    careIntentInput.value = "Psychiatry";
+    medicationNeedInput.value = "Yes";
+    return;
+  }
+
+  careIntentInput.value = "";
+  medicationNeedInput.value = "";
+}
+
+function buildHomeSearchTarget(form) {
+  var params = new URLSearchParams();
+  if (form && form.elements) {
+    Array.from(form.elements).forEach(function (field) {
+      if (!field || !field.name || field.disabled) {
+        return;
+      }
+
+      if ((field.type === "checkbox" || field.type === "radio") && !field.checked) {
+        return;
+      }
+
+      var normalized = String(field.value || "").trim();
+      if (!normalized) {
+        return;
+      }
+
+      params.set(field.name, normalized);
+    });
+  }
+
+  var action = (form && form.getAttribute("action")) || "match.html";
+  return action + (params.toString() ? "?" + params.toString() : "");
+}
+
 function handleHomeSearch(event) {
   if (event && typeof event.preventDefault === "function") {
     event.preventDefault();
   }
 
+  var form = document.getElementById("homeSearchForm");
   var locationInput = document.getElementById("location");
   var interestInput = document.getElementById("homepage_interest");
   var loc = locationInput ? locationInput.value.trim() : "";
@@ -655,7 +707,7 @@ function handleHomeSearch(event) {
     return;
   }
 
-  if (zipStatus.status === "out_of_state" || zipStatus.status === "unknown") {
+  if (zipStatus.status === "out_of_state") {
     if (locationInput) {
       locationInput.focus();
     }
@@ -675,18 +727,8 @@ function handleHomeSearch(event) {
       homepage_messaging: activeHomeExperimentVariant,
     },
   });
-  var params = new URLSearchParams();
-  if (loc) {
-    params.set("location_query", loc);
-  }
-  if (interest === "therapist") {
-    params.set("care_intent", "Therapy");
-    params.set("needs_medication_management", "No");
-  } else if (interest === "psychiatrist") {
-    params.set("care_intent", "Psychiatry");
-    params.set("needs_medication_management", "Yes");
-  }
-  window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
+  syncHomeSearchHiddenFields(interest);
+  window.location.assign(buildHomeSearchTarget(form));
 }
 
 function initHomeSearchForm() {
@@ -705,11 +747,21 @@ function initHomeSearchForm() {
 
   initHeroCareDropdown();
   initHeroZipFocusRow();
+  preloadZipcodes().catch(function () {
+    return null;
+  });
   var locationInput = document.getElementById("location");
   if (locationInput) {
     locationInput.addEventListener("input", syncHeroSearchState);
     locationInput.addEventListener("change", syncHeroSearchState);
   }
+  var interestInput = document.getElementById("homepage_interest");
+  if (interestInput) {
+    interestInput.addEventListener("change", function () {
+      syncHomeSearchHiddenFields(String(interestInput.value || "").trim());
+    });
+  }
+  syncHomeSearchHiddenFields(interestInput ? String(interestInput.value || "").trim() : "");
   syncHeroSearchState();
 
   try {
