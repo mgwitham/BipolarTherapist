@@ -14,6 +14,7 @@ export function renderLicensureQueuePanel(options) {
   }
 
   const rows = Array.isArray(options.rows) ? options.rows : [];
+  const activeFilter = options.activeFilter || "";
   const failedCount = rows.filter(function (item) {
     return item.refresh_status === "failed";
   }).length;
@@ -36,82 +37,104 @@ export function renderLicensureQueuePanel(options) {
     return;
   }
 
+  const filteredRows = rows.filter(function (item) {
+    return matchesFilter(item, activeFilter);
+  });
+  if (countEl) {
+    countEl.textContent =
+      filteredRows.length > 0
+        ? filteredRows.length +
+          " licensure refresh item" +
+          (filteredRows.length === 1 ? "" : "s") +
+          (activeFilter ? " in " + getFilterLabel(activeFilter).toLowerCase() : "")
+        : activeFilter
+          ? "No licensure refresh items in " + getFilterLabel(activeFilter).toLowerCase()
+          : "No licensure refresh work right now";
+  }
+
   const summaryHtml =
     '<div class="queue-filters" style="margin-bottom:0.8rem">' +
-    '<span class="status rejected">' +
-    options.escapeHtml(String(failedCount)) +
-    " failed</span>" +
-    '<span class="status reviewing">' +
-    options.escapeHtml(String(missingCacheCount)) +
-    " missing cache</span>" +
-    '<span class="status approved">' +
-    options.escapeHtml(String(expiringSoonCount)) +
-    " expiring soon</span>" +
+    buildFilterButton(options, "", "All", rows.length, activeFilter) +
+    buildFilterButton(options, "failed", "Failed", failedCount, activeFilter) +
+    buildFilterButton(options, "missing_cache", "Missing cache", missingCacheCount, activeFilter) +
+    buildFilterButton(options, "expiring_soon", "Expiring soon", expiringSoonCount, activeFilter) +
     "</div>";
 
-  root.innerHTML = rows
-    .slice(0, 20)
-    .map(function (item) {
-      const verifiedAt = formatDisplayDate(item.licensure_verified_at);
-      const statusTone =
-        item.refresh_status === "failed"
-          ? "status rejected"
-          : item.queue_reason === "missing_cache"
-            ? "status reviewing"
-            : "status approved";
-      return (
-        '<article class="mini-card"><div><div class="queue-filters" style="margin-bottom:0.5rem"><span class="' +
-        statusTone +
-        '">' +
-        options.escapeHtml(item.refresh_status || "missing") +
-        "</span>" +
-        (item.expiration_date
-          ? '<span class="status reviewing">Expires ' +
-            options.escapeHtml(item.expiration_date) +
-            "</span>"
-          : "") +
-        (verifiedAt
-          ? '<span class="status approved">Verified ' + options.escapeHtml(verifiedAt) + "</span>"
-          : "") +
-        "</div><strong>" +
-        options.escapeHtml(item.name || "Unnamed therapist") +
-        '</strong><div class="subtle">' +
-        options.escapeHtml(
-          [item.credentials, item.location, item.license_number].filter(Boolean).join(" · "),
-        ) +
-        '</div><div class="subtle" style="margin-top:0.35rem">' +
-        options.escapeHtml(item.reason || "Licensure refresh due") +
-        '</div><div class="subtle" style="margin-top:0.35rem">Next move: ' +
-        options.escapeHtml(item.next_move || "Refresh licensure record") +
-        '</div></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end">' +
-        (item.official_profile_url
-          ? '<a class="btn-secondary btn-inline" href="' +
-            options.escapeHtml(item.official_profile_url) +
-            '" target="_blank" rel="noreferrer">Official source</a>'
-          : "") +
-        (item.profile_link
-          ? '<a class="btn-secondary btn-inline" href="' +
-            options.escapeHtml(item.profile_link) +
-            '">Open profile</a>'
-          : "") +
-        '<button class="btn-primary" data-licensure-copy-command="' +
-        options.escapeHtml(item.therapist_id || "") +
-        '">' +
-        options.escapeHtml(
-          item.queue_reason === "missing_cache"
-            ? "Copy first-pass command"
-            : "Copy refresh command",
-        ) +
-        "</button></div></article>"
-      );
-    })
-    .join("");
+  root.innerHTML = filteredRows.length
+    ? filteredRows
+        .slice(0, 20)
+        .map(function (item) {
+          const verifiedAt = formatDisplayDate(item.licensure_verified_at);
+          const statusTone =
+            item.refresh_status === "failed"
+              ? "status rejected"
+              : item.queue_reason === "missing_cache"
+                ? "status reviewing"
+                : "status approved";
+          return (
+            '<article class="mini-card"><div><div class="queue-filters" style="margin-bottom:0.5rem"><span class="' +
+            statusTone +
+            '">' +
+            options.escapeHtml(item.refresh_status || "missing") +
+            "</span>" +
+            (item.expiration_date
+              ? '<span class="status reviewing">Expires ' +
+                options.escapeHtml(item.expiration_date) +
+                "</span>"
+              : "") +
+            (verifiedAt
+              ? '<span class="status approved">Verified ' +
+                options.escapeHtml(verifiedAt) +
+                "</span>"
+              : "") +
+            "</div><strong>" +
+            options.escapeHtml(item.name || "Unnamed therapist") +
+            '</strong><div class="subtle">' +
+            options.escapeHtml(
+              [item.credentials, item.location, item.license_number].filter(Boolean).join(" · "),
+            ) +
+            '</div><div class="subtle" style="margin-top:0.35rem">' +
+            options.escapeHtml(item.reason || "Licensure refresh due") +
+            '</div><div class="subtle" style="margin-top:0.35rem">Next move: ' +
+            options.escapeHtml(item.next_move || "Refresh licensure record") +
+            '</div></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end">' +
+            (item.official_profile_url
+              ? '<a class="btn-secondary btn-inline" href="' +
+                options.escapeHtml(item.official_profile_url) +
+                '" target="_blank" rel="noreferrer">Official source</a>'
+              : "") +
+            (item.profile_link
+              ? '<a class="btn-secondary btn-inline" href="' +
+                options.escapeHtml(item.profile_link) +
+                '">Open profile</a>'
+              : "") +
+            '<button class="btn-primary" data-licensure-copy-command="' +
+            options.escapeHtml(item.therapist_id || "") +
+            '">' +
+            options.escapeHtml(
+              item.queue_reason === "missing_cache"
+                ? "Copy first-pass command"
+                : "Copy refresh command",
+            ) +
+            "</button></div></article>"
+          );
+        })
+        .join("")
+    : '<div class="subtle">No licensure items match this filter right now.</div>';
   root.innerHTML = summaryHtml + root.innerHTML;
+
+  root.querySelectorAll("[data-licensure-filter]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      if (typeof options.onFilterChange === "function") {
+        options.onFilterChange(button.getAttribute("data-licensure-filter") || "");
+      }
+    });
+  });
 
   root.querySelectorAll("[data-licensure-copy-command]").forEach(function (button) {
     button.addEventListener("click", async function () {
       const therapistId = button.getAttribute("data-licensure-copy-command");
-      const command = buildRefreshCommand(therapistId, findQueueItem(rows, therapistId));
+      const command = buildRefreshCommand(therapistId, findQueueItem(filteredRows, therapistId));
       const original = button.textContent;
       try {
         await options.copyText(command);
@@ -166,4 +189,49 @@ function buildRefreshCommand(therapistId, item) {
     return base + " --force";
   }
   return base;
+}
+
+function matchesFilter(item, filter) {
+  if (!filter) {
+    return true;
+  }
+  if (filter === "failed") {
+    return item.refresh_status === "failed";
+  }
+  if (filter === "missing_cache") {
+    return item.queue_reason === "missing_cache";
+  }
+  if (filter === "expiring_soon") {
+    return isExpiringSoon(item.expiration_date);
+  }
+  return true;
+}
+
+function getFilterLabel(filter) {
+  if (filter === "failed") {
+    return "Failed";
+  }
+  if (filter === "missing_cache") {
+    return "Missing cache";
+  }
+  if (filter === "expiring_soon") {
+    return "Expiring soon";
+  }
+  return "All";
+}
+
+function buildFilterButton(options, value, label, count, activeFilter) {
+  const isActive = activeFilter === value;
+  const className = isActive ? "btn-primary btn-inline" : "btn-secondary btn-inline";
+  return (
+    '<button class="' +
+    className +
+    '" data-licensure-filter="' +
+    options.escapeHtml(value) +
+    '">' +
+    options.escapeHtml(label) +
+    " (" +
+    options.escapeHtml(String(count)) +
+    ")</button>"
+  );
 }

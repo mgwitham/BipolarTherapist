@@ -78,6 +78,9 @@ export function renderOpsInboxPanel(options) {
   const candidates = Array.isArray(options.candidates) ? options.candidates : [];
   const therapists = Array.isArray(options.therapists) ? options.therapists : [];
   const applications = Array.isArray(options.applications) ? options.applications : [];
+  const licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
+    ? options.licensureRefreshQueue
+    : [];
 
   const publishNow = candidates
     .filter(function (item) {
@@ -130,12 +133,18 @@ export function renderOpsInboxPanel(options) {
     })
     .slice(0, 4);
 
+  const licensureQueue = licensureRefreshQueue.slice(0, 3);
+
   const totalActions =
-    publishNow.length + duplicateQueue.length + confirmationQueue.length + refreshQueue.length;
+    publishNow.length +
+    duplicateQueue.length +
+    confirmationQueue.length +
+    refreshQueue.length +
+    licensureQueue.length;
 
   if (!totalActions) {
     root.innerHTML =
-      '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>No urgent ops work right now.</strong><div class="subtle" style="margin-top:0.35rem">The publish, duplicate, confirmation, and refresh queues are currently clear.</div></div></div>';
+      '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>No urgent ops work right now.</strong><div class="subtle" style="margin-top:0.35rem">The publish, duplicate, confirmation, refresh, and licensure queues are currently clear.</div></div></div>';
     return;
   }
 
@@ -294,6 +303,60 @@ export function renderOpsInboxPanel(options) {
     );
   }
 
+  function renderLicensureOpsCard(item) {
+    const evidence = [
+      item.license_number ? "License " + item.license_number : "",
+      item.expiration_date ? "Expires " + item.expiration_date : "",
+      item.licensure_verified_at
+        ? "Verified " + options.formatDate(item.licensure_verified_at)
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    return (
+      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      options.escapeHtml(item.name || "Unnamed therapist") +
+      '</h3><div class="ops-card-meta">' +
+      options.escapeHtml([item.credentials, item.location].filter(Boolean).join(" · ")) +
+      '</div></div><span class="tag">' +
+      options.escapeHtml(getLicensureLaneLabel(item)) +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Status</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(item.refresh_status || "missing") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Reason</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(item.queue_reason || "refresh_due") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(item.next_move || "Refresh licensure") +
+      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
+      options.escapeHtml(item.reason || "Primary-source licensure refresh needed.") +
+      "</div>" +
+      (evidence
+        ? '<div class="subtle" style="margin-top:0.35rem">' +
+          options.escapeHtml(evidence) +
+          "</div>"
+        : "") +
+      '<div class="ops-card-actions">' +
+      (item.official_profile_url
+        ? '<a class="btn-secondary btn-inline" href="' +
+          options.escapeHtml(item.official_profile_url) +
+          '" target="_blank" rel="noopener">Official source</a>'
+        : "") +
+      (item.profile_link
+        ? '<a class="btn-secondary btn-inline" href="' +
+          options.escapeHtml(item.profile_link) +
+          '">Open profile</a>'
+        : "") +
+      '<button class="btn-primary" data-licensure-inbox-copy="' +
+      options.escapeHtml(item.therapist_id || "") +
+      '">' +
+      options.escapeHtml(
+        item.queue_reason === "missing_cache" ? "Copy first-pass command" : "Copy refresh command",
+      ) +
+      "</button></div></article>"
+    );
+  }
+
   function renderGroup(title, note, rowsHtml) {
     return (
       '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">' +
@@ -313,6 +376,7 @@ export function renderOpsInboxPanel(options) {
       { value: duplicateQueue.length, label: "Resolve duplicates" },
       { value: confirmationQueue.length, label: "Needs confirmation" },
       { value: refreshQueue.length, label: "Refresh live profiles" },
+      { value: licensureQueue.length, label: "Licensure work" },
     ]
       .map(function (item) {
         return (
@@ -353,6 +417,13 @@ export function renderOpsInboxPanel(options) {
         ? refreshQueue.map(renderTherapistOpsCard).join("")
         : '<div class="subtle">No live profiles currently need refresh attention.</div>',
     ) +
+    renderGroup(
+      "Licensure trust",
+      "Primary-source licensure upgrades and refreshes that strengthen identity and compliance confidence.",
+      licensureQueue.length
+        ? licensureQueue.map(renderLicensureOpsCard).join("")
+        : '<div class="subtle">No licensure work is waiting right now.</div>',
+    ) +
     "</div>";
 
   bindCandidateDecisionButtons(root, {
@@ -363,4 +434,50 @@ export function renderOpsInboxPanel(options) {
     decideTherapistOps: options.decideTherapistOps,
     loadData: options.loadData,
   });
+  root.querySelectorAll("[data-licensure-inbox-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const therapistId = button.getAttribute("data-licensure-inbox-copy");
+      const item = licensureQueue.find(function (entry) {
+        return entry.therapist_id === therapistId;
+      });
+      const original = button.textContent;
+      try {
+        await options.copyText(buildLicensureRefreshCommand(item));
+        button.textContent = "Command copied";
+        window.setTimeout(function () {
+          button.textContent = original;
+        }, 1400);
+      } catch (_error) {
+        button.textContent = "Copy failed";
+        window.setTimeout(function () {
+          button.textContent = original;
+        }, 1600);
+      }
+    });
+  });
+}
+
+function getLicensureLaneLabel(item) {
+  if (item.refresh_status === "failed") {
+    return "Failed refresh";
+  }
+  if (item.queue_reason === "missing_cache") {
+    return "Missing cache";
+  }
+  if (item.expiration_date) {
+    return "Expiration watch";
+  }
+  return "Refresh due";
+}
+
+function buildLicensureRefreshCommand(item) {
+  const id = item && item.therapist_id ? item.therapist_id : "";
+  const base =
+    "PATH=/opt/homebrew/bin:$PATH npm run cms:enrich:california-licensure -- --scope=therapists --id=" +
+    id +
+    " --limit=1 --delay-ms=5000";
+  if (item && item.refresh_status === "failed") {
+    return base + " --force";
+  }
+  return base;
 }

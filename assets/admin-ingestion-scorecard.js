@@ -58,6 +58,7 @@ export function renderIngestionScorecardPanel(options) {
     ? Math.round((licensureVerifiedTherapists / therapists.length) * 100)
     : 0;
   var licensureRefreshCount = licensureRefreshQueue.length;
+  var lowLicensureCoverage = licensureCoverageRate < 60;
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
@@ -145,13 +146,15 @@ export function renderIngestionScorecardPanel(options) {
       ? "Publish-ready candidates are the fastest quality gain right now."
       : duplicateCandidates > 0
         ? "Resolve duplicate drag next so sourcing throughput stays clean."
-        : staleTherapists > 0
-          ? "Freshness is the next bottleneck. Work the refresh lane."
-          : licensureRefreshCount > 0
-            ? "Licensure refresh is the next trust upgrade. Work the primary-source queue."
-            : thinCities > 0
-              ? "Coverage gaps are now the main opportunity. Run the next sourcing wave."
-              : "The graph looks healthy. Focus on strategic sourcing and trust upgrades.";
+        : lowLicensureCoverage
+          ? "Primary-source licensure coverage is still thin. Run a first-pass enrichment sprint before broader sourcing."
+          : staleTherapists > 0
+            ? "Freshness is the next bottleneck. Work the refresh lane."
+            : licensureRefreshCount > 0
+              ? "Licensure refresh is the next trust upgrade. Work the primary-source queue."
+              : thinCities > 0
+                ? "Coverage gaps are now the main opportunity. Run the next sourcing wave."
+                : "The graph looks healthy. Focus on strategic sourcing and trust upgrades.";
 
   function getTrendValue(current, previous) {
     if (previous == null || current == null) {
@@ -265,7 +268,7 @@ export function renderIngestionScorecardPanel(options) {
     latestAutomationRun && latestAutomationRun.trends ? latestAutomationRun.trends : null;
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">System health</div><div class="subtle" style="margin-bottom:0.7rem">Use this to understand whether the bottleneck is publish throughput, duplicate cleanup, confirmation, freshness, or graph coverage.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">System health</div><div class="subtle" style="margin-bottom:0.7rem">Use this to understand whether the bottleneck is publish throughput, duplicate cleanup, confirmation, freshness, licensure trust, or graph coverage.</div><div class="queue-insights-grid">' +
     scorecards
       .map(function (item) {
         return (
@@ -371,6 +374,14 @@ export function renderIngestionScorecardPanel(options) {
             );
           })
           .join("") +
+        "</div></div>"
+      : "") +
+    (lowLicensureCoverage
+      ? '<div class="queue-insights"><div class="queue-insights-title">Licensure trust gap</div><div class="mini-status"><strong>Coverage is thin:</strong> ' +
+        options.escapeHtml(
+          licensureCoverageRate +
+            "% of live therapists currently have cached primary-source licensure data. Prioritize a first-pass enrichment sprint before treating sourcing as the main lever.",
+        ) +
         "</div></div>"
       : "") +
     '<div class="queue-insights"><div class="queue-insights-title">What to do next</div><div class="mini-status"><strong>Primary bottleneck:</strong> ' +

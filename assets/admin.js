@@ -68,6 +68,7 @@ let applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
 let authRequired = false;
+let licensureQueueFilter = "";
 let rankingRiskFilter = "";
 let confirmationQueueFilter = "";
 let conciergeFilters = {
@@ -6888,6 +6889,11 @@ function renderLicensureQueue() {
     countEl: document.getElementById("licensureQueueCount"),
     authRequired: authRequired,
     rows: licensureRefreshQueue,
+    activeFilter: licensureQueueFilter,
+    onFilterChange: function (nextFilter) {
+      licensureQueueFilter = nextFilter;
+      renderLicensureQueue();
+    },
     escapeHtml: escapeHtml,
     copyText: copyText,
   });
@@ -7375,6 +7381,7 @@ function renderOpsInbox() {
     candidates: dataMode === "sanity" ? remoteCandidates : [],
     therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
     applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    licensureRefreshQueue: licensureRefreshQueue,
     getDataFreshnessSummary: getDataFreshnessSummary,
     getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
     getCandidateOpsEvidence: getCandidateOpsEvidence,
@@ -7391,6 +7398,7 @@ function renderOpsInbox() {
     formatFieldLabel: formatFieldLabel,
     formatDate: formatDate,
     escapeHtml: escapeHtml,
+    copyText: copyText,
     decideTherapistCandidate: decideTherapistCandidate,
     decideTherapistOps: decideTherapistOps,
     loadData: loadData,
