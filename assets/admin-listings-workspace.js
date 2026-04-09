@@ -26,6 +26,9 @@ export function createListingsWorkspace(options) {
     state: "",
     lane: "",
   };
+  var launchControlFlashMessage = "";
+  var launchControlFlashHistory = {};
+  var LAUNCH_CONTROL_FLASH_TTL_MS = 10 * 60 * 1000;
 
   function getRankingRiskMatches(therapist) {
     var freshness = getDataFreshnessSummary(therapist);
@@ -170,6 +173,47 @@ export function createListingsWorkspace(options) {
       updated_at: new Date().toISOString(),
     };
     writeLaunchProfileControlsState(all);
+  }
+
+  function setLaunchControlFlashMessage(message) {
+    launchControlFlashMessage = String(message || "").trim();
+  }
+
+  function setLaunchControlFlashHistory(slug, message) {
+    if (!slug) {
+      return;
+    }
+    var trimmed = String(message || "").trim();
+    if (!trimmed) {
+      delete launchControlFlashHistory[slug];
+      return;
+    }
+    launchControlFlashHistory[slug] = {
+      message: trimmed,
+      createdAt: Date.now(),
+    };
+  }
+
+  function getRecentLaunchControlFlashes(limit) {
+    var maxItems = Number(limit) > 0 ? Number(limit) : 3;
+    var now = Date.now();
+    return Object.entries(launchControlFlashHistory)
+      .map(function (entry) {
+        return {
+          slug: entry[0],
+          message: entry[1] && entry[1].message ? entry[1].message : "",
+          createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
+        };
+      })
+      .filter(function (entry) {
+        return (
+          entry.message && entry.createdAt && now - entry.createdAt <= LAUNCH_CONTROL_FLASH_TTL_MS
+        );
+      })
+      .sort(function (a, b) {
+        return b.createdAt - a.createdAt;
+      })
+      .slice(0, maxItems);
   }
 
   function getLaunchControlRows(therapists) {
@@ -682,6 +726,8 @@ export function createListingsWorkspace(options) {
       }
       return true;
     });
+    var topVisibleRow = visibleRows.length ? visibleRows[0] : null;
+    var recentLaunchFlashes = getRecentLaunchControlFlashes(3);
 
     root.innerHTML =
       '<div class="queue-insights"><div class="queue-insights-title">Launch control</div><div class="subtle" style="margin-bottom:0.7rem">Use launch state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
@@ -763,7 +809,27 @@ export function createListingsWorkspace(options) {
       (launchProfileFilters.state || launchProfileFilters.lane || rankingRiskFilter
         ? '<button class="btn-secondary" data-clear-launch-filters>Clear listing filters</button>'
         : "") +
-      '</div><div class="review-coach-status" id="launchControlStatus"></div></div>' +
+      '</div><div class="review-coach-status" id="launchControlStatus">' +
+      escapeHtml(launchControlFlashMessage) +
+      "</div></div>" +
+      (recentLaunchFlashes.length
+        ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
+          recentLaunchFlashes
+            .map(function (entry) {
+              var row = launchRows.find(function (candidate) {
+                return candidate.item && candidate.item.slug === entry.slug;
+              });
+              return (
+                '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+                escapeHtml(row && row.item ? row.item.name : entry.slug) +
+                '</strong></div><div class="queue-insight-note">' +
+                escapeHtml(entry.message) +
+                "</div></div>"
+              );
+            })
+            .join("") +
+          "</div></div>"
+        : "") +
       (underperformingFeaturedRows.length || promotionCandidateRows.length
         ? '<div class="queue-insights"><div class="queue-insights-title">Suggested launch moves</div><div class="queue-insights-grid">' +
           underperformingFeaturedRows
@@ -908,8 +974,18 @@ export function createListingsWorkspace(options) {
                 : recentConfirmation
                   ? "Earning a modest lift from recent specialist re-confirmation."
                   : "Ranking is currently driven more by profile quality than freshness.";
+          var isStartHere =
+            topVisibleRow && topVisibleRow.item && topVisibleRow.item.slug === item.slug;
           return (
-            '<div class="mini-card launch-mini-card"><div class="launch-card-main"><strong>' +
+            '<div class="mini-card launch-mini-card' +
+            (isStartHere ? " is-start-here" : "") +
+            '"' +
+            (isStartHere ? ' id="publishedListingsStartHere"' : "") +
+            '><div class="launch-card-main">' +
+            (isStartHere
+              ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this listing first. It is the top visible promotion or maintenance decision in the current listing view.</div><div class="start-here-action">Do this now: choose the simplest clear state for this profile, then decide whether it belongs in homepage, match-priority, or standard live rotation.</div>'
+              : "") +
+            "<strong>" +
             escapeHtml(item.name) +
             '</strong><div class="subtle">' +
             escapeHtml(item.city + ", " + item.state + " · " + item.credentials) +
@@ -952,6 +1028,23 @@ export function createListingsWorkspace(options) {
                 " profile opens",
             ) +
             "</div>" +
+            (isStartHere
+              ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary btn-inline" data-launch-quick-action="' +
+                escapeHtml(item.slug) +
+                '" data-launch-quick-mode="promote_launch_ready">Make launch-ready</button></div></div><div class="queue-actions secondary-actions">'
+              : '<div class="queue-actions" style="margin-top:0.75rem">') +
+            '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
+            escapeHtml(item.slug) +
+            '" data-launch-quick-mode="feature_homepage">Make featured</button>' +
+            (isStartHere
+              ? ""
+              : '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
+                escapeHtml(item.slug) +
+                '" data-launch-quick-mode="promote_launch_ready">Make launch-ready</button>') +
+            '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
+            escapeHtml(item.slug) +
+            '" data-launch-quick-mode="set_standard">Keep standard</button>' +
+            "</div>" +
             '</div><div class="launch-card-controls"><label class="queue-select-label" for="launch-state-' +
             escapeHtml(item.slug) +
             '">Launch state</label><select class="queue-select" id="launch-state-' +
@@ -980,7 +1073,7 @@ export function createListingsWorkspace(options) {
             escapeHtml(item.slug) +
             '"' +
             (control.match_priority ? " checked" : "") +
-            '> Match priority</label><a href="therapist.html?slug=' +
+            '> Match priority</label><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
             encodeURIComponent(item.slug) +
             '">Open profile</a></div></div>'
           );
@@ -1036,6 +1129,7 @@ export function createListingsWorkspace(options) {
         updateLaunchProfileControlEntry(select.getAttribute("data-launch-state"), {
           launch_state: select.value,
         });
+        setLaunchControlFlashMessage("Updated launch state for the selected profile.");
         renderListings();
       });
     });
@@ -1045,6 +1139,11 @@ export function createListingsWorkspace(options) {
         updateLaunchProfileControlEntry(input.getAttribute("data-launch-homepage"), {
           homepage_featured: input.checked,
         });
+        setLaunchControlFlashMessage(
+          input.checked
+            ? "Added profile to homepage featured lane."
+            : "Removed profile from homepage featured lane.",
+        );
         renderListings();
       });
     });
@@ -1054,6 +1153,55 @@ export function createListingsWorkspace(options) {
         updateLaunchProfileControlEntry(input.getAttribute("data-launch-match"), {
           match_priority: input.checked,
         });
+        setLaunchControlFlashMessage(
+          input.checked
+            ? "Added profile to match-priority lane."
+            : "Removed profile from match-priority lane.",
+        );
+        renderListings();
+      });
+    });
+
+    root.querySelectorAll("[data-launch-quick-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var slug = button.getAttribute("data-launch-quick-action") || "";
+        var mode = button.getAttribute("data-launch-quick-mode") || "";
+        if (!slug || !mode) {
+          return;
+        }
+        if (mode === "feature_homepage") {
+          updateLaunchProfileControlEntry(slug, {
+            launch_state: "featured",
+            homepage_featured: true,
+            match_priority: true,
+          });
+          setLaunchControlFlashMessage(
+            "Completed: profile promoted into featured homepage rotation.",
+          );
+          setLaunchControlFlashHistory(
+            slug,
+            "Completed: profile promoted into featured homepage rotation.",
+          );
+        } else if (mode === "promote_launch_ready") {
+          updateLaunchProfileControlEntry(slug, {
+            launch_state: "launch_ready",
+            homepage_featured: false,
+            match_priority: true,
+          });
+          setLaunchControlFlashMessage("Completed: profile promoted to launch-ready.");
+          setLaunchControlFlashHistory(slug, "Completed: profile promoted to launch-ready.");
+        } else if (mode === "set_standard") {
+          updateLaunchProfileControlEntry(slug, {
+            launch_state: "standard",
+            homepage_featured: false,
+            match_priority: false,
+          });
+          setLaunchControlFlashMessage("Completed: profile moved back to standard live rotation.");
+          setLaunchControlFlashHistory(
+            slug,
+            "Completed: profile moved back to standard live rotation.",
+          );
+        }
         renderListings();
       });
     });
@@ -1085,11 +1233,9 @@ export function createListingsWorkspace(options) {
         updateLaunchProfileControlEntry(slug, {
           launch_state: "launch_ready",
         });
+        setLaunchControlFlashMessage("Completed: profile promoted to launch-ready.");
+        setLaunchControlFlashHistory(slug, "Completed: profile promoted to launch-ready.");
         renderListings();
-        var status = root.querySelector("#launchControlStatus");
-        if (status) {
-          status.textContent = "Promoted profile to launch-ready.";
-        }
       });
     });
 
@@ -1120,6 +1266,7 @@ export function createListingsWorkspace(options) {
         rankingRiskFilter = "";
         launchProfileFilters.state = "";
         launchProfileFilters.lane = "";
+        setLaunchControlFlashMessage("");
         renderListings();
       });
     }
@@ -1130,6 +1277,7 @@ export function createListingsWorkspace(options) {
         rankingRiskFilter = "";
         launchProfileFilters.state = "";
         launchProfileFilters.lane = "";
+        setLaunchControlFlashMessage("");
         renderListings();
       });
     }

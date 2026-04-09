@@ -1,4 +1,8 @@
-import { bindApplicationPanelInteractions } from "./admin-application-actions.js";
+import {
+  bindApplicationPanelInteractions,
+  getApplicationActionFlash,
+  getRecentApplicationActionFlashes,
+} from "./admin-application-actions.js";
 
 export function renderApplicationsPanel(options) {
   const applications =
@@ -95,15 +99,41 @@ export function renderApplicationsPanel(options) {
 
   if (!applications.length) {
     root.innerHTML =
-      '<div class="empty">No applications yet. Submit one through the signup page to test the workflow.</div>';
+      '<div class="empty"><strong>No applications to review right now.</strong><br />The application queue is empty, so there is nothing for an operator to process in this lane yet.<div style="margin-top:0.8rem"><a class="btn-secondary btn-inline" href="#candidateQueuePanel">Go to Add New Listings instead</a></div></div>';
     return;
   }
 
   if (!filteredApplications.length) {
     root.innerHTML =
-      '<div class="empty">' +
+      '<div class="empty"><strong>No applications match this view.</strong><br />' +
       options.escapeHtml(options.getApplicationEmptyStateCopy(options.applicationFilters.goal)) +
-      "</div>";
+      '<div style="margin-top:0.8rem"><button class="btn-secondary btn-inline" type="button" id="applicationEmptyClearFilters">Clear review filters</button></div></div>';
+    var emptyClearFilters = document.getElementById("applicationEmptyClearFilters");
+    if (emptyClearFilters) {
+      emptyClearFilters.addEventListener("click", function () {
+        options.applicationFilters.q = "";
+        options.applicationFilters.status = "";
+        options.applicationFilters.focus = "";
+        options.applicationFilters.goal = "balanced";
+        var search = document.getElementById("applicationSearch");
+        var status = document.getElementById("applicationStatusFilter");
+        var focus = document.getElementById("applicationFocusFilter");
+        var goal = document.getElementById("applicationReviewGoal");
+        if (search) {
+          search.value = "";
+        }
+        if (status) {
+          status.value = "";
+        }
+        if (focus) {
+          focus.value = "";
+        }
+        if (goal) {
+          goal.value = "balanced";
+        }
+        renderApplicationsPanel(options);
+      });
+    }
     return;
   }
 
@@ -175,6 +205,7 @@ export function renderApplicationsPanel(options) {
   const claimConversionRate = claimFunnel.approved
     ? (claimFunnel.fullProfileSubmitted / claimFunnel.approved) * 100
     : 0;
+  const recentActionFlashes = getRecentApplicationActionFlashes(3);
   const claimRates = {
     approvalRate: claimApprovalRate,
     followUpRate: claimFollowUpRate,
@@ -194,6 +225,24 @@ export function renderApplicationsPanel(options) {
     .slice(0, 3);
 
   root.innerHTML =
+    (recentActionFlashes.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
+        recentActionFlashes
+          .map(function (entry) {
+            const application = applications.find(function (item) {
+              return item.id === entry.id;
+            });
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              options.escapeHtml(application && application.name ? application.name : entry.id) +
+              '</strong></div><div class="queue-insight-note">' +
+              options.escapeHtml(entry.message) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
     options.escapeHtml(claimBottleneck) +
     '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="stalled_after_claim_review">Show stalled reviews</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="launch">Copy fast-track supply batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="stalled">Copy stalled review batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
@@ -512,7 +561,7 @@ export function renderApplicationsPanel(options) {
         "</div></div>"
       : "") +
     filteredApplications
-      .map(function (item) {
+      .map(function (item, index) {
         const readiness = options.getTherapistMatchReadiness(item);
         const freshness = options.getDataFreshnessSummary(item);
         const coaching = options.getTherapistReviewCoaching(item);
@@ -537,6 +586,7 @@ export function renderApplicationsPanel(options) {
         const improvementRequest = options.buildImprovementRequest(item, coaching);
         const claimRequest = options.buildClaimReviewRequest(item);
         const claimFollowUpMessage = options.buildClaimFollowUpMessage(item);
+        const reviewEvents = options.getReviewEventsForApplication(item);
         const revisionLink = new URL(
           "signup.html?revise=" + encodeURIComponent(item.id),
           window.location.href,
@@ -571,7 +621,7 @@ export function renderApplicationsPanel(options) {
             ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
               item.id +
               '">' +
-              (isClaimFlow ? "Start claim review" : "Mark Reviewing") +
+              (isClaimFlow ? "Start review now" : "Start review now") +
               '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
               item.id +
               '" data-request="' +
@@ -579,13 +629,13 @@ export function renderApplicationsPanel(options) {
               '" data-link="' +
               options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
               '">' +
-              (isClaimFlow ? "Request claim fixes" : "Request Changes") +
+              (isClaimFlow ? "Request fixes" : "Request fixes") +
               '</button><button class="btn-primary" data-action="' +
               (isClaimFlow ? "approve_claim" : "publish") +
               '" data-id="' +
               item.id +
               '">' +
-              (isClaimFlow ? "Approve claim" : "Publish") +
+              (isClaimFlow ? "Approve claim now" : "Publish now") +
               '</button><button class="btn-secondary" data-action="reject" data-id="' +
               item.id +
               '">Reject</button>'
@@ -595,7 +645,7 @@ export function renderApplicationsPanel(options) {
                 '" data-id="' +
                 item.id +
                 '">' +
-                (isClaimFlow ? "Approve claim" : "Publish") +
+                (isClaimFlow ? "Approve claim now" : "Publish now") +
                 '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
                 item.id +
                 '" data-request="' +
@@ -603,7 +653,7 @@ export function renderApplicationsPanel(options) {
                 '" data-link="' +
                 options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
                 '">' +
-                (isClaimFlow ? "Request claim fixes" : "Request Changes") +
+                (isClaimFlow ? "Request fixes" : "Request fixes") +
                 '</button><button class="btn-secondary" data-action="pending" data-id="' +
                 item.id +
                 '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
@@ -619,7 +669,7 @@ export function renderApplicationsPanel(options) {
                     ? "Copy confirmation link"
                     : isClaimFlow
                       ? "Copy claim fix link"
-                      : "Copy revision link") +
+                      : "Copy fix request link") +
                   '</button><button class="btn-secondary" data-action="pending" data-id="' +
                   item.id +
                   '">Move to Pending</button>'
@@ -632,14 +682,34 @@ export function renderApplicationsPanel(options) {
                         item.id +
                         '" data-link="' +
                         options.escapeHtml(revisionLink) +
-                        '">Copy full-profile link</button>'
+                        '">Copy full-profile invite</button>'
                       : "")
                   : '<span class="status ' + item.status + '">' + item.status + "</span>";
+        const primaryActionHtml =
+          item.status === "pending" || item.status === "reviewing"
+            ? '<button class="btn-primary" data-action="' +
+              (isClaimFlow ? "approve_claim" : "publish") +
+              '" data-id="' +
+              item.id +
+              '">' +
+              (isClaimFlow ? "Approve claim now" : "Publish now") +
+              "</button>"
+            : "";
+        const secondaryActions =
+          index === 0 && primaryActionHtml ? actions.replace(primaryActionHtml, "") : actions;
+        const actionFlash = getApplicationActionFlash(item.id);
 
         return (
-          '<article class="application-card" data-application-card-id="' +
+          '<article class="application-card' +
+          (index === 0 ? " is-start-here" : "") +
+          '" data-application-card-id="' +
           options.escapeHtml(item.id) +
-          '">' +
+          '"' +
+          (index === 0 ? ' id="applicationReviewStartHere"' : "") +
+          ">" +
+          (index === 0
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this application first. It is the top review target for the current goal and filters.</div><div class="start-here-action">Do this now: review trust-critical details first, then approve, request changes, reject, or publish before leaving the card.</div>'
+            : "") +
           '<div class="application-head"><div><h3>' +
           options.escapeHtml(item.name) +
           '</h3><p class="subtle">' +
@@ -820,9 +890,16 @@ export function renderApplicationsPanel(options) {
           options.escapeHtml(item.upgrade_eligible ? "Yes" : "Not yet") +
           "</div>" +
           "</div>" +
-          '<div class="action-row">' +
-          actions +
+          (index === 0 && primaryActionHtml
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row">' +
+              primaryActionHtml +
+              '</div></div><div class="action-row secondary-actions">'
+            : '<div class="action-row">') +
+          secondaryActions +
           "</div>" +
+          (actionFlash
+            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
+            : "") +
           '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +
           (item.portal_state === "claimed_ready_for_profile"
             ? '<div class="notes-box"><label><strong>Approved-claim follow-up</strong></label><div class="subtle"><strong>Status:</strong> ' +
@@ -944,6 +1021,18 @@ export function renderApplicationsPanel(options) {
               '">Ready to reuse</span></div>' +
               "</div></div>"
             : "") +
+          options.renderReviewEventSnippetHtml(reviewEvents, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
+          options.renderReviewEventTimelineHtml(reviewEvents, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
+          options.renderReviewEntityTaskHtml("application", item.id, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
           options.buildRevisionHistoryHtml(item) +
           '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
           item.id +

@@ -89,13 +89,15 @@ export function parseAuthorizationHeader(request) {
   return match ? match[1] : "";
 }
 
-export function createSignedSession(config) {
+export function createSignedSession(config, claims) {
+  const extraClaims = claims && typeof claims === "object" ? claims : {};
   return createSignedPayload(
     {
       sub: "admin",
       iat: Date.now(),
       exp: Date.now() + config.sessionTtlMs,
       nonce: crypto.randomBytes(12).toString("hex"),
+      ...extraClaims,
     },
     config.sessionSecret,
   );
@@ -151,6 +153,22 @@ export function isAuthorized(request, config) {
 
   const requestKey = request.headers["x-admin-key"];
   return typeof requestKey === "string" && requestKey === config.adminKey;
+}
+
+export function getAuthorizedActor(request, config) {
+  const sessionPayload = readSignedSession(parseAuthorizationHeader(request), config);
+  if (sessionPayload) {
+    return String(sessionPayload.username || sessionPayload.actorName || "admin").trim() || "admin";
+  }
+
+  if (config.allowLegacyKey && config.adminKey) {
+    const requestKey = request.headers["x-admin-key"];
+    if (typeof requestKey === "string" && requestKey === config.adminKey) {
+      return "legacy-admin-key";
+    }
+  }
+
+  return "";
 }
 
 export function parseBody(request, maxRequestBodyBytes) {

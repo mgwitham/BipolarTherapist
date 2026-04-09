@@ -15,6 +15,7 @@ export async function handleOpsRoutes(context) {
     buildLicensureOpsEvent,
     buildTherapistOpsEvent,
     computeTherapistVerificationMeta,
+    getAuthorizedActor,
     isAuthorized,
     parseBody,
     sendJson,
@@ -35,6 +36,7 @@ export async function handleOpsRoutes(context) {
     }
 
     const body = await parseBody(request);
+    const actorName = getAuthorizedActor(request, config) || "admin";
     const decision = String(body.decision || "").trim();
     const notes = String(body.notes || "").trim();
     const allowedDecisions = new Set(["mark_reviewed", "snooze_7d", "snooze_30d"]);
@@ -94,6 +96,8 @@ export async function handleOpsRoutes(context) {
       buildTherapistOpsEvent(therapist, {
         eventType,
         decision,
+        actorName,
+        rationale: notes,
         notes,
         changedFields,
       }),
@@ -120,6 +124,7 @@ export async function handleOpsRoutes(context) {
     }
 
     const body = await parseBody(request);
+    const actorName = getAuthorizedActor(request, config) || "admin";
     const decision = String(body.decision || "").trim();
     const notes = String(body.notes || "").trim();
     const allowedDecisions = new Set(["snooze_7d", "snooze_30d", "unsnooze_now"]);
@@ -162,6 +167,8 @@ export async function handleOpsRoutes(context) {
       buildLicensureOpsEvent(record, {
         eventType,
         decision,
+        actorName,
+        rationale: notes,
         notes,
         changedFields,
       }),

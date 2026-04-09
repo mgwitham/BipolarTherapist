@@ -1,5 +1,6 @@
 import http from "node:http";
-import { createReviewApiHandler, getReviewApiConfig } from "./review-handler.mjs";
+import { getReviewApiConfig } from "./review-config.mjs";
+import { createReviewApiHandler } from "./review-handler.mjs";
 
 async function makeServer() {
   const config = getReviewApiConfig();

@@ -1,3 +1,58 @@
+const applicationActionFlash = {};
+const APPLICATION_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
+
+export function getApplicationActionFlash(id) {
+  if (!id || !applicationActionFlash[id]) {
+    return "";
+  }
+  const entry = applicationActionFlash[id];
+  if (!entry.message) {
+    return "";
+  }
+  if (!entry.createdAt || Date.now() - entry.createdAt > APPLICATION_ACTION_FLASH_TTL_MS) {
+    delete applicationActionFlash[id];
+    return "";
+  }
+  return entry.message;
+}
+
+export function setApplicationActionFlash(id, message) {
+  if (!id) {
+    return;
+  }
+  const trimmed = String(message || "").trim();
+  if (!trimmed) {
+    delete applicationActionFlash[id];
+    return;
+  }
+  applicationActionFlash[id] = {
+    message: trimmed,
+    createdAt: Date.now(),
+  };
+}
+
+export function getRecentApplicationActionFlashes(limit) {
+  const maxItems = Number(limit) > 0 ? Number(limit) : 3;
+  const now = Date.now();
+  return Object.entries(applicationActionFlash)
+    .map(function (entry) {
+      return {
+        id: entry[0],
+        message: entry[1] && entry[1].message ? entry[1].message : "",
+        createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
+      };
+    })
+    .filter(function (entry) {
+      return (
+        entry.message && entry.createdAt && now - entry.createdAt <= APPLICATION_ACTION_FLASH_TTL_MS
+      );
+    })
+    .sort(function (a, b) {
+      return b.createdAt - a.createdAt;
+    })
+    .slice(0, maxItems);
+}
+
 export function bindApplicationPanelInteractions(root, options) {
   if (!root) {
     return;
@@ -142,7 +197,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Revision link copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: fix request link copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: fix request link copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -152,7 +215,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Improvement request copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: fix request copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: fix request copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -162,7 +233,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Claim follow-up email copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: claim follow-up copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: claim follow-up copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -172,7 +251,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              appended ? "Added to notes. Save notes when ready." : "Could not find notes field",
+              appended
+                ? "Completed: fix request added to notes. Save notes when ready."
+                : "Could not find notes field",
+            );
+            setApplicationActionFlash(
+              id,
+              appended
+                ? "Completed: fix request added to notes. Save notes when ready."
+                : "Could not find notes field",
             );
             return;
           }
@@ -222,13 +309,45 @@ export function bindApplicationPanelInteractions(root, options) {
             });
           }
           await options.loadData();
+          var successMessage =
+            action === "approve_claim"
+              ? "Completed: claim approved and moved forward."
+              : action === "mark-claim-follow-up-sent"
+                ? "Completed: follow-up marked sent."
+                : action === "mark-claim-follow-up-responded"
+                  ? "Completed: therapist reply recorded."
+                  : action === "mark-full-profile-started"
+                    ? "Completed: full-profile start recorded."
+                    : action === "publish"
+                      ? "Completed: application approved for publish."
+                      : action === "reject"
+                        ? "Completed: application rejected."
+                        : action === "reviewing"
+                          ? "Completed: application moved into active review."
+                          : action === "requested_changes"
+                            ? "Completed: fixes requested from therapist."
+                            : action === "pending"
+                              ? "Completed: application moved back to pending."
+                              : action === "save-notes"
+                                ? "Completed: notes saved on this application."
+                                : "";
+          options.setCoachActionStatus(root, id, successMessage);
+          setApplicationActionFlash(id, successMessage);
         } else {
           if (action === "copy-revision-link") {
             const copied = await options.copyText(button.getAttribute("data-link") || "");
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Revision link copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: fix request link copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: fix request link copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -238,7 +357,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Improvement request copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: fix request copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: fix request copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -248,7 +375,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              copied ? "Claim follow-up email copied" : "Copy failed on this browser",
+              copied
+                ? "Completed: claim follow-up copied for this application."
+                : "Copy failed on this browser",
+            );
+            setApplicationActionFlash(
+              id,
+              copied
+                ? "Completed: claim follow-up copied for this application."
+                : "Copy failed on this browser",
             );
             return;
           }
@@ -258,7 +393,15 @@ export function bindApplicationPanelInteractions(root, options) {
             options.setCoachActionStatus(
               root,
               id,
-              appended ? "Added to notes. Save notes when ready." : "Could not find notes field",
+              appended
+                ? "Completed: fix request added to notes. Save notes when ready."
+                : "Could not find notes field",
+            );
+            setApplicationActionFlash(
+              id,
+              appended
+                ? "Completed: fix request added to notes. Save notes when ready."
+                : "Could not find notes field",
             );
             return;
           }
@@ -287,6 +430,24 @@ export function bindApplicationPanelInteractions(root, options) {
           if (action === "publish") options.publishApplication(id);
           if (action === "reject") options.rejectApplication(id);
           options.renderAll();
+          var offlineSuccessMessage =
+            action === "requested_changes"
+              ? "Completed: fixes requested from therapist."
+              : action === "approve_claim"
+                ? "Completed: claim approved and moved forward."
+                : action === "mark-claim-follow-up-sent"
+                  ? "Completed: follow-up marked sent."
+                  : action === "mark-claim-follow-up-responded"
+                    ? "Completed: therapist reply recorded."
+                    : action === "mark-full-profile-started"
+                      ? "Completed: full-profile start recorded."
+                      : action === "publish"
+                        ? "Completed: application published."
+                        : action === "reject"
+                          ? "Completed: application rejected."
+                          : "";
+          options.setCoachActionStatus(root, id, offlineSuccessMessage);
+          setApplicationActionFlash(id, offlineSuccessMessage);
         }
       } finally {
         button.disabled = false;
@@ -303,6 +464,7 @@ export function bindApplicationPanelInteractions(root, options) {
           input.checked = true;
         });
       options.setApplyLiveFieldsStatus(root, id, "Selected all changed fields.");
+      setApplicationActionFlash(id, "Prepared: all changed fields selected for live apply.");
     });
   });
 
@@ -325,7 +487,13 @@ export function bindApplicationPanelInteractions(root, options) {
         root,
         id,
         trustInputs.length
-          ? "Selected the highest-value trust-critical changes."
+          ? "Prepared: trust-critical changes selected for live apply."
+          : "No trust-critical changed fields are currently available.",
+      );
+      setApplicationActionFlash(
+        id,
+        trustInputs.length
+          ? "Prepared: trust-critical changes selected for live apply."
           : "No trust-critical changed fields are currently available.",
       );
     });
@@ -342,6 +510,7 @@ export function bindApplicationPanelInteractions(root, options) {
 
       if (!selectedFields.length) {
         options.setApplyLiveFieldsStatus(root, id, "Select at least one changed field first.");
+        setApplicationActionFlash(id, "Select at least one changed field first.");
         return;
       }
 
@@ -364,7 +533,17 @@ export function bindApplicationPanelInteractions(root, options) {
             id,
             applySummary
               ? applySummary.message
-              : "Applied " +
+              : "Completed: applied " +
+                  selectedFields.length +
+                  " selected field" +
+                  (selectedFields.length === 1 ? "" : "s") +
+                  " to the live profile.",
+          );
+          setApplicationActionFlash(
+            id,
+            applySummary
+              ? applySummary.message
+              : "Completed: applied " +
                   selectedFields.length +
                   " selected field" +
                   (selectedFields.length === 1 ? "" : "s") +
@@ -376,10 +555,15 @@ export function bindApplicationPanelInteractions(root, options) {
             id,
             "Live field application is only available in Sanity mode.",
           );
+          setApplicationActionFlash(id, "Live field application is only available in Sanity mode.");
         }
       } catch (error) {
         options.setApplyLiveFieldsStatus(
           root,
+          id,
+          error && error.message ? error.message : "Could not apply selected fields.",
+        );
+        setApplicationActionFlash(
           id,
           error && error.message ? error.message : "Could not apply selected fields.",
         );

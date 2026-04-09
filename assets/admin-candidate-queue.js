@@ -110,7 +110,7 @@ export function renderCandidateQueuePanel(options) {
     "</div></div>" +
     (filtered.length ? "" : '<div class="empty">No candidates match the current filters.</div>') +
     filtered
-      .map(function (item) {
+      .map(function (item, index) {
         const location = [item.city, item.state, item.zip]
           .filter(Boolean)
           .join(", ")
@@ -140,9 +140,17 @@ export function renderCandidateQueuePanel(options) {
                 : "Needs a review decision.";
 
         return (
-          '<article class="queue-card" data-candidate-card-id="' +
+          '<article class="queue-card' +
+          (index === 0 ? " is-start-here" : "") +
+          '" data-candidate-card-id="' +
           options.escapeHtml(item.id) +
-          '"><div class="queue-head"><div><h3>' +
+          '"' +
+          (index === 0 ? ' id="candidateQueueStartHere"' : "") +
+          '">' +
+          (index === 0
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this candidate first. It is the top current supply decision in the filtered queue.</div><div class="start-here-action">Do this now: check for duplicates, review the source trail, and decide publish, confirmation, merge, or archive.</div>'
+            : "") +
+          '<div class="queue-head"><div><h3>' +
           options.escapeHtml(item.name || "Unnamed candidate") +
           '</h3><div class="subtle">' +
           options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
@@ -216,8 +224,21 @@ export function renderCandidateQueuePanel(options) {
           }) +
           mergeWorkbench +
           mergePreview +
-          '<div class="queue-actions">' +
-          options.buildCandidateDecisionActions(item) +
+          (index === 0
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary" data-candidate-decision="' +
+              options.escapeHtml(item.id) +
+              '" data-candidate-next="publish">Publish now</button></div></div><div class="queue-actions secondary-actions">'
+            : '<div class="queue-actions">') +
+          (index === 0
+            ? options
+                .buildCandidateDecisionActions(item)
+                .replace(
+                  '<button class="btn-primary" data-candidate-decision="' +
+                    options.escapeHtml(item.id) +
+                    '" data-candidate-next="publish">Publish now</button>',
+                  "",
+                )
+            : options.buildCandidateDecisionActions(item)) +
           (item.source_url
             ? '<a class="btn-secondary btn-inline" href="' +
               options.escapeHtml(item.source_url) +

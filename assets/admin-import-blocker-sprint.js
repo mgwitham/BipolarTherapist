@@ -81,7 +81,15 @@ export function renderImportBlockerSprintPanel(options) {
             return row.slug === item.slug;
           }) || null;
         return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          '<article class="queue-card' +
+          (index === 0 ? " is-start-here" : "") +
+          '"' +
+          (index === 0 ? ' id="importBlockerStartHere"' : "") +
+          ">" +
+          (index === 0
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this blocker first. Clearing it gives the fastest path to unlocking the strict safe-import gate.</div><div class="start-here-action">Do this now: clear the first source-verifiable blocker field, or move the profile into confirmation if therapist input is required.</div>'
+            : "") +
+          '<div class="queue-head"><div><h3>' +
           options.escapeHtml(String(index + 1) + ". " + item.name) +
           '</h3><div class="subtle">' +
           options.escapeHtml(
@@ -129,9 +137,19 @@ export function renderImportBlockerSprintPanel(options) {
           options.escapeHtml(
             options.getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, ""),
           ) +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-import-blocker-copy="' +
-          options.escapeHtml(item.slug) +
-          '">Copy blocker request</button><button class="btn-secondary" data-import-blocker-link="' +
+          "</div>" +
+          (index === 0
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary" data-import-blocker-copy="' +
+              options.escapeHtml(item.slug) +
+              '">' +
+              options.escapeHtml(
+                workflow.status === "waiting_on_therapist"
+                  ? "Copy follow-up blocker request"
+                  : "Copy blocker request and mark sent",
+              ) +
+              '</button></div></div><div class="queue-actions secondary-actions">'
+            : '<div class="queue-actions">') +
+          '<button class="btn-secondary" data-import-blocker-link="' +
           options.escapeHtml(item.slug) +
           '">Copy confirmation link</button><button class="btn-secondary" data-import-blocker-show-queue="' +
           options.escapeHtml(item.slug) +

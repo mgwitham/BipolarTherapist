@@ -32,8 +32,12 @@ export function getNextBestAdminActions(options) {
       headline: "Apply confirmed therapist values",
       title: confirmedEntry.item.name,
       detail: "A therapist-confirmed profile update is ready to move back into the live listing.",
+      firstStep:
+        "Open the confirmed row, review the therapist-provided values, and apply them to the live profile.",
+      whyNow: "This is the fastest trust win because the answer is already confirmed.",
+      successState: "The live listing reflects the confirmed values and leaves the apply queue.",
       actionLabel: "Open confirmation queue",
-      targetId: "confirmationQueue",
+      targetId: "confirmationQueueSection",
       confirmationFilter: "confirmed",
     });
   }
@@ -63,12 +67,26 @@ export function getNextBestAdminActions(options) {
         (blockerFieldCount
           ? " with " + blockerFieldCount + " unresolved trust-critical fields."
           : "."),
+      firstStep:
+        blockerStatus === "waiting_on_therapist"
+          ? "Open the profile, check the latest reply or outreach state, and decide whether to confirm, apply, or follow up."
+          : "Open the top blocked profile and clear the first trust-critical field you can verify confidently.",
+      whyNow:
+        blockerStatus === "waiting_on_therapist"
+          ? "A high-value listing is already in motion and needs a follow-up decision."
+          : "Clearing this blocker unlocks safer import and stronger live trust fastest.",
+      successState:
+        blockerStatus === "waiting_on_therapist"
+          ? "The profile moves to confirmed, applied, or a clearly paused follow-up state."
+          : "The blocker is cleared or moved into a tracked confirmation workflow.",
       actionLabel:
         blockerStatus === "waiting_on_therapist"
           ? "Open confirmation queue"
           : "Open blocker sprint",
       targetId:
-        blockerStatus === "waiting_on_therapist" ? "confirmationQueue" : "importBlockerSprint",
+        blockerStatus === "waiting_on_therapist"
+          ? "confirmationQueueSection"
+          : "importBlockerSprintSection",
       confirmationFilter:
         blockerStatus === "waiting_on_therapist" ? "waiting_on_therapist" : undefined,
     });
@@ -100,14 +118,30 @@ export function getNextBestAdminActions(options) {
       detail: topConfirmation.agenda
         ? topConfirmation.agenda.summary
         : "A live profile still needs therapist-confirmed operational truth.",
+      firstStep:
+        confirmationStatus === "waiting_on_therapist"
+          ? "Open the profile, review any response, and record the next confirmation state."
+          : confirmationStatus === "sent"
+            ? "Open the in-flight row and decide whether it needs a follow-up or should stay waiting."
+            : "Open the next profile in the sprint and send the first confirmation request.",
+      whyNow:
+        confirmationStatus === "waiting_on_therapist"
+          ? "A reply or follow-up judgment is likely the next fastest trust unlock."
+          : confirmationStatus === "sent"
+            ? "This work is already in flight, so nudging it forward compounds quickly."
+            : "Starting the next confirmation keeps trust-critical unknowns from piling up.",
+      successState:
+        confirmationStatus === "waiting_on_therapist" || confirmationStatus === "sent"
+          ? "The profile lands in waiting, confirmed, or applied with an accurate status."
+          : "The next therapist is moved from not-started into an active outreach state.",
       actionLabel:
         confirmationStatus === "waiting_on_therapist" || confirmationStatus === "sent"
           ? "Open confirmation queue"
           : "Open confirmation sprint",
       targetId:
         confirmationStatus === "waiting_on_therapist" || confirmationStatus === "sent"
-          ? "confirmationQueue"
-          : "confirmationSprint",
+          ? "confirmationQueueSection"
+          : "confirmationSprintSection",
       confirmationFilter:
         confirmationStatus === "waiting_on_therapist"
           ? "waiting_on_therapist"
@@ -124,6 +158,11 @@ export function getNextBestAdminActions(options) {
       headline: topClaimAction.lane || "Advance application review",
       title: topClaimAction.title,
       detail: topClaimAction.note || "A pending application action is slowing supply.",
+      firstStep:
+        "Open the application, review trust-critical details first, and choose the next explicit state before leaving it.",
+      whyNow: "Pending application decisions are one of the fastest ways to create new supply.",
+      successState:
+        "The application leaves pending review with a concrete state change or follow-up.",
       actionLabel: "Open review queue",
       targetId: "applicationsPanel",
       applicationStatus: "pending",
@@ -162,8 +201,12 @@ export function getNextBestAdminActions(options) {
         refreshCandidate.trustAttentionCount > 0
           ? "Trust or freshness issues are starting to weaken this listing."
           : "Operational details are aging enough to justify a refresh pass.",
+      firstStep:
+        "Open the listing, verify what is stale from source material, and either refresh it or move it into confirmation.",
+      whyNow: "Refreshing before drift gets worse protects listing quality and conversion trust.",
+      successState: "The listing is refreshed, queued for confirmation, or deferred with a reason.",
       actionLabel: "Open refresh queue",
-      targetId: "refreshQueue",
+      targetId: "refreshQueueSection",
     });
   }
 
@@ -204,8 +247,12 @@ export function getNextBestAdminActions(options) {
       headline: "Review a launch-ready promotion candidate",
       title: launchCandidate.item.name,
       detail: "This listing looks strong enough to consider for a launch-ready or featured lane.",
+      firstStep:
+        "Open the listing controls, check trust and freshness one more time, then decide whether to promote or leave it as standard.",
+      whyNow: "A strong listing is ready for visibility gains without extra trust cleanup first.",
+      successState: "The profile is promoted, left as-is intentionally, or routed to the next fix.",
       actionLabel: "Open listings control",
-      targetId: "publishedListings",
+      targetId: "publishedListingsSection",
     });
   }
 

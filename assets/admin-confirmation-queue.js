@@ -1,3 +1,60 @@
+const confirmationActionFlash = {};
+const CONFIRMATION_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
+
+function getConfirmationActionFlash(id) {
+  if (!id || !confirmationActionFlash[id]) {
+    return "";
+  }
+  const entry = confirmationActionFlash[id];
+  if (!entry.message) {
+    return "";
+  }
+  if (!entry.createdAt || Date.now() - entry.createdAt > CONFIRMATION_ACTION_FLASH_TTL_MS) {
+    delete confirmationActionFlash[id];
+    return "";
+  }
+  return entry.message;
+}
+
+function setConfirmationActionFlash(id, message) {
+  if (!id) {
+    return;
+  }
+  const trimmed = String(message || "").trim();
+  if (!trimmed) {
+    delete confirmationActionFlash[id];
+    return;
+  }
+  confirmationActionFlash[id] = {
+    message: trimmed,
+    createdAt: Date.now(),
+  };
+}
+
+function getRecentConfirmationActionFlashes(limit) {
+  const maxItems = Number(limit) > 0 ? Number(limit) : 3;
+  const now = Date.now();
+  return Object.entries(confirmationActionFlash)
+    .map(function (entry) {
+      return {
+        slug: entry[0],
+        message: entry[1] && entry[1].message ? entry[1].message : "",
+        createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
+      };
+    })
+    .filter(function (entry) {
+      return (
+        entry.message &&
+        entry.createdAt &&
+        now - entry.createdAt <= CONFIRMATION_ACTION_FLASH_TTL_MS
+      );
+    })
+    .sort(function (a, b) {
+      return b.createdAt - a.createdAt;
+    })
+    .slice(0, maxItems);
+}
+
 export function renderConfirmationQueuePanel(options) {
   const root = options.root;
   const statusFilter = options.statusFilter;
@@ -26,6 +83,7 @@ export function renderConfirmationQueuePanel(options) {
     );
   });
   const readyQueueRows = options.buildConfirmationApplyCsvRows(queue);
+  const recentFlashes = getRecentConfirmationActionFlashes(3);
 
   if (countLabel) {
     countLabel.textContent =
@@ -50,17 +108,38 @@ export function renderConfirmationQueuePanel(options) {
   }
 
   root.innerHTML =
+    (recentFlashes.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
+        recentFlashes
+          .map(function (entry) {
+            const queueEntry = queue.find(function (row) {
+              return row.item && row.item.slug === entry.slug;
+            });
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+              options.escapeHtml(
+                queueEntry && queueEntry.item ? queueEntry.item.name : entry.slug,
+              ) +
+              '</strong></div><div class="queue-insight-note">' +
+              options.escapeHtml(entry.message) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     '<div class="queue-actions" style="margin-bottom:0.8rem">' +
     (readyQueueRows.length
       ? '<button class="btn-secondary" data-confirmation-queue-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-queue-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-queue-export="apply-checklist">Copy apply checklist</button>'
       : "") +
     '</div><div class="review-coach-status" id="confirmationQueueExportStatus"></div>' +
     filteredQueue
-      .map(function (entry) {
+      .map(function (entry, index) {
         const item = entry.item;
         const agenda = entry.agenda;
         const confirmationLink = options.buildConfirmationLink(item.slug);
         const workflow = options.getConfirmationQueueEntry(item.slug);
+        const actionFlash = getConfirmationActionFlash(item.slug);
         const orderedUnknownFields = options.getPreferredFieldOrder(
           agenda.unknown_fields || [],
           preferredPrimaryField,
@@ -68,7 +147,15 @@ export function renderConfirmationQueuePanel(options) {
         const primaryAskField = orderedUnknownFields[0] || "";
         const addOnAskFields = orderedUnknownFields.slice(1);
         return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          '<article class="queue-card' +
+          (index === 0 ? " is-start-here" : "") +
+          '"' +
+          (index === 0 ? ' id="confirmationQueueStartHere"' : "") +
+          ">" +
+          (index === 0
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Begin with this profile. It is the highest-priority item in the current confirmation view.</div><div class="start-here-action">Do this now: update the confirmation status, then either send the request, capture the reply, or apply confirmed values.</div>'
+            : "") +
+          '<div class="queue-head"><div><h3>' +
           options.escapeHtml(item.name) +
           '</h3><div class="subtle">' +
           options.escapeHtml(options.formatStatusLabel(agenda.priority) + " priority") +
@@ -141,23 +228,45 @@ export function renderConfirmationQueuePanel(options) {
               return '<div class="queue-shortlist-item">' + options.escapeHtml(ask) + "</div>";
             })
             .join("") +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
+          "</div>" +
+          (index === 0
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary" data-confirmation-copy="' +
+              options.escapeHtml(item.slug) +
+              '">' +
+              options.escapeHtml(
+                workflow.status === "confirmed" || workflow.status === "applied"
+                  ? "Copy updated confirmation request"
+                  : workflow.status === "waiting_on_therapist" || workflow.status === "sent"
+                    ? "Copy follow-up request and mark sent"
+                    : "Copy first request and mark sent",
+              ) +
+              '</button></div></div><div class="queue-actions secondary-actions">'
+            : '<div class="queue-actions">') +
+          '<button class="btn-secondary" data-confirmation-link="' +
           options.escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
-          options.escapeHtml(item.slug) +
-          '">Copy confirmation link</button>' +
+          '">' +
+          options.escapeHtml(
+            workflow.status === "waiting_on_therapist" || workflow.status === "sent"
+              ? "Copy follow-up link"
+              : "Copy confirmation link",
+          ) +
+          "</button>" +
           (workflow.status === "confirmed" || workflow.status === "applied"
             ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
               options.escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
+              '">Copy live update brief</button>'
             : "") +
           '<button class="btn-secondary" data-confirmation-checklist="' +
           options.escapeHtml(item.slug) +
-          '">Copy internal checklist</button><a class="btn-secondary btn-inline" href="' +
+          '">Copy operator checklist</button><a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(confirmationLink) +
           '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
           encodeURIComponent(item.slug) +
-          '">Open profile</a></div><div class="review-coach-status" data-confirmation-status-id="' +
+          '">Open profile</a></div>' +
+          (actionFlash
+            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
+            : "") +
+          '<div class="review-coach-status" data-confirmation-status-id="' +
           options.escapeHtml(item.slug) +
           '"></div></article>'
         );
@@ -229,7 +338,13 @@ export function renderConfirmationQueuePanel(options) {
           scope,
           slug,
           success
-            ? "Therapist confirmation request copied."
+            ? "Completed: confirmation request copied and the profile moved to sent."
+            : "Could not copy confirmation request.",
+        );
+        setConfirmationActionFlash(
+          slug,
+          success
+            ? "Completed: confirmation request copied and the profile moved to sent."
             : "Could not copy confirmation request.",
         );
         if (success) {
@@ -253,7 +368,15 @@ export function renderConfirmationQueuePanel(options) {
         options.setConfirmationActionStatus(
           scope,
           slug,
-          success ? "Confirmation link copied." : "Could not copy confirmation link.",
+          success
+            ? "Completed: confirmation link copied and the profile moved to sent."
+            : "Could not copy confirmation link.",
+        );
+        setConfirmationActionFlash(
+          slug,
+          success
+            ? "Completed: confirmation link copied and the profile moved to sent."
+            : "Could not copy confirmation link.",
         );
         if (success) {
           options.updateConfirmationQueueEntry(slug, {
@@ -290,7 +413,15 @@ export function renderConfirmationQueuePanel(options) {
       options.setConfirmationActionStatus(
         root,
         slug,
-        success ? "Internal checklist copied." : "Could not copy internal checklist.",
+        success
+          ? "Completed: operator checklist copied for this confirmation row."
+          : "Could not copy internal checklist.",
+      );
+      setConfirmationActionFlash(
+        slug,
+        success
+          ? "Completed: operator checklist copied for this confirmation row."
+          : "Could not copy internal checklist.",
       );
     });
   });
@@ -315,7 +446,15 @@ export function renderConfirmationQueuePanel(options) {
       options.setConfirmationActionStatus(
         root,
         slug,
-        success ? "Apply brief copied." : "Could not copy apply brief.",
+        success
+          ? "Completed: live update brief copied for the confirmed profile."
+          : "Could not copy apply brief.",
+      );
+      setConfirmationActionFlash(
+        slug,
+        success
+          ? "Completed: live update brief copied for the confirmed profile."
+          : "Could not copy apply brief.",
       );
     });
   });

@@ -135,7 +135,7 @@ export function renderConfirmationSprintPanel(options) {
       : "") +
     '<div class="review-coach-status" id="confirmationSprintExportStatus"></div>' +
     queue
-      .map(function (entry) {
+      .map(function (entry, index) {
         const item = entry.item;
         const agenda = entry.agenda;
         const workflow = options.getConfirmationQueueEntry(item.slug);
@@ -160,8 +160,16 @@ export function renderConfirmationSprintPanel(options) {
               .filter(Boolean)
           : orderedUnknownFields.slice(1);
         return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          options.escapeHtml(String(queue.indexOf(entry) + 1) + ". " + item.name) +
+          '<article class="queue-card' +
+          (index === 0 ? " is-start-here" : "") +
+          '"' +
+          (index === 0 ? ' id="confirmationSprintStartHere"' : "") +
+          ">" +
+          (index === 0
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this confirmation sprint row first. It is the top outreach task in the current sprint packet.</div><div class="start-here-action">Do this now: confirm the primary ask, send or update the outreach state, and move this profile out of the unsent sprint pile.</div>'
+            : "") +
+          '<div class="queue-head"><div><h3>' +
+          options.escapeHtml(String(index + 1) + ". " + item.name) +
           '</h3><div class="subtle">' +
           options.escapeHtml(agenda.summary) +
           '</div></div><div class="queue-head-actions"><span class="tag">' +
