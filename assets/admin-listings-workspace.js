@@ -11,6 +11,17 @@ export function createListingsWorkspace(options) {
   var getTherapistConfirmationAgenda = options.getTherapistConfirmationAgenda;
   var getTherapistMatchReadiness = options.getTherapistMatchReadiness;
   var getTherapistMerchandisingQuality = options.getTherapistMerchandisingQuality;
+  var getRouteHealthWarnings =
+    options.getRouteHealthWarnings ||
+    function () {
+      return [];
+    };
+  var getRouteHealthActionItems =
+    options.getRouteHealthActionItems ||
+    function () {
+      return [];
+    };
+  var queueRouteHealthFollowUp = options.queueRouteHealthFollowUp;
   var readFunnelEvents = options.readFunnelEvents;
   var spotlightSection = options.spotlightSection;
   var launchProfileControlsKey = options.launchProfileControlsKey;
@@ -956,6 +967,8 @@ export function createListingsWorkspace(options) {
           var recentConfirmation = getRecentConfirmationSummary(item);
           var graceWindowNote = getConfirmationGraceWindowNote(item);
           var sourceReviewed = item.source_reviewed_at ? formatDate(item.source_reviewed_at) : "";
+          var routeHealthWarnings = getRouteHealthWarnings(item);
+          var routeHealthActions = getRouteHealthActionItems(item);
           var primarySource = item.source_url || item.website || "";
           var primarySourceHost = "";
           try {
@@ -1003,6 +1016,32 @@ export function createListingsWorkspace(options) {
             " · " +
             escapeHtml(readiness.score) +
             "/100</div>" +
+            (routeHealthWarnings.length
+              ? '<div class="tag-row">' +
+                routeHealthWarnings
+                  .map(function (warning) {
+                    return '<span class="tag">' + escapeHtml(warning) + "</span>";
+                  })
+                  .join("") +
+                "</div>"
+              : "") +
+            (routeHealthActions.length
+              ? '<div class="queue-actions secondary-actions" style="margin-top:0.55rem">' +
+                routeHealthActions
+                  .map(function (action) {
+                    return (
+                      '<button class="btn-secondary btn-inline" type="button" data-route-health-action="' +
+                      escapeHtml(item.id) +
+                      '" data-route-health-mode="' +
+                      escapeHtml(action.key) +
+                      '">' +
+                      escapeHtml(action.label) +
+                      "</button>"
+                    );
+                  })
+                  .join("") +
+                "</div>"
+              : "") +
             '<div class="subtle">' +
             escapeHtml(freshness.label) +
             "</div>" +
@@ -1220,6 +1259,29 @@ export function createListingsWorkspace(options) {
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "center" });
           spotlightSection(target.closest(".mini-card"));
+        }
+      });
+    });
+
+    root.querySelectorAll("[data-route-health-action]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var therapistId = button.getAttribute("data-route-health-action") || "";
+        var actionKey = button.getAttribute("data-route-health-mode") || "";
+        if (!therapistId || !actionKey || !queueRouteHealthFollowUp) {
+          return;
+        }
+        var prior = button.textContent;
+        button.disabled = true;
+        button.textContent = "Queuing...";
+        try {
+          var message = await queueRouteHealthFollowUp(therapistId, actionKey);
+          if (message) {
+            setLaunchControlFlashMessage(message);
+            renderListings();
+          }
+        } catch (_error) {
+          button.disabled = false;
+          button.textContent = prior;
         }
       });
     });

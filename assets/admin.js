@@ -374,6 +374,9 @@ const listingsWorkspace = createListingsWorkspace({
   getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
   getTherapistMatchReadiness: getTherapistMatchReadiness,
   getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+  getRouteHealthWarnings: getRouteHealthWarnings,
+  getRouteHealthActionItems: getRouteHealthActionItems,
+  queueRouteHealthFollowUp: queueRouteHealthFollowUp,
   getTherapists: getTherapists,
   homepageFeaturedFallbackSlugs: [
     "dr-stacia-mills-pasadena-ca",
@@ -1462,6 +1465,157 @@ function getSourceReferenceMeta(record) {
       : "No source page",
     looksApiRecord: looksApiRecord,
   };
+}
+
+function getHostname(value) {
+  if (!value) {
+    return "";
+  }
+  try {
+    return new URL(value).hostname.replace(/^www\./, "").toLowerCase();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function isRouteHealthMatch(record, routeUrl) {
+  if (!record || !routeUrl) {
+    return false;
+  }
+  var routeHost = getHostname(routeUrl);
+  var sourceHost = getHostname(record.source_url || record.sourceUrl || "");
+  var finalHost = getHostname(record.source_health_final_url || "");
+  if (!routeHost) {
+    return false;
+  }
+  return (sourceHost && sourceHost === routeHost) || (finalHost && finalHost === routeHost);
+}
+
+function isWebsiteRouteHealthy(record) {
+  if (!record || !record.website) {
+    return false;
+  }
+  var sourceHealthStatus = String(record.source_health_status || "")
+    .trim()
+    .toLowerCase();
+  if (!sourceHealthStatus || ["healthy", "redirected"].includes(sourceHealthStatus)) {
+    return true;
+  }
+  return !isRouteHealthMatch(record, record.website);
+}
+
+function isBookingRouteHealthy(record) {
+  if (!record || !record.booking_url) {
+    return false;
+  }
+  var sourceHealthStatus = String(record.source_health_status || "")
+    .trim()
+    .toLowerCase();
+  if (!sourceHealthStatus || ["healthy", "redirected"].includes(sourceHealthStatus)) {
+    return true;
+  }
+  return !isRouteHealthMatch(record, record.booking_url);
+}
+
+function getRouteHealthWarnings(record) {
+  var warnings = [];
+  if (record && record.website && !isWebsiteRouteHealthy(record)) {
+    warnings.push("Website unavailable");
+  }
+  if (record && record.booking_url && !isBookingRouteHealthy(record)) {
+    warnings.push("Booking link unavailable");
+  }
+  return warnings;
+}
+
+function getRouteHealthActionItems(record) {
+  var actions = [];
+  if (record && record.website && !isWebsiteRouteHealthy(record)) {
+    actions.push({
+      key: "website_unavailable",
+      label: "Needs new website",
+    });
+  }
+  if (record && record.booking_url && !isBookingRouteHealthy(record)) {
+    actions.push({
+      key: "booking_unavailable",
+      label: "Needs booking link review",
+    });
+  }
+  if (actions.length) {
+    actions.push({
+      key: "contact_route_review",
+      label: "Switch contact route",
+    });
+  }
+  return actions;
+}
+
+function appendUniqueFollowUpNote(currentNote, nextLine) {
+  var trimmedCurrent = String(currentNote || "").trim();
+  var trimmedNext = String(nextLine || "").trim();
+  if (!trimmedNext) {
+    return trimmedCurrent;
+  }
+  if (!trimmedCurrent) {
+    return trimmedNext;
+  }
+  if (trimmedCurrent.indexOf(trimmedNext) !== -1) {
+    return trimmedCurrent;
+  }
+  return trimmedCurrent + "\n\n" + trimmedNext;
+}
+
+async function queueRouteHealthFollowUp(therapistId, actionKey) {
+  if (!therapistId || !actionKey) {
+    return "";
+  }
+  var therapist = (dataMode === "sanity" ? publishedTherapists : getTherapists()).find(
+    function (item) {
+      return String(item && item.id) === String(therapistId);
+    },
+  );
+  if (!therapist) {
+    return "";
+  }
+  var currentTask = reviewerWorkspace.getReviewEntityTask("therapist", therapistId) || {
+    status: "open",
+    note: "",
+    assignee: "",
+    assignee_name: "",
+    assignee_id: "",
+    due_at: "",
+  };
+  var preferredReviewer = reviewerWorkspace.getPreferredReviewer();
+  var noteLine = "";
+  var flashMessage = "";
+  if (actionKey === "website_unavailable") {
+    noteLine =
+      "Route health issue: website unavailable. Find a working replacement website or choose a safer primary contact route.";
+    flashMessage = "Queued: website follow-up added to this listing.";
+  } else if (actionKey === "booking_unavailable") {
+    noteLine =
+      "Route health issue: booking link unavailable. Review the booking URL or choose a safer primary contact route.";
+    flashMessage = "Queued: booking-link review added to this listing.";
+  } else if (actionKey === "contact_route_review") {
+    noteLine =
+      "Route health issue: primary contact route needs review because an online route looks unavailable.";
+    flashMessage = "Queued: contact-route review added to this listing.";
+  } else {
+    return "";
+  }
+
+  await reviewerWorkspace.saveWorkItem("therapist", therapistId, {
+    status: "open",
+    note: appendUniqueFollowUpNote(currentTask.note, noteLine),
+    assignee_name: currentTask.assignee_name || currentTask.assignee || preferredReviewer || "",
+    assignee: currentTask.assignee_name || currentTask.assignee || preferredReviewer || "",
+    assignee_id: currentTask.assignee_id || "",
+    due_at: currentTask.due_at || "",
+  });
+  renderListings();
+  renderRefreshQueue();
+  return flashMessage;
 }
 
 function renderFieldTrustChips(summary, limit) {
@@ -4447,7 +4601,6 @@ function renderStats() {
           "</div>"
         : "") +
       wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
-      (workQueueCards.length ? wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") : "") +
       (nextBestActions.length
         ? wrapStatsGroup(
             "Next Best Actions",
@@ -4457,6 +4610,7 @@ function renderStats() {
             "ops-grid",
           )
         : "") +
+      (workQueueCards.length ? wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") : "") +
       wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
       wrapStatsGroup("Reference metrics", secondaryContextCards, "");
 
@@ -5331,6 +5485,9 @@ function renderRefreshQueue() {
     getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
     getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    getRouteHealthWarnings: getRouteHealthWarnings,
+    getRouteHealthActionItems: getRouteHealthActionItems,
+    queueRouteHealthFollowUp: queueRouteHealthFollowUp,
     getSourceReferenceMeta: getSourceReferenceMeta,
     renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
     escapeHtml: escapeHtml,

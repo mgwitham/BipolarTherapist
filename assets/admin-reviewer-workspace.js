@@ -575,6 +575,34 @@ export function createReviewerWorkspace(dependencies) {
     });
   }
 
+  async function saveReviewEntityTaskState(entityType, entityId, updates) {
+    if (!entityType || !entityId || !updates || typeof updates !== "object") return;
+    var currentTask = getReviewEntityTask(entityType, entityId) || {
+      status: "open",
+      note: "",
+    };
+    var assigneeName =
+      updates.assignee_name !== undefined
+        ? updates.assignee_name
+        : updates.assignee !== undefined
+          ? updates.assignee
+          : currentTask.assignee_name || currentTask.assignee || "";
+    var selectedReviewer = findReviewerEntryByName(assigneeName);
+    await persistReviewEntityTask(entityType, entityId, {
+      status: updates.status || currentTask.status || "open",
+      note: updates.note !== undefined ? updates.note : currentTask.note || "",
+      assignee_id:
+        updates.assignee_id !== undefined
+          ? updates.assignee_id
+          : selectedReviewer
+            ? selectedReviewer.id
+            : currentTask.assignee_id || "",
+      assignee_name: String(assigneeName || "").trim(),
+      assignee: String(assigneeName || "").trim(),
+      due_at: updates.due_at !== undefined ? updates.due_at : currentTask.due_at || "",
+    });
+  }
+
   function getNextDueFollowUpItem(items) {
     var list = Array.isArray(items) ? items.slice() : [];
     if (!list.length) return null;
@@ -1493,6 +1521,7 @@ export function createReviewerWorkspace(dependencies) {
     openWorkItem: openAttentionRecord,
     claimWorkItem: claimReviewEntityTask,
     assignWorkItem: assignReviewEntityTask,
+    saveWorkItem: saveReviewEntityTaskState,
     updateWorkItemStatus: updateReviewEntityTaskStatus,
     renderAttentionQueue,
     renderReviewEntityTaskHtml,

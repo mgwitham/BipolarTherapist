@@ -2,6 +2,20 @@ const refreshActionFlash = {};
 const REFRESH_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
 const EXPIRING_SOON_DAYS = 14;
 
+function buildRefreshDecisionGuide(summary, escapeHtml) {
+  return (
+    '<div class="decision-guide"><div class="decision-guide-title">Pick one outcome</div><div class="decision-guide-note"><strong>Recommended next move:</strong> ' +
+    escapeHtml(summary.recommended) +
+    '</div><div class="decision-guide-note"><strong>If you can update it directly:</strong> ' +
+    escapeHtml(summary.updatePath) +
+    '</div><div class="decision-guide-note"><strong>If it needs therapist input:</strong> ' +
+    escapeHtml(summary.confirmationPath) +
+    '</div><div class="decision-guide-note"><strong>If it can wait:</strong> ' +
+    escapeHtml(summary.deferPath) +
+    "</div></div>"
+  );
+}
+
 function toTimestamp(value) {
   if (!value) {
     return 0;
@@ -193,7 +207,16 @@ export function renderRefreshQueuePanel(options) {
         const trustSummary = options.getTherapistFieldTrustSummary(item);
         const nextMove = options.getTherapistTrustRecommendation(item, freshness, trustSummary);
         const therapistId = getTherapistId(item);
-        const sourceUrl = item.sourceUrl || item.source_url || "";
+        const sourceReference = options.getSourceReferenceMeta
+          ? options.getSourceReferenceMeta(item)
+          : {
+              href: item.sourceUrl || item.source_url || "",
+              label:
+                item.sourceUrl || item.source_url
+                  ? "Open original source"
+                  : "No source page available",
+              shortLabel: item.sourceUrl || item.source_url ? "Open source" : "No source page",
+            };
         const cues = [
           priorityMeta.expiringSoon
             ? "Expiring soon" +
@@ -215,6 +238,24 @@ export function renderRefreshQueuePanel(options) {
         ]
           .filter(Boolean)
           .join(" · ");
+        const actionFlash = therapistId ? refreshActionFlash[therapistId]?.message || "" : "";
+        const routeHealthWarnings = options.getRouteHealthWarnings
+          ? options.getRouteHealthWarnings(item)
+          : [];
+        const routeHealthActions = options.getRouteHealthActionItems
+          ? options.getRouteHealthActionItems(item)
+          : [];
+        const firstActionWhy =
+          "This live listing has the highest current mix of staleness risk, trust attention, and near-term review urgency.";
+        const decisionGuide = {
+          recommended: nextMove,
+          updatePath:
+            "Open the live profile, review the stale details, and save the refresh decision when the information is clear enough to act on.",
+          confirmationPath:
+            "If a missing or aging field still needs therapist confirmation, move it into confirmation follow-up instead of guessing.",
+          deferPath:
+            "Defer only when the profile is not urgent enough to review now and you want it to come back later with a clear date.",
+        };
         return (
           '<div class="mini-card' +
           (index === 0 ? " is-start-here" : "") +
@@ -236,6 +277,32 @@ export function renderRefreshQueuePanel(options) {
                 .join("") +
               "</div>"
             : "") +
+          (routeHealthWarnings.length
+            ? '<div class="queue-badge-row">' +
+              routeHealthWarnings
+                .map(function (warning) {
+                  return '<span class="queue-badge">' + options.escapeHtml(warning) + "</span>";
+                })
+                .join("") +
+              "</div>"
+            : "") +
+          (routeHealthActions.length
+            ? '<div class="queue-actions secondary-actions" style="margin-top:0.55rem">' +
+              routeHealthActions
+                .map(function (action) {
+                  return (
+                    '<button class="btn-secondary btn-inline" type="button" data-route-health-action="' +
+                    options.escapeHtml(therapistId) +
+                    '" data-route-health-mode="' +
+                    options.escapeHtml(action.key) +
+                    '">' +
+                    options.escapeHtml(action.label) +
+                    "</button>"
+                  );
+                })
+                .join("") +
+              "</div>"
+            : "") +
           '<div class="subtle">Priority score: ' +
           options.escapeHtml(String(priorityMeta.priorityScore || 0)) +
           '</div><div class="subtle">' +
@@ -248,9 +315,24 @@ export function renderRefreshQueuePanel(options) {
           options.escapeHtml(trustSummary.headline) +
           "</div>" +
           (evidence ? '<div class="subtle">' + options.escapeHtml(evidence) + "</div>" : "") +
-          '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><a class="btn-primary btn-inline" href="therapist.html?slug=' +
+          '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div>' +
+          (index === 0
+            ? '<div class="mini-status" style="margin-bottom:0.65rem"><strong>Why this first:</strong> ' +
+              options.escapeHtml(firstActionWhy) +
+              "</div>"
+            : "") +
+          '<div class="recommended-action-row"><a class="btn-primary btn-inline" href="therapist.html?slug=' +
           encodeURIComponent(item.slug) +
-          '">Open profile and review fields</a></div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> The listing is updated, deferred with a reason, or moved into confirmation follow-up.</div></div>' +
+          '">Open profile and review fields</a>' +
+          (sourceReference.href
+            ? '<a class="btn-secondary btn-inline" href="' +
+              options.escapeHtml(sourceReference.href) +
+              '" target="_blank" rel="noopener">' +
+              options.escapeHtml(sourceReference.shortLabel) +
+              "</a>"
+            : "") +
+          '</div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> The listing is updated, deferred with a reason, or moved into confirmation follow-up.</div></div>' +
+          (index === 0 ? buildRefreshDecisionGuide(decisionGuide, options.escapeHtml) : "") +
           (therapistId
             ? '<div class="queue-actions secondary-actions"><button class="btn-secondary btn-inline" data-refresh-ops="' +
               options.escapeHtml(therapistId) +
@@ -260,16 +342,21 @@ export function renderRefreshQueuePanel(options) {
               options.escapeHtml(therapistId) +
               '" data-refresh-next="snooze_30d">Defer 30 days</button></div>'
             : "") +
+          (actionFlash
+            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
+            : "") +
           (therapistId ? options.renderReviewEntityTaskHtml("therapist", therapistId) : "") +
           '<div class="review-coach-status" data-refresh-status-id="' +
           options.escapeHtml(therapistId) +
-          '"></div></div><div class="queue-actions" style="margin-top:0">' +
-          (sourceUrl
+          '"></div></div>' +
+          (index !== 0 && sourceReference.href
             ? '<a class="btn-secondary btn-inline" href="' +
-              options.escapeHtml(sourceUrl) +
-              '" target="_blank" rel="noopener">Open source</a>'
+              options.escapeHtml(sourceReference.href) +
+              '" target="_blank" rel="noopener">' +
+              options.escapeHtml(sourceReference.shortLabel) +
+              "</a>"
             : "") +
-          "</div></div>"
+          "</div>"
         );
       })
       .join("");
@@ -307,6 +394,34 @@ export function renderRefreshQueuePanel(options) {
           status.textContent = "Could not update this refresh item.";
         }
         setRefreshActionFlash(therapistId, "Could not update this refresh item.");
+        button.disabled = false;
+        button.textContent = prior;
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-route-health-action]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const therapistId = button.getAttribute("data-route-health-action") || "";
+      const actionKey = button.getAttribute("data-route-health-mode") || "";
+      if (!therapistId || !actionKey || !options.queueRouteHealthFollowUp) {
+        return;
+      }
+      const status = root.querySelector(
+        '[data-refresh-status-id="' + options.escapeHtml(therapistId) + '"]',
+      );
+      const prior = button.textContent;
+      button.disabled = true;
+      button.textContent = "Queuing...";
+      try {
+        const message = await options.queueRouteHealthFollowUp(therapistId, actionKey);
+        if (status && message) {
+          status.textContent = message;
+        }
+      } catch (_error) {
+        if (status) {
+          status.textContent = "Could not queue this route follow-up.";
+        }
         button.disabled = false;
         button.textContent = prior;
       }
