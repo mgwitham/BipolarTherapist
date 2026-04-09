@@ -154,6 +154,7 @@ function parseArgs(argv) {
     dryRun: false,
     force: false,
     id: "",
+    delayMs: 2500,
   };
 
   argv.forEach(function (argument) {
@@ -185,6 +186,11 @@ function parseArgs(argv) {
       }
     } else if (argument.startsWith("--id=")) {
       options.id = String(argument.split("=")[1] || "").trim();
+    } else if (argument.startsWith("--delay-ms=")) {
+      const parsed = Number(argument.split("=")[1]);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        options.delayMs = parsed;
+      }
     } else if (argument === "--help" || argument === "-h") {
       options.help = true;
     }
@@ -197,11 +203,12 @@ function printHelp() {
   console.log(`California licensure enrichment
 
 Usage:
-  node scripts/enrich-california-licensure.mjs [--scope=therapists,candidates,applications] [--limit=25] [--dry-run] [--force] [--id=document-id]
+  node scripts/enrich-california-licensure.mjs [--scope=therapists,candidates,applications] [--limit=25] [--dry-run] [--force] [--id=document-id] [--delay-ms=2500]
 
 Examples:
   node scripts/enrich-california-licensure.mjs --scope=therapists --limit=10 --dry-run
   node scripts/enrich-california-licensure.mjs --scope=candidates,applications --force
+  node scripts/enrich-california-licensure.mjs --scope=therapists --limit=5 --delay-ms=5000
 `);
 }
 
@@ -295,28 +302,40 @@ function findKnownProfileUrl(record) {
   );
 }
 
-function inferDirectProfileUrl(record) {
+function inferDirectProfileUrls(record) {
   const board = inferBoardConfig(record);
   const license = splitLicenseNumber(record.licenseNumber);
   if (!board || !license.numeric) {
-    return "";
+    return [];
   }
 
   if (board.boardCode === "12") {
-    const suffix = license.prefix || "PSY";
-    return `https://search.dca.ca.gov/profile/600/6001/${license.numeric}/${suffix}`;
+    const suffixes = Array.from(new Set([license.prefix, "PSY"].filter(Boolean)));
+    return suffixes.map(function (suffix) {
+      return `https://search.dca.ca.gov/profile/600/6001/${license.numeric}/${suffix}`;
+    });
   }
 
   if (board.boardCode === "3") {
-    const suffix = license.prefix || board.label.toUpperCase();
-    return `https://search.dca.ca.gov/profile/200/2002/${license.numeric}/${suffix}`;
+    const suffixMap = {
+      lmft: ["LMFT", "MFT"],
+      lcsw: ["LCSW"],
+      lep: ["LEP"],
+      lpcc: ["LPCC", "PCC"],
+    };
+    const suffixes = Array.from(
+      new Set([license.prefix].concat(suffixMap[board.label] || []).filter(Boolean)),
+    );
+    return suffixes.map(function (suffix) {
+      return `https://search.dca.ca.gov/profile/200/2002/${license.numeric}/${suffix}`;
+    });
   }
 
   if (board.boardCode === "16" && license.prefix) {
-    return `https://search.dca.ca.gov/profile/800/8002/${license.numeric}/${license.prefix}`;
+    return [`https://search.dca.ca.gov/profile/800/8002/${license.numeric}/${license.prefix}`];
   }
 
-  return "";
+  return [];
 }
 
 function extractElementHtmlById(html, id) {
@@ -570,6 +589,7 @@ function buildMarkdown(rows, options) {
     "",
     `Generated: ${new Date().toISOString()}`,
     `Mode: ${options.dryRun ? "Dry run" : "Write mode"}`,
+    `Delay between official lookups: ${options.delayMs}ms`,
     "",
     "## Summary",
     "",
@@ -603,6 +623,27 @@ function buildMarkdown(rows, options) {
   });
 
   return lines.join("\n");
+}
+
+function sleep(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function fetchTextWithRetry(url, options) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetchText(url);
+    if (!/request rejected/i.test(response.text) && !/support id:/i.test(response.text)) {
+      return response;
+    }
+    lastError = new Error("request_rejected");
+    if (attempt === 0) {
+      await sleep(Math.max(options.delayMs, 4000));
+    }
+  }
+  throw lastError || new Error("request_rejected");
 }
 
 async function fetchRecords(client, options) {
@@ -675,10 +716,14 @@ async function run() {
 
     try {
       const knownProfileUrl = findKnownProfileUrl(record);
-      const profileUrl = knownProfileUrl || inferDirectProfileUrl(record);
+      const profileCandidates = Array.from(
+        new Set([knownProfileUrl].concat(inferDirectProfileUrls(record)).filter(Boolean)),
+      );
+      let profileUrl = "";
+      let profilePage = null;
       let searchUrl = "";
 
-      if (!profileUrl) {
+      if (!profileCandidates.length) {
         results.push({
           docType: record._type,
           docId: record._id,
@@ -695,7 +740,39 @@ async function run() {
         continue;
       }
 
-      const profilePage = await fetchText(profileUrl);
+      let lastError = "";
+      for (const candidateUrl of profileCandidates) {
+        try {
+          const attemptedPage = await fetchTextWithRetry(candidateUrl, options);
+          if (!/id="clntType"|id="primaryStatus"/i.test(attemptedPage.text)) {
+            lastError = "profile_parser_miss";
+            continue;
+          }
+          profileUrl = candidateUrl;
+          profilePage = attemptedPage;
+          break;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      if (!profilePage || !profileUrl) {
+        results.push({
+          docType: record._type,
+          docId: record._id,
+          name: record.name || "",
+          licenseNumber: record.licenseNumber || "",
+          status: "failed",
+          reason: lastError || "no_profile_match_found",
+          boardName: "",
+          licenseType: "",
+          primaryStatus: "",
+          expirationDate: "",
+          profileUrl: "",
+        });
+        continue;
+      }
+
       const licensureVerification = parseLicensureProfile(
         profilePage.text,
         profilePage.url || profileUrl,
@@ -738,6 +815,10 @@ async function run() {
         expirationDate: "",
         profileUrl: "",
       });
+    }
+
+    if (options.delayMs > 0) {
+      await sleep(options.delayMs);
     }
   }
 
