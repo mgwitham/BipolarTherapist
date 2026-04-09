@@ -29,15 +29,13 @@
           >
         </li>
         <li>
-          <a href="directory.html" id="navBrowseLink" style="color: var(--teal); font-weight: 600"
-            >Find a Therapist</a
-          >
+          <a href="directory.html" id="navBrowseLink" class="nav-link-current">Find a Therapist</a>
         </li>
         <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
       </ul>
     </nav>
 
-    <div class="dir-header">
+    <header class="dir-header">
       <h1 id="directoryHeroTitle">
         Browse therapists and psychiatrists with bipolar-related expertise
       </h1>
@@ -45,11 +43,17 @@
         This directory is built to make bipolar-informed care easier to find, compare, and act on
         without the noise of a general therapist marketplace.
       </p>
-    </div>
+    </header>
 
-    <div class="layout">
-      <div>
-        <button class="mobile-filter-toggle" onclick="toggleFilters()">
+    <main class="layout">
+      <aside class="directory-sidebar-shell">
+        <button
+          type="button"
+          class="mobile-filter-toggle"
+          id="mobileFilterToggle"
+          aria-controls="sidebar"
+          aria-expanded="false"
+        >
           🔧 Filters <span id="filterCount"></span>
         </button>
         <div class="sidebar" id="sidebar">
@@ -157,20 +161,16 @@
             </div>
           </div>
 
-          <button class="btn-filter" onclick="applyFilters()" id="applyFiltersButton">
-            Apply Filters
-          </button>
-          <button class="btn-reset" onclick="resetFilters()" id="resetFiltersButton">
-            Reset All
-          </button>
+          <button type="button" class="btn-filter" id="applyFiltersButton">Apply Filters</button>
+          <button type="button" class="btn-reset" id="resetFiltersButton">Reset All</button>
         </div>
-      </div>
+      </aside>
 
-      <div>
+      <section class="directory-results" aria-label="Therapist directory results">
         <div class="results-header">
           <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
           <div class="results-tools">
-            <a href="match.html" class="btn-secondary" style="width: auto">Get matched</a>
+            <a href="match.html" class="btn-secondary results-match-link">Get matched</a>
             <label for="sortBy">Sort by</label>
             <select id="sortBy">
               <option value="best_match">Best match</option>
@@ -216,13 +216,11 @@
           </div>
         </div>
         <div class="pagination" id="pagination"></div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <footer>
-      <p style="margin-bottom: 0.5rem">
-        <strong style="color: white">BipolarTherapyHub</strong>
-      </p>
+      <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
       <p id="footerTagline">
         Need to be listed? <a href="signup.html">Join the directory as a therapist →</a>
       </p>
