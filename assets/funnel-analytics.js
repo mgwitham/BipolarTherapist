@@ -620,3 +620,325 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
     match_action_copy: matchActionCopy,
   };
 }
+
+export function summarizeProfileContactSignals(events) {
+  var entries = Array.isArray(events) ? events : [];
+  var routeCounts = {
+    booking: 0,
+    website: 0,
+    phone: 0,
+    email: 0,
+    unknown: 0,
+  };
+  var profileCounts = {};
+  var sectionViews = 0;
+  var scriptEngagements = 0;
+  var questionEngagements = 0;
+  var variantBuckets = {};
+
+  function ensureVariant(variant) {
+    var key = String(variant || "unknown");
+    if (!variantBuckets[key]) {
+      variantBuckets[key] = {
+        variant: key,
+        exposures: 0,
+        route_clicks: 0,
+        script_engagements: 0,
+        question_engagements: 0,
+      };
+    }
+    return variantBuckets[key];
+  }
+
+  entries.forEach(function (item) {
+    if (!item || !item.type) {
+      return;
+    }
+
+    if (
+      item.type === "experiment_exposed" &&
+      item.payload &&
+      item.payload.experiment_name === "therapist_contact_guidance"
+    ) {
+      ensureVariant(item.payload.variant).exposures += 1;
+      return;
+    }
+
+    var variant =
+      item.payload &&
+      item.payload.experiments &&
+      item.payload.experiments.therapist_contact_guidance
+        ? item.payload.experiments.therapist_contact_guidance
+        : "unknown";
+
+    if (item.type === "profile_contact_section_viewed") {
+      sectionViews += 1;
+      return;
+    }
+
+    if (item.type === "profile_outreach_script_engaged") {
+      scriptEngagements += 1;
+      ensureVariant(variant).script_engagements += 1;
+      return;
+    }
+
+    if (item.type === "profile_contact_questions_engaged") {
+      questionEngagements += 1;
+      ensureVariant(variant).question_engagements += 1;
+      return;
+    }
+
+    if (item.type !== "profile_contact_route_clicked") {
+      return;
+    }
+
+    var payload = item.payload || {};
+    var route =
+      payload.route && Object.prototype.hasOwnProperty.call(routeCounts, payload.route)
+        ? payload.route
+        : "unknown";
+    var slug = payload.therapist_slug ? String(payload.therapist_slug) : "";
+    routeCounts[route] += 1;
+    ensureVariant(variant).route_clicks += 1;
+    if (slug) {
+      if (!profileCounts[slug]) {
+        profileCounts[slug] = {
+          slug: slug,
+          clicks: 0,
+          primary: 0,
+          secondary: 0,
+        };
+      }
+      profileCounts[slug].clicks += 1;
+      if (payload.priority === "primary") {
+        profileCounts[slug].primary += 1;
+      } else if (payload.priority === "secondary") {
+        profileCounts[slug].secondary += 1;
+      }
+    }
+  });
+
+  var routeRows = Object.keys(routeCounts)
+    .map(function (route) {
+      return {
+        route: route,
+        count: routeCounts[route],
+      };
+    })
+    .filter(function (item) {
+      return item.count > 0;
+    })
+    .sort(function (a, b) {
+      return b.count - a.count || a.route.localeCompare(b.route);
+    });
+
+  var topProfiles = Object.keys(profileCounts)
+    .map(function (slug) {
+      return profileCounts[slug];
+    })
+    .sort(function (a, b) {
+      return b.clicks - a.clicks || b.primary - a.primary || a.slug.localeCompare(b.slug);
+    })
+    .slice(0, 5);
+
+  var totalRouteClicks = routeRows.reduce(function (sum, item) {
+    return sum + item.count;
+  }, 0);
+  var guidanceEngagements = scriptEngagements + questionEngagements;
+  var guidanceEngagementRate = totalRouteClicks ? guidanceEngagements / totalRouteClicks : 0;
+  var topRoute = routeRows[0] || null;
+  var weakGuidanceProfiles = topProfiles.filter(function (item) {
+    return item.clicks >= 2 && item.primary >= item.secondary;
+  });
+  var variantRows = Object.keys(variantBuckets)
+    .map(function (key) {
+      var item = variantBuckets[key];
+      item.guidance_engagements = item.script_engagements + item.question_engagements;
+      item.route_click_rate = item.exposures ? item.route_clicks / item.exposures : 0;
+      item.guidance_rate = item.route_clicks ? item.guidance_engagements / item.route_clicks : 0;
+      return item;
+    })
+    .sort(function (a, b) {
+      return (
+        b.route_clicks - a.route_clicks ||
+        b.guidance_engagements - a.guidance_engagements ||
+        a.variant.localeCompare(b.variant)
+      );
+    });
+
+  return {
+    section_views: sectionViews,
+    script_engagements: scriptEngagements,
+    question_engagements: questionEngagements,
+    route_rows: routeRows,
+    top_profiles: topProfiles,
+    total_route_clicks: totalRouteClicks,
+    guidance_engagements: guidanceEngagements,
+    guidance_engagement_rate: guidanceEngagementRate,
+    top_route: topRoute,
+    weak_guidance_profiles: weakGuidanceProfiles,
+    variant_rows: variantRows,
+    interpretation:
+      !totalRouteClicks && !sectionViews
+        ? "No profile contact behavior captured yet."
+        : guidanceEngagementRate >= 0.6
+          ? "Guidance engagement looks strong relative to contact intent."
+          : guidanceEngagementRate >= 0.3
+            ? "Some users are engaging with contact guidance before clicking out."
+            : "Users are clicking contact routes faster than they are engaging with guidance.",
+  };
+}
+
+export function summarizeProfileContactOutcomeValidation(events, outcomes) {
+  var entries = Array.isArray(events) ? events : [];
+  var outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
+  var variantSlugMap = {};
+
+  entries.forEach(function (item) {
+    if (!item || item.type !== "profile_contact_route_clicked") {
+      return;
+    }
+    var variant =
+      item.payload &&
+      item.payload.experiments &&
+      item.payload.experiments.therapist_contact_guidance
+        ? item.payload.experiments.therapist_contact_guidance
+        : "unknown";
+    var slug =
+      item.payload && item.payload.therapist_slug ? String(item.payload.therapist_slug) : "";
+    if (!slug) {
+      return;
+    }
+    if (!variantSlugMap[variant]) {
+      variantSlugMap[variant] = new Set();
+    }
+    variantSlugMap[variant].add(slug);
+  });
+
+  return Object.keys(variantSlugMap)
+    .map(function (variant) {
+      var slugSet = variantSlugMap[variant];
+      var strong = 0;
+      var friction = 0;
+      outcomeEntries.forEach(function (item) {
+        if (!item || !item.therapist_slug || !slugSet.has(String(item.therapist_slug))) {
+          return;
+        }
+        if (["heard_back", "booked_consult", "good_fit_call"].includes(item.outcome)) {
+          strong += 1;
+        } else if (["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)) {
+          friction += 1;
+        }
+      });
+      return {
+        variant: variant,
+        therapist_count: slugSet.size,
+        strong_outcomes: strong,
+        friction_outcomes: friction,
+        downstream_score: strong * 2 - friction,
+      };
+    })
+    .sort(function (a, b) {
+      return (
+        b.downstream_score - a.downstream_score ||
+        b.strong_outcomes - a.strong_outcomes ||
+        a.variant.localeCompare(b.variant)
+      );
+    });
+}
+
+export function summarizeProfileContactExperimentDecision(events, outcomes) {
+  var summary = summarizeProfileContactSignals(events);
+  var outcomeValidation = summarizeProfileContactOutcomeValidation(events, outcomes);
+  var variants = Array.isArray(summary.variant_rows) ? summary.variant_rows.slice() : [];
+  var promoted = getPromotedExperimentVariant("therapist_contact_guidance");
+
+  if (!variants.length) {
+    return {
+      experiment_name: "therapist_contact_guidance",
+      winner: null,
+      promoted_variant: promoted,
+      confidence_gap: 0,
+      recommendation: "Needs more traffic",
+      note: "No therapist profile contact experiment traffic yet.",
+    };
+  }
+
+  variants.sort(function (a, b) {
+    var aOutcome = outcomeValidation.find(function (item) {
+      return item.variant === a.variant;
+    });
+    var bOutcome = outcomeValidation.find(function (item) {
+      return item.variant === b.variant;
+    });
+    var aScore =
+      a.route_click_rate * 0.5 +
+      a.guidance_rate * 0.2 +
+      (aOutcome ? Math.max(-1, Math.min(1, aOutcome.downstream_score / 6)) * 0.3 : 0);
+    var bScore =
+      b.route_click_rate * 0.5 +
+      b.guidance_rate * 0.2 +
+      (bOutcome ? Math.max(-1, Math.min(1, bOutcome.downstream_score / 6)) * 0.3 : 0);
+    return bScore - aScore || b.route_clicks - a.route_clicks || a.variant.localeCompare(b.variant);
+  });
+
+  var winner = variants[0] || null;
+  var runnerUp = variants[1] || null;
+  var winnerOutcome = winner
+    ? outcomeValidation.find(function (item) {
+        return item.variant === winner.variant;
+      })
+    : null;
+  var runnerUpOutcome = runnerUp
+    ? outcomeValidation.find(function (item) {
+        return item.variant === runnerUp.variant;
+      })
+    : null;
+  var winnerScore = winner
+    ? winner.route_click_rate * 0.5 +
+      winner.guidance_rate * 0.2 +
+      (winnerOutcome ? Math.max(-1, Math.min(1, winnerOutcome.downstream_score / 6)) * 0.3 : 0)
+    : 0;
+  var runnerUpScore = runnerUp
+    ? runnerUp.route_click_rate * 0.5 +
+      runnerUp.guidance_rate * 0.2 +
+      (runnerUpOutcome ? Math.max(-1, Math.min(1, runnerUpOutcome.downstream_score / 6)) * 0.3 : 0)
+    : 0;
+  var confidenceGap =
+    winner && runnerUp && winner.exposures >= 5 && runnerUp.exposures >= 5
+      ? winnerScore - runnerUpScore
+      : 0;
+  var recommendation =
+    winner && confidenceGap >= 0.08
+      ? "Promising winner"
+      : winner && winner.exposures >= 5
+        ? "Too early to call"
+        : "Needs more traffic";
+
+  return {
+    experiment_name: "therapist_contact_guidance",
+    winner: winner,
+    promoted_variant: promoted,
+    confidence_gap: confidenceGap,
+    recommendation: recommendation,
+    outcome_validation: outcomeValidation,
+    note: winner
+      ? "Current leader: " +
+        winner.variant +
+        ". Route click rate " +
+        Math.round(winner.route_click_rate * 100) +
+        "% and guidance rate " +
+        Math.round(winner.guidance_rate * 100) +
+        "%" +
+        (winnerOutcome
+          ? ". Downstream score " +
+            winnerOutcome.downstream_score +
+            " (" +
+            winnerOutcome.strong_outcomes +
+            " strong, " +
+            winnerOutcome.friction_outcomes +
+            " friction)."
+          : ".")
+      : "No therapist profile contact experiment traffic yet.",
+  };
+}

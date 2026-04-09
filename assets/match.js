@@ -23,6 +23,12 @@ import {
   syncZipResolvedLabel as syncZipResolvedLabelBase,
 } from "./match-intake.js";
 import {
+  renderAdaptiveGuidanceSection,
+  renderNoResultsStateSection,
+  renderShortlistQueueSection,
+} from "./match-results.js";
+import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
+import {
   buildUserMatchProfile,
   getDataFreshnessSummary,
   getRecentAppliedSummary,
@@ -545,43 +551,13 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
     return;
   }
 
-  root.className = "match-empty";
-  root.innerHTML =
-    '<div class="match-empty-shell"><div class="match-empty-kicker">No strong shortlist yet</div><h2 class="match-empty-title">' +
-    escapeHtml(
-      hasRefinements
-        ? "Your filters may be too tight for the current reviewed supply."
-        : "We do not have a strong reviewed match for this exact setup yet.",
-    ) +
-    '</h2><p class="match-empty-copy">' +
-    escapeHtml(
-      hasRefinements
-        ? "The fastest next move is usually to clear optional preferences, then widen only one constraint at a time if needed."
-        : zipSuggestions.length
-          ? "Try a nearby reviewed ZIP or widen to telehealth so we can surface a broader shortlist."
-          : "Try telehealth, a nearby ZIP, or a lighter set of optional preferences to open the field.",
-    ) +
-    '</p><div class="match-empty-actions">' +
-    (zipSuggestions || [])
-      .map(function (item) {
-        return (
-          '<button type="button" class="btn-secondary match-empty-action" data-empty-zip="' +
-          escapeHtml(item.zip) +
-          '">Try ZIP ' +
-          escapeHtml(item.zip) +
-          "</button>"
-        );
-      })
-      .join("") +
-    '<button type="button" class="btn-primary match-empty-action" data-empty-telehealth="true">Try telehealth</button>' +
-    '<button type="button" class="btn-secondary match-empty-action" data-empty-clear="true">Clear optional filters</button>' +
-    '</div><div class="match-empty-note">' +
-    escapeHtml(
-      zipSuggestions.length
-        ? "Nearest reviewed ZIPs: " + formatZipSuggestionList(zipSuggestions) + "."
-        : "You can keep your core care type and ZIP, then widen the rest incrementally.",
-    ) +
-    "</div></div>";
+  renderNoResultsStateSection({
+    root: root,
+    zipSuggestions: zipSuggestions,
+    hasRefinements: hasRefinements,
+    escapeHtml: escapeHtml,
+    formatZipSuggestionList: formatZipSuggestionList,
+  });
 
   root.querySelectorAll("[data-empty-zip]").forEach(function (button) {
     button.addEventListener("click", function () {
@@ -3536,34 +3512,13 @@ function renderAdaptiveGuidance(profile, entries) {
   if (!root) {
     return;
   }
-
-  if (!isInternalMode) {
-    root.innerHTML = "";
-    return;
-  }
-
   var items = buildAdaptiveGuidance(profile, entries);
-  if (!items.length) {
-    root.innerHTML = "";
-    return;
-  }
-
-  root.innerHTML =
-    '<section class="adaptive-guidance"><div class="adaptive-guidance-header"><h3>Helpful guidance before you reach out</h3><p>This adapts to your request and the hesitation patterns we have been seeing in the product.</p></div><div class="adaptive-guidance-grid">' +
-    items
-      .map(function (item) {
-        return (
-          '<article class="adaptive-guidance-card tone-' +
-          escapeHtml(item.tone) +
-          '"><div class="adaptive-guidance-title">' +
-          escapeHtml(item.title) +
-          '</div><div class="adaptive-guidance-body">' +
-          escapeHtml(item.body) +
-          "</div></article>"
-        );
-      })
-      .join("") +
-    "</div></section>";
+  renderAdaptiveGuidanceSection({
+    root: root,
+    items: items,
+    isInternalMode: isInternalMode,
+    escapeHtml: escapeHtml,
+  });
 }
 
 function buildQueueReserveCopy(entry) {
@@ -3600,40 +3555,15 @@ function renderShortlistQueue(entries) {
   }
 
   var queueEntries = (entries || []).slice(PRIMARY_SHORTLIST_LIMIT, SHORTLIST_QUEUE_LIMIT);
-  if (!queueEntries.length) {
-    root.hidden = true;
-    root.innerHTML = "";
-    return;
-  }
-
-  root.hidden = false;
-  root.innerHTML =
-    '<details class="match-queue-disclosure"><summary><span class="match-queue-title">More options to consider</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
-    queueEntries
-      .map(function (entry, index) {
-        var therapist = entry.therapist;
-        return (
-          '<article class="match-queue-card"><div><div class="match-queue-rank">Top ' +
-          escapeHtml(String(PRIMARY_SHORTLIST_LIMIT + index + 1)) +
-          ' match</div><div class="match-queue-name">' +
-          escapeHtml(therapist.name) +
-          '</div><div class="match-queue-meta">' +
-          escapeHtml(therapist.credentials || "") +
-          (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
-          " · " +
-          escapeHtml(formatTherapistLocationLine(therapist)) +
-          '</div><div class="match-queue-copy">' +
-          escapeHtml(buildQueueReserveCopy(entry)) +
-          "</div></div>" +
-          '<a href="therapist.html?slug=' +
-          encodeURIComponent(therapist.slug) +
-          '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
-          escapeHtml(therapist.slug) +
-          '" data-profile-link-context="queue">View Profile</a></article>'
-        );
-      })
-      .join("") +
-    "</div></details>";
+  renderShortlistQueueSection({
+    root: root,
+    queueEntries: queueEntries,
+    escapeHtml: escapeHtml,
+    profileBaseHref: "therapist.html?slug=",
+    formatTherapistLocationLine: formatTherapistLocationLine,
+    buildQueueReserveCopy: buildQueueReserveCopy,
+    shortlistLimit: PRIMARY_SHORTLIST_LIMIT,
+  });
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -4335,103 +4265,14 @@ function renderFirstContactRecommendation(_profile, _entries) {
   });
 }
 
-function getBaseFallbackWaitMs(profile) {
-  if (profile && profile.urgency === "ASAP") {
-    return 24 * 60 * 60 * 1000;
-  }
-  if (profile && profile.urgency === "Within 2 weeks") {
-    return 48 * 60 * 60 * 1000;
-  }
-  if (profile && profile.urgency === "Within a month") {
-    return 4 * 24 * 60 * 60 * 1000;
-  }
-  return 5 * 24 * 60 * 60 * 1000;
-}
-
-function formatWaitWindow(ms) {
-  var hours = Math.round(ms / (60 * 60 * 1000));
-  if (hours <= 48) {
-    return hours + " hours";
-  }
-
-  var days = Math.round(hours / 24);
-  return days + (days === 1 ? " day" : " days");
-}
-
-function getAdaptivePivotTiming(profile, outcomes) {
-  var baseMs = getBaseFallbackWaitMs(profile);
-  var timing = analyzePivotTimingByUrgency(outcomes, profile);
-  var adjustedMs = baseMs;
-  var rationale = "";
-
-  if (timing.early_pivots >= Math.max(2, timing.late_pivots + 1)) {
-    adjustedMs = Math.max(24 * 60 * 60 * 1000, Math.round(baseMs * 0.75));
-    rationale = "Similar urgency journeys have tended to pivot a bit earlier.";
-  } else if (timing.late_pivots >= Math.max(2, timing.early_pivots + 1)) {
-    adjustedMs = Math.min(7 * 24 * 60 * 60 * 1000, Math.round(baseMs * 1.25));
-    rationale = "Similar urgency journeys have tended to need a little more time before pivoting.";
-  } else if (timing.on_time_pivots > 0) {
-    rationale = "Similar urgency journeys suggest this timing window is about right.";
-  }
-
-  return {
-    ms: adjustedMs,
-    label: formatWaitWindow(adjustedMs),
-    rationale: rationale,
-  };
-}
-
-function formatReminderDate(value) {
-  return new Date(value).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function buildContactOrderPlan(profile, entries) {
-  var first = buildFirstContactRecommendation(profile, entries);
-  if (!first) {
-    return null;
-  }
-
-  var fallback = buildFallbackRecommendation(profile, entries);
-  var adaptiveTiming = getAdaptivePivotTiming(profile, readOutreachOutcomes());
-  var waitWindow = adaptiveTiming.label;
-  var pivotAt = new Date(Date.now() + adaptiveTiming.ms);
-
-  return {
-    first: first,
-    fallback: fallback,
-    waitWindow: waitWindow,
-    pivotAt: pivotAt.toISOString(),
-    pivotAtLabel: formatReminderDate(pivotAt),
-    timingRationale: adaptiveTiming.rationale,
-    routeRationale:
-      first.routeLearning && first.routeLearning.success > 0
-        ? "Similar " +
-          buildLearningSegments(profile)
-            .slice(0, 2)
-            .map(function (segment) {
-              return segment.split(":")[1].replace(/-/g, " ");
-            })
-            .join(" / ") +
-          " searches have seen stronger outcomes through " +
-          first.routeLearning.routeType.replace(/_/g, " ") +
-          " outreach."
-        : "",
-    shortcutRationale:
-      first.shortcutSignal && first.shortcutSignal.preference.strong > 0
-        ? "This first step also matches the strongest-performing " +
-          first.shortcutSignal.title.toLowerCase() +
-          " shortcut for similar users."
-        : "",
-    trigger:
-      "If you see no reply, a waitlist, or an insurance mismatch after about " +
-      waitWindow +
-      ", move to the backup path.",
-  };
+  return buildContactOrderPlanBase(profile, entries, {
+    buildFirstContactRecommendation: buildFirstContactRecommendation,
+    buildFallbackRecommendation: buildFallbackRecommendation,
+    readOutreachOutcomes: readOutreachOutcomes,
+    analyzePivotTimingByUrgency: analyzePivotTimingByUrgency,
+    buildLearningSegments: buildLearningSegments,
+  });
 }
 
 function renderOutreachPanel(entries) {

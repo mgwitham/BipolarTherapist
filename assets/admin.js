@@ -60,6 +60,9 @@ import {
   summarizeExperimentDecisions,
   summarizeExperimentPerformance,
   summarizeFunnelEvents,
+  summarizeProfileContactExperimentDecision,
+  summarizeProfileContactOutcomeValidation,
+  summarizeProfileContactSignals,
   summarizePatientJourney,
 } from "./funnel-analytics.js";
 import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
@@ -79,6 +82,7 @@ import { renderConciergeQueuePanel } from "./admin-concierge-queue.js";
 import { createConfirmationWorkspace } from "./admin-confirmation-workspace.js";
 import { createListingsWorkspace } from "./admin-listings-workspace.js";
 import { getNextBestAdminActions } from "./admin-priority-actions.js";
+import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
 import {
   createAdminRuntimeState,
   createRemoteAuthRequiredState,
@@ -374,312 +378,6 @@ if (savedReviewerPreference && typeof savedReviewerPreference.my_queue_mode === 
 }
 applyAdminWorkflowUrlParams();
 
-function spotlightSection(target) {
-  if (!target) {
-    return;
-  }
-  target.classList.add("section-spotlight");
-  window.setTimeout(function () {
-    target.classList.remove("section-spotlight");
-  }, 1800);
-}
-
-function getWorkflowGrid() {
-  return document.querySelector("#adminApp .grid");
-}
-
-function clearWorkflowFocusMode() {
-  var grid = getWorkflowGrid();
-  if (!grid) {
-    return;
-  }
-  grid.classList.remove("workflow-focus-active");
-  grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
-    node.classList.remove("workflow-focus-owner");
-  });
-  grid.querySelectorAll(".workflow-focus-target").forEach(function (node) {
-    node.classList.remove("workflow-focus-target");
-  });
-}
-
-function getWorkflowFocusOwner(target) {
-  var grid = getWorkflowGrid();
-  if (!grid || !target) {
-    return null;
-  }
-  var directChildren = Array.prototype.slice.call(grid.children || []);
-  for (var index = 0; index < directChildren.length; index += 1) {
-    var child = directChildren[index];
-    if (child === target || child.contains(target)) {
-      return child;
-    }
-  }
-  return null;
-}
-
-function applyWorkflowFocusMode(target) {
-  var grid = getWorkflowGrid();
-  if (!grid || !target) {
-    clearWorkflowFocusMode();
-    return;
-  }
-  var owner = getWorkflowFocusOwner(target);
-  if (!owner) {
-    clearWorkflowFocusMode();
-    return;
-  }
-  clearWorkflowFocusMode();
-  grid.classList.add("workflow-focus-active");
-  owner.classList.add("workflow-focus-owner");
-  target.classList.add("workflow-focus-target");
-}
-
-function buildWorkflowHandoffMarkup(config) {
-  var item = config || {};
-  if (item.compact) {
-    return (
-      '<div class="workflow-handoff workflow-handoff-compact" data-workflow-handoff="true"><div class="workflow-handoff-kicker">Start Here</div><div class="workflow-handoff-title">' +
-      escapeHtml(item.title || "Next move") +
-      "</div>" +
-      (item.firstStep
-        ? '<div class="workflow-handoff-copy workflow-handoff-compact-copy">' +
-          escapeHtml(item.firstStep) +
-          "</div>"
-        : "") +
-      '<div class="workflow-handoff-actions" data-workflow-handoff-actions="true">' +
-      (item.primaryActionLabel
-        ? '<button type="button" class="btn-primary btn-inline" data-workflow-primary-action' +
-          (item.primaryActionTargetId
-            ? ' data-workflow-primary-target-id="' + escapeHtml(item.primaryActionTargetId) + '"'
-            : "") +
-          (item.primaryActionSectionTargetId
-            ? ' data-workflow-primary-section-id="' +
-              escapeHtml(item.primaryActionSectionTargetId) +
-              '"'
-            : "") +
-          ">" +
-          escapeHtml(item.primaryActionLabel) +
-          "</button>"
-        : "") +
-      '<button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
-      "</div>"
-    );
-  }
-  return (
-    '<div class="workflow-handoff" data-workflow-handoff="true"><div class="workflow-handoff-kicker">Start In This Section</div><div class="workflow-handoff-title">' +
-    escapeHtml(item.title || "Next move") +
-    "</div>" +
-    (item.destination
-      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">You Landed In</div><div class="workflow-handoff-copy">' +
-        escapeHtml(item.destination) +
-        "</div></div>"
-      : "") +
-    (item.firstStep
-      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Start With</div><div class="workflow-handoff-copy">' +
-        escapeHtml(item.firstStep) +
-        "</div></div>"
-      : "") +
-    (item.nextStep
-      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Then</div><div class="workflow-handoff-copy">' +
-        escapeHtml(item.nextStep) +
-        "</div></div>"
-      : "") +
-    (item.done
-      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Done When</div><div class="workflow-handoff-copy">' +
-        escapeHtml(item.done) +
-        "</div></div>"
-      : "") +
-    '<div class="workflow-handoff-actions" data-workflow-handoff-actions="true">' +
-    (item.primaryActionLabel
-      ? '<button type="button" class="btn-primary btn-inline" data-workflow-primary-action' +
-        (item.primaryActionTargetId
-          ? ' data-workflow-primary-target-id="' + escapeHtml(item.primaryActionTargetId) + '"'
-          : "") +
-        (item.primaryActionSectionTargetId
-          ? ' data-workflow-primary-section-id="' +
-            escapeHtml(item.primaryActionSectionTargetId) +
-            '"'
-          : "") +
-        ">" +
-        escapeHtml(item.primaryActionLabel) +
-        "</button>"
-      : "") +
-    '<button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
-    "</div>"
-  );
-}
-
-function clearWorkflowHandoffs() {
-  document.querySelectorAll('[data-workflow-handoff="true"]').forEach(function (node) {
-    node.remove();
-  });
-}
-
-function openNearbyPlaybook(target) {
-  if (!target) {
-    return;
-  }
-  var container = target;
-  if (!container.querySelector(".playbook") && target.parentElement) {
-    container = target.parentElement;
-  }
-  if (!container) {
-    return;
-  }
-  var playbook = container.querySelector(".playbook");
-  if (playbook && typeof playbook.open === "boolean") {
-    playbook.open = true;
-  }
-}
-
-function getWorkflowPrimaryActionTarget(target) {
-  if (!target || typeof target.querySelectorAll !== "function") {
-    return null;
-  }
-  var candidates = Array.prototype.slice.call(
-    target.querySelectorAll(
-      "button.btn-primary, a.btn-primary, [data-candidate-decision], [data-action], [data-confirmation-copy], [data-launch-quick-action], [data-refresh-ops]",
-    ) || [],
-  );
-  for (var index = 0; index < candidates.length; index += 1) {
-    var node = candidates[index];
-    if (!node || node.closest('[data-workflow-handoff="true"]')) {
-      continue;
-    }
-    return node;
-  }
-  return null;
-}
-
-function attachWorkflowPrimaryActionButton(target) {
-  if (!target) {
-    return;
-  }
-  var handoff = target.querySelector('[data-workflow-handoff="true"]');
-  if (!handoff) {
-    return;
-  }
-}
-
-function getWorkflowFirstRowTarget(sectionTarget, explicitTargetId) {
-  if (explicitTargetId) {
-    var explicitTarget = document.getElementById(explicitTargetId);
-    if (explicitTarget) {
-      return explicitTarget;
-    }
-  }
-  if (!sectionTarget || typeof sectionTarget.querySelector !== "function") {
-    return null;
-  }
-  var stableStartTarget = sectionTarget.querySelector(
-    "#candidateQueueStartHere, #applicationReviewStartHere, #importBlockerStartHere, #confirmationQueueStartHere, #confirmationSprintStartHere, #refreshQueueStartHere, #publishedListingsStartHere",
-  );
-  if (stableStartTarget) {
-    return stableStartTarget;
-  }
-  return (
-    sectionTarget.querySelector(
-      ".queue-card.is-start-here, .application-card.is-start-here, .mini-card.is-start-here, .queue-card, .application-card, .mini-card",
-    ) || null
-  );
-}
-
-function handleWorkflowPrimaryActionClick(button) {
-  if (!button) {
-    return;
-  }
-  var explicitTargetId = button.getAttribute("data-workflow-primary-target-id") || "";
-  var sectionId = button.getAttribute("data-workflow-primary-section-id") || "";
-  var handoff = button.closest('[data-workflow-handoff="true"]');
-  var sectionTarget = sectionId ? document.getElementById(sectionId) : null;
-  if (!sectionTarget && handoff && handoff.parentElement) {
-    sectionTarget =
-      handoff.parentElement.closest(".workflow-section") ||
-      handoff.parentElement.closest(".queue-card, .application-card, .mini-card") ||
-      handoff.parentElement;
-  }
-  var attempts = 0;
-  var maxAttempts = 12;
-
-  function tryJump() {
-    attempts += 1;
-    var rowTarget = getWorkflowFirstRowTarget(sectionTarget, explicitTargetId);
-    if (rowTarget) {
-      clearWorkflowHandoffs();
-      rowTarget.setAttribute("tabindex", "-1");
-      rowTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-      spotlightSection(rowTarget);
-      window.setTimeout(function () {
-        window.scrollBy(0, -88);
-      }, 180);
-      var rowPrimaryAction = getWorkflowPrimaryActionTarget(rowTarget);
-      if (rowPrimaryAction && typeof rowPrimaryAction.focus === "function") {
-        window.setTimeout(function () {
-          rowPrimaryAction.focus({ preventScroll: true });
-        }, 220);
-      } else if (typeof rowTarget.focus === "function") {
-        window.setTimeout(function () {
-          rowTarget.focus({ preventScroll: true });
-        }, 220);
-      }
-      return;
-    }
-    if (sectionTarget && attempts >= maxAttempts) {
-      clearWorkflowHandoffs();
-      scrollToElementWithOffset(sectionTarget, "start");
-      spotlightSection(sectionTarget);
-      return;
-    }
-    if (attempts < maxAttempts) {
-      window.setTimeout(tryJump, 80);
-    }
-  }
-
-  tryJump();
-}
-
-function showWorkflowHandoff(target, config) {
-  if (!target || !config) {
-    return;
-  }
-  if (!config.title && !config.firstStep && !config.nextStep && !config.done) {
-    return;
-  }
-  clearWorkflowHandoffs();
-  openNearbyPlaybook(target);
-  applyWorkflowFocusMode(target);
-  var markup = buildWorkflowHandoffMarkup(config);
-  if (
-    target.classList.contains("queue-card") ||
-    target.classList.contains("application-card") ||
-    target.classList.contains("mini-card")
-  ) {
-    target.insertAdjacentHTML("afterbegin", markup);
-    attachWorkflowPrimaryActionButton(target);
-    return;
-  }
-  var heading = target.querySelector("h2");
-  if (heading) {
-    heading.insertAdjacentHTML("afterend", markup);
-    attachWorkflowPrimaryActionButton(target);
-    return;
-  }
-  target.insertAdjacentHTML("beforebegin", markup);
-  attachWorkflowPrimaryActionButton(target);
-}
-
-function scrollToElementWithOffset(target, block) {
-  if (!target) {
-    return;
-  }
-  var offset = block === "center" ? window.innerHeight * 0.22 : 88;
-  var top = window.scrollY + target.getBoundingClientRect().top - offset;
-  window.scrollTo({
-    top: Math.max(0, top),
-    behavior: "smooth",
-  });
-}
-
 function ensureWorkflowSectionRendered(sectionId) {
   switch (sectionId) {
     case "candidateQueuePanel":
@@ -707,86 +405,13 @@ function ensureWorkflowSectionRendered(sectionId) {
       break;
   }
 }
-
-function focusAdminWorkflowTarget(config) {
-  var options = config || {};
-  var sectionTarget = options.sectionTarget || null;
-  var focusTargetId = options.focusTargetId || "";
-  var focusSelector = options.focusSelector || "";
-  var workflowTitle = options.workflowTitle || "";
-  var workflowDestination = options.workflowDestination || "";
-  var workflowFirstStep = options.workflowFirstStep || "";
-  var workflowNextStep = options.workflowNextStep || "";
-  var workflowDone = options.workflowDone || "";
-  var workflowPrimaryActionLabel = options.workflowPrimaryActionLabel || "";
-  var workflowPrimaryActionTargetId = options.workflowPrimaryActionTargetId || "";
-  var attempts = 0;
-  var maxAttempts = 8;
-
-  function tryFocus() {
-    attempts += 1;
-    var focusedTarget = focusTargetId ? document.getElementById(focusTargetId) : null;
-    if (!focusedTarget && focusSelector && sectionTarget) {
-      try {
-        focusedTarget = sectionTarget.querySelector(focusSelector);
-      } catch (_error) {
-        focusedTarget = null;
-      }
-    }
-    if (!focusedTarget && sectionTarget && sectionTarget.id) {
-      ensureWorkflowSectionRendered(sectionTarget.id);
-      focusedTarget = focusTargetId ? document.getElementById(focusTargetId) : null;
-      if (!focusedTarget && focusSelector) {
-        try {
-          focusedTarget = sectionTarget.querySelector(focusSelector);
-        } catch (_error) {
-          focusedTarget = null;
-        }
-      }
-    }
-    var handoffTarget = focusedTarget || sectionTarget;
-    if (handoffTarget) {
-      showWorkflowHandoff(handoffTarget, {
-        title: workflowTitle,
-        destination: workflowDestination,
-        firstStep: workflowFirstStep,
-        nextStep: workflowNextStep,
-        done: workflowDone,
-        primaryActionLabel: workflowPrimaryActionLabel,
-        primaryActionTargetId: workflowPrimaryActionTargetId,
-        primaryActionSectionTargetId: sectionTarget && sectionTarget.id ? sectionTarget.id : "",
-        compact: !!sectionTarget && handoffTarget === sectionTarget,
-      });
-    }
-    if (focusedTarget) {
-      scrollToElementWithOffset(focusedTarget, "start");
-      spotlightSection(focusedTarget);
-      return;
-    }
-    if (sectionTarget && attempts >= maxAttempts) {
-      scrollToElementWithOffset(sectionTarget, "start");
-      spotlightSection(sectionTarget);
-      return;
-    }
-    if (attempts < maxAttempts) {
-      window.setTimeout(tryFocus, 60);
-    }
-  }
-
-  tryFocus();
-}
-
-function syncWorkflowFocusFromHash() {
-  if (typeof window === "undefined") {
-    return;
-  }
-  var hash = window.location.hash ? window.location.hash.slice(1) : "";
-  if (!hash) {
-    clearWorkflowFocusMode();
-    clearWorkflowHandoffs();
-    return;
-  }
-  var workflowHashMap = {
+const workflowNavigator = createAdminWorkflowNavigator({
+  escapeHtml: escapeHtml,
+  ensureSectionRendered: ensureWorkflowSectionRendered,
+  getGrid: function () {
+    return document.querySelector("#adminApp .grid");
+  },
+  workflowHashMap: {
     candidateQueueStartHere: "candidateQueuePanel",
     applicationReviewStartHere: "applicationsPanel",
     importBlockerStartHere: "importBlockerSprintSection",
@@ -794,42 +419,17 @@ function syncWorkflowFocusFromHash() {
     confirmationSprintStartHere: "confirmationSprintSection",
     refreshQueueStartHere: "refreshQueueSection",
     publishedListingsStartHere: "publishedListingsSection",
-  };
-  var attempts = 0;
-  var maxAttempts = 12;
-
-  function trySync() {
-    attempts += 1;
-    var target = document.getElementById(hash);
-    var sectionId = workflowHashMap[hash] || hash;
-    var sectionTarget = document.getElementById(sectionId);
-
-    if (target || sectionTarget) {
-      var focusTarget = target || sectionTarget;
-      applyWorkflowFocusMode(sectionTarget || focusTarget);
-      openNearbyPlaybook(focusTarget);
-      if (workflowHashMap[hash] && sectionTarget) {
-        focusAdminWorkflowTarget({
-          sectionTarget: sectionTarget,
-          focusTargetId: hash,
-        });
-      } else {
-        scrollToElementWithOffset(focusTarget, "start");
-        spotlightSection(focusTarget);
-        window.setTimeout(function () {
-          scrollToElementWithOffset(focusTarget, "start");
-        }, 120);
-      }
-      return;
-    }
-
-    if (attempts < maxAttempts) {
-      window.setTimeout(trySync, 80);
-    }
-  }
-
-  trySync();
-}
+  },
+});
+const applyWorkflowFocusMode = workflowNavigator.applyWorkflowFocusMode;
+const spotlightSection = workflowNavigator.spotlightSection;
+const clearWorkflowFocusMode = workflowNavigator.clearWorkflowFocusMode;
+const clearWorkflowHandoffs = workflowNavigator.clearWorkflowHandoffs;
+const focusAdminWorkflowTarget = workflowNavigator.focusAdminWorkflowTarget;
+const handleWorkflowPrimaryActionClick = workflowNavigator.handleWorkflowPrimaryActionClick;
+const scrollToElementWithOffset = workflowNavigator.scrollToElementWithOffset;
+const showWorkflowHandoff = workflowNavigator.showWorkflowHandoff;
+const syncWorkflowFocusFromHash = workflowNavigator.syncWorkflowFocusFromHash;
 
 function readAdminWorkflowUrlParams() {
   if (typeof window === "undefined") {
@@ -4938,9 +4538,18 @@ function renderFunnelInsights() {
   const events = readFunnelEvents();
   const summary = summarizeFunnelEvents(events);
   const patientJourney = summarizePatientJourney(events);
+  const profileContactSignals = summarizeProfileContactSignals(events);
+  const outcomes = readOutreachOutcomes();
+  const profileContactOutcomeValidation = summarizeProfileContactOutcomeValidation(
+    events,
+    outcomes,
+  );
+  const profileContactExperimentDecision = summarizeProfileContactExperimentDecision(
+    events,
+    outcomes,
+  );
   const experimentPerformance = summarizeExperimentPerformance(events);
   const experimentDecisions = summarizeExperimentDecisions(events);
-  const outcomes = readOutreachOutcomes();
   const adaptive = summarizeAdaptiveSignals(events, outcomes);
   const strategyHealth = buildStrategyHealthSummary(outcomes);
   const strategyPerformance = analyzeStrategyPerformance(events, outcomes);
@@ -5026,6 +4635,192 @@ function renderFunnelInsights() {
       })
       .join("") +
     "</div></div>" +
+    (profileContactSignals.total_route_clicks ||
+    profileContactSignals.section_views ||
+    profileContactSignals.script_engagements ||
+    profileContactSignals.question_engagements
+      ? '<div class="queue-insights"><div class="queue-insights-title">Profile contact conversion signals</div><div class="queue-insights-grid">' +
+        [
+          {
+            label: "Contact section views",
+            count: profileContactSignals.section_views,
+          },
+          {
+            label: "Route clicks",
+            count: profileContactSignals.total_route_clicks,
+          },
+          {
+            label: "Script engagements",
+            count: profileContactSignals.script_engagements,
+          },
+          {
+            label: "Question-list engagements",
+            count: profileContactSignals.question_engagements,
+          },
+        ]
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.count) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(item.label) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div>" +
+        '<div class="mini-status" style="margin-top:0.75rem"><strong>Interpretation:</strong> ' +
+        escapeHtml(profileContactSignals.interpretation) +
+        "</div>" +
+        (profileContactSignals.top_route
+          ? '<div class="mini-status" style="margin-top:0.45rem"><strong>Current leading route:</strong> ' +
+            escapeHtml(
+              profileContactSignals.top_route.route +
+                " with " +
+                profileContactSignals.top_route.count +
+                " click" +
+                (profileContactSignals.top_route.count === 1 ? "" : "s"),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.route_rows.length
+          ? '<div class="mini-status" style="margin-top:0.75rem"><strong>Most-used contact routes:</strong> ' +
+            escapeHtml(
+              profileContactSignals.route_rows
+                .slice(0, 4)
+                .map(function (item) {
+                  return item.route + " " + item.count;
+                })
+                .join(" · "),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.weak_guidance_profiles.length
+          ? '<div class="mini-status" style="margin-top:0.45rem"><strong>Watchlist:</strong> ' +
+            escapeHtml(
+              profileContactSignals.weak_guidance_profiles
+                .slice(0, 3)
+                .map(function (item) {
+                  return item.slug + " (" + item.clicks + " clicks)";
+                })
+                .join(" · "),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.top_profiles.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactSignals.top_profiles
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.slug) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.clicks +
+                      " route click" +
+                      (item.clicks === 1 ? "" : "s") +
+                      " · " +
+                      item.primary +
+                      " primary · " +
+                      item.secondary +
+                      " secondary",
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileContactSignals.variant_rows.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactSignals.variant_rows
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.variant) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.exposures +
+                      " exposures · " +
+                      item.route_clicks +
+                      " route clicks · " +
+                      item.guidance_engagements +
+                      " guidance engagements",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml(
+                    "Route click rate " +
+                      Math.round(item.route_click_rate * 100) +
+                      "% · Guidance rate " +
+                      Math.round(item.guidance_rate * 100) +
+                      "% of clicks",
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileContactOutcomeValidation.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactOutcomeValidation
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.variant) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.therapist_count +
+                      " therapists touched · " +
+                      item.strong_outcomes +
+                      " strong outcomes · " +
+                      item.friction_outcomes +
+                      " friction outcomes",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml("Downstream validation score " + item.downstream_score) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileContactExperimentDecision && profileContactExperimentDecision.winner
+          ? '<div class="queue-insight-card" style="margin-top:0.75rem"><div class="queue-insight-value">' +
+            escapeHtml(profileContactExperimentDecision.experiment_name) +
+            '</div><div class="queue-insight-label">' +
+            escapeHtml(
+              profileContactExperimentDecision.winner.variant +
+                " · " +
+                profileContactExperimentDecision.recommendation,
+            ) +
+            '</div><div class="queue-insight-note">' +
+            escapeHtml(
+              profileContactExperimentDecision.note +
+                " Confidence gap: " +
+                Math.round(profileContactExperimentDecision.confidence_gap * 100) / 100,
+            ) +
+            '</div><div class="queue-insight-action">' +
+            (profileContactExperimentDecision.recommendation === "Promising winner"
+              ? '<button type="button" class="btn-secondary btn-inline" data-promote-experiment="' +
+                escapeHtml(profileContactExperimentDecision.experiment_name) +
+                '" data-promote-variant="' +
+                escapeHtml(profileContactExperimentDecision.winner.variant) +
+                '">Promote ' +
+                escapeHtml(profileContactExperimentDecision.winner.variant) +
+                "</button>"
+              : "") +
+            (profileContactExperimentDecision.promoted_variant
+              ? ' <button type="button" class="btn-secondary btn-inline" data-clear-experiment-promotion="' +
+                escapeHtml(profileContactExperimentDecision.experiment_name) +
+                '">Clear promoted default</button><div class="queue-insight-note">Promoted now: ' +
+                escapeHtml(profileContactExperimentDecision.promoted_variant) +
+                "</div>"
+              : "") +
+            "</div></div>"
+          : "") +
+        "</div>"
+      : "") +
     (experimentPerformance.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Experiment variants in the wild</div><div class="queue-insights-grid">' +
         experimentPerformance
@@ -6171,31 +5966,45 @@ function renderPortalRequestsQueue() {
   });
 }
 
+function renderAdminSection(label, renderFn) {
+  if (typeof renderFn !== "function") {
+    return;
+  }
+  try {
+    renderFn();
+  } catch (error) {
+    console.error("Admin section failed to render:", label, error);
+  }
+}
+
 function renderAll() {
-  renderStats();
-  renderIngestionScorecard();
-  renderOpsInbox();
-  renderCoverageIntelligence();
-  renderSourcePerformance();
-  renderFunnelInsights();
-  renderListings();
-  renderRefreshQueue();
-  renderLicensureQueue();
-  renderLicensureSprint();
-  renderDeferredLicensureQueue();
-  renderLicensureActivity();
-  renderImportBlockerSprint();
-  renderCaliforniaPriorityConfirmationWave();
-  renderConfirmationSprint();
-  renderConfirmationQueue();
-  renderConciergeQueue();
-  renderPortalRequestsQueue();
-  renderReviewActivity();
-  reviewerWorkspace.renderAttentionQueue();
-  reviewerWorkspace.renderReviewerWorkload();
-  renderCandidateQueue();
-  renderApplications();
-  syncWorkflowFocusFromHash();
+  renderAdminSection("stats", renderStats);
+  renderAdminSection("ingestion scorecard", renderIngestionScorecard);
+  renderAdminSection("ops inbox", renderOpsInbox);
+  renderAdminSection("coverage intelligence", renderCoverageIntelligence);
+  renderAdminSection("source performance", renderSourcePerformance);
+  renderAdminSection("funnel insights", renderFunnelInsights);
+  renderAdminSection("listings", renderListings);
+  renderAdminSection("refresh queue", renderRefreshQueue);
+  renderAdminSection("licensure queue", renderLicensureQueue);
+  renderAdminSection("licensure sprint", renderLicensureSprint);
+  renderAdminSection("deferred licensure queue", renderDeferredLicensureQueue);
+  renderAdminSection("licensure activity", renderLicensureActivity);
+  renderAdminSection("missing-details lane", renderImportBlockerSprint);
+  renderAdminSection(
+    "california priority confirmation wave",
+    renderCaliforniaPriorityConfirmationWave,
+  );
+  renderAdminSection("confirmation sprint", renderConfirmationSprint);
+  renderAdminSection("confirmation queue", renderConfirmationQueue);
+  renderAdminSection("concierge queue", renderConciergeQueue);
+  renderAdminSection("portal requests queue", renderPortalRequestsQueue);
+  renderAdminSection("review activity", renderReviewActivity);
+  renderAdminSection("needs action now", reviewerWorkspace.renderAttentionQueue);
+  renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
+  renderAdminSection("add new listings", renderCandidateQueue);
+  renderAdminSection("review applications", renderApplications);
+  renderAdminSection("workflow focus sync", syncWorkflowFocusFromHash);
 }
 
 function setAuthUiState() {

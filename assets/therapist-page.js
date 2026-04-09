@@ -8,10 +8,16 @@ import {
   getTherapistMatchReadiness,
 } from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
+import {
+  getExperimentVariant,
+  trackExperimentExposure,
+  trackFunnelEvent,
+} from "./funnel-analytics.js";
 
 var slug = new URLSearchParams(window.location.search).get("slug");
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
+var activeTherapistContactExperimentVariant = "control";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -106,6 +112,52 @@ function getSourceHostLabel(value) {
   } catch (_error) {
     return "";
   }
+}
+
+function buildOutreachScript(therapist) {
+  var opener =
+    therapist.preferred_contact_method === "phone"
+      ? "Hi, I am looking for bipolar-focused support"
+      : "Hi, I am looking for bipolar-focused support and wanted to ask about fit";
+  var formatCue =
+    therapist.accepts_telehealth && therapist.accepts_in_person
+      ? "I am open to either telehealth or in-person care."
+      : therapist.accepts_telehealth
+        ? "I would be hoping for telehealth."
+        : therapist.accepts_in_person
+          ? "I would be hoping for in-person care."
+          : "";
+  var medicationCue = therapist.medication_management
+    ? "I may also want medication support or coordination."
+    : "";
+
+  return [
+    opener + ".",
+    formatCue,
+    medicationCue,
+    "Are you currently taking new clients, and what would the first step usually look like?",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getContactAnalyticsMeta(therapist, route) {
+  return {
+    therapist_slug: therapist.slug || "",
+    preferred_contact_method: therapist.preferred_contact_method || "unknown",
+    route: route || "unknown",
+    accepting_new_patients: Boolean(therapist.accepting_new_patients),
+    has_wait_time: Boolean(therapist.estimated_wait_time),
+    has_fee_details: Boolean(
+      therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale,
+    ),
+    has_insurance_details: Boolean(
+      therapist.insurance_accepted && therapist.insurance_accepted.length,
+    ),
+    experiments: {
+      therapist_contact_guidance: activeTherapistContactExperimentVariant,
+    },
+  };
 }
 
 function readShortlist() {
@@ -267,6 +319,14 @@ async function resolveTherapistForProfile(slugValue) {
     return;
   }
 
+  activeTherapistContactExperimentVariant = getExperimentVariant("therapist_contact_guidance", [
+    "control",
+    "action_plan",
+  ]);
+  trackExperimentExposure("therapist_contact_guidance", activeTherapistContactExperimentVariant, {
+    therapist_slug: therapist.slug || "",
+    preferred_contact_method: therapist.preferred_contact_method || "unknown",
+  });
   renderProfile(therapist);
 })();
 
@@ -446,6 +506,7 @@ function renderProfile(t) {
   var bipolarTrustItems = [];
   var practicalDetailsItems = [];
   var contactChecklistItems = [];
+  var contactQuestionItems = [];
   var fitHeadline = "";
   var fitSubheadline = "";
   var contactRouteLabel =
@@ -463,7 +524,7 @@ function renderProfile(t) {
       return (
         '<a href="' +
         escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener" class="btn-contact">' +
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Book consultation") +
         "</a>"
       );
@@ -472,7 +533,7 @@ function renderProfile(t) {
       return (
         '<a href="' +
         escapeHtml(t.website) +
-        '" target="_blank" rel="noopener" class="btn-contact">' +
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Visit website") +
         "</a>"
       );
@@ -481,7 +542,7 @@ function renderProfile(t) {
       return (
         '<a href="tel:' +
         escapeHtml(t.phone) +
-        '" class="btn-contact">' +
+        '" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Call " + t.phone) +
         "</a>"
       );
@@ -490,7 +551,7 @@ function renderProfile(t) {
       return (
         '<a href="mailto:' +
         escapeHtml(t.email) +
-        '" class="btn-contact">' +
+        '" class="btn-contact" data-profile-contact-route="email" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Email") +
         "</a>"
       );
@@ -508,7 +569,7 @@ function renderProfile(t) {
     contactBtns +=
       '<a href="tel:' +
       escapeHtml(t.phone) +
-      '" class="btn-contact btn-contact-secondary">Call ' +
+      '" class="btn-contact btn-contact-secondary" data-profile-contact-route="phone" data-profile-contact-priority="secondary">Call ' +
       escapeHtml(t.phone) +
       "</a>";
   }
@@ -516,19 +577,19 @@ function renderProfile(t) {
     contactBtns +=
       '<a href="mailto:' +
       escapeHtml(t.email) +
-      '" class="btn-contact btn-contact-secondary">Email</a>';
+      '" class="btn-contact btn-contact-secondary" data-profile-contact-route="email" data-profile-contact-priority="secondary">Email</a>';
   }
   if (t.website && t.preferred_contact_method !== "website") {
     contactBtns +=
       '<a href="' +
       escapeHtml(t.website) +
-      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
+      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
   }
   if (t.booking_url && t.preferred_contact_method !== "booking") {
     contactBtns +=
       '<a href="' +
       escapeHtml(t.booking_url) +
-      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
+      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
   var specialties = renderTagList(t.specialties, "spec-tag");
@@ -575,6 +636,19 @@ function renderProfile(t) {
   var bestNextStepCopy =
     firstStepExpectation ||
     "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
+  var outreachScript = buildOutreachScript(t);
+  var contactScriptLabel =
+    activeTherapistContactExperimentVariant === "action_plan"
+      ? "Use this first message"
+      : "Simple outreach script";
+  var contactQuestionsLabel =
+    activeTherapistContactExperimentVariant === "action_plan"
+      ? "Ask these first"
+      : "Good questions to ask";
+  var contactPlanLabel =
+    activeTherapistContactExperimentVariant === "action_plan"
+      ? "Use this outreach plan"
+      : "Reach out with this plan";
   var primaryButton = buildPreferredContactButton();
 
   if (bipolarExperience >= 8) {
@@ -671,6 +745,21 @@ function renderProfile(t) {
   }
   contactChecklistItems.push(bestNextStepCopy);
 
+  contactQuestionItems.push("Do you work often with bipolar-spectrum care like what I need?");
+  if (t.estimated_wait_time || t.accepting_new_patients) {
+    contactQuestionItems.push(
+      t.estimated_wait_time
+        ? "Is the current opening timeline still around " + t.estimated_wait_time + "?"
+        : "What is the current timeline for a first consult or intake?",
+    );
+  }
+  if (!((t.insurance_accepted || []).length && (t.session_fee_min || t.session_fee_max))) {
+    contactQuestionItems.push(
+      "Can you confirm fees, insurance, or superbill details for my situation?",
+    );
+  }
+  contactQuestionItems.push("What usually happens after the first message or consult?");
+
   fitHeadline = quickFitItems.length
     ? "This looks like a credible bipolar-care option."
     : "This profile offers some useful fit signals, but a quick confirmation step still matters.";
@@ -685,6 +774,7 @@ function renderProfile(t) {
     contactChecklistItems.slice(0, 4),
     "contact-checklist-item",
   );
+  var contactQuestionHtml = renderList(contactQuestionItems.slice(0, 4), "contact-checklist-item");
   var fitSnapshotHtml = [
     readiness.score >= 85 ? "High-confidence profile" : readinessTitle,
     bipolarExperience ? bipolarExperience + " yrs bipolar care" : "",
@@ -901,7 +991,9 @@ function renderProfile(t) {
     "</div>" +
     '<div class="profile-actions">' +
     contactBtns +
-    '<div class="contact-checklist"><div class="profile-secondary-label">Reach out with this plan</div>' +
+    '<div class="contact-checklist"><div class="profile-secondary-label">' +
+    escapeHtml(contactPlanLabel) +
+    "</div>" +
     contactChecklistHtml +
     "</div>" +
     (contactGuidance
@@ -978,9 +1070,14 @@ function renderProfile(t) {
     feesHtml +
     "</div>" +
     "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Contact</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
+    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Contact</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
     '<div class="next-step-item"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
     escapeHtml(primaryContactLabel || contactRouteLabel) +
+    "</div></div>" +
+    '<div class="next-step-item" data-profile-outreach-script><div class="next-step-label">' +
+    escapeHtml(contactScriptLabel) +
+    '</div><div class="next-step-value">' +
+    escapeHtml(outreachScript) +
     "</div></div>" +
     (t.estimated_wait_time
       ? '<div class="next-step-item"><div class="next-step-label">Recent availability note</div><div class="next-step-value">' +
@@ -990,6 +1087,13 @@ function renderProfile(t) {
     (contactGuidance
       ? '<div class="next-step-item"><div class="next-step-label">What to include</div><div class="next-step-value">' +
         escapeHtml(contactGuidance) +
+        "</div></div>"
+      : "") +
+    (contactQuestionHtml
+      ? '<div class="next-step-item" data-profile-contact-questions><div class="next-step-label">' +
+        escapeHtml(contactQuestionsLabel) +
+        '</div><div class="next-step-question-list">' +
+        contactQuestionHtml +
         "</div></div>"
       : "") +
     '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
@@ -1212,6 +1316,51 @@ function renderProfile(t) {
       if (typeof window.refreshShortlistNav === "function") {
         window.refreshShortlistNav();
       }
+    });
+  }
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-contact-route]"))
+    .forEach(function (link) {
+      link.addEventListener("click", function () {
+        trackFunnelEvent("profile_contact_route_clicked", {
+          priority: link.getAttribute("data-profile-contact-priority") || "unknown",
+          ...getContactAnalyticsMeta(t, link.getAttribute("data-profile-contact-route") || ""),
+        });
+      });
+    });
+  var contactSection = document.querySelector("[data-profile-contact-section]");
+  var contactSectionTracked = false;
+  if (contactSection && typeof window.IntersectionObserver === "function") {
+    var contactObserver = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting || contactSectionTracked) {
+            return;
+          }
+          contactSectionTracked = true;
+          trackFunnelEvent("profile_contact_section_viewed", getContactAnalyticsMeta(t, "section"));
+          contactObserver.disconnect();
+        });
+      },
+      {
+        threshold: 0.45,
+      },
+    );
+    contactObserver.observe(contactSection);
+  }
+  var outreachScriptCard = document.querySelector("[data-profile-outreach-script]");
+  if (outreachScriptCard) {
+    outreachScriptCard.addEventListener("click", function () {
+      trackFunnelEvent("profile_outreach_script_engaged", getContactAnalyticsMeta(t, "script"));
+    });
+  }
+  var contactQuestionsCard = document.querySelector("[data-profile-contact-questions]");
+  if (contactQuestionsCard) {
+    contactQuestionsCard.addEventListener("click", function () {
+      trackFunnelEvent(
+        "profile_contact_questions_engaged",
+        getContactAnalyticsMeta(t, "questions"),
+      );
     });
   }
   Array.prototype.slice
