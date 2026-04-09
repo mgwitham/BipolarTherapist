@@ -64,6 +64,14 @@ const steps = [
     ],
   },
   {
+    label: "Licensure refresh queue",
+    script: "cms:generate:licensure-refresh-queue",
+    outputs: [
+      "data/import/generated-licensure-refresh-queue.csv",
+      "data/import/generated-licensure-refresh-queue.md",
+    ],
+  },
+  {
     label: "Reverification batch",
     script: "cms:generate:reverification-batch",
     outputs: [

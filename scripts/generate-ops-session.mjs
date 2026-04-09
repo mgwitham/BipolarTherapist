@@ -27,6 +27,11 @@ const steps = [
     args: ["run", "cms:generate:ingestion-ops-queue"],
   },
   {
+    label: "Licensure refresh queue",
+    cmd: "npm",
+    args: ["run", "cms:generate:licensure-refresh-queue"],
+  },
+  {
     label: "Reverification batch",
     cmd: "npm",
     args: ["run", "cms:generate:reverification-batch"],

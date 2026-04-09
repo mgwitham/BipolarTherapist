@@ -1,5 +1,6 @@
 import { directoryPageType } from "./directoryPage";
 import { homePageType } from "./homePage";
+import { licensureRecordType } from "./licensureRecord";
 import { siteSettingsType } from "./siteSettings";
 import { therapistApplicationType } from "./therapistApplication";
 import { therapistCandidateType } from "./therapistCandidate";
@@ -10,6 +11,7 @@ import { therapistType } from "./therapist";
 export const schemaTypes = [
   directoryPageType,
   homePageType,
+  licensureRecordType,
   siteSettingsType,
   therapistType,
   therapistCandidateType,

@@ -128,6 +128,15 @@ function formatDate(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function addDays(value, days) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 function normalizeLicenseSegment(value) {
   return String(value || "")
     .trim()
@@ -145,6 +154,15 @@ function mergeUniqueUrls(primary, supporting, extra) {
     })
     .filter(Boolean);
   return Array.from(new Set(urls));
+}
+
+function buildLicensureRecordId(record, jurisdiction) {
+  const providerId = String(record.providerId || "").trim();
+  const licenseNumber = normalizeLicenseSegment(record.licenseNumber || "");
+  if (providerId && jurisdiction) {
+    return `licensure-record-${providerId}-${String(jurisdiction).toLowerCase()}`;
+  }
+  return `licensure-record-${String(record._id || "unknown").toLowerCase()}-${licenseNumber || "missing"}`;
 }
 
 function parseArgs(argv) {
@@ -541,6 +559,59 @@ function buildPatch(record, licensureVerification) {
   };
 }
 
+function buildLicensureRecord(record, licensureVerification) {
+  const verifiedAt = licensureVerification.verifiedAt || new Date().toISOString();
+  const refreshIntervalDays = 7;
+  const expiration = licensureVerification.expirationDate
+    ? new Date(licensureVerification.expirationDate)
+    : null;
+  const now = new Date();
+  const expiresSoon =
+    expiration &&
+    !Number.isNaN(expiration.getTime()) &&
+    expiration.getTime() - now.getTime() <= 45 * 86400000;
+
+  return {
+    _id: buildLicensureRecordId(record, licensureVerification.jurisdiction || "CA"),
+    _type: "licensureRecord",
+    providerId: String(record.providerId || "").trim(),
+    jurisdiction: licensureVerification.jurisdiction || "CA",
+    licenseState: record.licenseState || licensureVerification.jurisdiction || "CA",
+    licenseNumber: record.licenseNumber || "",
+    sourceDocumentType: record._type || "",
+    sourceDocumentId: record._id || "",
+    licensureVerification,
+    refreshStatus: "healthy",
+    lastRefreshAttemptAt: verifiedAt,
+    lastRefreshSuccessAt: verifiedAt,
+    lastRefreshFailureAt: "",
+    nextRefreshDueAt: addDays(verifiedAt, expiresSoon ? 2 : refreshIntervalDays),
+    refreshIntervalDays,
+    refreshFailureCount: 0,
+    lastRefreshError: "",
+    staleAfterAt: addDays(verifiedAt, refreshIntervalDays),
+    rawSourceSnapshot: licensureVerification.rawSnapshot || "",
+  };
+}
+
+function buildFailedLicensureRecordPatch(record, reason) {
+  const now = new Date().toISOString();
+  return {
+    _id: buildLicensureRecordId(record, "CA"),
+    _type: "licensureRecord",
+    providerId: String(record.providerId || "").trim(),
+    jurisdiction: "CA",
+    licenseState: record.licenseState || "CA",
+    licenseNumber: record.licenseNumber || "",
+    sourceDocumentType: record._type || "",
+    sourceDocumentId: record._id || "",
+    refreshStatus: "failed",
+    lastRefreshAttemptAt: now,
+    lastRefreshFailureAt: now,
+    lastRefreshError: String(reason || "").trim(),
+  };
+}
+
 function buildCsv(rows) {
   const headers = [
     "doc_type",
@@ -786,6 +857,7 @@ async function run() {
       if (!options.dryRun) {
         const patch = buildPatch(record, licensureVerification);
         await client.patch(record._id).set(patch).commit();
+        await client.createOrReplace(buildLicensureRecord(record, licensureVerification));
       }
 
       results.push({
@@ -802,6 +874,14 @@ async function run() {
         profileUrl: licensureVerification.profileUrl || profileUrl,
       });
     } catch (error) {
+      if (!options.dryRun) {
+        await client.createOrReplace(
+          buildFailedLicensureRecordPatch(
+            record,
+            error instanceof Error ? error.message : String(error),
+          ),
+        );
+      }
       results.push({
         docType: record._type,
         docId: record._id,
