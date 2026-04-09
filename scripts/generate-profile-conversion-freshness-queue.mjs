@@ -11,6 +11,12 @@ const CSV_OUTPUT_PATH = path.join(
   "import",
   "generated-profile-conversion-freshness-queue.csv",
 );
+const JSON_OUTPUT_PATH = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-profile-conversion-freshness-queue.json",
+);
 const MD_OUTPUT_PATH = path.join(
   ROOT,
   "data",
@@ -386,6 +392,10 @@ function writeMarkdown(rows) {
   fs.writeFileSync(MD_OUTPUT_PATH, `${lines.join("\n")}\n`, "utf8");
 }
 
+function writeJson(rows) {
+  fs.writeFileSync(JSON_OUTPUT_PATH, `${JSON.stringify(rows, null, 2)}\n`, "utf8");
+}
+
 function run() {
   if (!fs.existsSync(THERAPISTS_CSV_PATH)) {
     throw new Error(`Missing therapists CSV at ${path.relative(ROOT, THERAPISTS_CSV_PATH)}.`);
@@ -403,9 +413,10 @@ function run() {
 
   writeCsv(rows);
   writeMarkdown(rows);
+  writeJson(rows);
 
   console.log(
-    `Generated profile conversion freshness queue with ${rows.length} item(s) to ${path.relative(ROOT, CSV_OUTPUT_PATH)} and ${path.relative(ROOT, MD_OUTPUT_PATH)}.`,
+    `Generated profile conversion freshness queue with ${rows.length} item(s) to ${path.relative(ROOT, CSV_OUTPUT_PATH)}, ${path.relative(ROOT, MD_OUTPUT_PATH)}, and ${path.relative(ROOT, JSON_OUTPUT_PATH)}.`,
   );
 }
 

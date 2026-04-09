@@ -19,11 +19,13 @@ export async function loadGeneratedAdminArtifacts() {
     licensureRefreshQueue,
     deferredLicensureQueue,
     licensureActivityFeed,
+    profileConversionFreshnessQueue,
   ] = await Promise.all([
     loadGeneratedAdminArtifact("./data/import/generated-ingestion-automation-history.json"),
     loadGeneratedAdminArtifact("./data/import/generated-licensure-refresh-queue.json"),
     loadGeneratedAdminArtifact("./data/import/generated-licensure-deferred-queue.json"),
     loadGeneratedAdminArtifact("./data/import/generated-licensure-activity-feed.json"),
+    loadGeneratedAdminArtifact("./data/import/generated-profile-conversion-freshness-queue.json"),
   ]);
 
   return {
@@ -31,6 +33,7 @@ export async function loadGeneratedAdminArtifacts() {
     licensureRefreshQueue,
     deferredLicensureQueue,
     licensureActivityFeed,
+    profileConversionFreshnessQueue,
   };
 }
 

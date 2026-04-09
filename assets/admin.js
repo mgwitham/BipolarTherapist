@@ -279,6 +279,9 @@ const confirmationWorkspace = createConfirmationWorkspace({
     "insuranceAccepted",
     "yearsExperience",
     "telehealthStates",
+    "sessionFeeMin",
+    "sessionFeeMax",
+    "slidingScale",
   ],
   confirmationResponseItemFieldMap: {
     bipolarYearsExperience: ["bipolarYearsExperience", "bipolar_years_experience"],
@@ -286,6 +289,9 @@ const confirmationWorkspace = createConfirmationWorkspace({
     insuranceAccepted: ["insuranceAccepted", "insurance_accepted"],
     yearsExperience: ["yearsExperience", "years_experience"],
     telehealthStates: ["telehealthStates", "telehealth_states"],
+    sessionFeeMin: ["sessionFeeMin", "session_fee_min"],
+    sessionFeeMax: ["sessionFeeMax", "session_fee_max"],
+    slidingScale: ["slidingScale", "sliding_scale"],
   },
   confirmationResponseValuesKey: "bth_confirmation_response_values_v1",
   confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
@@ -452,7 +458,7 @@ function buildWorkflowHandoffMarkup(config) {
         escapeHtml(item.done) +
         "</div></div>"
       : "") +
-    '<div class="workflow-handoff-actions"><button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Show full admin</button></div>' +
+    '<div class="workflow-handoff-actions"><button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
     "</div>"
   );
 }
@@ -5342,17 +5348,28 @@ function renderOpsInbox() {
     renderFieldTrustChips: renderFieldTrustChips,
     getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
     buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
     getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
+    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
     formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
     formatDate: formatDate,
     escapeHtml: escapeHtml,
     copyText: copyText,
+    updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
+    clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
     updateConfirmationQueueEntry: updateConfirmationQueueEntry,
     renderStats: renderStats,
     renderImportBlockerSprint: renderImportBlockerSprint,
     renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
     renderConfirmationSprint: renderConfirmationSprint,
     renderConfirmationQueue: renderConfirmationQueue,
+    renderOpsInbox: renderOpsInbox,
     decideTherapistCandidate: decideTherapistCandidate,
     decideTherapistOps: decideTherapistOps,
     loadData: loadData,

@@ -125,6 +125,12 @@ export function createConfirmationWorkspace(options) {
     if (field === "telehealthStates") {
       return "e.g. CA|NY";
     }
+    if (field === "sessionFeeMin" || field === "sessionFeeMax") {
+      return "e.g. 225";
+    }
+    if (field === "slidingScale") {
+      return "yes / no / limited";
+    }
     return "Enter confirmed value";
   }
 
@@ -243,6 +249,9 @@ export function createConfirmationWorkspace(options) {
       "insuranceAccepted",
       "yearsExperience",
       "telehealthStates",
+      "sessionFeeMin",
+      "sessionFeeMax",
+      "slidingScale",
     ];
     var lines = [headers.join(",")];
 
@@ -259,6 +268,9 @@ export function createConfirmationWorkspace(options) {
           response.insuranceAccepted || "",
           response.yearsExperience || "",
           response.telehealthStates || "",
+          response.sessionFeeMin || "",
+          response.sessionFeeMax || "",
+          response.slidingScale || "",
         ]
           .map(csvEscape)
           .join(","),
@@ -1735,6 +1747,7 @@ export function createConfirmationWorkspace(options) {
     buildConfirmationApplySummary: buildConfirmationApplySummary,
     buildConfirmationLink: buildConfirmationLink,
     buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    clearConfirmationResponseEntry: clearConfirmationResponseEntry,
     getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
     getConfirmationLastActionNote: getConfirmationLastActionNote,
     getConfirmationQueueEntry: getConfirmationQueueEntry,
@@ -1763,6 +1776,7 @@ export function createConfirmationWorkspace(options) {
     renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityWavePanel,
     setConfirmationActionStatus: setConfirmationActionStatus,
     setConfirmationQueueFilter: setConfirmationQueueFilter,
+    updateConfirmationResponseEntry: updateConfirmationResponseEntry,
     updateConfirmationQueueEntry: updateConfirmationQueueEntry,
   };
 }

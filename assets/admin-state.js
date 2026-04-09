@@ -13,6 +13,7 @@ const BASE_RUNTIME_STATE = {
   licensureRefreshQueue: [],
   deferredLicensureQueue: [],
   licensureActivityFeed: [],
+  profileConversionFreshnessQueue: [],
   authRequired: false,
 };
 
