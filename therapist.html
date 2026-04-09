@@ -240,6 +240,11 @@
         flex-wrap: wrap;
         gap: 0.5rem;
       }
+      .fit-snapshot-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
       .trust-pill {
         font-size: 0.77rem;
         font-weight: 600;
@@ -248,16 +253,73 @@
         background: var(--teal-faint);
         color: var(--teal-dark);
       }
+      .snapshot-pill {
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 0.34rem 0.68rem;
+        border-radius: 999px;
+        background: rgba(29, 58, 74, 0.06);
+        color: var(--navy);
+      }
       .fit-summary {
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         line-height: 1.7;
         color: var(--slate);
-        max-width: 62ch;
       }
-      .hero-summary-grid {
+      .hero-verdict-card {
+        border: 1px solid rgba(26, 122, 143, 0.15);
+        border-radius: 20px;
+        padding: 1.1rem 1.15rem;
+        background: linear-gradient(135deg, #f7fcfd 0%, #eef7f9 100%);
+      }
+      .hero-verdict-card h2 {
+        font-family: "Lora", serif;
+        font-size: 1.35rem;
+        line-height: 1.15;
+        color: var(--navy);
+        margin-bottom: 0.45rem;
+      }
+      .hero-verdict-card p {
+        font-size: 0.88rem;
+        color: var(--slate);
+        line-height: 1.6;
+        margin-bottom: 0.7rem;
+      }
+      .hero-decision-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.85rem;
+      }
+      .profile-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+      .summary-stat {
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 0.9rem 1rem;
+      }
+      .summary-stat-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.28rem;
+      }
+      .summary-stat-value {
+        font-size: 0.94rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.35;
+      }
+      .summary-stat-value.green {
+        color: var(--green);
+      }
+      .summary-stat-value.teal {
+        color: var(--teal-dark);
       }
       .hero-summary-card {
         border: 1px solid rgba(26, 122, 143, 0.12);
@@ -277,6 +339,26 @@
         font-size: 0.88rem;
         color: var(--slate);
         line-height: 1.6;
+      }
+      .decision-list-item {
+        position: relative;
+        padding-left: 1rem;
+        font-size: 0.86rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .decision-list-item + .decision-list-item {
+        margin-top: 0.55rem;
+      }
+      .decision-list-item::before {
+        content: "";
+        position: absolute;
+        top: 0.5rem;
+        left: 0;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+        background: var(--teal);
       }
       .hero-next-step {
         font-size: 1rem;
@@ -385,6 +467,28 @@
         text-transform: uppercase;
         color: var(--muted);
       }
+      .contact-checklist {
+        display: grid;
+        gap: 0.55rem;
+        padding-top: 0.15rem;
+      }
+      .contact-checklist-item {
+        position: relative;
+        padding-left: 1.1rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .contact-checklist-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.48rem;
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: var(--green);
+      }
       .profile-shortlist-status {
         margin-top: 0.1rem;
         font-size: 0.82rem;
@@ -414,6 +518,35 @@
         background: var(--white);
         font-family: inherit;
       }
+      .profile-section-nav {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 72px;
+        z-index: 60;
+        margin: 0 0 1rem;
+        padding: 0.8rem 0.1rem 0.2rem;
+        background: linear-gradient(180deg, var(--bg) 76%, rgba(247, 251, 252, 0));
+      }
+      .section-nav-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--slate);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .section-nav-link.is-active {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: var(--white);
+      }
       .profile-body {
         display: grid;
         grid-template-columns: minmax(0, 1.2fr) 320px;
@@ -431,7 +564,53 @@
         font-size: 0.96rem;
         font-weight: 800;
         color: var(--navy);
-        margin-bottom: 0.9rem;
+        margin: 0;
+      }
+      .profile-section-header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: transparent;
+        border: none;
+        padding: 0;
+        text-align: left;
+        cursor: pointer;
+        margin-bottom: 0.95rem;
+      }
+      .profile-section-content.is-collapsed {
+        display: none;
+      }
+      .section-kicker {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.28rem;
+      }
+      .section-toggle {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--teal);
+        white-space: nowrap;
+      }
+      .profile-subsection {
+        margin-top: 1rem;
+      }
+      .mini-section-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+      }
+      .decision-list {
+        display: grid;
+        gap: 0.55rem;
       }
       .bio-text {
         font-size: 0.88rem;
@@ -546,6 +725,12 @@
       .profile-sidebar-stack {
         display: grid;
         gap: 1rem;
+        position: sticky;
+        top: 140px;
+        align-self: start;
+      }
+      .decision-rail-panel {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
       }
       .contact-section h3 {
         font-size: 0.875rem;
@@ -601,6 +786,30 @@
         background: var(--bg);
         border: 1px solid var(--border);
         color: var(--slate);
+      }
+      .next-step-card {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .next-step-item {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 0.85rem 0.9rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fcfd 100%);
+      }
+      .next-step-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.3rem;
+      }
+      .next-step-value {
+        font-size: 0.9rem;
+        color: var(--navy);
+        line-height: 1.55;
+        font-weight: 600;
       }
       .loading-profile {
         text-align: center;
@@ -666,11 +875,23 @@
         .profile-actions {
           position: static;
         }
+        .profile-section-nav {
+          top: 64px;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          padding-bottom: 0.4rem;
+        }
         .profile-body {
           grid-template-columns: 1fr;
         }
-        .hero-summary-grid {
+        .profile-sidebar-stack {
+          position: static;
+        }
+        .hero-decision-grid {
           grid-template-columns: 1fr;
+        }
+        .profile-summary-strip {
+          grid-template-columns: 1fr 1fr;
         }
       }
       @media (max-width: 480px) {
@@ -685,6 +906,9 @@
         }
         .profile-actions {
           flex-direction: column;
+        }
+        .profile-summary-strip {
+          grid-template-columns: 1fr;
         }
       }
     </style>

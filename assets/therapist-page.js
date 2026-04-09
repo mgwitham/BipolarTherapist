@@ -40,6 +40,20 @@ function renderList(items, className) {
     .join("");
 }
 
+function joinNaturalList(items) {
+  var safeItems = (items || []).filter(Boolean);
+  if (!safeItems.length) {
+    return "";
+  }
+  if (safeItems.length === 1) {
+    return safeItems[0];
+  }
+  if (safeItems.length === 2) {
+    return safeItems[0] + " and " + safeItems[1];
+  }
+  return safeItems.slice(0, -1).join(", ") + ", and " + safeItems[safeItems.length - 1];
+}
+
 function formatSourceDate(value) {
   if (!value) {
     return "";
@@ -162,9 +176,11 @@ function updateShortlistNote(slugValue, note) {
 }
 
 function updateShortlistAction(slugValue) {
-  var button = document.getElementById("profileShortlistButton");
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll("[data-shortlist-trigger='profile']"),
+  );
   var status = document.getElementById("profileShortlistStatus");
-  if (!button || !status) {
+  if (!buttons.length || !status) {
     return;
   }
 
@@ -172,8 +188,10 @@ function updateShortlistAction(slugValue) {
     return item.slug === slugValue;
   });
   var shortlisted = !!shortlistEntry;
-  button.textContent = shortlisted ? "Saved to shortlist" : "Save to shortlist";
-  button.classList.toggle("is-saved", shortlisted);
+  buttons.forEach(function (button) {
+    button.textContent = shortlisted ? "Saved to shortlist" : "Save to shortlist";
+    button.classList.toggle("is-saved", shortlisted);
+  });
   status.textContent = shortlisted
     ? "This therapist is saved for comparison in your shortlist."
     : "Save up to 3 therapists to compare later as you narrow toward the right fit.";
@@ -390,6 +408,14 @@ function renderProfile(t) {
   var supportingSourceCount = Array.isArray(t.supporting_source_urls)
     ? t.supporting_source_urls.filter(Boolean).length
     : 0;
+  var totalExperience = Number(t.years_experience || 0);
+  var bipolarExperience = Number(t.bipolar_years_experience || 0);
+  var quickFitItems = [];
+  var bipolarTrustItems = [];
+  var practicalDetailsItems = [];
+  var contactChecklistItems = [];
+  var fitHeadline = "";
+  var fitSubheadline = "";
   var contactRouteLabel =
     t.preferred_contact_method === "booking"
       ? "Use the booking link"
@@ -519,8 +545,230 @@ function renderProfile(t) {
     "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
   var primaryButton = buildPreferredContactButton();
 
+  if (bipolarExperience >= 8) {
+    quickFitItems.push("Strong bipolar-specific experience is documented.");
+  } else if (bipolarExperience >= 3) {
+    quickFitItems.push("Bipolar-specific experience is clearly documented.");
+  }
+  if ((t.specialties || []).includes("Bipolar I") || (t.specialties || []).includes("Bipolar II")) {
+    quickFitItems.push("The listed focus areas explicitly include bipolar-spectrum care.");
+  } else if ((t.specialties || []).length) {
+    quickFitItems.push(
+      "The profile highlights " +
+        String(t.specialties[0] || "").toLowerCase() +
+        " among its focus areas.",
+    );
+  }
+  if ((t.client_populations || []).length) {
+    quickFitItems.push(
+      "This may be especially relevant if you want support tailored to " +
+        String(t.client_populations[0] || "").toLowerCase() +
+        ".",
+    );
+  }
+  if (t.medication_management) {
+    quickFitItems.push("Medication-management support is available here.");
+  }
+  if (t.accepts_telehealth && t.accepts_in_person) {
+    practicalDetailsItems.push("Offers both telehealth and in-person care.");
+  } else if (t.accepts_telehealth) {
+    practicalDetailsItems.push("Offers telehealth care.");
+  } else if (t.accepts_in_person) {
+    practicalDetailsItems.push("Offers in-person care.");
+  }
+  if (t.accepting_new_patients) {
+    practicalDetailsItems.push("The profile indicates they are accepting new patients.");
+  }
+  if (t.estimated_wait_time) {
+    practicalDetailsItems.push("Recent availability note: " + t.estimated_wait_time + ".");
+  }
+  if ((t.insurance_accepted || []).length) {
+    practicalDetailsItems.push(
+      "Insurance info is visible, including " +
+        joinNaturalList(t.insurance_accepted.slice(0, 3)) +
+        ".",
+    );
+  } else if (t.sliding_scale || t.session_fee_min || t.session_fee_max) {
+    practicalDetailsItems.push("Pricing details are surfaced on the page before outreach.");
+  }
+
+  if (t.verification_status === "editorially_verified") {
+    bipolarTrustItems.push("Key profile details were editorially verified.");
+  }
+  if (therapistReportedFields.length) {
+    bipolarTrustItems.push(
+      "Some operational details were confirmed directly by the therapist" +
+        (therapistReportedDate ? " on " + therapistReportedDate : "") +
+        ".",
+    );
+  }
+  if (sourceReviewedDate) {
+    bipolarTrustItems.push(
+      "Public sources were reviewed" +
+        (sourceReviewedDate ? " on " + sourceReviewedDate : "") +
+        (sourceHost ? " using " + sourceHost : "") +
+        ".",
+    );
+  }
+  if (bipolarExperience) {
+    bipolarTrustItems.push(
+      "Bipolar-specific experience is listed as " + bipolarExperience + " years.",
+    );
+  } else if (totalExperience) {
+    bipolarTrustItems.push(
+      "Overall clinical experience is listed as " + totalExperience + " years.",
+    );
+  }
+
+  contactChecklistItems.push(primaryContactLabel || contactRouteLabel);
+  if (contactGuidance) {
+    contactChecklistItems.push(contactGuidance);
+  } else if ((t.specialties || []).length || (t.client_populations || []).length) {
+    contactChecklistItems.push(
+      "Mention what kind of bipolar-related support you want and ask whether it matches their focus.",
+    );
+  }
+  if (t.estimated_wait_time) {
+    contactChecklistItems.push(
+      "Ask whether the current opening timeline is still around " + t.estimated_wait_time + ".",
+    );
+  } else if (t.accepting_new_patients) {
+    contactChecklistItems.push(
+      "Confirm what the current timeline is for a first consult or intake.",
+    );
+  }
+  contactChecklistItems.push(bestNextStepCopy);
+
+  fitHeadline = quickFitItems.length
+    ? "This looks like a credible bipolar-care option."
+    : "This profile offers some useful fit signals, but a quick confirmation step still matters.";
+  fitSubheadline = quickFitItems.length
+    ? "The first screen should tell you why this profile could be worth contacting."
+    : "Use the practical details and trust checks here to decide whether it is worth reaching out.";
+
+  var quickFitHtml = renderList(quickFitItems.slice(0, 3), "decision-list-item");
+  var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
+  var practicalDetailsHtml = renderList(practicalDetailsItems.slice(0, 4), "decision-list-item");
+  var contactChecklistHtml = renderList(
+    contactChecklistItems.slice(0, 4),
+    "contact-checklist-item",
+  );
+  var fitSnapshotHtml = [
+    readiness.score >= 85 ? "High-confidence profile" : readinessTitle,
+    bipolarExperience ? bipolarExperience + " yrs bipolar care" : "",
+    t.accepting_new_patients ? "Accepting patients" : "Availability to confirm",
+    t.medication_management ? "Medication support" : "",
+    t.accepts_telehealth ? "Telehealth" : "",
+  ]
+    .filter(Boolean)
+    .map(function (item) {
+      return '<span class="snapshot-pill">' + escapeHtml(item) + "</span>";
+    })
+    .join("");
+  var summaryStats = [
+    {
+      label: "Bipolar fit",
+      value: bipolarExperience ? bipolarExperience + " years listed" : "Review focus areas",
+      tone: bipolarExperience >= 8 ? "green" : "teal",
+    },
+    {
+      label: "Availability",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting patients"
+        : "Confirm timing",
+      tone: t.accepting_new_patients ? "green" : "teal",
+    },
+    {
+      label: "Format",
+      value:
+        t.accepts_telehealth && t.accepts_in_person
+          ? "Telehealth + in-person"
+          : t.accepts_telehealth
+            ? "Telehealth"
+            : t.accepts_in_person
+              ? "In-person"
+              : "Ask about format",
+      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
+    },
+    {
+      label: "Cost path",
+      value:
+        t.session_fee_min || t.session_fee_max || t.sliding_scale
+          ? t.session_fee_min && t.session_fee_max
+            ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+            : t.sliding_scale
+              ? "Sliding scale"
+              : "Fee info listed"
+          : "Ask about fees",
+      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="summary-stat"><div class="summary-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="summary-stat-value ' +
+        escapeHtml(item.tone || "") +
+        '">' +
+        escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+  var sectionNavHtml =
+    '<div class="profile-section-nav" id="profileSectionNav">' +
+    '<a href="#section-fit" class="section-nav-link is-active" data-section-link="section-fit">Fit</a>' +
+    '<a href="#section-trust" class="section-nav-link" data-section-link="section-trust">Trust</a>' +
+    '<a href="#section-logistics" class="section-nav-link" data-section-link="section-logistics">Logistics</a>' +
+    '<a href="#section-contact" class="section-nav-link" data-section-link="section-contact">Contact</a>' +
+    '<a href="#section-bio" class="section-nav-link" data-section-link="section-bio">Deep dive</a>' +
+    "</div>";
+  var decisionRailRows = [
+    {
+      label: "Best next step",
+      value: primaryContactLabel || contactRouteLabel,
+      tone: "green",
+    },
+    {
+      label: "Availability",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting patients"
+        : "Waitlist or confirm",
+      tone: t.accepting_new_patients ? "green" : "",
+    },
+    {
+      label: "Insurance",
+      value: (t.insurance_accepted || []).length
+        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
+        : "Ask directly",
+      tone: (t.insurance_accepted || []).length ? "teal" : "",
+    },
+    {
+      label: "Fees",
+      value:
+        t.session_fee_min && t.session_fee_max
+          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+          : t.sliding_scale
+            ? "Sliding scale"
+            : "Request details",
+      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="rail-row"><span class="info-label">' +
+        escapeHtml(item.label) +
+        '</span><span class="info-val ' +
+        escapeHtml(item.tone || "") +
+        '">' +
+        escapeHtml(item.value) +
+        "</span></div>"
+      );
+    })
+    .join("");
+
   var secondaryButtons =
-    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton">Save to shortlist</button>';
+    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to shortlist</button>';
   if (t.phone && t.preferred_contact_method !== "phone") {
     secondaryButtons +=
       '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
@@ -581,6 +829,7 @@ function renderProfile(t) {
     '<div class="hero-meta">' +
     acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
+    (fitSnapshotHtml ? '<div class="fit-snapshot-pills">' + fitSnapshotHtml + "</div>" : "") +
     "</div>" +
     '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
     '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Shortlist label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
@@ -589,33 +838,67 @@ function renderProfile(t) {
     }).join("") +
     '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="Add a quick reminder..." /></div>' +
     "</div></div>" +
-    '<div class="hero-summary-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this may be worth considering</div><p>' +
+    '<div class="hero-verdict-card"><div class="hero-summary-label">Fast fit verdict</div><h2>' +
+    escapeHtml(fitHeadline) +
+    "</h2><p>" +
+    escapeHtml(fitSubheadline) +
+    '</p><div class="fit-summary">' +
     escapeHtml(fitSummaryCopy) +
-    '</p></div><div class="hero-summary-card"><div class="hero-summary-label">Best next step</div><div class="hero-next-step">' +
-    escapeHtml(primaryContactLabel || contactRouteLabel) +
-    "</div><p>" +
-    escapeHtml(bestNextStepCopy) +
-    "</p></div></div></div>" +
+    "</div></div>" +
+    '<div class="hero-decision-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this could fit</div>' +
+    (quickFitHtml ||
+      '<div class="decision-list-item">Review the specialty, access, and outreach details below to confirm fit.</div>') +
+    '</div><div class="hero-summary-card"><div class="hero-summary-label">Why this looks trustworthy</div>' +
+    (bipolarTrustHtml ||
+      '<div class="decision-list-item">Trust details are still light here, so a direct confirmation step matters more.</div>') +
+    '</div><div class="hero-summary-card"><div class="hero-summary-label">Practical details up front</div>' +
+    (practicalDetailsHtml ||
+      '<div class="decision-list-item">Practical details are limited, so outreach may be the fastest way to confirm next-step logistics.</div>') +
+    "</div></div>" +
+    '<div class="profile-summary-strip">' +
+    summaryStats +
+    "</div>" +
     '<div class="profile-actions">' +
     contactBtns +
+    '<div class="contact-checklist"><div class="profile-secondary-label">Reach out with this plan</div>' +
+    contactChecklistHtml +
+    "</div>" +
     (contactGuidance
       ? '<div class="action-panel-note">' + escapeHtml(contactGuidance) + "</div>"
       : "") +
     "</div>" +
     "</div>" +
+    sectionNavHtml +
     '<div class="profile-body">' +
     "<div>" +
-    '<div class="profile-section"><h2>About this therapist</h2><div class="bio-text">' +
-    escapeHtml(t.bio || "No bio provided.") +
+    '<section class="profile-section profile-section-collapsible" id="section-fit" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Fit</span><h2>Why this profile may fit</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="bio-text">' +
+    escapeHtml(fitSummaryCopy) +
     "</div>" +
-    (t.care_approach
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(t.care_approach) +
-        "</div>"
+    (quickFitHtml
+      ? '<div class="decision-list" style="margin-top:0.95rem">' + quickFitHtml + "</div>"
       : "") +
-    '</div><div class="profile-section"><h2>What we reviewed</h2><div class="bio-text">' +
+    (specialties
+      ? '<div class="profile-subsection"><div class="mini-section-label">Conditions and focus areas</div><div class="specialty-grid">' +
+        specialties +
+        "</div></div>"
+      : "") +
+    (modalities
+      ? '<div class="profile-subsection"><div class="mini-section-label">Treatment approach</div><div class="specialty-grid">' +
+        modalities +
+        "</div></div>"
+      : "") +
+    (populations
+      ? '<div class="profile-subsection"><div class="mini-section-label">Populations served</div><div class="specialty-grid">' +
+        populations +
+        "</div></div>"
+      : "") +
+    "</div></section>" +
+    '<section class="profile-section profile-section-collapsible" id="section-trust" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Trust</span><h2>Why this looks credible</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="bio-text">' +
     escapeHtml(reviewedDetailsCopy) +
     "</div>" +
+    (bipolarTrustHtml
+      ? '<div class="decision-list" style="margin-top:0.95rem">' + bipolarTrustHtml + "</div>"
+      : "") +
     (therapistReportedCopy
       ? '<div class="bio-text" style="margin-top:0.8rem">' +
         escapeHtml(therapistReportedCopy) +
@@ -642,28 +925,19 @@ function renderProfile(t) {
         escapeHtml(operationalTrustSummary) +
         "</div>"
       : "") +
-    "</div>" +
-    (specialties
-      ? '<div class="profile-section"><h2>Conditions and focus areas</h2><div class="specialty-grid">' +
-        specialties +
-        "</div></div>"
-      : "") +
-    (modalities
-      ? '<div class="profile-section"><h2>Treatment approach</h2><div class="specialty-grid">' +
-        modalities +
-        "</div></div>"
-      : "") +
-    (populations
-      ? '<div class="profile-section"><h2>Populations served</h2><div class="specialty-grid">' +
-        populations +
-        "</div></div>"
-      : "") +
+    "</div></section>" +
+    '<section class="profile-section profile-section-collapsible" id="section-logistics" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Logistics</span><h2>Practical details before you contact</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
+    (practicalDetailsHtml ? '<div class="decision-list">' + practicalDetailsHtml + "</div>" : "") +
     (insTags
-      ? '<div class="profile-section"><h2>Insurance accepted</h2><div class="ins-list">' +
+      ? '<div class="profile-subsection"><div class="mini-section-label">Insurance accepted</div><div class="ins-list">' +
         insTags +
         "</div></div>"
       : "") +
-    '<div class="profile-section"><h2>What to expect after you reach out</h2><div class="next-step-card">' +
+    '<div class="profile-subsection"><div class="mini-section-label">Fees</div>' +
+    feesHtml +
+    "</div>" +
+    "</div></section>" +
+    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Contact</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
     '<div class="next-step-item"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
     escapeHtml(primaryContactLabel || contactRouteLabel) +
     "</div></div>" +
@@ -678,13 +952,27 @@ function renderProfile(t) {
         "</div></div>"
       : "") +
     '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
-    escapeHtml(
-      firstStepExpectation ||
-        "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.",
-    ) +
-    "</div></div></div></div>" +
+    escapeHtml(bestNextStepCopy) +
+    "</div></div></div></div></section>" +
+    '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Deep dive</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
+    escapeHtml(t.bio || "No bio provided.") +
+    "</div>" +
+    (t.care_approach
+      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
+        escapeHtml(t.care_approach) +
+        "</div>"
+      : "") +
+    "</div></section>" +
     "</div>" +
     '<div class="profile-sidebar-stack">' +
+    '<div class="sidebar-panel decision-rail-panel"><h3>Decision rail</h3>' +
+    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
+    escapeHtml(
+      "Use this rail to decide quickly whether to contact now, save for later, or keep comparing.",
+    ) +
+    "</div>" +
+    decisionRailRows +
+    "</div>" +
     '<div class="sidebar-panel trust-panel"><h3>Trust and fit</h3>' +
     '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
     escapeHtml(standoutCopy) +
@@ -853,8 +1141,10 @@ function renderProfile(t) {
 
   document.getElementById("profileWrap").innerHTML = html;
   updateShortlistAction(t.slug);
-  var shortlistButton = document.getElementById("profileShortlistButton");
-  if (shortlistButton) {
+  var shortlistButtons = Array.prototype.slice.call(
+    document.querySelectorAll("[data-shortlist-trigger='profile']"),
+  );
+  shortlistButtons.forEach(function (shortlistButton) {
     shortlistButton.addEventListener("click", function () {
       toggleShortlist(t.slug);
       updateShortlistAction(t.slug);
@@ -862,7 +1152,7 @@ function renderProfile(t) {
         window.refreshShortlistNav();
       }
     });
-  }
+  });
   var prioritySelect = document.getElementById("profileShortlistPriority");
   if (prioritySelect) {
     prioritySelect.addEventListener("change", function () {
@@ -882,5 +1172,45 @@ function renderProfile(t) {
         window.refreshShortlistNav();
       }
     });
+  }
+  Array.prototype.slice
+    .call(document.querySelectorAll(".profile-section-header"))
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var section = button.closest("[data-profile-section]");
+        var content = section ? section.querySelector(".profile-section-content") : null;
+        var toggle = button.querySelector(".section-toggle");
+        if (!content || !toggle) {
+          return;
+        }
+        var collapsed = content.classList.toggle("is-collapsed");
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        toggle.textContent = collapsed ? "Show" : "Hide";
+      });
+    });
+  if (typeof window.IntersectionObserver === "function") {
+    var navLinks = Array.prototype.slice.call(document.querySelectorAll("[data-section-link]"));
+    var sectionObserver = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) {
+            return;
+          }
+          var id = entry.target.id;
+          navLinks.forEach(function (link) {
+            link.classList.toggle("is-active", link.getAttribute("data-section-link") === id);
+          });
+        });
+      },
+      {
+        rootMargin: "-20% 0px -60% 0px",
+        threshold: 0.1,
+      },
+    );
+    Array.prototype.slice
+      .call(document.querySelectorAll("[data-profile-section]"))
+      .forEach(function (section) {
+        sectionObserver.observe(section);
+      });
   }
 }

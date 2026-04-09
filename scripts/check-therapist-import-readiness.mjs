@@ -13,20 +13,28 @@ const DEFAULT_QUEUE_OUTPUT_PATH = path.join(
 const FIELD_PRIORITY = {
   license_number: 120,
   insurance_accepted: 95,
+  source_reviewed_at: 70,
   estimated_wait_time: 8,
   bipolar_years_experience: 35,
   telehealth_states: 30,
+  preferred_contact_method: 32,
+  session_fees: 28,
   contact_guidance: 20,
   first_step_expectation: 20,
+  therapist_reported_confirmed_at: 12,
 };
 const WARNING_SEVERITY = {
   license_number: "strong",
   insurance_accepted: "strong",
+  source_reviewed_at: "strong",
   estimated_wait_time: "soft",
   bipolar_years_experience: "strong",
   telehealth_states: "soft",
+  preferred_contact_method: "strong",
+  session_fees: "soft",
   contact_guidance: "soft",
   first_step_expectation: "soft",
+  therapist_reported_confirmed_at: "soft",
 };
 const LANE_PRIORITY = {
   confirmation_first: 90,
@@ -136,11 +144,15 @@ function getTrustPriorityFields(row) {
   return [
     "license_number",
     "insurance_accepted",
+    "preferred_contact_method",
+    "source_reviewed_at",
     "telehealth_states",
     "bipolar_years_experience",
     "estimated_wait_time",
+    "session_fees",
     "contact_guidance",
     "first_step_expectation",
+    "therapist_reported_confirmed_at",
   ];
 }
 
@@ -151,8 +163,12 @@ function getFieldValue(row, field) {
     insurance_accepted: row.insuranceAccepted,
     telehealth_states: row.telehealthStates,
     bipolar_years_experience: row.bipolarYearsExperience,
+    preferred_contact_method: row.preferredContactMethod,
+    source_reviewed_at: row.sourceReviewedAt,
+    session_fees: row.sessionFeeMin || row.sessionFeeMax || truthy(row.slidingScale) ? "present" : "",
     contact_guidance: row.contactGuidance,
     first_step_expectation: row.firstStepExpectation,
+    therapist_reported_confirmed_at: row.therapistReportedConfirmedAt,
   };
 
   return map[field] || "";
@@ -165,6 +181,18 @@ function fieldIsApplicable(row, field) {
 
   if (field === "estimated_wait_time") {
     return truthy(row.acceptingNewPatients);
+  }
+
+  if (field === "source_reviewed_at") {
+    return row.listingActive === "" ? true : truthy(row.listingActive);
+  }
+
+  if (field === "session_fees") {
+    return true;
+  }
+
+  if (field === "therapist_reported_confirmed_at") {
+    return splitList(row.therapistReportedFields).length > 0;
   }
 
   return true;
@@ -313,6 +341,18 @@ function getProfileStrengthScore(row) {
     score += 2;
   }
 
+  if (row.preferredContactMethod) {
+    score += 4;
+  }
+
+  if (row.sessionFeeMin || row.sessionFeeMax || truthy(row.slidingScale)) {
+    score += 3;
+  }
+
+  if (row.therapistReportedConfirmedAt) {
+    score += 2;
+  }
+
   reviewStates.forEach((state) => {
     score += REVIEW_STATE_PRIORITY[state] || 0;
   });
@@ -331,6 +371,10 @@ function getQueueLane(row, warnings) {
   }
 
   if (warningSet.has("insurance_accepted")) {
+    return "refresh_then_confirm";
+  }
+
+  if (warningSet.has("source_reviewed_at") || warningSet.has("preferred_contact_method")) {
     return "refresh_then_confirm";
   }
 
@@ -360,6 +404,18 @@ function buildNextBestMove(warnings) {
     return "Use a short therapist-confirmation ask focused on bipolar-specific experience, then treat timing as optional context if it is easy to confirm.";
   }
 
+  if (warningSet.has("preferred_contact_method")) {
+    return "Choose the cleanest contact path now so the profile can present a single obvious outreach action instead of several equal-weight options.";
+  }
+
+  if (warningSet.has("source_reviewed_at")) {
+    return "Add or refresh the public-source review timestamp so the top-of-profile trust story has a clear freshness trail.";
+  }
+
+  if (warningSet.has("session_fees")) {
+    return "Try to capture fee range or sliding-scale info so users can make a faster go or no-go decision before outreach.";
+  }
+
   return "Review the row manually and decide whether the missing fields should stay blank or move into therapist confirmation.";
 }
 
@@ -376,6 +432,14 @@ function buildWhyItMatters(row, warnings, queueLane, profileStrengthScore) {
     return `${name} is already strong enough to matter, which is exactly why insurance clarity stays high priority. Coverage or superbill ambiguity weakens both trust and ranking faster than most other gaps.`;
   }
 
+  if (warningSet.has("preferred_contact_method")) {
+    return `${name} may still be contactable, but the profile is missing a single obvious outreach path. That ambiguity slows down high-intent users right at the moment of decision.`;
+  }
+
+  if (warningSet.has("source_reviewed_at")) {
+    return `${name} is missing a clear freshness trail. The redesigned profile now surfaces review recency early, so this gap weakens trust much faster than it used to.`;
+  }
+
   if (queueLane === "confirmation_first" && strongProfile) {
     return `${name} is structurally strong already, so a short therapist confirmation would upgrade a high-leverage live listing rather than merely rescuing a thin one.`;
   }
@@ -390,6 +454,10 @@ function buildWhyItMatters(row, warnings, queueLane, profileStrengthScore) {
 
   if (warningSet.has("bipolar_years_experience")) {
     return `${name} mainly needs therapist-supplied truth now. Bipolar-specific experience is still a high-value field to confirm directly instead of guessing.`;
+  }
+
+  if (warningSet.has("session_fees")) {
+    return `${name} is missing cost visibility, which now matters more because the profile is optimized to help users decide quickly before they reach out.`;
   }
 
   return `${name} still has trust-critical gaps that affect how confidently we can feature and rank the listing.`;
