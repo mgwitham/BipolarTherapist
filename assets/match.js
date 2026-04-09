@@ -2,8 +2,10 @@ import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
 import { submitMatchOutcome, submitMatchRequest } from "./review-api.js";
 import {
+  getExperimentVariant,
   readFunnelEvents,
   summarizeAdaptiveSignals,
+  trackExperimentExposure,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
@@ -22,6 +24,7 @@ var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var activeSecondPassMode = "balanced";
+var activeMatchExperimentVariant = "control";
 var OUTREACH_OUTCOME_OPTIONS = [
   { value: "reached_out", label: "Contacted", tone: "positive" },
   { value: "heard_back", label: "Heard back", tone: "positive" },
@@ -31,6 +34,13 @@ var OUTREACH_OUTCOME_OPTIONS = [
   { value: "waitlist", label: "Waitlist", tone: "negative" },
   { value: "no_response", label: "No response", tone: "negative" },
 ];
+
+function getActiveExperimentContext() {
+  return {
+    homepage_messaging: getExperimentVariant("homepage_messaging", ["control", "adaptive"]),
+    match_ranking: activeMatchExperimentVariant,
+  };
+}
 var FEEDBACK_REASON_OPTIONS = [
   "Insurance mismatch",
   "Availability mismatch",
@@ -178,6 +188,57 @@ function syncZipResolvedLabel(value) {
   resolved.textContent =
     zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
   resolved.classList.add("is-visible");
+}
+
+function getMatchSearchButtonLabel(careIntent) {
+  if (careIntent === "Psychiatry") {
+    return "See my top psychiatry matches";
+  }
+
+  return "See my top therapy matches";
+}
+
+function getMatchStartHelperCopy(careIntent, hasZip) {
+  if (!careIntent && !hasZip) {
+    return "<strong>Next:</strong> choose your care type and ZIP code to start the guided match.";
+  }
+
+  if (careIntent && !hasZip) {
+    return (
+      "<strong>Next:</strong> add your ZIP code to start your " +
+      escapeHtml(careIntent === "Psychiatry" ? "psychiatry" : "therapy") +
+      " shortlist."
+    );
+  }
+
+  if (!careIntent && hasZip) {
+    return "<strong>Next:</strong> choose therapy or psychiatry so we can tailor the shortlist.";
+  }
+
+  return "<strong>Next:</strong> review your first shortlist, then add optional preferences only if needed.";
+}
+
+function syncMatchStartState() {
+  var form = document.getElementById("matchForm");
+  var button = document.getElementById("matchSearchButton");
+  var helper = document.getElementById("matchStartHelper");
+
+  if (!form) {
+    return;
+  }
+
+  var careIntent = String(form.elements.care_intent ? form.elements.care_intent.value : "Therapy");
+  var hasZip = Boolean(
+    normalizeLocationQuery(form.elements.location_query ? form.elements.location_query.value : ""),
+  );
+
+  if (button) {
+    button.textContent = getMatchSearchButtonLabel(careIntent);
+  }
+
+  if (helper) {
+    helper.innerHTML = getMatchStartHelperCopy(careIntent, hasZip);
+  }
 }
 
 function applyZipAwareOrdering(entries, profile) {
@@ -367,6 +428,130 @@ function formatZipSuggestionList(items) {
       return item.zip;
     })
     .join(", ");
+}
+
+function clearOptionalRefinements() {
+  var form = document.getElementById("matchForm");
+  if (!form) {
+    return;
+  }
+
+  form.elements.insurance.value = "";
+  form.elements.language_preferences.value = "";
+  form.elements.care_format.value = "In-Person";
+  form.elements.needs_medication_management.value = "Open to either";
+  form.elements.budget_max.value = "";
+  form.elements.priority_mode.value = "Best overall fit";
+
+  ["bipolar_focus", "preferred_modalities", "population_fit"].forEach(function (name) {
+    form.querySelectorAll('input[name="' + name + '"]').forEach(function (input) {
+      input.checked = false;
+    });
+  });
+
+  var refinements = document.querySelector(".match-refinements");
+  if (refinements) {
+    refinements.open = false;
+  }
+}
+
+function rerunMatchFromCurrentForm() {
+  handleSubmit({
+    preventDefault: function () {},
+  });
+}
+
+function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
+  var root = document.getElementById("matchResults");
+  if (!root) {
+    return;
+  }
+
+  root.className = "match-empty";
+  root.innerHTML =
+    '<div class="match-empty-shell"><div class="match-empty-kicker">No strong shortlist yet</div><h2 class="match-empty-title">' +
+    escapeHtml(
+      hasRefinements
+        ? "Your filters may be too tight for the current reviewed supply."
+        : "We do not have a strong reviewed match for this exact setup yet.",
+    ) +
+    '</h2><p class="match-empty-copy">' +
+    escapeHtml(
+      hasRefinements
+        ? "The fastest next move is usually to clear optional preferences, then widen only one constraint at a time if needed."
+        : zipSuggestions.length
+          ? "Try a nearby reviewed ZIP or widen to telehealth so we can surface a broader shortlist."
+          : "Try telehealth, a nearby ZIP, or a lighter set of optional preferences to open the field.",
+    ) +
+    '</p><div class="match-empty-actions">' +
+    (zipSuggestions || [])
+      .map(function (item) {
+        return (
+          '<button type="button" class="btn-secondary match-empty-action" data-empty-zip="' +
+          escapeHtml(item.zip) +
+          '">Try ZIP ' +
+          escapeHtml(item.zip) +
+          "</button>"
+        );
+      })
+      .join("") +
+    '<button type="button" class="btn-primary match-empty-action" data-empty-telehealth="true">Try telehealth</button>' +
+    '<button type="button" class="btn-secondary match-empty-action" data-empty-clear="true">Clear optional filters</button>' +
+    '</div><div class="match-empty-note">' +
+    escapeHtml(
+      zipSuggestions.length
+        ? "Nearest reviewed ZIPs: " + formatZipSuggestionList(zipSuggestions) + "."
+        : "You can keep your core care type and ZIP, then widen the rest incrementally.",
+    ) +
+    "</div></div>";
+
+  root.querySelectorAll("[data-empty-zip]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var zip = button.getAttribute("data-empty-zip") || "";
+      var form = document.getElementById("matchForm");
+      if (!form || !zip) {
+        return;
+      }
+      form.elements.location_query.value = zip;
+      syncZipResolvedLabel(zip);
+      syncMatchStartState();
+      trackFunnelEvent("match_recovery_clicked", {
+        action: "nearby_zip",
+        zip: zip,
+      });
+      rerunMatchFromCurrentForm();
+    });
+  });
+
+  root.querySelectorAll("[data-empty-telehealth]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var form = document.getElementById("matchForm");
+      if (!form) {
+        return;
+      }
+      form.elements.care_format.value = "Telehealth";
+      trackFunnelEvent("match_recovery_clicked", {
+        action: "telehealth",
+        zip: getRequestedZip(readCurrentIntakeProfile()),
+      });
+      rerunMatchFromCurrentForm();
+    });
+  });
+
+  root.querySelectorAll("[data-empty-clear]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      clearOptionalRefinements();
+      syncZipResolvedLabel(document.getElementById("location_query").value);
+      syncMatchStartState();
+      renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
+      renderIntakeTradeoffPreview(readCurrentIntakeProfile());
+      trackFunnelEvent("match_recovery_clicked", {
+        action: "clear_optional_filters",
+        zip: getRequestedZip(readCurrentIntakeProfile()),
+      });
+      rerunMatchFromCurrentForm();
+    });
+  });
 }
 
 function collectCheckedValues(form, name) {
@@ -563,6 +748,8 @@ function syncMatchCareSelectTrigger() {
   options.forEach(function (option) {
     option.setAttribute("aria-selected", String(option.dataset.value === selectedValue));
   });
+
+  syncMatchStartState();
 }
 
 function initMatchCareDropdown() {
@@ -775,11 +962,51 @@ function buildEntryOutreachDraft(entry, profile) {
 
 function getShortlistSummary(entry) {
   var therapist = entry.therapist;
-  var pills = [therapist.verification_status === "editorially_verified" ? "Verified" : ""].filter(
-    Boolean,
-  );
+  var pills = [
+    therapist.verification_status === "editorially_verified" ? "Verified" : "",
+    therapist.accepting_new_patients ? "Accepting patients" : "",
+    therapist.medication_management ? "Medication support" : "",
+  ].filter(Boolean);
 
   return renderTags(pills);
+}
+
+function getMatchConfidenceMeta(entry) {
+  var confidence = Number(entry?.evaluation?.confidence_score || 0);
+  if (confidence >= 80) {
+    return { label: "High confidence", tone: "high" };
+  }
+  if (confidence >= 60) {
+    return { label: "Good confidence", tone: "medium" };
+  }
+  return { label: "Promising fit", tone: "light" };
+}
+
+function getMatchCardExplanation(entry) {
+  var reasons = Array.isArray(entry?.evaluation?.reasons)
+    ? entry.evaluation.reasons.filter(Boolean)
+    : [];
+  return (
+    reasons[0] || "This option rose because it balances fit, practical details, and follow-through."
+  );
+}
+
+function getMatchCardCaution(entry) {
+  var cautions = Array.isArray(entry?.evaluation?.cautions)
+    ? entry.evaluation.cautions.filter(Boolean)
+    : [];
+  return cautions[0] || "";
+}
+
+function getMatchCardActionCopy(entry) {
+  var readiness = getContactReadiness(entry);
+  if (readiness && readiness.guidance) {
+    return readiness.guidance;
+  }
+  if (readiness && readiness.firstStep) {
+    return readiness.firstStep;
+  }
+  return "Start with the clearest contact path here, then move to your backup if this option stalls.";
 }
 
 function renderCompareValue(value, kind) {
@@ -2577,6 +2804,26 @@ function buildAdaptiveStrategySnapshot(profile) {
   };
 }
 
+function getAdaptiveSecondPassMode(profile) {
+  if (activeMatchExperimentVariant !== "adaptive") {
+    return "balanced";
+  }
+
+  var strategy = getMatchAdaptiveStrategy(profile);
+  var homeMode = strategy && strategy.preferred_home_mode ? strategy.preferred_home_mode : "trust";
+
+  if (homeMode === "speed") {
+    return "speed";
+  }
+  if (homeMode === "specialization") {
+    return "specialization";
+  }
+  if (homeMode === "contact") {
+    return "followthrough";
+  }
+  return "reviewed";
+}
+
 function triggerMotion(selector, className) {
   var element = typeof selector === "string" ? document.querySelector(selector) : selector;
   if (!element) {
@@ -2690,6 +2937,7 @@ function hydrateForm(profile) {
     });
   });
   syncMatchCareSelectTrigger();
+  syncMatchStartState();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
 }
@@ -3204,6 +3452,7 @@ function buildMatchTrackingPayload(slug, extra) {
       top_slug:
         latestEntries[0] && latestEntries[0].therapist ? latestEntries[0].therapist.slug : "",
       strategy: buildAdaptiveStrategySnapshot(latestProfile),
+      experiments: getActiveExperimentContext(),
     },
     extra || {},
   );
@@ -3459,13 +3708,16 @@ function renderFallbackRecommendation(profile, entries) {
   }
 
   var fallback = buildFallbackRecommendation(profile, entries);
+  var contactPlan = buildContactOrderPlan(profile, entries);
   if (!fallback) {
     root.innerHTML = "";
     return;
   }
 
+  var preferredRoute = getPreferredOutreach(fallback.entry);
+
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Keep a backup ready</div><div class="match-support-panel-copy">If your first choice is not available or does not respond, this is the next option to try.</div></div></div><div class="match-support-panel-body"><section class="first-contact-reco"><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Backup option</div><div class="first-contact-name">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Keep a backup ready</div><div class="match-support-panel-copy">If your first choice is not available or does not respond, this is the next option to try next.</div></div></div><div class="match-support-panel-body"><section class="first-contact-reco"><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Backup option</div><div class="first-contact-name">' +
     escapeHtml(fallback.therapist.name) +
     '</div><div class="first-contact-meta">' +
     escapeHtml(formatTherapistLocationLine(fallback.therapist) || "") +
@@ -3473,7 +3725,46 @@ function renderFallbackRecommendation(profile, entries) {
     encodeURIComponent(fallback.therapist.slug) +
     '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
     escapeHtml(fallback.therapist.slug) +
-    '" data-profile-link-context="fallback">Review profile</a></div></div></section></div></section>';
+    '" data-profile-link-context="fallback">Review profile</a></div><div class="first-contact-body"><p><strong>Why this backup:</strong> ' +
+    escapeHtml(fallback.rationale) +
+    '</p><div class="first-contact-summary-grid"><div class="first-contact-summary-card"><div class="first-contact-summary-label">Pivot when</div><div class="first-contact-summary-value">' +
+    escapeHtml(contactPlan ? contactPlan.trigger : "Move here if the first outreach stalls.") +
+    '</div></div><div class="first-contact-summary-card"><div class="first-contact-summary-label">Suggested timing</div><div class="first-contact-summary-value">' +
+    escapeHtml(
+      contactPlan
+        ? "Around " +
+            contactPlan.waitWindow +
+            " from first outreach, or by " +
+            contactPlan.pivotAtLabel
+        : "As soon as the first path looks blocked.",
+    ) +
+    '</div></div><div class="first-contact-summary-card"><div class="first-contact-summary-label">Lead with</div><div class="first-contact-summary-value">' +
+    escapeHtml(fallback.nextMove || "Use the clearest next contact route and keep momentum.") +
+    "</div></div></div>" +
+    (contactPlan && contactPlan.timingRationale
+      ? '<div class="first-contact-signal">' + escapeHtml(contactPlan.timingRationale) + "</div>"
+      : fallback.routeLearning && fallback.routeLearning.success > 0
+        ? '<div class="first-contact-signal">Similar users have seen stronger backup outcomes through ' +
+          escapeHtml(fallback.routeLearning.routeType.replace(/_/g, " ")) +
+          " outreach.</div>"
+        : "") +
+    '<div class="first-contact-actions">' +
+    (preferredRoute
+      ? '<a class="btn-primary" href="' +
+        escapeHtml(preferredRoute.href) +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ' data-fallback-contact-link="' +
+        escapeHtml(fallback.therapist.slug) +
+        '" data-fallback-route-label="' +
+        escapeHtml(preferredRoute.label) +
+        '">' +
+        escapeHtml(preferredRoute.label) +
+        "</a>"
+      : "") +
+    '<button type="button" class="btn-secondary" data-copy-fallback-draft="' +
+    escapeHtml(fallback.therapist.slug) +
+    '">Copy backup message</button></div></div></div></section></div></section>';
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -3486,6 +3777,42 @@ function renderFallbackRecommendation(profile, entries) {
       );
     });
   });
+
+  root.querySelectorAll("[data-fallback-contact-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-fallback-contact-link") || "";
+      trackFunnelEvent(
+        "match_fallback_outreach_started",
+        buildMatchTrackingPayload(slug, {
+          route: link.getAttribute("data-fallback-route-label") || "",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-copy-fallback-draft]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-copy-fallback-draft") || "";
+      var entry = (entries || []).find(function (item) {
+        return item && item.therapist && item.therapist.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
+        trackFunnelEvent(
+          "match_fallback_draft_copied",
+          buildMatchTrackingPayload(slug, {
+            route: fallback.route || "Backup option",
+          }),
+        );
+        setActionState(true, "Copied the backup outreach for " + entry.therapist.name + ".");
+      } catch (_error) {
+        setActionState(true, "Unable to copy the backup outreach automatically.");
+      }
+    });
+  });
 }
 
 function renderFirstContactRecommendation(_profile, _entries) {
@@ -3493,7 +3820,142 @@ function renderFirstContactRecommendation(_profile, _entries) {
   if (!root) {
     return;
   }
-  root.innerHTML = "";
+
+  var recommendation = buildFirstContactRecommendation(_profile, _entries);
+  if (!recommendation) {
+    root.innerHTML = "";
+    return;
+  }
+
+  var preferredRoute = getPreferredOutreach(recommendation.entry);
+  var latestOutcome = getLatestOutreachOutcome(recommendation.therapist.slug);
+
+  root.innerHTML =
+    '<section class="first-contact-reco"><div class="first-contact-header"><h3>Start here first</h3><p>This is the strongest first outreach path based on fit, practical clarity, and follow-through signals.</p></div><div class="first-contact-card"><div class="first-contact-top"><div><div class="first-contact-kicker">Recommended first contact</div><div class="first-contact-name">' +
+    escapeHtml(recommendation.therapist.name) +
+    '</div><div class="first-contact-meta">' +
+    escapeHtml(formatTherapistLocationLine(recommendation.therapist) || "") +
+    '</div></div><a href="therapist.html?slug=' +
+    encodeURIComponent(recommendation.therapist.slug) +
+    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+    escapeHtml(recommendation.therapist.slug) +
+    '" data-profile-link-context="first-contact">Review profile</a></div><div class="first-contact-body"><p><strong>Why this one:</strong> ' +
+    escapeHtml(recommendation.rationale) +
+    '</p><div class="first-contact-summary-grid"><div class="first-contact-summary-card"><div class="first-contact-summary-label">Best route</div><div class="first-contact-summary-value">' +
+    escapeHtml(recommendation.route || "Review profile") +
+    '</div></div><div class="first-contact-summary-card"><div class="first-contact-summary-label">First step</div><div class="first-contact-summary-value">' +
+    escapeHtml(recommendation.firstStep || "Start with a brief fit-oriented outreach.") +
+    '</div></div><div class="first-contact-summary-card"><div class="first-contact-summary-label">Why it rose</div><div class="first-contact-summary-value">' +
+    escapeHtml(
+      recommendation.segmentCue ||
+        recommendation.segmentLearning ||
+        "This option looks strongest when balancing fit and follow-through.",
+    ) +
+    "</div></div></div>" +
+    (recommendation.routeLearning && recommendation.routeLearning.success > 0
+      ? '<div class="first-contact-signal">Similar users have seen stronger outcomes through ' +
+        escapeHtml(recommendation.routeLearning.routeType.replace(/_/g, " ")) +
+        ' outreach.<div class="first-contact-signal-note">Use that route first before widening to backup options.</div></div>'
+      : recommendation.shortcutSignal && recommendation.shortcutSignal.preference.strong > 0
+        ? '<div class="first-contact-signal">This also lines up with the strongest-performing ' +
+          escapeHtml(recommendation.shortcutSignal.title.toLowerCase()) +
+          " shortcut for similar users.</div>"
+        : "") +
+    '<div class="first-contact-actions">' +
+    (preferredRoute
+      ? '<a class="btn-primary" href="' +
+        escapeHtml(preferredRoute.href) +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ' data-entry-contact-link="' +
+        escapeHtml(recommendation.therapist.slug) +
+        '" data-entry-route-label="' +
+        escapeHtml(preferredRoute.label) +
+        '">' +
+        escapeHtml(preferredRoute.label) +
+        "</a>"
+      : "") +
+    '<button type="button" class="btn-secondary" data-copy-entry-draft="' +
+    escapeHtml(recommendation.therapist.slug) +
+    '">Copy first message</button></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">What happened after outreach?</div><div class="first-contact-tracker-actions">' +
+    OUTREACH_OUTCOME_OPTIONS.map(function (option) {
+      return (
+        '<button type="button" class="feedback-btn' +
+        (latestOutcome && latestOutcome.outcome === option.value
+          ? option.tone === "negative"
+            ? " active-negative"
+            : " active-positive"
+          : "") +
+        '" data-entry-outreach="' +
+        escapeHtml(recommendation.therapist.slug) +
+        '" data-entry-outcome="' +
+        escapeHtml(option.value) +
+        '">' +
+        escapeHtml(option.label) +
+        "</button>"
+      );
+    }).join("") +
+    '</div><div class="first-contact-tracker-note">Save the outcome here so the backup plan and ranking logic can adapt.</div></div></div></div></section>';
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "first-contact",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-entry-contact-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-entry-contact-link") || "";
+      trackFunnelEvent(
+        "match_recommended_outreach_started",
+        buildMatchTrackingPayload(slug, {
+          route: link.getAttribute("data-entry-route-label") || "",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-copy-entry-draft") || "";
+      var entry = (_entries || []).find(function (item) {
+        return item && item.therapist && item.therapist.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
+        trackFunnelEvent(
+          "match_recommended_draft_copied",
+          buildMatchTrackingPayload(slug, {
+            route: recommendation.route || "Recommended first contact",
+          }),
+        );
+        setActionState(
+          true,
+          "Copied the recommended first outreach for " + entry.therapist.name + ".",
+        );
+      } catch (_error) {
+        setActionState(true, "Unable to copy the recommended outreach automatically.");
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-entry-outreach]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      recordEntryOutreachOutcome(
+        button.getAttribute("data-entry-outreach"),
+        button.getAttribute("data-entry-outcome"),
+      );
+    });
+  });
 }
 
 function getBaseFallbackWaitMs(profile) {
@@ -3823,6 +4285,10 @@ function renderPrimaryMatchCards(entries, _profile) {
           .join(", ");
       }
       var credentialLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+      var confidence = getMatchConfidenceMeta(entry);
+      var explanation = getMatchCardExplanation(entry);
+      var caution = getMatchCardCaution(entry);
+      var actionCopy = getMatchCardActionCopy(entry);
       var ctaLabel =
         routeType === "booking"
           ? "Start with this provider"
@@ -3840,10 +4306,16 @@ function renderPrimaryMatchCards(entries, _profile) {
         '<div class="match-card-header">' +
         '<div class="match-card-badges"><div class="match-rank">Top ' +
         (index + 1) +
-        " match</div></div>" +
+        ' match</div><div class="match-confidence tone-' +
+        escapeHtml(confidence.tone) +
+        '">' +
+        escapeHtml(confidence.label) +
+        "</div></div>" +
         '<a href="therapist.html?slug=' +
         encodeURIComponent(therapist.slug || "") +
-        '" class="btn-secondary match-card-profile-link">View profile</a>' +
+        '" class="btn-secondary match-card-profile-link" data-match-profile-link="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-profile-link-context="primary-card">View profile</a>' +
         "</div>" +
         '<div class="match-card-body">' +
         "<h3>" +
@@ -3853,26 +4325,92 @@ function renderPrimaryMatchCards(entries, _profile) {
           ? '<div class="match-credentials">' + escapeHtml(credentialLine) + "</div>"
           : "") +
         (locationLine ? '<div class="match-meta">' + escapeHtml(locationLine) + "</div>" : "") +
+        '<p class="match-explanation">' +
+        escapeHtml(explanation) +
+        "</p>" +
+        (caution
+          ? '<div class="match-segment-learning"><strong>Watch for:</strong> ' +
+            escapeHtml(caution) +
+            "</div>"
+          : "") +
         "</div>" +
         '<div class="match-summary-pills">' +
         getShortlistSummary(entry) +
         "</div>" +
-        '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="outreach-card-actions">' +
+        '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="match-card-action-title">' +
+        escapeHtml(ctaLabel) +
+        '</div><div class="match-card-action-copy">' +
+        escapeHtml(actionCopy) +
+        '</div><div class="outreach-card-actions">' +
         '<a href="' +
         escapeHtml(
           preferredRoute
             ? preferredRoute.href
             : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
         ) +
-        '" class="btn-primary match-card-cta"' +
+        '" class="btn-primary match-card-cta" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(ctaLabel) +
+        '"' +
         (preferredRoute && preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
-        "</a></div></div></div>" +
+        '</a><button type="button" class="btn-secondary match-card-copy-btn" data-copy-entry-draft="' +
+        escapeHtml(therapist.slug || "") +
+        '">Copy first message</button></div></div></div>' +
         "</article>"
       );
     })
     .join("");
+
+  root.querySelectorAll("[data-match-primary-cta]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-primary-cta") || "";
+      trackFunnelEvent(
+        "match_primary_cta_clicked",
+        buildMatchTrackingPayload(slug, {
+          route: link.getAttribute("data-match-primary-route") || "",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-match-profile-link") || "";
+      trackFunnelEvent(
+        "match_result_profile_opened",
+        buildMatchTrackingPayload(slug, {
+          context: link.getAttribute("data-profile-link-context") || "result",
+        }),
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var slug = button.getAttribute("data-copy-entry-draft") || "";
+      var entry = (entries || []).find(function (item) {
+        return item && item.therapist && item.therapist.slug === slug;
+      });
+      if (!entry) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
+        trackFunnelEvent(
+          "match_entry_draft_copied",
+          buildMatchTrackingPayload(slug, {
+            route: "Primary card",
+          }),
+        );
+        setActionState(true, "Copied a first outreach message for " + entry.therapist.name + ".");
+      } catch (_error) {
+        setActionState(true, "Unable to copy the outreach message automatically.");
+      }
+    });
+  });
 }
 
 function safeRenderResults(entries, profile) {
@@ -3915,14 +4453,11 @@ function renderResults(entries, profile) {
       }),
     );
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
-    root.className = "match-empty";
-    root.innerHTML = hasRefinements
-      ? "We do not have a strong match for this search yet. Try widening your format, insurance, or budget preferences to see more options."
-      : requestedZip && zipSuggestions.length
-        ? "No exact reviewed profile is live in this ZIP code yet. Try one of the nearest reviewed ZIP codes: " +
-          formatZipSuggestionList(zipSuggestions) +
-          ", or widen to telehealth."
-        : "We do not have a strong match for this ZIP code yet. Try a nearby ZIP code, telehealth, or a few optional refinements.";
+    renderNoResultsState(
+      profile,
+      requestedZip && zipSuggestions.length ? zipSuggestions : [],
+      hasRefinements,
+    );
     outreach.innerHTML = "";
     compare.innerHTML = "";
     adaptiveGuidance.innerHTML = "";
@@ -3988,7 +4523,7 @@ function handleSubmit(event) {
     return;
   }
 
-  activeSecondPassMode = "balanced";
+  activeSecondPassMode = getAdaptiveSecondPassMode(profile);
   var entries = rankEntriesForProfile(profile);
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
@@ -3998,6 +4533,7 @@ function handleSubmit(event) {
     result_count: entries.length,
     top_slug: entries[0] ? entries[0].therapist.slug : "",
     strategy: buildAdaptiveStrategySnapshot(profile),
+    experiments: getActiveExperimentContext(),
   });
   latestProfile = profile;
   latestEntries = entries;
@@ -4085,9 +4621,10 @@ function resetForm() {
   persistedJourneyId = "";
   window.history.replaceState({}, "", "match.html");
   setActionState(false, "Run a match to review your top options.");
+  syncMatchStartState();
   document.getElementById("matchResults").className = "match-empty";
   document.getElementById("matchResults").innerHTML =
-    '<div class="match-hero-copy"><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
+    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
   var queue = document.getElementById("matchQueue");
   if (queue) {
     queue.hidden = true;
@@ -4109,6 +4646,10 @@ function resetForm() {
   await preloadZipcodes();
   therapists = await fetchPublicTherapists();
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
+  activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
+  trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {
+    surface: "match",
+  });
   latestAdaptiveSignals = getMatchAdaptiveStrategy();
   initMatchCareDropdown();
   var matchForm = document.getElementById("matchForm");
@@ -4116,15 +4657,28 @@ function resetForm() {
   matchForm.addEventListener("input", function () {
     var profile = readCurrentIntakeProfile();
     syncZipResolvedLabel(matchForm.elements.location_query.value);
+    syncMatchStartState();
     renderAdaptiveIntakeGuidance(profile);
     renderIntakeTradeoffPreview(profile);
   });
   matchForm.addEventListener("change", function () {
     var profile = readCurrentIntakeProfile();
     syncZipResolvedLabel(matchForm.elements.location_query.value);
+    syncMatchStartState();
     renderAdaptiveIntakeGuidance(profile);
     renderIntakeTradeoffPreview(profile);
   });
+  var refinements = document.querySelector(".match-refinements");
+  if (refinements) {
+    refinements.addEventListener("toggle", function () {
+      if (refinements.open) {
+        trackFunnelEvent("match_refinements_opened", {
+          care_intent: matchForm.elements.care_intent.value || "",
+          has_zip: Boolean(normalizeLocationQuery(matchForm.elements.location_query.value)),
+        });
+      }
+    });
+  }
   var resetMatchButton = document.getElementById("resetMatch");
   if (resetMatchButton) {
     resetMatchButton.addEventListener("click", resetForm);
@@ -4138,12 +4692,13 @@ function resetForm() {
 
   var restoredProfile = restoreProfileFromUrl();
   var restoredShortlist = restoreShortlistFromUrl();
+  syncMatchStartState();
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
   if (restoredProfile) {
     hydrateForm(restoredProfile);
     latestProfile = restoredProfile;
-    activeSecondPassMode = "balanced";
+    activeSecondPassMode = getAdaptiveSecondPassMode(restoredProfile);
     latestEntries = rankEntriesForProfile(restoredProfile);
     safeRenderResults(latestEntries, restoredProfile);
   } else if (!restoredProfile && restoredShortlist.length) {
@@ -4162,6 +4717,7 @@ function resetForm() {
     fallbackProfile.care_state
   ) {
     latestProfile = fallbackProfile;
+    activeSecondPassMode = getAdaptiveSecondPassMode(fallbackProfile);
     latestEntries = rankEntriesForProfile(fallbackProfile);
     if (latestEntries.length) {
       safeRenderResults(latestEntries, fallbackProfile);

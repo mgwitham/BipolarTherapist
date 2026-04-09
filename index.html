@@ -121,6 +121,20 @@
       .hero-copy {
         max-width: 620px;
       }
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
       .hero h1 {
         font-family: "Lora", serif;
         font-size: clamp(1.9rem, 5vw, 3rem);
@@ -133,6 +147,35 @@
         font-size: 1.02rem;
         line-height: 1.7;
         color: rgba(255, 255, 255, 0.9);
+      }
+      .hero-proof {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.35rem;
+      }
+      .hero-proof-item {
+        padding: 0.85rem 0.9rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        text-align: left;
+      }
+      .hero-proof-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+      }
+      .hero-proof-value {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.96rem;
+        font-weight: 600;
+        line-height: 1.45;
+        color: white;
       }
       .tool-shell {
         background: rgba(255, 255, 255, 0.12);
@@ -156,6 +199,26 @@
         line-height: 1.6;
         max-width: 31rem;
         margin: 0 auto 1.05rem;
+      }
+      .tool-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.55rem;
+        color: var(--teal-dark);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tool-title {
+        font-family: "Lora", serif;
+        font-size: clamp(1.35rem, 2.8vw, 1.7rem);
+        line-height: 1.2;
+        color: var(--navy);
+      }
+      .tool-title + p {
+        margin-top: 0.6rem;
       }
       .search-box {
         background: #f7fbfc;
@@ -399,6 +462,16 @@
       .search-btn:hover {
         background: var(--teal-dark);
       }
+      .search-helper {
+        margin-top: 0.2rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+      .search-helper strong {
+        color: var(--navy);
+      }
       .hero-validation-popup {
         display: none;
         margin: 0.2rem 0 0.55rem;
@@ -422,7 +495,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.55rem;
-        margin-top: 0.9rem;
+        margin-top: 0.95rem;
         justify-content: center;
       }
       .tool-trust-pill {
@@ -1045,6 +1118,9 @@
         .nav-links li:not(:last-child) {
           display: none;
         }
+        .hero-proof {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -1063,17 +1139,40 @@
     <section class="hero">
       <div class="hero-inner">
         <div class="hero-copy">
-          <h1 id="heroTitle">Find therapists who understand bipolar disorder</h1>
+          <div class="hero-eyebrow" id="heroEyebrow">Focused match for bipolar-informed care</div>
+          <h1 id="heroTitle">Start a clearer match for bipolar-informed care</h1>
           <p id="heroDescription">
-            A focused directory built to make finding bipolar-informed care feel clearer, more
-            trustworthy, and less overwhelming.
+            Tell us what kind of support you want and where you are. We’ll move you into a guided
+            match flow built to narrow your next options with less guesswork.
           </p>
+          <div class="hero-proof" aria-label="Why start here">
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel1">What happens next</span>
+              <span class="hero-proof-value" id="heroProofValue1"
+                >Answer a few quick questions and get a focused shortlist.</span
+              >
+            </div>
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel2">Built for</span>
+              <span class="hero-proof-value" id="heroProofValue2"
+                >Therapy, psychiatry, or telehealth support for bipolar care.</span
+              >
+            </div>
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel3">Current launch</span>
+              <span class="hero-proof-value" id="heroProofValue3"
+                >California ZIP codes with a calmer, guided starting point.</span
+              >
+            </div>
+          </div>
         </div>
         <div class="tool-shell">
           <div class="tool-card">
+            <div class="tool-kicker">Start your first match</div>
+            <div class="tool-title" id="toolTitle">Get to the next step faster</div>
             <p>
-              Start with your ZIP code and the kind of support you want. We’ll help you narrow the
-              search to bipolar-relevant options.
+              Choose the support you want, enter your ZIP code, and we’ll take you straight into the
+              guided matcher.
             </p>
             <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
               <div class="hero-validation-title">Almost there</div>
@@ -1141,8 +1240,19 @@
                   <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
                 </div>
               </div>
-              <button type="submit" class="search-btn" id="searchButton">Find</button>
+              <button type="submit" class="search-btn" id="searchButton">Start my match</button>
             </form>
+            <div class="search-helper" id="searchHelper">
+              <strong>Next:</strong> answer a few quick questions and review bipolar-relevant
+              options.
+            </div>
+            <div class="tool-trust-row" aria-label="Trust signals">
+              <div class="tool-trust-pill" id="homeTrustPill1">Takes about 2 minutes to begin</div>
+              <div class="tool-trust-pill" id="homeTrustPill2">No account required to start</div>
+              <a class="tool-trust-pill tool-trust-pill--secondary" href="directory.html">
+                Prefer to browse first?
+              </a>
+            </div>
           </div>
         </div>
       </div>

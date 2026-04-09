@@ -55,8 +55,12 @@ import {
 } from "./matching-model.js";
 import {
   readFunnelEvents,
+  setPromotedExperimentVariant,
   summarizeAdaptiveSignals,
+  summarizeExperimentDecisions,
+  summarizeExperimentPerformance,
   summarizeFunnelEvents,
+  summarizePatientJourney,
 } from "./funnel-analytics.js";
 import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
 import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
@@ -361,6 +365,231 @@ function spotlightSection(target) {
   }, 1800);
 }
 
+function getWorkflowGrid() {
+  return document.querySelector("#adminApp .grid");
+}
+
+function clearWorkflowFocusMode() {
+  var grid = getWorkflowGrid();
+  if (!grid) {
+    return;
+  }
+  grid.classList.remove("workflow-focus-active");
+  grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+    node.classList.remove("workflow-focus-owner");
+  });
+  grid.querySelectorAll(".workflow-focus-target").forEach(function (node) {
+    node.classList.remove("workflow-focus-target");
+  });
+}
+
+function getWorkflowFocusOwner(target) {
+  var grid = getWorkflowGrid();
+  if (!grid || !target) {
+    return null;
+  }
+  var directChildren = Array.prototype.slice.call(grid.children || []);
+  for (var index = 0; index < directChildren.length; index += 1) {
+    var child = directChildren[index];
+    if (child === target || child.contains(target)) {
+      return child;
+    }
+  }
+  return null;
+}
+
+function applyWorkflowFocusMode(target) {
+  var grid = getWorkflowGrid();
+  if (!grid || !target) {
+    clearWorkflowFocusMode();
+    return;
+  }
+  var owner = getWorkflowFocusOwner(target);
+  if (!owner) {
+    clearWorkflowFocusMode();
+    return;
+  }
+  clearWorkflowFocusMode();
+  grid.classList.add("workflow-focus-active");
+  owner.classList.add("workflow-focus-owner");
+  target.classList.add("workflow-focus-target");
+}
+
+function buildWorkflowHandoffMarkup(config) {
+  var item = config || {};
+  return (
+    '<div class="workflow-handoff" data-workflow-handoff="true"><div class="workflow-handoff-kicker">Start In This Section</div><div class="workflow-handoff-title">' +
+    escapeHtml(item.title || "Next move") +
+    "</div>" +
+    (item.destination
+      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">You Landed In</div><div class="workflow-handoff-copy">' +
+        escapeHtml(item.destination) +
+        "</div></div>"
+      : "") +
+    (item.firstStep
+      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Start With</div><div class="workflow-handoff-copy">' +
+        escapeHtml(item.firstStep) +
+        "</div></div>"
+      : "") +
+    (item.nextStep
+      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Then</div><div class="workflow-handoff-copy">' +
+        escapeHtml(item.nextStep) +
+        "</div></div>"
+      : "") +
+    (item.done
+      ? '<div class="workflow-handoff-row"><div class="workflow-handoff-label">Done When</div><div class="workflow-handoff-copy">' +
+        escapeHtml(item.done) +
+        "</div></div>"
+      : "") +
+    '<div class="workflow-handoff-actions"><button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Show full admin</button></div>' +
+    "</div>"
+  );
+}
+
+function clearWorkflowHandoffs() {
+  document.querySelectorAll('[data-workflow-handoff="true"]').forEach(function (node) {
+    node.remove();
+  });
+}
+
+function openNearbyPlaybook(target) {
+  if (!target) {
+    return;
+  }
+  var container = target;
+  if (!container.querySelector(".playbook") && target.parentElement) {
+    container = target.parentElement;
+  }
+  if (!container) {
+    return;
+  }
+  var playbook = container.querySelector(".playbook");
+  if (playbook && typeof playbook.open === "boolean") {
+    playbook.open = true;
+  }
+}
+
+function showWorkflowHandoff(target, config) {
+  if (!target || !config) {
+    return;
+  }
+  if (!config.title && !config.firstStep && !config.nextStep && !config.done) {
+    return;
+  }
+  clearWorkflowHandoffs();
+  openNearbyPlaybook(target);
+  applyWorkflowFocusMode(target);
+  var markup = buildWorkflowHandoffMarkup(config);
+  if (
+    target.classList.contains("queue-card") ||
+    target.classList.contains("application-card") ||
+    target.classList.contains("mini-card")
+  ) {
+    target.insertAdjacentHTML("afterbegin", markup);
+    return;
+  }
+  var heading = target.querySelector("h2");
+  if (heading) {
+    heading.insertAdjacentHTML("afterend", markup);
+    return;
+  }
+  target.insertAdjacentHTML("beforebegin", markup);
+}
+
+function scrollToElementWithOffset(target, block) {
+  if (!target) {
+    return;
+  }
+  var offset = block === "center" ? window.innerHeight * 0.22 : 88;
+  var top = window.scrollY + target.getBoundingClientRect().top - offset;
+  window.scrollTo({
+    top: Math.max(0, top),
+    behavior: "smooth",
+  });
+}
+
+function focusAdminWorkflowTarget(config) {
+  var options = config || {};
+  var sectionTarget = options.sectionTarget || null;
+  var focusTargetId = options.focusTargetId || "";
+  var focusSelector = options.focusSelector || "";
+  var workflowTitle = options.workflowTitle || "";
+  var workflowDestination = options.workflowDestination || "";
+  var workflowFirstStep = options.workflowFirstStep || "";
+  var workflowNextStep = options.workflowNextStep || "";
+  var workflowDone = options.workflowDone || "";
+  var attempts = 0;
+  var maxAttempts = 8;
+
+  function tryFocus() {
+    attempts += 1;
+    var focusedTarget = focusTargetId ? document.getElementById(focusTargetId) : null;
+    if (!focusedTarget && focusSelector && sectionTarget) {
+      try {
+        focusedTarget = sectionTarget.querySelector(focusSelector);
+      } catch (_error) {
+        focusedTarget = null;
+      }
+    }
+    var handoffTarget = focusedTarget || sectionTarget;
+    if (handoffTarget) {
+      showWorkflowHandoff(handoffTarget, {
+        title: workflowTitle,
+        destination: workflowDestination,
+        firstStep: workflowFirstStep,
+        nextStep: workflowNextStep,
+        done: workflowDone,
+      });
+    }
+    if (focusedTarget) {
+      scrollToElementWithOffset(focusedTarget, "start");
+      spotlightSection(focusedTarget);
+      return;
+    }
+    if (sectionTarget && attempts >= maxAttempts) {
+      scrollToElementWithOffset(sectionTarget, "start");
+      spotlightSection(sectionTarget);
+      return;
+    }
+    if (attempts < maxAttempts) {
+      window.setTimeout(tryFocus, 60);
+    }
+  }
+
+  tryFocus();
+}
+
+function syncWorkflowFocusFromHash() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  var hash = window.location.hash ? window.location.hash.slice(1) : "";
+  if (!hash) {
+    clearWorkflowFocusMode();
+    clearWorkflowHandoffs();
+    return;
+  }
+  var target = document.getElementById(hash);
+  if (target) {
+    applyWorkflowFocusMode(target);
+    scrollToElementWithOffset(target, "start");
+    spotlightSection(target);
+    openNearbyPlaybook(target);
+    window.setTimeout(function () {
+      scrollToElementWithOffset(target, "start");
+    }, 120);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("hashchange", function () {
+    syncWorkflowFocusFromHash();
+  });
+  window.setTimeout(function () {
+    syncWorkflowFocusFromHash();
+  }, 0);
+}
+
 function applyAdminRuntimeState(nextState) {
   if (!nextState) {
     return;
@@ -445,6 +674,12 @@ function buildActionStatCard(value, label, targetId, options) {
   if (config.portalRequestStatus !== undefined) {
     attrs.push('data-admin-portal-request-status="' + escapeHtml(config.portalRequestStatus) + '"');
   }
+  if (config.focusSelector !== undefined) {
+    attrs.push('data-admin-focus-selector="' + escapeHtml(config.focusSelector) + '"');
+  }
+  if (config.focusTargetId !== undefined) {
+    attrs.push('data-admin-focus-target-id="' + escapeHtml(config.focusTargetId) + '"');
+  }
 
   return (
     "<button " +
@@ -473,6 +708,111 @@ function wrapStatsGroup(title, cards, extraClass) {
   );
 }
 
+function buildOperatorGuideCard(config) {
+  var item = config || {};
+  var primaryTargetId = item.focusTargetId || item.targetId || "";
+  var secondaryTargetId = item.focusTargetId ? item.targetId || "" : "";
+  var mainNeedsJs =
+    item.confirmationFilter !== undefined ||
+    item.applicationStatus !== undefined ||
+    item.conciergeStatus !== undefined ||
+    item.portalRequestStatus !== undefined ||
+    item.focusSelector !== undefined;
+  var primaryActionLabel =
+    item.focusTargetId && item.directActionLabel
+      ? item.directActionLabel
+      : item.actionLabel || "Open workflow";
+  var secondaryActionLabel =
+    item.focusTargetId && item.directActionLabel
+      ? item.actionLabel || ""
+      : item.directActionLabel || "";
+  var mainAttrs = ['class="operator-guide-main"'];
+  if (mainNeedsJs) {
+    mainAttrs.unshift('type="button"');
+    mainAttrs.push('data-admin-scroll-target="' + escapeHtml(primaryTargetId) + '"');
+  } else {
+    mainAttrs.push('href="#' + escapeHtml(primaryTargetId) + '"');
+  }
+  if (item.confirmationFilter !== undefined) {
+    mainAttrs.push('data-admin-confirmation-filter="' + escapeHtml(item.confirmationFilter) + '"');
+  }
+  if (item.applicationStatus !== undefined) {
+    mainAttrs.push('data-admin-application-status="' + escapeHtml(item.applicationStatus) + '"');
+  }
+  if (item.conciergeStatus !== undefined) {
+    mainAttrs.push('data-admin-concierge-status="' + escapeHtml(item.conciergeStatus) + '"');
+  }
+  if (item.portalRequestStatus !== undefined) {
+    mainAttrs.push(
+      'data-admin-portal-request-status="' + escapeHtml(item.portalRequestStatus) + '"',
+    );
+  }
+  if (item.focusSelector !== undefined) {
+    mainAttrs.push('data-admin-focus-selector="' + escapeHtml(item.focusSelector) + '"');
+  }
+  if (item.focusTargetId !== undefined && primaryTargetId === (item.targetId || "")) {
+    mainAttrs.push('data-admin-focus-target-id="' + escapeHtml(item.focusTargetId) + '"');
+  }
+  if (item.title !== undefined) {
+    mainAttrs.push('data-admin-workflow-title="' + escapeHtml(item.title) + '"');
+  }
+  if (Array.isArray(item.steps) && item.steps[0] !== undefined) {
+    mainAttrs.push('data-admin-workflow-first-step="' + escapeHtml(item.steps[0]) + '"');
+  }
+  if (Array.isArray(item.steps) && item.steps[1] !== undefined) {
+    mainAttrs.push('data-admin-workflow-next-step="' + escapeHtml(item.steps[1]) + '"');
+  }
+  if (item.done !== undefined) {
+    mainAttrs.push('data-admin-workflow-done="' + escapeHtml(item.done) + '"');
+  }
+  if (item.targetSummary !== undefined) {
+    mainAttrs.push('data-admin-workflow-destination="' + escapeHtml(item.targetSummary) + '"');
+  }
+  var directAttrs = ['class="btn-secondary btn-inline"'];
+
+  var mainTag = mainNeedsJs ? "button" : "a";
+
+  return (
+    '<div class="operator-guide-card"><' +
+    mainTag +
+    " " +
+    mainAttrs.join(" ") +
+    '><div class="operator-guide-head"><div><div class="operator-guide-kicker">' +
+    escapeHtml(item.kicker || "Operator lane") +
+    '</div><h3 class="operator-guide-title">' +
+    escapeHtml(item.title || "Workflow") +
+    '</h3></div><div class="operator-guide-count">' +
+    escapeHtml(item.countLabel || "") +
+    '</div></div><div class="operator-guide-copy">' +
+    escapeHtml(item.copy || "") +
+    '</div><div class="operator-guide-block"><div class="operator-guide-label">How To Work It</div><ol class="operator-guide-list">' +
+    (item.steps || [])
+      .map(function (step) {
+        return "<li>" + escapeHtml(step) + "</li>";
+      })
+      .join("") +
+    '</ol></div><div class="operator-guide-block"><div class="operator-guide-label">Done Means</div><div class="operator-guide-done">' +
+    escapeHtml(item.done || "") +
+    '</div></div><div class="operator-guide-block"><div class="operator-guide-label">Main Click Lands In</div><div class="operator-guide-destination">' +
+    escapeHtml(item.targetSummary || "First actionable item in this workflow") +
+    '</div></div><div class="operator-guide-action">' +
+    escapeHtml(primaryActionLabel) +
+    "</div></" +
+    mainTag +
+    ">" +
+    (secondaryActionLabel && secondaryTargetId
+      ? '<div class="operator-guide-secondary"><a href="#' +
+        escapeHtml(secondaryTargetId) +
+        '" ' +
+        directAttrs.join(" ") +
+        ">" +
+        escapeHtml(secondaryActionLabel) +
+        "</a></div>"
+      : "") +
+    "</div>"
+  );
+}
+
 function buildPriorityActionCard(action, index) {
   var item = action || {};
   var attrs = [
@@ -493,6 +833,21 @@ function buildPriorityActionCard(action, index) {
   if (item.portalRequestStatus !== undefined) {
     attrs.push('data-admin-portal-request-status="' + escapeHtml(item.portalRequestStatus) + '"');
   }
+  if (item.focusSelector !== undefined) {
+    attrs.push('data-admin-focus-selector="' + escapeHtml(item.focusSelector) + '"');
+  }
+  if (item.focusTargetId !== undefined) {
+    attrs.push('data-admin-focus-target-id="' + escapeHtml(item.focusTargetId) + '"');
+  }
+  if (item.headline !== undefined) {
+    attrs.push('data-admin-workflow-title="' + escapeHtml(item.headline) + '"');
+  }
+  if (item.firstStep !== undefined) {
+    attrs.push('data-admin-workflow-first-step="' + escapeHtml(item.firstStep) + '"');
+  }
+  if (item.successState !== undefined) {
+    attrs.push('data-admin-workflow-done="' + escapeHtml(item.successState) + '"');
+  }
 
   return (
     "<button " +
@@ -506,6 +861,16 @@ function buildPriorityActionCard(action, index) {
       ? '<div class="stat-meta"><strong>' + escapeHtml(item.title) + "</strong></div>"
       : "") +
     (item.detail ? '<div class="stat-meta">' + escapeHtml(item.detail) + "</div>" : "") +
+    (item.whyNow
+      ? '<div class="stat-context-label">Why This Matters</div><div class="stat-context-copy">' +
+        escapeHtml(item.whyNow) +
+        "</div>"
+      : "") +
+    (item.successState
+      ? '<div class="stat-context-label">Good Outcome</div><div class="stat-context-copy">' +
+        escapeHtml(item.successState) +
+        "</div>"
+      : "") +
     '<div class="stat-action-note">' +
     escapeHtml(item.actionLabel || "Open workflow") +
     "</div></button>"
@@ -3458,6 +3823,23 @@ function renderStats() {
   const pendingApplicationsCount = applications.filter(function (item) {
     return item.status === "pending";
   }).length;
+  const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
+  const candidateReviewCount = candidateQueueItems.filter(function (item) {
+    return item.review_status !== "published" && item.review_status !== "archived";
+  }).length;
+  const readyToApplyCount = confirmationQueue.filter(function (entry) {
+    var status = entry && entry.workflow ? entry.workflow.status : "not_started";
+    return status === "confirmed";
+  }).length;
+  const listingPromotionCount = therapists.filter(function (item) {
+    return (
+      getTherapistMatchReadiness(item).score >= 90 &&
+      getTherapistMerchandisingQuality(item).score >= 85 &&
+      getDataFreshnessSummary(item).status !== "aging" &&
+      !getTherapistConfirmationAgenda(item).needs_confirmation &&
+      getTherapistFieldTrustAttentionCount(item) === 0
+    );
+  }).length;
   const nextBestActions = getNextBestAdminActions({
     applications: applications,
     getClaimActionQueue: getClaimActionQueue,
@@ -3470,6 +3852,194 @@ function renderStats() {
     getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
     therapists: therapists,
   });
+  const publishMaintainCardConfig =
+    readyToApplyCount > 0
+      ? {
+          title: "Apply Ready Updates",
+          countLabel: readyToApplyCount,
+          copy: "Land therapist-confirmed values on live listings so trusted updates do not sit waiting in the queue.",
+          steps: [
+            "Open the confirmed update queue and start with the top ready profile.",
+            "Apply the therapist-confirmed values that are ready for live listings.",
+            "Confirm the listing is now updated and no longer waiting on a live apply decision.",
+          ],
+          done: "The confirmed profile has been applied to the live listing or moved out of the ready-to-apply state with a clear reason.",
+          actionLabel: "Open confirmation queue",
+          directActionLabel: "Open first ready update",
+          targetId: "confirmationQueueSection",
+          focusTargetId: "confirmationQueueStartHere",
+          confirmationFilter: "confirmed",
+        }
+      : profilesNeedingRefresh > 0
+        ? {
+            title: "Refresh Listings",
+            countLabel: profilesNeedingRefresh,
+            copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
+            steps: [
+              "Open the refresh queue and start with the highest-risk listing.",
+              "Review the stale or trust-risk fields and decide refresh versus confirmation.",
+              "Mark the item reviewed, defer it, or move it into a stronger follow-up path.",
+            ],
+            done: "The listing is no longer the top refresh risk and has a clear maintenance decision recorded.",
+            actionLabel: "Open refresh queue",
+            directActionLabel: "Open first refresh task",
+            targetId: "refreshQueueSection",
+            focusTargetId: "refreshQueueStartHere",
+          }
+        : {
+            title: "Promote Listings",
+            countLabel: listingPromotionCount,
+            copy: "Promote strong live profiles into the right visibility lane so launch-ready supply does not sit under-staged.",
+            steps: [
+              "Open listings control and start with the top promotion decision.",
+              "Choose the simplest clear state for the profile: featured, launch-ready, or standard.",
+              "Leave the listing in the right visibility lane before moving on.",
+            ],
+            done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
+            actionLabel: "Open listings control",
+            directActionLabel: "Open top listing decision",
+            targetId: "publishedListingsSection",
+            focusTargetId: "publishedListingsStartHere",
+          };
+  const verifyTrustCardConfig =
+    strictImportBlockerCount > 0
+      ? {
+          title: "Clear Import Blockers",
+          countLabel: strictImportBlockerCount,
+          copy: "Clear source-verifiable blocker fields so trustworthy listings can move past the strict safe-import gate.",
+          steps: [
+            "Open the blocker sprint and start with the top blocked listing.",
+            "Resolve the first source-verifiable blocker field, or move the profile into confirmation if therapist input is required.",
+            "Leave the listing with fewer strict blockers or in the correct follow-up path before moving on.",
+          ],
+          done: "The listing is no longer blocked on the top strict import issue or has been moved into confirmation with a clear next step.",
+          actionLabel: "Open blocker sprint",
+          directActionLabel: "Open first blocker",
+          targetId: "importBlockerSprintSection",
+          focusTargetId: "importBlockerStartHere",
+        }
+      : awaitingConfirmationCount > 0
+        ? {
+            title: "Follow Up Confirmations",
+            countLabel: awaitingConfirmationCount,
+            copy: "Follow up on therapist confirmation requests so trusted listing details do not sit waiting on replies.",
+            steps: [
+              "Open the follow-up queue and start with the top waiting profile.",
+              "Send the next follow-up or capture a reply if one has arrived.",
+              "Update the confirmation state so the profile moves forward instead of staying in waiting.",
+            ],
+            done: "The profile is no longer sitting in waiting-on-therapist without a fresh follow-up or captured reply.",
+            actionLabel: "Open follow-ups",
+            directActionLabel: "Open first follow-up",
+            targetId: "confirmationQueueSection",
+            focusTargetId: "confirmationQueueStartHere",
+            confirmationFilter: "waiting_on_therapist",
+          }
+        : {
+            title: "Send Confirmation Requests",
+            countLabel: profilesNeedingConfirmation,
+            copy: "Send new confirmation requests for missing operational details so live listings stay trustworthy and current.",
+            steps: [
+              "Open the confirmation sprint and start with the top profile needing outreach.",
+              "Send the confirmation request using the recommended field order and outreach path.",
+              "Mark the request state clearly so the profile leaves the unsent confirmation pile.",
+            ],
+            done: "The profile has a clear confirmation request state and is no longer sitting as an unworked trust task.",
+            actionLabel: "Open confirmation sprint",
+            directActionLabel: "Open first confirmation task",
+            targetId: "confirmationSprintSection",
+            focusTargetId: "confirmationSprintStartHere",
+          };
+  const startHereCards = [
+    buildOperatorGuideCard({
+      kicker: "Add Supply",
+      title: "Add New Listings",
+      countLabel: candidateReviewCount,
+      copy: "Work newly discovered candidates into the system so good supply does not sit unreviewed.",
+      steps: [
+        "Open the candidate queue and inspect the source profile.",
+        "Decide whether the candidate is publishable, needs confirmation, or is a duplicate.",
+        "Move the card to the right next state before leaving it.",
+      ],
+      done: "The candidate is marked ready, sent to confirmation, merged as a duplicate, or published.",
+      actionLabel: "Open candidate queue",
+      directActionLabel: "Open first candidate",
+      targetId: "candidateQueuePanel",
+      focusTargetId: "candidateQueueStartHere",
+      targetSummary: "Candidate Review Queue -> first candidate row",
+      overviewSummary: "Candidate Review Queue overview",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Review Supply",
+      title: "Review Applications",
+      countLabel: pendingApplicationsCount,
+      copy: "Process therapist-submitted applications so strong after-claim profiles can turn into live supply fast.",
+      steps: [
+        "Open the application review queue and start with the oldest or strongest pending item.",
+        "Check trust-critical fields, revision notes, and any claim follow-up context.",
+        "Approve, request changes, reject, or publish so the application leaves limbo.",
+      ],
+      done: "The application has a clear decision and no longer sits in the pending review pile.",
+      actionLabel: "Open review queue",
+      directActionLabel: "Open top application",
+      targetId: "applicationsPanel",
+      applicationStatus: "pending",
+      focusTargetId: "applicationReviewStartHere",
+      targetSummary: "Application Review Queue -> top pending application",
+      overviewSummary: "Application Review Queue overview",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Verify Trust",
+      title: verifyTrustCardConfig.title,
+      countLabel: verifyTrustCardConfig.countLabel,
+      copy: verifyTrustCardConfig.copy,
+      steps: verifyTrustCardConfig.steps,
+      done: verifyTrustCardConfig.done,
+      actionLabel: verifyTrustCardConfig.actionLabel,
+      directActionLabel: verifyTrustCardConfig.directActionLabel,
+      targetId: verifyTrustCardConfig.targetId,
+      focusTargetId: verifyTrustCardConfig.focusTargetId,
+      focusSelector: verifyTrustCardConfig.focusSelector,
+      confirmationFilter: verifyTrustCardConfig.confirmationFilter,
+      targetSummary:
+        verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+          ? "Import Blocker Sprint -> first blocker row"
+          : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+            ? "Confirmation Queue -> first waiting follow-up"
+            : "Confirmation Sprint -> first outreach task",
+      overviewSummary:
+        verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+          ? "Import Blocker Sprint overview"
+          : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+            ? "Confirmation Queue overview"
+            : "Confirmation Sprint overview",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Publish And Maintain",
+      title: publishMaintainCardConfig.title,
+      countLabel: publishMaintainCardConfig.countLabel,
+      copy: publishMaintainCardConfig.copy,
+      steps: publishMaintainCardConfig.steps,
+      done: publishMaintainCardConfig.done,
+      actionLabel: publishMaintainCardConfig.actionLabel,
+      directActionLabel: publishMaintainCardConfig.directActionLabel,
+      targetId: publishMaintainCardConfig.targetId,
+      focusTargetId: publishMaintainCardConfig.focusTargetId,
+      confirmationFilter: publishMaintainCardConfig.confirmationFilter,
+      targetSummary:
+        publishMaintainCardConfig.targetId === "confirmationQueueSection"
+          ? "Confirmation Queue -> first ready-to-apply update"
+          : publishMaintainCardConfig.targetId === "refreshQueueSection"
+            ? "Refresh Queue -> first refresh task"
+            : "Published Listings -> top listing decision",
+      overviewSummary:
+        publishMaintainCardConfig.targetId === "confirmationQueueSection"
+          ? "Confirmation Queue overview"
+          : publishMaintainCardConfig.targetId === "refreshQueueSection"
+            ? "Refresh Queue overview"
+            : "Published Listings overview",
+    }),
+  ];
 
   const primaryOpsCards = [
     buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
@@ -3484,7 +4054,7 @@ function renderStats() {
       portalRequestStatus: "open",
       actionLabel: "Open portal queue",
     }),
-    buildActionStatCard(profilesNeedingRefresh, "Profiles needing refresh", "refreshQueue", {
+    buildActionStatCard(profilesNeedingRefresh, "Profiles needing refresh", "refreshQueueSection", {
       meta: topRefreshProfile
         ? "Top: " +
           topRefreshProfile +
@@ -3496,28 +4066,35 @@ function renderStats() {
           : "",
       actionLabel: "Open refresh queue",
     }),
-    buildActionStatCard(strictImportBlockerCount, "Strict import blockers", "importBlockerSprint", {
-      meta:
-        strictImportBlockerHealth +
-        (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
-      actionLabel: "Open blocker sprint",
-    }),
+    buildActionStatCard(
+      strictImportBlockerCount,
+      "Strict import blockers",
+      "importBlockerSprintSection",
+      {
+        meta:
+          strictImportBlockerHealth +
+          (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
+        actionLabel: "Open blocker sprint",
+      },
+    ),
     buildActionStatCard(
       profilesNeedingConfirmation,
       "Profiles needing confirmation",
-      "confirmationQueue",
+      "confirmationQueueSection",
       {
         meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
         actionLabel: "Open confirmation queue",
+        focusTargetId: "confirmationQueueStartHere",
       },
     ),
     buildActionStatCard(
       awaitingConfirmationCount,
       "Confirmation follow-ups open",
-      "confirmationQueue",
+      "confirmationQueueSection",
       {
         confirmationFilter: "waiting_on_therapist",
         actionLabel: "Open follow-ups",
+        focusTargetId: "confirmationQueueStartHere",
       },
     ),
   ];
@@ -3550,6 +4127,7 @@ function renderStats() {
   ];
 
   document.getElementById("adminStats").innerHTML =
+    wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
     (nextBestActions.length
       ? wrapStatsGroup(
           "Next Best Actions",
@@ -3569,6 +4147,13 @@ function renderStats() {
       var applicationStatus = button.getAttribute("data-admin-application-status");
       var conciergeStatus = button.getAttribute("data-admin-concierge-status");
       var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
+      var focusSelector = button.getAttribute("data-admin-focus-selector");
+      var focusTargetId = button.getAttribute("data-admin-focus-target-id");
+      var workflowTitle = button.getAttribute("data-admin-workflow-title");
+      var workflowDestination = button.getAttribute("data-admin-workflow-destination");
+      var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
+      var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
+      var workflowDone = button.getAttribute("data-admin-workflow-done");
       if (confirmationFilter) {
         setConfirmationQueueFilter(confirmationFilter);
         renderConfirmationQueue();
@@ -3599,8 +4184,16 @@ function renderStats() {
       }
       var target = targetId ? document.getElementById(targetId) : null;
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-        spotlightSection(target);
+        focusAdminWorkflowTarget({
+          sectionTarget: target,
+          focusTargetId: focusTargetId,
+          focusSelector: focusSelector,
+          workflowTitle: workflowTitle,
+          workflowDestination: workflowDestination,
+          workflowFirstStep: workflowFirstStep,
+          workflowNextStep: workflowNextStep,
+          workflowDone: workflowDone,
+        });
       }
     });
   });
@@ -3676,6 +4269,9 @@ function renderFunnelInsights() {
 
   const events = readFunnelEvents();
   const summary = summarizeFunnelEvents(events);
+  const patientJourney = summarizePatientJourney(events);
+  const experimentPerformance = summarizeExperimentPerformance(events);
+  const experimentDecisions = summarizeExperimentDecisions(events);
   const outcomes = readOutreachOutcomes();
   const adaptive = summarizeAdaptiveSignals(events, outcomes);
   const strategyHealth = buildStrategyHealthSummary(outcomes);
@@ -3708,6 +4304,137 @@ function renderFunnelInsights() {
       })
       .join("") +
     "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Patient journey checkpoints</div><div class="queue-insights-grid">' +
+    patientJourney.stages
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.note) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div><div class="mini-status" style="margin-top:0.75rem"><strong>' +
+    escapeHtml(
+      patientJourney.biggest_dropoff ? "Biggest patient drop-off" : "Patient journey note",
+    ) +
+    ":</strong> " +
+    escapeHtml(
+      patientJourney.biggest_dropoff
+        ? patientJourney.biggest_dropoff.from_label +
+            " -> " +
+            patientJourney.biggest_dropoff.to_label +
+            " is currently the steepest falloff."
+        : "We need more patient journey data before a clear drop-off is visible.",
+    ) +
+    "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Recovery and friction signals</div><div class="queue-insights-grid">' +
+    [
+      {
+        label: "Recovery clicks",
+        count: patientJourney.recovery_moves,
+      },
+      {
+        label: "Refinement opens",
+        count: patientJourney.refinement_opens,
+      },
+      {
+        label: "Direct outreach actions",
+        count: patientJourney.direct_outreach_actions,
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    (experimentPerformance.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Experiment variants in the wild</div><div class="queue-insights-grid">' +
+        experimentPerformance
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.experiment_name + " · " + item.variant) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.exposures +
+                  " exposures · " +
+                  item.matches +
+                  " matches · " +
+                  item.shortlist_actions +
+                  " shortlist actions · " +
+                  item.outreach_starts +
+                  " outreach starts",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                "Match rate " +
+                  Math.round(item.match_rate * 100) +
+                  "% · Outreach rate " +
+                  Math.round(item.outreach_rate * 100) +
+                  "% from matches",
+              ) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    (experimentDecisions.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Experiment recommendations</div><div class="queue-insights-grid">' +
+        experimentDecisions
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.experiment_name) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.winner
+                  ? item.winner.variant + " · " + item.recommendation
+                  : "No clear recommendation yet",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                item.winner
+                  ? "Current leader: " +
+                      item.winner.variant +
+                      ". Composite gap: " +
+                      Math.round(item.confidence_gap * 100) / 100
+                  : "We need more traffic before recommending a variant.",
+              ) +
+              '</div><div class="queue-insight-action">' +
+              (item.winner
+                ? '<button type="button" class="btn-secondary btn-inline" data-promote-experiment="' +
+                  escapeHtml(item.experiment_name) +
+                  '" data-promote-variant="' +
+                  escapeHtml(item.winner.variant) +
+                  '">Promote ' +
+                  escapeHtml(item.winner.variant) +
+                  "</button>"
+                : "") +
+              (item.promoted_variant
+                ? ' <button type="button" class="btn-secondary btn-inline" data-clear-experiment-promotion="' +
+                  escapeHtml(item.experiment_name) +
+                  '">Clear promoted default</button><div class="queue-insight-note">Promoted now: ' +
+                  escapeHtml(item.promoted_variant) +
+                  "</div>"
+                : "") +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     '<div class="queue-insights"><div class="queue-insights-title">Current adaptive strategy</div><div class="queue-insights-grid">' +
     [
       {
@@ -3813,6 +4540,29 @@ function renderFunnelInsights() {
           .join("") +
         "</div></div>"
       : "");
+
+  root.querySelectorAll("[data-promote-experiment]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var experimentName = button.getAttribute("data-promote-experiment") || "";
+      var variant = button.getAttribute("data-promote-variant") || "";
+      if (!experimentName || !variant) {
+        return;
+      }
+      setPromotedExperimentVariant(experimentName, variant);
+      renderFunnelInsights();
+    });
+  });
+
+  root.querySelectorAll("[data-clear-experiment-promotion]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var experimentName = button.getAttribute("data-clear-experiment-promotion") || "";
+      if (!experimentName) {
+        return;
+      }
+      setPromotedExperimentVariant(experimentName, "");
+      renderFunnelInsights();
+    });
+  });
 }
 
 function renderListings() {
@@ -3831,6 +4581,9 @@ function renderRefreshQueue() {
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
     getTherapistTrustRecommendation: getTherapistTrustRecommendation,
     escapeHtml: escapeHtml,
+    formatDate: formatDate,
+    decideTherapistOps: decideTherapistOps,
+    loadData: loadData,
   });
 }
 
@@ -4130,21 +4883,21 @@ function buildCandidateDecisionActions(item) {
     actions.push(
       '<button class="btn-secondary" data-candidate-decision="' +
         escapeHtml(item.id) +
-        '" data-candidate-next="mark_ready">Mark ready</button>',
+        '" data-candidate-next="mark_ready">Queue for publish</button>',
     );
   }
   if (item.review_status !== "needs_confirmation") {
     actions.push(
       '<button class="btn-secondary" data-candidate-decision="' +
         escapeHtml(item.id) +
-        '" data-candidate-next="needs_confirmation">Needs confirmation</button>',
+        '" data-candidate-next="needs_confirmation">Send to confirmation</button>',
     );
   }
   if (item.dedupe_status !== "rejected_duplicate") {
     actions.push(
       '<button class="btn-secondary" data-candidate-decision="' +
         escapeHtml(item.id) +
-        '" data-candidate-next="reject_duplicate">Mark duplicate</button>',
+        '" data-candidate-next="reject_duplicate">Mark as duplicate</button>',
     );
   }
   if (item.matched_therapist_id) {
@@ -4164,7 +4917,7 @@ function buildCandidateDecisionActions(item) {
   actions.push(
     '<button class="btn-primary" data-candidate-decision="' +
       escapeHtml(item.id) +
-      '" data-candidate-next="publish">Publish therapist</button>',
+      '" data-candidate-next="publish">Publish now</button>',
   );
   return actions.join("");
 }
@@ -5086,6 +5839,20 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
     reviewActivitySavedViewId = "";
     renderReviewActivitySavedViews();
     renderReviewActivitySavedViewMeta();
+  }
+});
+
+document.addEventListener("click", function (event) {
+  var button = event.target.closest("[data-clear-workflow-focus]");
+  if (!button) {
+    return;
+  }
+  event.preventDefault();
+  clearWorkflowFocusMode();
+  clearWorkflowHandoffs();
+  if (typeof window !== "undefined") {
+    var nextUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({}, "", nextUrl);
   }
 });
 

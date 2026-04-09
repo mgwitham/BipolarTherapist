@@ -1,6 +1,14 @@
 import { fetchHomePageContent } from "./cms.js";
-import { trackFunnelEvent } from "./funnel-analytics.js";
+import {
+  getExperimentVariant,
+  readFunnelEvents,
+  summarizeAdaptiveSignals,
+  trackExperimentExposure,
+  trackFunnelEvent,
+} from "./funnel-analytics.js";
 import { getZipMarketStatus } from "./zip-lookup.js";
+
+var activeHomeExperimentVariant = "control";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -103,17 +111,65 @@ function syncHomeZipResolvedLabel(value) {
 function syncHeroSearchState() {
   var hiddenInput = document.getElementById("homepage_interest");
   var locationInput = document.getElementById("location");
+  var searchButton = document.getElementById("searchButton");
+  var searchHelper = document.getElementById("searchHelper");
 
   if (!hiddenInput || !locationInput) {
     return;
   }
 
-  var isReady =
-    Boolean(String(hiddenInput.value || "").trim()) && Boolean(locationInput.value.trim());
+  var interest = String(hiddenInput.value || "").trim();
+  var hasLocation = Boolean(locationInput.value.trim());
+  var isReady = Boolean(interest) && hasLocation;
   syncHomeZipResolvedLabel(locationInput.value);
+
+  if (searchButton) {
+    searchButton.textContent = getHeroButtonLabel(interest);
+  }
+
+  if (searchHelper) {
+    searchHelper.innerHTML = getHeroHelperCopy(interest, hasLocation);
+  }
+
   if (isReady) {
     hideHeroValidationPopup();
   }
+}
+
+function getHeroButtonLabel(interest) {
+  if (interest === "therapist") {
+    return "Start therapist match";
+  }
+
+  if (interest === "psychiatrist") {
+    return "Start psychiatry match";
+  }
+
+  if (interest === "telehealth") {
+    return "Start telehealth match";
+  }
+
+  return "Start my match";
+}
+
+function getHeroHelperCopy(interest, hasLocation) {
+  if (!interest && !hasLocation) {
+    return "<strong>Next:</strong> choose your care type and ZIP code to begin the guided match.";
+  }
+
+  if (interest && !hasLocation) {
+    return (
+      "<strong>Next:</strong> add your ZIP code to start your " +
+      escapeHtml(interest === "psychiatrist" ? "psychiatry" : interest) +
+      " match."
+    );
+  }
+
+  if (!interest && hasLocation) {
+    return "<strong>Next:</strong> choose the kind of support you want so we can tailor the match.";
+  }
+
+  return "<strong>Next:</strong> answer a few quick questions and review bipolar-relevant options.";
 }
 
 function getHeroValidationMessages() {
@@ -167,6 +223,101 @@ function hideHeroValidationPopup() {
 
   popup.classList.remove("is-visible");
   list.innerHTML = "";
+}
+
+function applyAdaptiveHomepageMode() {
+  if (activeHomeExperimentVariant !== "adaptive") {
+    return;
+  }
+
+  var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
+  var mode =
+    adaptiveSignals && adaptiveSignals.preferred_home_mode
+      ? adaptiveSignals.preferred_home_mode
+      : "trust";
+  var eyebrow = document.getElementById("heroEyebrow");
+  var toolTitle = document.getElementById("toolTitle");
+  var proofLabel1 = document.getElementById("heroProofLabel1");
+  var proofValue1 = document.getElementById("heroProofValue1");
+  var proofLabel2 = document.getElementById("heroProofLabel2");
+  var proofValue2 = document.getElementById("heroProofValue2");
+  var proofLabel3 = document.getElementById("heroProofLabel3");
+  var proofValue3 = document.getElementById("heroProofValue3");
+  var trustPill1 = document.getElementById("homeTrustPill1");
+  var trustPill2 = document.getElementById("homeTrustPill2");
+
+  if (mode === "speed") {
+    if (eyebrow) eyebrow.textContent = "Faster start for bipolar-informed care";
+    if (toolTitle) toolTitle.textContent = "See the fastest next options first";
+    if (proofLabel1) proofLabel1.textContent = "Fastest path";
+    if (proofValue1)
+      proofValue1.textContent = "Start with a quick match and get to contact-ready options faster.";
+    if (proofLabel2) proofLabel2.textContent = "What rises";
+    if (proofValue2)
+      proofValue2.textContent =
+        "Clear availability, easier contact paths, and less guesswork up front.";
+    if (proofLabel3) proofLabel3.textContent = "Why this mode";
+    if (proofValue3)
+      proofValue3.textContent =
+        "Similar users have been responding well to speed and follow-through cues.";
+    if (trustPill1) trustPill1.textContent = "Built to reduce time-to-first-contact";
+    if (trustPill2) trustPill2.textContent = "Highlights easier follow-through paths";
+    return;
+  }
+
+  if (mode === "specialization") {
+    if (eyebrow) eyebrow.textContent = "Specialty-first bipolar care matching";
+    if (toolTitle) toolTitle.textContent = "Surface the strongest bipolar-specific fit";
+    if (proofLabel1) proofLabel1.textContent = "What rises";
+    if (proofValue1)
+      proofValue1.textContent =
+        "Deeper bipolar focus, stronger clinical-fit cues, and more relevant expertise.";
+    if (proofLabel2) proofLabel2.textContent = "Best for";
+    if (proofValue2)
+      proofValue2.textContent =
+        "People who want the shortlist to lean harder on specialty relevance.";
+    if (proofLabel3) proofLabel3.textContent = "Current learning";
+    if (proofValue3)
+      proofValue3.textContent =
+        "Recent journeys suggest specialization signals are doing more decision work.";
+    if (trustPill1) trustPill1.textContent = "Leans harder on bipolar-specific depth";
+    if (trustPill2) trustPill2.textContent = "Built for fit before volume";
+    return;
+  }
+
+  if (mode === "contact") {
+    if (eyebrow) eyebrow.textContent = "Clearer path to first outreach";
+    if (toolTitle) toolTitle.textContent = "Get to a stronger next contact step";
+    if (proofLabel1) proofLabel1.textContent = "What happens next";
+    if (proofValue1)
+      proofValue1.textContent =
+        "Start matching, then move into clearer outreach guidance and ready-to-use next steps.";
+    if (proofLabel2) proofLabel2.textContent = "What rises";
+    if (proofValue2)
+      proofValue2.textContent =
+        "Providers with better contact clarity and stronger follow-through signals.";
+    if (proofLabel3) proofLabel3.textContent = "Current learning";
+    if (proofValue3)
+      proofValue3.textContent =
+        "Recent journeys suggest contact-readiness is helping people move sooner.";
+    if (trustPill1) trustPill1.textContent = "Built to reduce contact hesitation";
+    if (trustPill2) trustPill2.textContent = "Stronger next-step guidance near the match";
+    return;
+  }
+
+  if (eyebrow) eyebrow.textContent = "Focused match for bipolar-informed care";
+  if (toolTitle) toolTitle.textContent = "Get to the next step faster";
+  if (proofLabel1) proofLabel1.textContent = "What happens next";
+  if (proofValue1)
+    proofValue1.textContent = "Answer a few quick questions and get a focused shortlist.";
+  if (proofLabel2) proofLabel2.textContent = "Built for";
+  if (proofValue2)
+    proofValue2.textContent = "Therapy, psychiatry, or telehealth support for bipolar care.";
+  if (proofLabel3) proofLabel3.textContent = "Current launch";
+  if (proofValue3)
+    proofValue3.textContent = "California ZIP codes with a calmer, guided starting point.";
+  if (trustPill1) trustPill1.textContent = "Takes about 2 minutes to begin";
+  if (trustPill2) trustPill2.textContent = "No account required to start";
 }
 
 function initHeroCareDropdown() {
@@ -558,6 +709,11 @@ function renderPageSections(homePage, _featuredTherapists) {
 
   applyHomePageCopy(content.homePage);
   applySiteSettings(content.siteSettings);
+  activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", ["control", "adaptive"]);
+  trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
+    surface: "homepage",
+  });
+  applyAdaptiveHomepageMode();
   renderPageSections(content.homePage, content.featuredTherapists || []);
 
   window.handleSearch = function (event) {
@@ -601,6 +757,14 @@ function renderPageSections(homePage, _featuredTherapists) {
     trackFunnelEvent("home_location_submitted", {
       has_location: Boolean(loc),
       interest_type: interest || "unspecified",
+    });
+    trackFunnelEvent("home_match_started", {
+      has_location: Boolean(loc),
+      interest_type: interest || "unspecified",
+      source: "hero",
+      experiments: {
+        homepage_messaging: activeHomeExperimentVariant,
+      },
     });
     var params = new URLSearchParams();
     if (loc) {
