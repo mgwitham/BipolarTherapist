@@ -1405,7 +1405,7 @@
             </div>
             <div id="publishedListings"></div>
             <div class="workflow-section" id="refreshQueueSection" style="margin-top: 1.2rem">
-              <h2>Refresh Queue</h2>
+              <h2>Review Listing Updates</h2>
               <p class="subtle" style="margin-top: 0">
                 Source-backed profiles that are starting to age or still need operational
                 re-confirmation.
@@ -1505,30 +1505,31 @@
               id="importBlockerSprintSection"
               style="margin-top: 1.2rem"
             >
-              <h2>Import Blocker Sprint</h2>
+              <h2>Fix Missing Listing Details</h2>
               <p class="subtle" style="margin-top: 0">
-                The top strong-warning profiles still blocking the strict safe-import gate.
+                These listings still have missing details that need to be verified before the live
+                profile can be fully trusted.
               </p>
               <div class="sop-note">
                 <div class="sop-note-row">
                   <div class="sop-note-label">Purpose</div>
                   <div class="sop-note-copy">
-                    Clear the highest-value missing fields that prevent safe import and trustworthy
-                    live data.
+                    Fix the highest-value missing details that keep a listing from being fully
+                    trusted and ready for live use.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Use This When</div>
                   <div class="sop-note-copy">
-                    A profile is blocked on trust-critical data like license, insurance, wait time,
-                    or bipolar experience.
+                    A listing is missing trust-critical information like license, insurance, wait
+                    time, or bipolar experience.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Done Means</div>
                   <div class="sop-note-copy">
-                    The blocker is cleared, moved into confirmation follow-up, or intentionally left
-                    with the next move recorded.
+                    The missing detail is verified, moved into confirmation follow-up, or left with
+                    a clear next step recorded.
                   </div>
                 </div>
                 <details class="playbook">
@@ -1537,24 +1538,25 @@
                     <div class="playbook-section">
                       <div class="playbook-label">Good First Move</div>
                       <div class="playbook-copy">
-                        Pick the profile with the fewest unresolved blockers and clear the missing
-                        trust-critical fields one by one. This lane is about unlocking safe imports,
-                        not polishing every detail.
+                        Pick the listing with the fewest unresolved missing details and verify them
+                        one by one. This lane is about making listings trustworthy, not polishing
+                        every detail.
                       </div>
                     </div>
                     <div class="playbook-section">
                       <div class="playbook-label">Strong Decision Example</div>
                       <div class="playbook-copy">
-                        If you can verify license and operating details from a strong source, clear
-                        the blocker. If the missing field requires therapist input, move it to
-                        confirmation with a note on exactly what still needs an answer.
+                        If you can verify license and operating details from a strong source, fix
+                        the missing detail. If the missing field requires therapist input, move it
+                        to confirmation with a note on exactly what still needs an answer.
                       </div>
                     </div>
                     <div class="playbook-section">
                       <div class="playbook-label">Avoid</div>
                       <div class="playbook-copy">
-                        Do not leave a blocker unresolved without a next step. Every blocked profile
-                        should end in cleared, escalated to confirmation, or deliberately deferred.
+                        Do not leave a missing detail unresolved without a next step. Every listing
+                        here should end in verified, moved to confirmation, or deliberately
+                        deferred.
                       </div>
                     </div>
                   </div>
@@ -1571,10 +1573,10 @@
               <div id="californiaPriorityConfirmationWave"></div>
             </div>
             <div class="workflow-section" id="confirmationSprintSection" style="margin-top: 1.2rem">
-              <h2>Confirmation Sprint</h2>
+              <h2>Send Confirmation Requests</h2>
               <p class="subtle" style="margin-top: 0">
-                The top therapist-confirmation wave to work next, condensed into a smaller
-                send-ready packet.
+                This is the next focused outreach packet for live listings that need therapist
+                confirmation.
               </p>
               <div class="sop-note">
                 <div class="sop-note-row">
@@ -1629,28 +1631,30 @@
               <div id="confirmationSprint"></div>
             </div>
             <div class="workflow-section" id="confirmationQueueSection" style="margin-top: 1.2rem">
-              <h2>Confirmation Queue</h2>
+              <h2>Confirm Listing Details</h2>
               <p class="subtle" style="margin-top: 0">
-                Live profiles that still need therapist-confirmed answers for high-value unknowns.
+                Live listings that still need therapist-confirmed details, reply follow-up, or
+                applied updates.
               </p>
               <div class="sop-note">
                 <div class="sop-note-row">
                   <div class="sop-note-label">Purpose</div>
                   <div class="sop-note-copy">
-                    Manage the full lifecycle of confirmation work across all live listings.
+                    Confirm missing listing details and carry each listing through reply, review,
+                    and applied updates.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Use This When</div>
                   <div class="sop-note-copy">
-                    You need to send requests, track reply state, save confirmed values, or mark
-                    live updates as applied.
+                    You need to track reply status, save therapist-confirmed values, or mark live
+                    updates as applied.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Done Means</div>
                   <div class="sop-note-copy">
-                    The profile is either waiting on therapist reply, fully confirmed, or already
+                    The listing is either waiting on therapist reply, fully confirmed, or already
                     applied back into live data.
                   </div>
                 </div>
@@ -1854,9 +1858,9 @@
               <div id="reviewerWorkload"></div>
             </div>
             <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
-              <h2>Applications</h2>
+              <h2>Review Applications</h2>
               <p class="subtle" style="margin-top: 0">
-                Applications from the public signup flow appear here when the review API is running.
+                Therapist-submitted applications appear here when they need a human review decision.
               </p>
               <div class="sop-note">
                 <div class="sop-note-row">
@@ -1951,30 +1955,30 @@
               </div>
             </div>
             <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
-              <h2>Candidate Review Queue</h2>
+              <h2>Add New Listings</h2>
               <p class="subtle" style="margin-top: 0">
-                Sourced therapist candidates land here before they become live listings. Review
-                duplicates, trust readiness, and publish decisions in one place.
+                New therapist listings land here before they become live profiles. Review
+                duplicates, trust readiness, and publishing decisions in one place.
               </p>
               <div class="sop-note">
                 <div class="sop-note-row">
                   <div class="sop-note-label">Purpose</div>
                   <div class="sop-note-copy">
-                    Turn sourced therapist leads into publishable listings or reject them cleanly
-                    before they create clutter.
+                    Turn newly sourced therapist leads into publishable listings, confirmation
+                    follow-up, duplicate merges, or a clean archive decision.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Use This When</div>
                   <div class="sop-note-copy">
-                    You are adding supply, checking duplicates, or deciding whether a sourced
-                    therapist is ready for live review.
+                    You are adding supply, checking whether a new listing is real and unique, or
+                    deciding whether it is ready to publish.
                   </div>
                 </div>
                 <div class="sop-note-row">
                   <div class="sop-note-label">Done Means</div>
                   <div class="sop-note-copy">
-                    The candidate is published, moved to confirmation, merged as a duplicate, or
+                    The new listing is published, sent to confirmation, merged as a duplicate, or
                     archived with a clear reason.
                   </div>
                 </div>
@@ -1984,15 +1988,15 @@
                     <div class="playbook-section">
                       <div class="playbook-label">Good First Move</div>
                       <div class="playbook-copy">
-                        Check for duplicates first, then judge whether the candidate is strong
+                        Check for duplicates first, then decide whether the new listing is strong
                         enough to publish now, needs confirmation, or should be archived. This keeps
-                        low- quality supply from cluttering the system.
+                        low-quality supply from cluttering the system.
                       </div>
                     </div>
                     <div class="playbook-section">
                       <div class="playbook-label">Strong Decision Example</div>
                       <div class="playbook-copy">
-                        If the candidate looks unique and has enough trustworthy detail, move it
+                        If the new listing looks unique and has enough trustworthy detail, move it
                         toward publish-ready. If it is promising but missing a crucial operational
                         fact, send it to confirmation instead of forcing a publish decision.
                       </div>
@@ -2000,8 +2004,8 @@
                     <div class="playbook-section">
                       <div class="playbook-label">Avoid</div>
                       <div class="playbook-copy">
-                        Do not keep marginal candidates around without a reason. Every candidate
-                        should become a listing, become a follow-up item, merge, or leave the queue.
+                        Do not keep marginal new listings around without a reason. Every listing
+                        should be published, sent to follow-up, merged, or removed from the queue.
                       </div>
                     </div>
                   </div>

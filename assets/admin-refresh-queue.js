@@ -89,7 +89,7 @@ export function renderRefreshQueuePanel(options) {
 
   if (!queue.length && !recentlyMaintained.length) {
     root.innerHTML =
-      '<div class="subtle">No published profiles are currently flagged for refresh.</div>';
+      '<div class="subtle">No published listings currently need an update review here.</div>';
     return;
   }
 
@@ -163,7 +163,7 @@ export function renderRefreshQueuePanel(options) {
           (index === 0 ? ' id="refreshQueueStartHere"' : "") +
           "><div>" +
           (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this listing first. It is the highest refresh or trust-risk item in this queue.</div><div class="start-here-action">Do this now: open the profile and verify the stale or trust-risk fields before deciding refresh vs confirmation.</div>'
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this listing first. It is the highest-priority live listing that may need updated details.</div><div class="start-here-action">Do this now: open the profile, review the stale fields, and decide whether you can update them directly or need therapist confirmation.</div>'
             : "") +
           "<strong>" +
           options.escapeHtml(item.name) +
@@ -179,7 +179,7 @@ export function renderRefreshQueuePanel(options) {
           (evidence ? '<div class="subtle">' + options.escapeHtml(evidence) + "</div>" : "") +
           '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><a class="btn-primary btn-inline" href="therapist.html?slug=' +
           encodeURIComponent(item.slug) +
-          '">Open profile and review fields</a></div></div>' +
+          '">Open profile and review fields</a></div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> The listing is updated, deferred with a reason, or moved into confirmation follow-up.</div></div>' +
           (therapistId
             ? '<div class="queue-actions secondary-actions"><button class="btn-secondary btn-inline" data-refresh-ops="' +
               options.escapeHtml(therapistId) +
@@ -189,6 +189,7 @@ export function renderRefreshQueuePanel(options) {
               options.escapeHtml(therapistId) +
               '" data-refresh-next="snooze_30d">Defer 30 days</button></div>'
             : "") +
+          (therapistId ? options.renderReviewEntityTaskHtml("therapist", therapistId) : "") +
           '<div class="review-coach-status" data-refresh-status-id="' +
           options.escapeHtml(therapistId) +
           '"></div></div><div class="queue-actions" style="margin-top:0">' +

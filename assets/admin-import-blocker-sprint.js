@@ -16,7 +16,7 @@ export function renderImportBlockerSprintPanel(options) {
 
   if (!queue.length) {
     root.innerHTML =
-      '<div class="subtle">No strong-warning profiles are currently blocking the strict safe-import gate.</div>';
+      '<div class="subtle">No listings are currently missing key details that need follow-up here.</div>';
     return;
   }
 
@@ -66,11 +66,11 @@ export function renderImportBlockerSprintPanel(options) {
         options.escapeHtml(options.formatFieldLabel(overlappingAsk.field)) +
         ".</span></div>"
       : "") +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-import-blocker-copy-top>Copy top blocker request</button><button class="btn-secondary" data-import-blocker-copy-shared-ask>Copy shared ask</button><button class="btn-secondary" data-import-blocker-copy-shared-packet>Copy shared ask packet</button>' +
+    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-import-blocker-copy-top>Copy top missing-details request</button><button class="btn-secondary" data-import-blocker-copy-shared-ask>Copy shared ask</button><button class="btn-secondary" data-import-blocker-copy-shared-packet>Copy shared ask packet</button>' +
     (overlappingAsk
       ? '<button class="btn-secondary" data-import-blocker-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-import-blocker-copy-top-wave>Copy top outreach wave</button>'
       : "") +
-    '<button class="btn-secondary" data-import-blocker-copy-packet>Copy top 3 blocker packet</button><button class="btn-secondary" data-import-blocker-open-queue>Show in confirmation queue</button><button class="btn-secondary" data-import-blocker-export="markdown">Copy blocker sprint markdown</button><button class="btn-secondary" data-import-blocker-export="csv">Copy blocker sprint CSV</button></div><div class="review-coach-status" id="importBlockerSprintStatus"></div>' +
+    '<button class="btn-secondary" data-import-blocker-copy-packet>Copy top 3 missing-details packet</button><button class="btn-secondary" data-import-blocker-open-queue>Show in confirmation queue</button><button class="btn-secondary" data-import-blocker-export="markdown">Copy missing-details markdown</button><button class="btn-secondary" data-import-blocker-export="csv">Copy missing-details CSV</button></div><div class="review-coach-status" id="importBlockerSprintStatus"></div>' +
     queue
       .map(function (entry, index) {
         const item = entry.item;
@@ -87,7 +87,7 @@ export function renderImportBlockerSprintPanel(options) {
           (index === 0 ? ' id="importBlockerStartHere"' : "") +
           ">" +
           (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this blocker first. Clearing it gives the fastest path to unlocking the strict safe-import gate.</div><div class="start-here-action">Do this now: clear the first source-verifiable blocker field, or move the profile into confirmation if therapist input is required.</div>'
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this listing first. It is the fastest way to fix a listing that is still missing key trusted details.</div><div class="start-here-action">Do this now: verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.</div>'
             : "") +
           '<div class="queue-head"><div><h3>' +
           options.escapeHtml(String(index + 1) + ". " + item.name) +
@@ -97,11 +97,11 @@ export function renderImportBlockerSprintPanel(options) {
               entry.blocker_unknown_fields.map(options.formatFieldLabel).join(", "),
           ) +
           '</div></div><div class="queue-head-actions"><span class="tag">' +
-          options.escapeHtml((blockerRow && blockerRow.blocker_mode) || "Blocker") +
+          options.escapeHtml((blockerRow && blockerRow.blocker_mode) || "Needs detail") +
           '</span><span class="tag">' +
           options.escapeHtml(
             String(entry.blocker_unknown_fields.length) +
-              " blocker" +
+              " missing detail" +
               (entry.blocker_unknown_fields.length === 1 ? "" : "s"),
           ) +
           '</span><span class="tag">' +
@@ -139,7 +139,7 @@ export function renderImportBlockerSprintPanel(options) {
           ) +
           "</div>" +
           (index === 0
-            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary" data-import-blocker-copy="' +
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="mini-status" style="margin-bottom:0.65rem"><strong>Why this first:</strong> Clearing one blocker here can move the listing out of blocked status faster than general maintenance work.</div><div class="recommended-action-row"><button class="btn-primary" data-import-blocker-copy="' +
               options.escapeHtml(item.slug) +
               '">' +
               options.escapeHtml(
@@ -147,7 +147,7 @@ export function renderImportBlockerSprintPanel(options) {
                   ? "Copy follow-up blocker request"
                   : "Copy blocker request and mark sent",
               ) +
-              '</button></div></div><div class="queue-actions secondary-actions">'
+              '</button></div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> The listing is either unblocked, moved into confirmation follow-up, or left with a clear next step.</div></div><div class="queue-actions secondary-actions">'
             : '<div class="queue-actions">') +
           '<button class="btn-secondary" data-import-blocker-link="' +
           options.escapeHtml(item.slug) +
@@ -155,7 +155,9 @@ export function renderImportBlockerSprintPanel(options) {
           options.escapeHtml(item.slug) +
           '" data-current-status="' +
           options.escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="review-coach-status" data-import-blocker-status-id="' +
+          '">Show in queue</button></div>' +
+          options.renderReviewEntityTaskHtml("therapist", item.id) +
+          '<div class="review-coach-status" data-import-blocker-status-id="' +
           options.escapeHtml(item.slug) +
           '"></div></article>'
         );
