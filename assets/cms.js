@@ -1,4 +1,3 @@
-import { createClient } from "@sanity/client";
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
@@ -12,6 +11,7 @@ export const cmsEnabled = Boolean(projectId && dataset);
 export const cmsStudioUrl = env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
 
 let clientPromise = null;
+let sanityClientModulePromise = null;
 
 const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
@@ -219,9 +219,26 @@ async function fetchFromSanity(query, params) {
     throw new Error("Sanity client not configured");
   }
 
+  if (!sanityClientModulePromise) {
+    sanityClientModulePromise = import("@sanity/client")
+      .then(function (module) {
+        return module && typeof module.createClient === "function" ? module.createClient : null;
+      })
+      .catch(function (error) {
+        sanityClientModulePromise = null;
+        throw error;
+      });
+  }
+
   if (!clientPromise) {
     clientPromise = Promise.resolve()
       .then(function () {
+        return sanityClientModulePromise;
+      })
+      .then(function (createClient) {
+        if (typeof createClient !== "function") {
+          throw new Error("Sanity client could not be loaded.");
+        }
         return createClient({
           projectId: projectId,
           dataset: dataset,

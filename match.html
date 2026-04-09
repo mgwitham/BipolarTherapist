@@ -145,6 +145,43 @@
         padding: 1rem 1rem 0.95rem;
         box-shadow: 0 10px 24px rgba(10, 45, 56, 0.05);
       }
+      .match-builder.is-results-mode .match-search-box {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 0.75rem 1rem;
+        padding: 0.8rem 0.9rem;
+      }
+      .match-builder.is-results-mode .match-search-box .search-field {
+        padding: 0.35rem 0;
+        min-width: 0;
+      }
+      .match-builder.is-results-mode .match-search-box .search-field--prompt,
+      .match-builder.is-results-mode .match-search-box .search-field--zip {
+        border-bottom-width: 1px;
+      }
+      .match-builder.is-results-mode .match-search-box .search-field--prompt select,
+      .match-builder.is-results-mode .match-search-box .search-field--zip input,
+      .match-builder.is-results-mode .match-search-box .match-zip-resolved {
+        font-size: clamp(0.92rem, 1.5vw, 1.05rem);
+        padding-bottom: 0.35rem;
+      }
+      .match-builder.is-results-mode .match-search-btn {
+        width: auto;
+        min-width: 170px;
+        min-height: 48px;
+        align-self: end;
+        padding-inline: 1.1rem;
+      }
+      .match-builder.is-results-mode .match-launch-note {
+        grid-column: 1 / -1;
+        margin-top: -0.1rem;
+      }
+      .match-builder.is-results-mode .match-refinements {
+        margin-top: 0.55rem;
+      }
+      .match-builder.is-results-mode .match-refinements-title strong {
+        font-size: 0.88rem;
+      }
       .match-tool-kicker {
         display: inline-flex;
         align-items: center;
@@ -842,10 +879,13 @@
       }
       .match-list {
         display: grid;
-        grid-template-columns: repeat(3, minmax(250px, 320px));
-        justify-content: center;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1.1rem;
         align-items: stretch;
+      }
+      .match-summary-bar,
+      .match-card.lead-card {
+        grid-column: 1 / -1;
       }
       .match-compare {
         margin-top: 1.1rem;
@@ -1260,6 +1300,7 @@
         gap: 0.95rem;
         position: relative;
         overflow: hidden;
+        text-align: left;
         transition:
           transform 180ms ease,
           box-shadow 180ms ease,
@@ -1283,6 +1324,7 @@
         box-shadow:
           0 24px 46px rgba(14, 77, 95, 0.11),
           inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        padding: 1.5rem 1.55rem 1.6rem;
       }
       .match-card.lead-card::before {
         content: "";
@@ -1416,6 +1458,10 @@
         font-weight: 800;
         white-space: nowrap;
       }
+      .match-rank.is-lead {
+        background: linear-gradient(180deg, #fff8e7 0%, #fff2c8 100%);
+        color: #7f5a0a;
+      }
       .match-confidence {
         display: inline-flex;
         align-items: center;
@@ -1439,6 +1485,7 @@
       .match-card-body {
         display: grid;
         gap: 0.22rem;
+        justify-items: start;
       }
       .match-card h3 {
         margin: 0;
@@ -1446,9 +1493,7 @@
         line-height: 1.08;
         letter-spacing: -0.03em;
         max-width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
       }
       .match-credentials {
         color: var(--muted);
@@ -1468,6 +1513,7 @@
         font-size: 0.89rem;
         line-height: 1.65;
         margin: 0.8rem 0 0;
+        max-width: 72ch;
       }
       .match-segment-learning {
         margin-top: 0.55rem;
@@ -1491,6 +1537,7 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: var(--muted);
+        text-align: left;
       }
       .match-snapshot-grid {
         display: grid;
@@ -1504,6 +1551,7 @@
         border-radius: 14px;
         border: 1px solid rgba(14, 77, 95, 0.1);
         background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        text-align: left;
       }
       .match-snapshot-label {
         font-size: 0.7rem;
@@ -1530,7 +1578,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
-        margin-top: -0.68rem;
+        margin-top: -0.3rem;
       }
       .match-summary-pill {
         font-size: 0.72rem;
@@ -1544,6 +1592,7 @@
         margin-top: auto;
         display: grid;
         gap: 0.85rem;
+        justify-items: start;
       }
       .match-card-action-block {
         display: grid;
@@ -1558,6 +1607,8 @@
           #ffffff 100%
         );
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        width: 100%;
+        text-align: left;
       }
       .match-card-action-label {
         font-size: 0.74rem;
@@ -1601,7 +1652,7 @@
       .match-card-action-block .outreach-card-actions {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 0.6rem;
       }
       .match-card-copy-btn {
@@ -1647,10 +1698,24 @@
       }
       .match-summary-bar {
         margin-bottom: 1rem;
-        padding: 0.9rem 1rem;
+        padding: 1rem 1.1rem;
         border-radius: 16px;
         background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
         border: 1px solid var(--border);
+        text-align: left;
+      }
+      .match-summary-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+      }
+      .match-summary-meta {
+        margin-top: 0.35rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        max-width: 74ch;
       }
       .match-summary-kicker {
         display: block;
@@ -1665,8 +1730,11 @@
         display: flex;
         gap: 0.65rem;
         flex-wrap: wrap;
-        margin-top: 0.75rem;
       }
+      .match-summary-actions .btn-secondary {
+        width: auto;
+      }
+      .match-summary-actions .btn-primary,
       .match-summary-actions .btn-secondary {
         width: auto;
       }
@@ -1674,6 +1742,8 @@
         font-size: 0.88rem;
         color: var(--slate);
         line-height: 1.6;
+        margin-top: 0.65rem;
+        max-width: 76ch;
       }
       .result-disclosure {
         margin: 1rem 0 0;
@@ -2295,6 +2365,9 @@
         .match-list {
           grid-template-columns: 1fr;
         }
+        .match-snapshot-grid {
+          grid-template-columns: 1fr;
+        }
         .match-builder-grid {
           grid-template-columns: 1fr;
         }
@@ -2312,12 +2385,19 @@
         }
       }
       @media (max-width: 640px) {
+        .match-builder.is-results-mode .match-search-box {
+          grid-template-columns: 1fr;
+        }
+        .match-builder.is-results-mode .match-search-btn {
+          width: 100%;
+          min-width: 0;
+        }
         .results-intro {
           flex-direction: column;
         }
         .match-card-header {
-          flex-direction: row;
-          align-items: center;
+          flex-direction: column;
+          align-items: flex-start;
         }
         .match-card h3 {
           max-width: none;
@@ -2326,10 +2406,11 @@
         .match-card-profile-link,
         .match-card-profile-link.btn-secondary {
           width: fit-content !important;
-          min-width: 78px;
-          max-width: 78px;
+          min-width: 96px;
+          max-width: none;
           padding-inline: 0.56rem;
           font-size: 0.68rem;
+          margin-left: 0;
         }
         .match-summary-actions {
           flex-direction: column;
@@ -2428,7 +2509,7 @@
           >
         </li>
         <li><a href="directory.html">Directory</a></li>
-        <li><a href="signup.html" class="nav-cta">List Your Practice</a></li>
+        <li><a href="signup.html" class="nav-cta">For Therapists</a></li>
       </ul>
     </nav>
 
@@ -2438,11 +2519,11 @@
       style="margin-top: 0.4rem"
     >
       <div class="match-hero-copy">
-        <div class="match-hero-kicker">Bipolar-focused match intake</div>
-        <h1>Find bipolar-informed care without sorting through generic profiles.</h1>
+        <div class="match-hero-kicker">Loading your first matches</div>
+        <h1>Finding a stronger starting shortlist for bipolar-informed care.</h1>
         <p>
-          Start with just your care type and ZIP code. We’ll narrow your first shortlist, then let
-          you refine only if you need to.
+          We’re pulling together the best providers to start with now. If you want a tighter fit,
+          you can add ZIP code, care type, insurance, format, or medication needs below.
         </p>
         <div class="match-trust-strip" aria-label="Trust highlights">
           <span class="match-trust-pill">Built for bipolar-specific care</span>
@@ -2514,7 +2595,7 @@
                 <details class="match-refinements">
                   <summary>
                     <span class="match-refinements-title">
-                      <strong>Add preferences</strong>
+                      <strong>Want a more specific match?</strong>
                     </span>
                     <span class="match-refinements-toggle" aria-hidden="true"></span>
                   </summary>
@@ -2707,7 +2788,9 @@
                   </div>
                   <input type="hidden" id="urgency" name="urgency" value="ASAP" />
                   <div class="match-refinement-actions">
-                    <button type="submit" class="btn-primary">See my top matches</button>
+                    <button type="submit" class="btn-primary" id="refinementSubmitButton">
+                      See my top matches
+                    </button>
                     <button type="button" class="btn-secondary" id="resetMatch">Reset</button>
                   </div>
                 </details>
