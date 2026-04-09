@@ -119,6 +119,9 @@ function buildReason(item) {
   if (item.queue_reason === "missing_cache") {
     reasons.push("No licensure cache record yet");
   }
+  if (item.queue_reason === "blocked_review") {
+    reasons.push("Repeated refresh failures need manual review");
+  }
   if (item.refresh_status === "failed") {
     reasons.push("Previous refresh failed");
   }
@@ -138,6 +141,9 @@ function buildReason(item) {
 function buildNextMove(item) {
   if (item.queue_reason === "missing_cache") {
     return "Run first licensure enrichment";
+  }
+  if (item.queue_reason === "blocked_review") {
+    return "Inspect the official source manually before retrying the refresh lane";
   }
   if (item.refresh_status === "failed") {
     return "Retry official lookup with pacing";
@@ -260,8 +266,11 @@ function buildRows(data) {
       return;
     }
     const dueAt = record.nextRefreshDueAt || record.staleAfterAt || "";
+    const blockedForReview =
+      record.refreshStatus === "blocked" || Number(record.refreshFailureCount || 0) >= 3;
     if (
       record.refreshStatus === "failed" ||
+      blockedForReview ||
       !dueAt ||
       toTimestamp(dueAt) <= Date.now() ||
       (expiry && daysUntil(expiry) != null && daysUntil(expiry) <= 45)
@@ -279,7 +288,11 @@ function buildRows(data) {
         deferred_until_at: formatDate(deferredUntil),
         last_refresh_success_at: formatDate(record.lastRefreshSuccessAt),
         expiration_date: expiry,
-        queue_reason: record.refreshStatus === "failed" ? "refresh_failed" : "refresh_due",
+        queue_reason: blockedForReview
+          ? "blocked_review"
+          : record.refreshStatus === "failed"
+            ? "refresh_failed"
+            : "refresh_due",
         last_refresh_error: record.lastRefreshError || "",
         profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
         official_profile_url:
@@ -347,6 +360,7 @@ function writeCsv(filePath, rows) {
 function writeMarkdown(filePath, title, rows) {
   const failed = rows.filter((row) => row.refresh_status === "failed").length;
   const missing = rows.filter((row) => row.queue_reason === "missing_cache").length;
+  const blocked = rows.filter((row) => row.queue_reason === "blocked_review").length;
   const expiring = rows.filter((row) => {
     const days = daysUntil(row.expiration_date);
     return days != null && days <= 45;
@@ -360,6 +374,7 @@ function writeMarkdown(filePath, title, rows) {
     `- Records in queue: ${rows.length}`,
     `- Failed refreshes: ${failed}`,
     `- Missing licensure cache: ${missing}`,
+    `- Blocked for manual review: ${blocked}`,
     `- Licenses expiring within 45 days: ${expiring}`,
     "",
     "## Priority work",

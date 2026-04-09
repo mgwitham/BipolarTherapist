@@ -21,6 +21,9 @@ export function renderLicensureQueuePanel(options) {
   const missingCacheCount = rows.filter(function (item) {
     return item.queue_reason === "missing_cache";
   }).length;
+  const blockedCount = rows.filter(function (item) {
+    return item.queue_reason === "blocked_review";
+  }).length;
   const expiringSoonCount = rows.filter(function (item) {
     return isExpiringSoon(item.expiration_date);
   }).length;
@@ -57,6 +60,7 @@ export function renderLicensureQueuePanel(options) {
     buildFilterButton(options, "", "All", rows.length, activeFilter) +
     buildFilterButton(options, "failed", "Failed", failedCount, activeFilter) +
     buildFilterButton(options, "missing_cache", "Missing cache", missingCacheCount, activeFilter) +
+    buildFilterButton(options, "blocked_review", "Blocked", blockedCount, activeFilter) +
     buildFilterButton(options, "expiring_soon", "Expiring soon", expiringSoonCount, activeFilter) +
     "</div>";
 
@@ -69,7 +73,7 @@ export function renderLicensureQueuePanel(options) {
           const statusTone =
             item.refresh_status === "failed"
               ? "status rejected"
-              : item.queue_reason === "missing_cache"
+              : item.queue_reason === "missing_cache" || item.queue_reason === "blocked_review"
                 ? "status reviewing"
                 : "status approved";
           return (
@@ -128,7 +132,9 @@ export function renderLicensureQueuePanel(options) {
             options.escapeHtml(
               item.queue_reason === "missing_cache"
                 ? "Copy first-pass command"
-                : "Copy refresh command",
+                : item.queue_reason === "blocked_review"
+                  ? "Copy retry command"
+                  : "Copy refresh command",
             ) +
             "</button></div></article>"
           );
@@ -254,6 +260,9 @@ function matchesFilter(item, filter) {
   if (filter === "missing_cache") {
     return item.queue_reason === "missing_cache";
   }
+  if (filter === "blocked_review") {
+    return item.queue_reason === "blocked_review";
+  }
   if (filter === "expiring_soon") {
     return isExpiringSoon(item.expiration_date);
   }
@@ -266,6 +275,9 @@ function getFilterLabel(filter) {
   }
   if (filter === "missing_cache") {
     return "Missing cache";
+  }
+  if (filter === "blocked_review") {
+    return "Blocked";
   }
   if (filter === "expiring_soon") {
     return "Expiring soon";

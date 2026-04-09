@@ -27,12 +27,21 @@ export function renderLicensureSprintPanel(options) {
     .slice(0, 4);
   const failedRows = rows
     .filter(function (item) {
-      return item.refresh_status === "failed";
+      return item.refresh_status === "failed" && item.queue_reason !== "blocked_review";
+    })
+    .slice(0, 3);
+  const blockedRows = rows
+    .filter(function (item) {
+      return item.queue_reason === "blocked_review";
     })
     .slice(0, 3);
   const expirationRows = rows
     .filter(function (item) {
-      return item.expiration_date && item.queue_reason !== "missing_cache";
+      return (
+        item.expiration_date &&
+        item.queue_reason !== "missing_cache" &&
+        item.queue_reason !== "blocked_review"
+      );
     })
     .slice(0, 3);
 
@@ -40,13 +49,18 @@ export function renderLicensureSprintPanel(options) {
     ? "First-pass enrichment"
     : failedRows.length
       ? "Failed refresh recovery"
-      : "Expiration watch";
-  const headlineCount = firstPassRows.length || failedRows.length || expirationRows.length;
+      : blockedRows.length
+        ? "Blocked manual review"
+        : "Expiration watch";
+  const headlineCount =
+    firstPassRows.length || failedRows.length || blockedRows.length || expirationRows.length;
   const nextMove = firstPassRows.length
     ? "Copy and run first-pass licensure commands for the missing-cache wave first."
     : failedRows.length
       ? "Retry failed licensure lookups with pacing and force enabled."
-      : "Recheck the upcoming expiration wave and refresh those records next.";
+      : blockedRows.length
+        ? "Inspect blocked records manually before putting them back into the retry lane."
+        : "Recheck the upcoming expiration wave and refresh those records next.";
 
   root.innerHTML =
     '<div class="mini-status"><strong>Primary lane:</strong> ' +
@@ -72,6 +86,7 @@ export function renderLicensureSprintPanel(options) {
     "</div>" +
     renderLane("First-pass enrichment", firstPassRows, options, "first_pass") +
     renderLane("Failed refresh recovery", failedRows, options, "failed_refresh") +
+    renderLane("Blocked manual review", blockedRows, options, "blocked_review") +
     renderLane("Expiration watch", expirationRows, options, "expiration_watch");
 
   root.querySelectorAll("[data-licensure-sprint-copy]").forEach(function (button) {
@@ -253,7 +268,9 @@ function buildLaneBrief(rows, lane) {
       ? "Run first-pass California licensure enrichment for the missing-cache wave first."
       : lane === "failed_refresh"
         ? "Retry failed licensure lookups with pacing and force enabled."
-        : "Recheck upcoming license expirations and refresh those records first.",
+        : lane === "blocked_review"
+          ? "Inspect blocked official-source cases manually before re-entering them into automation."
+          : "Recheck upcoming license expirations and refresh those records first.",
     "",
     "Top items:",
     "",
@@ -285,10 +302,17 @@ function getLaneRows(rows, lane) {
       return item.queue_reason === "missing_cache";
     }
     if (lane === "failed_refresh") {
-      return item.refresh_status === "failed";
+      return item.refresh_status === "failed" && item.queue_reason !== "blocked_review";
+    }
+    if (lane === "blocked_review") {
+      return item.queue_reason === "blocked_review";
     }
     if (lane === "expiration_watch") {
-      return item.expiration_date && item.queue_reason !== "missing_cache";
+      return (
+        item.expiration_date &&
+        item.queue_reason !== "missing_cache" &&
+        item.queue_reason !== "blocked_review"
+      );
     }
     return false;
   });
@@ -304,6 +328,9 @@ function formatLaneLabel(lane) {
   }
   if (lane === "failed_refresh") {
     return "Failed refresh recovery";
+  }
+  if (lane === "blocked_review") {
+    return "Blocked manual review";
   }
   if (lane === "expiration_watch") {
     return "Expiration watch";
