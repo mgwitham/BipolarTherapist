@@ -7,17 +7,21 @@ const CHECKS = [
   {
     name: "Homepage shell",
     file: "index.html",
-    includes: ["Find bipolar care near you", "What type of care do you want?", "Enter zip code"],
+    includes: [
+      "Find a bipolar-informed therapist without the usual guesswork",
+      "What kind of support do you want first?",
+      "Start my match",
+    ],
   },
   {
     name: "Match shell",
     file: "match.html",
-    includes: ["Top matches", "Search again", "Saved Providers"],
+    includes: ["Get Matched", "What kind of care do you want first?", "Currently matching California ZIP codes."],
   },
   {
     name: "Directory shell",
     file: "directory.html",
-    includes: ["Apply Filters", "Reset All", "Start guided match"],
+    includes: ["Apply Filters", "Reset All", "Get Matched"],
   },
   {
     name: "Therapist shell",
