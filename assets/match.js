@@ -1,5 +1,28 @@
 import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import {
+  clearRenderedMatchPanels,
+  getMatchShellRefs,
+  renderMatchLandingShell,
+  scrollToTopMatches as scrollToTopMatchesBase,
+  setActionState,
+  setMatchJourneyMode as setMatchJourneyModeBase,
+} from "./match-shell.js";
+import {
+  buildAppliedAnswerPills as buildAppliedAnswerPillsBase,
+  buildRequestSummary as buildRequestSummaryBase,
+  deriveStateFromLocation as deriveStateFromLocationBase,
+  hasMeaningfulRefinements as hasMeaningfulRefinementsBase,
+  hydrateForm as hydrateFormBase,
+  normalizeLocationQuery as normalizeLocationQueryBase,
+  readCurrentIntakeProfile as readCurrentIntakeProfileBase,
+  restoreProfileFromUrl as restoreProfileFromUrlBase,
+  restoreShortlistFromUrl as restoreShortlistFromUrlBase,
+  serializeProfileToUrl as serializeProfileToUrlBase,
+  splitCommaSeparated,
+  syncMatchStartState as syncMatchStartStateBase,
+  syncZipResolvedLabel as syncZipResolvedLabelBase,
+} from "./match-intake.js";
+import {
   buildUserMatchProfile,
   getDataFreshnessSummary,
   getRecentAppliedSummary,
@@ -61,7 +84,6 @@ var isInternalMode = new URLSearchParams(window.location.search).get("internal")
 var PRIMARY_SHORTLIST_LIMIT = 3;
 var SHORTLIST_QUEUE_LIMIT = 8;
 var MATCH_PRIORITY_SLUGS = [];
-var matchShellRefs = null;
 var US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
@@ -125,98 +147,85 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-var MATCH_JOURNEY_COPY = {
-  intake: {
-    builderTitle: "Start your match",
-    kicker: "Only two answers required to begin",
-    title: "Get to your first shortlist faster",
-    copy: "Pick the type of support you want and enter your ZIP code. We’ll start with the strongest shortlist we can build from there.",
-    searchButton: "See my matches",
-    refinementButton: "See my top matches",
-  },
-  starterResults: {
-    builderTitle: "Get a more specific match",
-    kicker: "These are strong starting providers",
-    title: "Add your details only if you want a tighter, more personalized fit",
-    copy: "Start with the providers below, or add your ZIP code, insurance, format, or medication needs to narrow the match further.",
-    searchButton: "Update shortlist",
-    refinementButton: "Update shortlist",
-  },
-  personalizedResults: {
-    builderTitle: "Get a more specific match",
-    kicker: "Your homepage answers are already applied",
-    title: "Only adjust these answers if you want a tighter fit",
-    copy: "You already have a ranked starting point below. Change anything here only if you want to narrow, widen, or rerun the match.",
-    searchButton: "Update shortlist",
-    refinementButton: "Update shortlist",
-  },
-};
-
-function getMatchShellRefs() {
-  if (matchShellRefs) {
-    return matchShellRefs;
-  }
-
-  matchShellRefs = {
-    builder: document.querySelector(".match-builder"),
-    builderTitle: document.querySelector(".match-builder-header h2"),
-    kicker: document.querySelector(".match-tool-kicker"),
-    title: document.querySelector(".match-tool-title"),
-    copy: document.querySelector(".match-tool-copy"),
-    searchButton: document.getElementById("matchSearchButton"),
-    refinementSubmitButton: document.getElementById("refinementSubmitButton"),
-    refinements: document.querySelector(".match-refinements"),
-    resultsRoot: document.getElementById("matchResults"),
-    compare: document.getElementById("matchCompare"),
-    outreach: document.getElementById("matchOutreach"),
-    adaptiveGuidance: document.getElementById("matchAdaptiveGuidance"),
-    firstContact: document.getElementById("matchFirstContact"),
-    fallbackContact: document.getElementById("matchFallbackContact"),
-    feedbackBar: document.getElementById("matchFeedbackBar"),
-    queue: document.getElementById("matchQueue"),
-    feedbackStatus: document.getElementById("feedbackStatus"),
-    form: document.getElementById("matchForm"),
-  };
-
-  return matchShellRefs;
+function normalizeLocationQuery(value) {
+  return normalizeLocationQueryBase(value);
 }
 
-function renderMatchLandingShell() {
-  var refs = getMatchShellRefs();
-  if (!refs.resultsRoot) {
-    return;
-  }
-
-  refs.resultsRoot.className = "match-results match-results-hero match-empty";
-  refs.resultsRoot.innerHTML =
-    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
+function deriveStateFromLocation(value) {
+  return deriveStateFromLocationBase(value, {
+    therapists: therapists,
+    stateMap: US_STATE_MAP,
+  });
 }
 
-function clearRenderedMatchPanels() {
-  var refs = getMatchShellRefs();
+function syncZipResolvedLabel(value) {
+  return syncZipResolvedLabelBase(value);
+}
 
-  if (refs.queue) {
-    refs.queue.hidden = true;
-    refs.queue.innerHTML = "";
-  }
-  if (refs.compare) {
-    refs.compare.innerHTML = "";
-  }
-  if (refs.outreach) {
-    refs.outreach.innerHTML = "";
-  }
-  if (refs.adaptiveGuidance) {
-    refs.adaptiveGuidance.innerHTML = "";
-  }
-  if (refs.firstContact) {
-    refs.firstContact.innerHTML = "";
-  }
-  if (refs.fallbackContact) {
-    refs.fallbackContact.innerHTML = "";
-  }
-  if (refs.feedbackBar) {
-    refs.feedbackBar.hidden = true;
-  }
+function syncMatchStartState() {
+  return syncMatchStartStateBase({
+    form: getMatchShellRefs().form,
+    button: getMatchShellRefs().searchButton,
+    helper: document.getElementById("matchStartHelper"),
+    careField: document.querySelector("[data-match-care-field]"),
+    escapeHtml: escapeHtml,
+  });
+}
+
+function setMatchJourneyMode(mode) {
+  return setMatchJourneyModeBase(mode, starterResultsMode);
+}
+
+function buildRequestSummary(profile) {
+  return buildRequestSummaryBase(profile, hasMeaningfulRefinements);
+}
+
+function buildAppliedAnswerPills(profile) {
+  return buildAppliedAnswerPillsBase(profile);
+}
+
+function hasMeaningfulRefinements(profile) {
+  return hasMeaningfulRefinementsBase(profile);
+}
+
+function readCurrentIntakeProfile() {
+  return readCurrentIntakeProfileBase({
+    form: getMatchShellRefs().form,
+    buildUserMatchProfile: buildUserMatchProfile,
+    deriveStateFromLocation: deriveStateFromLocation,
+    collectCheckedValues: collectCheckedValues,
+    splitCommaSeparated: splitCommaSeparated,
+  });
+}
+
+function serializeProfileToUrl(profile) {
+  return serializeProfileToUrlBase(profile);
+}
+
+function restoreProfileFromUrl() {
+  return restoreProfileFromUrlBase({
+    buildUserMatchProfile: buildUserMatchProfile,
+    deriveStateFromLocation: deriveStateFromLocation,
+    splitCommaSeparated: splitCommaSeparated,
+  });
+}
+
+function restoreShortlistFromUrl() {
+  return restoreShortlistFromUrlBase(splitCommaSeparated);
+}
+
+function hydrateForm(profile) {
+  hydrateFormBase(profile, {
+    form: getMatchShellRefs().form,
+    syncZipResolvedLabel: syncZipResolvedLabel,
+  });
+  syncMatchStartState();
+  renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
+  renderIntakeTradeoffPreview(readCurrentIntakeProfile());
+}
+
+function scrollToTopMatches() {
+  return scrollToTopMatchesBase();
 }
 
 function normalizePrioritySlugs(siteSettings) {
@@ -266,90 +275,6 @@ function getZipDistance(fromZip, toZip) {
     return Number.POSITIVE_INFINITY;
   }
   return Math.abs(Number(fromZip) - Number(toZip));
-}
-
-function syncZipResolvedLabel(value) {
-  var resolved = document.getElementById("matchZipResolved");
-  if (!resolved) {
-    return;
-  }
-
-  var zipStatus = getZipMarketStatus(value);
-  if (zipStatus.status === "invalid") {
-    resolved.textContent = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
-    resolved.classList.toggle("is-visible", Boolean(String(value || "").trim()));
-    return;
-  }
-
-  if (!zipStatus.place) {
-    resolved.textContent = "";
-    resolved.classList.remove("is-visible");
-    return;
-  }
-
-  resolved.textContent =
-    zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
-  resolved.classList.add("is-visible");
-}
-
-function getMatchSearchButtonLabel(careIntent) {
-  if (!careIntent) {
-    return "See my matches";
-  }
-
-  if (careIntent === "Psychiatry") {
-    return "See psychiatry matches";
-  }
-
-  return "See therapy matches";
-}
-
-function getMatchStartHelperCopy(careIntent, hasZip) {
-  if (!careIntent && !hasZip) {
-    return "<strong>Next:</strong> choose your care type and California ZIP code to begin.";
-  }
-
-  if (careIntent && !hasZip) {
-    return (
-      "<strong>Next:</strong> add your California ZIP code to see your " +
-      escapeHtml(careIntent === "Psychiatry" ? "psychiatry" : "therapy") +
-      " matches."
-    );
-  }
-
-  if (!careIntent && hasZip) {
-    return "<strong>Next:</strong> choose therapy or psychiatry so we can narrow the shortlist.";
-  }
-
-  return "<strong>Next:</strong> review your first shortlist, then refine only if you need to.";
-}
-
-function syncMatchStartState() {
-  var form = document.getElementById("matchForm");
-  var button = document.getElementById("matchSearchButton");
-  var helper = document.getElementById("matchStartHelper");
-  var careField = document.querySelector("[data-match-care-field]");
-
-  if (!form) {
-    return;
-  }
-
-  var careIntent = String(form.elements.care_intent ? form.elements.care_intent.value : "").trim();
-  var hasZip = Boolean(
-    normalizeLocationQuery(form.elements.location_query ? form.elements.location_query.value : ""),
-  );
-
-  if (careField) {
-    careField.classList.toggle("has-value", Boolean(careIntent));
-  }
-
-  if (button) {
-    button.textContent = getMatchSearchButtonLabel(careIntent);
-  }
-
-  if (helper) {
-    helper.innerHTML = getMatchStartHelperCopy(careIntent, hasZip);
-  }
 }
 
 function applyZipAwareOrdering(entries, profile) {
@@ -707,41 +632,6 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
   });
 }
 
-function setMatchJourneyMode(mode) {
-  var refs = getMatchShellRefs();
-
-  if (!refs.builder || !refs.builderTitle || !refs.kicker || !refs.title || !refs.copy) {
-    return;
-  }
-
-  if (!refs.builder.dataset.defaultTitle) {
-    refs.builder.dataset.defaultTitle = refs.builderTitle.textContent || "";
-    refs.kicker.dataset.defaultText = refs.kicker.textContent || "";
-    refs.title.dataset.defaultText = refs.title.textContent || "";
-    refs.copy.dataset.defaultText = refs.copy.textContent || "";
-  }
-
-  var configKey =
-    mode === "results" ? (starterResultsMode ? "starterResults" : "personalizedResults") : "intake";
-  var config = MATCH_JOURNEY_COPY[configKey];
-
-  refs.builder.classList.toggle("is-results-mode", mode === "results");
-  refs.builderTitle.textContent = config.builderTitle;
-  refs.kicker.textContent = config.kicker;
-  refs.title.textContent = config.title;
-  refs.copy.textContent = config.copy;
-
-  if (refs.searchButton) {
-    refs.searchButton.textContent = config.searchButton;
-  }
-  if (refs.refinementSubmitButton) {
-    refs.refinementSubmitButton.textContent = config.refinementButton;
-  }
-  if (mode === "results" && refs.refinements) {
-    refs.refinements.open = false;
-  }
-}
-
 function bindRefineButtons() {
   ["refineSearchButton"].forEach(function (id) {
     var button = document.getElementById(id);
@@ -828,61 +718,6 @@ function collectCheckedValues(form, name) {
       return input.value;
     },
   );
-}
-
-function splitCommaSeparated(value) {
-  return String(value || "")
-    .split(",")
-    .map(function (item) {
-      return item.trim();
-    })
-    .filter(Boolean);
-}
-
-function normalizeLocationQuery(value) {
-  return String(value || "").trim();
-}
-
-function deriveStateFromLocation(value) {
-  var normalized = normalizeLocationQuery(value);
-  if (!normalized) {
-    return "";
-  }
-
-  var upper = normalized.toUpperCase();
-  if (/^\d{5}$/.test(normalized)) {
-    var zipStatus = getZipMarketStatus(normalized);
-    return zipStatus.place ? zipStatus.place.state : "";
-  }
-  if (/^[A-Z]{2}$/.test(upper)) {
-    return upper;
-  }
-
-  if (US_STATE_MAP[upper]) {
-    return US_STATE_MAP[upper];
-  }
-
-  var cityMatch = therapists.find(function (therapist) {
-    return (
-      String(therapist.city || "")
-        .trim()
-        .toUpperCase() === upper
-    );
-  });
-  if (cityMatch && cityMatch.state) {
-    return String(cityMatch.state || "")
-      .trim()
-      .toUpperCase();
-  }
-
-  if (upper.indexOf("CALIFORNIA") !== -1) {
-    return "CA";
-  }
-
-  var knownState = Object.keys(US_STATE_MAP).find(function (stateName) {
-    return upper.indexOf(stateName) !== -1;
-  });
-  return knownState ? US_STATE_MAP[knownState] : "";
 }
 
 function getOutcomeOption(outcome) {
@@ -1914,123 +1749,6 @@ function renderComparison(entries) {
   }
 
   triggerMotion(root, "motion-enter");
-}
-
-function buildRequestSummary(profile) {
-  var hasRefinements = hasMeaningfulRefinements(profile);
-  var summary = [
-    profile.location_query ? "Location: " + profile.location_query : "",
-    !profile.location_query && profile.care_state ? "State: " + profile.care_state : "",
-    profile.care_format && profile.care_format !== "In-Person"
-      ? "Format: " + profile.care_format
-      : "",
-    profile.care_intent && profile.care_intent !== "Therapy"
-      ? "Looking for: " + profile.care_intent
-      : "",
-    profile.needs_medication_management === "Yes" ? "Needs medication management" : "",
-    profile.insurance ? "Insurance: " + profile.insurance : "",
-    profile.priority_mode && profile.priority_mode !== "Best overall fit"
-      ? "Priority: " + profile.priority_mode
-      : "",
-  ].filter(Boolean);
-
-  if (summary.length === 1 && profile.location_query && !hasRefinements) {
-    return (
-      "Location: " +
-      profile.location_query +
-      " • Broad shortlist with optional refinements still open."
-    );
-  }
-
-  return summary.length ? summary.join(" • ") : "Shortlist based on your current answers.";
-}
-
-function buildAppliedAnswerPills(profile) {
-  if (!profile) {
-    return [];
-  }
-
-  var pills = [];
-
-  if (profile.care_intent) {
-    pills.push(profile.care_intent);
-  }
-
-  if (profile.location_query) {
-    pills.push("ZIP " + profile.location_query);
-  } else if (profile.care_state) {
-    pills.push(profile.care_state + " statewide");
-  }
-
-  if (profile.care_format && profile.care_format !== "In-Person") {
-    pills.push(profile.care_format);
-  }
-
-  if (
-    profile.needs_medication_management &&
-    profile.needs_medication_management !== "Open to either"
-  ) {
-    pills.push(
-      profile.needs_medication_management === "Yes"
-        ? "Medication management needed"
-        : "No medication management",
-    );
-  }
-
-  if (profile.insurance) {
-    pills.push("Insurance: " + profile.insurance);
-  }
-
-  if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
-    pills.push(profile.priority_mode);
-  }
-
-  return pills.slice(0, 6);
-}
-
-function hasMeaningfulRefinements(profile) {
-  if (!profile) {
-    return false;
-  }
-
-  return Boolean(
-    (profile.care_format && profile.care_format !== "In-Person") ||
-    (profile.care_intent && profile.care_intent !== "Therapy") ||
-    (profile.needs_medication_management &&
-      profile.needs_medication_management !== "Open to either") ||
-    profile.insurance ||
-    profile.budget_max ||
-    (profile.priority_mode && profile.priority_mode !== "Best overall fit") ||
-    (profile.bipolar_focus && profile.bipolar_focus.length) ||
-    (profile.preferred_modalities && profile.preferred_modalities.length) ||
-    (profile.population_fit && profile.population_fit.length) ||
-    (profile.language_preferences && profile.language_preferences.length),
-  );
-}
-
-function readCurrentIntakeProfile() {
-  var form = document.getElementById("matchForm");
-  if (!form) {
-    return null;
-  }
-  var urgencyField = form.elements.urgency;
-  var locationQuery = normalizeLocationQuery(form.elements.location_query.value);
-  var profile = buildUserMatchProfile({
-    care_state: deriveStateFromLocation(locationQuery),
-    care_format: form.elements.care_format.value,
-    care_intent: form.elements.care_intent.value,
-    needs_medication_management: form.elements.needs_medication_management.value,
-    insurance: form.elements.insurance.value,
-    budget_max: form.elements.budget_max.value,
-    urgency: urgencyField ? urgencyField.value : "ASAP",
-    priority_mode: form.elements.priority_mode.value,
-    bipolar_focus: collectCheckedValues(form, "bipolar_focus"),
-    preferred_modalities: collectCheckedValues(form, "preferred_modalities"),
-    population_fit: collectCheckedValues(form, "population_fit"),
-    language_preferences: splitCommaSeparated(form.elements.language_preferences.value),
-  });
-  profile.location_query = locationQuery;
-  return profile;
 }
 
 function buildAdaptiveIntakeGuidance(profile) {
@@ -3536,18 +3254,6 @@ function recordShortlistFeedback(value) {
   renderFeedbackInsights();
 }
 
-function setActionState(_enabled, message) {
-  if (message) {
-    var status = document.getElementById("matchActionStatus");
-    if (status) {
-      status.textContent = message;
-      status.classList.remove("motion-pulse");
-      void status.offsetWidth;
-      status.classList.add("motion-pulse");
-    }
-  }
-}
-
 function getMatchAdaptiveStrategy(profile) {
   latestAdaptiveSignals = summarizeAdaptiveSignals(
     readFunnelEvents(),
@@ -3599,113 +3305,6 @@ function triggerMotion(selector, className) {
   element.classList.remove(className);
   void element.offsetWidth;
   element.classList.add(className);
-}
-
-function serializeProfileToUrl(profile) {
-  var params = new URLSearchParams();
-  Object.keys(profile || {}).forEach(function (key) {
-    var value = profile[key];
-    if (!value || (Array.isArray(value) && !value.length)) {
-      return;
-    }
-    if (Array.isArray(value)) {
-      params.set(key, value.join(","));
-      return;
-    }
-    params.set(key, String(value));
-  });
-  var next = params.toString() ? "match.html?" + params.toString() : "match.html";
-  window.history.replaceState({}, "", next);
-}
-
-function restoreProfileFromUrl() {
-  var params = new URLSearchParams(window.location.search);
-  if (!params.toString()) {
-    return null;
-  }
-
-  var intakeKeys = [
-    "location_query",
-    "care_state",
-    "care_format",
-    "care_intent",
-    "needs_medication_management",
-    "insurance",
-    "budget_max",
-    "urgency",
-    "priority_mode",
-    "bipolar_focus",
-    "preferred_modalities",
-    "population_fit",
-    "language_preferences",
-  ];
-
-  var hasIntakeParams = intakeKeys.some(function (key) {
-    return String(params.get(key) || "").trim() !== "";
-  });
-
-  if (!hasIntakeParams) {
-    return null;
-  }
-
-  var locationQuery = params.get("location_query") || "";
-  var profile = buildUserMatchProfile({
-    care_state: deriveStateFromLocation(locationQuery) || params.get("care_state") || "",
-    care_format: params.get("care_format") || "In-Person",
-    care_intent: params.get("care_intent") || "",
-    needs_medication_management: params.get("needs_medication_management") || "Open to either",
-    insurance: params.get("insurance") || "",
-    budget_max: params.get("budget_max") || "",
-    urgency: params.get("urgency") || "ASAP",
-    priority_mode: params.get("priority_mode") || "Best overall fit",
-    bipolar_focus: splitCommaSeparated(params.get("bipolar_focus") || ""),
-    preferred_modalities: splitCommaSeparated(params.get("preferred_modalities") || ""),
-    population_fit: splitCommaSeparated(params.get("population_fit") || ""),
-    language_preferences: splitCommaSeparated(params.get("language_preferences") || ""),
-  });
-  profile.location_query = locationQuery;
-  return profile;
-}
-
-function restoreShortlistFromUrl() {
-  var params = new URLSearchParams(window.location.search);
-  var raw = params.get("shortlist") || "";
-  if (!raw) {
-    return [];
-  }
-
-  return splitCommaSeparated(raw);
-}
-
-function hydrateForm(profile) {
-  if (!profile) {
-    return;
-  }
-
-  var form = document.getElementById("matchForm");
-  form.elements.location_query.value = profile.location_query || profile.care_state || "";
-  syncZipResolvedLabel(form.elements.location_query.value);
-  form.elements.care_format.value = profile.care_format || "In-Person";
-  form.elements.care_intent.value = profile.care_intent || "";
-  form.elements.needs_medication_management.value =
-    profile.needs_medication_management || "Open to either";
-  form.elements.insurance.value = profile.insurance || "";
-  form.elements.budget_max.value = profile.budget_max || "";
-  if (form.elements.urgency) {
-    form.elements.urgency.value = profile.urgency || "ASAP";
-  }
-  form.elements.priority_mode.value = profile.priority_mode || "Best overall fit";
-  form.elements.language_preferences.value = (profile.language_preferences || []).join(", ");
-
-  ["bipolar_focus", "preferred_modalities", "population_fit"].forEach(function (name) {
-    var selected = new Set(profile[name] || []);
-    form.querySelectorAll('input[name="' + name + '"]').forEach(function (input) {
-      input.checked = selected.has(input.value);
-    });
-  });
-  syncMatchStartState();
-  renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
-  renderIntakeTradeoffPreview(readCurrentIntakeProfile());
 }
 
 function getTherapistContactEmailLink(entry) {
@@ -5290,12 +4889,6 @@ function safeRenderResults(entries, profile) {
   }
 }
 
-function scrollToTopMatches() {
-  window.requestAnimationFrame(function () {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-}
-
 function renderResults(entries, profile) {
   var refs = getMatchShellRefs();
   var root = refs.resultsRoot;
@@ -5442,6 +5035,19 @@ function resetForm() {
   }
 }
 
+function refreshIntakeUiFromForm() {
+  var refs = getMatchShellRefs();
+  var form = refs.form;
+  var profile = readCurrentIntakeProfile();
+
+  syncZipResolvedLabel(form.elements.location_query.value);
+  syncMatchStartState();
+  renderAdaptiveIntakeGuidance(profile);
+  renderIntakeTradeoffPreview(profile);
+
+  return profile;
+}
+
 (async function init() {
   var siteSettings = await fetchPublicSiteSettings();
   MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
@@ -5459,18 +5065,10 @@ function resetForm() {
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function () {
-    var profile = readCurrentIntakeProfile();
-    syncZipResolvedLabel(matchForm.elements.location_query.value);
-    syncMatchStartState();
-    renderAdaptiveIntakeGuidance(profile);
-    renderIntakeTradeoffPreview(profile);
+    refreshIntakeUiFromForm();
   });
   matchForm.addEventListener("change", function () {
-    var profile = readCurrentIntakeProfile();
-    syncZipResolvedLabel(matchForm.elements.location_query.value);
-    syncMatchStartState();
-    renderAdaptiveIntakeGuidance(profile);
-    renderIntakeTradeoffPreview(profile);
+    refreshIntakeUiFromForm();
   });
   var refinements = refs.refinements;
   if (refinements) {
@@ -5496,9 +5094,7 @@ function resetForm() {
 
   var restoredProfile = restoreProfileFromUrl();
   var restoredShortlist = restoreShortlistFromUrl();
-  syncMatchStartState();
-  renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
-  renderIntakeTradeoffPreview(readCurrentIntakeProfile());
+  refreshIntakeUiFromForm();
   if (restoredProfile) {
     hydrateForm(restoredProfile);
     executeMatch(restoredProfile, {
