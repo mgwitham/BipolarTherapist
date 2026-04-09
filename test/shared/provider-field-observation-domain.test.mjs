@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  annotateProviderFieldObservationForDisplay,
   buildProviderFieldObservationId,
   buildProviderFieldObservationsFromSource,
   createProviderFieldObservation,
@@ -105,4 +106,22 @@ test("buildProviderFieldObservationsFromSource skips blank and unknown values", 
   assert.equal(observations.length, 1);
   assert.equal(observations[0].fieldName, "acceptsTelehealth");
   assert.equal(observations[0].normalizedValue, "false");
+});
+
+test("annotateProviderFieldObservationForDisplay adds readable labels and parsed values", function () {
+  const annotated = annotateProviderFieldObservationForDisplay({
+    fieldName: "languages",
+    rawValue: JSON.stringify(["English", "Spanish"]),
+    normalizedValue: JSON.stringify(["English", "Spanish"]),
+    sourceType: "therapistApplication",
+    verificationMethod: "editorial_review",
+    isCurrent: true,
+  });
+
+  assert.equal(annotated.labels.fieldName, "Languages");
+  assert.equal(annotated.labels.sourceType, "Therapist application");
+  assert.equal(annotated.labels.verificationMethod, "Editorial review");
+  assert.equal(annotated.labels.currentState, "Current");
+  assert.deepEqual(annotated.parsedRawValue, ["English", "Spanish"]);
+  assert.deepEqual(annotated.parsedNormalizedValue, ["English", "Spanish"]);
 });

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
+import { annotateProviderFieldObservationForDisplay } from "../shared/provider-field-observation-domain.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -64,18 +65,19 @@ function parseArgs(argv) {
 }
 
 function summarize(observations) {
+  const annotated = observations.map(annotateProviderFieldObservationForDisplay);
   const fields = Array.from(
     new Set(
-      observations
+      annotated
         .map((item) => String(item.fieldName || "").trim())
         .filter(Boolean),
     ),
   ).sort();
 
   return {
-    observationCount: observations.length,
+    observationCount: annotated.length,
     fields,
-    observations,
+    observations: annotated,
   };
 }
 

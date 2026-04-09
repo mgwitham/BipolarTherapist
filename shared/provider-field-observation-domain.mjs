@@ -1,5 +1,39 @@
 import { buildProviderId, normalizeText } from "./therapist-domain.mjs";
 
+const FIELD_LABELS = {
+  specialties: "Specialties",
+  treatmentModalities: "Treatment modalities",
+  clientPopulations: "Client populations",
+  insuranceAccepted: "Insurance accepted",
+  languages: "Languages",
+  telehealthStates: "Telehealth states",
+  estimatedWaitTime: "Estimated wait time",
+  bipolarYearsExperience: "Bipolar years experience",
+  acceptsTelehealth: "Accepts telehealth",
+  acceptsInPerson: "Accepts in-person",
+  acceptingNewPatients: "Accepting new patients",
+  medicationManagement: "Medication management",
+  sessionFeeMin: "Session fee min",
+  sessionFeeMax: "Session fee max",
+  slidingScale: "Sliding scale",
+};
+
+const SOURCE_TYPE_LABELS = {
+  therapist: "Therapist",
+  therapistCandidate: "Therapist candidate",
+  therapistApplication: "Therapist application",
+  licensureRecord: "Licensure record",
+  manual_review: "Manual review",
+  import_pipeline: "Import pipeline",
+};
+
+const VERIFICATION_METHOD_LABELS = {
+  primary_source_lookup: "Primary source lookup",
+  therapist_confirmed: "Therapist confirmed",
+  editorial_review: "Editorial review",
+  import_pipeline: "Import pipeline",
+};
+
 function ensureArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -20,6 +54,35 @@ function serializeValue(value) {
     return JSON.stringify(value);
   }
   return normalizeText(value);
+}
+
+function parseSerializedValue(value) {
+  const text = normalizeText(value);
+  if (!text) {
+    return "";
+  }
+  if (text === "true") {
+    return true;
+  }
+  if (text === "false") {
+    return false;
+  }
+  if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+    try {
+      return JSON.parse(text);
+    } catch (_error) {
+      return text;
+    }
+  }
+  return text;
+}
+
+function labelFor(value, labels) {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return "";
+  }
+  return labels[normalized] || normalized.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ");
 }
 
 function hasMeaningfulValue(value) {
@@ -207,4 +270,19 @@ export function buildProviderFieldObservationsFromSource(source, options = {}) {
         isCurrent: options.isCurrent,
       });
     });
+}
+
+export function annotateProviderFieldObservationForDisplay(observation) {
+  const source = observation && typeof observation === "object" ? observation : {};
+  return {
+    ...source,
+    parsedRawValue: parseSerializedValue(source.rawValue),
+    parsedNormalizedValue: parseSerializedValue(source.normalizedValue),
+    labels: {
+      fieldName: labelFor(source.fieldName, FIELD_LABELS),
+      sourceType: labelFor(source.sourceType, SOURCE_TYPE_LABELS),
+      verificationMethod: labelFor(source.verificationMethod, VERIFICATION_METHOD_LABELS),
+      currentState: source.isCurrent === false ? "Historical" : "Current",
+    },
+  };
 }
