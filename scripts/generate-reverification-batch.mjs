@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-reverification-batch.csv");
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-reverification-batch.md");
+const EXPIRING_SOON_DAYS = 14;
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -84,6 +85,14 @@ function toTimestamp(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function getDaysUntil(value) {
+  const timestamp = toTimestamp(value);
+  if (!timestamp) {
+    return null;
+  }
+  return Math.round((timestamp - Date.now()) / 86400000);
+}
+
 function formatFieldLabel(field) {
   return String(field || "")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -133,6 +142,48 @@ function buildNextMove(item) {
   return "Review profile";
 }
 
+function getImpactProxy(item) {
+  const completeness = Number(item.dataCompletenessScore || 0);
+  const priority = Number(item.verificationPriority || 0);
+  if (completeness >= 90 || priority >= 85) {
+    return "high";
+  }
+  if (completeness >= 75 || priority >= 60) {
+    return "medium";
+  }
+  return "standard";
+}
+
+function getPriorityMeta(item) {
+  const dueDays = getDaysUntil(item.nextReviewDueAt);
+  const reconfirmationFields = getNeedsReconfirmationFields(item.fieldReviewStates);
+  const impactProxy = getImpactProxy(item);
+  const expiringSoon = dueDays !== null && dueDays >= 0 && dueDays <= EXPIRING_SOON_DAYS;
+  const highImpactStale =
+    impactProxy === "high" &&
+    (item.verificationLane === "refresh_now" ||
+      item.verificationLane === "refresh_soon" ||
+      reconfirmationFields.length > 0);
+  let priorityScore = 0;
+  priorityScore += Number(item.verificationPriority || 0);
+  priorityScore += expiringSoon ? 30 : 0;
+  priorityScore += highImpactStale ? 24 : 0;
+  priorityScore += Math.min(12, reconfirmationFields.length * 3);
+  priorityScore += impactProxy === "high" ? 10 : impactProxy === "medium" ? 4 : 0;
+  if (dueDays !== null) {
+    priorityScore += Math.max(0, 12 - Math.max(0, dueDays));
+  }
+
+  return {
+    dueDays,
+    impactProxy,
+    expiringSoon,
+    highImpactStale,
+    reconfirmationFields,
+    priorityScore,
+  };
+}
+
 async function fetchTherapists(client) {
   return client.fetch(`*[_type == "therapist" && listingActive != false] | order(coalesce(verificationPriority, 0) desc, coalesce(nextReviewDueAt, _updatedAt) asc){
     _id,
@@ -161,26 +212,44 @@ async function fetchTherapists(client) {
 function buildRows(therapists) {
   return (therapists || [])
     .filter((item) => item.verificationLane && item.verificationLane !== "fresh")
-    .map((item) => ({
-      provider_id: item.providerId || "",
-      therapist_id: item._id,
-      name: item.name || "",
-      credentials: item.credentials || "",
-      location: [item.city, item.state, item.zip].filter(Boolean).join(", "),
-      verification_lane: item.verificationLane || "",
-      verification_priority: item.verificationPriority ?? "",
-      next_review_due_at: formatDate(item.nextReviewDueAt),
-      last_operational_review_at: formatDate(item.lastOperationalReviewAt),
-      source_reviewed_at: formatDate(item.sourceReviewedAt),
-      therapist_reported_confirmed_at: formatDate(item.therapistReportedConfirmedAt),
-      data_completeness_score: item.dataCompletenessScore ?? "",
-      reason: buildRefreshReason(item),
-      next_move: buildNextMove(item),
-      profile_link: item.slug ? `therapist.html?slug=${item.slug}` : "",
-      source_link: item.sourceUrl || item.website || "",
-    }))
+    .map((item) => {
+      const priorityMeta = getPriorityMeta(item);
+      const opsCue = [
+        priorityMeta.expiringSoon
+          ? `expiring soon${priorityMeta.dueDays != null ? ` (${priorityMeta.dueDays}d)` : ""}`
+          : "",
+        priorityMeta.highImpactStale ? "high-impact stale" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      return {
+        provider_id: item.providerId || "",
+        therapist_id: item._id,
+        name: item.name || "",
+        credentials: item.credentials || "",
+        location: [item.city, item.state, item.zip].filter(Boolean).join(", "),
+        verification_lane: item.verificationLane || "",
+        verification_priority: item.verificationPriority ?? "",
+        priority_score: priorityMeta.priorityScore,
+        impact_proxy: priorityMeta.impactProxy,
+        expiring_soon: priorityMeta.expiringSoon ? "yes" : "no",
+        high_impact_stale: priorityMeta.highImpactStale ? "yes" : "no",
+        due_in_days: priorityMeta.dueDays ?? "",
+        next_review_due_at: formatDate(item.nextReviewDueAt),
+        last_operational_review_at: formatDate(item.lastOperationalReviewAt),
+        source_reviewed_at: formatDate(item.sourceReviewedAt),
+        therapist_reported_confirmed_at: formatDate(item.therapistReportedConfirmedAt),
+        data_completeness_score: item.dataCompletenessScore ?? "",
+        reason: buildRefreshReason(item),
+        ops_cue: opsCue,
+        next_move: buildNextMove(item),
+        profile_link: item.slug ? `therapist.html?slug=${item.slug}` : "",
+        source_link: item.sourceUrl || item.website || "",
+      };
+    })
     .sort((a, b) => {
-      const priorityDiff = (Number(b.verification_priority) || 0) - (Number(a.verification_priority) || 0);
+      const priorityDiff = (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0);
       if (priorityDiff) {
         return priorityDiff;
       }
@@ -197,12 +266,18 @@ function writeCsv(rows) {
     "location",
     "verification_lane",
     "verification_priority",
+    "priority_score",
+    "impact_proxy",
+    "expiring_soon",
+    "high_impact_stale",
+    "due_in_days",
     "next_review_due_at",
     "last_operational_review_at",
     "source_reviewed_at",
     "therapist_reported_confirmed_at",
     "data_completeness_score",
     "reason",
+    "ops_cue",
     "next_move",
     "profile_link",
     "source_link",
@@ -230,6 +305,13 @@ function writeMarkdown(rows) {
     lines.push(`### ${index + 1}. ${row.name || "Unnamed therapist"}`);
     lines.push(`- Lane: ${row.verification_lane}`);
     lines.push(`- Priority: ${row.verification_priority || "n/a"}`);
+    lines.push(`- Priority score: ${row.priority_score || "0"}`);
+    if (row.ops_cue) {
+      lines.push(`- Ops cue: ${row.ops_cue}`);
+    }
+    if (row.impact_proxy) {
+      lines.push(`- Impact proxy: ${row.impact_proxy}`);
+    }
     lines.push(`- Due: ${row.next_review_due_at || "now"}`);
     lines.push(`- Reason: ${row.reason || "Review profile freshness"}`);
     lines.push(`- Next move: ${row.next_move || "Review profile"}`);

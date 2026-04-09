@@ -1,5 +1,53 @@
 const refreshActionFlash = {};
 const REFRESH_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
+const EXPIRING_SOON_DAYS = 14;
+
+function toTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function getDaysUntil(value) {
+  const timestamp = toTimestamp(value);
+  if (!timestamp) {
+    return null;
+  }
+  return Math.round((timestamp - Date.now()) / 86400000);
+}
+
+function getRefreshPriorityMeta(entry, options) {
+  const item = entry.item || {};
+  const freshness = entry.freshness || {};
+  const dueDays = getDaysUntil(item.nextReviewDueAt);
+  const readiness = options.getTherapistMatchReadiness
+    ? options.getTherapistMatchReadiness(item)
+    : { score: 0 };
+  const merchandising = options.getTherapistMerchandisingQuality
+    ? options.getTherapistMerchandisingQuality(item)
+    : { score: 0 };
+  const expiringSoon = dueDays !== null && dueDays >= 0 && dueDays <= EXPIRING_SOON_DAYS;
+  const highImpact =
+    freshness.status !== "fresh" && readiness.score >= 85 && merchandising.score >= 80;
+  const priorityScore =
+    (freshness.status === "aging" ? 70 : freshness.status === "watch" ? 40 : 0) +
+    (expiringSoon ? 28 : 0) +
+    (highImpact ? 24 : 0) +
+    Math.min(20, Number(entry.trustAttentionCount || 0) * 4) +
+    Math.min(10, (freshness.needs_reconfirmation_fields || []).length * 2) +
+    Math.max(0, 12 - Math.max(0, dueDays || 0));
+
+  return {
+    dueDays: dueDays,
+    expiringSoon: expiringSoon,
+    highImpact: highImpact,
+    readiness: readiness,
+    merchandising: merchandising,
+    priorityScore: priorityScore,
+  };
+}
 
 function setRefreshActionFlash(id, message) {
   if (!id) {
@@ -58,24 +106,27 @@ export function renderRefreshQueuePanel(options) {
     .slice(0, 4);
   const queue = therapists
     .map(function (item) {
+      const freshness = options.getDataFreshnessSummary(item);
       return {
         item: item,
-        freshness: options.getDataFreshnessSummary(item),
+        freshness: freshness,
         trustAttentionCount: options.getTherapistFieldTrustAttentionCount(item),
+        priorityMeta: null,
       };
     })
     .filter(function (entry) {
       return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
     })
+    .map(function (entry) {
+      entry.priorityMeta = getRefreshPriorityMeta(entry, options);
+      return entry;
+    })
     .sort(function (a, b) {
-      const weight = {
-        aging: 0,
-        watch: 1,
-        fresh: 2,
-      };
-      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
+      const priorityDiff =
+        (b.priorityMeta && b.priorityMeta.priorityScore ? b.priorityMeta.priorityScore : 0) -
+        (a.priorityMeta && a.priorityMeta.priorityScore ? a.priorityMeta.priorityScore : 0);
+      if (priorityDiff) {
+        return priorityDiff;
       }
       const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
       if (trustDiff) {
@@ -138,10 +189,18 @@ export function renderRefreshQueuePanel(options) {
       .map(function (entry, index) {
         const item = entry.item;
         const freshness = entry.freshness;
+        const priorityMeta = entry.priorityMeta || {};
         const trustSummary = options.getTherapistFieldTrustSummary(item);
         const nextMove = options.getTherapistTrustRecommendation(item, freshness, trustSummary);
         const therapistId = getTherapistId(item);
         const sourceUrl = item.sourceUrl || item.source_url || "";
+        const cues = [
+          priorityMeta.expiringSoon
+            ? "Expiring soon" +
+              (priorityMeta.dueDays != null ? " (" + priorityMeta.dueDays + "d)" : "")
+            : "",
+          priorityMeta.highImpact ? "High-impact stale" : "",
+        ].filter(Boolean);
         const evidence = [
           item.nextReviewDueAt ? "Due " + options.formatDate(item.nextReviewDueAt) : "",
           item.sourceReviewedAt
@@ -167,7 +226,19 @@ export function renderRefreshQueuePanel(options) {
             : "") +
           "<strong>" +
           options.escapeHtml(item.name) +
-          '</strong><div class="subtle">' +
+          "</strong>" +
+          (cues.length
+            ? '<div class="queue-badge-row">' +
+              cues
+                .map(function (cue) {
+                  return '<span class="queue-badge">' + options.escapeHtml(cue) + "</span>";
+                })
+                .join("") +
+              "</div>"
+            : "") +
+          '<div class="subtle">Priority score: ' +
+          options.escapeHtml(String(priorityMeta.priorityScore || 0)) +
+          '</div><div class="subtle">' +
           options.escapeHtml(freshness.label) +
           '</div><div class="subtle">' +
           options.escapeHtml(freshness.note) +

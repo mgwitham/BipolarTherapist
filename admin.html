@@ -351,6 +351,22 @@
         align-items: center;
         margin-bottom: 0.75rem;
       }
+      .queue-badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.45rem 0;
+      }
+      .queue-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
       .mini-card a {
         color: var(--teal);
         text-decoration: none;
@@ -1351,26 +1367,26 @@
 
         <div class="grid">
           <aside class="panel sidebar-panel workflow-section" id="publishedListingsSection">
-            <h2>Published Listings</h2>
+            <h2>Promote Live Listings</h2>
             <div class="sop-note">
               <div class="sop-note-row">
                 <div class="sop-note-label">Purpose</div>
                 <div class="sop-note-copy">
-                  Control how live listings are staged, promoted, and maintained once they are
-                  already public.
+                  Decide which live listings should be spotlighted, kept standard, or sent for
+                  update work once they are already public.
                 </div>
               </div>
               <div class="sop-note-row">
                 <div class="sop-note-label">Use This When</div>
                 <div class="sop-note-copy">
-                  You are deciding which listings should be launch-ready, featured, refreshed, or
-                  left alone.
+                  You are deciding which listings should be featured, marked ready to feature,
+                  refreshed, or left alone.
                 </div>
               </div>
               <div class="sop-note-row">
                 <div class="sop-note-label">Done Means</div>
                 <div class="sop-note-copy">
-                  The listing has the right launch state and is not missing obvious trust or
+                  The listing has the right visibility level and is not missing obvious trust or
                   freshness work.
                 </div>
               </div>
@@ -1380,9 +1396,9 @@
                   <div class="playbook-section">
                     <div class="playbook-label">Good First Move</div>
                     <div class="playbook-copy">
-                      Start with listings that are already close to launch-ready or are carrying a
-                      visible freshness risk. Avoid tinkering with stable listings that do not need
-                      a decision today.
+                      Start with listings that are already close to ready-to-feature or are carrying
+                      a visible freshness risk. Avoid tinkering with stable listings that do not
+                      need a decision today.
                     </div>
                   </div>
                   <div class="playbook-section">

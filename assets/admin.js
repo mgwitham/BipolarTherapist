@@ -4963,6 +4963,8 @@ function renderRefreshQueue() {
     getTherapists: getTherapists,
     getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
     getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistMatchReadiness: getTherapistMatchReadiness,
+    getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
     getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
     getTherapistTrustRecommendation: getTherapistTrustRecommendation,

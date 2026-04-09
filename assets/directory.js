@@ -46,6 +46,7 @@ import {
     accepting: false,
     medication_management: false,
     responsive_contact: false,
+    recently_confirmed: false,
     sortBy: "best_match",
   };
   var filters = { ...defaultFilters };
@@ -581,14 +582,19 @@ import {
       }
     });
 
-    ["telehealth", "in_person", "accepting", "medication_management", "responsive_contact"].forEach(
-      function (key) {
-        if (params.get(key) === "true") {
-          filters[key] = true;
-          document.getElementById(key).checked = true;
-        }
-      },
-    );
+    [
+      "telehealth",
+      "in_person",
+      "accepting",
+      "medication_management",
+      "responsive_contact",
+      "recently_confirmed",
+    ].forEach(function (key) {
+      if (params.get(key) === "true") {
+        filters[key] = true;
+        document.getElementById(key).checked = true;
+      }
+    });
 
     if (!params.get("sortBy")) {
       var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents());
@@ -794,6 +800,30 @@ import {
     return 1;
   }
 
+  function getFreshnessRank(therapist) {
+    var recentApplied = getRecentAppliedSummary(therapist);
+    if (recentApplied) {
+      return 3;
+    }
+
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      return recentConfirmation.tone === "fresh" ? 3 : 2;
+    }
+
+    var freshness = getDataFreshnessSummary(therapist);
+    if (!freshness) {
+      return 0;
+    }
+    if (freshness.status === "fresh") {
+      return 2;
+    }
+    if (freshness.status === "recent") {
+      return 1;
+    }
+    return 0;
+  }
+
   function buildCardFitSummary(therapist) {
     var reasons = [];
 
@@ -924,11 +954,15 @@ import {
     if (filters.responsive_contact && responsivenessRank > 0) {
       score += responsivenessRank === 2 ? 16 : 8;
     }
+    if (filters.recently_confirmed && getFreshnessRank(therapist) >= 2) {
+      score += 18;
+    }
     if (filters.verification && therapist.verification_status === filters.verification) {
       score += 14;
     }
 
     score += Math.round(quality.score * 0.45);
+    score += getFreshnessRank(therapist) * 5;
     if (responsivenessRank === 2) {
       score += 4;
     } else if (responsivenessRank === 1) {
@@ -1077,8 +1111,18 @@ import {
       );
     }
 
+    if (filterState.sortBy === "freshest_details") {
+      return (
+        getFreshnessRank(b) - getFreshnessRank(a) ||
+        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+        getMatchScore(b) - getMatchScore(a) ||
+        a.name.localeCompare(b.name)
+      );
+    }
+
     return (
       getMatchScore(b) - getMatchScore(a) ||
+      getFreshnessRank(b) - getFreshnessRank(a) ||
       getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
@@ -1139,6 +1183,7 @@ import {
         if (filterState.accepting && !therapist.accepting_new_patients) return false;
         if (filterState.medication_management && !therapist.medication_management) return false;
         if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
+        if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
         return true;
       }),
       filterState,
@@ -1202,6 +1247,21 @@ import {
             " profiles would remain, and " +
             topTherapist.name +
             " would likely rise because the directory would filter for therapists with early reply signals."
+          );
+        },
+      );
+    }
+
+    if (!filters.recently_confirmed) {
+      add(
+        "If you require recently confirmed details",
+        Object.assign({}, filters, { recently_confirmed: true, sortBy: "freshest_details" }),
+        function (topTherapist, nextResults) {
+          return (
+            nextResults.length +
+            " profiles would remain, and " +
+            topTherapist.name +
+            " would likely rise because the directory would narrow toward fresher confirmation signals."
           );
         },
       );
@@ -1574,6 +1634,9 @@ import {
                 : therapist.sliding_scale
                   ? "Sliding scale"
                   : "Fee details pending",
+              getFreshnessBadgeData(therapist)
+                ? getFreshnessBadgeData(therapist).label
+                : "Freshness to confirm",
             ].join(" • "),
           ) +
           '</div><div class="shortlist-compare-note">' +
@@ -1784,11 +1847,16 @@ import {
     ].forEach(function (key) {
       filters[key] = document.getElementById(key).value.trim();
     });
-    ["telehealth", "in_person", "accepting", "medication_management", "responsive_contact"].forEach(
-      function (key) {
-        filters[key] = document.getElementById(key).checked;
-      },
-    );
+    [
+      "telehealth",
+      "in_person",
+      "accepting",
+      "medication_management",
+      "responsive_contact",
+      "recently_confirmed",
+    ].forEach(function (key) {
+      filters[key] = document.getElementById(key).checked;
+    });
     trackFunnelEvent("directory_filters_applied", {
       active_filter_count: Object.keys(filters).filter(function (key) {
         return key !== "sortBy" && Boolean(filters[key]);
