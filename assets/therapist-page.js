@@ -765,6 +765,49 @@ function buildProfileDecisionMemoryState(slugValue) {
   };
 }
 
+function buildProfileUncertaintyState(therapist, readiness) {
+  var missingFit = !Number(therapist && therapist.bipolar_years_experience);
+  var missingTrust =
+    therapist && therapist.verification_status !== "editorially_verified"
+      ? !therapist.source_reviewed_at && !therapist.therapist_reported_confirmed_at
+      : false;
+  var missingLogistics = !(
+    (therapist && therapist.estimated_wait_time) ||
+    (therapist && therapist.session_fee_min) ||
+    (therapist && therapist.session_fee_max) ||
+    (therapist && therapist.insurance_accepted && therapist.insurance_accepted.length)
+  );
+
+  var unknowns = [];
+  if (missingFit) {
+    unknowns.push("bipolar-specific depth");
+  }
+  if (missingTrust) {
+    unknowns.push("recent source confirmation");
+  }
+  if (missingLogistics) {
+    unknowns.push("timing, fees, or coverage");
+  }
+
+  if (!unknowns.length || (readiness && readiness.score >= 72)) {
+    return null;
+  }
+
+  return {
+    title: "A few decision-critical details are still thin",
+    copy:
+      "The biggest remaining unknowns here are " +
+      joinNaturalList(unknowns) +
+      ". That does not make this a bad option, but it does mean the smartest next move is one focused outreach instead of more page-reading.",
+    actionLabel: "Use the contact plan below",
+    actionCopy:
+      missingLogistics || missingFit
+        ? "Lead with one direct question about fit and one about logistics so you can rule this in or out quickly."
+        : "Use one short message to confirm the missing trust details before investing more time.",
+    tone: "watch",
+  };
+}
+
 function renderQueueActionButtons(queueState) {
   var actions = Array.isArray(queueState && queueState.actions) ? queueState.actions : [];
   if (!actions.length) {
@@ -981,6 +1024,7 @@ function renderProfile(t, therapistDirectory) {
     freshness,
   );
   var decisionMemoryState = buildProfileDecisionMemoryState(t.slug);
+  var uncertaintyState = buildProfileUncertaintyState(t, readiness);
   var backupState = buildProfileBackupState(t, therapistDirectory || []);
   var outreachQueueState = buildProfileOutreachQueueState(t.slug);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
@@ -1670,6 +1714,21 @@ function renderProfile(t, therapistDirectory) {
     (fitSnapshotHtml ? '<div class="fit-snapshot-pills">' + fitSnapshotHtml + "</div>" : "") +
     "</div>" +
     '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    '<div class="profile-uncertainty-state">' +
+    (uncertaintyState
+      ? '<div class="profile-uncertainty-card tone-' +
+        escapeHtml(uncertaintyState.tone) +
+        '"><div class="profile-uncertainty-label">How to use this profile well</div><div class="profile-uncertainty-title">' +
+        escapeHtml(uncertaintyState.title) +
+        '</div><div class="profile-uncertainty-copy">' +
+        escapeHtml(uncertaintyState.copy) +
+        '</div><div class="profile-uncertainty-action"><span class="profile-uncertainty-action-label">' +
+        escapeHtml(uncertaintyState.actionLabel) +
+        '</span><span class="profile-uncertainty-action-copy">' +
+        escapeHtml(uncertaintyState.actionCopy) +
+        "</span></div></div>"
+      : "") +
+    "</div>" +
     '<div class="profile-decision-memory" id="profileDecisionMemory">' +
     (decisionMemoryState
       ? '<div class="profile-decision-memory-card tone-' +

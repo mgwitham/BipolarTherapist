@@ -1218,6 +1218,54 @@ nav {
   line-height: 1.6;
 }
 
+.profile-uncertainty-state {
+  margin-top: 0.85rem;
+}
+
+.profile-uncertainty-card {
+  border: 1px solid rgba(194, 157, 76, 0.22);
+  border-radius: 16px;
+  padding: 0.9rem 0.95rem;
+  background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  display: grid;
+  gap: 0.34rem;
+}
+
+.profile-uncertainty-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.profile-uncertainty-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.profile-uncertainty-copy,
+.profile-uncertainty-action-copy {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.profile-uncertainty-action {
+  display: grid;
+  gap: 0.14rem;
+  margin-top: 0.1rem;
+}
+
+.profile-uncertainty-action-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--teal-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .profile-queue-status {
   margin-top: 0.85rem;
 }
