@@ -766,6 +766,369 @@ function buildNewlyBlockedProfiles(context, options) {
     });
 }
 
+function buildBlockedProfileFlowSummary(clearedBlockedProfiles, newlyBlockedProfiles) {
+  const clearedCount = Array.isArray(clearedBlockedProfiles) ? clearedBlockedProfiles.length : 0;
+  const newCount = Array.isArray(newlyBlockedProfiles) ? newlyBlockedProfiles.length : 0;
+  const net = newCount - clearedCount;
+
+  if (net < 0) {
+    return (
+      "Blocked profile flow improved this week: " +
+      clearedCount +
+      " cleared vs " +
+      newCount +
+      " newly blocked (" +
+      Math.abs(net) +
+      " better net)."
+    );
+  }
+  if (net > 0) {
+    return (
+      "Blocked profile flow worsened this week: " +
+      newCount +
+      " newly blocked vs " +
+      clearedCount +
+      " cleared (" +
+      net +
+      " worse net)."
+    );
+  }
+  return (
+    "Blocked profile flow was flat this week: " +
+    clearedCount +
+    " cleared and " +
+    newCount +
+    " newly blocked."
+  );
+}
+
+function getDistinctLoggedWeeks(sendLog) {
+  return Array.from(
+    new Set(
+      (Array.isArray(sendLog) ? sendLog : [])
+        .map(function (entry) {
+          return getWeekBucket(entry && entry.created_at ? entry.created_at : "");
+        })
+        .filter(Boolean),
+    ),
+  ).sort(function (a, b) {
+    return b.localeCompare(a);
+  });
+}
+
+function getBlockedProfilesForWeek(sendLog, week) {
+  const match = (Array.isArray(sendLog) ? sendLog : []).find(function (entry) {
+    return getWeekBucket(entry && entry.created_at ? entry.created_at : "") === week;
+  });
+  return Array.isArray(match && match.blocked_profiles) ? match.blocked_profiles : [];
+}
+
+function getClearedBlockedSlugsForWeek(actionLog, week) {
+  const seen = new Set();
+  (Array.isArray(actionLog) ? actionLog : []).forEach(function (entry) {
+    if (
+      entry &&
+      entry.slug &&
+      entry.outcome === "cleared" &&
+      getWeekBucket(entry.created_at || "") === week
+    ) {
+      seen.add(entry.slug);
+    }
+  });
+  return Array.from(seen);
+}
+
+function getClearedBlockedCountForWeek(actionLog, week) {
+  return getClearedBlockedSlugsForWeek(actionLog, week).length;
+}
+
+function getNewlyBlockedSlugsForLoggedWeek(sendLog, week) {
+  const weeks = getDistinctLoggedWeeks(sendLog);
+  const index = weeks.indexOf(week);
+  if (index === -1) {
+    return [];
+  }
+  const currentSlugs = new Set(
+    getBlockedProfilesForWeek(sendLog, week).map(function (entry) {
+      return entry && entry.slug ? entry.slug : "";
+    }),
+  );
+  const previousWeek = weeks[index + 1] || "";
+  const previousSlugs = new Set(
+    getBlockedProfilesForWeek(sendLog, previousWeek).map(function (entry) {
+      return entry && entry.slug ? entry.slug : "";
+    }),
+  );
+  return Array.from(currentSlugs).filter(function (slug) {
+    return slug && !previousSlugs.has(slug);
+  });
+}
+
+function getNewlyBlockedCountForLoggedWeek(sendLog, week) {
+  return getNewlyBlockedSlugsForLoggedWeek(sendLog, week).length;
+}
+
+function buildBlockedProfileFlowTrend(
+  context,
+  currentClearedBlockedProfiles,
+  currentNewlyBlockedProfiles,
+) {
+  const weeks = getDistinctLoggedWeeks(context.weeklyDigestSendLog);
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const comparisonWeek = weeks.find(function (week) {
+    return week && week !== currentWeek;
+  });
+
+  if (!comparisonWeek) {
+    return "No last-week blocker-flow comparison yet.";
+  }
+
+  const currentClearedCount = Array.isArray(currentClearedBlockedProfiles)
+    ? currentClearedBlockedProfiles.length
+    : 0;
+  const currentNewCount = Array.isArray(currentNewlyBlockedProfiles)
+    ? currentNewlyBlockedProfiles.length
+    : 0;
+  const currentNet = currentNewCount - currentClearedCount;
+
+  const previousClearedCount = getClearedBlockedCountForWeek(
+    context.blockedProfileActionLog,
+    comparisonWeek,
+  );
+  const previousNewCount = getNewlyBlockedCountForLoggedWeek(
+    context.weeklyDigestSendLog,
+    comparisonWeek,
+  );
+  const previousNet = previousNewCount - previousClearedCount;
+  const delta = currentNet - previousNet;
+
+  if (delta < 0) {
+    return (
+      "Better than last week: blocker net improved by " +
+      Math.abs(delta) +
+      " (" +
+      currentNet +
+      " this week vs " +
+      previousNet +
+      " last week)."
+    );
+  }
+  if (delta > 0) {
+    return (
+      "Worse than last week: blocker net slipped by " +
+      delta +
+      " (" +
+      currentNet +
+      " this week vs " +
+      previousNet +
+      " last week)."
+    );
+  }
+  return "Flat versus last week: blocker net stayed at " + currentNet + " week over week.";
+}
+
+function buildBlockedProfileFlowFourWeekSnapshot(
+  context,
+  currentClearedBlockedProfiles,
+  currentNewlyBlockedProfiles,
+) {
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const weeks = [currentWeek].concat(
+    getDistinctLoggedWeeks(context.weeklyDigestSendLog).filter(function (week) {
+      return week && week !== currentWeek;
+    }),
+  );
+
+  const rows = weeks
+    .slice(0, 4)
+    .map(function (week, index) {
+      const cleared =
+        index === 0
+          ? Array.isArray(currentClearedBlockedProfiles)
+            ? currentClearedBlockedProfiles.length
+            : 0
+          : getClearedBlockedCountForWeek(context.blockedProfileActionLog, week);
+      const newlyBlocked =
+        index === 0
+          ? Array.isArray(currentNewlyBlockedProfiles)
+            ? currentNewlyBlockedProfiles.length
+            : 0
+          : getNewlyBlockedCountForLoggedWeek(context.weeklyDigestSendLog, week);
+      const net = newlyBlocked - cleared;
+      return {
+        week: week,
+        cleared: cleared,
+        newlyBlocked: newlyBlocked,
+        net: net,
+      };
+    })
+    .filter(function (row) {
+      return row.week;
+    });
+
+  if (!rows.length) {
+    return "No 4-week blocker-flow history yet.";
+  }
+
+  const momentum =
+    rows.length >= 2
+      ? rows[0].net < rows[1].net
+        ? "improving"
+        : rows[0].net > rows[1].net
+          ? "slipping"
+          : "flat"
+      : "forming";
+
+  return (
+    "4-week blocker flow: " +
+    rows
+      .map(function (row) {
+        return row.week + " net " + row.net;
+      })
+      .join(" · ") +
+    " (" +
+    momentum +
+    " momentum)."
+  );
+}
+
+function buildBlockedProfileOwnerMap(context, options) {
+  const ownerMap = new Map();
+  (Array.isArray(context.therapists) ? context.therapists : []).forEach(function (item) {
+    if (!item || !item.slug) {
+      return;
+    }
+    const reviewTask =
+      options.getReviewEntityTask && (item.id || item._id)
+        ? options.getReviewEntityTask("therapist", item.id || item._id)
+        : null;
+    ownerMap.set(item.slug, reviewTask && reviewTask.assignee ? reviewTask.assignee : "Unassigned");
+  });
+  return ownerMap;
+}
+
+function buildBlockedProfileOwnerTrend(
+  context,
+  options,
+  currentClearedBlockedProfiles,
+  currentNewlyBlockedProfiles,
+) {
+  const ownerBySlug = buildBlockedProfileOwnerMap(context, options);
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const weeks = [currentWeek].concat(
+    getDistinctLoggedWeeks(context.weeklyDigestSendLog).filter(function (week) {
+      return week && week !== currentWeek;
+    }),
+  );
+  const ownerTotals = new Map();
+
+  function ensureOwner(owner) {
+    const key = owner || "Unassigned";
+    if (!ownerTotals.has(key)) {
+      ownerTotals.set(key, { cleared: 0, newlyBlocked: 0 });
+    }
+    return ownerTotals.get(key);
+  }
+
+  weeks.slice(0, 4).forEach(function (week, index) {
+    const clearedSlugs =
+      index === 0
+        ? (Array.isArray(currentClearedBlockedProfiles) ? currentClearedBlockedProfiles : []).map(
+            function (entry) {
+              return entry && entry.slug ? entry.slug : "";
+            },
+          )
+        : getClearedBlockedSlugsForWeek(context.blockedProfileActionLog, week);
+    const newSlugs =
+      index === 0
+        ? (Array.isArray(currentNewlyBlockedProfiles) ? currentNewlyBlockedProfiles : []).map(
+            function (entry) {
+              return entry && entry.slug ? entry.slug : "";
+            },
+          )
+        : getNewlyBlockedSlugsForLoggedWeek(context.weeklyDigestSendLog, week);
+
+    clearedSlugs.forEach(function (slug) {
+      if (!slug) {
+        return;
+      }
+      ensureOwner(ownerBySlug.get(slug)).cleared += 1;
+    });
+    newSlugs.forEach(function (slug) {
+      if (!slug) {
+        return;
+      }
+      ensureOwner(ownerBySlug.get(slug)).newlyBlocked += 1;
+    });
+  });
+
+  const rows = Array.from(ownerTotals.entries())
+    .map(function (entry) {
+      return {
+        owner: entry[0],
+        cleared: entry[1].cleared,
+        newlyBlocked: entry[1].newlyBlocked,
+        net: entry[1].newlyBlocked - entry[1].cleared,
+        volume: entry[1].cleared + entry[1].newlyBlocked,
+      };
+    })
+    .filter(function (entry) {
+      return entry.volume > 0;
+    })
+    .sort(function (a, b) {
+      const netDiff = Math.abs(b.net) - Math.abs(a.net);
+      if (netDiff) {
+        return netDiff;
+      }
+      return b.volume - a.volume;
+    })
+    .slice(0, 3);
+
+  if (!rows.length) {
+    return "No 4-week owner movement yet.";
+  }
+
+  return (
+    "Owner momentum: " +
+    rows
+      .map(function (entry) {
+        return (
+          entry.owner +
+          " net " +
+          entry.net +
+          " (" +
+          entry.cleared +
+          " cleared, " +
+          entry.newlyBlocked +
+          " new)"
+        );
+      })
+      .join(" · ")
+  );
+}
+
+function buildBlockedProfileOwnerRecommendations(context, options) {
+  const topBlockedProfiles = buildTopBlockedProfiles(context, options);
+  const ownerMap = new Map();
+
+  topBlockedProfiles.forEach(function (entry) {
+    const owner = entry.owner || "Unassigned";
+    if (!ownerMap.has(owner)) {
+      ownerMap.set(owner, entry);
+    }
+  });
+
+  return Array.from(ownerMap.entries())
+    .map(function (entry) {
+      return {
+        owner: entry[0],
+        therapistName: entry[1].name,
+        action: entry[1].ownerAction || entry[1].note || "Clear the next blocker.",
+      };
+    })
+    .slice(0, 3);
+}
+
 function getBlockedProfileReasonTag(fields, workflow, options) {
   const normalizedFields = Array.isArray(fields) ? fields.filter(Boolean) : [];
   const status = workflow && workflow.status ? String(workflow.status) : "";
@@ -1025,6 +1388,30 @@ function buildWeeklyOpsDigest(context, options) {
   const topBlockedProfiles = buildTopBlockedProfiles(context, options);
   const clearedBlockedProfiles = buildClearedBlockedProfiles(context);
   const newlyBlockedProfiles = buildNewlyBlockedProfiles(context, options);
+  const blockedProfileFlowSummary = buildBlockedProfileFlowSummary(
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileFlowTrend = buildBlockedProfileFlowTrend(
+    context,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileFlowFourWeekSnapshot = buildBlockedProfileFlowFourWeekSnapshot(
+    context,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileOwnerTrend = buildBlockedProfileOwnerTrend(
+    context,
+    options,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileOwnerRecommendations = buildBlockedProfileOwnerRecommendations(
+    context,
+    options,
+  );
 
   return (
     '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">Weekly Digest</h3><div class="subtle">A compact operator view of freshness risk, confirmation throughput, import-wave movement, and the profiles most likely to stall progress.</div></div><div class="ops-card-actions"><button class="btn-primary" data-weekly-digest-start>Start this week\'s digest</button><button class="btn-secondary" data-weekly-digest-copy="slack">Copy Slack digest</button><button class="btn-secondary" data-weekly-digest-copy="email">Copy email digest</button><button class="btn-secondary" data-weekly-digest-copy="handoff">Copy handoff digest</button><button class="btn-secondary" data-weekly-digest-log="slack">Log Slack sent</button><button class="btn-secondary" data-weekly-digest-log="email">Log email sent</button><button class="btn-secondary" data-weekly-digest-log="handoff">Log handoff sent</button></div></div>' +
@@ -1077,7 +1464,32 @@ function buildWeeklyOpsDigest(context, options) {
     options.escapeHtml(String(context.importWaveMetrics.exportedThisWeek)) +
     '</div></div></div><div class="queue-summary"><strong>Current bottleneck:</strong> ' +
     options.escapeHtml(context.importWaveMetrics.bottleneck) +
+    '</div><div class="queue-summary"><strong>Net blocker movement:</strong> ' +
+    options.escapeHtml(blockedProfileFlowSummary) +
+    '</div><div class="queue-summary subtle"><strong>Versus last week:</strong> ' +
+    options.escapeHtml(blockedProfileFlowTrend) +
+    '</div><div class="queue-summary subtle"><strong>4-week snapshot:</strong> ' +
+    options.escapeHtml(blockedProfileFlowFourWeekSnapshot) +
+    '</div><div class="queue-summary subtle"><strong>Owner momentum:</strong> ' +
+    options.escapeHtml(blockedProfileOwnerTrend) +
     "</div>" +
+    (blockedProfileOwnerRecommendations.length
+      ? '<div class="queue-summary"><strong>Owner next moves:</strong></div><div class="queue-shortlist">' +
+        blockedProfileOwnerRecommendations
+          .map(function (entry) {
+            return (
+              '<div class="queue-shortlist-item"><strong>' +
+              options.escapeHtml(entry.owner) +
+              ":</strong> " +
+              options.escapeHtml(entry.action) +
+              '<div class="subtle" style="margin-top:0.35rem">' +
+              options.escapeHtml("Focus therapist: " + entry.therapistName) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : "") +
     (clearedBlockedProfiles.length
       ? '<div class="queue-summary"><strong>Cleared blockers this week:</strong></div><div class="queue-shortlist">' +
         clearedBlockedProfiles
@@ -1208,6 +1620,30 @@ function buildWeeklyDigestExport(context, options, mode) {
   });
   const clearedBlockedProfiles = buildClearedBlockedProfiles(context);
   const newlyBlockedProfiles = buildNewlyBlockedProfiles(context, options);
+  const blockedProfileFlowSummary = buildBlockedProfileFlowSummary(
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileFlowTrend = buildBlockedProfileFlowTrend(
+    context,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileFlowFourWeekSnapshot = buildBlockedProfileFlowFourWeekSnapshot(
+    context,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileOwnerTrend = buildBlockedProfileOwnerTrend(
+    context,
+    options,
+    clearedBlockedProfiles,
+    newlyBlockedProfiles,
+  );
+  const blockedProfileOwnerRecommendations = buildBlockedProfileOwnerRecommendations(
+    context,
+    options,
+  );
 
   if (mode === "slack") {
     return [
@@ -1217,8 +1653,28 @@ function buildWeeklyDigestExport(context, options, mode) {
       "- Import-wave moved this week: " + movedThisWeek,
       "- Import-wave exports this week: " + exportedThisWeek,
       "- Bottleneck: " + context.importWaveMetrics.bottleneck,
-      "- Cleared blockers this week:",
+      "- Net blocker movement: " + blockedProfileFlowSummary,
+      "- Versus last week: " + blockedProfileFlowTrend,
+      "- 4-week snapshot: " + blockedProfileFlowFourWeekSnapshot,
+      "- Owner momentum: " + blockedProfileOwnerTrend,
+      "- Owner next moves:",
     ]
+      .concat(
+        blockedProfileOwnerRecommendations.length
+          ? blockedProfileOwnerRecommendations.map(function (entry) {
+              return (
+                "  - " +
+                entry.owner +
+                ": " +
+                entry.action +
+                " (focus therapist: " +
+                entry.therapistName +
+                ")"
+              );
+            })
+          : ["  - None yet."],
+      )
+      .concat(["- Cleared blockers this week:"])
       .concat(
         clearedBlockedProfiles.length
           ? clearedBlockedProfiles.map(function (entry) {
@@ -1287,9 +1743,28 @@ function buildWeeklyDigestExport(context, options, mode) {
       "Import-wave moved this week: " + movedThisWeek,
       "Import-wave exports this week: " + exportedThisWeek,
       "Current bottleneck: " + context.importWaveMetrics.bottleneck,
+      "Net blocker movement: " + blockedProfileFlowSummary,
+      "Versus last week: " + blockedProfileFlowTrend,
+      "4-week snapshot: " + blockedProfileFlowFourWeekSnapshot,
+      "Owner momentum: " + blockedProfileOwnerTrend,
       "",
-      "Cleared blockers this week:",
+      "Owner next moves:",
     ]
+      .concat(
+        blockedProfileOwnerRecommendations.length
+          ? blockedProfileOwnerRecommendations.map(function (entry) {
+              return (
+                "- " +
+                entry.owner +
+                ": " +
+                entry.action +
+                " | Focus therapist: " +
+                entry.therapistName
+              );
+            })
+          : ["- None yet."],
+      )
+      .concat(["", "Cleared blockers this week:"])
       .concat(
         clearedBlockedProfiles.length
           ? clearedBlockedProfiles.map(function (entry) {
@@ -1353,9 +1828,28 @@ function buildWeeklyDigestExport(context, options, mode) {
     "- Import-wave moved this week: " + movedThisWeek,
     "- Import-wave exports this week: " + exportedThisWeek,
     "- Current bottleneck: " + context.importWaveMetrics.bottleneck,
+    "- Net blocker movement: " + blockedProfileFlowSummary,
+    "- Versus last week: " + blockedProfileFlowTrend,
+    "- 4-week snapshot: " + blockedProfileFlowFourWeekSnapshot,
+    "- Owner momentum: " + blockedProfileOwnerTrend,
     "",
-    "## Cleared blockers this week",
+    "## Owner next moves",
   ]
+    .concat(
+      blockedProfileOwnerRecommendations.length
+        ? blockedProfileOwnerRecommendations.map(function (entry) {
+            return (
+              "- " +
+              entry.owner +
+              ": " +
+              entry.action +
+              " | Focus therapist: " +
+              entry.therapistName
+            );
+          })
+        : ["- None yet."],
+    )
+    .concat(["", "## Cleared blockers this week"])
     .concat(
       clearedBlockedProfiles.length
         ? clearedBlockedProfiles.map(function (entry) {
