@@ -65,6 +65,7 @@ let remotePortalRequests = [];
 let publishedTherapists = [];
 let applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
+let licensureRefreshQueue = [];
 let authRequired = false;
 let rankingRiskFilter = "";
 let confirmationQueueFilter = "";
@@ -6146,6 +6147,7 @@ function renderIngestionScorecard() {
     candidates: dataMode === "sanity" ? remoteCandidates : [],
     applications: dataMode === "sanity" ? remoteApplications : getApplications(),
     ingestionAutomationHistory: ingestionAutomationHistory,
+    licensureRefreshQueue: licensureRefreshQueue,
     buildCoverageInsights: buildCoverageInsights,
     getDataFreshnessSummary: getDataFreshnessSummary,
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
@@ -7490,6 +7492,22 @@ async function loadIngestionAutomationHistory() {
   }
 }
 
+async function loadLicensureRefreshQueue() {
+  try {
+    const response = await fetch("./data/import/generated-licensure-refresh-queue.json", {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      licensureRefreshQueue = [];
+      return;
+    }
+    const payload = await response.json();
+    licensureRefreshQueue = Array.isArray(payload) ? payload : [];
+  } catch (_error) {
+    licensureRefreshQueue = [];
+  }
+}
+
 function setAuthUiState() {
   const gate = document.getElementById("adminAuthGate");
   const app = document.getElementById("adminApp");
@@ -7531,6 +7549,7 @@ async function loadData() {
   let reviewApiAvailable = false;
 
   await loadIngestionAutomationHistory();
+  await loadLicensureRefreshQueue();
 
   try {
     await checkReviewApiHealth();
@@ -7571,6 +7590,7 @@ async function loadData() {
       remoteCandidates = [];
       remotePortalRequests = [];
       publishedTherapists = [];
+      licensureRefreshQueue = [];
       authRequired = true;
     } else {
       dataMode = "local";
@@ -7578,6 +7598,7 @@ async function loadData() {
       remoteCandidates = [];
       remotePortalRequests = [];
       publishedTherapists = [];
+      licensureRefreshQueue = [];
       authRequired = false;
     }
   }
@@ -7635,6 +7656,7 @@ document.getElementById("signOutAdmin").addEventListener("click", async function
   remoteApplications = [];
   remoteCandidates = [];
   publishedTherapists = [];
+  licensureRefreshQueue = [];
   setAuthUiState();
   renderAll();
 });

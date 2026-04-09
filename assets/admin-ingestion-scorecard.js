@@ -12,6 +12,9 @@ export function renderIngestionScorecardPanel(options) {
   var therapists = Array.isArray(options.therapists) ? options.therapists : [];
   var candidates = Array.isArray(options.candidates) ? options.candidates : [];
   var applications = Array.isArray(options.applications) ? options.applications : [];
+  var licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
+    ? options.licensureRefreshQueue
+    : [];
   var coverageInsights = options.buildCoverageInsights(therapists);
   var ingestionAutomationHistory = Array.isArray(options.ingestionAutomationHistory)
     ? options.ingestionAutomationHistory
@@ -41,6 +44,20 @@ export function renderIngestionScorecardPanel(options) {
       String(item.intake_type || ""),
     );
   }).length;
+  var licensureVerifiedTherapists = therapists.filter(function (item) {
+    var verification = item.licensure_verification || item.licensureVerification || null;
+    return Boolean(
+      verification &&
+      (verification.profileUrl ||
+        verification.profile_url ||
+        verification.verifiedAt ||
+        verification.verified_at),
+    );
+  }).length;
+  var licensureCoverageRate = therapists.length
+    ? Math.round((licensureVerifiedTherapists / therapists.length) * 100)
+    : 0;
+  var licensureRefreshCount = licensureRefreshQueue.length;
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
@@ -107,6 +124,20 @@ export function renderIngestionScorecardPanel(options) {
       value: updateApplications,
       note: "Applications that can sync directly into existing live therapists.",
     },
+    {
+      label: "Licensure coverage",
+      value: licensureCoverageRate + "%",
+      note:
+        licensureVerifiedTherapists +
+        " live therapist" +
+        (licensureVerifiedTherapists === 1 ? "" : "s") +
+        " have cached primary-source licensure data.",
+    },
+    {
+      label: "Licensure refresh",
+      value: licensureRefreshCount,
+      note: "Licensure records currently queued for refresh or first-pass enrichment.",
+    },
   ];
 
   var nextMove =
@@ -116,9 +147,11 @@ export function renderIngestionScorecardPanel(options) {
         ? "Resolve duplicate drag next so sourcing throughput stays clean."
         : staleTherapists > 0
           ? "Freshness is the next bottleneck. Work the refresh lane."
-          : thinCities > 0
-            ? "Coverage gaps are now the main opportunity. Run the next sourcing wave."
-            : "The graph looks healthy. Focus on strategic sourcing and trust upgrades.";
+          : licensureRefreshCount > 0
+            ? "Licensure refresh is the next trust upgrade. Work the primary-source queue."
+            : thinCities > 0
+              ? "Coverage gaps are now the main opportunity. Run the next sourcing wave."
+              : "The graph looks healthy. Focus on strategic sourcing and trust upgrades.";
 
   function getTrendValue(current, previous) {
     if (previous == null || current == null) {
@@ -167,6 +200,20 @@ export function renderIngestionScorecardPanel(options) {
           note:
             "Current: " +
             ((latestAutomationRun.metrics && latestAutomationRun.metrics.reverificationItems) ||
+              0) +
+            " items",
+        },
+        {
+          label: "Licensure refresh trend",
+          value: getTrendValue(
+            latestAutomationRun.metrics && latestAutomationRun.metrics.licensureRefreshItems,
+            priorAutomationRun &&
+              priorAutomationRun.metrics &&
+              priorAutomationRun.metrics.licensureRefreshItems,
+          ),
+          note:
+            "Current: " +
+            ((latestAutomationRun.metrics && latestAutomationRun.metrics.licensureRefreshItems) ||
               0) +
             " items",
         },
@@ -259,6 +306,15 @@ export function renderIngestionScorecardPanel(options) {
                 level:
                   automationTrends.reverificationItems &&
                   automationTrends.reverificationItems.direction === "up"
+                    ? "status rejected"
+                    : "status approved",
+              },
+              {
+                label:
+                  "Licensure refresh " + formatTrendSignal(automationTrends.licensureRefreshItems),
+                level:
+                  automationTrends.licensureRefreshItems &&
+                  automationTrends.licensureRefreshItems.direction === "up"
                     ? "status rejected"
                     : "status approved",
               },

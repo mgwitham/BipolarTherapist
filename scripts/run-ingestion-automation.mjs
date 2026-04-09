@@ -69,6 +69,7 @@ const steps = [
     outputs: [
       "data/import/generated-licensure-refresh-queue.csv",
       "data/import/generated-licensure-refresh-queue.md",
+      "data/import/generated-licensure-refresh-queue.json",
     ],
   },
   {

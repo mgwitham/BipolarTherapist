@@ -44,6 +44,10 @@ export function buildMetrics(root) {
       "data/import/generated-sourcing-recommendations.csv",
     ),
     opsQueueItems: readCsvRowCount(root, "data/import/generated-ingestion-ops-queue.csv"),
+    licensureRefreshItems: readCsvRowCount(
+      root,
+      "data/import/generated-licensure-refresh-queue.csv",
+    ),
     reverificationItems: readCsvRowCount(root, "data/import/generated-reverification-batch.csv"),
     candidateReviewItems: readCsvRowCount(
       root,
@@ -59,6 +63,13 @@ export function buildAlerts(metrics) {
       level: "warn",
       label: "Ops queue pressure",
       message: `${metrics.opsQueueItems} ingestion ops items are waiting. Work the inbox before sourcing more.`,
+    });
+  }
+  if (metrics.licensureRefreshItems >= 15) {
+    alerts.push({
+      level: "warn",
+      label: "Licensure refresh pressure",
+      message: `${metrics.licensureRefreshItems} licensure records need refresh or first-pass enrichment.`,
     });
   }
   if (metrics.reverificationItems >= 20) {
@@ -127,7 +138,7 @@ function getMetricDelta(history, key, currentValue) {
 }
 
 export function buildTrendSignals(history, metrics) {
-  const keys = ["opsQueueItems", "reverificationItems", "candidateReviewItems"];
+  const keys = ["opsQueueItems", "licensureRefreshItems", "reverificationItems", "candidateReviewItems"];
   return keys.reduce(function (accumulator, key) {
     const delta = getMetricDelta(history, key, metrics[key]);
     accumulator[key] = {
@@ -146,6 +157,13 @@ export function buildTrendAlerts(trends) {
       level: "warn",
       label: "Ops queue trending up",
       message: `Ops queue grew by ${trends.opsQueueItems.delta} items since the previous automation run.`,
+    });
+  }
+  if (trends.licensureRefreshItems && trends.licensureRefreshItems.delta >= 3) {
+    alerts.push({
+      level: "warn",
+      label: "Licensure refresh trend up",
+      message: `Licensure refresh demand grew by ${trends.licensureRefreshItems.delta} items since the previous automation run.`,
     });
   }
   if (trends.reverificationItems && trends.reverificationItems.delta >= 3) {
@@ -182,12 +200,14 @@ export function buildMarkdown(summary) {
     `- Source domains tracked: ${summary.metrics.sourceDomains}`,
     `- Sourcing recommendations: ${summary.metrics.sourcingRecommendations}`,
     `- Ops queue items: ${summary.metrics.opsQueueItems}`,
+    `- Licensure refresh items: ${summary.metrics.licensureRefreshItems}`,
     `- Reverification items: ${summary.metrics.reverificationItems}`,
     `- Candidate review items: ${summary.metrics.candidateReviewItems}`,
     "",
     "## Trend Watch",
     "",
     `- Ops queue: ${summary.trends.opsQueueItems.direction}${summary.trends.opsQueueItems.delta == null ? "" : ` (${summary.trends.opsQueueItems.delta > 0 ? "+" : ""}${summary.trends.opsQueueItems.delta})`}`,
+    `- Licensure refresh: ${summary.trends.licensureRefreshItems.direction}${summary.trends.licensureRefreshItems.delta == null ? "" : ` (${summary.trends.licensureRefreshItems.delta > 0 ? "+" : ""}${summary.trends.licensureRefreshItems.delta})`}`,
     `- Reverification: ${summary.trends.reverificationItems.direction}${summary.trends.reverificationItems.delta == null ? "" : ` (${summary.trends.reverificationItems.delta > 0 ? "+" : ""}${summary.trends.reverificationItems.delta})`}`,
     `- Candidate review: ${summary.trends.candidateReviewItems.direction}${summary.trends.candidateReviewItems.delta == null ? "" : ` (${summary.trends.candidateReviewItems.delta > 0 ? "+" : ""}${summary.trends.candidateReviewItems.delta})`}`,
     "",

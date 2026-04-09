@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.csv");
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.md");
+const OUTPUT_JSON = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.json");
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -326,6 +327,7 @@ async function run() {
   const rows = buildRows(data);
   writeCsv(rows);
   writeMarkdown(rows);
+  fs.writeFileSync(OUTPUT_JSON, JSON.stringify(rows, null, 2) + "\n", "utf8");
 
   console.log(
     `Generated licensure refresh queue with ${rows.length} record(s).`,
