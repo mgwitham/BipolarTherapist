@@ -224,6 +224,14 @@ export function createReviewerWorkspace(dependencies) {
 
   function getReviewEntityTask(entityType, entityId) {
     var state = dependencies.getRuntimeState();
+    if (entityType === "therapist") {
+      var therapist = (dependencies.getPublishedTherapists() || []).find(function (item) {
+        return String(item && item.id) === String(entityId);
+      });
+      if (therapist && therapist.review_follow_up) {
+        return therapist.review_follow_up;
+      }
+    }
     if (state.dataMode === "sanity") {
       if (entityType === "application") {
         var remoteApplication = (state.remoteApplications || []).find(function (item) {
@@ -247,7 +255,7 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function saveReviewEntityTask(entityType, entityId, updates) {
-    if (dependencies.getRuntimeState().dataMode === "sanity") {
+    if (dependencies.getRuntimeState().dataMode === "sanity" && entityType !== "therapist") {
       return;
     }
     var tasks = readReviewEntityTasks();
@@ -273,7 +281,7 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function deleteReviewEntityTask(entityType, entityId) {
-    if (dependencies.getRuntimeState().dataMode === "sanity") {
+    if (dependencies.getRuntimeState().dataMode === "sanity" && entityType !== "therapist") {
       return;
     }
     var tasks = readReviewEntityTasks();
@@ -283,6 +291,17 @@ export function createReviewerWorkspace(dependencies) {
 
   async function persistReviewEntityTask(entityType, entityId, nextPayload, options) {
     var config = options || {};
+    if (entityType === "therapist") {
+      if (config.clear) {
+        deleteReviewEntityTask(entityType, entityId);
+      } else {
+        saveReviewEntityTask(entityType, entityId, nextPayload);
+      }
+      renderAttentionQueue();
+      renderReviewerWorkload();
+      dependencies.renderTherapistOpsQueues();
+      return;
+    }
     if (dependencies.getRuntimeState().dataMode === "sanity") {
       if (entityType === "application") {
         await dependencies.updateTherapistApplication(entityId, {
@@ -320,6 +339,7 @@ export function createReviewerWorkspace(dependencies) {
 
   function getReviewTaskStatusLabel(status) {
     if (status === "done") return "Done";
+    if (status === "waiting") return "Waiting";
     if (status === "blocked") return "Blocked";
     return "Open";
   }
@@ -330,6 +350,7 @@ export function createReviewerWorkspace(dependencies) {
     var applications =
       state.dataMode === "sanity" ? state.remoteApplications : dependencies.getApplications();
     var candidates = state.dataMode === "sanity" ? state.remoteCandidates : [];
+    var therapists = dependencies.getPublishedTherapists();
 
     (Array.isArray(applications) ? applications : []).forEach(function (item) {
       var followUp = item && item.review_follow_up ? item.review_follow_up : null;
@@ -365,6 +386,28 @@ export function createReviewerWorkspace(dependencies) {
         entity_type: "candidate",
         id: item.id,
         name: item.name || item.id || "Candidate",
+        assignee_id: followUp.assignee_id || "",
+        assignee_name: followUp.assignee_name || followUp.assignee || "",
+        assignee: followUp.assignee_name || followUp.assignee || "",
+        due_at: followUp.due_at || "",
+        updated_at: followUp.updated_at || item.updated_at || "",
+        status: followUp.status || "open",
+        note: followUp.note || "",
+      });
+    });
+
+    (Array.isArray(therapists) ? therapists : []).forEach(function (item) {
+      var followUp = getReviewEntityTask("therapist", item.id);
+      if (
+        !followUp ||
+        !(followUp.note || followUp.assignee || followUp.due_at || followUp.status !== "open")
+      ) {
+        return;
+      }
+      items.push({
+        entity_type: "therapist",
+        id: item.id,
+        name: item.name || item.slug || item.id || "Listing",
         assignee_id: followUp.assignee_id || "",
         assignee_name: followUp.assignee_name || followUp.assignee || "",
         assignee: followUp.assignee_name || followUp.assignee || "",
@@ -463,7 +506,55 @@ export function createReviewerWorkspace(dependencies) {
     if (isFollowUpDueToday(item)) return 1;
     if (isFollowUpStale(item)) return 2;
     if (item && item.status === "blocked") return 3;
+    if (item && item.status === "waiting") return 5;
     return 4;
+  }
+
+  async function claimReviewEntityTask(entityType, entityId) {
+    if (!entityType || !entityId) return;
+    var currentTask = getReviewEntityTask(entityType, entityId) || {
+      status: "open",
+      note: "",
+    };
+    var preferredReviewer = getPreferredReviewer();
+    var nextAssignee = preferredReviewer;
+    if (!nextAssignee) {
+      var roster = getReviewerRoster();
+      nextAssignee = window.prompt(
+        roster.length
+          ? "Who owns this work item? Available reviewers: " + roster.join(", ")
+          : "Who owns this work item?",
+        String(currentTask.assignee || ""),
+      );
+      if (nextAssignee === null) return;
+    }
+    await persistReviewEntityTask(entityType, entityId, {
+      status: currentTask.status || "open",
+      note: currentTask.note || "",
+      assignee_id:
+        preferredReviewer && getPreferredReviewerId()
+          ? getPreferredReviewerId()
+          : (findReviewerEntryByName(nextAssignee) || {}).id || "",
+      assignee_name: String(nextAssignee || "").trim(),
+      assignee: String(nextAssignee || "").trim(),
+      due_at: currentTask.due_at || "",
+    });
+  }
+
+  async function updateReviewEntityTaskStatus(entityType, entityId, status) {
+    if (!entityType || !entityId || !status) return;
+    var currentTask = getReviewEntityTask(entityType, entityId) || {
+      status: "open",
+      note: "",
+    };
+    await persistReviewEntityTask(entityType, entityId, {
+      status: status,
+      note: currentTask.note || "",
+      assignee_id: currentTask.assignee_id || "",
+      assignee_name: currentTask.assignee_name || currentTask.assignee || "",
+      assignee: currentTask.assignee || "",
+      due_at: currentTask.due_at || "",
+    });
   }
 
   function getNextDueFollowUpItem(items) {
@@ -515,6 +606,61 @@ export function createReviewerWorkspace(dependencies) {
     return reasons.join(" · ");
   }
 
+  function sortFollowUpItems(items) {
+    return (Array.isArray(items) ? items.slice() : []).sort(function (a, b) {
+      var aWeight = getFollowUpPriorityWeight(a);
+      var bWeight = getFollowUpPriorityWeight(b);
+      if (aWeight !== bWeight) return aWeight - bWeight;
+      var aDue = a && a.due_at ? new Date(a.due_at).getTime() : Number.POSITIVE_INFINITY;
+      var bDue = b && b.due_at ? new Date(b.due_at).getTime() : Number.POSITIVE_INFINITY;
+      if (aDue !== bDue) return aDue - bDue;
+      var aUpdated = a && a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      var bUpdated = b && b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return aUpdated - bUpdated;
+    });
+  }
+
+  function getRecentlyCompletedItems(limit) {
+    return getAllReviewFollowUpItems()
+      .filter(function (item) {
+        return item && item.status === "done";
+      })
+      .sort(function (a, b) {
+        var aUpdated = a && a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        var bUpdated = b && b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return bUpdated - aUpdated;
+      })
+      .slice(0, limit || 6);
+  }
+
+  function getHumanWorkQueueSnapshot(limit) {
+    var preferredReviewer = getPreferredReviewer();
+    var items = getAllReviewFollowUpItems().filter(function (item) {
+      return item && item.status !== "done";
+    });
+    return {
+      preferredReviewer: preferredReviewer,
+      myTasks: preferredReviewer
+        ? sortFollowUpItems(
+            items.filter(function (item) {
+              return item.assignee === preferredReviewer;
+            }),
+          ).slice(0, limit || 6)
+        : [],
+      unassigned: sortFollowUpItems(
+        items.filter(function (item) {
+          return !item.assignee;
+        }),
+      ).slice(0, limit || 6),
+      dueToday: sortFollowUpItems(
+        items.filter(function (item) {
+          return isFollowUpDueToday(item) || isFollowUpOverdue(item);
+        }),
+      ).slice(0, limit || 6),
+      doneRecently: getRecentlyCompletedItems(limit || 6),
+    };
+  }
+
   function renderAttentionQueue() {
     var root = document.getElementById("reviewAttentionQueue");
     var scopeMeta = document.getElementById("reviewAttentionQueueScope");
@@ -534,7 +680,7 @@ export function createReviewerWorkspace(dependencies) {
     }
     if (!items.length) {
       root.innerHTML =
-        '<div class="empty">No overdue, stale, or unassigned follow-up needs immediate attention.</div>';
+        '<div class="empty">No overdue, stale, or unassigned work needs immediate attention.</div>';
       return;
     }
     root.innerHTML =
@@ -648,6 +794,31 @@ export function createReviewerWorkspace(dependencies) {
           card.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
+      return;
+    }
+    if (entityType === "therapist") {
+      var therapistPanels = [
+        document.getElementById("importBlockerSprint"),
+        document.getElementById("confirmationQueue"),
+        document.getElementById("confirmationSprint"),
+        document.getElementById("refreshQueue"),
+      ];
+      window.requestAnimationFrame(function () {
+        for (var i = 0; i < therapistPanels.length; i += 1) {
+          var scope = therapistPanels[i];
+          if (!scope) continue;
+          var card = scope.querySelector(
+            buildDataAttributeSelector("data-review-task-id", entityId),
+          );
+          if (card) {
+            var row = card.closest(".queue-card, .mini-card");
+            if (row && typeof row.scrollIntoView === "function") {
+              row.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+            return;
+          }
+        }
+      });
     }
   }
 
@@ -682,7 +853,7 @@ export function createReviewerWorkspace(dependencies) {
     if (sliceEl) sliceEl.value = dependencies.uiState.workloadSlice;
     if (myQueueButton) {
       var scopedReviewer = getScopedReviewerName();
-      myQueueButton.textContent = scopedReviewer ? "My queue: " + scopedReviewer : "My queue";
+      myQueueButton.textContent = scopedReviewer ? "My work: " + scopedReviewer : "My work";
       myQueueButton.setAttribute(
         "aria-pressed",
         dependencies.uiState.myQueueMode ? "true" : "false",
@@ -693,8 +864,7 @@ export function createReviewerWorkspace(dependencies) {
 
     var items = getAllReviewFollowUpItems();
     if (!items.length) {
-      root.innerHTML =
-        '<div class="empty">No shared follow-up work is currently assigned or queued.</div>';
+      root.innerHTML = '<div class="empty">No shared work is currently assigned or queued.</div>';
       return;
     }
 
@@ -721,8 +891,7 @@ export function createReviewerWorkspace(dependencies) {
     }
 
     if (!items.length) {
-      root.innerHTML =
-        '<div class="empty">No follow-up work matches the current reviewer view.</div>';
+      root.innerHTML = '<div class="empty">No work matches the current reviewer view.</div>';
       return;
     }
 
@@ -818,13 +987,12 @@ export function createReviewerWorkspace(dependencies) {
       .join("");
 
     root.innerHTML =
-      '<div class="queue-insights"><div class="queue-insights-title">Attention summary</div><div class="queue-insights-grid">' +
+      '<div class="queue-insights"><div class="queue-insights-title">Needs-action summary</div><div class="queue-insights-grid">' +
       [
         {
           label: "Overdue",
           value: summaryOverdueCount,
-          note:
-            summaryOverdueCount > 0 ? "Work already past due." : "No overdue follow-up right now.",
+          note: summaryOverdueCount > 0 ? "Work already past due." : "No overdue work right now.",
         },
         {
           label: "Due today",
@@ -844,17 +1012,13 @@ export function createReviewerWorkspace(dependencies) {
           label: "Blocked",
           value: summaryBlockedCount,
           note:
-            summaryBlockedCount > 0
-              ? "Items waiting on an unblock."
-              : "No currently blocked follow-up.",
+            summaryBlockedCount > 0 ? "Items waiting on an unblock." : "No currently blocked work.",
         },
         {
           label: "Needs nudge",
           value: summaryStaleCount,
           note:
-            summaryStaleCount > 0
-              ? "Open work untouched for 3+ days."
-              : "No stale follow-up right now.",
+            summaryStaleCount > 0 ? "Open work untouched for 3+ days." : "No stale work right now.",
         },
         {
           label: "Unassigned",
@@ -904,7 +1068,7 @@ export function createReviewerWorkspace(dependencies) {
               dependencies.uiState.workloadFilter
                 ? "Reviewer: " + dependencies.uiState.workloadFilter
                 : "",
-              getScopedReviewerName() ? "My queue: " + getScopedReviewerName() : "",
+              getScopedReviewerName() ? "My work: " + getScopedReviewerName() : "",
               dependencies.uiState.workloadSlice === "overdue"
                 ? "Overdue only"
                 : dependencies.uiState.workloadSlice === "today"
@@ -928,7 +1092,7 @@ export function createReviewerWorkspace(dependencies) {
       assigneeCards +
       "</div></div>" +
       (unassigned.length
-        ? '<div class="queue-insights"><div class="queue-insights-title">Unassigned follow-up</div><div class="subtle" style="margin-bottom:0.7rem">These records need an owner before they fall through the cracks.</div><div style="display:grid;gap:0.65rem">' +
+        ? '<div class="queue-insights"><div class="queue-insights-title">Unassigned work</div><div class="subtle" style="margin-bottom:0.7rem">These records need an owner before they fall through the cracks.</div><div style="display:grid;gap:0.65rem">' +
           unassigned
             .slice(0, 8)
             .map(function (item) {
@@ -937,7 +1101,11 @@ export function createReviewerWorkspace(dependencies) {
                 dependencies.escapeHtml(item.name) +
                 '</div><div class="subtle" style="margin-top:0.2rem">' +
                 dependencies.escapeHtml(
-                  (item.entity_type === "application" ? "Application" : "Candidate") +
+                  (item.entity_type === "application"
+                    ? "Application"
+                    : item.entity_type === "candidate"
+                      ? "Candidate"
+                      : "Listing") +
                     " · " +
                     getReviewTaskStatusLabel(item.status) +
                     (getFollowUpDueLabel(item) ? " · " + getFollowUpDueLabel(item) : "") +
@@ -981,7 +1149,7 @@ export function createReviewerWorkspace(dependencies) {
         ? '<div style="margin-top:0.55rem;font-size:0.88rem;color:var(--slate)">' +
           dependencies.escapeHtml(note) +
           "</div>"
-        : '<div style="margin-top:0.55rem;font-size:0.84rem;color:var(--muted)">No follow-up note yet.</div>') +
+        : '<div style="margin-top:0.55rem;font-size:0.84rem;color:var(--muted)">No work note yet.</div>') +
       (assignee || dueAt
         ? '<div class="subtle" style="margin-top:0.45rem">' +
           dependencies.escapeHtml(
@@ -1053,13 +1221,13 @@ export function createReviewerWorkspace(dependencies) {
       if (nextNote === null) return;
       var nextAssignee = window.prompt(
         roster.length
-          ? "Who owns this follow-up? Available reviewers: " + roster.join(", ")
-          : "Who owns this follow-up?",
+          ? "Who owns this work item? Available reviewers: " + roster.join(", ")
+          : "Who owns this work item?",
         String(currentTask.assignee || ""),
       );
       if (nextAssignee === null) return;
       var nextDueAt = window.prompt(
-        "Due date for this follow-up (YYYY-MM-DD):",
+        "Due date for this work item (YYYY-MM-DD):",
         String(currentTask.due_at || ""),
       );
       if (nextDueAt === null) return;
@@ -1091,7 +1259,7 @@ export function createReviewerWorkspace(dependencies) {
         due_at: currentTask.due_at || "",
       };
     } else if (clearButton) {
-      var shouldClear = window.confirm("Clear the follow-up workspace for this record?");
+      var shouldClear = window.confirm("Clear the work workspace for this record?");
       if (!shouldClear) return;
       nextPayload = {
         status: "open",
@@ -1127,8 +1295,8 @@ export function createReviewerWorkspace(dependencies) {
         var roster = getReviewerRoster();
         var selectedReviewer = window.prompt(
           roster.length
-            ? "Who should My queue belong to? Available reviewers: " + roster.join(", ")
-            : "Who should My queue belong to?",
+            ? "Who should My work belong to? Available reviewers: " + roster.join(", ")
+            : "Who should My work belong to?",
           "",
         );
         if (selectedReviewer === null) return;
@@ -1245,6 +1413,16 @@ export function createReviewerWorkspace(dependencies) {
       handleReviewEntityTaskAction(event);
     });
 
+    ["confirmationQueue", "confirmationSprint", "importBlockerSprint", "refreshQueue"].forEach(
+      function (id) {
+        var root = document.getElementById(id);
+        if (!root) return;
+        root.addEventListener("click", function (event) {
+          handleReviewEntityTaskAction(event);
+        });
+      },
+    );
+
     document
       .getElementById("reviewAttentionQueue")
       .addEventListener("click", async function (event) {
@@ -1262,33 +1440,7 @@ export function createReviewerWorkspace(dependencies) {
           var assignType = assignButton.getAttribute("data-attention-assign-me") || "";
           var assignId = assignButton.getAttribute("data-attention-id") || "";
           if (!assignType || !assignId) return;
-          var currentTask = getReviewEntityTask(assignType, assignId) || {
-            status: "open",
-            note: "",
-          };
-          var preferredReviewer = getPreferredReviewer();
-          var nextAssignee = preferredReviewer;
-          if (!nextAssignee) {
-            var roster = getReviewerRoster();
-            nextAssignee = window.prompt(
-              roster.length
-                ? "Who owns this follow-up? Available reviewers: " + roster.join(", ")
-                : "Who owns this follow-up?",
-              String(currentTask.assignee || ""),
-            );
-            if (nextAssignee === null) return;
-          }
-          await persistReviewEntityTask(assignType, assignId, {
-            status: currentTask.status || "open",
-            note: currentTask.note || "",
-            assignee_id:
-              preferredReviewer && getPreferredReviewerId()
-                ? getPreferredReviewerId()
-                : (findReviewerEntryByName(nextAssignee) || {}).id || "",
-            assignee_name: String(nextAssignee || "").trim(),
-            assignee: String(nextAssignee || "").trim(),
-            due_at: currentTask.due_at || "",
-          });
+          await claimReviewEntityTask(assignType, assignId);
           return;
         }
 
@@ -1315,9 +1467,13 @@ export function createReviewerWorkspace(dependencies) {
 
   return {
     bindEventHandlers,
+    getHumanWorkQueueSnapshot,
     getPreferredReviewer,
     getReviewerRoster,
     getSavedPreference: readReviewerPreference,
+    openWorkItem: openAttentionRecord,
+    claimWorkItem: claimReviewEntityTask,
+    updateWorkItemStatus: updateReviewEntityTaskStatus,
     renderAttentionQueue,
     renderReviewEntityTaskHtml,
     renderReviewerWorkload,

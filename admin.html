@@ -1830,10 +1830,10 @@
               <div id="reviewActivityFeed"></div>
             </div>
             <div class="panel" id="reviewAttentionQueuePanel" style="margin-bottom: 1rem">
-              <h2>Attention Queue</h2>
+              <h2>Needs Action Now</h2>
               <p class="subtle" style="margin-top: 0">
-                The highest-priority follow-up needing action now, based on overdue, stale, and
-                unassigned work.
+                The highest-priority work needing action now, based on overdue, stale, and
+                unassigned items.
               </p>
               <div
                 class="subtle"
@@ -1843,17 +1843,17 @@
               <div id="reviewAttentionQueue"></div>
             </div>
             <div class="panel" id="reviewerWorkloadPanel" style="margin-bottom: 1rem">
-              <h2>Reviewer Workload</h2>
+              <h2>Assigned Work</h2>
               <p class="subtle" style="margin-top: 0">
-                Shared follow-up ownership across applications and candidates, including overdue,
-                blocked, and unassigned work.
+                Shared ownership across applications and new listings, including overdue, blocked,
+                and unassigned work.
               </p>
               <div class="toolbar" style="margin-bottom: 0.8rem">
                 <select id="reviewerWorkloadFilter">
                   <option value="">All reviewers</option>
                 </select>
                 <button class="btn-secondary" type="button" id="reviewerMyQueueToggle">
-                  My queue
+                  My work
                 </button>
                 <select id="reviewerWorkloadSlice">
                   <option value="all">All work</option>
@@ -2031,7 +2031,7 @@
                 <input
                   type="search"
                   id="candidateSearch"
-                  placeholder="Search candidates, cities, source types..."
+                  placeholder="Search new listings, cities, source types..."
                 />
                 <select id="candidateReviewStatusFilter">
                   <option value="">All review statuses</option>

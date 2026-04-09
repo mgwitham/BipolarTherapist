@@ -105,6 +105,7 @@ let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
 let deferredLicensureQueue = [];
 let licensureActivityFeed = [];
+let profileConversionFreshnessQueue = [];
 let authRequired = false;
 let licensureQueueFilter = "";
 let licensureActivityFilter = "";
@@ -679,6 +680,9 @@ function applyAdminRuntimeState(nextState) {
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "licensureActivityFeed")) {
     licensureActivityFeed = nextState.licensureActivityFeed;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "profileConversionFreshnessQueue")) {
+    profileConversionFreshnessQueue = nextState.profileConversionFreshnessQueue;
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "authRequired")) {
     authRequired = nextState.authRequired;
@@ -4153,13 +4157,13 @@ function renderStats() {
             focusTargetId: "refreshQueueStartHere",
           }
         : {
-            title: "Promote Listings",
+            title: "Promote Live Listings",
             countLabel: listingPromotionCount,
-            copy: "Promote strong live profiles into the right visibility lane so launch-ready supply does not sit under-staged.",
+            copy: "Move strong live listings into the right visibility level so good profiles do not sit under-promoted.",
             steps: [
-              "Open listings control and start with the top promotion decision.",
-              "Choose the simplest clear state for the profile: featured, launch-ready, or standard.",
-              "Leave the listing in the right visibility lane before moving on.",
+              "Open live-listing controls and start with the top promotion decision.",
+              "Choose the simplest clear state for the profile: feature it, mark it ready to feature, or keep it standard.",
+              "Leave the listing in the right visibility level before moving on.",
             ],
             done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
             actionLabel: "Open listings overview",
@@ -4221,15 +4225,15 @@ function renderStats() {
       kicker: "Add Supply",
       title: "Add New Listings",
       countLabel: candidateReviewCount,
-      copy: "Work newly discovered candidates into the system so good supply does not sit unreviewed.",
+      copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
       steps: [
-        "Open the candidate queue and inspect the source profile.",
-        "Decide whether the candidate is publishable, needs confirmation, or is a duplicate.",
+        "Open the new-listings lane and inspect the source profile.",
+        "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
         "Move the card to the right next state before leaving it.",
       ],
-      done: "The candidate is marked ready, sent to confirmation, merged as a duplicate, or published.",
-      actionLabel: "Open candidate queue overview",
-      directActionLabel: "Start with first candidate",
+      done: "The listing is marked ready, sent to confirmation, merged as a duplicate, or published.",
+      actionLabel: "Open new-listings overview",
+      directActionLabel: "Start with first listing",
       targetId: "candidateQueuePanel",
       focusTargetId: "candidateQueueStartHere",
       targetSummary: "Add New Listings -> first listing row",
@@ -4239,14 +4243,14 @@ function renderStats() {
       kicker: "Review Supply",
       title: "Review Applications",
       countLabel: pendingApplicationsCount,
-      copy: "Process therapist-submitted applications so strong after-claim profiles can turn into live supply fast.",
+      copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
       steps: [
-        "Open the application review queue and start with the oldest or strongest pending item.",
-        "Check trust-critical fields, revision notes, and any claim follow-up context.",
+        "Open the applications lane and start with the oldest or strongest pending item.",
+        "Check trust-critical fields, revision notes, and any therapist follow-up context.",
         "Approve, request changes, reject, or publish so the application leaves limbo.",
       ],
       done: "The application has a clear decision and no longer sits in the pending review pile.",
-      actionLabel: "Open review queue overview",
+      actionLabel: "Open applications overview",
       directActionLabel: "Start with top application",
       targetId: "applicationsPanel",
       applicationStatus: "pending",
@@ -4297,13 +4301,13 @@ function renderStats() {
           ? "Confirm Listing Details -> first ready-to-apply update"
           : publishMaintainCardConfig.targetId === "refreshQueueSection"
             ? "Review Listing Updates -> first listing task"
-            : "Published Listings -> top listing decision",
+            : "Promote Live Listings -> top listing decision",
       overviewSummary:
         publishMaintainCardConfig.targetId === "confirmationQueueSection"
           ? "Confirm Listing Details overview"
           : publishMaintainCardConfig.targetId === "refreshQueueSection"
             ? "Review Listing Updates overview"
-            : "Published Listings overview",
+            : "Promote Live Listings overview",
     }),
   ];
 
@@ -4366,7 +4370,7 @@ function renderStats() {
   ];
 
   const secondaryContextCards = [
-    buildPassiveStatCard(therapists.length, "Published listings"),
+    buildPassiveStatCard(therapists.length, "Live listings"),
     buildPassiveStatCard(stats.states_covered, "States covered"),
     buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
     buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
@@ -5323,6 +5327,7 @@ function renderOpsInbox() {
     therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
     applications: dataMode === "sanity" ? remoteApplications : getApplications(),
     licensureRefreshQueue: licensureRefreshQueue,
+    profileConversionFreshnessQueue: profileConversionFreshnessQueue,
     getDataFreshnessSummary: getDataFreshnessSummary,
     getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
     getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
@@ -5336,10 +5341,18 @@ function renderOpsInbox() {
     getTherapistTrustRecommendation: getTherapistTrustRecommendation,
     renderFieldTrustChips: renderFieldTrustChips,
     getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
+    buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+    getPreferredFieldOrder: getPreferredFieldOrder,
     formatFieldLabel: formatFieldLabel,
     formatDate: formatDate,
     escapeHtml: escapeHtml,
     copyText: copyText,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
     decideTherapistCandidate: decideTherapistCandidate,
     decideTherapistOps: decideTherapistOps,
     loadData: loadData,
@@ -5942,6 +5955,7 @@ async function loadData() {
       createRemoteAuthRequiredState({
         ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
         licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+        profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
       }),
     );
     setAuthUiState();
@@ -5975,6 +5989,7 @@ async function loadData() {
         licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
         deferredLicensureQueue: generatedArtifacts.deferredLicensureQueue,
         licensureActivityFeed: generatedArtifacts.licensureActivityFeed,
+        profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
       }),
     );
     if (
@@ -5994,6 +6009,7 @@ async function loadData() {
         createRemoteAuthRequiredState({
           ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
           licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+          profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
         }),
       );
     } else {
@@ -6003,6 +6019,7 @@ async function loadData() {
           licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
           deferredLicensureQueue: generatedArtifacts.deferredLicensureQueue,
           licensureActivityFeed: generatedArtifacts.licensureActivityFeed,
+          profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
         }),
       );
     }

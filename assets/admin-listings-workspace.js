@@ -104,7 +104,7 @@ export function createListingsWorkspace(options) {
       return "Featured";
     }
     if (value === "launch_ready") {
-      return "Launch-ready";
+      return "Ready to feature";
     }
     return "Live only";
   }
@@ -284,7 +284,7 @@ export function createListingsWorkspace(options) {
         " are currently staged."
       );
     }
-    return "No explicit launch control overrides are staged yet. Start by marking the strongest public profiles as launch-ready or featured.";
+    return "No explicit visibility overrides are staged yet. Start by marking the strongest live profiles as ready to feature or featured.";
   }
 
   function getLaunchLaneRows(rows, lane) {
@@ -337,7 +337,7 @@ export function createListingsWorkspace(options) {
         featuredCount +
         " featured and " +
         launchReadyCount +
-        " launch-ready profile" +
+        " ready-to-feature profile" +
         (launchReadyCount === 1 ? "" : "s") +
         " are carrying this lane."
       );
@@ -348,7 +348,7 @@ export function createListingsWorkspace(options) {
       featuredCount +
       " featured and " +
       launchReadyCount +
-      " launch-ready profile" +
+      " ready-to-feature profile" +
       (launchReadyCount === 1 ? "" : "s") +
       "."
     );
@@ -379,7 +379,7 @@ export function createListingsWorkspace(options) {
     if (weakMatch >= Math.ceil(Math.max(matchRows.length, 1) / 2)) {
       return "Next bottleneck: match-priority profiles need stronger trust or merchandising quality.";
     }
-    return "Next bottleneck: keep the featured lanes fresh while promoting the strongest launch-ready profiles up into featured state.";
+    return "Next bottleneck: keep the featured lanes fresh while promoting the strongest ready-to-feature profiles up into featured state.";
   }
 
   function summarizeLaunchProfileSignals(rows, events) {
@@ -564,7 +564,7 @@ export function createListingsWorkspace(options) {
     var lines = [
       "# Launch / Featured Profile Control",
       "",
-      "Profiles currently staged for launch-ready or featured visibility work.",
+      "Profiles currently staged for ready-to-feature or featured visibility work.",
       "",
     ];
 
@@ -730,7 +730,7 @@ export function createListingsWorkspace(options) {
     var recentLaunchFlashes = getRecentLaunchControlFlashes(3);
 
     root.innerHTML =
-      '<div class="queue-insights"><div class="queue-insights-title">Launch control</div><div class="subtle" style="margin-bottom:0.7rem">Use launch state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
+      '<div class="queue-insights"><div class="queue-insights-title">Visibility control</div><div class="subtle" style="margin-bottom:0.7rem">Use visibility state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
       [
         {
           label: "All live profiles",
@@ -740,7 +740,7 @@ export function createListingsWorkspace(options) {
           lane: "",
         },
         {
-          label: "Launch-ready",
+          label: "Ready to feature",
           count: launchCounts.launch_ready,
           note: "Strong enough to promote next",
           state: "launch_ready",
@@ -868,9 +868,9 @@ export function createListingsWorkspace(options) {
                     (signals.profile_opens || 0) +
                     " open",
                 ) +
-                '. Strong enough to test in a launch lane.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-promote="' +
+                '. Strong enough to test in a featured lane.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-promote="' +
                 escapeHtml(row.item.slug) +
-                '">Promote to launch-ready</button></div></div>'
+                '">Mark ready to feature</button></div></div>'
               );
             })
             .join("") +
@@ -1031,16 +1031,16 @@ export function createListingsWorkspace(options) {
             (isStartHere
               ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary btn-inline" data-launch-quick-action="' +
                 escapeHtml(item.slug) +
-                '" data-launch-quick-mode="promote_launch_ready">Make launch-ready</button></div></div><div class="queue-actions secondary-actions">'
+                '" data-launch-quick-mode="promote_launch_ready">Mark ready to feature</button></div></div><div class="queue-actions secondary-actions">'
               : '<div class="queue-actions" style="margin-top:0.75rem">') +
             '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
             escapeHtml(item.slug) +
-            '" data-launch-quick-mode="feature_homepage">Make featured</button>' +
+            '" data-launch-quick-mode="feature_homepage">Feature on homepage</button>' +
             (isStartHere
               ? ""
               : '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
                 escapeHtml(item.slug) +
-                '" data-launch-quick-mode="promote_launch_ready">Make launch-ready</button>') +
+                '" data-launch-quick-mode="promote_launch_ready">Mark ready to feature</button>') +
             '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
             escapeHtml(item.slug) +
             '" data-launch-quick-mode="set_standard">Keep standard</button>' +
@@ -1188,8 +1188,8 @@ export function createListingsWorkspace(options) {
             homepage_featured: false,
             match_priority: true,
           });
-          setLaunchControlFlashMessage("Completed: profile promoted to launch-ready.");
-          setLaunchControlFlashHistory(slug, "Completed: profile promoted to launch-ready.");
+          setLaunchControlFlashMessage("Completed: profile marked ready to feature.");
+          setLaunchControlFlashHistory(slug, "Completed: profile marked ready to feature.");
         } else if (mode === "set_standard") {
           updateLaunchProfileControlEntry(slug, {
             launch_state: "standard",
@@ -1233,8 +1233,8 @@ export function createListingsWorkspace(options) {
         updateLaunchProfileControlEntry(slug, {
           launch_state: "launch_ready",
         });
-        setLaunchControlFlashMessage("Completed: profile promoted to launch-ready.");
-        setLaunchControlFlashHistory(slug, "Completed: profile promoted to launch-ready.");
+        setLaunchControlFlashMessage("Completed: profile marked ready to feature.");
+        setLaunchControlFlashHistory(slug, "Completed: profile marked ready to feature.");
         renderListings();
       });
     });

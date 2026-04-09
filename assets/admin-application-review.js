@@ -99,7 +99,7 @@ export function renderApplicationsPanel(options) {
 
   if (!applications.length) {
     root.innerHTML =
-      '<div class="empty"><strong>No applications to review right now.</strong><br />The application queue is empty, so there is nothing for an operator to process in this lane yet.<div style="margin-top:0.8rem"><a class="btn-secondary btn-inline" href="#candidateQueuePanel">Go to Add New Listings instead</a></div></div>';
+      '<div class="empty"><strong>No applications to review right now.</strong><br />The applications lane is empty, so there is nothing for an operator to process here yet.<div style="margin-top:0.8rem"><a class="btn-secondary btn-inline" href="#candidateQueuePanel">Go to Add New Listings instead</a></div></div>';
     return;
   }
 
@@ -243,7 +243,7 @@ export function renderApplicationsPanel(options) {
           .join("") +
         "</div></div>"
       : "") +
-    '<div class="queue-insights"><div class="queue-insights-title">Claim funnel snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually converting into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
+    '<div class="queue-insights"><div class="queue-insights-title">Application pipeline snapshot</div><div class="subtle" style="margin-bottom:0.7rem">Use this to track whether approved claims are actually turning into fuller profile submissions.</div><div class="mini-status" style="margin-bottom:0.8rem"><strong>Bottleneck:</strong> ' +
     options.escapeHtml(claimBottleneck) +
     '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_follow_up_due">Show overdue claims</button><button class="btn-secondary" type="button" data-claim-funnel-focus="stalled_after_claim_review">Show stalled reviews</button><button class="btn-secondary" type="button" data-claim-funnel-focus="claim_conversion">Show after-claim profiles</button><button class="btn-secondary" type="button" data-claim-funnel-export="launch">Copy fast-track supply batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="stalled">Copy stalled review batch</button><button class="btn-secondary" type="button" data-claim-funnel-export="overdue">Copy overdue follow-up batch</button></div><div class="review-coach-status" id="claimFunnelExportStatus"></div><div class="queue-insights-grid">' +
     [
@@ -302,7 +302,7 @@ export function renderApplicationsPanel(options) {
       .join("") +
     "</div></div>" +
     (claimActionQueue.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Top claim actions right now</div><div class="subtle" style="margin-bottom:0.7rem">These are the highest-leverage therapist funnel moves based on delay risk and follow-through value.</div><div class="queue-insights-grid">' +
+      ? '<div class="queue-insights"><div class="queue-insights-title">Top therapist actions right now</div><div class="subtle" style="margin-bottom:0.7rem">These are the highest-leverage therapist follow-up moves based on delay risk and follow-through value.</div><div class="queue-insights-grid">' +
         claimActionQueue
           .map(function (item) {
             return (
@@ -321,7 +321,7 @@ export function renderApplicationsPanel(options) {
         "</div></div>"
       : "") +
     (claimLaunchCandidates.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Fastest path to live supply</div><div class="subtle" style="margin-bottom:0.7rem">These after-claim profiles are the strongest candidates to turn into trustworthy live supply with one focused review pass.</div><div class="queue-insights-grid">' +
+      ? '<div class="queue-insights"><div class="queue-insights-title">Fastest path to a live listing</div><div class="subtle" style="margin-bottom:0.7rem">These fuller profiles are the strongest candidates to turn into trustworthy live listings with one focused review pass.</div><div class="queue-insights-grid">' +
         claimLaunchCandidates
           .map(function (item) {
             return (
@@ -344,7 +344,7 @@ export function renderApplicationsPanel(options) {
         "</div></div>"
       : "") +
     (stalledAfterClaimReviews.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Stalled after-claim reviews</div><div class="subtle" style="margin-bottom:0.7rem">These therapists already came back after claim approval, but their fuller profiles have started aging in review.</div><div class="queue-insights-grid">' +
+      ? '<div class="queue-insights"><div class="queue-insights-title">Stalled fuller-profile reviews</div><div class="subtle" style="margin-bottom:0.7rem">These therapists already came back after claim approval, but their fuller profiles have started aging in review.</div><div class="queue-insights-grid">' +
         stalledAfterClaimReviews
           .map(function (item) {
             return (
@@ -367,7 +367,7 @@ export function renderApplicationsPanel(options) {
         "</div></div>"
       : "") +
     (overdueClaims.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Urgent follow-up queue</div><div class="subtle" style="margin-bottom:0.7rem">These approved claims are the most likely to cool off if you do not send follow-up now.</div><div class="queue-insights-grid">' +
+      ? '<div class="queue-insights"><div class="queue-insights-title">Urgent therapist follow-ups</div><div class="subtle" style="margin-bottom:0.7rem">These approved claims are the most likely to cool off if you do not send follow-up now.</div><div class="queue-insights-grid">' +
         overdueClaims
           .map(function (item) {
             var urgency = options.getClaimFollowUpUrgency(item);
@@ -726,7 +726,9 @@ export function renderApplicationsPanel(options) {
           options.escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
           "</span>" +
           '<span class="tag">' +
-          options.escapeHtml(item.submission_intent === "claim" ? "Free claim" : "Full profile") +
+          options.escapeHtml(
+            item.submission_intent === "claim" ? "Profile claim" : "Full profile",
+          ) +
           "</span>" +
           (isConfirmationRefresh
             ? '<span class="tag">Live profile confirmation update</span>'

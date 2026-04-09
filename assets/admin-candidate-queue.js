@@ -6,6 +6,62 @@ import {
   renderCandidateTrustChips,
 } from "./admin-candidate-review.js";
 
+function getCandidateStartHereGuidance(item) {
+  if (!item) {
+    return {
+      primaryAction: "mark_ready",
+      primaryLabel: "Queue for publish",
+      whyNow: "This is the top current new listing in the filtered view.",
+      doneWhen: "This listing has a clear next state and is no longer sitting in unworked review.",
+    };
+  }
+
+  if (item.dedupe_status === "possible_duplicate") {
+    return {
+      primaryAction: "reject_duplicate",
+      primaryLabel: "Resolve duplicate now",
+      whyNow:
+        "Possible duplicate risk should be resolved first so you do not create clutter or publish the wrong profile.",
+      doneWhen:
+        "The listing is marked duplicate, merged, or clearly kept as unique before you move on.",
+    };
+  }
+
+  if (
+    item.review_status === "needs_confirmation" ||
+    item.review_lane === "needs_confirmation" ||
+    item.publish_recommendation === "needs_confirmation"
+  ) {
+    return {
+      primaryAction: "needs_confirmation",
+      primaryLabel: "Send to confirmation now",
+      whyNow:
+        "This listing looks promising but still needs one more trust pass before it is safe to publish.",
+      doneWhen:
+        "The listing is clearly moved into confirmation follow-up instead of staying in ambiguous review.",
+    };
+  }
+
+  if (item.review_status === "ready_to_publish" || item.review_lane === "publish_now") {
+    return {
+      primaryAction: "publish",
+      primaryLabel: "Publish now",
+      whyNow: "This is a strong publish-ready listing and the fastest way to add trusted supply.",
+      doneWhen:
+        "The listing is published or moved out of publish-ready with a clear reason recorded.",
+    };
+  }
+
+  return {
+    primaryAction: "mark_ready",
+    primaryLabel: "Queue for publish",
+    whyNow:
+      "This listing appears unique enough to move forward, even if you are not publishing it immediately.",
+    doneWhen:
+      "The listing is moved into the right next state: publish-ready, confirmation, duplicate, merge, or archive.",
+  };
+}
+
 export function renderCandidateQueuePanel(options) {
   const root = options.root;
   const countEl = options.countEl;
@@ -57,12 +113,12 @@ export function renderCandidateQueuePanel(options) {
     filtered.length +
     " of " +
     candidates.length +
-    " candidate" +
+    " listing" +
     (candidates.length === 1 ? "" : "s");
 
   if (!candidates.length) {
     root.innerHTML =
-      '<div class="empty">No sourced therapist candidates yet. Run the discovery or candidate import workflow and they will appear here.</div>';
+      '<div class="empty">No new therapist listings have been added yet. Run the discovery or import workflow and they will appear here.</div>';
     return;
   }
 
@@ -77,7 +133,7 @@ export function renderCandidateQueuePanel(options) {
   }).length;
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Candidate queue snapshot</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">New listings snapshot</div><div class="queue-insights-grid">' +
     [
       {
         value: publishNowCount,
@@ -87,7 +143,7 @@ export function renderCandidateQueuePanel(options) {
       {
         value: confirmCount,
         label: "Needs confirmation",
-        note: "Good candidates that still need one more trust pass before publish.",
+        note: "Good listings that still need one more trust pass before publish.",
       },
       {
         value: duplicateCount,
@@ -108,7 +164,7 @@ export function renderCandidateQueuePanel(options) {
       })
       .join("") +
     "</div></div>" +
-    (filtered.length ? "" : '<div class="empty">No candidates match the current filters.</div>') +
+    (filtered.length ? "" : '<div class="empty">No new listings match the current filters.</div>') +
     filtered
       .map(function (item, index) {
         const location = [item.city, item.state, item.zip]
@@ -120,6 +176,7 @@ export function renderCandidateQueuePanel(options) {
         const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
         const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
         const reviewEvents = options.getReviewEventsForCandidate(item);
+        const startHereGuidance = getCandidateStartHereGuidance(item);
         const mergeWorkbench = renderCandidateMergeWorkbench(item, {
           therapists: therapists,
           applications: applications,
@@ -132,7 +189,7 @@ export function renderCandidateQueuePanel(options) {
         });
         const recommendation =
           item.publish_recommendation === "ready"
-            ? "Strong publish candidate."
+            ? "Strong publish listing."
             : item.publish_recommendation === "needs_confirmation"
               ? "Worth keeping, but needs confirmation."
               : item.publish_recommendation === "reject"
@@ -148,10 +205,12 @@ export function renderCandidateQueuePanel(options) {
           (index === 0 ? ' id="candidateQueueStartHere"' : "") +
           '">' +
           (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this candidate first. It is the top current supply decision in the filtered queue.</div><div class="start-here-action">Do this now: check for duplicates, review the source trail, and decide publish, confirmation, merge, or archive.</div>'
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this listing first. It is the top current supply decision in the filtered view.</div><div class="start-here-action">Do this now: ' +
+              options.escapeHtml(startHereGuidance.whyNow) +
+              "</div>"
             : "") +
           '<div class="queue-head"><div><h3>' +
-          options.escapeHtml(item.name || "Unnamed candidate") +
+          options.escapeHtml(item.name || "Unnamed listing") +
           '</h3><div class="subtle">' +
           options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
           '</div></div><div class="queue-head-actions"><span class="tag">' +
@@ -225,9 +284,17 @@ export function renderCandidateQueuePanel(options) {
           mergeWorkbench +
           mergePreview +
           (index === 0
-            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary" data-candidate-decision="' +
+            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="mini-status" style="margin-bottom:0.65rem"><strong>Why this first:</strong> ' +
+              options.escapeHtml(startHereGuidance.whyNow) +
+              '</div><div class="recommended-action-row"><button class="btn-primary" data-candidate-decision="' +
               options.escapeHtml(item.id) +
-              '" data-candidate-next="publish">Publish now</button></div></div><div class="queue-actions secondary-actions">'
+              '" data-candidate-next="' +
+              options.escapeHtml(startHereGuidance.primaryAction) +
+              '">' +
+              options.escapeHtml(startHereGuidance.primaryLabel) +
+              '</button></div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> ' +
+              options.escapeHtml(startHereGuidance.doneWhen) +
+              '</div></div><div class="queue-actions secondary-actions">'
             : '<div class="queue-actions">') +
           (index === 0
             ? options
@@ -235,7 +302,11 @@ export function renderCandidateQueuePanel(options) {
                 .replace(
                   '<button class="btn-primary" data-candidate-decision="' +
                     options.escapeHtml(item.id) +
-                    '" data-candidate-next="publish">Publish now</button>',
+                    '" data-candidate-next="' +
+                    options.escapeHtml(startHereGuidance.primaryAction) +
+                    '">' +
+                    options.escapeHtml(startHereGuidance.primaryLabel) +
+                    "</button>",
                   "",
                 )
             : options.buildCandidateDecisionActions(item)) +
