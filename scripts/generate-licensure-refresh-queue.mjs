@@ -8,6 +8,24 @@ const API_VERSION = "2026-04-02";
 const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.csv");
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.md");
 const OUTPUT_JSON = path.join(ROOT, "data", "import", "generated-licensure-refresh-queue.json");
+const DEFERRED_OUTPUT_CSV = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-licensure-deferred-queue.csv",
+);
+const DEFERRED_OUTPUT_MD = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-licensure-deferred-queue.md",
+);
+const DEFERRED_OUTPUT_JSON = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-licensure-deferred-queue.json",
+);
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -177,6 +195,7 @@ function buildRows(data) {
   });
 
   const rows = [];
+  const deferredRows = [];
 
   (data.therapists || []).forEach((therapist) => {
     const record = recordsByProvider.get(therapist.providerId || "");
@@ -212,6 +231,32 @@ function buildRows(data) {
     );
     const deferredUntil = record.deferredUntilAt || "";
     if (deferredUntil && toTimestamp(deferredUntil) > Date.now()) {
+      deferredRows.push({
+        provider_id: therapist.providerId || "",
+        therapist_id: therapist._id,
+        licensure_record_id: record._id,
+        name: therapist.name || "",
+        credentials: therapist.credentials || "",
+        location: [therapist.city, therapist.state, therapist.zip].filter(Boolean).join(", "),
+        license_number: therapist.licenseNumber || "",
+        refresh_status: record.refreshStatus || "queued",
+        next_refresh_due_at: formatDate(record.nextRefreshDueAt || ""),
+        deferred_until_at: formatDate(deferredUntil),
+        last_refresh_success_at: formatDate(record.lastRefreshSuccessAt),
+        expiration_date: expiry,
+        queue_reason: "deferred",
+        reason: "Licensure work is currently deferred",
+        next_move: "Wait until the deferred date or clear the defer state",
+        profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
+        official_profile_url:
+          (record.licensureVerification && record.licensureVerification.profileUrl) ||
+          (therapist.licensureVerification && therapist.licensureVerification.profileUrl) ||
+          "",
+        licensure_verified_at:
+          (record.licensureVerification && record.licensureVerification.verifiedAt) ||
+          (therapist.licensureVerification && therapist.licensureVerification.verifiedAt) ||
+          "",
+      });
       return;
     }
     const dueAt = record.nextRefreshDueAt || record.staleAfterAt || "";
@@ -252,18 +297,23 @@ function buildRows(data) {
     }
   });
 
-  return rows.sort((a, b) => {
-    const aFailed = a.refresh_status === "failed" ? 1 : 0;
-    const bFailed = b.refresh_status === "failed" ? 1 : 0;
-    if (aFailed !== bFailed) {
-      return bFailed - aFailed;
-    }
-    return toTimestamp(a.next_refresh_due_at) - toTimestamp(b.next_refresh_due_at);
-  });
+  return {
+    activeRows: rows.sort((a, b) => {
+      const aFailed = a.refresh_status === "failed" ? 1 : 0;
+      const bFailed = b.refresh_status === "failed" ? 1 : 0;
+      if (aFailed !== bFailed) {
+        return bFailed - aFailed;
+      }
+      return toTimestamp(a.next_refresh_due_at) - toTimestamp(b.next_refresh_due_at);
+    }),
+    deferredRows: deferredRows.sort((a, b) => {
+      return toTimestamp(a.deferred_until_at) - toTimestamp(b.deferred_until_at);
+    }),
+  };
 }
 
-function writeCsv(rows) {
-  const headers = [
+function getHeaders() {
+  return [
     "provider_id",
     "therapist_id",
     "licensure_record_id",
@@ -283,14 +333,18 @@ function writeCsv(rows) {
     "official_profile_url",
     "licensure_verified_at",
   ];
+}
+
+function writeCsv(filePath, rows) {
+  const headers = getHeaders();
   const lines = [headers.join(",")];
   rows.forEach((row) => {
     lines.push(headers.map((header) => csvEscape(row[header] || "")).join(","));
   });
-  fs.writeFileSync(OUTPUT_CSV, `${lines.join("\n")}\n`, "utf8");
+  fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
 }
 
-function writeMarkdown(rows) {
+function writeMarkdown(filePath, title, rows) {
   const failed = rows.filter((row) => row.refresh_status === "failed").length;
   const missing = rows.filter((row) => row.queue_reason === "missing_cache").length;
   const expiring = rows.filter((row) => {
@@ -299,7 +353,7 @@ function writeMarkdown(rows) {
   }).length;
 
   const lines = [
-    "# Licensure Refresh Queue",
+    "# " + title,
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
@@ -336,7 +390,7 @@ function writeMarkdown(rows) {
     lines.push("");
   });
 
-  fs.writeFileSync(OUTPUT_MD, `${lines.join("\n")}\n`, "utf8");
+  fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
 }
 
 async function run() {
@@ -354,13 +408,16 @@ async function run() {
   });
 
   const data = await fetchData(client);
-  const rows = buildRows(data);
-  writeCsv(rows);
-  writeMarkdown(rows);
-  fs.writeFileSync(OUTPUT_JSON, JSON.stringify(rows, null, 2) + "\n", "utf8");
+  const queues = buildRows(data);
+  writeCsv(OUTPUT_CSV, queues.activeRows);
+  writeMarkdown(OUTPUT_MD, "Licensure Refresh Queue", queues.activeRows);
+  fs.writeFileSync(OUTPUT_JSON, JSON.stringify(queues.activeRows, null, 2) + "\n", "utf8");
+  writeCsv(DEFERRED_OUTPUT_CSV, queues.deferredRows);
+  writeMarkdown(DEFERRED_OUTPUT_MD, "Deferred Licensure Queue", queues.deferredRows);
+  fs.writeFileSync(DEFERRED_OUTPUT_JSON, JSON.stringify(queues.deferredRows, null, 2) + "\n", "utf8");
 
   console.log(
-    `Generated licensure refresh queue with ${rows.length} record(s).`,
+    `Generated licensure refresh queue with ${queues.activeRows.length} active record(s) and ${queues.deferredRows.length} deferred record(s).`,
   );
 }
 

@@ -75,6 +75,7 @@ let deferredLicensureQueue = [];
 let licensureActivityFeed = [];
 let authRequired = false;
 let licensureQueueFilter = "";
+let licensureActivityFilter = "";
 let rankingRiskFilter = "";
 let confirmationQueueFilter = "";
 let conciergeFilters = {
@@ -6900,6 +6901,7 @@ function renderLicensureQueue() {
     countEl: document.getElementById("licensureQueueCount"),
     authRequired: authRequired,
     rows: licensureRefreshQueue,
+    activityFeed: licensureActivityFeed,
     activeFilter: licensureQueueFilter,
     onFilterChange: function (nextFilter) {
       licensureQueueFilter = nextFilter;
@@ -6920,6 +6922,7 @@ function renderLicensureSprint() {
     root: document.getElementById("licensureSprint"),
     authRequired: authRequired,
     rows: licensureRefreshQueue,
+    activityFeed: licensureActivityFeed,
     latestAutomationRun: latestAutomationRun,
     decideLicensureOps: decideLicensureOps,
     loadData: loadData,
@@ -6934,6 +6937,7 @@ function renderDeferredLicensureQueue() {
     countEl: document.getElementById("deferredLicensureQueueCount"),
     authRequired: authRequired,
     rows: deferredLicensureQueue,
+    activityFeed: licensureActivityFeed,
     decideLicensureOps: decideLicensureOps,
     loadData: loadData,
     escapeHtml: escapeHtml,
@@ -6946,6 +6950,11 @@ function renderLicensureActivity() {
     countEl: document.getElementById("licensureActivityCount"),
     authRequired: authRequired,
     rows: licensureActivityFeed,
+    activeFilter: licensureActivityFilter,
+    onFilterChange: function (nextFilter) {
+      licensureActivityFilter = nextFilter;
+      renderLicensureActivity();
+    },
     escapeHtml: escapeHtml,
   });
 }

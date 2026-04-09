@@ -36,6 +36,7 @@
     "cms:generate:source-domain-health-report": "node scripts/generate-source-domain-health-report.mjs",
     "cms:generate:sourcing-recommendations": "node scripts/generate-sourcing-recommendations.mjs",
     "cms:generate:licensure-refresh-queue": "node scripts/generate-licensure-refresh-queue.mjs",
+    "cms:generate:licensure-activity-feed": "node scripts/generate-licensure-activity-feed.mjs",
     "cms:generate:reverification-batch": "node scripts/generate-reverification-batch.mjs",
     "cms:generate:ops-session": "node scripts/generate-ops-session.mjs",
     "cms:run:ingestion-automation": "node scripts/run-ingestion-automation.mjs",

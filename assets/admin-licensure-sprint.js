@@ -177,6 +177,7 @@ function renderLane(title, rows, options, laneKey) {
     '">Copy brief</button></div>' +
     rows
       .map(function (item) {
+        const recentActivity = getRecentActivity(item, options.activityFeed);
         return (
           '<article class="mini-card"><div><strong>' +
           options.escapeHtml(item.name || "Unnamed therapist") +
@@ -186,6 +187,12 @@ function renderLane(title, rows, options, laneKey) {
           ) +
           '</div><div class="subtle" style="margin-top:0.35rem">' +
           options.escapeHtml(item.reason || item.next_move || "Licensure action needed") +
+          "</div>" +
+          (recentActivity
+            ? '<div class="subtle" style="margin-top:0.35rem">Recent activity: ' +
+              options.escapeHtml(recentActivity) +
+              "</div>"
+            : "") +
           '</div></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end">' +
           (item.official_profile_url
             ? '<a class="btn-secondary btn-inline" href="' +
@@ -302,4 +309,34 @@ function formatLaneLabel(lane) {
     return "Expiration watch";
   }
   return "Licensure sprint";
+}
+
+function getRecentActivity(item, feed) {
+  const rows = Array.isArray(feed) ? feed : [];
+  const match = rows.find(function (entry) {
+    return (
+      (entry.licensure_record_id && entry.licensure_record_id === item.licensure_record_id) ||
+      (entry.provider_id && entry.provider_id === item.provider_id) ||
+      (entry.therapist_id && entry.therapist_id === item.therapist_id)
+    );
+  });
+  if (!match) {
+    return "";
+  }
+  const parts = [match.headline || "Licensure activity"];
+  if (match.activity_at) {
+    parts.push(formatDisplayDate(match.activity_at));
+  }
+  return parts.join(" · ");
+}
+
+function formatDisplayDate(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleString();
 }

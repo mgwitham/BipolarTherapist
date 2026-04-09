@@ -156,6 +156,7 @@ function buildRows(data) {
       rows.push({
         ...base,
         activity_type: "refresh_success",
+        decision: "",
         activity_at: record.lastRefreshSuccessAt,
         headline: "Primary-source licensure refresh succeeded",
         detail:
@@ -168,6 +169,7 @@ function buildRows(data) {
       rows.push({
         ...base,
         activity_type: "refresh_failed",
+        decision: "",
         activity_at: record.lastRefreshFailureAt,
         headline: "Licensure refresh failed",
         detail: record.lastRefreshError || "Official lookup did not complete.",
@@ -188,6 +190,7 @@ function buildRows(data) {
       official_profile_url: "",
       profile_link: therapist && therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
       activity_type: event.eventType || "licensure_refresh_deferred",
+      decision: event.decision || "",
       activity_at: event.createdAt || "",
       headline:
         event.decision === "unsnooze_now"
@@ -216,6 +219,7 @@ function writeCsv(rows) {
     "location",
     "license_status",
     "activity_type",
+    "decision",
     "activity_at",
     "headline",
     "detail",

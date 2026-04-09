@@ -65,6 +65,7 @@ export function renderLicensureQueuePanel(options) {
         .slice(0, 20)
         .map(function (item) {
           const verifiedAt = formatDisplayDate(item.licensure_verified_at);
+          const recentActivity = getRecentActivity(item, options.activityFeed);
           const statusTone =
             item.refresh_status === "failed"
               ? "status rejected"
@@ -97,6 +98,12 @@ export function renderLicensureQueuePanel(options) {
             options.escapeHtml(item.reason || "Licensure refresh due") +
             '</div><div class="subtle" style="margin-top:0.35rem">Next move: ' +
             options.escapeHtml(item.next_move || "Refresh licensure record") +
+            "</div>" +
+            (recentActivity
+              ? '<div class="subtle" style="margin-top:0.35rem">Recent activity: ' +
+                options.escapeHtml(recentActivity) +
+                "</div>"
+              : "") +
             '</div></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end">' +
             (item.official_profile_url
               ? '<a class="btn-secondary btn-inline" href="' +
@@ -216,6 +223,25 @@ function buildRefreshCommand(therapistId, item) {
     return base + " --force";
   }
   return base;
+}
+
+function getRecentActivity(item, feed) {
+  const rows = Array.isArray(feed) ? feed : [];
+  const match = rows.find(function (entry) {
+    return (
+      (entry.licensure_record_id && entry.licensure_record_id === item.licensure_record_id) ||
+      (entry.provider_id && entry.provider_id === item.provider_id) ||
+      (entry.therapist_id && entry.therapist_id === item.therapist_id)
+    );
+  });
+  if (!match) {
+    return "";
+  }
+  const parts = [match.headline || "Licensure activity"];
+  if (match.activity_at) {
+    parts.push(formatDisplayDate(match.activity_at));
+  }
+  return parts.join(" · ");
 }
 
 function matchesFilter(item, filter) {

@@ -2981,20 +2981,37 @@ export function createReviewApiHandler(configOverride) {
         const body = await parseBody(request);
         const decision = String(body.decision || "").trim();
         const notes = String(body.notes || "").trim();
-        const allowedDecisions = new Set(["snooze_7d", "snooze_30d"]);
+        const allowedDecisions = new Set(["snooze_7d", "snooze_30d", "unsnooze_now"]);
         if (!allowedDecisions.has(decision)) {
           sendJson(response, 400, { error: "Unsupported licensure ops decision." }, origin, config);
           return;
         }
 
         const nowIso = new Date().toISOString();
-        const snoozeDays = decision === "snooze_30d" ? 30 : 7;
-        const patchFields = {
-          deferredUntilAt: addDays(nowIso, snoozeDays),
-          nextRefreshDueAt: addDays(nowIso, snoozeDays),
-          refreshStatus: record.refreshStatus === "failed" ? "needs_refresh" : record.refreshStatus || "queued",
-        };
-        const changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
+        let patchFields;
+        let changedFields;
+        let eventType;
+
+        if (decision === "unsnooze_now") {
+          patchFields = {
+            deferredUntilAt: "",
+            nextRefreshDueAt: nowIso,
+            refreshStatus:
+              record.refreshStatus === "healthy" ? "needs_refresh" : record.refreshStatus || "queued",
+          };
+          changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
+          eventType = "licensure_refresh_deferred";
+        } else {
+          const snoozeDays = decision === "snooze_30d" ? 30 : 7;
+          patchFields = {
+            deferredUntilAt: addDays(nowIso, snoozeDays),
+            nextRefreshDueAt: addDays(nowIso, snoozeDays),
+            refreshStatus:
+              record.refreshStatus === "failed" ? "needs_refresh" : record.refreshStatus || "queued",
+          };
+          changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
+          eventType = "licensure_refresh_deferred";
+        }
 
         const transaction = client.transaction();
         transaction.patch(recordId, function (patch) {
@@ -3002,7 +3019,7 @@ export function createReviewApiHandler(configOverride) {
         });
         transaction.create(
           buildLicensureOpsEvent(record, {
-            eventType: "licensure_refresh_deferred",
+            eventType: eventType,
             decision,
             notes,
             changedFields,
