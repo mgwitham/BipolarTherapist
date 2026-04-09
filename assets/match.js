@@ -1,5 +1,11 @@
 import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
-import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
+import {
+  buildUserMatchProfile,
+  getDataFreshnessSummary,
+  getRecentAppliedSummary,
+  getRecentConfirmationSummary,
+  rankTherapistsForUser,
+} from "./matching-model.js";
 import { submitMatchOutcome, submitMatchRequest } from "./review-api.js";
 import {
   getExperimentVariant,
@@ -699,6 +705,74 @@ function readDirectoryShortlist() {
   }
 }
 
+function writeDirectoryShortlist(value) {
+  try {
+    window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(value || []));
+  } catch (_error) {
+    return;
+  }
+}
+
+function normalizeDirectoryShortlistValue(value) {
+  return (Array.isArray(value) ? value : [])
+    .map(function (item) {
+      if (!item || !item.slug) {
+        return null;
+      }
+      return {
+        slug: String(item.slug),
+        priority: String(item.priority || ""),
+        note: String(item.note || ""),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, PRIMARY_SHORTLIST_LIMIT);
+}
+
+function persistEntriesToDirectoryShortlist(entries) {
+  var existing = readDirectoryShortlist();
+  var normalized = normalizeDirectoryShortlistValue(
+    (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (entry) {
+      var saved = existing.find(function (item) {
+        return item.slug === entry?.therapist?.slug;
+      });
+      return {
+        slug: entry?.therapist?.slug || "",
+        priority:
+          String(entry?.evaluation?.shortlist_priority || "").trim() ||
+          String(saved?.priority || "").trim(),
+        note:
+          String(entry?.evaluation?.shortlist_note || "").trim() ||
+          String(saved?.note || "").trim(),
+      };
+    }),
+  );
+
+  if (normalized.length) {
+    writeDirectoryShortlist(normalized);
+  }
+
+  return normalized;
+}
+
+function buildShortlistComparePath(entries) {
+  var slugs = (entries || [])
+    .slice(0, PRIMARY_SHORTLIST_LIMIT)
+    .map(function (entry) {
+      return entry?.therapist?.slug || "";
+    })
+    .filter(Boolean);
+
+  return slugs.length
+    ? "match.html?shortlist=" + encodeURIComponent(slugs.join(","))
+    : "match.html";
+}
+
+function buildShortlistCompareUrl(entries) {
+  var path = buildShortlistComparePath(entries);
+  return new URL(path, window.location.href).toString();
+}
+
 function renderTags(values) {
   return (values || [])
     .filter(Boolean)
@@ -1064,9 +1138,295 @@ function renderCompareValue(value, kind) {
   return escapeHtml(String(value));
 }
 
+function getCompareCostLabel(therapist) {
+  if (!therapist) {
+    return "";
+  }
+
+  var min = therapist.session_fee_min;
+  var max = therapist.session_fee_max;
+  if (min && max && min !== max) {
+    return "$" + min + "–$" + max + " per session";
+  }
+  if (min) {
+    return "$" + min + " per session";
+  }
+  if (max) {
+    return "Up to $" + max + " per session";
+  }
+  if (therapist.sliding_scale) {
+    return "Sliding scale available";
+  }
+  return "";
+}
+
+function getCompareTimingLabel(therapist) {
+  if (!therapist) {
+    return "";
+  }
+  if (therapist.estimated_wait_time) {
+    return therapist.estimated_wait_time;
+  }
+  if (therapist.accepting_new_patients) {
+    return "Appears to be accepting new patients";
+  }
+  return "";
+}
+
+function getCompareTrustLabel(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : null;
+  if (!therapist) {
+    return "";
+  }
+  if (therapist.bipolar_years_experience) {
+    return therapist.bipolar_years_experience + " years with bipolar-related care";
+  }
+  if (therapist.verification_status === "editorially_verified") {
+    return "Editorially verified profile";
+  }
+  return "Trust details still partial";
+}
+
+function getCompareFreshness(entry) {
+  var therapist = entry && entry.therapist ? entry.therapist : null;
+  if (!therapist) {
+    return null;
+  }
+
+  var recentApplied = getRecentAppliedSummary(therapist);
+  if (recentApplied) {
+    return {
+      label: recentApplied.short_label || recentApplied.label,
+      note: recentApplied.note,
+      tone: "fresh",
+    };
+  }
+
+  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  if (recentConfirmation) {
+    return {
+      label: recentConfirmation.short_label || recentConfirmation.label,
+      note: recentConfirmation.note,
+      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
+    };
+  }
+
+  var freshness = getDataFreshnessSummary(therapist);
+  return freshness
+    ? {
+        label: freshness.label,
+        note: freshness.note,
+        tone: freshness.status === "fresh" ? "fresh" : "stale",
+      }
+    : null;
+}
+
+function getCompareRole(entry, index, recommendedSlug) {
+  var priority = String(entry?.evaluation?.shortlist_priority || "").toLowerCase();
+  var slug = entry?.therapist?.slug || "";
+
+  if (recommendedSlug && slug === recommendedSlug) {
+    return "Contact first";
+  }
+  if (priority === "top pick") {
+    return "Contact first";
+  }
+  if (priority === "backup") {
+    return "Backup if stalled";
+  }
+  if (index === 0) {
+    return "Strong contender";
+  }
+  if (index === 1) {
+    return "Backup if stalled";
+  }
+  return "Compare if needed";
+}
+
+function getCompareRoleReason(entry, profile, recommendation, role) {
+  if (
+    recommendation &&
+    recommendation.therapist &&
+    recommendation.therapist.slug === entry?.therapist?.slug &&
+    recommendation.rationale
+  ) {
+    return recommendation.rationale;
+  }
+
+  var readiness = getContactReadiness(entry);
+  var therapist = entry && entry.therapist ? entry.therapist : null;
+  var reasons = [];
+
+  if (therapist && therapist.accepting_new_patients) {
+    reasons.push("appears open to new patients");
+  }
+  if (therapist && therapist.estimated_wait_time) {
+    reasons.push("has clearer timing");
+  }
+  if (therapist && therapist.bipolar_years_experience) {
+    reasons.push("shows bipolar-specific experience");
+  }
+  if (profile && hasInsuranceClarity(profile, therapist)) {
+    reasons.push("lists your insurance");
+  } else if (therapist && hasCostClarity(therapist)) {
+    reasons.push("has more cost clarity");
+  }
+  if (readiness && readiness.tone === "high") {
+    reasons.push("has the easiest contact path");
+  }
+
+  if (role === "Backup if stalled" && reasons.length) {
+    return "Keep this ready if your first choice stalls because it " + reasons[0] + ".";
+  }
+
+  return reasons.length
+    ? "It stands out because it " + reasons.slice(0, 2).join(" and ") + "."
+    : getMatchCardExplanation(entry);
+}
+
+function renderCompareDecisionCards(topEntries, profile) {
+  var recommendation = buildFirstContactRecommendation(profile, topEntries);
+  var recommendedSlug =
+    recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
+
+  return (
+    '<div class="compare-decision-grid">' +
+    topEntries
+      .map(function (entry, index) {
+        var therapist = entry.therapist;
+        var readiness = getContactReadiness(entry);
+        var freshness = getCompareFreshness(entry);
+        var role = getCompareRole(entry, index, recommendedSlug);
+        var trust = getCompareTrustLabel(entry) || "Trust details still partial";
+        var timing = getCompareTimingLabel(therapist) || "Timing not listed";
+        var cost = getCompareCostLabel(therapist) || "Fees not listed";
+        var action = (readiness && readiness.route) || "Review profile first";
+        var reason = getCompareRoleReason(entry, profile, recommendation, role);
+        var note = String(entry?.evaluation?.shortlist_note || "").trim();
+
+        return (
+          '<article class="compare-decision-card"><div class="compare-decision-top"><span class="compare-chip compare-chip-' +
+          (role === "Contact first"
+            ? "positive"
+            : role === "Backup if stalled"
+              ? "secondary"
+              : "neutral") +
+          '">' +
+          escapeHtml(role) +
+          '</span><a class="compare-decision-link" href="therapist.html?slug=' +
+          encodeURIComponent(therapist.slug) +
+          '">View profile</a></div><div class="compare-decision-name">' +
+          escapeHtml(therapist.name) +
+          '</div><div class="compare-decision-meta">' +
+          escapeHtml(formatTherapistLocationLine(therapist)) +
+          "</div>" +
+          (freshness
+            ? '<div class="compare-freshness-banner tone-' +
+              escapeHtml(freshness.tone) +
+              '"><div class="compare-freshness-value">' +
+              escapeHtml(freshness.label) +
+              '</div><div class="compare-freshness-note">' +
+              escapeHtml(freshness.note) +
+              "</div></div>"
+            : "") +
+          '<p class="compare-decision-copy">' +
+          escapeHtml(reason) +
+          '</p><div class="compare-decision-stats"><div class="compare-decision-stat"><span class="compare-decision-label">Trust</span><span class="compare-decision-value">' +
+          escapeHtml(trust) +
+          '</span></div><div class="compare-decision-stat"><span class="compare-decision-label">Timing</span><span class="compare-decision-value">' +
+          escapeHtml(timing) +
+          '</span></div><div class="compare-decision-stat"><span class="compare-decision-label">Cost</span><span class="compare-decision-value">' +
+          escapeHtml(cost) +
+          '</span></div><div class="compare-decision-stat"><span class="compare-decision-label">Next step</span><span class="compare-decision-value">' +
+          escapeHtml(action) +
+          "</span></div></div>" +
+          (note
+            ? '<div class="compare-decision-note">Your note: ' + escapeHtml(note) + "</div>"
+            : "") +
+          "</article>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function buildPartnerCompareSummary(entries, profile) {
+  var topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  if (topEntries.length < 2) {
+    return "";
+  }
+
+  var recommendation = buildFirstContactRecommendation(profile, topEntries);
+  var recommendedSlug =
+    recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
+  var lines = [];
+
+  lines.push("Therapist shortlist summary");
+  lines.push("");
+
+  if (recommendation && recommendation.therapist) {
+    lines.push(
+      "Best first contact: " +
+        recommendation.therapist.name +
+        " because " +
+        recommendation.rationale +
+        ".",
+    );
+  }
+
+  topEntries.forEach(function (entry, index) {
+    var therapist = entry.therapist;
+    var role = getCompareRole(entry, index, recommendedSlug);
+    var reason = getCompareRoleReason(entry, profile, recommendation, role);
+    var timing = getCompareTimingLabel(therapist) || "timing not listed";
+    var cost = getCompareCostLabel(therapist) || "fees not listed";
+    var trust = getCompareTrustLabel(entry) || "trust details partial";
+    var freshness = getCompareFreshness(entry);
+    var action =
+      (getContactReadiness(entry) && getContactReadiness(entry).route) || "review profile";
+
+    lines.push(
+      "- " +
+        therapist.name +
+        " (" +
+        role +
+        "): " +
+        reason +
+        " Trust: " +
+        trust +
+        ". Timing: " +
+        timing +
+        ". Cost: " +
+        cost +
+        ". Freshness: " +
+        (freshness ? freshness.label : "needs direct confirmation") +
+        ". Next step: " +
+        action +
+        ".",
+    );
+  });
+
+  return lines.join("\n");
+}
+
+function renderPartnerCompareSummary(entries, profile) {
+  var summary = buildPartnerCompareSummary(entries, profile);
+  if (!summary) {
+    return "";
+  }
+
+  return (
+    '<section class="partner-compare-summary"><div class="partner-compare-header"><div><div class="partner-compare-title">Shareable decision summary</div><p>Use this when you want to send a quick update to a partner, friend, or family member without sending the full comparison page.</p></div><button type="button" class="btn-secondary" data-copy-partner-summary>Copy summary</button></div><pre class="partner-compare-body">' +
+    escapeHtml(summary) +
+    "</pre></section>"
+  );
+}
+
 function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
   var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
+  var profile = latestProfile;
 
   if (topEntries.length < 2) {
     root.innerHTML = "";
@@ -1074,6 +1434,48 @@ function renderComparison(entries) {
   }
 
   var rows = [
+    {
+      label: "Decision role",
+      kind: "order",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var index = topEntries.findIndex(function (entry) {
+          return entry && entry.therapist && entry.therapist.slug === therapist.slug;
+        });
+        var recommendation = buildFirstContactRecommendation(profile, topEntries);
+        var recommendedSlug =
+          recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
+        return getCompareRole(topEntries[index], index, recommendedSlug);
+      },
+    },
+    {
+      label: "Best next step",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var entry = topEntries.find(function (item) {
+          return item && item.therapist && item.therapist.slug === therapist.slug;
+        });
+        var readiness = getContactReadiness(entry);
+        return readiness && readiness.route ? readiness.route : "";
+      },
+    },
+    {
+      label: "Timing",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return getCompareTimingLabel(therapist);
+      },
+    },
+    {
+      label: "Trust signal",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var entry = topEntries.find(function (item) {
+          return item && item.therapist && item.therapist.slug === therapist.slug;
+        });
+        return getCompareTrustLabel(entry);
+      },
+    },
     {
       label: "Languages",
       alwaysShow: true,
@@ -1119,21 +1521,17 @@ function renderComparison(entries) {
       label: "Cost",
       alwaysShow: true,
       getValue: function (therapist) {
-        var min = therapist.session_fee_min;
-        var max = therapist.session_fee_max;
-        if (min && max && min !== max) {
-          return "$" + min + "–$" + max + " per session";
-        }
-        if (min) {
-          return "$" + min + " per session";
-        }
-        if (max) {
-          return "Up to $" + max + " per session";
-        }
-        if (therapist.sliding_scale) {
-          return "Sliding scale available";
-        }
-        return "";
+        return getCompareCostLabel(therapist);
+      },
+    },
+    {
+      label: "Why they stand out",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        var entry = topEntries.find(function (item) {
+          return item && item.therapist && item.therapist.slug === therapist.slug;
+        });
+        return getMatchCardExplanation(entry);
       },
     },
   ];
@@ -1150,11 +1548,15 @@ function renderComparison(entries) {
     });
   });
 
-  var headerCells = ['<div class="compare-cell label header">Compare</div>']
+  var headerCells = [
+    '<div class="compare-cell compare-cell-label compare-cell-header">Compare</div>',
+  ]
     .concat(
-      topEntries.map(function (entry) {
+      topEntries.map(function (entry, index) {
         return (
-          '<div class="compare-cell header"><div class="compare-name">' +
+          '<div class="compare-cell compare-cell-header' +
+          (index === topEntries.length - 1 ? " compare-cell-end-col" : "") +
+          '"><div class="compare-name">' +
           escapeHtml(entry.therapist.name) +
           '</div><div class="compare-sub">' +
           escapeHtml(formatTherapistLocationLine(entry.therapist)) +
@@ -1165,15 +1567,21 @@ function renderComparison(entries) {
     .join("");
 
   var bodyCells = visibleRows
-    .map(function (row) {
+    .map(function (row, rowIndex) {
+      var isLastRow = rowIndex === visibleRows.length - 1;
       return (
-        '<div class="compare-cell label">' +
+        '<div class="compare-cell compare-cell-label' +
+        (isLastRow ? " compare-cell-last-row" : "") +
+        '">' +
         escapeHtml(row.label) +
         "</div>" +
         topEntries
-          .map(function (entry) {
+          .map(function (entry, index) {
             return (
-              '<div class="compare-cell">' +
+              '<div class="compare-cell' +
+              (index === topEntries.length - 1 ? " compare-cell-end-col" : "") +
+              (isLastRow ? " compare-cell-last-row" : "") +
+              '">' +
               renderCompareValue(row.getValue(entry.therapist), row.kind) +
               "</div>"
             );
@@ -1182,12 +1590,54 @@ function renderComparison(entries) {
       );
     })
     .join("");
+  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved shortlist";
+  var compareCopy = profile
+    ? "Use fit, trust, timing, cost, and next step together so you can move on one therapist instead of stalling across three."
+    : "Your saved shortlist is now organized into a clearer first choice, backup, and side-by-side decision view.";
+  var persistedShortlist = persistEntriesToDirectoryShortlist(topEntries);
+  var compareUrl = buildShortlistCompareUrl(topEntries);
+  var savedCount = persistedShortlist.length;
 
   root.innerHTML =
-    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">Compare your top choices</div><div class="match-support-panel-copy">Check the practical differences that usually decide who to contact first: format, insurance, cost, medication support, and language.</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Quick compare</h3><p>Use this view to pressure-test the shortlist before you reach out.</p></div><div class="compare-grid">' +
+    '<section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
+    escapeHtml(compareTitle) +
+    '</div><div class="match-support-panel-copy">' +
+    escapeHtml(compareCopy) +
+    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Shortlist decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
+    (savedCount ? " across " + escapeHtml(String(savedCount)) + " shortlisted therapists." : ".") +
+    '</div></div><div class="compare-summary-actions"><button type="button" class="btn-secondary" data-copy-compare-link>Copy compare link</button><a class="btn-secondary" href="directory.html">Back to directory</a></div></div>' +
+    renderPartnerCompareSummary(topEntries, profile) +
+    renderCompareDecisionCards(topEntries, profile) +
+    '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
+    escapeHtml(String(topEntries.length)) +
+    ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
     "</div></section></div></section>";
+
+  var copyButton = root.querySelector("[data-copy-compare-link]");
+  if (copyButton) {
+    copyButton.addEventListener("click", async function () {
+      try {
+        await navigator.clipboard.writeText(compareUrl);
+        setActionState(true, "Copied the shortlist comparison link.");
+      } catch (_error) {
+        setActionState(true, "Unable to copy the comparison link automatically.");
+      }
+    });
+  }
+
+  var summaryButton = root.querySelector("[data-copy-partner-summary]");
+  if (summaryButton) {
+    summaryButton.addEventListener("click", async function () {
+      try {
+        await navigator.clipboard.writeText(buildPartnerCompareSummary(topEntries, profile));
+        setActionState(true, "Copied the shareable shortlist summary.");
+      } catch (_error) {
+        setActionState(true, "Unable to copy the shortlist summary automatically.");
+      }
+    });
+  }
 
   triggerMotion(root, "motion-enter");
 }
@@ -4598,6 +5048,8 @@ function renderDirectoryShortlist(slugs) {
   latestProfile = null;
   latestEntries = selected;
   currentJourneyId = buildJourneyId(null, selected);
+  persistEntriesToDirectoryShortlist(selected);
+  window.history.replaceState({}, "", buildShortlistComparePath(selected));
   persistMatchRequest(null, selected);
   safeRenderResults(selected, null);
   setActionState(

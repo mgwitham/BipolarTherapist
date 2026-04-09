@@ -71,6 +71,31 @@ function formatSourceDate(value) {
   });
 }
 
+function getProminentFreshnessSignal(therapist, recentApplied, recentConfirmation, freshness) {
+  if (recentApplied) {
+    return {
+      label: recentApplied.short_label || recentApplied.label,
+      note: recentApplied.note,
+      tone: "fresh",
+    };
+  }
+  if (recentConfirmation) {
+    return {
+      label: recentConfirmation.short_label || recentConfirmation.label,
+      note: recentConfirmation.note,
+      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
+    };
+  }
+  if (freshness) {
+    return {
+      label: freshness.label,
+      note: freshness.note,
+      tone: freshness.status === "fresh" ? "fresh" : "stale",
+    };
+  }
+  return null;
+}
+
 function getSourceHostLabel(value) {
   if (!value) {
     return "";
@@ -251,6 +276,12 @@ function renderProfile(t) {
   var recentApplied = getRecentAppliedSummary(t);
   var recentConfirmation = getRecentConfirmationSummary(t);
   var responsivenessSignal = getPublicResponsivenessSignal(t);
+  var freshnessSignal = getProminentFreshnessSignal(
+    t,
+    recentApplied,
+    recentConfirmation,
+    freshness,
+  );
   var readinessTitle =
     readiness.score >= 85
       ? "High match confidence"
@@ -384,6 +415,7 @@ function renderProfile(t) {
     t.verification_status === "editorially_verified"
       ? "Editorially verified"
       : "Profile under review",
+    freshnessSignal ? freshnessSignal.label : "",
     t.bipolar_years_experience ? t.bipolar_years_experience + " yrs bipolar care" : "",
     readinessTitle,
     t.medication_management ? "Medication management" : "",
@@ -829,6 +861,15 @@ function renderProfile(t) {
     '<div class="hero-meta">' +
     acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
+    (freshnessSignal
+      ? '<div class="hero-freshness-banner tone-' +
+        escapeHtml(freshnessSignal.tone) +
+        '"><div class="hero-freshness-label">Trust freshness</div><div class="hero-freshness-value">' +
+        escapeHtml(freshnessSignal.label) +
+        '</div><div class="hero-freshness-note">' +
+        escapeHtml(freshnessSignal.note) +
+        "</div></div>"
+      : "") +
     (fitSnapshotHtml ? '<div class="fit-snapshot-pills">' + fitSnapshotHtml + "</div>" : "") +
     "</div>" +
     '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +

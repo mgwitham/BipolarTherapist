@@ -1,5 +1,6 @@
 import { fetchDirectoryPageContent } from "./cms.js";
 import {
+  getDataFreshnessSummary,
   getEditoriallyVerifiedOperationalCount,
   getOperationalTrustSummary,
   getRecentAppliedSummary,
@@ -753,6 +754,35 @@ import {
     return buildReviewedDetailsCopy(therapist);
   }
 
+  function getFreshnessBadgeData(therapist) {
+    var recentApplied = getRecentAppliedSummary(therapist);
+    if (recentApplied) {
+      return {
+        label: recentApplied.short_label || recentApplied.label,
+        note: recentApplied.note,
+        tone: "fresh",
+      };
+    }
+
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      return {
+        label: recentConfirmation.short_label || recentConfirmation.label,
+        note: recentConfirmation.note,
+        tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
+      };
+    }
+
+    var freshness = getDataFreshnessSummary(therapist);
+    return freshness
+      ? {
+          label: freshness.label,
+          note: freshness.note,
+          tone: freshness.status === "fresh" ? "fresh" : "stale",
+        }
+      : null;
+  }
+
   function getResponsivenessRank(therapist) {
     var signal = getPublicResponsivenessSignal(therapist);
     if (!signal) {
@@ -1241,11 +1271,13 @@ import {
         return '<span class="tag">' + escapeHtml(specialty) + "</span>";
       })
       .join("");
+    var freshnessBadge = getFreshnessBadgeData(therapist);
     var trustTags = [
       getTherapistMerchandisingQuality(therapist).score >= 90
         ? getTherapistMerchandisingQuality(therapist).label
         : "",
       therapist.verification_status === "editorially_verified" ? "Verified" : "",
+      freshnessBadge ? freshnessBadge.label : "",
       getEditoriallyVerifiedOperationalCount(therapist)
         ? getEditoriallyVerifiedOperationalCount(therapist) +
           " key detail" +
@@ -1397,6 +1429,15 @@ import {
       '<div class="t-bio">' +
       escapeHtml(therapist.bio_preview || therapist.bio || "") +
       "</div>" +
+      (freshnessBadge
+        ? '<div class="card-freshness-banner tone-' +
+          escapeHtml(freshnessBadge.tone) +
+          '"><div class="card-freshness-label">Freshness</div><div class="card-freshness-value">' +
+          escapeHtml(freshnessBadge.label) +
+          '</div><div class="card-freshness-note">' +
+          escapeHtml(freshnessBadge.note) +
+          "</div></div>"
+        : "") +
       '<div class="t-fit-summary">' +
       escapeHtml(fitSummary) +
       '</div><div class="card-fit-note">' +

@@ -240,6 +240,38 @@
         flex-wrap: wrap;
         gap: 0.5rem;
       }
+      .hero-freshness-banner {
+        padding: 0.8rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, #f7fcf9 0%, #ffffff 100%);
+      }
+      .hero-freshness-banner.tone-recent {
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+      }
+      .hero-freshness-banner.tone-stale {
+        background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+        border-color: rgba(194, 157, 76, 0.22);
+      }
+      .hero-freshness-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.18rem;
+      }
+      .hero-freshness-value {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .hero-freshness-note {
+        margin-top: 0.22rem;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: var(--slate);
+      }
       .fit-snapshot-pills {
         display: flex;
         flex-wrap: wrap;

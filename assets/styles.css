@@ -786,6 +786,45 @@ nav {
   overflow: hidden;
 }
 
+.card-freshness-banner {
+  margin-bottom: 0.75rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  background: linear-gradient(180deg, #f7fcf9 0%, #ffffff 100%);
+}
+
+.card-freshness-banner.tone-recent {
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.card-freshness-banner.tone-stale {
+  background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  border-color: rgba(194, 157, 76, 0.22);
+}
+
+.card-freshness-label {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.18rem;
+}
+
+.card-freshness-value {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.card-freshness-note {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
 .t-fit-summary {
   font-size: 0.78rem;
   line-height: 1.55;
