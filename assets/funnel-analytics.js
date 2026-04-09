@@ -1180,6 +1180,47 @@ export function summarizeProfileQueueProgress(events) {
   };
 }
 
+export function summarizeProfileBackupSignals(events, therapistSlug) {
+  var entries = Array.isArray(events) ? events : [];
+  var slug = String(therapistSlug || "");
+  var totals = {
+    opens: 0,
+    compares: 0,
+  };
+
+  entries.forEach(function (item) {
+    if (!item || !item.payload || String(item.payload.therapist_slug || "") !== slug) {
+      return;
+    }
+    if (item.type === "profile_backup_opened") {
+      totals.opens += 1;
+    } else if (item.type === "profile_backup_compared") {
+      totals.compares += 1;
+    }
+  });
+
+  var preferredAction =
+    totals.compares >= Math.max(2, totals.opens + 1)
+      ? "compare"
+      : totals.opens >= Math.max(2, totals.compares + 1)
+        ? "open_backup"
+        : "balanced";
+
+  return {
+    opens: totals.opens,
+    compares: totals.compares,
+    preferred_action: preferredAction,
+    interpretation:
+      !totals.opens && !totals.compares
+        ? ""
+        : preferredAction === "compare"
+          ? "People who hesitate here have been leaning toward side-by-side comparison."
+          : preferredAction === "open_backup"
+            ? "People who hesitate here have been leaning toward opening the backup profile directly."
+            : "Backup behavior here is still mixed between direct compare and backup review.",
+  };
+}
+
 export function summarizeProfileContactExperimentDecision(events, outcomes) {
   var summary = summarizeProfileContactSignals(events);
   var outcomeValidation = summarizeProfileContactOutcomeValidation(events, outcomes);

@@ -15,11 +15,12 @@ import {
   getExperimentVariant,
   readFunnelEvents,
   rememberTherapistContactRoute,
+  summarizeProfileBackupSignals,
   summarizeTherapistContactRoutePerformance,
   trackExperimentExposure,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
-import { isWebsiteRouteHealthy } from "./directory-logic.js";
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./directory-logic.js";
 
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug");
@@ -157,14 +158,26 @@ function getContactStrategy(
   routePerformance,
   routeOutcomePerformance,
 ) {
+  var bookingHealthy = isBookingRouteHealthy(therapist);
   var websiteHealthy = isWebsiteRouteHealthy(therapist);
+  var suppressedRouteNote = "";
+  if (therapist.booking_url && !bookingHealthy && therapist.website && !websiteHealthy) {
+    suppressedRouteNote =
+      " The booking link and website both look unavailable right now, so a direct route is safer.";
+  } else if (therapist.booking_url && !bookingHealthy) {
+    suppressedRouteNote =
+      " The booking link looks unavailable right now, so a different contact route is safer.";
+  } else if (therapist.website && !websiteHealthy) {
+    suppressedRouteNote =
+      " The website looks unavailable right now, so a different contact route is safer.";
+  }
   var route = "profile";
   var routeLabel = "Use the clearest listed contact path";
   var routeReason = websiteHealthy
     ? "The clearest contact path on this profile is the best place to start."
     : "A direct contact route is a safer starting point than the website on this profile.";
 
-  if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
+  if (therapist.preferred_contact_method === "booking" && therapist.booking_url && bookingHealthy) {
     route = "booking";
     routeLabel = "Use the booking link first";
     routeReason = "A booking link usually gives the fastest path to a consult or intake.";
@@ -185,7 +198,7 @@ function getContactStrategy(
     route = "website";
     routeLabel = "Use the practice website first";
     routeReason = "The profile points to the website as the preferred contact path.";
-  } else if (therapist.booking_url) {
+  } else if (therapist.booking_url && bookingHealthy) {
     route = "booking";
     routeLabel = "Use the booking link first";
     routeReason = "The booking link creates the most executable next step on this profile.";
@@ -216,13 +229,13 @@ function getContactStrategy(
       ? routePerformance.top_route.route
       : "";
   var performanceRouteAvailable =
-    (performanceRoute === "booking" && therapist.booking_url) ||
+    (performanceRoute === "booking" && therapist.booking_url && bookingHealthy) ||
     (performanceRoute === "website" && therapist.website && websiteHealthy) ||
     (performanceRoute === "phone" && therapist.phone) ||
     (performanceRoute === "email" && therapist.email && therapist.email !== "contact@example.com");
 
   var outcomeRouteAvailable =
-    (outcomeRoute === "booking" && therapist.booking_url) ||
+    (outcomeRoute === "booking" && therapist.booking_url && bookingHealthy) ||
     (outcomeRoute === "website" && therapist.website && websiteHealthy) ||
     (outcomeRoute === "phone" && therapist.phone) ||
     (outcomeRoute === "email" && therapist.email && therapist.email !== "contact@example.com");
@@ -362,6 +375,10 @@ function getContactStrategy(
       "Why this route: it is the clearest documented way to confirm fit, timing, and next steps on this profile.";
   }
 
+  if (suppressedRouteNote) {
+    routeReason += suppressedRouteNote;
+  }
+
   return {
     route: route,
     routeLabel: routeLabel,
@@ -493,6 +510,22 @@ function buildOutreachQueueUrl(focusSlug) {
   return "match.html?" + params.toString();
 }
 
+function buildShortlistCompareUrl() {
+  var shortlist = readShortlist();
+  var slugs = shortlist
+    .map(function (item) {
+      return item.slug;
+    })
+    .filter(Boolean);
+  if (!slugs.length) {
+    return "match.html";
+  }
+
+  var params = new URLSearchParams();
+  params.set("shortlist", slugs.join(","));
+  return "match.html?" + params.toString();
+}
+
 function formatSavedOutcomeLabel(outcome) {
   var labels = {
     reached_out: "Reached out",
@@ -619,6 +652,119 @@ function buildProfileOutreachQueueState(slugValue) {
   };
 }
 
+function getShortlistPriorityRank(value) {
+  var normalized = String(value || "").toLowerCase();
+  if (normalized === "best fit") {
+    return 3;
+  }
+  if (normalized === "best availability") {
+    return 2;
+  }
+  if (normalized === "best value") {
+    return 1;
+  }
+  return 0;
+}
+
+function buildProfileBackupState(currentTherapist, therapistDirectory) {
+  var shortlist = readShortlist();
+  var backupSignals = summarizeProfileBackupSignals(
+    readFunnelEvents(),
+    currentTherapist && currentTherapist.slug,
+  );
+  if (!currentTherapist || !shortlist.length) {
+    return null;
+  }
+
+  var alternatives = shortlist
+    .filter(function (item) {
+      return item.slug !== currentTherapist.slug;
+    })
+    .map(function (item) {
+      var therapist = (therapistDirectory || []).find(function (candidate) {
+        return candidate.slug === item.slug;
+      });
+      return therapist
+        ? {
+            therapist: therapist,
+            shortlistEntry: item,
+            rank: getShortlistPriorityRank(item.priority),
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return (
+        b.rank - a.rank ||
+        Number(Boolean(b.therapist.accepting_new_patients)) -
+          Number(Boolean(a.therapist.accepting_new_patients)) ||
+        Number(Boolean(b.therapist.bipolar_years_experience)) -
+          Number(Boolean(a.therapist.bipolar_years_experience))
+      );
+    });
+
+  var backup = alternatives[0] || null;
+  if (!backup) {
+    if (
+      shortlist.some(function (item) {
+        return item.slug === currentTherapist.slug;
+      })
+    ) {
+      return {
+        mode: "needs_backup",
+        title: "Strong option, but no backup yet",
+        copy: "If you like this therapist, keep momentum by saving one more credible option. That makes it easier to move quickly if this path stalls.",
+        ctaLabel: "Compare shortlist",
+        ctaHref: buildShortlistCompareUrl(),
+      };
+    }
+    return null;
+  }
+
+  return {
+    mode: "has_backup",
+    therapist: backup.therapist,
+    title: "Best backup if this one stalls",
+    copy:
+      backup.shortlistEntry && backup.shortlistEntry.priority
+        ? backup.therapist.name +
+          " is already on your shortlist as " +
+          String(backup.shortlistEntry.priority || "").toLowerCase() +
+          ". Keep this option close so you can move without restarting your search."
+        : backup.therapist.name +
+          " is the clearest backup already on your shortlist if this first path slows down.",
+    note: backupSignals && backupSignals.interpretation ? backupSignals.interpretation : "",
+    ctaLabel:
+      backupSignals && backupSignals.preferred_action === "open_backup"
+        ? "Compare after backup review"
+        : "Compare these two",
+    ctaHref: buildShortlistCompareUrl(),
+    profileHref:
+      "therapist.html?slug=" + encodeURIComponent(backup.therapist.slug) + "&source=profile_backup",
+    primaryAction: backupSignals ? backupSignals.preferred_action : "balanced",
+  };
+}
+
+function buildProfileDecisionMemoryState(slugValue) {
+  var shortlistEntry = readShortlist().find(function (item) {
+    return item.slug === slugValue;
+  });
+  if (!shortlistEntry) {
+    return null;
+  }
+
+  return {
+    title: shortlistEntry.priority
+      ? "You saved this as " + String(shortlistEntry.priority || "").toLowerCase()
+      : "You already saved this therapist",
+    copy: shortlistEntry.note
+      ? 'Your note: "' + String(shortlistEntry.note || "").trim() + '"'
+      : "Add a quick note or shortlist label so future-you can remember why this therapist stood out.",
+    tone: shortlistEntry.note || shortlistEntry.priority ? "fresh" : "teal",
+    compareHref: buildShortlistCompareUrl(),
+  };
+}
+
 function renderQueueActionButtons(queueState) {
   var actions = Array.isArray(queueState && queueState.actions) ? queueState.actions : [];
   if (!actions.length) {
@@ -698,6 +844,7 @@ function updateShortlistAction(slugValue) {
     document.querySelectorAll("[data-shortlist-trigger='profile']"),
   );
   var status = document.getElementById("profileShortlistStatus");
+  var decisionMemory = document.getElementById("profileDecisionMemory");
   var queueStatus = document.getElementById("profileQueueStatus");
   if (!buttons.length || !status) {
     return;
@@ -714,6 +861,21 @@ function updateShortlistAction(slugValue) {
   status.textContent = shortlisted
     ? "This therapist is saved for comparison in your shortlist."
     : "Save up to 3 therapists to compare later as you narrow toward the right fit.";
+
+  if (decisionMemory) {
+    var memoryState = buildProfileDecisionMemoryState(slugValue);
+    decisionMemory.innerHTML = memoryState
+      ? '<div class="profile-decision-memory-card tone-' +
+        escapeHtml(memoryState.tone) +
+        '"><div class="profile-decision-memory-label">Your decision memory</div><div class="profile-decision-memory-title">' +
+        escapeHtml(memoryState.title) +
+        '</div><div class="profile-decision-memory-copy">' +
+        escapeHtml(memoryState.copy) +
+        '</div><a href="' +
+        escapeHtml(memoryState.compareHref) +
+        '" class="profile-decision-memory-link">Review shortlist</a></div>'
+      : "";
+  }
 
   if (queueStatus) {
     var queueState = buildProfileOutreachQueueState(slugValue);
@@ -777,6 +939,7 @@ async function resolveTherapistForProfile(slugValue) {
     }
 
     var therapist = await resolveTherapistForProfile(slug);
+    var therapistDirectory = await fetchPublicTherapists();
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
@@ -791,7 +954,7 @@ async function resolveTherapistForProfile(slugValue) {
       therapist_slug: therapist.slug || "",
       preferred_contact_method: therapist.preferred_contact_method || "unknown",
     });
-    renderProfile(therapist);
+    renderProfile(therapist, therapistDirectory);
   } catch (error) {
     console.error("Therapist profile failed to load.", error);
     document.getElementById("profileWrap").innerHTML =
@@ -803,7 +966,7 @@ async function resolveTherapistForProfile(slugValue) {
   }
 })();
 
-function renderProfile(t) {
+function renderProfile(t, therapistDirectory) {
   var readiness = getTherapistMatchReadiness(t);
   var freshness = getDataFreshnessSummary(t);
   var recentApplied = getRecentAppliedSummary(t);
@@ -817,6 +980,8 @@ function renderProfile(t) {
     recentConfirmation,
     freshness,
   );
+  var decisionMemoryState = buildProfileDecisionMemoryState(t.slug);
+  var backupState = buildProfileBackupState(t, therapistDirectory || []);
   var outreachQueueState = buildProfileOutreachQueueState(t.slug);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
   var readinessTitle =
@@ -986,6 +1151,7 @@ function renderProfile(t) {
   var contactQuestionItems = [];
   var fitHeadline = "";
   var fitSubheadline = "";
+  var bookingHealthy = isBookingRouteHealthy(t);
   var websiteHealthy = isWebsiteRouteHealthy(t);
   var contactRouteLabel =
     t.preferred_contact_method === "booking"
@@ -998,7 +1164,7 @@ function renderProfile(t) {
             ? "Email the therapist"
             : "Reach out using the listed contact method";
   function buildPreferredContactButton() {
-    if (t.preferred_contact_method === "booking" && t.booking_url) {
+    if (t.preferred_contact_method === "booking" && t.booking_url && bookingHealthy) {
       return (
         '<a href="' +
         escapeHtml(t.booking_url) +
@@ -1063,7 +1229,7 @@ function renderProfile(t) {
       escapeHtml(t.website) +
       '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
   }
-  if (t.booking_url && t.preferred_contact_method !== "booking") {
+  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
     contactBtns +=
       '<a href="' +
       escapeHtml(t.booking_url) +
@@ -1391,7 +1557,7 @@ function renderProfile(t) {
       escapeHtml(t.website) +
       '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
   }
-  if (t.booking_url && t.preferred_contact_method !== "booking") {
+  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
     secondaryButtons +=
       '<a href="' +
       escapeHtml(t.booking_url) +
@@ -1432,6 +1598,40 @@ function renderProfile(t) {
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div>" +
+    (backupState
+      ? '<div class="profile-backup-card"><div class="profile-backup-kicker">' +
+        escapeHtml(backupState.title) +
+        '</div><div class="profile-backup-copy">' +
+        escapeHtml(backupState.copy) +
+        "</div>" +
+        (backupState.note
+          ? '<div class="profile-backup-note">' + escapeHtml(backupState.note) + "</div>"
+          : "") +
+        '<div class="profile-backup-actions">' +
+        (backupState.primaryAction === "open_backup" && backupState.profileHref
+          ? '<a href="' +
+            escapeHtml(backupState.profileHref) +
+            '" class="btn-website profile-backup-link" data-profile-backup-link="' +
+            escapeHtml(backupState.therapist.slug) +
+            '">Open backup profile</a><a href="' +
+            escapeHtml(backupState.ctaHref) +
+            '" class="btn-website" data-profile-backup-compare="true">' +
+            escapeHtml(backupState.ctaLabel) +
+            "</a>"
+          : '<a href="' +
+            escapeHtml(backupState.ctaHref) +
+            '" class="btn-website" data-profile-backup-compare="true">' +
+            escapeHtml(backupState.ctaLabel) +
+            "</a>" +
+            (backupState.profileHref
+              ? '<a href="' +
+                escapeHtml(backupState.profileHref) +
+                '" class="btn-website profile-backup-link" data-profile-backup-link="' +
+                escapeHtml(backupState.therapist.slug) +
+                '">Open backup profile</a>'
+              : "")) +
+        "</div></div>"
+      : "") +
     '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
     secondaryButtons +
     "</div>";
@@ -1470,6 +1670,19 @@ function renderProfile(t) {
     (fitSnapshotHtml ? '<div class="fit-snapshot-pills">' + fitSnapshotHtml + "</div>" : "") +
     "</div>" +
     '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
+    (decisionMemoryState
+      ? '<div class="profile-decision-memory-card tone-' +
+        escapeHtml(decisionMemoryState.tone) +
+        '"><div class="profile-decision-memory-label">Your decision memory</div><div class="profile-decision-memory-title">' +
+        escapeHtml(decisionMemoryState.title) +
+        '</div><div class="profile-decision-memory-copy">' +
+        escapeHtml(decisionMemoryState.copy) +
+        '</div><a href="' +
+        escapeHtml(decisionMemoryState.compareHref) +
+        '" class="profile-decision-memory-link">Review shortlist</a></div>'
+      : "") +
+    "</div>" +
     '<div class="profile-queue-status" id="profileQueueStatus">' +
     (outreachQueueState
       ? '<div class="profile-queue-status-card tone-' +
@@ -1920,6 +2133,27 @@ function renderProfile(t) {
       );
     });
   }
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-backup-link]"))
+    .forEach(function (link) {
+      link.addEventListener("click", function () {
+        trackFunnelEvent("profile_backup_opened", {
+          therapist_slug: t.slug || "",
+          backup_slug: link.getAttribute("data-profile-backup-link") || "",
+          source: profileSource || "profile",
+        });
+      });
+    });
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-backup-compare]"))
+    .forEach(function (link) {
+      link.addEventListener("click", function () {
+        trackFunnelEvent("profile_backup_compared", {
+          therapist_slug: t.slug || "",
+          source: profileSource || "profile",
+        });
+      });
+    });
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-queue-outcome]"))
     .forEach(function (button) {
