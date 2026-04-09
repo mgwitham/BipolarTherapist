@@ -1,0 +1,106 @@
+# Architecture
+
+## Purpose
+
+This repository is the working system for Bipolar Therapist Directory. It contains the public product, the content system, the review API, and the founder operations scripts used to source, verify, and maintain therapist data.
+
+The repo should be managed like a production application, not like a dumping ground for adjacent work.
+
+## System Boundaries
+
+### Public Product
+
+- Root HTML files such as `index.html`, `directory.html`, `match.html`, `therapist.html`, and `signup.html`
+- Shared client code in `assets/`
+- Build and local dev handled by Vite
+
+This area must stay safe to ship from `main`.
+
+### CMS
+
+- Sanity Studio lives in `studio/`
+- It owns editorial content, therapist records, homepage settings, and therapist application documents
+
+Changes here should be validated with `npm run cms:build`.
+
+### Review API
+
+- Local and hosted review endpoints live in `server/` and `api/`
+- This layer handles admin login, review sessions, and therapist submission workflows
+
+Changes here should be reviewed with auth, session, and environment handling in mind.
+
+### Ingestion And Ops
+
+- Scripts in `scripts/`
+- Source and working data in `data/import/`
+- Operational docs and handoff packets in root docs or `data/import/` when they are intentionally durable
+
+This area is valuable, but it is also the easiest place for the repo to become noisy. Prefer reproducible commands over committed scratch output.
+
+## What Belongs In Git
+
+Keep in git:
+
+- Product code
+- API and CMS code
+- Configuration
+- Durable architecture and operating docs
+- Source-of-truth import templates and approved input datasets
+- Generated files only when they are intentionally used as a durable handoff artifact
+
+Keep out of git:
+
+- Secrets and `.env` files
+- Build artifacts and caches
+- Logs and temporary debug files
+- Local scratch exports
+- Disposable generated packets that can be recreated on demand
+
+## Branch Strategy
+
+- `main` is always releasable
+- All work starts from a short-lived branch
+- Pull requests are the default path into `main`
+- Avoid long-running branches that mix site, CMS, API, and ops changes unless the work is tightly coupled
+
+Suggested prefixes:
+
+- `codex/` for paired implementation work
+- `feat/` for new capabilities
+- `fix/` for bug fixes
+- `chore/` for repo or tooling changes
+
+## Review Model
+
+Every pull request should answer four questions clearly:
+
+1. What user or operator outcome changed?
+2. Which system boundary changed: site, CMS, API, or ops?
+3. What command or manual flow verified the change?
+4. Is there any data, auth, or rollout risk?
+
+## Release Standard
+
+Before merging to `main`, run the smallest complete check set for the changed area:
+
+- `npm run format:check`
+- `npm run lint`
+- `npm run build`
+- `npm run cms:build` when Studio code or schema changed
+- `npm run check` for release-ready or cross-cutting work
+
+Also verify the highest-risk user flow touched by the change in the browser.
+
+## Scaling Recommendation
+
+Keep this as one private repo for now, but manage it with strong boundaries.
+
+Split into separate repos only when one of these becomes true:
+
+- The public product and founder ops need different release cadences
+- Operational scripts start changing more often than product code
+- Access control needs differ across collaborators
+- CI, ownership, or review is slowed down by unrelated surface area
+
+Until then, clear commit rules and disciplined pull requests will give most of the benefit without the coordination cost of an early split.

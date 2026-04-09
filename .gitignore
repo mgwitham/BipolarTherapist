@@ -6,5 +6,10 @@ studio/.sanity/
 studio/dist/
 .env
 studio/.env
+tmp/
+*.log
+coverage/
+playwright-report/
+test-results/
 data/import/*.csv
 !data/import/therapists-template.csv
