@@ -44,6 +44,7 @@
     "cms:inspect:match-outcomes": "node scripts/inspect-match-outcomes.mjs",
     "cms:export:match-requests": "node scripts/export-match-requests.mjs",
     "cms:export:match-outcomes": "node scripts/export-match-outcomes.mjs",
+    "cms:summarize:match-learning": "node scripts/summarize-match-learning.mjs",
     "cms:smoke:match-persistence": "node scripts/smoke-match-persistence.mjs",
     "cms:smoke:match-persistence:cleanup": "node scripts/smoke-match-persistence.mjs --cleanup",
     "cms:generate:sourcing-recommendations": "node scripts/generate-sourcing-recommendations.mjs",
