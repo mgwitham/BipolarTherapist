@@ -39,6 +39,7 @@
     "cms:generate:provider-id-consistency-report": "node scripts/generate-provider-id-consistency-report.mjs",
     "cms:generate:provider-id-diagnostics": "node scripts/generate-provider-id-diagnostics.mjs",
     "cms:inspect:provider-observations": "node scripts/inspect-provider-observations.mjs",
+    "cms:export:provider-observations": "node scripts/export-provider-observations.mjs",
     "cms:inspect:match-requests": "node scripts/inspect-match-requests.mjs",
     "cms:inspect:match-outcomes": "node scripts/inspect-match-outcomes.mjs",
     "cms:export:match-requests": "node scripts/export-match-requests.mjs",
