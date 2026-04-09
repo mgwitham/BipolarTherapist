@@ -26,6 +26,20 @@ If you are making a code or content change, read the architecture doc first. If 
 
 This is a private working repository for both the product and its operating system. `main` should stay releasable.
 
+## Review API Shape
+
+The review API is no longer centered on one giant handler file.
+
+- [server/review-handler.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-handler.mjs): runtime composition and route dispatch
+- [server/review-auth-portal-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-auth-portal-routes.mjs): auth, session, and portal claim/request routes
+- [server/review-read-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-read-routes.mjs): admin list/read endpoints
+- [server/review-application-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-application-routes.mjs): application workflows
+- [server/review-candidate-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-candidate-routes.mjs): candidate decisions and publish flows
+- [server/review-ops-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-ops-routes.mjs): therapist and licensure ops actions
+- [server/review-config.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-config.mjs), [server/review-http-auth.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-http-auth.mjs), [server/review-email.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-email.mjs), and [server/review-application-support.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-application-support.mjs): infrastructure and record-shaping support
+
+The shared business rules behind those routes now live in `shared/`, with tests in both `test/shared/` and `test/server/`.
+
 ## Project Structure
 
 - `index.html`: homepage
