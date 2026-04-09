@@ -202,7 +202,7 @@ export function getRouteLearningForProfile(profile, entry, outcomes, options) {
   };
 }
 
-import { isWebsiteRouteHealthy } from "./directory-logic.js";
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./directory-logic.js";
 
 export function getPreferredOutreach(entry, options) {
   var settings = options || {};
@@ -212,8 +212,9 @@ export function getPreferredOutreach(entry, options) {
 
   var therapist = entry.therapist;
   var customLabel = String(therapist.preferred_contact_label || "").trim();
+  var bookingHealthy = isBookingRouteHealthy(therapist);
   var websiteHealthy = isWebsiteRouteHealthy(therapist);
-  if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
+  if (therapist.preferred_contact_method === "booking" && therapist.booking_url && bookingHealthy) {
     return {
       label: customLabel || "Book consultation",
       href: therapist.booking_url,
@@ -252,11 +253,13 @@ export function getPreferredRouteType(entry) {
   if (!therapist) {
     return "profile";
   }
+  var bookingHealthy = isBookingRouteHealthy(therapist);
+  var websiteHealthy = isWebsiteRouteHealthy(therapist);
 
-  if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
+  if (therapist.preferred_contact_method === "booking" && therapist.booking_url && bookingHealthy) {
     return "booking";
   }
-  if (therapist.preferred_contact_method === "website" && therapist.website) {
+  if (therapist.preferred_contact_method === "website" && therapist.website && websiteHealthy) {
     return "website";
   }
   if (therapist.preferred_contact_method === "phone" && therapist.phone) {
@@ -269,10 +272,10 @@ export function getPreferredRouteType(entry) {
   ) {
     return "email";
   }
-  if (therapist.booking_url) {
+  if (therapist.booking_url && bookingHealthy) {
     return "booking";
   }
-  if (therapist.website) {
+  if (therapist.website && websiteHealthy) {
     return "website";
   }
   if (therapist.phone) {

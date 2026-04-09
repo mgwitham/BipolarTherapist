@@ -3270,6 +3270,32 @@ function getContactReadiness(entry) {
   };
 }
 
+function getRankingServices() {
+  return {
+    buildLearningSegments: buildLearningSegments,
+    getPreferredOutreach: getPreferredOutreach,
+    getPreferredRouteType: getPreferredRouteType,
+    getRouteLearningForProfile: getRouteLearningForProfile,
+    getRoutePriority: getRoutePriority,
+    hasInsuranceClarity: hasInsuranceClarity,
+    hasCostClarity: hasCostClarity,
+    getResponsivenessScore: getResponsivenessScore,
+    pickRecommendedFirstContact: pickRecommendedFirstContact,
+    buildFallbackLearningMap: buildFallbackLearningMap,
+  };
+}
+
+function getOutreachRenderServices() {
+  return {
+    escapeHtml: escapeHtml,
+    formatTherapistLocationLine: formatTherapistLocationLine,
+    trackFunnelEvent: trackFunnelEvent,
+    buildMatchTrackingPayload: buildMatchTrackingPayload,
+    buildEntryOutreachDraft: buildEntryOutreachDraft,
+    setActionState: setActionState,
+  };
+}
+
 function buildAdaptiveGuidance(profile, entries) {
   var requests = readConciergeRequests();
   var patterns = analyzeConciergePatterns(requests);
@@ -3438,11 +3464,11 @@ function pickRecommendedFirstContact(profile, entries) {
     readOutreachOutcomes: readOutreachOutcomes,
     getShortcutInfluence: getShortcutInfluence,
     getContactReadiness: getContactReadiness,
-    getRouteLearningForProfile: getRouteLearningForProfile,
-    getRoutePriority: getRoutePriority,
-    hasInsuranceClarity: hasInsuranceClarity,
-    hasCostClarity: hasCostClarity,
-    getResponsivenessScore: getResponsivenessScore,
+    getRouteLearningForProfile: getRankingServices().getRouteLearningForProfile,
+    getRoutePriority: getRankingServices().getRoutePriority,
+    hasInsuranceClarity: getRankingServices().hasInsuranceClarity,
+    hasCostClarity: getRankingServices().hasCostClarity,
+    getResponsivenessScore: getRankingServices().getResponsivenessScore,
   });
 }
 
@@ -3509,10 +3535,10 @@ function persistMatchRequest(profile, entries) {
 
 function buildFirstContactRecommendation(profile, entries) {
   return buildFirstContactRecommendationBase(profile, entries, {
-    pickRecommendedFirstContact: pickRecommendedFirstContact,
-    hasInsuranceClarity: hasInsuranceClarity,
-    hasCostClarity: hasCostClarity,
-    getResponsivenessScore: getResponsivenessScore,
+    pickRecommendedFirstContact: getRankingServices().pickRecommendedFirstContact,
+    hasInsuranceClarity: getRankingServices().hasInsuranceClarity,
+    hasCostClarity: getRankingServices().hasCostClarity,
+    getResponsivenessScore: getRankingServices().getResponsivenessScore,
     getSegmentLearningCopy: getSegmentLearningCopy,
     getSegmentAwareRecommendationCue: getSegmentAwareRecommendationCue,
   });
@@ -3650,10 +3676,10 @@ function buildFallbackRecommendation(profile, entries) {
     buildFirstContactRecommendation: buildFirstContactRecommendation,
     getLatestOutreachOutcome: getLatestOutreachOutcome,
     readOutreachOutcomes: readOutreachOutcomes,
-    buildFallbackLearningMap: buildFallbackLearningMap,
-    buildLearningSegments: buildLearningSegments,
-    getRouteLearningForProfile: getRouteLearningForProfile,
-    getPreferredOutreach: getPreferredOutreach,
+    buildFallbackLearningMap: getRankingServices().buildFallbackLearningMap,
+    buildLearningSegments: getRankingServices().buildLearningSegments,
+    getRouteLearningForProfile: getRankingServices().getRouteLearningForProfile,
+    getPreferredOutreach: getRankingServices().getPreferredOutreach,
     formatOutcomeLabel: formatOutcomeLabel,
   });
 }
@@ -3663,13 +3689,13 @@ function renderFallbackRecommendation(profile, entries) {
     root: document.getElementById("matchFallbackContact"),
     buildFallbackRecommendation: buildFallbackRecommendation,
     buildContactOrderPlan: buildContactOrderPlan,
-    getPreferredOutreach: getPreferredOutreach,
-    escapeHtml: escapeHtml,
-    formatTherapistLocationLine: formatTherapistLocationLine,
-    trackFunnelEvent: trackFunnelEvent,
-    buildMatchTrackingPayload: buildMatchTrackingPayload,
-    buildEntryOutreachDraft: buildEntryOutreachDraft,
-    setActionState: setActionState,
+    getPreferredOutreach: getRankingServices().getPreferredOutreach,
+    escapeHtml: getOutreachRenderServices().escapeHtml,
+    formatTherapistLocationLine: getOutreachRenderServices().formatTherapistLocationLine,
+    trackFunnelEvent: getOutreachRenderServices().trackFunnelEvent,
+    buildMatchTrackingPayload: getOutreachRenderServices().buildMatchTrackingPayload,
+    buildEntryOutreachDraft: getOutreachRenderServices().buildEntryOutreachDraft,
+    setActionState: getOutreachRenderServices().setActionState,
   });
 }
 
@@ -3677,15 +3703,15 @@ function renderFirstContactRecommendation(profile, entries) {
   return renderFirstContactRecommendationBase(profile, entries, {
     root: document.getElementById("matchFirstContact"),
     buildFirstContactRecommendation: buildFirstContactRecommendation,
-    getPreferredOutreach: getPreferredOutreach,
+    getPreferredOutreach: getRankingServices().getPreferredOutreach,
     getLatestOutreachOutcome: getLatestOutreachOutcome,
-    escapeHtml: escapeHtml,
-    formatTherapistLocationLine: formatTherapistLocationLine,
+    escapeHtml: getOutreachRenderServices().escapeHtml,
+    formatTherapistLocationLine: getOutreachRenderServices().formatTherapistLocationLine,
     outreachOutcomeOptions: OUTREACH_OUTCOME_OPTIONS,
-    trackFunnelEvent: trackFunnelEvent,
-    buildMatchTrackingPayload: buildMatchTrackingPayload,
-    buildEntryOutreachDraft: buildEntryOutreachDraft,
-    setActionState: setActionState,
+    trackFunnelEvent: getOutreachRenderServices().trackFunnelEvent,
+    buildMatchTrackingPayload: getOutreachRenderServices().buildMatchTrackingPayload,
+    buildEntryOutreachDraft: getOutreachRenderServices().buildEntryOutreachDraft,
+    setActionState: getOutreachRenderServices().setActionState,
     recordEntryOutreachOutcome: recordEntryOutreachOutcome,
   });
 }
@@ -3696,7 +3722,7 @@ function buildContactOrderPlan(profile, entries) {
     buildFallbackRecommendation: buildFallbackRecommendation,
     readOutreachOutcomes: readOutreachOutcomes,
     analyzePivotTimingByUrgency: analyzePivotTimingByUrgency,
-    buildLearningSegments: buildLearningSegments,
+    buildLearningSegments: getRankingServices().buildLearningSegments,
   });
 }
 
@@ -3710,14 +3736,14 @@ function renderOutreachPanel(entries) {
     },
     renderOutreachPanel: renderOutreachPanel,
     getLatestOutreachOutcome: getLatestOutreachOutcome,
-    escapeHtml: escapeHtml,
-    getPreferredOutreach: getPreferredOutreach,
-    buildEntryOutreachDraft: buildEntryOutreachDraft,
-    formatTherapistLocationLine: formatTherapistLocationLine,
+    escapeHtml: getOutreachRenderServices().escapeHtml,
+    getPreferredOutreach: getRankingServices().getPreferredOutreach,
+    buildEntryOutreachDraft: getOutreachRenderServices().buildEntryOutreachDraft,
+    formatTherapistLocationLine: getOutreachRenderServices().formatTherapistLocationLine,
     outreachOutcomeOptions: OUTREACH_OUTCOME_OPTIONS,
-    trackFunnelEvent: trackFunnelEvent,
-    buildMatchTrackingPayload: buildMatchTrackingPayload,
-    setActionState: setActionState,
+    trackFunnelEvent: getOutreachRenderServices().trackFunnelEvent,
+    buildMatchTrackingPayload: getOutreachRenderServices().buildMatchTrackingPayload,
+    setActionState: getOutreachRenderServices().setActionState,
     recordEntryOutreachOutcome: recordEntryOutreachOutcome,
   });
 }
