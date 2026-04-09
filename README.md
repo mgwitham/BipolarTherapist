@@ -2,11 +2,29 @@
 
 Local BipolarTherapyHub product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.
 
+## Start Here
+
+- Repo operating model: [docs/ARCHITECTURE.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/ARCHITECTURE.md)
+- Release checklist: [docs/RELEASE_CHECKLIST.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/RELEASE_CHECKLIST.md)
+- Data and generated artifact policy: [docs/DATA_ARTIFACT_POLICY.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/DATA_ARTIFACT_POLICY.md)
+- Contribution workflow: [CONTRIBUTING.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/CONTRIBUTING.md)
+
+If you are making a code or content change, read the architecture doc first. If you are shipping a change to production, use the release checklist before merging to `main`.
+
 ## Tech Stack
 
 - Vite for local development and production builds
 - Plain HTML, CSS, and JavaScript
 - Static multi-page site structure
+
+## Repo Surfaces
+
+- Public product: root HTML files plus `assets/`
+- CMS: `studio/`
+- Review API: `server/` and `api/`
+- Ingestion and ops: `scripts/` and `data/import/`
+
+This is a private working repository for both the product and its operating system. `main` should stay releasable.
 
 ## Project Structure
 
