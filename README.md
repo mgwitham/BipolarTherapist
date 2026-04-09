@@ -42,6 +42,14 @@ The shared business rules behind those routes now live in `shared/`, with tests 
 
 The admin review activity panel now uses the review API's filtered event contract and supports JSON/CSV export for audit work. The event schema and query model are documented in [docs/ARCHITECTURE.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/ARCHITECTURE.md).
 
+The repo also now has a lightweight analytics and evidence substrate for:
+
+- provider field observations (`providerFieldObservation` documents)
+- match requests (`matchRequest` documents)
+- match outcomes (`matchOutcome` documents)
+
+Those documents are written by import and publish flows, can be inspected locally with scripts, and can be exported from either the authenticated review API or direct Sanity-backed local scripts.
+
 ## Project Structure
 
 - `index.html`: homepage
@@ -236,6 +244,28 @@ If you want the repeated top California ask isolated into its own file-based pac
 For the new provider observation substrate, run `npm run cms:generate:provider-field-observations-preview` when you want a non-destructive preview of observation documents derived from current therapist, application, and candidate records. It writes [generated-provider-field-observations-preview.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-provider-field-observations-preview.json) without changing live records. Add `-- --write` only when you intentionally want to create or replace `providerFieldObservation` documents in Sanity.
 
 If you want to inspect the live observation substrate for a specific provider, run `npm run cms:inspect:provider-observations -- provider-ca-12345`. It prints the current observation records for that provider ID as JSON so you can sanity-check field coverage, source lineage, and freshness without opening Studio documents one by one.
+
+You can also export provider observations for one provider directly from Sanity:
+
+```sh
+npm run cms:export:provider-observations -- provider-ca-12345 --format=json --output=/tmp/provider-observations.json
+```
+
+For match analytics, the local Sanity-backed inspection and export tools are:
+
+```sh
+npm run cms:inspect:match-requests -- --limit=20
+npm run cms:inspect:match-outcomes -- --limit=20
+npm run cms:export:match-requests -- --format=csv --output=/tmp/match-requests.csv
+npm run cms:export:match-outcomes -- --format=json --output=/tmp/match-outcomes.json
+```
+
+The authenticated review API also supports admin export endpoints for the same match analytics data:
+
+```sh
+GET /match/requests/export?format=csv&limit=200
+GET /match/outcomes/export?format=csv&limit=200
+```
 
 ## CMS Import
 
