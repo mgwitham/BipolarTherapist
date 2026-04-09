@@ -831,6 +831,109 @@ function renderQueueActionButtons(queueState) {
   );
 }
 
+function renderDecisionMemoryCard(memoryState) {
+  if (!memoryState) {
+    return "";
+  }
+
+  return (
+    '<div class="profile-decision-memory-card tone-' +
+    escapeHtml(memoryState.tone) +
+    '"><div class="profile-decision-memory-label">Your decision memory</div><div class="profile-decision-memory-title">' +
+    escapeHtml(memoryState.title) +
+    '</div><div class="profile-decision-memory-copy">' +
+    escapeHtml(memoryState.copy) +
+    '</div><a href="' +
+    escapeHtml(memoryState.compareHref) +
+    '" class="profile-decision-memory-link">Review shortlist</a></div>'
+  );
+}
+
+function renderQueueStatusCard(queueState) {
+  if (!queueState) {
+    return "";
+  }
+
+  return (
+    '<div class="profile-queue-status-card tone-' +
+    escapeHtml(queueState.tone) +
+    '"><div class="profile-queue-status-label">' +
+    escapeHtml(queueState.label) +
+    '</div><div class="profile-queue-status-title">' +
+    escapeHtml(queueState.title) +
+    '</div><div class="profile-queue-status-copy">' +
+    escapeHtml(queueState.copy) +
+    '</div><a href="' +
+    escapeHtml(queueState.ctaHref) +
+    '" class="profile-queue-status-link">' +
+    escapeHtml(queueState.ctaLabel) +
+    "</a>" +
+    renderQueueActionButtons(queueState) +
+    "</div>"
+  );
+}
+
+function renderBackupCard(backupState) {
+  if (!backupState) {
+    return "";
+  }
+
+  return (
+    '<div class="profile-backup-card"><div class="profile-backup-kicker">' +
+    escapeHtml(backupState.title) +
+    '</div><div class="profile-backup-copy">' +
+    escapeHtml(backupState.copy) +
+    "</div>" +
+    (backupState.note
+      ? '<div class="profile-backup-note">' + escapeHtml(backupState.note) + "</div>"
+      : "") +
+    '<div class="profile-backup-actions">' +
+    (backupState.primaryAction === "open_backup" && backupState.profileHref
+      ? '<a href="' +
+        escapeHtml(backupState.profileHref) +
+        '" class="btn-website profile-backup-link" data-profile-backup-link="' +
+        escapeHtml(backupState.therapist.slug) +
+        '">Open backup profile</a><a href="' +
+        escapeHtml(backupState.ctaHref) +
+        '" class="btn-website" data-profile-backup-compare="true">' +
+        escapeHtml(backupState.ctaLabel) +
+        "</a>"
+      : '<a href="' +
+        escapeHtml(backupState.ctaHref) +
+        '" class="btn-website" data-profile-backup-compare="true">' +
+        escapeHtml(backupState.ctaLabel) +
+        "</a>" +
+        (backupState.profileHref
+          ? '<a href="' +
+            escapeHtml(backupState.profileHref) +
+            '" class="btn-website profile-backup-link" data-profile-backup-link="' +
+            escapeHtml(backupState.therapist.slug) +
+            '">Open backup profile</a>'
+          : "")) +
+    "</div></div>"
+  );
+}
+
+function renderUncertaintyCard(uncertaintyState) {
+  if (!uncertaintyState) {
+    return "";
+  }
+
+  return (
+    '<div class="profile-uncertainty-card tone-' +
+    escapeHtml(uncertaintyState.tone) +
+    '"><div class="profile-uncertainty-label">How to use this profile well</div><div class="profile-uncertainty-title">' +
+    escapeHtml(uncertaintyState.title) +
+    '</div><div class="profile-uncertainty-copy">' +
+    escapeHtml(uncertaintyState.copy) +
+    '</div><div class="profile-uncertainty-action"><span class="profile-uncertainty-action-label">' +
+    escapeHtml(uncertaintyState.actionLabel) +
+    '</span><span class="profile-uncertainty-action-copy">' +
+    escapeHtml(uncertaintyState.actionCopy) +
+    "</span></div></div>"
+  );
+}
+
 function toggleShortlist(slugValue) {
   var shortlist = readShortlist();
   if (
@@ -907,38 +1010,12 @@ function updateShortlistAction(slugValue) {
 
   if (decisionMemory) {
     var memoryState = buildProfileDecisionMemoryState(slugValue);
-    decisionMemory.innerHTML = memoryState
-      ? '<div class="profile-decision-memory-card tone-' +
-        escapeHtml(memoryState.tone) +
-        '"><div class="profile-decision-memory-label">Your decision memory</div><div class="profile-decision-memory-title">' +
-        escapeHtml(memoryState.title) +
-        '</div><div class="profile-decision-memory-copy">' +
-        escapeHtml(memoryState.copy) +
-        '</div><a href="' +
-        escapeHtml(memoryState.compareHref) +
-        '" class="profile-decision-memory-link">Review shortlist</a></div>'
-      : "";
+    decisionMemory.innerHTML = renderDecisionMemoryCard(memoryState);
   }
 
   if (queueStatus) {
     var queueState = buildProfileOutreachQueueState(slugValue);
-    queueStatus.innerHTML = queueState
-      ? '<div class="profile-queue-status-card tone-' +
-        escapeHtml(queueState.tone) +
-        '"><div class="profile-queue-status-label">' +
-        escapeHtml(queueState.label) +
-        '</div><div class="profile-queue-status-title">' +
-        escapeHtml(queueState.title) +
-        '</div><div class="profile-queue-status-copy">' +
-        escapeHtml(queueState.copy) +
-        '</div><a href="' +
-        escapeHtml(queueState.ctaHref) +
-        '" class="profile-queue-status-link">' +
-        escapeHtml(queueState.ctaLabel) +
-        "</a>" +
-        renderQueueActionButtons(queueState) +
-        "</div>"
-      : "";
+    queueStatus.innerHTML = renderQueueStatusCard(queueState);
   }
 
   var priorityWrap = document.getElementById("profileShortlistPriorityWrap");
@@ -1157,7 +1234,7 @@ function renderProfile(t, therapistDirectory) {
     ? '<span class="status-badge badge-accepting">Accepting new patients</span>'
     : '<span class="status-badge badge-waitlist">Waitlist only</span>';
 
-  var trustPills = [
+  var trustPillItems = [
     t.verification_status === "editorially_verified"
       ? "Editorially verified"
       : "Recently reviewed profile",
@@ -1166,7 +1243,8 @@ function renderProfile(t, therapistDirectory) {
     readinessTitle,
     t.medication_management ? "Medication management" : "",
     t.accepts_telehealth ? "Telehealth available" : "",
-  ]
+  ].slice(0, 4);
+  var trustPills = trustPillItems
     .filter(Boolean)
     .map(function (pill) {
       return '<span class="trust-pill">' + escapeHtml(pill) + "</span>";
@@ -1483,6 +1561,11 @@ function renderProfile(t, therapistDirectory) {
       return '<span class="snapshot-pill">' + escapeHtml(item) + "</span>";
     })
     .join("");
+  var fitSnapshotPanel = fitSnapshotHtml
+    ? '<div class="hero-snapshot-panel"><div class="hero-freshness-label">At a glance</div><div class="fit-snapshot-pills">' +
+      fitSnapshotHtml +
+      "</div></div>"
+    : "";
   var summaryStats = [
     {
       label: "Bipolar fit",
@@ -1642,40 +1725,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div>" +
-    (backupState
-      ? '<div class="profile-backup-card"><div class="profile-backup-kicker">' +
-        escapeHtml(backupState.title) +
-        '</div><div class="profile-backup-copy">' +
-        escapeHtml(backupState.copy) +
-        "</div>" +
-        (backupState.note
-          ? '<div class="profile-backup-note">' + escapeHtml(backupState.note) + "</div>"
-          : "") +
-        '<div class="profile-backup-actions">' +
-        (backupState.primaryAction === "open_backup" && backupState.profileHref
-          ? '<a href="' +
-            escapeHtml(backupState.profileHref) +
-            '" class="btn-website profile-backup-link" data-profile-backup-link="' +
-            escapeHtml(backupState.therapist.slug) +
-            '">Open backup profile</a><a href="' +
-            escapeHtml(backupState.ctaHref) +
-            '" class="btn-website" data-profile-backup-compare="true">' +
-            escapeHtml(backupState.ctaLabel) +
-            "</a>"
-          : '<a href="' +
-            escapeHtml(backupState.ctaHref) +
-            '" class="btn-website" data-profile-backup-compare="true">' +
-            escapeHtml(backupState.ctaLabel) +
-            "</a>" +
-            (backupState.profileHref
-              ? '<a href="' +
-                escapeHtml(backupState.profileHref) +
-                '" class="btn-website profile-backup-link" data-profile-backup-link="' +
-                escapeHtml(backupState.therapist.slug) +
-                '">Open backup profile</a>'
-              : "")) +
-        "</div></div>"
-      : "") +
+    renderBackupCard(backupState) +
     '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
     secondaryButtons +
     "</div>";
@@ -1702,64 +1752,32 @@ function renderProfile(t, therapistDirectory) {
     '<div class="hero-meta">' +
     acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
-    (freshnessSignal
-      ? '<div class="hero-freshness-banner tone-' +
-        escapeHtml(freshnessSignal.tone) +
-        '"><div class="hero-freshness-label">Trust freshness</div><div class="hero-freshness-value">' +
-        escapeHtml(freshnessSignal.label) +
-        '</div><div class="hero-freshness-note">' +
-        escapeHtml(freshnessSignal.note) +
-        "</div></div>"
-      : "") +
-    (fitSnapshotHtml ? '<div class="fit-snapshot-pills">' + fitSnapshotHtml + "</div>" : "") +
-    "</div>" +
-    '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
-    '<div class="profile-uncertainty-state">' +
-    (uncertaintyState
-      ? '<div class="profile-uncertainty-card tone-' +
-        escapeHtml(uncertaintyState.tone) +
-        '"><div class="profile-uncertainty-label">How to use this profile well</div><div class="profile-uncertainty-title">' +
-        escapeHtml(uncertaintyState.title) +
-        '</div><div class="profile-uncertainty-copy">' +
-        escapeHtml(uncertaintyState.copy) +
-        '</div><div class="profile-uncertainty-action"><span class="profile-uncertainty-action-label">' +
-        escapeHtml(uncertaintyState.actionLabel) +
-        '</span><span class="profile-uncertainty-action-copy">' +
-        escapeHtml(uncertaintyState.actionCopy) +
-        "</span></div></div>"
-      : "") +
-    "</div>" +
-    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
-    (decisionMemoryState
-      ? '<div class="profile-decision-memory-card tone-' +
-        escapeHtml(decisionMemoryState.tone) +
-        '"><div class="profile-decision-memory-label">Your decision memory</div><div class="profile-decision-memory-title">' +
-        escapeHtml(decisionMemoryState.title) +
-        '</div><div class="profile-decision-memory-copy">' +
-        escapeHtml(decisionMemoryState.copy) +
-        '</div><a href="' +
-        escapeHtml(decisionMemoryState.compareHref) +
-        '" class="profile-decision-memory-link">Review shortlist</a></div>'
-      : "") +
-    "</div>" +
-    '<div class="profile-queue-status" id="profileQueueStatus">' +
-    (outreachQueueState
-      ? '<div class="profile-queue-status-card tone-' +
-        escapeHtml(outreachQueueState.tone) +
-        '"><div class="profile-queue-status-label">' +
-        escapeHtml(outreachQueueState.label) +
-        '</div><div class="profile-queue-status-title">' +
-        escapeHtml(outreachQueueState.title) +
-        '</div><div class="profile-queue-status-copy">' +
-        escapeHtml(outreachQueueState.copy) +
-        '</div><a href="' +
-        escapeHtml(outreachQueueState.ctaHref) +
-        '" class="profile-queue-status-link">' +
-        escapeHtml(outreachQueueState.ctaLabel) +
-        "</a>" +
-        renderQueueActionButtons(outreachQueueState) +
+    (freshnessSignal || fitSnapshotPanel
+      ? '<div class="hero-signal-grid">' +
+        (freshnessSignal
+          ? '<div class="hero-freshness-banner tone-' +
+            escapeHtml(freshnessSignal.tone) +
+            '"><div class="hero-freshness-label">Trust freshness</div><div class="hero-freshness-value">' +
+            escapeHtml(freshnessSignal.label) +
+            '</div><div class="hero-freshness-note">' +
+            escapeHtml(freshnessSignal.note) +
+            "</div></div>"
+          : "") +
+        fitSnapshotPanel +
         "</div>"
       : "") +
+    "</div>" +
+    '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    '<div class="hero-support-grid">' +
+    '<div class="profile-uncertainty-state">' +
+    renderUncertaintyCard(uncertaintyState) +
+    "</div>" +
+    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
+    renderDecisionMemoryCard(decisionMemoryState) +
+    "</div>" +
+    '<div class="profile-queue-status" id="profileQueueStatus">' +
+    renderQueueStatusCard(outreachQueueState) +
+    "</div>" +
     "</div>" +
     '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Shortlist label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
     SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
