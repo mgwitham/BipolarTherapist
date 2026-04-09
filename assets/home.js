@@ -113,6 +113,7 @@ function syncHeroSearchState() {
   var locationInput = document.getElementById("location");
   var searchButton = document.getElementById("searchButton");
   var searchHelper = document.getElementById("searchHelper");
+  var interestField = hiddenInput ? hiddenInput.closest(".search-field--prompt") : null;
 
   if (!hiddenInput || !locationInput) {
     return;
@@ -121,6 +122,11 @@ function syncHeroSearchState() {
   var interest = String(hiddenInput.value || "").trim();
   var hasLocation = Boolean(locationInput.value.trim());
   var isReady = Boolean(interest) && hasLocation;
+
+  if (interestField) {
+    interestField.classList.toggle("has-value", Boolean(interest));
+  }
+
   syncHomeZipResolvedLabel(locationInput.value);
 
   if (searchButton) {
@@ -138,38 +144,44 @@ function syncHeroSearchState() {
 
 function getHeroButtonLabel(interest) {
   if (interest === "therapist") {
-    return "Start therapist match";
+    return "See therapy matches";
   }
 
   if (interest === "psychiatrist") {
-    return "Start psychiatry match";
+    return "See psychiatry matches";
   }
 
   if (interest === "telehealth") {
-    return "Start telehealth match";
+    return "See telehealth matches";
   }
 
-  return "Start my match";
+  return "See my matches";
 }
 
 function getHeroHelperCopy(interest, hasLocation) {
   if (!interest && !hasLocation) {
-    return "<strong>Next:</strong> choose your care type and ZIP code to begin the guided match.";
+    return "<strong>Next:</strong> choose your support type and California ZIP code to begin.";
   }
 
   if (interest && !hasLocation) {
     return (
-      "<strong>Next:</strong> add your ZIP code to start your " +
-      escapeHtml(interest === "psychiatrist" ? "psychiatry" : interest) +
-      " match."
+      "<strong>Next:</strong> add your California ZIP code to see " +
+      escapeHtml(
+        interest === "psychiatrist"
+          ? "psychiatry"
+          : interest === "therapist"
+            ? "therapy"
+            : interest,
+      ) +
+      " matches."
     );
   }
 
   if (!interest && hasLocation) {
-    return "<strong>Next:</strong> choose the kind of support you want so we can tailor the match.";
+    return "<strong>Next:</strong> choose the kind of support you want so we can narrow the shortlist.";
   }
 
-  return "<strong>Next:</strong> answer a few quick questions and review bipolar-relevant options.";
+  return "<strong>Next:</strong> answer a few quick questions and review a more relevant shortlist.";
 }
 
 function getHeroValidationMessages() {
@@ -183,13 +195,13 @@ function getHeroValidationMessages() {
   }
 
   if (!String(hiddenInput.value || "").trim()) {
-    messages.push("Choose the kind of care you want.");
+    messages.push("Choose the kind of support you want.");
   }
 
   if (!locationInput.value.trim()) {
-    messages.push("Enter your ZIP code to get matched.");
+    messages.push("Enter your California ZIP code to get matched.");
   } else if (zipStatus && zipStatus.status === "out_of_state") {
-    messages.push(zipStatus.message + " We’re currently focused on California ZIP codes.");
+    messages.push(zipStatus.message + " We’re currently matching California ZIP codes.");
   } else if (zipStatus && zipStatus.status === "unknown") {
     messages.push("Enter a valid California ZIP code to get matched.");
   }
@@ -305,115 +317,33 @@ function applyAdaptiveHomepageMode() {
     return;
   }
 
-  if (eyebrow) eyebrow.textContent = "Focused match for bipolar-informed care";
-  if (toolTitle) toolTitle.textContent = "Get to the next step faster";
-  if (proofLabel1) proofLabel1.textContent = "What happens next";
+  if (eyebrow) eyebrow.textContent = "Bipolar-focused therapist matching";
+  if (toolTitle) toolTitle.textContent = "Get a smaller, more relevant shortlist";
+  if (proofLabel1) proofLabel1.textContent = "How long it takes";
   if (proofValue1)
-    proofValue1.textContent = "Answer a few quick questions and get a focused shortlist.";
-  if (proofLabel2) proofLabel2.textContent = "Built for";
+    proofValue1.textContent = "About 2 minutes to begin and get to a more focused shortlist.";
+  if (proofLabel2) proofLabel2.textContent = "Designed for";
   if (proofValue2)
-    proofValue2.textContent = "Therapy, psychiatry, or telehealth support for bipolar care.";
-  if (proofLabel3) proofLabel3.textContent = "Current launch";
-  if (proofValue3)
-    proofValue3.textContent = "California ZIP codes with a calmer, guided starting point.";
-  if (trustPill1) trustPill1.textContent = "Takes about 2 minutes to begin";
-  if (trustPill2) trustPill2.textContent = "No account required to start";
+    proofValue2.textContent =
+      "Therapy, psychiatry, and telehealth options shaped around bipolar care.";
+  if (proofLabel3) proofLabel3.textContent = "Currently available";
+  if (proofValue3) proofValue3.textContent = "Matching California ZIP codes right now.";
+  if (trustPill1) trustPill1.textContent = "Built specifically for bipolar-related care search";
+  if (trustPill2) trustPill2.textContent = "No account required";
 }
 
 function initHeroCareDropdown() {
-  var selectRoot = document.querySelector("[data-custom-select]");
-  var hiddenInput = document.getElementById("homepage_interest");
+  var select = document.getElementById("homepage_interest");
 
-  if (!selectRoot || !hiddenInput) {
+  if (!select) {
     return;
   }
 
-  var field = selectRoot.closest(".search-field--prompt");
-  var trigger = selectRoot.querySelector(".custom-select-trigger");
-  var options = Array.from(selectRoot.querySelectorAll(".custom-select-option"));
-  var defaultLabel = "What kind of support are you looking for?";
-
-  function setOpenState(isOpen) {
-    selectRoot.classList.toggle("is-open", isOpen);
-    if (field) {
-      field.classList.toggle("is-open", isOpen);
-    }
-    if (trigger) {
-      trigger.setAttribute("aria-expanded", String(isOpen));
-    }
-  }
-
-  function closeMenu() {
-    setOpenState(false);
-  }
-
-  function setSelectedValue(value, label) {
-    hiddenInput.value = value || "";
-    if (trigger) {
-      trigger.textContent = label || defaultLabel;
-    }
-    options.forEach(function (option) {
-      option.setAttribute("aria-selected", String(option.dataset.value === value));
+  ["change", "input"].forEach(function (eventName) {
+    select.addEventListener(eventName, function () {
+      hideHeroValidationPopup();
+      syncHeroSearchState();
     });
-    syncHeroSearchState();
-  }
-
-  if (trigger) {
-    trigger.textContent = defaultLabel;
-    trigger.addEventListener("click", function () {
-      var willOpen = !selectRoot.classList.contains("is-open");
-      setOpenState(willOpen);
-    });
-
-    trigger.addEventListener("keydown", function (event) {
-      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        setOpenState(true);
-        if (options[0]) {
-          options[0].focus();
-        }
-      } else if (event.key === "Escape") {
-        closeMenu();
-      }
-    });
-  }
-
-  options.forEach(function (option, index) {
-    option.addEventListener("click", function () {
-      setSelectedValue(option.dataset.value || "", option.textContent.trim());
-      closeMenu();
-      if (trigger) {
-        trigger.focus();
-      }
-    });
-
-    option.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeMenu();
-        if (trigger) {
-          trigger.focus();
-        }
-      } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        (options[index + 1] || options[0]).focus();
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        (options[index - 1] || options[options.length - 1]).focus();
-      }
-    });
-  });
-
-  document.addEventListener("click", function (event) {
-    if (!selectRoot.contains(event.target)) {
-      closeMenu();
-    }
-  });
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      closeMenu();
-    }
   });
 
   syncHeroSearchState();
@@ -652,10 +582,10 @@ function defaultSectionsFromLegacy(homePage) {
       description:
         homePage && homePage.ctaDescription
           ? homePage.ctaDescription
-          : "Join a focused directory designed to help people looking for bipolar-informed care find and understand your practice more easily.",
+          : "Start with the guided match if you want a smaller, more relevant shortlist, or browse the directory if you prefer to explore first.",
       primaryLabel:
-        homePage && homePage.ctaPrimaryLabel ? homePage.ctaPrimaryLabel : "List Your Practice",
-      primaryUrl: homePage && homePage.ctaPrimaryUrl ? homePage.ctaPrimaryUrl : "signup.html",
+        homePage && homePage.ctaPrimaryLabel ? homePage.ctaPrimaryLabel : "Start Your Match",
+      primaryUrl: homePage && homePage.ctaPrimaryUrl ? homePage.ctaPrimaryUrl : "#startMatch",
       secondaryLabel:
         homePage && homePage.ctaSecondaryLabel
           ? homePage.ctaSecondaryLabel
@@ -704,84 +634,87 @@ function renderPageSections(homePage, _featuredTherapists) {
     .join("");
 }
 
-(async function () {
-  var content = await fetchHomePageContent();
-
-  applyHomePageCopy(content.homePage);
-  applySiteSettings(content.siteSettings);
-  activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", ["control", "adaptive"]);
-  trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
-    surface: "homepage",
-  });
-  applyAdaptiveHomepageMode();
-  renderPageSections(content.homePage, content.featuredTherapists || []);
-
-  window.handleSearch = function (event) {
+function handleHomeSearch(event) {
+  if (event && typeof event.preventDefault === "function") {
     event.preventDefault();
-    var loc = document.getElementById("location").value.trim();
-    var interest = document.getElementById("homepage_interest").value || "";
-    var validationMessages = getHeroValidationMessages();
-    var zipStatus = getZipMarketStatus(loc);
+  }
 
-    if (validationMessages.length) {
-      showHeroValidationPopup(validationMessages);
-    }
+  var locationInput = document.getElementById("location");
+  var interestInput = document.getElementById("homepage_interest");
+  var loc = locationInput ? locationInput.value.trim() : "";
+  var interest = interestInput ? interestInput.value || "" : "";
+  var validationMessages = getHeroValidationMessages();
+  var zipStatus = getZipMarketStatus(loc);
 
-    if (!interest) {
-      var trigger = document.querySelector(".custom-select-trigger");
-      if (trigger) {
-        trigger.focus();
-      }
-      syncHeroSearchState();
-      return;
-    }
+  if (validationMessages.length) {
+    showHeroValidationPopup(validationMessages);
+  }
 
-    if (!loc) {
-      var locationInput = document.getElementById("location");
-      if (locationInput) {
-        locationInput.focus();
-      }
-      syncHeroSearchState();
-      return;
+  if (!interest) {
+    if (interestInput) {
+      interestInput.focus();
     }
+    syncHeroSearchState();
+    return;
+  }
 
-    if (zipStatus.status === "out_of_state" || zipStatus.status === "unknown") {
-      var locationField = document.getElementById("location");
-      if (locationField) {
-        locationField.focus();
-      }
-      syncHeroSearchState();
-      return;
+  if (!loc) {
+    if (locationInput) {
+      locationInput.focus();
     }
+    syncHeroSearchState();
+    return;
+  }
 
-    trackFunnelEvent("home_location_submitted", {
-      has_location: Boolean(loc),
-      interest_type: interest || "unspecified",
-    });
-    trackFunnelEvent("home_match_started", {
-      has_location: Boolean(loc),
-      interest_type: interest || "unspecified",
-      source: "hero",
-      experiments: {
-        homepage_messaging: activeHomeExperimentVariant,
-      },
-    });
-    var params = new URLSearchParams();
-    if (loc) {
-      params.set("location_query", loc);
+  if (zipStatus.status === "out_of_state" || zipStatus.status === "unknown") {
+    if (locationInput) {
+      locationInput.focus();
     }
-    if (interest === "therapist") {
-      params.set("care_intent", "Therapy");
-      params.set("care_format", "In-Person");
-      params.set("needs_medication_management", "No");
-    } else if (interest === "psychiatrist") {
-      params.set("care_intent", "Psychiatry");
-      params.set("needs_medication_management", "Yes");
-    } else if (interest === "telehealth") {
-      params.set("care_format", "Telehealth");
-    }
-    window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
-  };
+    syncHeroSearchState();
+    return;
+  }
+
+  trackFunnelEvent("home_location_submitted", {
+    has_location: Boolean(loc),
+    interest_type: interest || "unspecified",
+  });
+  trackFunnelEvent("home_match_started", {
+    has_location: Boolean(loc),
+    interest_type: interest || "unspecified",
+    source: "hero",
+    experiments: {
+      homepage_messaging: activeHomeExperimentVariant,
+    },
+  });
+  var params = new URLSearchParams();
+  if (loc) {
+    params.set("location_query", loc);
+  }
+  if (interest === "therapist") {
+    params.set("care_intent", "Therapy");
+    params.set("needs_medication_management", "No");
+  } else if (interest === "psychiatrist") {
+    params.set("care_intent", "Psychiatry");
+    params.set("needs_medication_management", "Yes");
+  } else if (interest === "telehealth") {
+    params.set("care_format", "Telehealth");
+  }
+  window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
+}
+
+function initHomeSearchForm() {
+  var form = document.getElementById("homeSearchForm");
+  if (!form || form.dataset.bound === "true") {
+    return;
+  }
+
+  form.addEventListener("submit", handleHomeSearch);
+  form.dataset.bound = "true";
+}
+
+(async function () {
+  initHomeSearchForm();
+  window.handleSearch = handleHomeSearch;
 
   initHeroCareDropdown();
   initHeroZipFocusRow();
@@ -791,4 +724,31 @@ function renderPageSections(homePage, _featuredTherapists) {
     locationInput.addEventListener("change", syncHeroSearchState);
   }
   syncHeroSearchState();
+
+  try {
+    var content = await fetchHomePageContent();
+
+    applyHomePageCopy(content.homePage);
+    applySiteSettings(content.siteSettings);
+    activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [
+      "control",
+      "adaptive",
+    ]);
+    trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
+      surface: "homepage",
+    });
+    applyAdaptiveHomepageMode();
+    renderPageSections(content.homePage, content.featuredTherapists || []);
+  } catch (error) {
+    console.error("Failed to initialize homepage content.", error);
+    activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [
+      "control",
+      "adaptive",
+    ]);
+    trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
+      surface: "homepage",
+    });
+    applyAdaptiveHomepageMode();
+    renderPageSections(null, []);
+  }
 })();

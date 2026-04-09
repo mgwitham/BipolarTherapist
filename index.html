@@ -334,17 +334,6 @@
         transition: background-color 9999s ease-out 0s;
         -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
       }
-      .search-field select {
-        border: none;
-        outline: none;
-        font-size: 1rem;
-        color: var(--navy);
-        background: transparent;
-        font-family: inherit;
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-      }
       .search-field--prompt {
         position: relative;
         display: block;
@@ -365,10 +354,7 @@
         white-space: nowrap;
         border: 0;
       }
-      .search-field--prompt .custom-select {
-        position: relative;
-      }
-      .search-field--prompt .custom-select-trigger {
+      .search-field--prompt select {
         width: 100%;
         border: none;
         outline: none;
@@ -382,9 +368,13 @@
         cursor: pointer;
         padding-right: 3rem;
         padding-bottom: 0.55rem;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        border-radius: 0;
       }
-      .search-field--prompt .custom-select-trigger:focus,
-      .search-field--prompt .custom-select.is-open .custom-select-trigger {
+      .search-field--prompt select:focus,
+      .search-field--prompt.has-value select {
         color: var(--navy);
       }
       .search-field--prompt::after {
@@ -398,49 +388,6 @@
         right: 1.6rem;
         bottom: 1rem;
         pointer-events: none;
-        transition: transform 0.18s ease;
-      }
-      .search-field--prompt.is-open::after {
-        transform: rotate(225deg) translateY(0);
-      }
-      .search-field--prompt .custom-select-menu {
-        position: absolute;
-        top: calc(100% + 1.5625rem);
-        left: -0.75rem;
-        right: -0.75rem;
-        z-index: 20;
-        background: white;
-        border: 1px solid rgba(29, 58, 74, 0.16);
-        border-radius: 16px;
-        box-shadow: 0 22px 50px rgba(10, 45, 56, 0.18);
-        padding: 0.7rem;
-        list-style: none;
-        display: none;
-      }
-      .search-field--prompt .custom-select.is-open .custom-select-menu {
-        display: block;
-      }
-      .search-field--prompt .custom-select-option {
-        width: 100%;
-        border: none;
-        background: transparent;
-        border-radius: 12px;
-        color: var(--navy);
-        cursor: pointer;
-        display: block;
-        font-family: "Inter", sans-serif;
-        font-size: 1.05rem;
-        font-weight: 600;
-        padding: 0.9rem 1rem;
-        text-align: left;
-      }
-      .search-field--prompt .custom-select-option:hover,
-      .search-field--prompt .custom-select-option:focus-visible {
-        background: var(--teal-faint);
-        outline: none;
-      }
-      .search-field--prompt .custom-select-option[aria-selected="true"] {
-        color: var(--teal-dark);
       }
       .search-divider {
         background: var(--border);
@@ -471,6 +418,13 @@
       }
       .search-helper strong {
         color: var(--navy);
+      }
+      .search-launch-note {
+        margin-top: -0.35rem;
+        text-align: left;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.4;
       }
       .hero-validation-popup {
         display: none;
@@ -1132,101 +1086,61 @@
       <ul class="nav-links">
         <li><a href="#howItWorks">How it works</a></li>
         <li><a href="directory.html" id="navBrowseLink">Browse therapists</a></li>
-        <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
+        <li><a href="signup.html" class="nav-cta" id="navCtaLink">For Therapists</a></li>
       </ul>
     </nav>
 
-    <section class="hero">
+    <section class="hero" id="startMatch">
       <div class="hero-inner">
         <div class="hero-copy">
-          <div class="hero-eyebrow" id="heroEyebrow">Focused match for bipolar-informed care</div>
-          <h1 id="heroTitle">Start a clearer match for bipolar-informed care</h1>
+          <div class="hero-eyebrow" id="heroEyebrow">Bipolar-focused therapist matching</div>
+          <h1 id="heroTitle">Find a bipolar-informed therapist without the usual guesswork</h1>
           <p id="heroDescription">
-            Tell us what kind of support you want and where you are. We’ll move you into a guided
-            match flow built to narrow your next options with less guesswork.
+            Tell us your ZIP code and the kind of support you want. We’ll guide you to a smaller,
+            more relevant shortlist built around bipolar care.
           </p>
           <div class="hero-proof" aria-label="Why start here">
             <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel1">What happens next</span>
+              <span class="hero-proof-label" id="heroProofLabel1">How long it takes</span>
               <span class="hero-proof-value" id="heroProofValue1"
-                >Answer a few quick questions and get a focused shortlist.</span
+                >About 2 minutes to begin and get to a more focused shortlist.</span
               >
             </div>
             <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel2">Built for</span>
+              <span class="hero-proof-label" id="heroProofLabel2">Designed for</span>
               <span class="hero-proof-value" id="heroProofValue2"
-                >Therapy, psychiatry, or telehealth support for bipolar care.</span
+                >Therapy, psychiatry, and telehealth options shaped around bipolar care.</span
               >
             </div>
             <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel3">Current launch</span>
+              <span class="hero-proof-label" id="heroProofLabel3">Currently available</span>
               <span class="hero-proof-value" id="heroProofValue3"
-                >California ZIP codes with a calmer, guided starting point.</span
+                >Matching California ZIP codes right now.</span
               >
             </div>
           </div>
         </div>
         <div class="tool-shell">
           <div class="tool-card">
-            <div class="tool-kicker">Start your first match</div>
-            <div class="tool-title" id="toolTitle">Get to the next step faster</div>
+            <div class="tool-kicker">Start your match</div>
+            <div class="tool-title" id="toolTitle">Get a smaller, more relevant shortlist</div>
             <p>
-              Choose the support you want, enter your ZIP code, and we’ll take you straight into the
-              guided matcher.
+              Pick the kind of support you want and enter your ZIP code. We’ll take you straight
+              into the guided match flow.
             </p>
             <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
               <div class="hero-validation-title">Almost there</div>
               <div class="hero-validation-list" id="heroValidationList"></div>
             </div>
-            <form class="search-box" onsubmit="handleSearch(event)">
+            <form class="search-box" id="homeSearchForm">
               <div class="search-field search-field--prompt">
-                <label for="homepage_interest">Who are you interested in?</label>
-                <input type="hidden" id="homepage_interest" name="homepage_interest" value="" />
-                <div class="custom-select" data-custom-select>
-                  <button
-                    type="button"
-                    class="custom-select-trigger"
-                    aria-haspopup="listbox"
-                    aria-expanded="false"
-                    aria-controls="homepage_interest_menu"
-                  >
-                    What kind of support are you looking for?
-                  </button>
-                  <div
-                    class="custom-select-menu"
-                    id="homepage_interest_menu"
-                    role="listbox"
-                    aria-label="Select the type of care you want"
-                  >
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      role="option"
-                      data-value="therapist"
-                      aria-selected="false"
-                    >
-                      Therapist
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      role="option"
-                      data-value="psychiatrist"
-                      aria-selected="false"
-                    >
-                      Psychiatrist
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      role="option"
-                      data-value="telehealth"
-                      aria-selected="false"
-                    >
-                      Telehealth
-                    </button>
-                  </div>
-                </div>
+                <label for="homepage_interest">What kind of support do you want first?</label>
+                <select id="homepage_interest" name="homepage_interest">
+                  <option value="">What kind of support do you want first?</option>
+                  <option value="therapist">Therapy</option>
+                  <option value="psychiatrist">Psychiatry</option>
+                  <option value="telehealth">Telehealth</option>
+                </select>
               </div>
               <div class="search-field search-field--zip">
                 <label id="locationLabel">Enter your ZIP code</label>
@@ -1240,15 +1154,17 @@
                   <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
                 </div>
               </div>
+              <div class="search-launch-note">Currently matching California ZIP codes.</div>
               <button type="submit" class="search-btn" id="searchButton">Start my match</button>
             </form>
             <div class="search-helper" id="searchHelper">
-              <strong>Next:</strong> answer a few quick questions and review bipolar-relevant
-              options.
+              <strong>Next:</strong> answer a few quick questions and see a more relevant shortlist.
             </div>
             <div class="tool-trust-row" aria-label="Trust signals">
-              <div class="tool-trust-pill" id="homeTrustPill1">Takes about 2 minutes to begin</div>
-              <div class="tool-trust-pill" id="homeTrustPill2">No account required to start</div>
+              <div class="tool-trust-pill" id="homeTrustPill1">
+                Built specifically for bipolar-related care search
+              </div>
+              <div class="tool-trust-pill" id="homeTrustPill2">No account required</div>
               <a class="tool-trust-pill tool-trust-pill--secondary" href="directory.html">
                 Prefer to browse first?
               </a>
@@ -1308,6 +1224,57 @@
       </div>
     </footer>
 
+    <script>
+      (function () {
+        var form = document.getElementById("homeSearchForm");
+        if (!form) {
+          return;
+        }
+
+        form.addEventListener("submit", function (event) {
+          if (typeof window.handleSearch === "function") {
+            window.handleSearch(event);
+            return;
+          }
+
+          event.preventDefault();
+
+          var locationInput = document.getElementById("location");
+          var interestInput = document.getElementById("homepage_interest");
+          var loc = locationInput ? String(locationInput.value || "").trim() : "";
+          var interest = interestInput ? String(interestInput.value || "").trim() : "";
+
+          if (!interest) {
+            if (interestInput) {
+              interestInput.focus();
+            }
+            return;
+          }
+
+          if (!/^\d{5}$/.test(loc)) {
+            if (locationInput) {
+              locationInput.focus();
+            }
+            return;
+          }
+
+          var params = new URLSearchParams();
+          params.set("location_query", loc);
+
+          if (interest === "therapist") {
+            params.set("care_intent", "Therapy");
+            params.set("needs_medication_management", "No");
+          } else if (interest === "psychiatrist") {
+            params.set("care_intent", "Psychiatry");
+            params.set("needs_medication_management", "Yes");
+          } else if (interest === "telehealth") {
+            params.set("care_format", "Telehealth");
+          }
+
+          window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
+        });
+      })();
+    </script>
     <script type="module" src="assets/home.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>

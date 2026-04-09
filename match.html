@@ -95,12 +95,18 @@
         border-radius: 0;
         background: transparent;
       }
+      .match-builder.is-results-mode {
+        margin-top: 0.35rem;
+      }
       .match-builder-header {
         margin-bottom: 1rem;
       }
       .match-builder-header h2 {
         margin: 0 0 0.3rem;
         font-size: 1.15rem;
+      }
+      .match-builder.is-results-mode .match-builder-header {
+        margin-bottom: 0.65rem;
       }
       .match-builder-grid {
         display: grid;
@@ -122,12 +128,22 @@
         width: min(100%, 600px);
         margin: 0 auto;
       }
+      .match-builder.is-results-mode .match-tool-shell {
+        width: min(100%, 760px);
+        background: rgba(26, 122, 143, 0.04);
+        box-shadow: none;
+        padding: 0.7rem;
+      }
       .match-tool-card {
         background: white;
         color: var(--navy);
         border-radius: 18px;
         padding: 1.2rem;
         box-shadow: 0 14px 36px rgba(10, 45, 56, 0.08);
+      }
+      .match-builder.is-results-mode .match-tool-card {
+        padding: 1rem 1rem 0.95rem;
+        box-shadow: 0 10px 24px rgba(10, 45, 56, 0.05);
       }
       .match-tool-kicker {
         display: inline-flex;
@@ -149,36 +165,18 @@
       .match-tool-copy {
         color: var(--slate);
         font-size: 0.96rem;
-        margin: 0.6rem 0 1rem;
+        margin: 0.6rem 0 0.9rem;
         text-align: center;
       }
-      .match-start-steps {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.65rem;
-        margin: 0 0 1rem;
+      .match-builder.is-results-mode .match-tool-kicker {
+        margin-bottom: 0.35rem;
       }
-      .match-start-step {
-        padding: 0.8rem 0.85rem;
-        border-radius: 14px;
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-        border: 1px solid rgba(14, 77, 95, 0.1);
-        text-align: left;
+      .match-builder.is-results-mode .match-tool-title {
+        font-size: clamp(1.05rem, 2vw, 1.2rem);
       }
-      .match-start-step-label {
-        display: block;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .match-start-step-copy {
-        display: block;
-        margin-top: 0.22rem;
-        font-size: 0.86rem;
-        line-height: 1.45;
-        color: var(--navy);
+      .match-builder.is-results-mode .match-tool-copy {
+        margin: 0.4rem 0 0.55rem;
+        font-size: 0.88rem;
       }
       .match-action-status {
         margin-top: 0.9rem;
@@ -186,6 +184,11 @@
         font-size: 0.84rem;
         line-height: 1.5;
         text-align: center;
+      }
+      .match-builder.is-results-mode .match-start-helper,
+      .match-builder.is-results-mode .match-start-trust,
+      .match-builder.is-results-mode .match-action-status {
+        display: none;
       }
       .match-search-box {
         background: #f7fbfc;
@@ -220,8 +223,7 @@
         background: transparent;
       }
       .match-search-box .search-field--zip label,
-      .match-search-box .search-field--prompt label,
-      .match-search-box .match-native-select {
+      .match-search-box .search-field--prompt label {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -284,10 +286,7 @@
         border-radius: 0;
         background: transparent;
       }
-      .match-search-box .custom-select {
-        position: relative;
-      }
-      .match-search-box .custom-select-trigger {
+      .match-search-box .search-field--prompt select {
         width: 100%;
         border: none;
         outline: none;
@@ -301,9 +300,13 @@
         cursor: pointer;
         padding-right: 3rem;
         padding-bottom: 0.55rem;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        border-radius: 0;
       }
-      .match-search-box .custom-select-trigger:focus,
-      .match-search-box .custom-select.is-open .custom-select-trigger {
+      .match-search-box .search-field--prompt select:focus,
+      .match-search-box .search-field--prompt.has-value select {
         color: var(--navy);
       }
       .match-search-box .search-field--prompt::after {
@@ -317,49 +320,6 @@
         right: 1.6rem;
         bottom: 1rem;
         pointer-events: none;
-        transition: transform 0.18s ease;
-      }
-      .match-search-box .search-field--prompt.is-open::after {
-        transform: rotate(225deg) translateY(0);
-      }
-      .match-search-box .custom-select-menu {
-        position: absolute;
-        top: calc(100% + 1.25rem);
-        left: -0.75rem;
-        right: -0.75rem;
-        z-index: 20;
-        background: white;
-        border: 1px solid rgba(29, 58, 74, 0.16);
-        border-radius: 16px;
-        box-shadow: 0 22px 50px rgba(10, 45, 56, 0.18);
-        padding: 0.7rem;
-        list-style: none;
-        display: none;
-      }
-      .match-search-box .custom-select.is-open .custom-select-menu {
-        display: block;
-      }
-      .match-search-box .custom-select-option {
-        width: 100%;
-        border: none;
-        background: transparent;
-        border-radius: 12px;
-        color: var(--navy);
-        cursor: pointer;
-        display: block;
-        font-family: "Inter", sans-serif;
-        font-size: 1.05rem;
-        font-weight: 600;
-        padding: 0.9rem 1rem;
-        text-align: left;
-      }
-      .match-search-box .custom-select-option:hover,
-      .match-search-box .custom-select-option:focus-visible {
-        background: var(--teal-faint);
-        outline: none;
-      }
-      .match-search-box .custom-select-option[aria-selected="true"] {
-        color: var(--teal-dark);
       }
       .match-search-btn {
         background: var(--teal);
@@ -386,12 +346,19 @@
       .match-start-helper strong {
         color: var(--navy);
       }
+      .match-launch-note {
+        margin-top: -0.2rem;
+        text-align: left;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
       .match-start-trust {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 0.55rem;
-        margin-top: 0.95rem;
+        margin-top: 0.8rem;
       }
       .match-start-pill {
         display: inline-flex;
@@ -1708,6 +1675,61 @@
         color: var(--slate);
         line-height: 1.6;
       }
+      .result-disclosure {
+        margin: 1rem 0 0;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        overflow: hidden;
+      }
+      .result-disclosure[hidden] {
+        display: none;
+      }
+      .result-disclosure summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        padding: 0.95rem 1rem;
+        cursor: pointer;
+        background: #f8fbfc;
+      }
+      .result-disclosure summary::-webkit-details-marker {
+        display: none;
+      }
+      .result-disclosure-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .result-disclosure-copy {
+        margin-top: 0.18rem;
+        font-size: 0.8rem;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .result-disclosure-toggle {
+        position: relative;
+        width: 0.8rem;
+        height: 0.8rem;
+        flex: 0 0 auto;
+      }
+      .result-disclosure-toggle::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-right: 2px solid rgba(29, 58, 74, 0.78);
+        border-bottom: 2px solid rgba(29, 58, 74, 0.78);
+        transform: rotate(45deg);
+        transition: transform 0.18s ease;
+      }
+      .result-disclosure[open] .result-disclosure-toggle::before {
+        transform: rotate(225deg) translate(-0.08rem, -0.08rem);
+      }
+      .result-disclosure-body {
+        padding: 1rem;
+      }
       .match-feedback-bar {
         margin: 1rem 0 0;
         padding: 0.95rem 1rem;
@@ -2273,9 +2295,6 @@
         .match-list {
           grid-template-columns: 1fr;
         }
-        .match-start-steps {
-          grid-template-columns: 1fr;
-        }
         .match-builder-grid {
           grid-template-columns: 1fr;
         }
@@ -2419,11 +2438,11 @@
       style="margin-top: 0.4rem"
     >
       <div class="match-hero-copy">
-        <div class="match-hero-kicker">Guided match intake</div>
-        <h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1>
+        <div class="match-hero-kicker">Bipolar-focused match intake</div>
+        <h1>Find bipolar-informed care without sorting through generic profiles.</h1>
         <p>
-          Answer a few practical questions and we’ll turn your search into a smaller, clearer
-          shortlist of therapists or psychiatrists who may fit your needs.
+          Start with just your care type and ZIP code. We’ll narrow your first shortlist, then let
+          you refine only if you need to.
         </p>
         <div class="match-trust-strip" aria-label="Trust highlights">
           <span class="match-trust-pill">Built for bipolar-specific care</span>
@@ -2445,77 +2464,17 @@
                 <div class="match-tool-kicker">Only two answers required to begin</div>
                 <div class="match-tool-title">Get to your first shortlist faster</div>
                 <p class="match-tool-copy">
-                  Tell us what kind of care you want and any practical constraints that matter.
-                  We’ll build a more focused shortlist.
+                  Pick the type of support you want and enter your ZIP code. We’ll start with the
+                  strongest shortlist we can build from there.
                 </p>
-                <div class="match-start-steps" aria-label="How matching works">
-                  <div class="match-start-step">
-                    <span class="match-start-step-label">Step 1</span>
-                    <span class="match-start-step-copy"
-                      >Choose therapy or psychiatry and enter your ZIP code.</span
-                    >
-                  </div>
-                  <div class="match-start-step">
-                    <span class="match-start-step-label">Step 2</span>
-                    <span class="match-start-step-copy"
-                      >Add preferences only if they will meaningfully narrow the field.</span
-                    >
-                  </div>
-                  <div class="match-start-step">
-                    <span class="match-start-step-label">Step 3</span>
-                    <span class="match-start-step-copy"
-                      >Review a tighter shortlist with a clear next step for each provider.</span
-                    >
-                  </div>
-                </div>
                 <div class="match-search-box">
                   <div class="search-field search-field--prompt" data-match-care-field>
                     <label for="care_intent">Type of care</label>
-                    <select
-                      id="care_intent"
-                      name="care_intent"
-                      required
-                      class="match-native-select"
-                    >
-                      <option>Therapy</option>
-                      <option>Psychiatry</option>
+                    <select id="care_intent" name="care_intent" required>
+                      <option value="">What kind of care do you want first?</option>
+                      <option value="Therapy">Therapy</option>
+                      <option value="Psychiatry">Psychiatry</option>
                     </select>
-                    <div class="custom-select" data-match-custom-select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger"
-                        aria-haspopup="listbox"
-                        aria-expanded="false"
-                        aria-controls="match_care_menu"
-                      >
-                        What kind of care are you looking for?
-                      </button>
-                      <div
-                        class="custom-select-menu"
-                        id="match_care_menu"
-                        role="listbox"
-                        aria-label="Select the type of care you want"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          role="option"
-                          data-value="Therapy"
-                          aria-selected="false"
-                        >
-                          Therapy
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          role="option"
-                          data-value="Psychiatry"
-                          aria-selected="false"
-                        >
-                          Psychiatry
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
                   <div class="search-field search-field--zip" data-intake-field="location_query">
@@ -2537,18 +2496,17 @@
                     </div>
                   </div>
 
+                  <div class="match-launch-note">Currently matching California ZIP codes.</div>
                   <button type="submit" class="match-search-btn" id="matchSearchButton">
-                    See my top matches
+                    See my matches
                   </button>
                 </div>
                 <div class="match-start-helper" id="matchStartHelper">
-                  <strong>Next:</strong> choose your care type and ZIP code to start the guided
-                  match.
+                  <strong>Next:</strong> choose your care type and California ZIP code to begin.
                 </div>
                 <div class="match-start-trust" aria-label="Match trust signals">
                   <div class="match-start-pill">Only care type and ZIP are required</div>
                   <div class="match-start-pill">Optional preferences can wait</div>
-                  <div class="match-start-pill">Shortlist first, refine after</div>
                 </div>
                 <div class="match-action-status" id="matchActionStatus" aria-live="polite">
                   Run a match to review your top options.
@@ -2583,7 +2541,7 @@
 
                     <div class="match-group" data-intake-field="care_format">
                       <label for="care_format">How do you want to meet?</label>
-                      <select id="care_format" name="care_format" required>
+                      <select id="care_format" name="care_format">
                         <option>In-Person</option>
                         <option>Telehealth</option>
                       </select>
@@ -2593,11 +2551,7 @@
                       <label for="needs_medication_management"
                         >Do you need medication management?</label
                       >
-                      <select
-                        id="needs_medication_management"
-                        name="needs_medication_management"
-                        required
-                      >
+                      <select id="needs_medication_management" name="needs_medication_management">
                         <option>Open to either</option>
                         <option>Yes</option>
                         <option>No</option>
@@ -2617,7 +2571,7 @@
 
                     <div class="match-group" data-intake-field="priority_mode">
                       <label for="priority_mode">What matters most right now?</label>
-                      <select id="priority_mode" name="priority_mode" required>
+                      <select id="priority_mode" name="priority_mode">
                         <option>Best overall fit</option>
                         <option>Soonest availability</option>
                         <option>Lowest cost</option>
@@ -2801,7 +2755,7 @@
           </div>
         </div>
         <div id="matchAdaptiveGuidance"></div>
-        <div class="feedback-insights" id="feedbackInsights">
+        <div class="feedback-insights" id="feedbackInsights" hidden>
           <div class="feedback-insights-header">
             <h3>Internal Match Insights</h3>
             <p>Local-only summary of the feedback captured on this device.</p>
