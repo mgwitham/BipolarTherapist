@@ -20,7 +20,7 @@ import {
   trackExperimentExposure,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
-import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./directory-logic.js";
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug");

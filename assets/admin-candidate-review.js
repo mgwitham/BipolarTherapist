@@ -277,6 +277,9 @@ export function bindCandidateDecisionButtons(root, handlers) {
       button.textContent = decision === "publish" ? "Publishing..." : "Updating...";
       try {
         await handlers.decideTherapistCandidate(id, { decision: decision });
+        if (typeof handlers.onDecisionComplete === "function") {
+          handlers.onDecisionComplete(id, decision);
+        }
         await handlers.loadData();
       } catch (_error) {
         const status = root.querySelector('[data-candidate-status-id="' + id + '"]');

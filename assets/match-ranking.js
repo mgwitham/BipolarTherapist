@@ -1,3 +1,5 @@
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+
 function buildRouteLearningMap(outcomes, buildLearningSegments) {
   var entries = Array.isArray(outcomes) ? outcomes : [];
   var learning = {};
@@ -201,8 +203,6 @@ export function getRouteLearningForProfile(profile, entry, outcomes, options) {
     attempts: attempts,
   };
 }
-
-import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./directory-logic.js";
 
 export function getPreferredOutreach(entry, options) {
   var settings = options || {};

@@ -1,20 +1,12 @@
-const refreshActionFlash = {};
-const REFRESH_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
-const EXPIRING_SOON_DAYS = 14;
+import {
+  renderActionFirstIntro,
+  renderDecisionGuide,
+  renderRecommendedActionBar,
+} from "./admin-action-first.js";
+import { createActionFlashStore } from "./admin-action-flash.js";
 
-function buildRefreshDecisionGuide(summary, escapeHtml) {
-  return (
-    '<div class="decision-guide"><div class="decision-guide-title">Pick one outcome</div><div class="decision-guide-note"><strong>Recommended next move:</strong> ' +
-    escapeHtml(summary.recommended) +
-    '</div><div class="decision-guide-note"><strong>If you can update it directly:</strong> ' +
-    escapeHtml(summary.updatePath) +
-    '</div><div class="decision-guide-note"><strong>If it needs therapist input:</strong> ' +
-    escapeHtml(summary.confirmationPath) +
-    '</div><div class="decision-guide-note"><strong>If it can wait:</strong> ' +
-    escapeHtml(summary.deferPath) +
-    "</div></div>"
-  );
-}
+const refreshActionFlash = createActionFlashStore();
+const EXPIRING_SOON_DAYS = 14;
 
 function toTimestamp(value) {
   if (!value) {
@@ -64,40 +56,17 @@ function getRefreshPriorityMeta(entry, options) {
 }
 
 function setRefreshActionFlash(id, message) {
-  if (!id) {
-    return;
-  }
-  const trimmed = String(message || "").trim();
-  if (!trimmed) {
-    delete refreshActionFlash[id];
-    return;
-  }
-  refreshActionFlash[id] = {
-    message: trimmed,
-    createdAt: Date.now(),
-  };
+  refreshActionFlash.set(id, message);
 }
 
 function getRecentRefreshActionFlashes(limit) {
-  const maxItems = Number(limit) > 0 ? Number(limit) : 3;
-  const now = Date.now();
-  return Object.entries(refreshActionFlash)
-    .map(function (entry) {
-      return {
-        id: entry[0],
-        message: entry[1] && entry[1].message ? entry[1].message : "",
-        createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
-      };
-    })
-    .filter(function (entry) {
-      return (
-        entry.message && entry.createdAt && now - entry.createdAt <= REFRESH_ACTION_FLASH_TTL_MS
-      );
-    })
-    .sort(function (a, b) {
-      return b.createdAt - a.createdAt;
-    })
-    .slice(0, maxItems);
+  return refreshActionFlash.getRecent(limit, function (entry) {
+    return {
+      id: entry.id,
+      message: entry.message,
+      createdAt: entry.createdAt,
+    };
+  });
 }
 
 export function renderRefreshQueuePanel(options) {
@@ -262,9 +231,14 @@ export function renderRefreshQueuePanel(options) {
           '"' +
           (index === 0 ? ' id="refreshQueueStartHere"' : "") +
           "><div>" +
-          (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this listing first. It is the highest-priority live listing that may need updated details.</div><div class="start-here-action">Do this now: open the profile, review the stale fields, and decide whether you can update them directly or need therapist confirmation.</div>'
-            : "") +
+          renderActionFirstIntro({
+            active: index === 0,
+            title:
+              "Work this listing first. It is the highest-priority live listing that may need updated details.",
+            action:
+              "Do this now: open the profile, review the stale fields, and decide whether you can update them directly or need therapist confirmation.",
+            escapeHtml: options.escapeHtml,
+          }) +
           "<strong>" +
           options.escapeHtml(item.name) +
           "</strong>" +
@@ -315,24 +289,37 @@ export function renderRefreshQueuePanel(options) {
           options.escapeHtml(trustSummary.headline) +
           "</div>" +
           (evidence ? '<div class="subtle">' + options.escapeHtml(evidence) + "</div>" : "") +
-          '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div>' +
+          renderRecommendedActionBar({
+            why: index === 0 ? firstActionWhy : "",
+            doneWhen:
+              "The listing is updated, deferred with a reason, or moved into confirmation follow-up.",
+            primaryActionHtml:
+              '<a class="btn-primary btn-inline" href="therapist.html?slug=' +
+              encodeURIComponent(item.slug) +
+              '">Open profile and review fields</a>',
+            secondaryActionHtml: sourceReference.href
+              ? '<a class="btn-secondary btn-inline" href="' +
+                options.escapeHtml(sourceReference.href) +
+                '" target="_blank" rel="noopener">' +
+                options.escapeHtml(sourceReference.shortLabel) +
+                "</a>"
+              : "",
+            escapeHtml: options.escapeHtml,
+          }) +
           (index === 0
-            ? '<div class="mini-status" style="margin-bottom:0.65rem"><strong>Why this first:</strong> ' +
-              options.escapeHtml(firstActionWhy) +
-              "</div>"
+            ? renderDecisionGuide({
+                items: [
+                  { label: "Recommended next move", value: decisionGuide.recommended },
+                  { label: "If you can update it directly", value: decisionGuide.updatePath },
+                  {
+                    label: "If it needs therapist input",
+                    value: decisionGuide.confirmationPath,
+                  },
+                  { label: "If it can wait", value: decisionGuide.deferPath },
+                ],
+                escapeHtml: options.escapeHtml,
+              })
             : "") +
-          '<div class="recommended-action-row"><a class="btn-primary btn-inline" href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile and review fields</a>' +
-          (sourceReference.href
-            ? '<a class="btn-secondary btn-inline" href="' +
-              options.escapeHtml(sourceReference.href) +
-              '" target="_blank" rel="noopener">' +
-              options.escapeHtml(sourceReference.shortLabel) +
-              "</a>"
-            : "") +
-          '</div><div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> The listing is updated, deferred with a reason, or moved into confirmation follow-up.</div></div>' +
-          (index === 0 ? buildRefreshDecisionGuide(decisionGuide, options.escapeHtml) : "") +
           (therapistId
             ? '<div class="queue-actions secondary-actions"><button class="btn-secondary btn-inline" data-refresh-ops="' +
               options.escapeHtml(therapistId) +

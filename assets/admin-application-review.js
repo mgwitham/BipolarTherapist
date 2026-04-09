@@ -3,6 +3,11 @@ import {
   getApplicationActionFlash,
   getRecentApplicationActionFlashes,
 } from "./admin-application-actions.js";
+import {
+  renderActionFirstIntro,
+  renderDecisionGuide,
+  renderRecommendedActionBar,
+} from "./admin-action-first.js";
 
 export function renderApplicationsPanel(options) {
   const applications =
@@ -698,6 +703,29 @@ export function renderApplicationsPanel(options) {
         const secondaryActions =
           index === 0 && primaryActionHtml ? actions.replace(primaryActionHtml, "") : actions;
         const actionFlash = getApplicationActionFlash(item.id);
+        const firstActionWhy = isClaimFlow
+          ? reviewSnapshot.note ||
+            "This claim is the strongest current ownership decision in the filtered view."
+          : reviewSnapshot.note ||
+            "This application is the strongest current publish decision in the filtered view.";
+        const firstActionDoneWhen = isClaimFlow
+          ? "The claim is approved, sent back for fixes, rejected, or moved out of active review."
+          : isConfirmationRefresh
+            ? "The update is applied, sent back for fixes, rejected, or moved out of active review."
+            : "The application is published, sent back for fixes, rejected, or moved out of active review.";
+        const decisionGuide = {
+          recommended: reviewSnapshot.nextMove,
+          approvePath: isClaimFlow
+            ? "Approve the claim and move this therapist into the fuller profile path."
+            : isConfirmationRefresh
+              ? "Apply or publish this update so the live listing moves forward."
+              : "Publish now and move this therapist out of the active applications lane.",
+          requestPath: isConfirmationRefresh
+            ? "Request fixes when a therapist-confirmed update is useful but still incomplete."
+            : "Request fixes when the application is promising but still missing trust-critical details.",
+          rejectPath:
+            "Reject when the submission is not trustworthy enough or is not a fit to keep moving.",
+        };
 
         return (
           '<article class="application-card' +
@@ -707,9 +735,14 @@ export function renderApplicationsPanel(options) {
           '"' +
           (index === 0 ? ' id="applicationReviewStartHere"' : "") +
           ">" +
-          (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this application first. It is the top review target for the current goal and filters.</div><div class="start-here-action">Do this now: review trust-critical details first, then approve, request changes, reject, or publish before leaving the card.</div>'
-            : "") +
+          renderActionFirstIntro({
+            active: index === 0,
+            title:
+              "Open this application first. It is the top review target for the current goal and filters.",
+            action:
+              "Do this now: review trust-critical details first, then approve, request changes, reject, or publish before leaving the card.",
+            escapeHtml: options.escapeHtml,
+          }) +
           '<div class="application-head"><div><h3>' +
           options.escapeHtml(item.name) +
           '</h3><p class="subtle">' +
@@ -767,6 +800,36 @@ export function renderApplicationsPanel(options) {
               "</span>"
             : "") +
           "</div>" +
+          (index === 0 && primaryActionHtml
+            ? renderRecommendedActionBar({
+                why: firstActionWhy,
+                doneWhen: firstActionDoneWhen,
+                primaryActionHtml: primaryActionHtml,
+                secondaryActionHtml: item.email
+                  ? '<a class="btn-secondary btn-inline" href="mailto:' +
+                    options.escapeHtml(item.email) +
+                    '">Email therapist</a>'
+                  : "",
+                escapeHtml: options.escapeHtml,
+              })
+            : "") +
+          (index === 0
+            ? renderDecisionGuide({
+                items: [
+                  { label: "Recommended next move", value: decisionGuide.recommended },
+                  { label: "If it is strong enough", value: decisionGuide.approvePath },
+                  {
+                    label: "If it is close but incomplete",
+                    value: decisionGuide.requestPath,
+                  },
+                  { label: "If it is not a fit", value: decisionGuide.rejectPath },
+                ],
+                escapeHtml: options.escapeHtml,
+              })
+            : "") +
+          (index === 0 && actionFlash
+            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
+            : "") +
           (item.care_approach
             ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
               options.escapeHtml(item.care_approach) +
@@ -893,13 +956,11 @@ export function renderApplicationsPanel(options) {
           "</div>" +
           "</div>" +
           (index === 0 && primaryActionHtml
-            ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row">' +
-              primaryActionHtml +
-              '</div></div><div class="action-row secondary-actions">'
+            ? '<div class="action-row secondary-actions">'
             : '<div class="action-row">') +
           secondaryActions +
           "</div>" +
-          (actionFlash
+          (actionFlash && index !== 0
             ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
             : "") +
           '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +

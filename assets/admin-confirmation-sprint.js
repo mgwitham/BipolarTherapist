@@ -245,7 +245,9 @@ export function renderConfirmationSprintPanel(options) {
             : "") +
           '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a></div><div class="review-coach-status" data-confirmation-status-id="' +
+          '" target="_blank" rel="noopener">Open confirmation form</a></div>' +
+          options.renderReviewEntityTaskHtml("therapist", item.id) +
+          '<div class="review-coach-status" data-confirmation-status-id="' +
           options.escapeHtml(item.slug) +
           '"></div></article>'
         );

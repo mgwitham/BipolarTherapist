@@ -175,6 +175,7 @@
       .admin-region {
         display: grid;
         gap: 0.9rem;
+        min-width: 0;
       }
       .admin-region-shell {
         border: 1px solid rgba(26, 122, 143, 0.12);
@@ -182,6 +183,8 @@
         padding: 0.9rem;
         background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
         box-shadow: 0 14px 32px rgba(29, 58, 74, 0.04);
+        min-width: 0;
+        overflow: hidden;
       }
       .admin-region-header {
         display: flex;
@@ -494,9 +497,12 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: 340px minmax(0, 1fr);
+        grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
         gap: 1.25rem;
         align-items: start;
+      }
+      .grid > * {
+        min-width: 0;
       }
       .grid.workflow-focus-active {
         grid-template-columns: 1fr;
@@ -538,11 +544,15 @@
       .sidebar-panel {
         position: sticky;
         top: 152px;
+        width: 100%;
+        min-width: 0;
       }
       .panel {
         padding: 1.2rem;
         background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
         box-shadow: 0 10px 28px rgba(29, 58, 74, 0.04);
+        min-width: 0;
+        overflow: hidden;
       }
       .panel.section-spotlight,
       .workflow-section.section-spotlight,

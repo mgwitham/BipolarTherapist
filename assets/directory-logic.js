@@ -7,73 +7,7 @@ import {
   getTherapistMerchandisingQuality,
 } from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-
-function getHostname(value) {
-  if (!value) {
-    return "";
-  }
-  try {
-    return new URL(value).hostname.replace(/^www\./, "").toLowerCase();
-  } catch (_error) {
-    return "";
-  }
-}
-
-export function isWebsiteRouteHealthy(therapist) {
-  if (!therapist || !therapist.website) {
-    return false;
-  }
-
-  var sourceHealthStatus = String(therapist.source_health_status || "")
-    .trim()
-    .toLowerCase();
-  if (!sourceHealthStatus) {
-    return true;
-  }
-  if (["healthy", "redirected"].includes(sourceHealthStatus)) {
-    return true;
-  }
-
-  var websiteHost = getHostname(therapist.website);
-  var sourceHost = getHostname(therapist.source_url || therapist.sourceUrl || "");
-  var finalHost = getHostname(therapist.source_health_final_url || "");
-  if (!websiteHost) {
-    return true;
-  }
-
-  var sourceMatchesWebsite =
-    (sourceHost && sourceHost === websiteHost) || (finalHost && finalHost === websiteHost);
-
-  return !sourceMatchesWebsite;
-}
-
-export function isBookingRouteHealthy(therapist) {
-  if (!therapist || !therapist.booking_url) {
-    return false;
-  }
-
-  var sourceHealthStatus = String(therapist.source_health_status || "")
-    .trim()
-    .toLowerCase();
-  if (!sourceHealthStatus) {
-    return true;
-  }
-  if (["healthy", "redirected"].includes(sourceHealthStatus)) {
-    return true;
-  }
-
-  var bookingHost = getHostname(therapist.booking_url);
-  var sourceHost = getHostname(therapist.source_url || therapist.sourceUrl || "");
-  var finalHost = getHostname(therapist.source_health_final_url || "");
-  if (!bookingHost) {
-    return true;
-  }
-
-  var sourceMatchesBooking =
-    (sourceHost && sourceHost === bookingHost) || (finalHost && finalHost === bookingHost);
-
-  return !sourceMatchesBooking;
-}
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
 export function buildDirectoryStrategySegments(filterState) {
   var segments = ["all"];

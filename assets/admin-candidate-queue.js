@@ -5,65 +5,36 @@ import {
   renderCandidatePublishPacket,
   renderCandidateTrustChips,
 } from "./admin-candidate-review.js";
+import {
+  renderActionFirstIntro,
+  renderDecisionGuide,
+  renderRecommendedActionBar,
+} from "./admin-action-first.js";
+import { createActionFlashStore } from "./admin-action-flash.js";
 
-const candidateActionFlash = {};
-const CANDIDATE_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
+const candidateActionFlash = createActionFlashStore();
 
 function setCandidateActionFlash(id, message) {
-  if (!id) {
-    return;
-  }
-  const trimmed = String(message || "").trim();
-  if (!trimmed) {
-    delete candidateActionFlash[id];
-    return;
-  }
-  candidateActionFlash[id] = {
-    message: trimmed,
-    createdAt: Date.now(),
-  };
+  candidateActionFlash.set(id, message);
 }
 
 function getCandidateActionFlash(id) {
-  if (!id || !candidateActionFlash[id]) {
-    return "";
-  }
-  const entry = candidateActionFlash[id];
-  if (!entry.message) {
-    return "";
-  }
-  if (!entry.createdAt || Date.now() - entry.createdAt > CANDIDATE_ACTION_FLASH_TTL_MS) {
-    delete candidateActionFlash[id];
-    return "";
-  }
-  return entry.message;
+  return candidateActionFlash.get(id);
 }
 
 function getRecentCandidateActionFlashes(candidates, limit) {
   const list = Array.isArray(candidates) ? candidates : [];
-  const maxItems = Number(limit) > 0 ? Number(limit) : 3;
-  const now = Date.now();
-  return Object.entries(candidateActionFlash)
-    .map(function (entry) {
-      const item = list.find(function (candidate) {
-        return String(candidate.id) === String(entry[0]);
-      });
-      return {
-        id: entry[0],
-        name: item && item.name ? item.name : entry[0],
-        message: entry[1] && entry[1].message ? entry[1].message : "",
-        createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
-      };
-    })
-    .filter(function (entry) {
-      return (
-        entry.message && entry.createdAt && now - entry.createdAt <= CANDIDATE_ACTION_FLASH_TTL_MS
-      );
-    })
-    .sort(function (a, b) {
-      return b.createdAt - a.createdAt;
-    })
-    .slice(0, maxItems);
+  return candidateActionFlash.getRecent(limit, function (entry) {
+    const item = list.find(function (candidate) {
+      return String(candidate.id) === String(entry.id);
+    });
+    return {
+      id: entry.id,
+      name: item && item.name ? item.name : entry.id,
+      message: entry.message,
+      createdAt: entry.createdAt,
+    };
+  });
 }
 
 function getCandidateDecisionOutcome(decision) {
@@ -157,17 +128,21 @@ function renderCandidateDecisionGuide(item, guidance, escapeHtml) {
       ? "Resolve duplicate now: clear the duplicate risk before moving forward."
       : "Resolve duplicate now: use this when the listing appears to match an existing profile.";
 
-  return (
-    '<div class="decision-guide"><div class="decision-guide-title">Pick one outcome</div><div class="decision-guide-note"><strong>Recommended next move:</strong> ' +
-    escapeHtml(nextMove) +
-    '</div><div class="decision-guide-list"><div class="decision-guide-item">' +
-    escapeHtml(publishLine) +
-    '</div><div class="decision-guide-item">' +
-    escapeHtml(confirmationLine) +
-    '</div><div class="decision-guide-item">' +
-    escapeHtml(duplicateLine) +
-    "</div></div></div>"
-  );
+  return renderDecisionGuide({
+    items: [
+      { label: "Recommended next move", value: nextMove },
+      { label: "Publish now", value: publishLine.replace(/^Publish now:\s*/, "") },
+      {
+        label: "Send to confirmation now",
+        value: confirmationLine.replace(/^Send to confirmation now:\s*/, ""),
+      },
+      {
+        label: "Resolve duplicate now",
+        value: duplicateLine.replace(/^Resolve duplicate now:\s*/, ""),
+      },
+    ],
+    escapeHtml: escapeHtml,
+  });
 }
 
 function renderCandidateCardHtml(item, index, options, therapists, applications) {
@@ -176,6 +151,13 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     .join(", ")
     .replace(/, (?=\d{5}$)/, " ");
   const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
+  const sourceReference = options.getSourceReferenceMeta
+    ? options.getSourceReferenceMeta(item)
+    : {
+        href: item.source_url || "",
+        label: item.source_url ? "Open original source" : "No source page available",
+        shortLabel: item.source_url ? "Open source" : "No source page",
+      };
   const trustSummary = options.getCandidateTrustSummary(item);
   const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
   const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
@@ -241,11 +223,13 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +
     ">" +
-    (index === 0
-      ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this listing first. It is the top current supply decision in the filtered view.</div><div class="start-here-action">Do this now: ' +
-        options.escapeHtml(startHereGuidance.whyNow) +
-        "</div>"
-      : "") +
+    renderActionFirstIntro({
+      active: index === 0,
+      title:
+        "Review this listing first. It is the top current supply decision in the filtered view.",
+      action: "Do this now: " + startHereGuidance.whyNow,
+      escapeHtml: options.escapeHtml,
+    }) +
     '<div class="queue-head"><div><h3>' +
     options.escapeHtml(item.name || "Unnamed listing") +
     '</h3><div class="subtle">' +
@@ -255,6 +239,28 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '</span><span class="tag">' +
     options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
+    (index === 0
+      ? renderRecommendedActionBar({
+          why: startHereGuidance.whyNow,
+          doneWhen: startHereGuidance.doneWhen,
+          primaryActionHtml:
+            '<button class="btn-primary" data-candidate-decision="' +
+            options.escapeHtml(item.id) +
+            '" data-candidate-next="' +
+            options.escapeHtml(startHereGuidance.primaryAction) +
+            '">' +
+            options.escapeHtml(startHereGuidance.primaryLabel) +
+            "</button>",
+          secondaryActionHtml: sourceReference.href
+            ? '<a class="btn-secondary btn-inline" href="' +
+              options.escapeHtml(sourceReference.href) +
+              '" target="_blank" rel="noopener">' +
+              options.escapeHtml(sourceReference.label) +
+              "</a>"
+            : "",
+          escapeHtml: options.escapeHtml,
+        })
+      : "") +
     '<div class="queue-summary-grid">' +
     '<div class="queue-kpi"><div class="queue-kpi-label">Recommendation</div><div class="queue-kpi-value">' +
     options.escapeHtml(recommendation) +
@@ -285,30 +291,9 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
         options.escapeHtml(sourceTrail) +
         "</div>"
       : "") +
-    options.renderReviewEntityTaskHtml("candidate", item.id, {
-      escapeHtml: options.escapeHtml,
-      formatDate: options.formatDate,
-    }) +
     (index === 0
-      ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="mini-status" style="margin-bottom:0.65rem"><strong>Why this first:</strong> ' +
-        options.escapeHtml(startHereGuidance.whyNow) +
-        '</div><div class="recommended-action-row"><button class="btn-primary" data-candidate-decision="' +
-        options.escapeHtml(item.id) +
-        '" data-candidate-next="' +
-        options.escapeHtml(startHereGuidance.primaryAction) +
-        '">' +
-        options.escapeHtml(startHereGuidance.primaryLabel) +
-        "</button>" +
-        (item.source_url
-          ? '<a class="btn-secondary btn-inline" href="' +
-            options.escapeHtml(item.source_url) +
-            '" target="_blank" rel="noopener">Open source profile</a>'
-          : "") +
-        "</div>" +
-        renderCandidateDecisionGuide(item, startHereGuidance, options.escapeHtml) +
-        '<div class="mini-status" style="margin-top:0.65rem"><strong>Done when:</strong> ' +
-        options.escapeHtml(startHereGuidance.doneWhen) +
-        '</div></div><div class="queue-actions secondary-actions">'
+      ? renderCandidateDecisionGuide(item, startHereGuidance, options.escapeHtml) +
+        '<div class="queue-actions secondary-actions">'
       : '<div class="queue-actions">') +
     (index === 0
       ? options
@@ -326,10 +311,12 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
       : options.buildCandidateDecisionActions(item)) +
     (index === 0
       ? ""
-      : item.source_url
+      : sourceReference.href
         ? '<a class="btn-secondary btn-inline" href="' +
-          options.escapeHtml(item.source_url) +
-          '" target="_blank" rel="noopener">Open source</a>'
+          options.escapeHtml(sourceReference.href) +
+          '" target="_blank" rel="noopener">' +
+          options.escapeHtml(sourceReference.shortLabel) +
+          "</a>"
         : "") +
     (item.published_therapist_id
       ? '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
@@ -341,6 +328,10 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '">' +
     options.escapeHtml(actionFlash) +
     "</div>" +
+    options.renderReviewEntityTaskHtml("candidate", item.id, {
+      escapeHtml: options.escapeHtml,
+      formatDate: options.formatDate,
+    }) +
     (expandedDetails
       ? '<details class="queue-more-details"><summary>See full listing details</summary><div class="queue-more-details-body">' +
         expandedDetails +

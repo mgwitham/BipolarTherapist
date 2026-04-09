@@ -1,56 +1,17 @@
-const applicationActionFlash = {};
-const APPLICATION_ACTION_FLASH_TTL_MS = 10 * 60 * 1000;
+import { createActionFlashStore } from "./admin-action-flash.js";
+
+const applicationActionFlash = createActionFlashStore();
 
 export function getApplicationActionFlash(id) {
-  if (!id || !applicationActionFlash[id]) {
-    return "";
-  }
-  const entry = applicationActionFlash[id];
-  if (!entry.message) {
-    return "";
-  }
-  if (!entry.createdAt || Date.now() - entry.createdAt > APPLICATION_ACTION_FLASH_TTL_MS) {
-    delete applicationActionFlash[id];
-    return "";
-  }
-  return entry.message;
+  return applicationActionFlash.get(id);
 }
 
 export function setApplicationActionFlash(id, message) {
-  if (!id) {
-    return;
-  }
-  const trimmed = String(message || "").trim();
-  if (!trimmed) {
-    delete applicationActionFlash[id];
-    return;
-  }
-  applicationActionFlash[id] = {
-    message: trimmed,
-    createdAt: Date.now(),
-  };
+  applicationActionFlash.set(id, message);
 }
 
 export function getRecentApplicationActionFlashes(limit) {
-  const maxItems = Number(limit) > 0 ? Number(limit) : 3;
-  const now = Date.now();
-  return Object.entries(applicationActionFlash)
-    .map(function (entry) {
-      return {
-        id: entry[0],
-        message: entry[1] && entry[1].message ? entry[1].message : "",
-        createdAt: entry[1] && entry[1].createdAt ? entry[1].createdAt : 0,
-      };
-    })
-    .filter(function (entry) {
-      return (
-        entry.message && entry.createdAt && now - entry.createdAt <= APPLICATION_ACTION_FLASH_TTL_MS
-      );
-    })
-    .sort(function (a, b) {
-      return b.createdAt - a.createdAt;
-    })
-    .slice(0, maxItems);
+  return applicationActionFlash.getRecent(limit);
 }
 
 export function bindApplicationPanelInteractions(root, options) {
@@ -311,23 +272,23 @@ export function bindApplicationPanelInteractions(root, options) {
           await options.loadData();
           var successMessage =
             action === "approve_claim"
-              ? "Completed: claim approved and moved forward."
+              ? "Completed: profile claim approved and moved to the next step."
               : action === "mark-claim-follow-up-sent"
-                ? "Completed: follow-up marked sent."
+                ? "Completed: therapist follow-up marked sent."
                 : action === "mark-claim-follow-up-responded"
-                  ? "Completed: therapist reply recorded."
+                  ? "Completed: therapist reply recorded for this application."
                   : action === "mark-full-profile-started"
-                    ? "Completed: full-profile start recorded."
+                    ? "Completed: fuller profile started and moved forward."
                     : action === "publish"
-                      ? "Completed: application approved for publish."
+                      ? "Completed: application approved for publish and moved out of review."
                       : action === "reject"
-                        ? "Completed: application rejected."
+                        ? "Completed: application rejected and removed from active review."
                         : action === "reviewing"
                           ? "Completed: application moved into active review."
                           : action === "requested_changes"
-                            ? "Completed: fixes requested from therapist."
+                            ? "Completed: therapist asked to make changes."
                             : action === "pending"
-                              ? "Completed: application moved back to pending."
+                              ? "Completed: application moved back to pending review."
                               : action === "save-notes"
                                 ? "Completed: notes saved on this application."
                                 : "";
@@ -432,19 +393,19 @@ export function bindApplicationPanelInteractions(root, options) {
           options.renderAll();
           var offlineSuccessMessage =
             action === "requested_changes"
-              ? "Completed: fixes requested from therapist."
+              ? "Completed: therapist asked to make changes."
               : action === "approve_claim"
-                ? "Completed: claim approved and moved forward."
+                ? "Completed: profile claim approved and moved to the next step."
                 : action === "mark-claim-follow-up-sent"
-                  ? "Completed: follow-up marked sent."
+                  ? "Completed: therapist follow-up marked sent."
                   : action === "mark-claim-follow-up-responded"
-                    ? "Completed: therapist reply recorded."
+                    ? "Completed: therapist reply recorded for this application."
                     : action === "mark-full-profile-started"
-                      ? "Completed: full-profile start recorded."
+                      ? "Completed: fuller profile started and moved forward."
                       : action === "publish"
-                        ? "Completed: application published."
+                        ? "Completed: application published and moved out of review."
                         : action === "reject"
-                          ? "Completed: application rejected."
+                          ? "Completed: application rejected and removed from active review."
                           : "";
           options.setCoachActionStatus(root, id, offlineSuccessMessage);
           setApplicationActionFlash(id, offlineSuccessMessage);
