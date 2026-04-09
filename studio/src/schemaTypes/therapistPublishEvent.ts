@@ -28,6 +28,7 @@ export const therapistPublishEventType = defineType({
           { title: "Therapist source checked", value: "therapist_source_checked" },
           { title: "Therapist source degraded", value: "therapist_source_degraded" },
           { title: "Therapist field drift detected", value: "therapist_field_drift_detected" },
+          { title: "Licensure refresh deferred", value: "licensure_refresh_deferred" },
         ],
       },
       validation: (rule) => rule.required(),

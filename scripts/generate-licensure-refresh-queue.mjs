@@ -159,6 +159,7 @@ async function fetchData(client) {
       lastRefreshSuccessAt,
       lastRefreshFailureAt,
       nextRefreshDueAt,
+      deferredUntilAt,
       refreshFailureCount,
       lastRefreshError,
       staleAfterAt,
@@ -209,6 +210,10 @@ function buildRows(data) {
     const expiry = formatDate(
       record.licensureVerification && record.licensureVerification.expirationDate,
     );
+    const deferredUntil = record.deferredUntilAt || "";
+    if (deferredUntil && toTimestamp(deferredUntil) > Date.now()) {
+      return;
+    }
     const dueAt = record.nextRefreshDueAt || record.staleAfterAt || "";
     if (
       record.refreshStatus === "failed" ||
@@ -226,6 +231,7 @@ function buildRows(data) {
         license_number: therapist.licenseNumber || "",
         refresh_status: record.refreshStatus || "queued",
         next_refresh_due_at: formatDate(dueAt),
+        deferred_until_at: formatDate(deferredUntil),
         last_refresh_success_at: formatDate(record.lastRefreshSuccessAt),
         expiration_date: expiry,
         queue_reason: record.refreshStatus === "failed" ? "refresh_failed" : "refresh_due",
@@ -267,6 +273,7 @@ function writeCsv(rows) {
     "license_number",
     "refresh_status",
     "next_refresh_due_at",
+    "deferred_until_at",
     "last_refresh_success_at",
     "expiration_date",
     "queue_reason",
@@ -311,6 +318,9 @@ function writeMarkdown(rows) {
     lines.push(`- License: ${row.license_number || "Unknown"}`);
     if (row.expiration_date) {
       lines.push(`- Expiration: ${row.expiration_date}`);
+    }
+    if (row.deferred_until_at) {
+      lines.push(`- Deferred until: ${row.deferred_until_at}`);
     }
     lines.push(`- Reason: ${row.reason || "Refresh due"}`);
     lines.push(`- Next move: ${row.next_move || "Run licensure refresh"}`);

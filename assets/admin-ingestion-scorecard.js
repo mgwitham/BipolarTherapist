@@ -266,6 +266,10 @@ export function renderIngestionScorecardPanel(options) {
     : "Not run yet";
   var automationTrends =
     latestAutomationRun && latestAutomationRun.trends ? latestAutomationRun.trends : null;
+  var automationLicensureSprint =
+    latestAutomationRun && latestAutomationRun.licensureSprint
+      ? latestAutomationRun.licensureSprint
+      : null;
 
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">System health</div><div class="subtle" style="margin-bottom:0.7rem">Use this to understand whether the bottleneck is publish throughput, duplicate cleanup, confirmation, freshness, licensure trust, or graph coverage.</div><div class="queue-insights-grid">' +
@@ -376,6 +380,13 @@ export function renderIngestionScorecardPanel(options) {
           .join("") +
         "</div></div>"
       : "") +
+    (automationLicensureSprint && automationLicensureSprint.count
+      ? '<div class="queue-insights"><div class="queue-insights-title">Current licensure sprint</div><div class="mini-status"><strong>Automation-picked lane:</strong> ' +
+        options.escapeHtml(formatLicensureSprintLane(automationLicensureSprint.lane)) +
+        " (" +
+        options.escapeHtml(String(automationLicensureSprint.count)) +
+        " items)</div></div>"
+      : "") +
     (lowLicensureCoverage
       ? '<div class="queue-insights"><div class="queue-insights-title">Licensure trust gap</div><div class="mini-status"><strong>Coverage is thin:</strong> ' +
         options.escapeHtml(
@@ -387,4 +398,17 @@ export function renderIngestionScorecardPanel(options) {
     '<div class="queue-insights"><div class="queue-insights-title">What to do next</div><div class="mini-status"><strong>Primary bottleneck:</strong> ' +
     options.escapeHtml(nextMove) +
     "</div></div>";
+}
+
+function formatLicensureSprintLane(lane) {
+  if (lane === "first_pass") {
+    return "First-pass enrichment";
+  }
+  if (lane === "failed_refresh") {
+    return "Failed refresh recovery";
+  }
+  if (lane === "expiration_watch") {
+    return "Expiration watch";
+  }
+  return "Clear";
 }

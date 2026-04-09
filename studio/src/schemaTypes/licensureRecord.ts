@@ -101,6 +101,12 @@ export const licensureRecordType = defineType({
       group: "refresh",
     }),
     defineField({
+      name: "deferredUntilAt",
+      title: "Deferred until",
+      type: "datetime",
+      group: "refresh",
+    }),
+    defineField({
       name: "refreshIntervalDays",
       title: "Refresh interval days",
       type: "number",

@@ -108,6 +108,13 @@ export function renderLicensureQueuePanel(options) {
                 options.escapeHtml(item.profile_link) +
                 '">Open profile</a>'
               : "") +
+            (item.licensure_record_id
+              ? '<button class="btn-secondary btn-inline" data-licensure-defer="' +
+                options.escapeHtml(item.licensure_record_id) +
+                '" data-licensure-next="snooze_7d">Defer 7 days</button><button class="btn-secondary btn-inline" data-licensure-defer="' +
+                options.escapeHtml(item.licensure_record_id) +
+                '" data-licensure-next="snooze_30d">Defer 30 days</button>'
+              : "") +
             '<button class="btn-primary" data-licensure-copy-command="' +
             options.escapeHtml(item.therapist_id || "") +
             '">' +
@@ -147,6 +154,26 @@ export function renderLicensureQueuePanel(options) {
         window.setTimeout(function () {
           button.textContent = original;
         }, 1600);
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-licensure-defer]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const recordId = button.getAttribute("data-licensure-defer");
+      const decision = button.getAttribute("data-licensure-next");
+      const original = button.textContent;
+      if (!recordId || !decision || typeof options.decideLicensureOps !== "function") {
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Saving...";
+      try {
+        await options.decideLicensureOps(recordId, { decision: decision });
+        await options.loadData();
+      } catch (_error) {
+        button.disabled = false;
+        button.textContent = original;
       }
     });
   });

@@ -421,6 +421,14 @@ export async function decideTherapistOps(therapistId, decisionPayload) {
   });
 }
 
+export async function decideLicensureOps(licensureRecordId, decisionPayload) {
+  return request(`/licensure-records/${encodeURIComponent(licensureRecordId)}/ops`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(decisionPayload),
+  });
+}
+
 export async function approveTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/approve`, {
     method: "POST",

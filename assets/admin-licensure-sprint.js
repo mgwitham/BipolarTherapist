@@ -10,6 +10,10 @@ export function renderLicensureSprintPanel(options) {
   }
 
   const rows = Array.isArray(options.rows) ? options.rows : [];
+  const automationSprint =
+    options.latestAutomationRun && options.latestAutomationRun.licensureSprint
+      ? options.latestAutomationRun.licensureSprint
+      : null;
   if (!rows.length) {
     root.innerHTML =
       '<div class="subtle">No licensure sprint work is queued right now. Primary-source coverage is steady for the moment.</div>';
@@ -48,6 +52,13 @@ export function renderLicensureSprintPanel(options) {
     '<div class="mini-status"><strong>Primary lane:</strong> ' +
     options.escapeHtml(primaryLane) +
     "</div>" +
+    (automationSprint && automationSprint.count
+      ? '<div class="subtle" style="margin-top:0.35rem">Automation currently points to <strong>' +
+        options.escapeHtml(formatLaneLabel(automationSprint.lane)) +
+        "</strong> (" +
+        options.escapeHtml(String(automationSprint.count)) +
+        " items).</div>"
+      : "") +
     '<div class="subtle" style="margin-top:0.5rem">' +
     options.escapeHtml(
       headlineCount +
@@ -126,6 +137,26 @@ export function renderLicensureSprintPanel(options) {
       }
     });
   });
+
+  root.querySelectorAll("[data-licensure-sprint-defer]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const recordId = button.getAttribute("data-licensure-sprint-defer");
+      const decision = button.getAttribute("data-licensure-sprint-next") || "";
+      const original = button.textContent;
+      if (!recordId || !decision || typeof options.decideLicensureOps !== "function") {
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Saving...";
+      try {
+        await options.decideLicensureOps(recordId, { decision: decision });
+        await options.loadData();
+      } catch (_error) {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  });
 }
 
 function renderLane(title, rows, options, laneKey) {
@@ -160,6 +191,11 @@ function renderLane(title, rows, options, laneKey) {
             ? '<a class="btn-secondary btn-inline" href="' +
               options.escapeHtml(item.official_profile_url) +
               '" target="_blank" rel="noreferrer">Official source</a>'
+            : "") +
+          (item.licensure_record_id
+            ? '<button class="btn-secondary btn-inline" data-licensure-sprint-defer="' +
+              options.escapeHtml(item.licensure_record_id) +
+              '" data-licensure-sprint-next="snooze_7d">Defer 7 days</button>'
             : "") +
           '<button class="btn-primary" data-licensure-sprint-copy="' +
           options.escapeHtml(item.therapist_id || "") +
@@ -252,6 +288,10 @@ function getLaneRows(rows, lane) {
 }
 
 function getLaneTitle(lane) {
+  return formatLaneLabel(lane);
+}
+
+function formatLaneLabel(lane) {
   if (lane === "first_pass") {
     return "First-pass enrichment";
   }

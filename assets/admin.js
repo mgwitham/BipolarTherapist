@@ -15,6 +15,7 @@ import {
   applyTherapistApplicationFields,
   checkReviewApiHealth,
   decideTherapistCandidate,
+  decideLicensureOps,
   decideTherapistOps,
   fetchTherapistCandidates,
   fetchTherapistPortalRequests,
@@ -6143,6 +6144,9 @@ function renderCoverageIntelligence() {
 }
 
 function renderIngestionScorecard() {
+  var latestAutomationRun = ingestionAutomationHistory.length
+    ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
+    : null;
   renderIngestionScorecardPanel({
     root: document.getElementById("ingestionScorecard"),
     authRequired: authRequired,
@@ -6150,6 +6154,7 @@ function renderIngestionScorecard() {
     candidates: dataMode === "sanity" ? remoteCandidates : [],
     applications: dataMode === "sanity" ? remoteApplications : getApplications(),
     ingestionAutomationHistory: ingestionAutomationHistory,
+    latestAutomationRun: latestAutomationRun,
     licensureRefreshQueue: licensureRefreshQueue,
     buildCoverageInsights: buildCoverageInsights,
     getDataFreshnessSummary: getDataFreshnessSummary,
@@ -6895,16 +6900,24 @@ function renderLicensureQueue() {
       licensureQueueFilter = nextFilter;
       renderLicensureQueue();
     },
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
     escapeHtml: escapeHtml,
     copyText: copyText,
   });
 }
 
 function renderLicensureSprint() {
+  var latestAutomationRun = ingestionAutomationHistory.length
+    ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
+    : null;
   renderLicensureSprintPanel({
     root: document.getElementById("licensureSprint"),
     authRequired: authRequired,
     rows: licensureRefreshQueue,
+    latestAutomationRun: latestAutomationRun,
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
     escapeHtml: escapeHtml,
     copyText: copyText,
   });

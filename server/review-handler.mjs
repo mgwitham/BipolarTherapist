@@ -1574,6 +1574,26 @@ function buildTherapistOpsEvent(therapist, updates) {
   };
 }
 
+function buildLicensureOpsEvent(record, updates) {
+  const now = new Date().toISOString();
+  return {
+    _id: `therapist-publish-event-${record._id}-${crypto.randomUUID()}`,
+    _type: "therapistPublishEvent",
+    eventType: updates.eventType,
+    providerId: record.providerId || "",
+    candidateId: "",
+    candidateDocumentId: "",
+    applicationId: "",
+    therapistId: record.sourceDocumentType === "therapist" ? record.sourceDocumentId || "" : "",
+    decision: updates.decision || "",
+    reviewStatus: "",
+    publishRecommendation: "",
+    notes: updates.notes || "",
+    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
+    createdAt: now,
+  };
+}
+
 function buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso) {
   const allowed = new Set([
     "credentials",
@@ -2941,6 +2961,57 @@ export function createReviewApiHandler(configOverride) {
         await transaction.commit({ visibility: "sync" });
         const updatedTherapist = await client.getDocument(therapistId);
         sendJson(response, 200, { ok: true, therapist: updatedTherapist }, origin, config);
+        return;
+      }
+
+      const licensureOpsMatch = routePath.match(/^\/licensure-records\/([^/]+)\/ops$/);
+      if (request.method === "POST" && licensureOpsMatch) {
+        if (!isAuthorized(request, config)) {
+          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+          return;
+        }
+
+        const recordId = decodeURIComponent(licensureOpsMatch[1]);
+        const record = await client.getDocument(recordId);
+        if (!record || record._type !== "licensureRecord") {
+          sendJson(response, 404, { error: "Licensure record not found." }, origin, config);
+          return;
+        }
+
+        const body = await parseBody(request);
+        const decision = String(body.decision || "").trim();
+        const notes = String(body.notes || "").trim();
+        const allowedDecisions = new Set(["snooze_7d", "snooze_30d"]);
+        if (!allowedDecisions.has(decision)) {
+          sendJson(response, 400, { error: "Unsupported licensure ops decision." }, origin, config);
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        const snoozeDays = decision === "snooze_30d" ? 30 : 7;
+        const patchFields = {
+          deferredUntilAt: addDays(nowIso, snoozeDays),
+          nextRefreshDueAt: addDays(nowIso, snoozeDays),
+          refreshStatus: record.refreshStatus === "failed" ? "needs_refresh" : record.refreshStatus || "queued",
+        };
+        const changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
+
+        const transaction = client.transaction();
+        transaction.patch(recordId, function (patch) {
+          return patch.set(patchFields);
+        });
+        transaction.create(
+          buildLicensureOpsEvent(record, {
+            eventType: "licensure_refresh_deferred",
+            decision,
+            notes,
+            changedFields,
+          }),
+        );
+
+        await transaction.commit({ visibility: "sync" });
+        const updatedRecord = await client.getDocument(recordId);
+        sendJson(response, 200, { ok: true, licensureRecord: updatedRecord }, origin, config);
         return;
       }
 
