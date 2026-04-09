@@ -32,8 +32,78 @@ let formBannerTimer = 0;
 let signupRestoreMode = "";
 let lastReadinessScore = null;
 let readinessDeltaTimer = 0;
+let lastReadinessTone = "";
+let readinessCelebrationTimer = 0;
+let lastReadinessInteractionField = "";
 
 var SIGNUP_DRAFT_KEY_PREFIX = "bt_signup_draft_v1";
+var READINESS_CONTRIBUTION_HINTS = {
+  name: {
+    weight: "+12",
+    category: "Trust boost",
+    copy: "Makes the profile feel real and professionally attributable.",
+  },
+  credentials: {
+    weight: "+12",
+    category: "Trust boost",
+    copy: "Helps patients judge licensure and credibility immediately.",
+  },
+  license_number: {
+    weight: "+10",
+    category: "Trust boost",
+    copy: "Strengthens editorial trust and profile legitimacy.",
+  },
+  bio: {
+    weight: "+10",
+    category: "Trust boost",
+    copy: "Gives patients a reason to believe you may be a credible fit.",
+  },
+  care_approach: {
+    weight: "+12",
+    category: "Fit boost",
+    copy: "Shows how you actually help bipolar clients in practice.",
+  },
+  specialties: {
+    weight: "+10",
+    category: "Fit boost",
+    copy: "Signals bipolar relevance much faster in shortlist decisions.",
+  },
+  treatment_modalities: {
+    weight: "+8",
+    category: "Fit boost",
+    copy: "Helps patients picture how care with you would work.",
+  },
+  contact_guidance: {
+    weight: "+8",
+    category: "Conversion boost",
+    copy: "Makes outreach feel clearer and lowers hesitation.",
+  },
+  first_step_expectation: {
+    weight: "+8",
+    category: "Conversion boost",
+    copy: "Reduces uncertainty about what happens after contact.",
+  },
+  therapist_reported_fields: {
+    weight: "+8",
+    category: "Trust boost",
+    copy: "Improves operational trust for shortlist confidence.",
+  },
+  insurance_accepted: {
+    weight: "+6",
+    category: "Practical fit",
+    copy: "Helps people self-screen before reaching out.",
+  },
+  session_fee_min: {
+    weight: "+6",
+    category: "Practical fit",
+    copy: "Clarifies cost fit before a patient invests time contacting you.",
+  },
+  telehealth_states: {
+    weight: "+6",
+    category: "Access fit",
+    copy: "Makes virtual eligibility clear right away.",
+  },
+};
 
 var REVISION_FIELD_CONFIG = {
   license_number: {
@@ -1252,10 +1322,13 @@ function renderReadiness() {
   var nudgeCopy = document.getElementById("readinessNudgeCopy");
   var nudgeButton = document.getElementById("readinessNudgeButton");
   var milestoneEl = document.getElementById("readinessMilestone");
+  var celebrationEl = document.getElementById("readinessCelebration");
   var distanceEl = document.getElementById("readinessDistance");
   var nextTierEl = document.getElementById("readinessNextTier");
   var tierRail = document.getElementById("readinessTierRail");
   var benefitEl = document.getElementById("readinessBenefit");
+  var snapshotEl = document.getElementById("readinessSnapshot");
+  var dimensionsEl = document.getElementById("readinessDimensions");
 
   if (
     !form ||
@@ -1269,19 +1342,29 @@ function renderReadiness() {
     !nudgeCopy ||
     !nudgeButton ||
     !milestoneEl ||
+    !celebrationEl ||
     !distanceEl ||
     !nextTierEl ||
     !tierRail ||
-    !benefitEl
+    !benefitEl ||
+    !snapshotEl ||
+    !dimensionsEl
   ) {
     return;
   }
 
   var data = collectFormData(form);
   var readiness = getTherapistMatchReadiness(data);
-  var nextField = getNextRecommendedField(data);
+  var priorityFixes = getReadinessPriorityFixes(data, readiness);
+  var nextField = priorityFixes.length
+    ? {
+        field: priorityFixes[0].field,
+        label: getFieldGuidanceLabel(priorityFixes[0].field),
+      }
+    : getNextRecommendedField(data);
   var displayMeta = getReadinessDisplayMeta(readiness.score);
   updateReadinessDelta(deltaEl, readiness.score);
+  updateReadinessCelebration(celebrationEl, readiness.score, displayMeta);
   scoreEl.textContent = readiness.score + "/100";
   labelEl.textContent = displayMeta.label;
   labelEl.className = "readiness-label tone-" + displayMeta.tone;
@@ -1295,13 +1378,7 @@ function renderReadiness() {
         .join("")
     : '<span class="readiness-empty">Add a few more details and your strengths will show up here.</span>';
 
-  missingEl.innerHTML = readiness.missing_items.length
-    ? readiness.missing_items
-        .map(function (item) {
-          return '<span class="readiness-pill">' + item + "</span>";
-        })
-        .join("")
-    : '<span class="readiness-empty">This profile is in strong shape for high-quality matching.</span>';
+  renderReadinessPriorityFixes(missingEl, priorityFixes, readiness.score);
 
   if (nextField) {
     nudgeKicker.textContent =
@@ -1313,7 +1390,7 @@ function renderReadiness() {
     nudgeCopy.textContent = getReadinessNudgeCopy(nextField, readiness.score);
     nudgeButton.style.display = "inline-flex";
     nudgeButton.textContent =
-      readiness.score >= 85 ? "Finish final unlock" : "Open " + nextField.label;
+      readiness.score >= 85 ? "Finish final unlock" : getReadinessNudgeButtonLabel(nextField.field);
     nudgeButton.onclick = function () {
       jumpToSignupField(nextField.field);
     };
@@ -1331,8 +1408,162 @@ function renderReadiness() {
   renderReadinessTierRail(tierRail, displayMeta.tone);
   benefitEl.innerHTML =
     "<strong>What this tier unlocks:</strong> " + getReadinessBenefitCopy(displayMeta.tone);
+  var dimensions = getReadinessDimensions(data);
+  renderReadinessSnapshot(snapshotEl, dimensions, readiness.score);
+  renderReadinessDimensions(dimensionsEl, dimensions, readiness.score);
 
   renderRevisionWorkspace(data);
+}
+
+function updateReadinessCelebration(element, score, displayMeta) {
+  if (!element || !displayMeta) {
+    return;
+  }
+
+  var previousScore = lastReadinessScore;
+  var previousTone = lastReadinessTone;
+  lastReadinessTone = displayMeta.tone;
+
+  if (previousScore == null) {
+    hideReadinessCelebration(element);
+    return;
+  }
+
+  var delta = score - previousScore;
+  var message = "";
+  var toneClass = "";
+
+  if (previousTone && previousTone !== displayMeta.tone) {
+    if (delta < 0) {
+      message =
+        "This profile slipped below " +
+        getReadinessDisplayLabel(previousTone) +
+        ". Re-adding one strong detail should bring it back.";
+      toneClass = "critical";
+    } else {
+      message = getReadinessTierCrossingMessage(
+        displayMeta.label,
+        score,
+        lastReadinessInteractionField,
+      );
+      toneClass = displayMeta.tone === "match-ready" ? "" : "stronger";
+    }
+  } else if (delta >= 10) {
+    message =
+      "Nice jump. " +
+      (lastReadinessInteractionField
+        ? capitalizeLabel(getFieldGuidanceLabel(lastReadinessInteractionField)) +
+          " just made a meaningful trust and fit gain."
+        : "You just made a meaningful trust and fit gain.");
+    toneClass = "stronger";
+  } else if (displayMeta.tone === "match-ready" && delta > 0) {
+    message = "This profile is now in the strongest public-readiness tier.";
+    toneClass = "";
+  } else if (delta > 0 && score >= 75) {
+    message = "You are in the final stretch now. One or two more strong details could finish this.";
+    toneClass = "stronger";
+  }
+
+  if (!message) {
+    hideReadinessCelebration(element);
+    return;
+  }
+
+  if (readinessCelebrationTimer) {
+    window.clearTimeout(readinessCelebrationTimer);
+    readinessCelebrationTimer = 0;
+  }
+
+  element.textContent = message;
+  element.style.display = "block";
+  element.className = "readiness-celebration" + (toneClass ? " " + toneClass : "");
+
+  readinessCelebrationTimer = window.setTimeout(function () {
+    hideReadinessCelebration(element);
+  }, 2600);
+}
+
+function hideReadinessCelebration(element) {
+  if (!element) {
+    return;
+  }
+
+  element.style.display = "none";
+  element.textContent = "";
+  element.className = "readiness-celebration";
+  if (readinessCelebrationTimer) {
+    window.clearTimeout(readinessCelebrationTimer);
+    readinessCelebrationTimer = 0;
+  }
+}
+
+function renderReadinessPriorityFixes(container, fixes, score) {
+  if (!container) {
+    return;
+  }
+
+  if (!fixes.length) {
+    container.innerHTML =
+      '<span class="readiness-empty">This profile is in strong shape for high-quality matching.</span>';
+    return;
+  }
+
+  var visibleCount = score >= 65 ? 5 : score >= 40 ? 4 : 3;
+  var visibleFixes = fixes.slice(0, visibleCount);
+  var hiddenCount = Math.max(0, fixes.length - visibleFixes.length);
+
+  container.innerHTML =
+    visibleFixes
+      .map(function (item) {
+        return (
+          '<button type="button" class="readiness-pill" data-readiness-fix="' +
+          item.field +
+          '" aria-label="' +
+          escapeHtml("Open " + item.title + ". " + item.detail) +
+          '" title="' +
+          escapeHtml("Open " + item.title) +
+          '" style="display:inline-flex;align-items:flex-start;gap:0.55rem;text-align:left;padding:0.65rem 0.75rem;max-width:100%;font:inherit;cursor:pointer">' +
+          '<span style="display:grid;gap:0.16rem;min-width:0">' +
+          '<span style="font-weight:700;color:var(--navy)">' +
+          item.title +
+          "</span>" +
+          '<span style="font-size:0.72rem;color:var(--muted)">' +
+          item.detail +
+          "</span>" +
+          (item.milestoneHint
+            ? '<span style="font-size:0.69rem;color:var(--teal-dark);font-weight:600">' +
+              item.milestoneHint +
+              "</span>"
+            : "") +
+          "</span>" +
+          '<span style="display:grid;justify-items:end;gap:0.18rem;flex-shrink:0">' +
+          '<span style="display:inline-flex;align-items:center;padding:0.18rem 0.42rem;border-radius:999px;background:rgba(45,169,165,0.12);color:var(--teal-dark);font-size:0.68rem;font-weight:700;white-space:nowrap">' +
+          item.weight +
+          "</span>" +
+          '<span style="font-size:0.68rem;color:var(--muted);white-space:nowrap">' +
+          item.category +
+          "</span>" +
+          "</button>"
+        );
+      })
+      .join("") +
+    (hiddenCount
+      ? '<span class="readiness-pill readiness-pill-summary">+' +
+        hiddenCount +
+        " more high-impact " +
+        (hiddenCount === 1 ? "fix" : "fixes") +
+        " waiting</span>"
+      : "");
+
+  container.querySelectorAll("[data-readiness-fix]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var fieldName = button.getAttribute("data-readiness-fix");
+      if (!fieldName) {
+        return;
+      }
+      jumpToSignupField(fieldName);
+    });
+  });
 }
 
 function updateReadinessDelta(deltaEl, score) {
@@ -1370,6 +1601,61 @@ function updateReadinessDelta(deltaEl, score) {
     deltaEl.classList.remove("negative");
     readinessDeltaTimer = 0;
   }, 1800);
+}
+
+function getReadinessTierCrossingMessage(label, score) {
+  var fieldLabel = lastReadinessInteractionField
+    ? capitalizeLabel(getFieldGuidanceLabel(lastReadinessInteractionField))
+    : "That change";
+  if (label === "Match-ready") {
+    return (
+      fieldLabel +
+      " pushed this into Match-ready. Patients should now have enough clarity to shortlist you with much more confidence."
+    );
+  }
+  if (label === "Getting stronger") {
+    return (
+      fieldLabel +
+      " pushed this into Getting stronger. The profile now has much better shortlist momentum."
+    );
+  }
+  if (label === "Good start") {
+    return (
+      fieldLabel +
+      " pushed this into Good start. The profile now feels real enough to keep seriously considering."
+    );
+  }
+  return "This profile just made a meaningful readiness jump.";
+}
+
+function capitalizeLabel(text) {
+  var value = String(text || "").trim();
+  if (!value) {
+    return "";
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function trackReadinessInteraction(event) {
+  var target = event && event.target;
+  if (!target || !target.name) {
+    return;
+  }
+
+  lastReadinessInteractionField = target.name;
+}
+
+function getReadinessDisplayLabel(tone) {
+  if (tone === "match-ready") {
+    return "Match-ready";
+  }
+  if (tone === "getting-stronger") {
+    return "Getting stronger";
+  }
+  if (tone === "good-start") {
+    return "Good start";
+  }
+  return "Needs work";
 }
 
 function renderReadinessTierRail(tierRail, activeTone) {
@@ -1442,18 +1728,10 @@ function getReadinessNudgeCopy(nextField, score) {
   var why = whyMap[label] || "because it makes the profile easier to trust and shortlist";
 
   if (score >= 85) {
-    return (
-      "One last high-value detail is still holding this profile back: add " +
-      label +
-      " " +
-      why +
-      "."
-    );
+    return "One last high-value detail is still holding this back: add " + label + " " + why + ".";
   }
   if (score >= 65) {
-    return (
-      "Adding " + label + " should move this profile much closer to shortlist-ready " + why + "."
-    );
+    return "Adding " + label + " should move this much closer to shortlist-ready " + why + ".";
   }
   return (
     "Start with " +
@@ -1466,15 +1744,15 @@ function getReadinessNudgeCopy(nextField, score) {
 
 function getReadinessMilestoneCopy(score) {
   if (score >= 85) {
-    return "You are in the final stretch. One or two stronger details should make this feel review-ready.";
+    return "Final stretch. One or two stronger details should make this feel review-ready.";
   }
   if (score >= 65) {
-    return "Next milestone: 85+ for Match-ready. A few more practical details can push this profile into shortlist territory.";
+    return "Next milestone: 85+ for Match-ready.";
   }
   if (score >= 40) {
-    return "Next milestone: 65+ for Getting stronger. The next few trust and fit details will make the biggest difference.";
+    return "Next milestone: 65+ for Getting stronger.";
   }
-  return "Next milestone: 40+ for Good start. Complete a few essentials first, then the profile will start compounding trust much faster.";
+  return "Next milestone: 40+ for Good start.";
 }
 
 function getReadinessDistanceCopy(score) {
@@ -1492,15 +1770,15 @@ function getReadinessDistanceCopy(score) {
 
 function getNextTierUnlockCopy(score) {
   if (score >= 85) {
-    return "You are already at the strongest public-readiness tier.";
+    return "Already at the strongest public-readiness tier.";
   }
   if (score >= 65) {
-    return "Next tier unlock: patients can shortlist this profile with much less hesitation.";
+    return "At 85+, patients can shortlist this with much less hesitation.";
   }
   if (score >= 40) {
-    return "Next tier unlock: patients can start comparing this profile seriously against other options.";
+    return "At 65+, patients can start comparing this seriously.";
   }
-  return "Next tier unlock: the profile starts feeling real enough to keep considering instead of skipping.";
+  return "At 40+, the profile starts feeling real enough to keep considering.";
 }
 
 function getReadinessBenefitCopy(tone) {
@@ -1514,6 +1792,643 @@ function getReadinessBenefitCopy(tone) {
     return "Patients can see the profile is real, but they still may not have enough clarity to feel confident reaching out.";
   }
   return "Patients can start recognizing whether this profile feels credible enough to keep considering.";
+}
+
+function renderReadinessSnapshot(container, dimensions, score) {
+  if (!container) {
+    return;
+  }
+
+  if (!dimensions || !dimensions.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  var strongest = getStrongestReadinessDimension(dimensions);
+  var weakest = getWeakestReadinessDimension(dimensions);
+
+  container.innerHTML =
+    renderReadinessSnapshotCard({
+      type: "helping",
+      kicker: "Strongest right now",
+      title: strongest.label,
+      copy: score < 40 ? strongest.primaryNote || strongest.copy : strongest.copy,
+      meta:
+        strongest.coveredWeight + "/" + strongest.totalWeight + " pts already carrying this area",
+      nextField: "",
+    }) +
+    renderReadinessSnapshotCard({
+      type: "blocker",
+      kicker: "Most holding this back",
+      title: weakest.label,
+      copy:
+        weakest.state === "Strong"
+          ? "This area is already in strong shape. The remaining gains are now mostly polish."
+          : weakest.primaryNote || weakest.copy,
+      meta: weakest.nextField
+        ? "Biggest available gain: +" + getReadinessContributionWeight(weakest.nextField)
+        : "Already in strong shape",
+      actionLabel: weakest.nextField ? "Go to " + getReadinessTargetLabel(weakest.nextField) : "",
+      nextField: weakest.nextField,
+    });
+
+  container.querySelectorAll("[data-readiness-snapshot-field]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var fieldName = button.getAttribute("data-readiness-snapshot-field");
+      if (!fieldName) {
+        return;
+      }
+      jumpToSignupField(fieldName);
+    });
+  });
+}
+
+function renderReadinessSnapshotCard(card) {
+  var isButton = !!(card && card.nextField);
+  var tagName = isButton ? "button" : "div";
+  var attrs = isButton
+    ? ' type="button" data-readiness-snapshot-field="' +
+      card.nextField +
+      '" aria-label="' +
+      escapeHtml(card.kicker + ". " + card.title + ". " + card.copy + ". " + card.meta) +
+      '" title="' +
+      escapeHtml(card.actionLabel || card.title) +
+      '"'
+    : "";
+
+  return (
+    "<" +
+    tagName +
+    attrs +
+    ' class="readiness-snapshot-card ' +
+    card.type +
+    (isButton ? " is-button" : "") +
+    '">' +
+    '<div class="readiness-snapshot-kicker">' +
+    card.kicker +
+    "</div>" +
+    '<div class="readiness-snapshot-title">' +
+    card.title +
+    "</div>" +
+    '<div class="readiness-snapshot-copy">' +
+    card.copy +
+    "</div>" +
+    '<div class="readiness-snapshot-meta">' +
+    card.meta +
+    "</div>" +
+    (card.actionLabel
+      ? '<div class="readiness-snapshot-action">' + card.actionLabel + "</div>"
+      : "") +
+    "</" +
+    tagName +
+    ">"
+  );
+}
+
+function getStrongestReadinessDimension(dimensions) {
+  return dimensions.slice().sort(compareReadinessDimensionsStrongestFirst)[0];
+}
+
+function getWeakestReadinessDimension(dimensions) {
+  return dimensions.slice().sort(compareReadinessDimensionsWeakestFirst)[0];
+}
+
+function compareReadinessDimensionsStrongestFirst(left, right) {
+  if (right.percent !== left.percent) {
+    return right.percent - left.percent;
+  }
+  return left.label.localeCompare(right.label);
+}
+
+function compareReadinessDimensionsWeakestFirst(left, right) {
+  if (left.percent !== right.percent) {
+    return left.percent - right.percent;
+  }
+  var leftHasNext = left.nextField ? 0 : 1;
+  var rightHasNext = right.nextField ? 0 : 1;
+  if (leftHasNext !== rightHasNext) {
+    return leftHasNext - rightHasNext;
+  }
+  return left.label.localeCompare(right.label);
+}
+
+function renderReadinessDimensions(container, dimensions, score) {
+  if (!container) {
+    return;
+  }
+
+  var orderedDimensions = orderReadinessDimensions(dimensions);
+  var detailMode = getReadinessDimensionDetailMode(score);
+  container.classList.remove("mode-compact", "mode-balanced", "mode-full");
+  container.classList.add("mode-" + detailMode);
+
+  container.innerHTML = orderedDimensions
+    .map(function (dimension) {
+      var showBadges = detailMode !== "compact" || dimension.isPriority || dimension.isStrongest;
+      var showCopy = detailMode === "full" || dimension.isPriority;
+      var showPrimaryNote =
+        detailMode === "full" ||
+        dimension.isPriority ||
+        (detailMode === "balanced" && !dimension.isStrongest);
+      var showSecondaryNote = detailMode === "full" && !dimension.isStrongest;
+      var showNextUnlock =
+        dimension.nextField && (detailMode !== "compact" || dimension.isPriority);
+
+      return (
+        '<button type="button" class="readiness-dimension state-' +
+        dimension.stateClass +
+        (dimension.isPriority ? " is-priority" : "") +
+        '" data-readiness-dimension="' +
+        (dimension.nextField || "") +
+        '" aria-label="' +
+        escapeHtml(getReadinessDimensionAriaLabel(dimension)) +
+        '" title="' +
+        escapeHtml(
+          dimension.nextField
+            ? "Open " + getReadinessActionLabel(dimension.nextField)
+            : dimension.label,
+        ) +
+        '" style="font:inherit;text-align:left;cursor:' +
+        (dimension.nextField ? "pointer" : "default") +
+        ';">' +
+        '<div class="readiness-dimension-header">' +
+        '<div style="display:grid;gap:0.28rem">' +
+        '<div class="readiness-dimension-label">' +
+        dimension.label +
+        "</div>" +
+        (showBadges
+          ? '<div class="readiness-dimension-badges">' +
+            (dimension.isPriority
+              ? '<span class="readiness-dimension-badge priority">Most limiting</span>'
+              : "") +
+            (dimension.isStrongest
+              ? '<span class="readiness-dimension-badge strongest">Strongest area</span>'
+              : "") +
+            "</div>"
+          : "") +
+        "</div>" +
+        '<div style="display:grid;justify-items:end;gap:0.1rem">' +
+        '<div class="readiness-dimension-state">' +
+        dimension.state +
+        "</div>" +
+        '<div class="readiness-dimension-points">' +
+        dimension.weightProgress +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        '<div class="readiness-dimension-bar"><div class="readiness-dimension-fill" style="width:' +
+        dimension.percent +
+        '%"></div></div>' +
+        (showCopy && dimension.copy
+          ? '<div class="readiness-dimension-copy">' + dimension.copy + "</div>"
+          : "") +
+        ((showPrimaryNote && dimension.primaryNote) ||
+        (showSecondaryNote && dimension.secondaryNote)
+          ? '<div class="readiness-dimension-notes">' +
+            (showPrimaryNote && dimension.primaryNote
+              ? '<div class="readiness-dimension-note ' +
+                dimension.primaryTone +
+                '"><strong>' +
+                dimension.primaryLabel +
+                ":</strong> " +
+                dimension.primaryNote +
+                "</div>"
+              : "") +
+            (showSecondaryNote && dimension.secondaryNote
+              ? '<div class="readiness-dimension-note ' +
+                dimension.secondaryTone +
+                '"><strong>' +
+                dimension.secondaryLabel +
+                ":</strong> " +
+                dimension.secondaryNote +
+                "</div>"
+              : "") +
+            "</div>"
+          : "") +
+        (showNextUnlock
+          ? '<div class="readiness-dimension-next">Next: ' +
+            getReadinessTargetLabel(dimension.nextField) +
+            " (+" +
+            dimension.nextWeight +
+            ")" +
+            "</div>"
+          : "") +
+        "</button>"
+      );
+    })
+    .join("");
+
+  container.classList.toggle(
+    "is-strong",
+    orderedDimensions.length > 0 &&
+      orderedDimensions.every(function (dimension) {
+        return dimension.state === "Strong";
+      }),
+  );
+
+  container.querySelectorAll("[data-readiness-dimension]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var fieldName = button.getAttribute("data-readiness-dimension");
+      if (!fieldName) {
+        return;
+      }
+      jumpToSignupField(fieldName);
+    });
+  });
+}
+
+function getReadinessDimensionDetailMode(score) {
+  if (score >= 65) {
+    return "full";
+  }
+  if (score >= 40) {
+    return "balanced";
+  }
+  return "compact";
+}
+
+function orderReadinessDimensions(dimensions) {
+  var ordered = (dimensions || []).slice().sort(compareReadinessDimensionsWeakestFirst);
+  if (!ordered.length) {
+    return ordered;
+  }
+
+  var strongest = getStrongestReadinessDimension(ordered);
+  var weakest = getWeakestReadinessDimension(ordered);
+
+  return ordered.map(function (dimension) {
+    return Object.assign({}, dimension, {
+      isPriority: weakest && dimension.label === weakest.label,
+      isStrongest: strongest && dimension.label === strongest.label,
+    });
+  });
+}
+
+function getReadinessDimensions(data) {
+  return [
+    buildReadinessDimension(
+      "Trust",
+      ["name", "credentials", "license_number", "bio", "therapist_reported_fields"],
+      data,
+      {
+        low: "Trust is still too thin for confident shortlisting.",
+        mid: "Trust is building, but a few stronger signals would reduce hesitation.",
+        high: "Trust is strong enough to support shortlisting.",
+      },
+    ),
+    buildReadinessDimension(
+      "Clinical fit",
+      ["care_approach", "specialties", "treatment_modalities"],
+      data,
+      {
+        low: "Your bipolar-specific fit is still hard to judge.",
+        mid: "Fit is getting clearer, but comparison still needs more detail.",
+        high: "Your bipolar-specific fit is clear enough to compare.",
+      },
+    ),
+    buildReadinessDimension(
+      "Practical next step",
+      [
+        "contact_guidance",
+        "first_step_expectation",
+        "insurance_accepted",
+        "session_fee_min",
+        "telehealth_states",
+      ],
+      data,
+      {
+        low: "The next step still feels too uncertain.",
+        mid: "The next step is getting clearer, but outreach still needs more clarity.",
+        high: "The next step is clear enough to support outreach confidence.",
+      },
+    ),
+  ];
+}
+
+function getReadinessDimensionAriaLabel(dimension) {
+  if (!dimension) {
+    return "Readiness dimension";
+  }
+
+  var parts = [dimension.label + ". " + dimension.state + ". " + dimension.weightProgress + "."];
+  if (dimension.copy) {
+    parts.push(dimension.copy);
+  }
+  if (dimension.primaryNote) {
+    parts.push(dimension.primaryLabel + ": " + dimension.primaryNote + ".");
+  }
+  if (dimension.secondaryNote) {
+    parts.push(dimension.secondaryLabel + ": " + dimension.secondaryNote + ".");
+  }
+  if (dimension.nextField) {
+    parts.push("Next unlock: " + getReadinessActionLabel(dimension.nextField) + ".");
+  }
+  return parts.join(" ");
+}
+
+function buildReadinessDimension(label, fields, data, copy) {
+  var totalWeight = Math.max(
+    1,
+    (fields || []).reduce(function (sum, fieldName) {
+      return sum + getReadinessContributionWeight(fieldName);
+    }, 0),
+  );
+  var coveredFields = (fields || []).filter(function (fieldName) {
+    return isReadinessContributionCovered(data, fieldName);
+  });
+  var coveredWeight = coveredFields.reduce(function (sum, fieldName) {
+    return sum + getReadinessContributionWeight(fieldName);
+  }, 0);
+  var missingFields = (fields || []).filter(function (fieldName) {
+    return !isReadinessContributionCovered(data, fieldName);
+  });
+  var nextField = (fields || []).find(function (fieldName) {
+    return !isReadinessContributionCovered(data, fieldName);
+  });
+  var percent = Math.round((coveredWeight / totalWeight) * 100);
+  var state = percent >= 80 ? "Strong" : percent >= 45 ? "Building" : "Thin";
+  var helpingField = coveredFields[0] || "";
+  var blockerField = missingFields[0] || "";
+  var notePlan = getReadinessDimensionNotePlan(state, helpingField, blockerField);
+
+  return {
+    label: label,
+    state: state,
+    stateClass: state.toLowerCase(),
+    percent: percent,
+    coveredWeight: coveredWeight,
+    totalWeight: totalWeight,
+    copy: percent >= 80 ? copy.high : percent >= 45 ? copy.mid : copy.low,
+    nextField: nextField || "",
+    nextWeight: nextField ? getReadinessContributionWeight(nextField) : 0,
+    weightProgress: coveredWeight + "/" + totalWeight + " pts",
+    primaryLabel: notePlan.primaryLabel,
+    primaryTone: notePlan.primaryTone,
+    primaryNote: notePlan.primaryNote,
+    secondaryLabel: notePlan.secondaryLabel,
+    secondaryTone: notePlan.secondaryTone,
+    secondaryNote: notePlan.secondaryNote,
+  };
+}
+
+function getReadinessDimensionNotePlan(state, helpingField, blockerField) {
+  var helpingCopy = helpingField ? getReadinessDimensionHelpingCopy(helpingField) : "";
+  var blockerCopy = blockerField ? getReadinessDimensionBlockerCopy(blockerField) : "";
+
+  if (state === "Strong") {
+    return {
+      primaryLabel: "Strong right now",
+      primaryTone: "helping",
+      primaryNote: helpingCopy,
+      secondaryLabel: "",
+      secondaryTone: "",
+      secondaryNote: "",
+    };
+  }
+
+  if (state === "Building") {
+    return {
+      primaryLabel: "Helping now",
+      primaryTone: "helping",
+      primaryNote: helpingCopy,
+      secondaryLabel: blockerCopy ? "Biggest gap" : "",
+      secondaryTone: blockerCopy ? "blocker" : "",
+      secondaryNote: blockerCopy,
+    };
+  }
+
+  return {
+    primaryLabel: "Most important gap",
+    primaryTone: "blocker",
+    primaryNote: blockerCopy,
+    secondaryLabel: helpingCopy ? "Helping now" : "",
+    secondaryTone: helpingCopy ? "helping" : "",
+    secondaryNote: helpingCopy,
+  };
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getReadinessDimensionHelpingCopy(fieldName) {
+  if (!fieldName) {
+    return "";
+  }
+
+  if (fieldName === "name" || fieldName === "credentials") {
+    return "core identity and licensure trust are already visible.";
+  }
+  if (fieldName === "bio") {
+    return "your background is already adding credibility context.";
+  }
+  if (fieldName === "care_approach") {
+    return "patients can already see how you work with bipolar clients.";
+  }
+  if (fieldName === "specialties") {
+    return "your bipolar relevance is easier to understand quickly.";
+  }
+  if (fieldName === "contact_guidance" || fieldName === "first_step_expectation") {
+    return "outreach feels more concrete and less risky.";
+  }
+  if (fieldName === "insurance_accepted" || fieldName === "session_fee_min") {
+    return "practical cost and coverage fit are getting clearer.";
+  }
+  if (fieldName === "telehealth_states") {
+    return "virtual access eligibility is already clearer.";
+  }
+  if (fieldName === "therapist_reported_fields") {
+    return "your confirmed details strengthen editorial trust.";
+  }
+
+  return getFieldGuidanceLabel(fieldName) + " is already helping this area.";
+}
+
+function getReadinessDimensionBlockerCopy(fieldName) {
+  if (!fieldName) {
+    return "";
+  }
+
+  if (fieldName === "name" || fieldName === "credentials") {
+    return "patients still need a stronger immediate trust signal.";
+  }
+  if (fieldName === "license_number") {
+    return "editorial trust would improve with a stronger licensure signal.";
+  }
+  if (fieldName === "bio") {
+    return "patients still lack enough background to judge credibility.";
+  }
+  if (fieldName === "care_approach") {
+    return "it is still hard to picture what care with you would look like.";
+  }
+  if (fieldName === "specialties" || fieldName === "treatment_modalities") {
+    return "your bipolar fit is still harder to compare quickly.";
+  }
+  if (fieldName === "contact_guidance" || fieldName === "first_step_expectation") {
+    return "the next step still feels too uncertain.";
+  }
+  if (fieldName === "insurance_accepted" || fieldName === "session_fee_min") {
+    return "cost and coverage fit are still too unclear.";
+  }
+  if (fieldName === "telehealth_states") {
+    return "access eligibility is still too vague for virtual care.";
+  }
+  if (fieldName === "therapist_reported_fields") {
+    return "operational trust is still thinner than it could be.";
+  }
+
+  return getFieldGuidanceLabel(fieldName) + " is still thin here.";
+}
+
+function getReadinessPriorityFixes(data, readiness) {
+  var readinessMissingLabels = new Set(
+    ((readiness && readiness.missing_items) || []).map(function (item) {
+      return String(item || "")
+        .trim()
+        .toLowerCase();
+    }),
+  );
+  var rankedFields = [];
+  var seen = new Set();
+  var nextTier = getNextReadinessTierMeta(readiness && readiness.score);
+
+  getFullProfileMissingFields(data).forEach(function (item) {
+    if (!item || !item.field || seen.has(item.field)) {
+      return;
+    }
+    seen.add(item.field);
+    rankedFields.push(item.field);
+  });
+
+  Object.keys(READINESS_CONTRIBUTION_HINTS).forEach(function (fieldName) {
+    if (seen.has(fieldName) || isSignupFieldFilled(data, fieldName)) {
+      return;
+    }
+    seen.add(fieldName);
+    rankedFields.push(fieldName);
+  });
+
+  return rankedFields
+    .map(function (fieldName) {
+      var contribution = READINESS_CONTRIBUTION_HINTS[fieldName];
+      var numericWeight = getReadinessContributionWeight(fieldName);
+      var label = getFieldGuidanceLabel(fieldName);
+      var title = getReadinessActionLabel(fieldName);
+      var detail = contribution
+        ? contribution.copy
+        : "This missing detail still makes the profile harder to trust and shortlist.";
+      var lowerLabel = String(label || "").toLowerCase();
+      if (readinessMissingLabels.has(lowerLabel) || readinessMissingLabels.has("a " + lowerLabel)) {
+        detail = "Still missing " + label + ". " + detail;
+      }
+      var milestoneHint =
+        nextTier && numericWeight >= nextTier.distance
+          ? "Likely moves you into " + nextTier.label + "."
+          : "";
+
+      return {
+        field: fieldName,
+        title: title,
+        detail: detail,
+        weight: contribution ? contribution.weight : "+" + numericWeight,
+        numericWeight: numericWeight,
+        category: contribution ? contribution.category : "Profile boost",
+        milestoneHint: milestoneHint,
+      };
+    })
+    .sort(function (left, right) {
+      if (right.numericWeight !== left.numericWeight) {
+        return right.numericWeight - left.numericWeight;
+      }
+      return left.title.localeCompare(right.title);
+    })
+    .slice(0, 5);
+}
+
+function getReadinessContributionWeight(fieldName) {
+  var hint = READINESS_CONTRIBUTION_HINTS[fieldName];
+  if (!hint || !hint.weight) {
+    return 4;
+  }
+
+  var numeric = parseInt(String(hint.weight).replace(/[^\d-]/g, ""), 10);
+  return Number.isFinite(numeric) ? numeric : 4;
+}
+
+function getNextReadinessTierMeta(score) {
+  if (score >= 85) {
+    return null;
+  }
+  if (score >= 65) {
+    return {
+      label: "Match-ready",
+      distance: 85 - score,
+    };
+  }
+  if (score >= 40) {
+    return {
+      label: "Getting stronger",
+      distance: 65 - score,
+    };
+  }
+  return {
+    label: "Good start",
+    distance: 40 - score,
+  };
+}
+
+function getReadinessActionLabel(fieldName) {
+  var target = getReadinessPriorityTargetLabel(fieldName);
+  if (!target) {
+    return "Add the next missing detail";
+  }
+
+  if (target === "care approach") {
+    return "Describe how you help bipolar clients";
+  }
+
+  if (
+    target.indexOf("a ") === 0 ||
+    target.indexOf("an ") === 0 ||
+    target === "session format" ||
+    target === "valid email" ||
+    target === "fee range"
+  ) {
+    return "Add " + target;
+  }
+
+  if (target === "confirmations") {
+    return "Confirm therapist-reported fields";
+  }
+
+  return "Add your " + target;
+}
+
+function getReadinessNudgeButtonLabel(fieldName) {
+  var target = getReadinessTargetLabel(fieldName);
+  if (!target) {
+    return "Open next fix";
+  }
+
+  return "Open " + target;
+}
+
+function getReadinessNavigationLabel(fieldName) {
+  var target = getReadinessTargetLabel(fieldName);
+  if (!target) {
+    return "next recommended field";
+  }
+
+  return target;
+}
+
+function getReadinessTargetLabel(fieldName) {
+  return getReadinessPriorityTargetLabel(fieldName) || "next field";
 }
 
 function setCoachMessage(id, message, tone) {
@@ -1624,6 +2539,240 @@ function renderFieldCoaching() {
       "strong",
     );
   }
+}
+
+function renderReadinessContributionHints() {
+  var form = document.getElementById("applyForm");
+  if (!form) {
+    return;
+  }
+
+  var data = collectFormData(form);
+  var readiness = getTherapistMatchReadiness(data);
+  var nextTier = getNextReadinessTierMeta(readiness && readiness.score);
+  var priorityFixes = getReadinessPriorityFixes(data, readiness);
+  var topPriorityField = priorityFixes.length ? priorityFixes[0].field : "";
+
+  Object.keys(READINESS_CONTRIBUTION_HINTS).forEach(function (fieldName) {
+    var input = form.querySelector('[name="' + fieldName + '"]');
+    if (!input) {
+      return;
+    }
+
+    var field = input.closest(".field");
+    var label = field ? field.querySelector("label") : null;
+    if (!field || !label) {
+      return;
+    }
+
+    var isTopPriority = fieldName === topPriorityField;
+    var isFilled = isReadinessContributionCovered(data, fieldName);
+    field.classList.toggle("field-top-priority", isTopPriority && !isFilled);
+    ensureFieldPriorityLabel(
+      label,
+      isTopPriority && !isFilled,
+      isTopPriority ? getReadinessPriorityBadgeLabel(fieldName) : "",
+    );
+
+    var hint = field.querySelector('[data-readiness-contribution="' + fieldName + '"]');
+    if (!hint) {
+      hint = document.createElement("div");
+      hint.setAttribute("data-readiness-contribution", fieldName);
+      hint.style.marginTop = "0.22rem";
+      hint.style.fontSize = "0.72rem";
+      hint.style.lineHeight = "1.45";
+      hint.style.color = "var(--muted)";
+      var hintAnchor =
+        label.parentElement && label.parentElement.classList.contains("field-label-row")
+          ? label.parentElement
+          : label;
+      hintAnchor.insertAdjacentElement("afterend", hint);
+    }
+
+    var config = READINESS_CONTRIBUTION_HINTS[fieldName];
+    var isStarted = isSignupFieldFilled(data, fieldName);
+    var statusLabel = isFilled
+      ? "Already helping"
+      : isTopPriority
+        ? "Top score mover"
+        : isStarted
+          ? "Making progress"
+          : config.category;
+    var statusColor = isFilled
+      ? "#246b4d"
+      : isTopPriority
+        ? "var(--teal-dark)"
+        : isStarted
+          ? "var(--teal)"
+          : "var(--teal-dark)";
+    var stageHint = getReadinessContributionStageHint(
+      fieldName,
+      isFilled,
+      isStarted,
+      readiness && readiness.score,
+      nextTier,
+    );
+    hint.style.padding = isTopPriority && !isFilled ? "0.4rem 0.55rem" : "0";
+    hint.style.borderRadius = isTopPriority && !isFilled ? "10px" : "0";
+    hint.style.background =
+      isTopPriority && !isFilled ? "rgba(232, 245, 248, 0.82)" : "transparent";
+    hint.style.border = isTopPriority && !isFilled ? "1px solid rgba(26, 122, 143, 0.14)" : "none";
+    hint.innerHTML =
+      '<strong style="color:' +
+      statusColor +
+      '">' +
+      statusLabel +
+      " " +
+      config.weight +
+      ":</strong> " +
+      config.copy +
+      (stageHint ? ' <span style="color:var(--slate)">' + stageHint + "</span>" : "");
+  });
+}
+
+function ensureFieldPriorityLabel(label, isVisible, badgeText) {
+  if (!label) {
+    return;
+  }
+
+  var row = label.parentElement;
+  if (!row || !row.classList.contains("field-label-row")) {
+    row = document.createElement("div");
+    row.className = "field-label-row";
+    label.parentNode.insertBefore(row, label);
+    row.appendChild(label);
+  }
+
+  var pill = row.querySelector(".field-priority-pill");
+  if (!pill) {
+    pill = document.createElement("span");
+    pill.className = "field-priority-pill";
+    row.appendChild(pill);
+  }
+
+  pill.textContent = badgeText || "Best next step";
+  pill.style.display = isVisible ? "inline-flex" : "none";
+}
+
+function getReadinessPriorityBadgeLabel(fieldName) {
+  var weight = getReadinessContributionWeight(fieldName);
+  var target = getReadinessPriorityTargetLabel(fieldName);
+  if (!target) {
+    return "Best next +" + weight;
+  }
+
+  if (target === "care approach") {
+    return "Best next: care approach +" + weight;
+  }
+  if (target === "bio") {
+    return "Best next: bio +" + weight;
+  }
+  if (target === "confirmations") {
+    return "Best next: confirmations +" + weight;
+  }
+  if (target === "modalities") {
+    return "Best next: modalities +" + weight;
+  }
+  if (target === "specialties") {
+    return "Best next: specialties +" + weight;
+  }
+  if (target === "fee range") {
+    return "Best next: fee range +" + weight;
+  }
+
+  return "Best next: " + target + " +" + weight;
+}
+
+function getReadinessPriorityTargetLabel(fieldName) {
+  var label = getFieldGuidanceLabel(fieldName);
+  if (!label) {
+    return "";
+  }
+
+  var normalized = label
+    .replace(/^your /, "")
+    .replace(/^a /, "")
+    .replace(/^an /, "")
+    .replace(/^at least one /, "")
+    .replace(/^valid /, "")
+    .trim();
+
+  if (normalized === "how you help bipolar clients") {
+    return "care approach";
+  }
+  if (normalized === "professional bio") {
+    return "bio";
+  }
+  if (normalized === "therapist-confirmed fields") {
+    return "confirmations";
+  }
+  if (normalized === "treatment modality") {
+    return "modalities";
+  }
+  if (normalized === "specialty") {
+    return "specialties";
+  }
+
+  return normalized;
+}
+
+function getReadinessContributionStageHint(fieldName, isFilled, isStarted, score, nextTier) {
+  var weight = getReadinessContributionWeight(fieldName);
+
+  if (isFilled) {
+    if (score >= 85) {
+      return "This is one of the details keeping the profile in the top tier.";
+    }
+    if (score >= 65) {
+      return "This is already doing real shortlist work.";
+    }
+    return "This is already helping the score compound.";
+  }
+
+  if (isStarted) {
+    if (nextTier && weight >= nextTier.distance) {
+      return "Finishing this could be enough to reach " + nextTier.label + ".";
+    }
+    return "This is started, but it is not fully helping yet.";
+  }
+
+  if (nextTier && weight >= nextTier.distance) {
+    return "One of the fastest ways to reach " + nextTier.label + ".";
+  }
+
+  if (score >= 65 && weight >= 8) {
+    return "Still one of the biggest remaining score movers.";
+  }
+
+  if (score < 40 && weight >= 10) {
+    return "One of the fastest ways to move out of Needs work.";
+  }
+
+  return "";
+}
+
+function isReadinessContributionCovered(data, fieldName) {
+  if (!data || !fieldName) {
+    return false;
+  }
+
+  if (fieldName === "email") {
+    return Boolean(data.email && String(data.email).includes("@"));
+  }
+
+  if (fieldName === "bio") {
+    return Boolean(data.bio && data.bio.length >= 50);
+  }
+
+  if (fieldName === "care_approach") {
+    return Boolean(data.care_approach && data.care_approach.length >= 40);
+  }
+
+  if (fieldName === "session_fee_min") {
+    return Boolean(data.session_fee_min || data.session_fee_max);
+  }
+
+  return isSignupFieldFilled(data, fieldName);
 }
 
 function getClaimMissingFields(data) {
@@ -3587,10 +4736,14 @@ function initSignupFormUi() {
   }
 
   form.addEventListener("submit", handleSubmit);
+  form.addEventListener("input", trackReadinessInteraction);
+  form.addEventListener("change", trackReadinessInteraction);
   form.addEventListener("input", renderReadiness);
   form.addEventListener("change", renderReadiness);
   form.addEventListener("input", renderFieldCoaching);
   form.addEventListener("change", renderFieldCoaching);
+  form.addEventListener("input", renderReadinessContributionHints);
+  form.addEventListener("change", renderReadinessContributionHints);
   form.addEventListener("change", renderPhotoUploadStatus);
   form.addEventListener("input", clearSignupRestoreMode);
   form.addEventListener("change", clearSignupRestoreMode);
@@ -3603,6 +4756,7 @@ function initSignupFormUi() {
 
   runSignupRenderStep("readiness", renderReadiness);
   runSignupRenderStep("field coaching", renderFieldCoaching);
+  runSignupRenderStep("readiness contributions", renderReadinessContributionHints);
   runSignupRenderStep("photo upload", renderPhotoUploadStatus);
   runSignupRenderStep("completion nudges", renderCompletionNudges);
   runSignupRenderStep("workspace", refreshSignupWorkspace);
