@@ -65,6 +65,7 @@ import {
   summarizeProfileContactExperimentDecision,
   summarizeProfileContactOutcomeValidation,
   summarizeProfileContactSignals,
+  summarizeProfileQueueProgress,
   summarizePatientJourney,
 } from "./funnel-analytics.js";
 import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
@@ -660,7 +661,7 @@ function renderFallbackStats() {
       title: "Add New Listings",
       copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
       steps: [
-        "Open the new-listings lane and inspect the source profile.",
+        "Open the new-listings lane and inspect the original source.",
         "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
       ],
       done: "The listing is moved into the right next state.",
@@ -1431,6 +1432,36 @@ function getTherapistTrustRecommendation(item, freshness, trustSummary) {
     );
   }
   return "Refresh source review and keep the strongest operational fields current.";
+}
+
+function getSourceReferenceMeta(record) {
+  var sourceUrl = String(
+    (record && (record.source_url || record.sourceUrl || record.website || record.booking_url)) ||
+      "",
+  ).trim();
+  var sourceType = String((record && (record.source_type || record.sourceType)) || "")
+    .trim()
+    .toLowerCase();
+  var looksApiRecord =
+    sourceType.includes("api") ||
+    /(^|\/)api(\/|$)/i.test(sourceUrl) ||
+    /[?&](format|output)=json\b/i.test(sourceUrl) ||
+    /\.json(?:[?#]|$)/i.test(sourceUrl);
+
+  return {
+    href: sourceUrl,
+    label: sourceUrl
+      ? looksApiRecord
+        ? "View source record"
+        : "Open original source"
+      : "No source page available",
+    shortLabel: sourceUrl
+      ? looksApiRecord
+        ? "View source record"
+        : "Open source"
+      : "No source page",
+    looksApiRecord: looksApiRecord,
+  };
 }
 
 function renderFieldTrustChips(summary, limit) {
@@ -4235,7 +4266,7 @@ function renderStats() {
         countLabel: candidateReviewCount,
         copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
         steps: [
-          "Open the new-listings lane and inspect the source profile.",
+          "Open the new-listings lane and inspect the original source.",
           "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
           "Move the card to the right next state before leaving it.",
         ],
@@ -4687,6 +4718,7 @@ function renderFunnelInsights() {
   const summary = summarizeFunnelEvents(events);
   const patientJourney = summarizePatientJourney(events);
   const profileContactSignals = summarizeProfileContactSignals(events);
+  const profileQueueProgress = summarizeProfileQueueProgress(events);
   const directoryProfileOpenQuality = summarizeDirectoryProfileOpenQuality(events);
   const outcomes = readOutreachOutcomes();
   const profileContactOutcomeValidation = summarizeProfileContactOutcomeValidation(
@@ -4943,6 +4975,47 @@ function renderFunnelInsights() {
                 );
               })
               .join("") +
+            "</div>"
+          : "") +
+        (profileQueueProgress.updates
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            [
+              {
+                label: "Profile updates saved",
+                count: profileQueueProgress.updates,
+              },
+              {
+                label: "Therapists updated",
+                count: profileQueueProgress.therapist_count,
+              },
+              {
+                label: "Reached out",
+                count: profileQueueProgress.reached_out,
+              },
+              {
+                label: "Reply progress",
+                count: profileQueueProgress.heard_back + profileQueueProgress.good_fit_call,
+              },
+              {
+                label: "Friction saved",
+                count:
+                  profileQueueProgress.no_response +
+                  profileQueueProgress.waitlist +
+                  profileQueueProgress.insurance_mismatch,
+              },
+            ]
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.count) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(item.label) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            '</div><div class="mini-status" style="margin-top:0.45rem"><strong>Profile queue readout:</strong> ' +
+            escapeHtml(profileQueueProgress.interpretation) +
             "</div>"
           : "") +
         (profileContactOutcomeValidation.length
@@ -5258,6 +5331,7 @@ function renderRefreshQueue() {
     getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
     getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    getSourceReferenceMeta: getSourceReferenceMeta,
     renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
     escapeHtml: escapeHtml,
     formatDate: formatDate,
@@ -5671,6 +5745,7 @@ function renderCandidateQueue() {
     getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
     getCandidateReviewChipLabel: reviewModels.getCandidateReviewChipLabel,
     getCandidateDedupeChipLabel: reviewModels.getCandidateDedupeChipLabel,
+    getSourceReferenceMeta: getSourceReferenceMeta,
     buildCandidateDecisionActions: buildCandidateDecisionActions,
     getReviewEventsForCandidate: getReviewEventsForCandidate,
     renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,

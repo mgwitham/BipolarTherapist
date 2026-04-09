@@ -137,6 +137,8 @@ export function buildShortlistBarViewModel(options) {
   var therapists = options.therapists;
   var filters = options.filters;
   var buildCompareUrl = options.buildCompareUrl;
+  var buildOutreachQueueUrl = options.buildOutreachQueueUrl;
+  var outreachProgress = options.outreachProgress || null;
 
   var selected = shortlist
     .map(function (entry) {
@@ -146,14 +148,122 @@ export function buildShortlistBarViewModel(options) {
     })
     .filter(Boolean);
 
+  function getEntryForTherapist(slug) {
+    return shortlist.find(function (item) {
+      return item.slug === slug;
+    });
+  }
+
+  function getFeeCopy(therapist) {
+    return therapist.session_fee_min || therapist.session_fee_max
+      ? "$" +
+          String(therapist.session_fee_min || therapist.session_fee_max) +
+          (therapist.session_fee_max &&
+          String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
+            ? "-$" + String(therapist.session_fee_max)
+            : "")
+      : therapist.sliding_scale
+        ? "Sliding scale"
+        : "Fee details pending";
+  }
+
+  function getPriorityBoost(entry, therapist) {
+    var priority = String(entry && entry.priority ? entry.priority : "").toLowerCase();
+    if (priority === "best availability") {
+      return therapist.accepting_new_patients || therapist.estimated_wait_time ? 8 : 3;
+    }
+    if (priority === "best fit") {
+      return therapist.bipolar_years_experience ? 8 : 3;
+    }
+    if (priority === "best value") {
+      return therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
+        ? 8
+        : 3;
+    }
+    return 0;
+  }
+
+  function scoreTherapistForQueue(therapist, entry) {
+    var freshness = getFreshnessBadgeData(therapist);
+    return (
+      (therapist.bipolar_years_experience
+        ? Math.min(Number(therapist.bipolar_years_experience), 12)
+        : 0) +
+      (therapist.accepting_new_patients ? 6 : 0) +
+      (therapist.estimated_wait_time ? 3 : 0) +
+      (therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale ? 3 : 0) +
+      (therapist.verification_status === "editorially_verified" ? 4 : 0) +
+      (freshness && freshness.tone === "fresh"
+        ? 4
+        : freshness && freshness.tone === "watch"
+          ? 2
+          : 0) +
+      getPriorityBoost(entry, therapist)
+    );
+  }
+
+  var ranked = selected
+    .map(function (therapist) {
+      var entry = getEntryForTherapist(therapist.slug);
+      return {
+        therapist: therapist,
+        entry: entry,
+        score: scoreTherapistForQueue(therapist, entry),
+      };
+    })
+    .sort(function (a, b) {
+      return b.score - a.score;
+    });
+
+  var lead = ranked[0] || null;
+  var backup = ranked[1] || null;
+
   return {
     shortlist: shortlist,
     selected: selected,
     compareUrl: buildCompareUrl(),
+    outreachQueueUrl: buildOutreachQueueUrl ? buildOutreachQueueUrl() : buildCompareUrl(),
+    outreachQueueLabel:
+      outreachProgress && outreachProgress.hasProgress
+        ? "Resume outreach queue"
+        : "Start outreach queue",
+    outreachQueueNote:
+      outreachProgress && outreachProgress.summary
+        ? outreachProgress.summary
+        : "Move from saved options to a clear first contact and backup plan.",
+    leadTherapist: lead
+      ? {
+          therapist: lead.therapist,
+          title: "Contact first",
+          reason:
+            getEntryForTherapist(lead.therapist.slug) &&
+            getEntryForTherapist(lead.therapist.slug).priority
+              ? "You marked this as " +
+                String(getEntryForTherapist(lead.therapist.slug).priority || "").toLowerCase() +
+                ", and the profile has the strongest current fit-to-action mix."
+              : "This profile currently has the strongest fit, timing, and trust mix for first outreach.",
+          nextStep:
+            lead.therapist.first_step_expectation ||
+            (getPreferredContactRoute(lead.therapist)
+              ? getPreferredContactRoute(lead.therapist).detail
+              : "Open the profile to confirm the best route before you reach out."),
+        }
+      : null,
+    backupTherapist: backup
+      ? {
+          therapist: backup.therapist,
+          title: "Keep as backup",
+          reason:
+            "If your first outreach stalls, this is the clearest second option to keep momentum without restarting your search.",
+          nextStep:
+            backup.therapist.first_step_expectation ||
+            (getPreferredContactRoute(backup.therapist)
+              ? getPreferredContactRoute(backup.therapist).detail
+              : "Open the profile to confirm the best backup route."),
+        }
+      : null,
     compareCards: selected.map(function (therapist) {
-      var entry = shortlist.find(function (item) {
-        return item.slug === therapist.slug;
-      });
+      var entry = getEntryForTherapist(therapist.slug);
       return {
         therapist: therapist,
         meta: [
@@ -162,16 +272,7 @@ export function buildShortlistBarViewModel(options) {
             : "Bipolar depth to confirm",
           therapist.estimated_wait_time ||
             (therapist.accepting_new_patients ? "Accepting" : "Timing to confirm"),
-          therapist.session_fee_min || therapist.session_fee_max
-            ? "$" +
-              String(therapist.session_fee_min || therapist.session_fee_max) +
-              (therapist.session_fee_max &&
-              String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
-                ? "-$" + String(therapist.session_fee_max)
-                : "")
-            : therapist.sliding_scale
-              ? "Sliding scale"
-              : "Fee details pending",
+          getFeeCopy(therapist),
           getFreshnessBadgeData(therapist)
             ? getFreshnessBadgeData(therapist).label
             : "Freshness to confirm",
@@ -199,6 +300,11 @@ export function buildShortlistBarViewModel(options) {
         );
       })
       .filter(Boolean),
+    queueSummary: lead
+      ? lead.therapist.name +
+        " looks strongest to contact first" +
+        (backup ? ", with " + backup.therapist.name + " as the clearest backup." : ".")
+      : "",
   };
 }
 

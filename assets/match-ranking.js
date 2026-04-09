@@ -202,6 +202,8 @@ export function getRouteLearningForProfile(profile, entry, outcomes, options) {
   };
 }
 
+import { isWebsiteRouteHealthy } from "./directory-logic.js";
+
 export function getPreferredOutreach(entry, options) {
   var settings = options || {};
   if (!entry || !entry.therapist) {
@@ -210,6 +212,7 @@ export function getPreferredOutreach(entry, options) {
 
   var therapist = entry.therapist;
   var customLabel = String(therapist.preferred_contact_label || "").trim();
+  var websiteHealthy = isWebsiteRouteHealthy(therapist);
   if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
     return {
       label: customLabel || "Book consultation",
@@ -217,7 +220,7 @@ export function getPreferredOutreach(entry, options) {
       external: true,
     };
   }
-  if (therapist.preferred_contact_method === "website" && therapist.website) {
+  if (therapist.preferred_contact_method === "website" && therapist.website && websiteHealthy) {
     return {
       label: customLabel || "Visit website",
       href: therapist.website,

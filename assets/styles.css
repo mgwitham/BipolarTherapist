@@ -690,6 +690,58 @@ nav {
   gap: 0.75rem;
 }
 
+.shortlist-queue-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.shortlist-queue-card {
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.92)),
+    rgba(255, 255, 255, 0.94);
+  padding: 0.95rem 1rem;
+  display: grid;
+  gap: 0.42rem;
+  box-shadow: 0 14px 28px rgba(14, 77, 95, 0.06);
+}
+
+.shortlist-queue-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+}
+
+.shortlist-queue-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.shortlist-queue-meta,
+.shortlist-queue-copy,
+.shortlist-queue-next-step {
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.shortlist-queue-meta {
+  color: var(--teal-dark);
+}
+
+.shortlist-queue-copy {
+  color: var(--navy);
+}
+
+.shortlist-queue-next-step {
+  color: var(--slate);
+}
+
 .shortlist-compare-card {
   border: 1px solid rgba(26, 122, 143, 0.12);
   border-radius: 14px;
@@ -737,11 +789,21 @@ nav {
   font-size: 0.87rem;
 }
 
+.shortlist-bar-progress {
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
 .shortlist-bar-actions {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+.shortlist-bar-primary {
+  min-width: 10.5rem;
 }
 
 .shortlist-bar-link,
@@ -1154,6 +1216,80 @@ nav {
   font-size: 0.82rem;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.profile-queue-status {
+  margin-top: 0.85rem;
+}
+
+.profile-queue-status-card {
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  border-radius: 16px;
+  padding: 0.85rem 0.95rem;
+  background: linear-gradient(180deg, #fbfefe 0%, #f2f8fa 100%);
+  display: grid;
+  gap: 0.32rem;
+}
+
+.profile-queue-status-card.tone-fresh {
+  background: linear-gradient(180deg, #f7fcf9 0%, #ffffff 100%);
+}
+
+.profile-queue-status-card.tone-watch {
+  background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  border-color: rgba(194, 157, 76, 0.22);
+}
+
+.profile-queue-status-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.profile-queue-status-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.profile-queue-status-copy {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.profile-queue-status-link,
+.profile-queue-inline-link {
+  color: var(--teal);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.profile-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.profile-queue-action-btn {
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--navy);
+  border-radius: 999px;
+  padding: 0.38rem 0.62rem;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-queue-action-btn:hover {
+  border-color: rgba(26, 122, 143, 0.28);
+  color: var(--teal-dark);
 }
 
 .contact-guidance-copy {
@@ -1605,6 +1741,10 @@ footer a {
   }
 
   .shortlist-compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shortlist-queue-grid {
     grid-template-columns: 1fr;
   }
 

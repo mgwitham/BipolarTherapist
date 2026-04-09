@@ -298,9 +298,35 @@ export function renderShortlistBarMarkup(options) {
         escapeHtml(card.meta) +
         '</div><div class="shortlist-compare-note">' +
         escapeHtml(card.note) +
-        '</div><a href="therapist.html?slug=' +
-        encodeURIComponent(card.therapist.slug) +
+        '</div><a href="' +
+        escapeHtml(buildTherapistProfileHref(card.therapist.slug, "shortlist_card")) +
         '" class="shortlist-compare-link">Open profile</a></div>'
+      );
+    })
+    .join("");
+
+  var queueCards = [model.leadTherapist, model.backupTherapist]
+    .filter(Boolean)
+    .map(function (item) {
+      return (
+        '<article class="shortlist-queue-card"><div class="shortlist-queue-kicker">' +
+        escapeHtml(item.title) +
+        '</div><div class="shortlist-queue-name">' +
+        escapeHtml(item.therapist.name) +
+        '</div><div class="shortlist-queue-meta">' +
+        escapeHtml(buildCardMeta(item.therapist)) +
+        '</div><div class="shortlist-queue-copy">' +
+        escapeHtml(item.reason) +
+        '</div><div class="shortlist-queue-next-step">' +
+        escapeHtml(item.nextStep) +
+        '</div><a href="' +
+        escapeHtml(
+          buildTherapistProfileHref(
+            item.therapist.slug,
+            item.title === "Contact first" ? "shortlist_lead" : "shortlist_backup",
+          ),
+        ) +
+        '" class="shortlist-compare-link">Open profile</a></article>'
       );
     })
     .join("");
@@ -308,14 +334,49 @@ export function renderShortlistBarMarkup(options) {
   return {
     html:
       '<div class="shortlist-bar-copy"><strong>' +
-      model.selected.length +
-      " saved for comparison</strong><span>" +
-      model.summary.map(escapeHtml).join(" • ") +
-      '</span></div><div class="shortlist-bar-actions"><a href="' +
+      (model.leadTherapist
+        ? "Your outreach queue is ready"
+        : model.selected.length + " saved for comparison") +
+      "</strong><span>" +
+      escapeHtml(model.queueSummary || model.summary.join(" • ")) +
+      "</span>" +
+      (model.outreachQueueNote
+        ? '<span class="shortlist-bar-progress">' + escapeHtml(model.outreachQueueNote) + "</span>"
+        : "") +
+      '</div><div class="shortlist-bar-actions"><a href="' +
+      escapeHtml(model.outreachQueueUrl) +
+      '" class="card-action-primary shortlist-bar-primary" data-start-outreach-queue="true"' +
+      (model.leadTherapist
+        ? ' data-queue-lead-slug="' + escapeHtml(model.leadTherapist.therapist.slug) + '"'
+        : "") +
+      ">" +
+      escapeHtml(model.outreachQueueLabel || "Start outreach queue") +
+      '</a><a href="' +
       escapeHtml(model.compareUrl) +
-      '" class="shortlist-bar-link">Compare in match flow</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
+      '" class="shortlist-bar-link">Compare details</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
+      (queueCards ? '<div class="shortlist-queue-grid">' + queueCards + "</div>" : "") +
       (compareRows ? '<div class="shortlist-compare-grid">' + compareRows + "</div>" : ""),
   };
+}
+
+function buildCardMeta(therapist) {
+  return [
+    therapist.bipolar_years_experience
+      ? therapist.bipolar_years_experience + " yrs bipolar care"
+      : "Bipolar depth to confirm",
+    therapist.estimated_wait_time ||
+      (therapist.accepting_new_patients ? "Accepting" : "Timing to confirm"),
+    therapist.session_fee_min || therapist.session_fee_max
+      ? "$" +
+        String(therapist.session_fee_min || therapist.session_fee_max) +
+        (therapist.session_fee_max &&
+        String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
+          ? "-$" + String(therapist.session_fee_max)
+          : "")
+      : therapist.sliding_scale
+        ? "Sliding scale"
+        : "Fee details pending",
+  ].join(" • ");
 }
 
 export function renderPaginationMarkup(currentPage, pages) {

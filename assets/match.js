@@ -109,6 +109,8 @@ var FEEDBACK_REASON_OPTIONS = [
 ];
 var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
+var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
+var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
 var PRIMARY_SHORTLIST_LIMIT = 3;
 var SHORTLIST_QUEUE_LIMIT = 8;
 var MATCH_PRIORITY_SLUGS = [];
@@ -847,10 +849,16 @@ function buildShortlistComparePath(entries) {
       return entry?.therapist?.slug || "";
     })
     .filter(Boolean);
+  var params = new URLSearchParams();
+  if (slugs.length) {
+    params.set("shortlist", slugs.join(","));
+  }
+  if (directoryEntryMode) {
+    params.set("entry", directoryEntryMode);
+  }
 
-  return slugs.length
-    ? "match.html?shortlist=" + encodeURIComponent(slugs.join(","))
-    : "match.html";
+  var query = params.toString();
+  return query ? "match.html?" + query : "match.html";
 }
 
 function buildShortlistCompareUrl(entries) {
@@ -3521,6 +3529,18 @@ function getLatestOutreachOutcome(slug) {
   return outcomes[0] || null;
 }
 
+function getLatestShortlistOutcome(slugs) {
+  var outcomes = readOutreachOutcomes();
+  var shortlist = Array.isArray(slugs) ? slugs : [];
+  for (var i = 0; i < outcomes.length; i += 1) {
+    var item = outcomes[i];
+    if (item && shortlist.indexOf(item.therapist_slug) !== -1) {
+      return item;
+    }
+  }
+  return null;
+}
+
 function recordEntryOutreachOutcome(slug, outcome) {
   var entry = (latestEntries || []).find(function (item) {
     return item.therapist.slug === slug;
@@ -4060,14 +4080,52 @@ function renderDirectoryShortlist(slugs) {
   latestEntries = selected;
   currentJourneyId = buildJourneyId(null, selected);
   starterResultsMode = false;
+  var latestShortlistOutcome = getLatestShortlistOutcome(
+    selected.map(function (entry) {
+      return entry.therapist.slug;
+    }),
+  );
+  if (
+    latestShortlistOutcome &&
+    ["no_response", "waitlist", "insurance_mismatch"].indexOf(latestShortlistOutcome.outcome) !== -1
+  ) {
+    outreachFocusSlug = getNextOutreachSlug(latestShortlistOutcome.therapist_slug) || "";
+  } else if (latestShortlistOutcome && latestShortlistOutcome.therapist_slug) {
+    outreachFocusSlug = latestShortlistOutcome.therapist_slug;
+  } else {
+    outreachFocusSlug = selected[0] && selected[0].therapist ? selected[0].therapist.slug : "";
+  }
+  if (
+    queueFocusSlugFromUrl &&
+    selected.some(function (entry) {
+      return entry && entry.therapist && entry.therapist.slug === queueFocusSlugFromUrl;
+    })
+  ) {
+    outreachFocusSlug = queueFocusSlugFromUrl;
+  }
   persistEntriesToDirectoryShortlist(selected);
   window.history.replaceState({}, "", buildShortlistComparePath(selected));
   persistMatchRequest(null, selected);
   safeRenderResults(selected, null);
-  setActionState(
-    true,
-    "You can compare these saved therapists or run the full intake for ranked recommendations.",
-  );
+  if (directoryEntryMode === "directory_shortlist_queue") {
+    trackFunnelEvent("directory_outreach_queue_landed", {
+      shortlist_size: selected.length,
+      therapist_slugs: selected.map(function (entry) {
+        return entry.therapist.slug;
+      }),
+    });
+    setActionState(
+      true,
+      latestShortlistOutcome
+        ? "Your outreach queue is ready to resume. Pick up with the next live contact step."
+        : "Your outreach queue is ready. Start with the lead contact card, then keep the backup close.",
+    );
+  } else {
+    setActionState(
+      true,
+      "You can compare these saved therapists or run the full intake for ranked recommendations.",
+    );
+  }
   return true;
 }
 

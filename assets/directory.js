@@ -37,6 +37,7 @@ import {
 
 (async function () {
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
+  var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
   var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
@@ -188,6 +189,78 @@ import {
     }
   }
 
+  function readOutreachOutcomes() {
+    try {
+      return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function getShortlistOutreachProgress() {
+    var slugs = shortlist.map(function (item) {
+      return item.slug;
+    });
+    if (!slugs.length) {
+      return {
+        hasProgress: false,
+        summary: "",
+        nextSlug: "",
+      };
+    }
+
+    var latestBySlug = {};
+    readOutreachOutcomes().forEach(function (item) {
+      if (!item || !item.therapist_slug || !slugs.includes(item.therapist_slug)) {
+        return;
+      }
+      if (!latestBySlug[item.therapist_slug]) {
+        latestBySlug[item.therapist_slug] = item;
+      }
+    });
+
+    var touchedCount = Object.keys(latestBySlug).length;
+    var nextSlug = slugs.find(function (slug) {
+      var outcome = latestBySlug[slug];
+      return (
+        !outcome ||
+        ["no_response", "waitlist", "insurance_mismatch"].indexOf(String(outcome.outcome || "")) !==
+          -1
+      );
+    });
+    var completedCount = slugs.filter(function (slug) {
+      var outcome = latestBySlug[slug];
+      return (
+        outcome &&
+        ["heard_back", "booked_consult", "good_fit_call"].indexOf(String(outcome.outcome || "")) !==
+          -1
+      );
+    }).length;
+
+    return {
+      hasProgress: touchedCount > 0,
+      nextSlug: nextSlug || "",
+      summary:
+        touchedCount > 0
+          ? completedCount
+            ? completedCount +
+              " showing real follow-through so far. Resume the queue with " +
+              (nextSlug ? getTherapistName(nextSlug) : "your next strongest option") +
+              "."
+            : "You already started outreach here. Resume with " +
+              (nextSlug ? getTherapistName(nextSlug) : "your next strongest option") +
+              "."
+          : "",
+    };
+  }
+
+  function getTherapistName(slug) {
+    var therapist = therapists.find(function (item) {
+      return item.slug === slug;
+    });
+    return therapist ? therapist.name : "your next therapist";
+  }
+
   function normalizeShortlist(value) {
     return (Array.isArray(value) ? value : [])
       .map(function (item) {
@@ -296,6 +369,14 @@ import {
           .join(","),
       )
     );
+  }
+
+  function buildOutreachQueueUrl() {
+    if (!shortlist.length) {
+      return "match.html";
+    }
+
+    return buildCompareUrl() + "&entry=directory_shortlist_queue";
   }
 
   function applyDirectoryCopy() {
@@ -793,6 +874,8 @@ import {
         therapists: therapists,
         filters: filters,
         buildCompareUrl: buildCompareUrl,
+        buildOutreachQueueUrl: buildOutreachQueueUrl,
+        outreachProgress: getShortlistOutreachProgress(),
       }),
     });
 
@@ -805,6 +888,18 @@ import {
         render();
       });
     }
+
+    root.querySelectorAll("[data-start-outreach-queue]").forEach(function (link) {
+      link.addEventListener("click", function () {
+        trackFunnelEvent("directory_outreach_queue_started", {
+          shortlist_size: shortlist.length,
+          therapist_slugs: shortlist.map(function (item) {
+            return item.slug;
+          }),
+          lead_slug: link.getAttribute("data-queue-lead-slug") || "",
+        });
+      });
+    });
   }
 
   function renderPagination(total) {

@@ -1131,6 +1131,55 @@ export function summarizeProfileContactOutcomeValidation(events, outcomes) {
     });
 }
 
+export function summarizeProfileQueueProgress(events) {
+  var entries = Array.isArray(events) ? events : [];
+  var totals = {
+    updates: 0,
+    reached_out: 0,
+    heard_back: 0,
+    good_fit_call: 0,
+    no_response: 0,
+    waitlist: 0,
+    insurance_mismatch: 0,
+  };
+  var therapistCounts = {};
+
+  entries.forEach(function (item) {
+    if (!item || item.type !== "profile_queue_outcome_recorded" || !item.payload) {
+      return;
+    }
+    var outcome = String(item.payload.outcome || "");
+    totals.updates += 1;
+    if (Object.prototype.hasOwnProperty.call(totals, outcome)) {
+      totals[outcome] += 1;
+    }
+    if (item.payload.therapist_slug) {
+      therapistCounts[String(item.payload.therapist_slug)] = true;
+    }
+  });
+
+  var strongestSignals = totals.heard_back + totals.good_fit_call;
+  var frictionSignals = totals.no_response + totals.waitlist + totals.insurance_mismatch;
+
+  return {
+    updates: totals.updates,
+    therapist_count: Object.keys(therapistCounts).length,
+    reached_out: totals.reached_out,
+    heard_back: totals.heard_back,
+    good_fit_call: totals.good_fit_call,
+    no_response: totals.no_response,
+    waitlist: totals.waitlist,
+    insurance_mismatch: totals.insurance_mismatch,
+    interpretation: !totals.updates
+      ? "No therapist-profile outreach updates yet."
+      : strongestSignals > frictionSignals
+        ? "Profile-side outreach updates are already showing more reply progress than friction."
+        : frictionSignals > strongestSignals
+          ? "Profile-side outreach updates are capturing more friction than progress so far."
+          : "Profile-side outreach updates are starting to accumulate, but the signal is still mixed.",
+  };
+}
+
 export function summarizeProfileContactExperimentDecision(events, outcomes) {
   var summary = summarizeProfileContactSignals(events);
   var outcomeValidation = summarizeProfileContactOutcomeValidation(events, outcomes);
