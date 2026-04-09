@@ -151,10 +151,6 @@ function getHeroButtonLabel(interest) {
     return "See psychiatry matches";
   }
 
-  if (interest === "telehealth") {
-    return "See telehealth matches";
-  }
-
   return "See my matches";
 }
 
@@ -166,13 +162,7 @@ function getHeroHelperCopy(interest, hasLocation) {
   if (interest && !hasLocation) {
     return (
       "<strong>Next:</strong> add your California ZIP code to see " +
-      escapeHtml(
-        interest === "psychiatrist"
-          ? "psychiatry"
-          : interest === "therapist"
-            ? "therapy"
-            : interest,
-      ) +
+      escapeHtml(interest === "psychiatrist" ? "psychiatry" : "therapy") +
       " matches."
     );
   }
@@ -324,8 +314,7 @@ function applyAdaptiveHomepageMode() {
     proofValue1.textContent = "About 2 minutes to begin and get to a more focused shortlist.";
   if (proofLabel2) proofLabel2.textContent = "Designed for";
   if (proofValue2)
-    proofValue2.textContent =
-      "Therapy, psychiatry, and telehealth options shaped around bipolar care.";
+    proofValue2.textContent = "Therapy and psychiatry options shaped around bipolar care.";
   if (proofLabel3) proofLabel3.textContent = "Currently available";
   if (proofValue3) proofValue3.textContent = "Matching California ZIP codes right now.";
   if (trustPill1) trustPill1.textContent = "Built specifically for bipolar-related care search";
@@ -520,7 +509,7 @@ function defaultSectionsFromLegacy(homePage) {
                 stepLabel: "Step 1",
                 title: "Start with your care type and location",
                 description:
-                  "Tell us whether you want therapy, psychiatry, or telehealth support, then add your ZIP code to ground the search.",
+                  "Tell us whether you want therapy or psychiatry support, then add your ZIP code to ground the search.",
               },
               {
                 icon: "👤",
@@ -696,8 +685,6 @@ function handleHomeSearch(event) {
   } else if (interest === "psychiatrist") {
     params.set("care_intent", "Psychiatry");
     params.set("needs_medication_management", "Yes");
-  } else if (interest === "telehealth") {
-    params.set("care_format", "Telehealth");
   }
   window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
 }

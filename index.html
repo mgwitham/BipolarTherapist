@@ -1109,7 +1109,7 @@
             <div class="hero-proof-item">
               <span class="hero-proof-label" id="heroProofLabel2">Designed for</span>
               <span class="hero-proof-value" id="heroProofValue2"
-                >Therapy, psychiatry, and telehealth options shaped around bipolar care.</span
+                >Therapy and psychiatry options shaped around bipolar care.</span
               >
             </div>
             <div class="hero-proof-item">
@@ -1139,7 +1139,6 @@
                   <option value="">What kind of support do you want first?</option>
                   <option value="therapist">Therapy</option>
                   <option value="psychiatrist">Psychiatry</option>
-                  <option value="telehealth">Telehealth</option>
                 </select>
               </div>
               <div class="search-field search-field--zip">
@@ -1182,7 +1181,7 @@
             <div class="ease-strip-step-num">Step 1</div>
             <div class="ease-strip-step-title">Start with the care you need</div>
             <div class="ease-strip-step-copy">
-              Choose your ZIP code and whether you want therapy, psychiatry, or telehealth support.
+              Choose your ZIP code and whether you want therapy or psychiatry support first.
             </div>
           </div>
           <div class="ease-strip-step">
@@ -1267,8 +1266,6 @@
           } else if (interest === "psychiatrist") {
             params.set("care_intent", "Psychiatry");
             params.set("needs_medication_management", "Yes");
-          } else if (interest === "telehealth") {
-            params.set("care_format", "Telehealth");
           }
 
           window.location.href = "match.html" + (params.toString() ? "?" + params.toString() : "");
