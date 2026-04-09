@@ -198,6 +198,10 @@ function buildRows(data) {
         reason: "No licensure cache record yet",
         next_move: "Run first licensure enrichment",
         profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
+        official_profile_url:
+          (therapist.licensureVerification && therapist.licensureVerification.profileUrl) || "",
+        licensure_verified_at:
+          (therapist.licensureVerification && therapist.licensureVerification.verifiedAt) || "",
       });
       return;
     }
@@ -227,6 +231,14 @@ function buildRows(data) {
         queue_reason: record.refreshStatus === "failed" ? "refresh_failed" : "refresh_due",
         last_refresh_error: record.lastRefreshError || "",
         profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
+        official_profile_url:
+          (record.licensureVerification && record.licensureVerification.profileUrl) ||
+          (therapist.licensureVerification && therapist.licensureVerification.profileUrl) ||
+          "",
+        licensure_verified_at:
+          (record.licensureVerification && record.licensureVerification.verifiedAt) ||
+          (therapist.licensureVerification && therapist.licensureVerification.verifiedAt) ||
+          "",
       };
       row.reason = buildReason(row);
       row.next_move = buildNextMove(row);
@@ -261,6 +273,8 @@ function writeCsv(rows) {
     "reason",
     "next_move",
     "profile_link",
+    "official_profile_url",
+    "licensure_verified_at",
   ];
   const lines = [headers.join(",")];
   rows.forEach((row) => {
@@ -302,6 +316,12 @@ function writeMarkdown(rows) {
     lines.push(`- Next move: ${row.next_move || "Run licensure refresh"}`);
     if (row.location) {
       lines.push(`- Location: ${row.location}`);
+    }
+    if (row.licensure_verified_at) {
+      lines.push(`- Last verified: ${formatDate(row.licensure_verified_at)}`);
+    }
+    if (row.official_profile_url) {
+      lines.push(`- Official source: ${row.official_profile_url}`);
     }
     lines.push("");
   });
