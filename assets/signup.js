@@ -2411,11 +2411,12 @@ function getReadinessActionLabel(fieldName) {
 
 function getReadinessNudgeButtonLabel(fieldName) {
   var target = getReadinessTargetLabel(fieldName);
+  var weight = getReadinessContributionWeight(fieldName);
   if (!target) {
     return "Open next fix";
   }
 
-  return "Open " + target;
+  return "Open " + target + " +" + weight;
 }
 
 function getReadinessNavigationLabel(fieldName) {
@@ -2429,6 +2430,18 @@ function getReadinessNavigationLabel(fieldName) {
 
 function getReadinessTargetLabel(fieldName) {
   return getReadinessPriorityTargetLabel(fieldName) || "next field";
+}
+
+function getGuidedFieldDisplay(fieldName, options) {
+  var opts = options || {};
+  var target = getReadinessTargetLabel(fieldName);
+  var weight = getReadinessContributionWeight(fieldName);
+
+  if (!opts.includeWeight) {
+    return target;
+  }
+
+  return target + " +" + weight;
 }
 
 function setCoachMessage(id, message, tone) {
@@ -2636,6 +2649,20 @@ function ensureFieldPriorityLabel(label, isVisible, badgeText) {
   }
 
   var row = label.parentElement;
+  if (!isVisible && row && row.classList.contains("field-label-row")) {
+    var existingPill = row.querySelector(".field-priority-pill");
+    if (existingPill) {
+      existingPill.remove();
+    }
+    row.parentNode.insertBefore(label, row);
+    row.remove();
+    return;
+  }
+
+  if (!isVisible && (!row || !row.classList.contains("field-label-row"))) {
+    return;
+  }
+
   if (!row || !row.classList.contains("field-label-row")) {
     row = document.createElement("div");
     row.className = "field-label-row";
@@ -3024,6 +3051,26 @@ function getNextRecommendedField(data) {
 function formatMissingFieldSummary(items, limit) {
   var labels = (Array.isArray(items) ? items : []).slice(0, limit || 3).map(function (item) {
     return item.label;
+  });
+
+  if (!labels.length) {
+    return "";
+  }
+
+  if (labels.length === 1) {
+    return labels[0];
+  }
+
+  if (labels.length === 2) {
+    return labels[0] + " and " + labels[1];
+  }
+
+  return labels.slice(0, -1).join(", ") + ", and " + labels[labels.length - 1];
+}
+
+function formatGuidedFieldSummary(items, limit) {
+  var labels = (Array.isArray(items) ? items : []).slice(0, limit || 3).map(function (item) {
+    return getGuidedFieldDisplay(item.field, { includeWeight: true });
   });
 
   if (!labels.length) {
@@ -3653,7 +3700,7 @@ function renderActionStack() {
   if (lastValidationTarget && !isSignupFieldFilled(data, lastValidationTarget)) {
     actions.push({
       label: "Fix blocker",
-      detail: getFieldGuidanceLabel(lastValidationTarget),
+      detail: getGuidedFieldDisplay(lastValidationTarget, { includeWeight: true }),
       field: lastValidationTarget,
       accent: "#fff5f5",
       border: "rgba(229, 62, 62, 0.22)",
@@ -3674,7 +3721,9 @@ function renderActionStack() {
           : stackState === "ready"
             ? "Review requested fix"
             : "Reviewer focus",
-      detail: (readiness.readyFor ? readiness.readyFor + ": " : "") + requestedFocus.label,
+      detail:
+        (readiness.readyFor ? readiness.readyFor + ": " : "") +
+        getGuidedFieldDisplay(requestedFocus.field, { includeWeight: true }),
       field: requestedFocus.field,
       accent: "rgba(232, 245, 248, 0.88)",
       border: "rgba(26, 122, 143, 0.2)",
@@ -3697,7 +3746,9 @@ function renderActionStack() {
           : stackState === "ready"
             ? "Ready to review"
             : "Best next step",
-      detail: (readiness.readyFor ? readiness.readyFor + ": " : "") + nextField.label,
+      detail:
+        (readiness.readyFor ? readiness.readyFor + ": " : "") +
+        getGuidedFieldDisplay(nextField.field, { includeWeight: true }),
       field: nextField.field,
       accent:
         stackState === "almost_ready" ||
@@ -3774,24 +3825,33 @@ function getProgressPrioritySummary(data) {
   if (lastValidationTarget && !isSignupFieldFilled(data, lastValidationTarget)) {
     return {
       tone: "Blocked right now",
-      detail: "Finish " + getFieldGuidanceLabel(lastValidationTarget) + " to keep this moving.",
-      actionLabel: "Fix blocker",
+      detail:
+        "Finish " +
+        getGuidedFieldDisplay(lastValidationTarget, { includeWeight: true }) +
+        " to keep this moving.",
+      actionLabel: "Fix " + getGuidedFieldDisplay(lastValidationTarget, { includeWeight: true }),
     };
   }
 
   if (requestedFocus) {
     return {
       tone: mode === "revision" ? "Reviewer focus" : "Priority field",
-      detail: "Tighten " + requestedFocus.label + " next.",
-      actionLabel: mode === "revision" ? "Jump to requested fix" : "Jump to priority field",
+      detail:
+        "Tighten " +
+        getGuidedFieldDisplay(requestedFocus.field, { includeWeight: true }) +
+        " next.",
+      actionLabel:
+        (mode === "revision" ? "Open " : "Open ") +
+        getGuidedFieldDisplay(requestedFocus.field, { includeWeight: true }),
     };
   }
 
   if (nextField) {
     return {
       tone: mode === "confirmation" ? "Best confirmation step" : "Best next step",
-      detail: "Finish " + nextField.label + " next.",
-      actionLabel: "Jump to next field",
+      detail:
+        "Finish " + getGuidedFieldDisplay(nextField.field, { includeWeight: true }) + " next.",
+      actionLabel: "Open " + getGuidedFieldDisplay(nextField.field, { includeWeight: true }),
     };
   }
 
@@ -3964,7 +4024,11 @@ function renderProgressSnapshot() {
     parts.join("  •  ") +
     "</span>";
   jumpButton.style.display = nextField ? "inline-flex" : "none";
-  jumpButton.textContent = priority.actionLabel || "Jump to next field";
+  jumpButton.textContent =
+    priority.actionLabel ||
+    (nextField
+      ? "Open " + getGuidedFieldDisplay(nextField.field, { includeWeight: true })
+      : "Open next field");
   jumpButton.title = nextField ? priority.detail : "Everything currently looks covered";
 }
 
@@ -4113,7 +4177,7 @@ function renderCompletionNudges() {
       "/" +
       claimStats.total +
       "). Best next unlock for the full profile: " +
-      fullMissing[0].label +
+      getGuidedFieldDisplay(fullMissing[0].field, { includeWeight: true }) +
       ". Full profile progress: " +
       fullStats.completed +
       "/" +
@@ -4122,13 +4186,13 @@ function renderCompletionNudges() {
   } else {
     submitNote.textContent =
       "Best next step for the free claim: " +
-      claimMissing[0].label +
+      getGuidedFieldDisplay(claimMissing[0].field, { includeWeight: true }) +
       ". Claim progress: " +
       claimStats.completed +
       "/" +
       claimStats.total +
       ". After that, the next fuller-profile unlocks are " +
-      formatMissingFieldSummary(fullMissing, 2) +
+      formatGuidedFieldSummary(fullMissing, 2) +
       ".";
   }
   if (lastValidationTarget && nextFieldLabel) {
@@ -4147,10 +4211,12 @@ function renderCompletionNudges() {
       ? "Submit Full Profile"
       : "Keep Building Full Profile";
 
-  claimButton.title = claimReady ? "Save the free claim" : "Still needed: " + claimMissing[0].label;
+  claimButton.title = claimReady
+    ? "Save the free claim"
+    : "Still needed: " + getGuidedFieldDisplay(claimMissing[0].field, { includeWeight: true });
   submitButton.title = fullReady
     ? "Submit the full profile for review"
-    : "Best next unlock: " + fullMissing[0].label;
+    : "Best next unlock: " + getGuidedFieldDisplay(fullMissing[0].field, { includeWeight: true });
 }
 
 function getBlockingValidationIssue(data, submitIntent) {
