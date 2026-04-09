@@ -15,6 +15,9 @@ export function renderIngestionScorecardPanel(options) {
   var licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
     ? options.licensureRefreshQueue
     : [];
+  var licensureActivityFeed = Array.isArray(options.licensureActivityFeed)
+    ? options.licensureActivityFeed
+    : [];
   var coverageInsights = options.buildCoverageInsights(therapists);
   var ingestionAutomationHistory = Array.isArray(options.ingestionAutomationHistory)
     ? options.ingestionAutomationHistory
@@ -58,10 +61,15 @@ export function renderIngestionScorecardPanel(options) {
     ? Math.round((licensureVerifiedTherapists / therapists.length) * 100)
     : 0;
   var licensureRefreshCount = licensureRefreshQueue.length;
+  var licensureActivityCount = licensureActivityFeed.length;
   var lowLicensureCoverage = licensureCoverageRate < 60;
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
+  var licensureDeferredCount =
+    latestAutomationRun && latestAutomationRun.metrics
+      ? Number(latestAutomationRun.metrics.licensureDeferredItems) || 0
+      : 0;
   var priorAutomationRun =
     ingestionAutomationHistory.length > 1
       ? ingestionAutomationHistory[ingestionAutomationHistory.length - 2]
@@ -138,6 +146,16 @@ export function renderIngestionScorecardPanel(options) {
       label: "Licensure refresh",
       value: licensureRefreshCount,
       note: "Licensure records currently queued for refresh or first-pass enrichment.",
+    },
+    {
+      label: "Licensure deferred",
+      value: licensureDeferredCount,
+      note: "Licensure records intentionally snoozed until a future refresh date.",
+    },
+    {
+      label: "Recent licensure activity",
+      value: licensureActivityCount,
+      note: "Recent primary-source refreshes, failures, and deferral actions captured in the feed.",
     },
   ];
 
@@ -324,6 +342,10 @@ export function renderIngestionScorecardPanel(options) {
                   automationTrends.licensureRefreshItems.direction === "up"
                     ? "status rejected"
                     : "status approved",
+              },
+              {
+                label: "Licensure deferred " + licensureDeferredCount,
+                level: licensureDeferredCount > 0 ? "status reviewing" : "status approved",
               },
               {
                 label:

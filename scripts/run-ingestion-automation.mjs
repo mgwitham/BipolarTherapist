@@ -70,6 +70,16 @@ const steps = [
       "data/import/generated-licensure-refresh-queue.csv",
       "data/import/generated-licensure-refresh-queue.md",
       "data/import/generated-licensure-refresh-queue.json",
+      "data/import/generated-licensure-deferred-queue.json",
+    ],
+  },
+  {
+    label: "Licensure activity feed",
+    script: "cms:generate:licensure-activity-feed",
+    outputs: [
+      "data/import/generated-licensure-activity-feed.csv",
+      "data/import/generated-licensure-activity-feed.md",
+      "data/import/generated-licensure-activity-feed.json",
     ],
   },
   {

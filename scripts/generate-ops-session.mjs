@@ -32,6 +32,11 @@ const steps = [
     args: ["run", "cms:generate:licensure-refresh-queue"],
   },
   {
+    label: "Licensure activity feed",
+    cmd: "npm",
+    args: ["run", "cms:generate:licensure-activity-feed"],
+  },
+  {
     label: "Reverification batch",
     cmd: "npm",
     args: ["run", "cms:generate:reverification-batch"],

@@ -51,6 +51,8 @@ import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
 import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
 import { renderLicensureQueuePanel } from "./admin-licensure-queue.js";
 import { renderLicensureSprintPanel } from "./admin-licensure-sprint.js";
+import { renderDeferredLicensureQueuePanel } from "./admin-licensure-deferred-queue.js";
+import { renderLicensureActivityPanel } from "./admin-licensure-activity.js";
 import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
 import { renderConfirmationSprintPanel } from "./admin-confirmation-sprint.js";
 import { renderConfirmationQueuePanel } from "./admin-confirmation-queue.js";
@@ -69,6 +71,8 @@ let publishedTherapists = [];
 let applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
+let deferredLicensureQueue = [];
+let licensureActivityFeed = [];
 let authRequired = false;
 let licensureQueueFilter = "";
 let rankingRiskFilter = "";
@@ -6156,6 +6160,7 @@ function renderIngestionScorecard() {
     ingestionAutomationHistory: ingestionAutomationHistory,
     latestAutomationRun: latestAutomationRun,
     licensureRefreshQueue: licensureRefreshQueue,
+    licensureActivityFeed: licensureActivityFeed,
     buildCoverageInsights: buildCoverageInsights,
     getDataFreshnessSummary: getDataFreshnessSummary,
     getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
@@ -6923,6 +6928,28 @@ function renderLicensureSprint() {
   });
 }
 
+function renderDeferredLicensureQueue() {
+  renderDeferredLicensureQueuePanel({
+    root: document.getElementById("deferredLicensureQueue"),
+    countEl: document.getElementById("deferredLicensureQueueCount"),
+    authRequired: authRequired,
+    rows: deferredLicensureQueue,
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
+    escapeHtml: escapeHtml,
+  });
+}
+
+function renderLicensureActivity() {
+  renderLicensureActivityPanel({
+    root: document.getElementById("licensureActivity"),
+    countEl: document.getElementById("licensureActivityCount"),
+    authRequired: authRequired,
+    rows: licensureActivityFeed,
+    escapeHtml: escapeHtml,
+  });
+}
+
 function renderImportBlockerSprint() {
   renderImportBlockerSprintPanel({
     authRequired: authRequired,
@@ -7512,6 +7539,8 @@ function renderAll() {
   renderRefreshQueue();
   renderLicensureQueue();
   renderLicensureSprint();
+  renderDeferredLicensureQueue();
+  renderLicensureActivity();
   renderImportBlockerSprint();
   renderCaliforniaPriorityConfirmationWave();
   renderConfirmationSprint();
@@ -7551,6 +7580,38 @@ async function loadLicensureRefreshQueue() {
     licensureRefreshQueue = Array.isArray(payload) ? payload : [];
   } catch (_error) {
     licensureRefreshQueue = [];
+  }
+}
+
+async function loadDeferredLicensureQueue() {
+  try {
+    const response = await fetch("./data/import/generated-licensure-deferred-queue.json", {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      deferredLicensureQueue = [];
+      return;
+    }
+    const payload = await response.json();
+    deferredLicensureQueue = Array.isArray(payload) ? payload : [];
+  } catch (_error) {
+    deferredLicensureQueue = [];
+  }
+}
+
+async function loadLicensureActivityFeed() {
+  try {
+    const response = await fetch("./data/import/generated-licensure-activity-feed.json", {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      licensureActivityFeed = [];
+      return;
+    }
+    const payload = await response.json();
+    licensureActivityFeed = Array.isArray(payload) ? payload : [];
+  } catch (_error) {
+    licensureActivityFeed = [];
   }
 }
 
@@ -7596,6 +7657,8 @@ async function loadData() {
 
   await loadIngestionAutomationHistory();
   await loadLicensureRefreshQueue();
+  await loadDeferredLicensureQueue();
+  await loadLicensureActivityFeed();
 
   try {
     await checkReviewApiHealth();
@@ -7610,6 +7673,8 @@ async function loadData() {
     remoteCandidates = [];
     remotePortalRequests = [];
     publishedTherapists = [];
+    deferredLicensureQueue = [];
+    licensureActivityFeed = [];
     authRequired = true;
     setAuthUiState();
     renderAll();
@@ -7637,6 +7702,8 @@ async function loadData() {
       remotePortalRequests = [];
       publishedTherapists = [];
       licensureRefreshQueue = [];
+      deferredLicensureQueue = [];
+      licensureActivityFeed = [];
       authRequired = true;
     } else {
       dataMode = "local";
@@ -7645,6 +7712,8 @@ async function loadData() {
       remotePortalRequests = [];
       publishedTherapists = [];
       licensureRefreshQueue = [];
+      deferredLicensureQueue = [];
+      licensureActivityFeed = [];
       authRequired = false;
     }
   }
@@ -7703,6 +7772,8 @@ document.getElementById("signOutAdmin").addEventListener("click", async function
   remoteCandidates = [];
   publishedTherapists = [];
   licensureRefreshQueue = [];
+  deferredLicensureQueue = [];
+  licensureActivityFeed = [];
   setAuthUiState();
   renderAll();
 });

@@ -63,6 +63,14 @@ export function buildMetrics(root) {
       root,
       "data/import/generated-licensure-refresh-queue.csv",
     ),
+    licensureDeferredItems: readCsvRowCount(
+      root,
+      "data/import/generated-licensure-deferred-queue.csv",
+    ),
+    licensureActivityItems: readCsvRowCount(
+      root,
+      "data/import/generated-licensure-activity-feed.csv",
+    ),
     licensureSprintLane: licensureSprint.laneKey,
     licensureSprintCount: licensureSprint.count,
     reverificationItems: readCsvRowCount(root, "data/import/generated-reverification-batch.csv"),
@@ -87,6 +95,13 @@ export function buildAlerts(metrics) {
       level: "warn",
       label: "Licensure refresh pressure",
       message: `${metrics.licensureRefreshItems} licensure records need refresh or first-pass enrichment.`,
+    });
+  }
+  if (metrics.licensureActivityItems === 0) {
+    alerts.push({
+      level: "info",
+      label: "Licensure activity feed empty",
+      message: "No recent licensure actions were captured. This may be normal if the lane is new or idle.",
     });
   }
   if (metrics.licensureSprintLane === "first_pass" && metrics.licensureSprintCount >= 3) {
@@ -226,6 +241,8 @@ export function buildMarkdown(summary) {
     `- Sourcing recommendations: ${summary.metrics.sourcingRecommendations}`,
     `- Ops queue items: ${summary.metrics.opsQueueItems}`,
     `- Licensure refresh items: ${summary.metrics.licensureRefreshItems}`,
+    `- Licensure deferred items: ${summary.metrics.licensureDeferredItems}`,
+    `- Licensure activity items: ${summary.metrics.licensureActivityItems}`,
     `- Licensure sprint lane: ${sprintLabel}${summary.metrics.licensureSprintCount ? ` (${summary.metrics.licensureSprintCount})` : ""}`,
     `- Reverification items: ${summary.metrics.reverificationItems}`,
     `- Candidate review items: ${summary.metrics.candidateReviewItems}`,
