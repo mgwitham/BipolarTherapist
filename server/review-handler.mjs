@@ -1171,16 +1171,18 @@ async function updatePortalRequestFields(client, requestId, fields) {
   return client.patch(requestId).set(allowedUpdates).commit({ visibility: "sync" });
 }
 
-export function createReviewApiHandler(configOverride) {
+export function createReviewApiHandler(configOverride, clientOverride) {
   const config = configOverride || getReviewApiConfig();
-  const client = createClient({
-    projectId: config.projectId,
-    dataset: config.dataset,
-    apiVersion: config.apiVersion,
-    token: config.token,
-    useCdn: false,
-    perspective: "raw",
-  });
+  const client =
+    clientOverride ||
+    createClient({
+      projectId: config.projectId,
+      dataset: config.dataset,
+      apiVersion: config.apiVersion,
+      token: config.token,
+      useCdn: false,
+      perspective: "raw",
+    });
 
   return async function reviewApiHandler(request, response) {
     const origin = request.headers.origin || "";
