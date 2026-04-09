@@ -625,9 +625,29 @@ function renderPageSections(homePage, _featuredTherapists) {
     .join("");
 }
 
-function syncHomeSearchHiddenFields(interest) {
-  var careIntentInput = document.getElementById("homepage_care_intent");
-  var medicationNeedInput = document.getElementById("homepage_medication_need");
+function getHomeSearchElements() {
+  return {
+    form: document.getElementById("homeSearchForm"),
+    locationInput: document.getElementById("location"),
+    interestInput: document.getElementById("homepage_interest"),
+    careIntentInput: document.getElementById("homepage_care_intent"),
+    medicationNeedInput: document.getElementById("homepage_medication_need"),
+  };
+}
+
+function readHomeSearchInputs(elements) {
+  return {
+    locationQuery:
+      elements && elements.locationInput ? String(elements.locationInput.value || "").trim() : "",
+    interest:
+      elements && elements.interestInput ? String(elements.interestInput.value || "").trim() : "",
+  };
+}
+
+function syncHomeSearchHiddenFields(interest, elements) {
+  var refs = elements || getHomeSearchElements();
+  var careIntentInput = refs.careIntentInput;
+  var medicationNeedInput = refs.medicationNeedInput;
 
   if (!careIntentInput || !medicationNeedInput) {
     return;
@@ -647,6 +667,38 @@ function syncHomeSearchHiddenFields(interest) {
 
   careIntentInput.value = "";
   medicationNeedInput.value = "";
+}
+
+function validateHomeSearchInputs(elements) {
+  var values = readHomeSearchInputs(elements);
+  var zipStatus = getZipMarketStatus(values.locationQuery);
+  var state = {
+    locationQuery: values.locationQuery,
+    interest: values.interest,
+    zipStatus: zipStatus,
+    validationMessages: getHeroValidationMessages(),
+    canSubmit: true,
+    focusTarget: null,
+  };
+
+  if (!values.interest) {
+    state.canSubmit = false;
+    state.focusTarget = elements && elements.interestInput ? elements.interestInput : null;
+    return state;
+  }
+
+  if (!values.locationQuery) {
+    state.canSubmit = false;
+    state.focusTarget = elements && elements.locationInput ? elements.locationInput : null;
+    return state;
+  }
+
+  if (zipStatus.status === "out_of_state") {
+    state.canSubmit = false;
+    state.focusTarget = elements && elements.locationInput ? elements.locationInput : null;
+  }
+
+  return state;
 }
 
 function buildHomeSearchTarget(form) {
@@ -679,60 +731,40 @@ function handleHomeSearch(event) {
     event.preventDefault();
   }
 
-  var form = document.getElementById("homeSearchForm");
-  var locationInput = document.getElementById("location");
-  var interestInput = document.getElementById("homepage_interest");
-  var loc = locationInput ? locationInput.value.trim() : "";
-  var interest = interestInput ? interestInput.value || "" : "";
-  var validationMessages = getHeroValidationMessages();
-  var zipStatus = getZipMarketStatus(loc);
+  var elements = getHomeSearchElements();
+  var validation = validateHomeSearchInputs(elements);
 
-  if (validationMessages.length) {
-    showHeroValidationPopup(validationMessages);
+  if (validation.validationMessages.length) {
+    showHeroValidationPopup(validation.validationMessages);
   }
 
-  if (!interest) {
-    if (interestInput) {
-      interestInput.focus();
-    }
-    syncHeroSearchState();
-    return;
-  }
-
-  if (!loc) {
-    if (locationInput) {
-      locationInput.focus();
-    }
-    syncHeroSearchState();
-    return;
-  }
-
-  if (zipStatus.status === "out_of_state") {
-    if (locationInput) {
-      locationInput.focus();
+  if (!validation.canSubmit) {
+    if (validation.focusTarget) {
+      validation.focusTarget.focus();
     }
     syncHeroSearchState();
     return;
   }
 
   trackFunnelEvent("home_location_submitted", {
-    has_location: Boolean(loc),
-    interest_type: interest || "unspecified",
+    has_location: Boolean(validation.locationQuery),
+    interest_type: validation.interest || "unspecified",
   });
   trackFunnelEvent("home_match_started", {
-    has_location: Boolean(loc),
-    interest_type: interest || "unspecified",
+    has_location: Boolean(validation.locationQuery),
+    interest_type: validation.interest || "unspecified",
     source: "hero",
     experiments: {
       homepage_messaging: activeHomeExperimentVariant,
     },
   });
-  syncHomeSearchHiddenFields(interest);
-  window.location.assign(buildHomeSearchTarget(form));
+  syncHomeSearchHiddenFields(validation.interest, elements);
+  window.location.assign(buildHomeSearchTarget(elements.form));
 }
 
 function initHomeSearchForm() {
-  var form = document.getElementById("homeSearchForm");
+  var elements = getHomeSearchElements();
+  var form = elements.form;
   if (!form || form.dataset.bound === "true") {
     return;
   }

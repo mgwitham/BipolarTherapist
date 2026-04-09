@@ -61,6 +61,7 @@ var isInternalMode = new URLSearchParams(window.location.search).get("internal")
 var PRIMARY_SHORTLIST_LIMIT = 3;
 var SHORTLIST_QUEUE_LIMIT = 8;
 var MATCH_PRIORITY_SLUGS = [];
+var matchShellRefs = null;
 var US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
@@ -122,6 +123,100 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+var MATCH_JOURNEY_COPY = {
+  intake: {
+    builderTitle: "Start your match",
+    kicker: "Only two answers required to begin",
+    title: "Get to your first shortlist faster",
+    copy: "Pick the type of support you want and enter your ZIP code. We’ll start with the strongest shortlist we can build from there.",
+    searchButton: "See my matches",
+    refinementButton: "See my top matches",
+  },
+  starterResults: {
+    builderTitle: "Get a more specific match",
+    kicker: "These are strong starting providers",
+    title: "Add your details only if you want a tighter, more personalized fit",
+    copy: "Start with the providers below, or add your ZIP code, insurance, format, or medication needs to narrow the match further.",
+    searchButton: "Update shortlist",
+    refinementButton: "Update shortlist",
+  },
+  personalizedResults: {
+    builderTitle: "Get a more specific match",
+    kicker: "Your homepage answers are already applied",
+    title: "Only adjust these answers if you want a tighter fit",
+    copy: "You already have a ranked starting point below. Change anything here only if you want to narrow, widen, or rerun the match.",
+    searchButton: "Update shortlist",
+    refinementButton: "Update shortlist",
+  },
+};
+
+function getMatchShellRefs() {
+  if (matchShellRefs) {
+    return matchShellRefs;
+  }
+
+  matchShellRefs = {
+    builder: document.querySelector(".match-builder"),
+    builderTitle: document.querySelector(".match-builder-header h2"),
+    kicker: document.querySelector(".match-tool-kicker"),
+    title: document.querySelector(".match-tool-title"),
+    copy: document.querySelector(".match-tool-copy"),
+    searchButton: document.getElementById("matchSearchButton"),
+    refinementSubmitButton: document.getElementById("refinementSubmitButton"),
+    refinements: document.querySelector(".match-refinements"),
+    resultsRoot: document.getElementById("matchResults"),
+    compare: document.getElementById("matchCompare"),
+    outreach: document.getElementById("matchOutreach"),
+    adaptiveGuidance: document.getElementById("matchAdaptiveGuidance"),
+    firstContact: document.getElementById("matchFirstContact"),
+    fallbackContact: document.getElementById("matchFallbackContact"),
+    feedbackBar: document.getElementById("matchFeedbackBar"),
+    queue: document.getElementById("matchQueue"),
+    feedbackStatus: document.getElementById("feedbackStatus"),
+    form: document.getElementById("matchForm"),
+  };
+
+  return matchShellRefs;
+}
+
+function renderMatchLandingShell() {
+  var refs = getMatchShellRefs();
+  if (!refs.resultsRoot) {
+    return;
+  }
+
+  refs.resultsRoot.className = "match-results match-results-hero match-empty";
+  refs.resultsRoot.innerHTML =
+    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
+}
+
+function clearRenderedMatchPanels() {
+  var refs = getMatchShellRefs();
+
+  if (refs.queue) {
+    refs.queue.hidden = true;
+    refs.queue.innerHTML = "";
+  }
+  if (refs.compare) {
+    refs.compare.innerHTML = "";
+  }
+  if (refs.outreach) {
+    refs.outreach.innerHTML = "";
+  }
+  if (refs.adaptiveGuidance) {
+    refs.adaptiveGuidance.innerHTML = "";
+  }
+  if (refs.firstContact) {
+    refs.firstContact.innerHTML = "";
+  }
+  if (refs.fallbackContact) {
+    refs.fallbackContact.innerHTML = "";
+  }
+  if (refs.feedbackBar) {
+    refs.feedbackBar.hidden = true;
+  }
 }
 
 function normalizePrioritySlugs(siteSettings) {
@@ -520,7 +615,7 @@ function rerunMatchFromCurrentForm() {
 }
 
 function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
-  var root = document.getElementById("matchResults");
+  var root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
   }
@@ -613,65 +708,37 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 }
 
 function setMatchJourneyMode(mode) {
-  var builder = document.querySelector(".match-builder");
-  var builderTitle = document.querySelector(".match-builder-header h2");
-  var kicker = document.querySelector(".match-tool-kicker");
-  var title = document.querySelector(".match-tool-title");
-  var copy = document.querySelector(".match-tool-copy");
-  var searchButton = document.getElementById("matchSearchButton");
-  var refinementSubmitButton = document.getElementById("refinementSubmitButton");
-  var refinements = document.querySelector(".match-refinements");
+  var refs = getMatchShellRefs();
 
-  if (!builder || !builderTitle || !kicker || !title || !copy) {
+  if (!refs.builder || !refs.builderTitle || !refs.kicker || !refs.title || !refs.copy) {
     return;
   }
 
-  if (!builder.dataset.defaultTitle) {
-    builder.dataset.defaultTitle = builderTitle.textContent || "";
-    kicker.dataset.defaultText = kicker.textContent || "";
-    title.dataset.defaultText = title.textContent || "";
-    copy.dataset.defaultText = copy.textContent || "";
+  if (!refs.builder.dataset.defaultTitle) {
+    refs.builder.dataset.defaultTitle = refs.builderTitle.textContent || "";
+    refs.kicker.dataset.defaultText = refs.kicker.textContent || "";
+    refs.title.dataset.defaultText = refs.title.textContent || "";
+    refs.copy.dataset.defaultText = refs.copy.textContent || "";
   }
 
-  if (mode === "results") {
-    builder.classList.add("is-results-mode");
-    if (starterResultsMode) {
-      builderTitle.textContent = "Get a more specific match";
-      kicker.textContent = "These are strong starting providers";
-      title.textContent = "Add your details only if you want a tighter, more personalized fit";
-      copy.textContent =
-        "Start with the providers below, or add your ZIP code, insurance, format, or medication needs to narrow the match further.";
-    } else {
-      builderTitle.textContent = "Get a more specific match";
-      kicker.textContent = "Your homepage answers are already applied";
-      title.textContent = "Only adjust these answers if you want a tighter fit";
-      copy.textContent =
-        "You already have a ranked starting point below. Change anything here only if you want to narrow, widen, or rerun the match.";
-    }
-    if (searchButton) {
-      searchButton.textContent = "Update shortlist";
-    }
-    if (refinementSubmitButton) {
-      refinementSubmitButton.textContent = "Update shortlist";
-    }
-    if (refinements) {
-      refinements.open = false;
-    }
-    return;
-  }
+  var configKey =
+    mode === "results" ? (starterResultsMode ? "starterResults" : "personalizedResults") : "intake";
+  var config = MATCH_JOURNEY_COPY[configKey];
 
-  builder.classList.remove("is-results-mode");
-  builderTitle.textContent = builder.dataset.defaultTitle || "Start your match";
-  kicker.textContent = kicker.dataset.defaultText || "Only two answers required to begin";
-  title.textContent = title.dataset.defaultText || "Get to your first shortlist faster";
-  copy.textContent =
-    copy.dataset.defaultText ||
-    "Pick the type of support you want and enter your ZIP code. We’ll start with the strongest shortlist we can build from there.";
-  if (searchButton) {
-    searchButton.textContent = "See my matches";
+  refs.builder.classList.toggle("is-results-mode", mode === "results");
+  refs.builderTitle.textContent = config.builderTitle;
+  refs.kicker.textContent = config.kicker;
+  refs.title.textContent = config.title;
+  refs.copy.textContent = config.copy;
+
+  if (refs.searchButton) {
+    refs.searchButton.textContent = config.searchButton;
   }
-  if (refinementSubmitButton) {
-    refinementSubmitButton.textContent = "See my top matches";
+  if (refs.refinementSubmitButton) {
+    refs.refinementSubmitButton.textContent = config.refinementButton;
+  }
+  if (mode === "results" && refs.refinements) {
+    refs.refinements.open = false;
   }
 }
 
@@ -1876,6 +1943,49 @@ function buildRequestSummary(profile) {
   }
 
   return summary.length ? summary.join(" • ") : "Shortlist based on your current answers.";
+}
+
+function buildAppliedAnswerPills(profile) {
+  if (!profile) {
+    return [];
+  }
+
+  var pills = [];
+
+  if (profile.care_intent) {
+    pills.push(profile.care_intent);
+  }
+
+  if (profile.location_query) {
+    pills.push("ZIP " + profile.location_query);
+  } else if (profile.care_state) {
+    pills.push(profile.care_state + " statewide");
+  }
+
+  if (profile.care_format && profile.care_format !== "In-Person") {
+    pills.push(profile.care_format);
+  }
+
+  if (
+    profile.needs_medication_management &&
+    profile.needs_medication_management !== "Open to either"
+  ) {
+    pills.push(
+      profile.needs_medication_management === "Yes"
+        ? "Medication management needed"
+        : "No medication management",
+    );
+  }
+
+  if (profile.insurance) {
+    pills.push("Insurance: " + profile.insurance);
+  }
+
+  if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
+    pills.push(profile.priority_mode);
+  }
+
+  return pills.slice(0, 6);
 }
 
 function hasMeaningfulRefinements(profile) {
@@ -4931,7 +5041,7 @@ function renderOutreachPanel(entries) {
 }
 
 function renderPrimaryMatchCards(entries, _profile) {
-  var root = document.getElementById("matchResults");
+  var root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
   }
@@ -4960,6 +5070,9 @@ function renderPrimaryMatchCards(entries, _profile) {
     : "Your shortlist is ready";
   var directoryBrowseUrl = buildDirectoryBrowseUrl(_profile);
   var leadAction = buildPrimaryResultAction(primaryEntries[0]);
+  var appliedPills = _profile
+    ? buildAppliedAnswerPills(_profile)
+    : ["Therapy", "California", "Starter shortlist"];
   var backupName =
     primaryEntries[1] && primaryEntries[1].therapist ? primaryEntries[1].therapist.name || "" : "";
   var nextStepLabel =
@@ -4997,6 +5110,12 @@ function renderPrimaryMatchCards(entries, _profile) {
     escapeHtml(summaryIntro) +
     " " +
     escapeHtml(requestSummary) +
+    '</div><div class="match-summary-applied"><div class="match-summary-applied-label">Applied answers</div>' +
+    appliedPills
+      .map(function (pill) {
+        return '<span class="match-summary-pill">' + escapeHtml(pill) + "</span>";
+      })
+      .join("") +
     "</div></div>" +
     primaryEntries
       .map(function (entry, index) {
@@ -5178,14 +5297,8 @@ function scrollToTopMatches() {
 }
 
 function renderResults(entries, profile) {
-  var root = document.getElementById("matchResults");
-  var compare = document.getElementById("matchCompare");
-  var outreach = document.getElementById("matchOutreach");
-  var adaptiveGuidance = document.getElementById("matchAdaptiveGuidance");
-  var firstContact = document.getElementById("matchFirstContact");
-  var fallbackContact = document.getElementById("matchFallbackContact");
-  var feedbackBar = document.getElementById("matchFeedbackBar");
-  var queue = document.getElementById("matchQueue");
+  var refs = getMatchShellRefs();
+  var root = refs.resultsRoot;
   var hasRefinements = hasMeaningfulRefinements(profile);
   var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
 
@@ -5203,18 +5316,7 @@ function renderResults(entries, profile) {
       requestedZip && zipSuggestions.length ? zipSuggestions : [],
       hasRefinements,
     );
-    outreach.innerHTML = "";
-    compare.innerHTML = "";
-    adaptiveGuidance.innerHTML = "";
-    firstContact.innerHTML = "";
-    fallbackContact.innerHTML = "";
-    if (queue) {
-      queue.hidden = true;
-      queue.innerHTML = "";
-    }
-    if (feedbackBar) {
-      feedbackBar.hidden = true;
-    }
+    clearRenderedMatchPanels();
     return;
   }
 
@@ -5229,8 +5331,8 @@ function renderResults(entries, profile) {
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   renderShortlistQueue(entries);
-  if (feedbackBar) {
-    feedbackBar.hidden = false;
+  if (refs.feedbackBar) {
+    refs.feedbackBar.hidden = false;
   }
   renderOutreachPanel(entries);
   renderComparison(entries);
@@ -5314,7 +5416,8 @@ function renderDirectoryShortlist(slugs) {
 }
 
 function resetForm() {
-  var form = document.getElementById("matchForm");
+  var refs = getMatchShellRefs();
+  var form = refs.form;
   form.reset();
   syncZipResolvedLabel("");
   syncMatchStartState();
@@ -5330,22 +5433,13 @@ function resetForm() {
   window.history.replaceState({}, "", "match.html");
   setActionState(false, "Run a match to review your top options.");
   syncMatchStartState();
-  document.getElementById("matchResults").className = "match-empty";
-  document.getElementById("matchResults").innerHTML =
-    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
-  var queue = document.getElementById("matchQueue");
-  if (queue) {
-    queue.hidden = true;
-    queue.innerHTML = "";
-  }
-  document.getElementById("matchFirstContact").innerHTML = "";
-  document.getElementById("matchFallbackContact").innerHTML = "";
-  document.getElementById("matchAdaptiveGuidance").innerHTML = "";
-  document.getElementById("matchOutreach").innerHTML = "";
-  document.getElementById("matchCompare").innerHTML = "";
+  renderMatchLandingShell();
+  clearRenderedMatchPanels();
   updateShortlistFeedbackUi("");
-  document.getElementById("feedbackStatus").textContent =
-    "Your feedback helps us improve which providers rise for searches like yours.";
+  if (refs.feedbackStatus) {
+    refs.feedbackStatus.textContent =
+      "Your feedback helps us improve which providers rise for searches like yours.";
+  }
 }
 
 (async function init() {
@@ -5359,9 +5453,10 @@ function resetForm() {
     surface: "match",
   });
   latestAdaptiveSignals = getMatchAdaptiveStrategy();
+  var refs = getMatchShellRefs();
   initMatchCareDropdown();
   bindRefineButtons();
-  var matchForm = document.getElementById("matchForm");
+  var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function () {
     var profile = readCurrentIntakeProfile();
@@ -5377,7 +5472,7 @@ function resetForm() {
     renderAdaptiveIntakeGuidance(profile);
     renderIntakeTradeoffPreview(profile);
   });
-  var refinements = document.querySelector(".match-refinements");
+  var refinements = refs.refinements;
   if (refinements) {
     refinements.addEventListener("toggle", function () {
       if (refinements.open) {
@@ -5417,7 +5512,7 @@ function resetForm() {
     syncZipResolvedLabel(matchForm.elements.location_query.value);
     updateShortlistFeedbackUi("");
   }
-  var root = document.getElementById("matchResults");
+  var root = refs.resultsRoot;
   var fallbackProfile = latestProfile || readCurrentIntakeProfile();
   if (
     root &&
