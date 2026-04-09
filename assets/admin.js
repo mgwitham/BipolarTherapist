@@ -58,6 +58,7 @@ import {
   setPromotedExperimentVariant,
   summarizeContactRouteOutcomePerformance,
   summarizeAdaptiveSignals,
+  summarizeDirectoryProfileOpenQuality,
   summarizeExperimentDecisions,
   summarizeExperimentPerformance,
   summarizeFunnelEvents,
@@ -94,6 +95,31 @@ import {
   renderCoverageIntelligencePanel,
   renderSourcePerformancePanel,
 } from "./admin-sourcing-intelligence.js";
+
+if (typeof document !== "undefined" && document.documentElement) {
+  document.documentElement.setAttribute("data-admin-boot", "script-loaded");
+}
+if (typeof window !== "undefined" && window.addEventListener && document.documentElement) {
+  window.addEventListener("error", function (event) {
+    document.documentElement.setAttribute("data-admin-boot", "boot-error");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String(
+        (event && event.error && event.error.message) ||
+          (event && event.message) ||
+          "unknown-error",
+      ),
+    );
+  });
+  window.addEventListener("unhandledrejection", function (event) {
+    var reason = event ? event.reason : "";
+    document.documentElement.setAttribute("data-admin-boot", "boot-error");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String((reason && reason.message) || reason || "unhandled-rejection"),
+    );
+  });
+}
 
 let dataMode = "local";
 let remoteApplications = [];
@@ -359,7 +385,9 @@ const listingsWorkspace = createListingsWorkspace({
   launchProfileControlsKey: "bth_launch_profile_controls_v1",
   launchStateOptions: ["standard", "launch_ready", "featured"],
   readFunnelEvents: readFunnelEvents,
-  spotlightSection: spotlightSection,
+  spotlightSection: function (target) {
+    spotlightSection(target);
+  },
 });
 const savedReviewActivityView = readReviewActivityView();
 if (savedReviewActivityView && typeof savedReviewActivityView.filter === "string") {
@@ -479,6 +507,9 @@ function syncAdminWorkflowUrlFocus() {
 }
 
 if (typeof window !== "undefined") {
+  if (window.history && "scrollRestoration" in window.history) {
+    window.history.scrollRestoration = "manual";
+  }
   window.addEventListener("hashchange", function () {
     syncWorkflowFocusFromHash();
     window.setTimeout(function () {
@@ -491,6 +522,9 @@ if (typeof window !== "undefined") {
     window.setTimeout(function () {
       syncAdminWorkflowUrlFocus();
     }, 120);
+    if (!window.location.hash && !readAdminWorkflowUrlParams().therapistSlug) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
   }, 0);
 }
 
@@ -4653,6 +4687,7 @@ function renderFunnelInsights() {
   const summary = summarizeFunnelEvents(events);
   const patientJourney = summarizePatientJourney(events);
   const profileContactSignals = summarizeProfileContactSignals(events);
+  const directoryProfileOpenQuality = summarizeDirectoryProfileOpenQuality(events);
   const outcomes = readOutreachOutcomes();
   const profileContactOutcomeValidation = summarizeProfileContactOutcomeValidation(
     events,
@@ -4724,6 +4759,40 @@ function renderFunnelInsights() {
         : "We need more patient journey data before a clear drop-off is visible.",
     ) +
     "</div></div>" +
+    (directoryProfileOpenQuality.rows.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Directory-to-profile quality</div><div class="queue-insights-grid">' +
+        directoryProfileOpenQuality.rows
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.source) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.opens +
+                  " opens · " +
+                  item.high_readiness +
+                  " high-readiness · " +
+                  item.fresh_profiles +
+                  " fresh",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                "High-readiness " +
+                  Math.round(item.high_readiness_rate * 100) +
+                  "% · Accepting " +
+                  Math.round(item.accepting_rate * 100) +
+                  "% · Bipolar detail " +
+                  Math.round(item.bipolar_rate * 100) +
+                  "%",
+              ) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        '</div><div class="mini-status" style="margin-top:0.75rem"><strong>Interpretation:</strong> ' +
+        escapeHtml(directoryProfileOpenQuality.interpretation) +
+        "</div></div>"
+      : "") +
     '<div class="queue-insights"><div class="queue-insights-title">Recovery and friction signals</div><div class="queue-insights-grid">' +
     [
       {
@@ -5476,7 +5545,6 @@ function renderApplications() {
     applicationLiveApplySummaries: applicationLiveApplySummaries,
     loadData: loadData,
   });
-  syncWorkflowFocusFromHash();
 }
 
 function buildCandidateDecisionActions(item) {
@@ -5613,7 +5681,6 @@ function renderCandidateQueue() {
     decideTherapistCandidate: decideTherapistCandidate,
     loadData: loadData,
   });
-  syncWorkflowFocusFromHash();
 }
 
 function renderConciergeQueue() {
@@ -6113,7 +6180,6 @@ function renderAll() {
   renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
   renderAdminSection("add new listings", renderCandidateQueue);
   renderAdminSection("review applications", renderApplications);
-  renderAdminSection("workflow focus sync", syncWorkflowFocusFromHash);
 }
 
 function setAuthUiState() {
@@ -6154,6 +6220,9 @@ function setAuthUiState() {
 }
 
 async function loadData() {
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "loadData-start");
+  }
   const generatedArtifacts = await loadGeneratedAdminArtifacts();
   applyAdminRuntimeState(generatedArtifacts);
 
@@ -6169,6 +6238,9 @@ async function loadData() {
     );
     setAuthUiState();
     renderAll();
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.setAttribute("data-admin-boot", "rendered-auth-required");
+    }
     return;
   }
 
@@ -6236,6 +6308,9 @@ async function loadData() {
 
   setAuthUiState();
   renderAll();
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "rendered");
+  }
 }
 
 document.getElementById("resetDemo").addEventListener("click", function () {
@@ -6550,4 +6625,18 @@ if (getAdminSessionToken()) {
   authRequired = false;
 }
 
-loadData();
+if (typeof document !== "undefined" && document.documentElement) {
+  document.documentElement.setAttribute("data-admin-boot", "listeners-bound");
+}
+
+loadData().catch(function (error) {
+  console.error("Admin boot failed:", error);
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "boot-failed");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String((error && error.message) || error || "unknown-error"),
+    );
+  }
+  renderFallbackStats();
+});

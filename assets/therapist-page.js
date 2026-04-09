@@ -20,7 +20,9 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 
-var slug = new URLSearchParams(window.location.search).get("slug");
+var profileParams = new URLSearchParams(window.location.search);
+var slug = profileParams.get("slug");
+var profileSource = profileParams.get("source") || "";
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
@@ -395,6 +397,24 @@ function getContactAnalyticsMeta(therapist, route) {
   };
 }
 
+function trackDirectoryProfileOpenQuality(therapist, readiness, freshness) {
+  if (!profileSource) {
+    return;
+  }
+  trackFunnelEvent("directory_profile_open_quality", {
+    source: profileSource,
+    therapist_slug: therapist.slug || "",
+    readiness_score: readiness && typeof readiness.score === "number" ? readiness.score : 0,
+    freshness_status: freshness && freshness.status ? freshness.status : "unknown",
+    accepting_new_patients: Boolean(therapist.accepting_new_patients),
+    has_bipolar_experience: Boolean(Number(therapist.bipolar_years_experience || 0)),
+    has_fee_details: Boolean(
+      therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale,
+    ),
+    has_wait_time: Boolean(therapist.estimated_wait_time),
+  });
+}
+
 function readShortlist() {
   try {
     return normalizeShortlist(
@@ -541,28 +561,38 @@ async function resolveTherapistForProfile(slugValue) {
 }
 
 (async function init() {
-  if (!slug) {
-    document.getElementById("profileWrap").innerHTML =
-      '<div class="not-found"><h2>No therapist specified</h2><p>Please return to the directory and choose a bipolar-informed therapist profile to review.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
-    return;
-  }
+  try {
+    if (!slug) {
+      document.getElementById("profileWrap").innerHTML =
+        '<div class="not-found"><h2>Choose a therapist to review</h2><p>Open a profile from the directory to compare bipolar-care fit, practical details, and the best next step in one place.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+      return;
+    }
 
-  var therapist = await resolveTherapistForProfile(slug);
-  if (!therapist) {
-    document.getElementById("profileWrap").innerHTML =
-      '<div class="not-found"><h2>Therapist not found</h2><p>This profile may no longer be active, or the link may be incorrect. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
-    return;
-  }
+    var therapist = await resolveTherapistForProfile(slug);
+    if (!therapist) {
+      document.getElementById("profileWrap").innerHTML =
+        '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+      return;
+    }
 
-  activeTherapistContactExperimentVariant = getExperimentVariant("therapist_contact_guidance", [
-    "control",
-    "action_plan",
-  ]);
-  trackExperimentExposure("therapist_contact_guidance", activeTherapistContactExperimentVariant, {
-    therapist_slug: therapist.slug || "",
-    preferred_contact_method: therapist.preferred_contact_method || "unknown",
-  });
-  renderProfile(therapist);
+    activeTherapistContactExperimentVariant = getExperimentVariant("therapist_contact_guidance", [
+      "control",
+      "action_plan",
+    ]);
+    trackExperimentExposure("therapist_contact_guidance", activeTherapistContactExperimentVariant, {
+      therapist_slug: therapist.slug || "",
+      preferred_contact_method: therapist.preferred_contact_method || "unknown",
+    });
+    renderProfile(therapist);
+  } catch (error) {
+    console.error("Therapist profile failed to load.", error);
+    document.getElementById("profileWrap").innerHTML =
+      '<div class="not-found"><h2>We could not load this profile</h2><p>Something went wrong while opening the therapist page. Please go back to the directory and try again.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+    var breadcrumbName = document.getElementById("breadcrumbName");
+    if (breadcrumbName) {
+      breadcrumbName.textContent = "Profile unavailable";
+    }
+  }
 })();
 
 function renderProfile(t) {
@@ -579,6 +609,7 @@ function renderProfile(t) {
     recentConfirmation,
     freshness,
   );
+  trackDirectoryProfileOpenQuality(t, readiness, freshness);
   var readinessTitle =
     readiness.score >= 85
       ? "High match confidence"
@@ -590,7 +621,7 @@ function renderProfile(t) {
       ? "This profile includes the details people usually need to make a confident shortlist decision."
       : readiness.score >= 65
         ? "This profile covers most of the practical and clinical details people usually compare."
-        : "Some practical details are still limited, so it may be worth double-checking fit before deciding.";
+        : "This profile is still lighter than ideal, but there is enough here to judge basic fit and decide whether a first outreach is worth it.";
   var fitReasons = [];
   if (t.verification_status === "editorially_verified") {
     fitReasons.push("editorial verification is in place");
@@ -617,7 +648,7 @@ function renderProfile(t) {
     ? "This clinician may be worth shortlisting because " +
       fitReasons.slice(0, 3).join(", ") +
       ". You should still confirm availability, insurance, and personal fit directly."
-    : "Use this profile to compare reviewed details, access, and bipolar-related fit before deciding on the next step. You should still confirm availability, insurance, and personal fit directly.";
+    : "Use this profile to make a first-pass decision on fit, access, and trust. The remaining unknowns are best handled with one focused outreach rather than more scrolling.";
   var likelyFitAudience = [];
   if (t.medication_management) {
     likelyFitAudience.push("people who may need psychiatry or medication support");
@@ -649,7 +680,7 @@ function renderProfile(t) {
     ? "Reviewed details currently include " +
       reviewedDetails.slice(0, 3).join(", ") +
       ". This is a trust and clarity check, not a quality rating."
-    : "This profile includes useful reviewed details, but some details may still need direct confirmation.";
+    : "This profile has a usable trust foundation, but some practical details still need direct confirmation before you commit.";
   var operationalTrustSummary = getOperationalTrustSummary(t);
   var standoutReasons = [];
   if (t.verification_status === "editorially_verified") {
@@ -671,7 +702,7 @@ function renderProfile(t) {
     ? "What looks especially strong on this profile right now: " +
       standoutReasons.slice(0, 3).join(", ") +
       "."
-    : "This profile is most useful when you want a clearer picture of fit, reachability, and next-step logistics before reaching out.";
+    : "This profile is most useful for making a quick yes, maybe, or no decision before you spend more time reaching out.";
   var reachabilityCopy =
     t.accepting_new_patients && t.estimated_wait_time
       ? "Reachability looks relatively strong here: the profile shows a clear contact path, indicates new-patient availability, and includes a recent availability note suggesting " +
@@ -681,7 +712,7 @@ function renderProfile(t) {
         ? "Reachability looks relatively strong here: the profile suggests this clinician is accepting new patients and gives a clear next step."
         : t.estimated_wait_time
           ? "Reachability is partly clear here: the profile includes availability context, but live openings should still be confirmed directly."
-          : "Reachability is moderate here: the contact path is clear, but live timing still needs direct confirmation.";
+          : "Reachability is decent here: the contact path is clear, even if live timing still needs a quick confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
   document.getElementById("breadcrumbName").textContent = t.name;
   var navClaimLink = document.getElementById("navClaimLink");
@@ -711,7 +742,7 @@ function renderProfile(t) {
   var trustPills = [
     t.verification_status === "editorially_verified"
       ? "Editorially verified"
-      : "Profile under review",
+      : "Recently reviewed profile",
     freshnessSignal ? freshnessSignal.label : "",
     t.bipolar_years_experience ? t.bipolar_years_experience + " yrs bipolar care" : "",
     readinessTitle,
@@ -866,9 +897,11 @@ function renderProfile(t) {
       feesHtml += '<div class="fee-note">Sliding scale available</div>';
     }
   } else if (t.sliding_scale) {
-    feesHtml = '<div class="fee-note">Sliding scale available. Contact for fee details.</div>';
+    feesHtml =
+      '<div class="fee-note">Sliding scale is available. Reach out for the current fee range.</div>';
   } else {
-    feesHtml = '<div class="fee-note">Contact for fee details.</div>';
+    feesHtml =
+      '<div class="fee-note">Fee details are not listed here yet, so cost is worth confirming in your first message.</div>';
   }
   var bestNextStepCopy =
     firstStepExpectation ||
@@ -1005,10 +1038,10 @@ function renderProfile(t) {
 
   fitHeadline = quickFitItems.length
     ? "This looks like a credible bipolar-care option."
-    : "This profile offers some useful fit signals, but a quick confirmation step still matters.";
+    : "This could still be worth contacting, but the page leaves a few key questions for outreach.";
   fitSubheadline = quickFitItems.length
     ? "The first screen should tell you why this profile could be worth contacting."
-    : "Use the practical details and trust checks here to decide whether it is worth reaching out.";
+    : "Use the strongest trust and logistics cues here to decide whether this is a smart first message or a better save-for-later option.";
 
   var quickFitHtml = renderList(quickFitItems.slice(0, 3), "decision-list-item");
   var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
@@ -1021,7 +1054,7 @@ function renderProfile(t) {
   var fitSnapshotHtml = [
     readiness.score >= 85 ? "High-confidence profile" : readinessTitle,
     bipolarExperience ? bipolarExperience + " yrs bipolar care" : "",
-    t.accepting_new_patients ? "Accepting patients" : "Availability to confirm",
+    t.accepting_new_patients ? "Accepting patients" : "Openings to confirm",
     t.medication_management ? "Medication support" : "",
     t.accepts_telehealth ? "Telehealth" : "",
   ]
@@ -1033,14 +1066,14 @@ function renderProfile(t) {
   var summaryStats = [
     {
       label: "Bipolar fit",
-      value: bipolarExperience ? bipolarExperience + " years listed" : "Review focus areas",
+      value: bipolarExperience ? bipolarExperience + " years listed" : "Focus areas listed",
       tone: bipolarExperience >= 8 ? "green" : "teal",
     },
     {
       label: "Availability",
       value: t.accepting_new_patients
         ? t.estimated_wait_time || "Accepting patients"
-        : "Confirm timing",
+        : "Timing not listed",
       tone: t.accepting_new_patients ? "green" : "teal",
     },
     {
@@ -1052,7 +1085,7 @@ function renderProfile(t) {
             ? "Telehealth"
             : t.accepts_in_person
               ? "In-person"
-              : "Ask about format",
+              : "Format to confirm",
       tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
     },
     {
@@ -1064,7 +1097,7 @@ function renderProfile(t) {
             : t.sliding_scale
               ? "Sliding scale"
               : "Fee info listed"
-          : "Ask about fees",
+          : "Fees to confirm",
       tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
     },
   ]
@@ -1098,14 +1131,14 @@ function renderProfile(t) {
       label: "Availability",
       value: t.accepting_new_patients
         ? t.estimated_wait_time || "Accepting patients"
-        : "Waitlist or confirm",
+        : "Openings to confirm",
       tone: t.accepting_new_patients ? "green" : "",
     },
     {
       label: "Insurance",
       value: (t.insurance_accepted || []).length
         ? joinNaturalList(t.insurance_accepted.slice(0, 2))
-        : "Ask directly",
+        : "Coverage to confirm",
       tone: (t.insurance_accepted || []).length ? "teal" : "",
     },
     {
@@ -1115,7 +1148,7 @@ function renderProfile(t) {
           ? "$" + t.session_fee_min + "-$" + t.session_fee_max
           : t.sliding_scale
             ? "Sliding scale"
-            : "Request details",
+            : "Fees to confirm",
       tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
     },
   ]
@@ -1231,7 +1264,7 @@ function renderProfile(t) {
     SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
       return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
     }).join("") +
-    '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="Add a quick reminder..." /></div>' +
+    '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="What stands out about this therapist?" /></div>' +
     "</div></div>" +
     '<div class="hero-verdict-card"><div class="hero-summary-label">Fast fit verdict</div><h2>' +
     escapeHtml(fitHeadline) +
@@ -1242,13 +1275,13 @@ function renderProfile(t) {
     "</div></div>" +
     '<div class="hero-decision-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this could fit</div>' +
     (quickFitHtml ||
-      '<div class="decision-list-item">Review the specialty, access, and outreach details below to confirm fit.</div>') +
+      '<div class="decision-list-item">Use the focus areas, logistics, and contact strategy below to make a quick first-pass fit decision.</div>') +
     '</div><div class="hero-summary-card"><div class="hero-summary-label">Why this looks trustworthy</div>' +
     (bipolarTrustHtml ||
-      '<div class="decision-list-item">Trust details are still light here, so a direct confirmation step matters more.</div>') +
+      '<div class="decision-list-item">Trust details are lighter here, so the best next move is one focused message rather than a long review session.</div>') +
     '</div><div class="hero-summary-card"><div class="hero-summary-label">Practical details up front</div>' +
     (practicalDetailsHtml ||
-      '<div class="decision-list-item">Practical details are limited, so outreach may be the fastest way to confirm next-step logistics.</div>') +
+      '<div class="decision-list-item">Practical details are lighter here, so outreach is the fastest way to confirm cost, timing, and next steps.</div>') +
     "</div></div>" +
     '<div class="profile-summary-strip">' +
     summaryStats +
@@ -1377,7 +1410,10 @@ function renderProfile(t) {
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div></section>" +
     '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Deep dive</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
-    escapeHtml(t.bio || "No bio provided.") +
+    escapeHtml(
+      t.bio ||
+        "A longer bio is not available on this profile yet. Use the fit, trust, and contact sections above to decide whether this therapist is worth a first outreach.",
+    ) +
     "</div>" +
     (t.care_approach
       ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
@@ -1426,13 +1462,13 @@ function renderProfile(t) {
     escapeHtml(
       t.verification_status === "editorially_verified"
         ? "Editorially verified"
-        : "Profile under review",
+        : "Recently reviewed profile",
     ) +
     '</span></div><div class="responsiveness-note">' +
     escapeHtml(
       t.verification_status === "editorially_verified"
         ? "Editorial verification means key profile details were reviewed. It is not a rating of therapeutic quality or fit."
-        : "A profile under review may still be useful, but some details may need more confirmation before you decide.",
+        : "This profile still gives a useful first-pass picture, but some details may need a direct check before you decide.",
     ) +
     "</div>" +
     (sourceReviewedDate
@@ -1556,7 +1592,7 @@ function renderProfile(t) {
         "</a></div>"
       : "") +
     (!t.phone && (!t.email || t.email === "contact@example.com") && !t.website
-      ? '<p style="font-size:.85rem;color:var(--muted)">Contact information is not available on this profile yet.</p>'
+      ? '<p style="font-size:.85rem;color:var(--muted)">A direct contact path is not listed here yet. If this profile still looks promising, save it and compare it with stronger-contact options.</p>'
       : "") +
     "</div></div>" +
     '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';

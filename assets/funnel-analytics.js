@@ -1004,6 +1004,75 @@ export function summarizeContactRouteOutcomePerformance(outcomes) {
   };
 }
 
+export function summarizeDirectoryProfileOpenQuality(events) {
+  var entries = Array.isArray(events) ? events : [];
+  var buckets = {};
+
+  function ensureBucket(source) {
+    var key = String(source || "unknown");
+    if (!buckets[key]) {
+      buckets[key] = {
+        source: key,
+        opens: 0,
+        high_readiness: 0,
+        fresh_profiles: 0,
+        accepting_profiles: 0,
+        bipolar_profiles: 0,
+      };
+    }
+    return buckets[key];
+  }
+
+  entries.forEach(function (item) {
+    if (!item || item.type !== "directory_profile_open_quality") {
+      return;
+    }
+    var payload = item.payload || {};
+    var bucket = ensureBucket(payload.source);
+    bucket.opens += 1;
+    if (payload.readiness_score >= 85) {
+      bucket.high_readiness += 1;
+    }
+    if (payload.freshness_status === "fresh") {
+      bucket.fresh_profiles += 1;
+    }
+    if (payload.accepting_new_patients) {
+      bucket.accepting_profiles += 1;
+    }
+    if (payload.has_bipolar_experience) {
+      bucket.bipolar_profiles += 1;
+    }
+  });
+
+  var rows = Object.keys(buckets)
+    .map(function (key) {
+      var bucket = buckets[key];
+      bucket.high_readiness_rate = bucket.opens ? bucket.high_readiness / bucket.opens : 0;
+      bucket.fresh_profile_rate = bucket.opens ? bucket.fresh_profiles / bucket.opens : 0;
+      bucket.accepting_rate = bucket.opens ? bucket.accepting_profiles / bucket.opens : 0;
+      bucket.bipolar_rate = bucket.opens ? bucket.bipolar_profiles / bucket.opens : 0;
+      return bucket;
+    })
+    .sort(function (a, b) {
+      return (
+        b.high_readiness_rate - a.high_readiness_rate ||
+        b.opens - a.opens ||
+        a.source.localeCompare(b.source)
+      );
+    });
+
+  var leader = rows[0] || null;
+  return {
+    rows: rows,
+    leader: leader,
+    interpretation: !rows.length
+      ? "No directory-to-profile quality data yet."
+      : leader.opens < 2
+        ? "Profile-open quality data is starting to accumulate, but the sample is still light."
+        : "We can now compare which directory entry paths are sending users into stronger profiles.",
+  };
+}
+
 export function summarizeProfileContactOutcomeValidation(events, outcomes) {
   var entries = Array.isArray(events) ? events : [];
   var outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
