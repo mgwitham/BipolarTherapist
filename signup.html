@@ -709,6 +709,25 @@
         color: var(--navy);
         line-height: 1;
       }
+      .readiness-score-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .readiness-delta {
+        display: none;
+        padding: 0.18rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: rgba(58, 170, 122, 0.12);
+        color: #246b4d;
+      }
+      .readiness-delta.negative {
+        background: rgba(229, 62, 62, 0.1);
+        color: #9b2c2c;
+      }
       .readiness-label {
         display: inline-flex;
         margin-top: 0.35rem;
@@ -723,6 +742,14 @@
         background: rgba(58, 170, 122, 0.14);
         color: #246b4d;
       }
+      .readiness-label.tone-getting-stronger {
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+      }
+      .readiness-label.tone-good-start {
+        background: rgba(29, 58, 74, 0.08);
+        color: var(--navy);
+      }
       .readiness-label.tone-close {
         background: rgba(26, 122, 143, 0.12);
         color: var(--teal-dark);
@@ -734,6 +761,141 @@
       .readiness-copy {
         font-size: 0.8rem;
         color: var(--slate);
+      }
+      .readiness-meter {
+        margin-top: 0.85rem;
+      }
+      .readiness-meter-track {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #f3d6d6 0%, #eef4f6 45%, #e0f1f5 70%, #daf3e6 100%);
+        overflow: hidden;
+        border: 1px solid rgba(29, 58, 74, 0.08);
+      }
+      .readiness-meter-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #d96b6b 0%, #1a7a8f 65%, #3aaa7a 100%);
+        transition: width 180ms ease;
+      }
+      .readiness-meter-markers {
+        display: grid;
+        grid-template-columns: 40fr 25fr 20fr 15fr;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+        font-size: 0.68rem;
+        color: var(--muted);
+      }
+      .readiness-meter-markers span {
+        text-align: left;
+      }
+      .readiness-nudge {
+        margin-top: 0.95rem;
+        padding: 0.85rem 0.95rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 12px;
+        background: linear-gradient(180deg, #fbfdfe 0%, #f6fbfc 100%);
+      }
+      .readiness-nudge-kicker {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--teal-dark);
+      }
+      .readiness-nudge-copy {
+        margin-top: 0.28rem;
+        font-size: 0.82rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .readiness-nudge-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        margin-top: 0.7rem;
+      }
+      .readiness-nudge-button {
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        background: rgba(232, 245, 248, 0.88);
+        color: var(--teal-dark);
+        border-radius: 999px;
+        padding: 0.48rem 0.75rem;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .readiness-nudge-button:hover {
+        background: rgba(232, 245, 248, 1);
+      }
+      .readiness-milestone {
+        font-size: 0.77rem;
+        color: var(--muted);
+      }
+      .readiness-distance {
+        font-size: 0.76rem;
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+      .readiness-next-tier {
+        font-size: 0.76rem;
+        color: var(--slate);
+      }
+      .readiness-tier-rail {
+        margin-top: 0.9rem;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.45rem;
+      }
+      .readiness-tier {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.55rem 0.6rem;
+        background: #fff;
+      }
+      .readiness-tier.active {
+        border-color: rgba(26, 122, 143, 0.24);
+        background: rgba(232, 245, 248, 0.7);
+      }
+      .readiness-tier.complete {
+        border-color: rgba(58, 170, 122, 0.2);
+        background: rgba(58, 170, 122, 0.08);
+      }
+      .readiness-tier-range {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .readiness-tier-label {
+        margin-top: 0.18rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .readiness-tier-note {
+        margin-top: 0.15rem;
+        font-size: 0.73rem;
+        color: var(--slate);
+        line-height: 1.45;
+      }
+      .readiness-benefit {
+        margin-top: 0.7rem;
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: #fbfdfe;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        font-size: 0.8rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .readiness-benefit strong {
+        color: var(--navy);
       }
       .readiness-group {
         margin-top: 1rem;
@@ -857,7 +1019,7 @@
 
     <div class="wrap">
       <div class="form-card" id="formCard">
-        <form id="applyForm" onsubmit="handleSubmit(event)" novalidate>
+        <form id="applyForm" novalidate>
           <input type="hidden" name="submission_intent" value="full_profile" />
           <div class="claim-note">
             <h3>Claim first. Pay for growth, not accuracy.</h3>
@@ -898,11 +1060,14 @@
               want to complete the fuller profile for review.
             </p>
           </div>
-          <div class="form-section">
+          <div class="form-section" id="matchReadinessSection">
             <h2>🧠 Match Readiness</h2>
             <div class="readiness-header">
               <div>
-                <div class="readiness-score" id="readinessScore">0/100</div>
+                <div class="readiness-score-row">
+                  <div class="readiness-score" id="readinessScore">0/100</div>
+                  <div class="readiness-delta" id="readinessDelta"></div>
+                </div>
                 <div class="readiness-label tone-needs-work" id="readinessLabel">Needs work</div>
               </div>
               <div class="readiness-copy">
@@ -910,6 +1075,64 @@
                 gives patients enough trust, fit, and next-step clarity to shortlist you with
                 confidence.
               </div>
+            </div>
+            <div class="readiness-meter">
+              <div class="readiness-meter-track">
+                <div class="readiness-meter-fill" id="readinessMeterFill"></div>
+              </div>
+              <div class="readiness-meter-markers">
+                <span>0-39</span>
+                <span>40+</span>
+                <span>65+</span>
+                <span>85+</span>
+              </div>
+            </div>
+            <div class="readiness-nudge">
+              <div class="readiness-nudge-kicker" id="readinessNudgeKicker">Best next unlock</div>
+              <div class="readiness-nudge-copy" id="readinessNudgeCopy">
+                Add a few core details and this score will start moving quickly.
+              </div>
+              <div class="readiness-nudge-actions">
+                <button
+                  type="button"
+                  class="readiness-nudge-button"
+                  id="readinessNudgeButton"
+                  style="display: none"
+                >
+                  Open next fix
+                </button>
+                <div class="readiness-milestone" id="readinessMilestone">
+                  Complete a few essentials to move this profile toward shortlist-ready.
+                </div>
+                <div class="readiness-distance" id="readinessDistance"></div>
+                <div class="readiness-next-tier" id="readinessNextTier"></div>
+              </div>
+            </div>
+            <div class="readiness-tier-rail" id="readinessTierRail">
+              <div class="readiness-tier" data-tier-key="needs-work">
+                <div class="readiness-tier-range">0-39</div>
+                <div class="readiness-tier-label">Needs work</div>
+                <div class="readiness-tier-note">Core trust details are still thin.</div>
+              </div>
+              <div class="readiness-tier" data-tier-key="good-start">
+                <div class="readiness-tier-range">40-64</div>
+                <div class="readiness-tier-label">Good start</div>
+                <div class="readiness-tier-note">The profile is starting to feel real.</div>
+              </div>
+              <div class="readiness-tier" data-tier-key="getting-stronger">
+                <div class="readiness-tier-range">65-84</div>
+                <div class="readiness-tier-label">Getting stronger</div>
+                <div class="readiness-tier-note">Shortlist confidence is building.</div>
+              </div>
+              <div class="readiness-tier" data-tier-key="match-ready">
+                <div class="readiness-tier-range">85+</div>
+                <div class="readiness-tier-label">Match-ready</div>
+                <div class="readiness-tier-note">Strong enough to feel shortlist-ready.</div>
+              </div>
+            </div>
+            <div class="readiness-benefit" id="readinessBenefit">
+              <strong>What this tier unlocks:</strong> Patients can start recognizing whether this
+              profile feels credible enough to keep considering.
             </div>
             <div class="readiness-group">
               <h4>Already Strong</h4>

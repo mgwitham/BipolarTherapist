@@ -657,6 +657,66 @@ function buildProviderId(input) {
   return `provider-${fallback || Date.now()}`;
 }
 
+function normalizeLicensureVerification(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const normalized = {
+    jurisdiction: String(value.jurisdiction || "").trim(),
+    sourceSystem: String(value.sourceSystem || "").trim(),
+    boardName: String(value.boardName || "").trim(),
+    boardCode: String(value.boardCode || "").trim(),
+    licenseType: String(value.licenseType || "").trim(),
+    primaryStatus: String(value.primaryStatus || "").trim(),
+    statusStanding: String(value.statusStanding || "").trim(),
+    issueDate: String(value.issueDate || "").trim(),
+    expirationDate: String(value.expirationDate || "").trim(),
+    addressOfRecord: String(value.addressOfRecord || "").trim(),
+    addressCity: String(value.addressCity || "").trim(),
+    addressState: String(value.addressState || "").trim(),
+    addressZip: String(value.addressZip || "").trim(),
+    county: String(value.county || "").trim(),
+    professionalUrl: String(value.professionalUrl || "").trim(),
+    profileUrl: String(value.profileUrl || "").trim(),
+    searchUrl: String(value.searchUrl || "").trim(),
+    verifiedAt: String(value.verifiedAt || "").trim(),
+    verificationMethod: String(value.verificationMethod || "").trim(),
+    confidenceScore: Number.isFinite(Number(value.confidenceScore))
+      ? Number(value.confidenceScore)
+      : undefined,
+    disciplineFlag: Boolean(value.disciplineFlag),
+    disciplineSummary: String(value.disciplineSummary || "").trim(),
+    rawSnapshot: String(value.rawSnapshot || "").trim(),
+  };
+
+  const hasValue = Object.values(normalized).some(function (entry) {
+    return entry !== "" && entry !== false && entry !== undefined;
+  });
+  return hasValue ? normalized : null;
+}
+
+function mergeLicensureVerification(existingValue, incomingValue) {
+  const existing = normalizeLicensureVerification(existingValue);
+  const incoming = normalizeLicensureVerification(incomingValue);
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+
+  const existingVerifiedAt = existing.verifiedAt ? new Date(existing.verifiedAt).getTime() : 0;
+  const incomingVerifiedAt = incoming.verifiedAt ? new Date(incoming.verifiedAt).getTime() : 0;
+  const preferred = incomingVerifiedAt >= existingVerifiedAt ? incoming : existing;
+  const secondary = preferred === incoming ? existing : incoming;
+
+  return normalizeLicensureVerification({
+    ...secondary,
+    ...preferred,
+    disciplineFlag: Boolean(existing.disciplineFlag || incoming.disciplineFlag),
+    disciplineSummary: [secondary.disciplineSummary, preferred.disciplineSummary]
+      .filter(Boolean)
+      .join("\n\n"),
+  });
+}
+
 function parsePhotoSourceType(value) {
   const normalized = String(value || "")
     .trim()
@@ -781,6 +841,7 @@ async function buildApplicationDocument(client, input) {
     country: "US",
     licenseState: (input.license_state || "").trim().toUpperCase(),
     licenseNumber: (input.license_number || "").trim(),
+    licensureVerification: normalizeLicensureVerification(input.licensure_verification),
     bio: input.bio.trim(),
     careApproach: (input.care_approach || "").trim(),
     specialties: splitList(input.specialties),
@@ -853,6 +914,9 @@ async function buildRevisionFieldUpdates(client, input, existingApplication) {
       .trim()
       .toUpperCase(),
     licenseNumber: String(input.license_number || "").trim(),
+    licensureVerification: normalizeLicensureVerification(
+      input.licensure_verification || existingApplication.licensureVerification,
+    ),
     bio: String(input.bio || "").trim(),
     careApproach: String(input.care_approach || "").trim(),
     specialties: splitList(input.specialties),
@@ -1272,6 +1336,7 @@ function buildTherapistDocument(application, existingId) {
     country: application.country || "US",
     licenseState: application.licenseState || "",
     licenseNumber: application.licenseNumber || "",
+    licensureVerification: normalizeLicensureVerification(application.licensureVerification),
     specialties: splitList(application.specialties),
     treatmentModalities: splitList(application.treatmentModalities),
     clientPopulations: splitList(application.clientPopulations),
@@ -1365,6 +1430,7 @@ function buildTherapistDocumentFromCandidate(candidate, existingId) {
     country: candidate.country || "US",
     licenseState: candidate.licenseState || "",
     licenseNumber: candidate.licenseNumber || "",
+    licensureVerification: normalizeLicensureVerification(candidate.licensureVerification),
     specialties: splitList(candidate.specialties),
     treatmentModalities: splitList(candidate.treatmentModalities),
     clientPopulations: splitList(candidate.clientPopulations),
@@ -1426,6 +1492,7 @@ function normalizeCandidate(doc) {
     booking_url: doc.bookingUrl || "",
     source_type: doc.sourceType || "",
     source_url: doc.sourceUrl || "",
+    licensure_verification: normalizeLicensureVerification(doc.licensureVerification),
     supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
     raw_source_snapshot: doc.rawSourceSnapshot || "",
     extracted_at: doc.extractedAt || "",
@@ -1554,6 +1621,10 @@ function buildTherapistApplicationFieldPatch(application, therapist, selectedFie
   const mergedDraft = {
     ...therapist,
     ...patch,
+    licensureVerification: mergeLicensureVerification(
+      therapist.licensureVerification,
+      application.licensureVerification,
+    ),
     sourceUrl: therapist.sourceUrl || application.sourceUrl || application.website || "",
     supportingSourceUrls: mergeUniqueUrls(
       therapist.sourceUrl,
@@ -1577,6 +1648,7 @@ function buildTherapistApplicationFieldPatch(application, therapist, selectedFie
   return {
     patch: {
       ...patch,
+      licensureVerification: mergedDraft.licensureVerification,
       supportingSourceUrls: mergedDraft.supportingSourceUrls,
       sourceReviewedAt: mergedDraft.sourceReviewedAt,
       therapistReportedConfirmedAt: mergedDraft.therapistReportedConfirmedAt,
@@ -1667,6 +1739,7 @@ function normalizeApplication(doc) {
     medication_management: Boolean(doc.medicationManagement),
     verification_status: doc.verificationStatus || "",
     source_url: doc.sourceUrl || "",
+    licensure_verification: normalizeLicensureVerification(doc.licensureVerification),
     supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
     source_reviewed_at: doc.sourceReviewedAt || "",
     source_health_status: doc.sourceHealthStatus || "",
@@ -2674,6 +2747,10 @@ export function createReviewApiHandler(configOverride) {
           }
           const mergedTherapistDraft = {
             ...therapist,
+            licensureVerification: mergeLicensureVerification(
+              therapist.licensureVerification,
+              candidate.licensureVerification,
+            ),
             supportingSourceUrls: mergeUniqueUrls(
               therapist.sourceUrl,
               therapist.supportingSourceUrls,
@@ -2688,6 +2765,7 @@ export function createReviewApiHandler(configOverride) {
 
           transaction.patch(therapistId, function (patch) {
             return patch.set({
+              licensureVerification: mergedTherapistDraft.licensureVerification,
               supportingSourceUrls: mergedTherapistDraft.supportingSourceUrls,
               sourceReviewedAt: mergedTherapistDraft.sourceReviewedAt,
               fieldTrustMeta: buildFieldTrustMeta(mergedTherapistDraft),
@@ -2702,6 +2780,10 @@ export function createReviewApiHandler(configOverride) {
 
           transaction.patch(applicationId, function (patch) {
             return patch.set({
+              licensureVerification: mergeLicensureVerification(
+                application.licensureVerification,
+                candidate.licensureVerification,
+              ),
               supportingSourceUrls: mergeUniqueUrls(
                 application.sourceUrl,
                 application.supportingSourceUrls,

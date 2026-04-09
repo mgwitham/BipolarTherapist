@@ -1,6 +1,8 @@
+const env = (import.meta && import.meta.env) || {};
+
 function getDefaultReviewApiBaseUrl() {
-  if (import.meta.env.VITE_REVIEW_API_URL) {
-    return import.meta.env.VITE_REVIEW_API_URL;
+  if (env.VITE_REVIEW_API_URL) {
+    return env.VITE_REVIEW_API_URL;
   }
 
   if (typeof window !== "undefined") {

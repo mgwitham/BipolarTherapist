@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { createLicensureVerificationField } from "./licensureVerification";
 
 export const therapistType = defineType({
   name: "therapist",
@@ -254,6 +255,7 @@ export const therapistType = defineType({
       type: "string",
       group: "trust",
     }),
+    createLicensureVerificationField("trust"),
     defineField({
       name: "careApproach",
       title: "How they help bipolar clients",

@@ -38,6 +38,7 @@
     "cms:generate:reverification-batch": "node scripts/generate-reverification-batch.mjs",
     "cms:generate:ops-session": "node scripts/generate-ops-session.mjs",
     "cms:run:ingestion-automation": "node scripts/run-ingestion-automation.mjs",
+    "cms:enrich:california-licensure": "node scripts/enrich-california-licensure.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",

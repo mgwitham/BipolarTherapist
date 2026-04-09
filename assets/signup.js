@@ -23,12 +23,15 @@ let draftStatusAt = "";
 let draftSavePending = false;
 let lastValidationTarget = "";
 let lastValidationSection = "";
+let lastSubmitAttemptIntent = "";
 let lastHighlightedField = null;
 let highlightTimer = 0;
 let lastFieldCallout = null;
 let lastFieldCalloutTarget = "";
 let formBannerTimer = 0;
 let signupRestoreMode = "";
+let lastReadinessScore = null;
+let readinessDeltaTimer = 0;
 
 var SIGNUP_DRAFT_KEY_PREFIX = "bt_signup_draft_v1";
 
@@ -276,7 +279,49 @@ function openFullProfileDisclosure() {
   }
 }
 
-function revealField(name) {
+function getMatchReadinessSection() {
+  return document.getElementById("matchReadinessSection");
+}
+
+function scrollSignupTargetIntoView(target, options) {
+  if (!target) {
+    return;
+  }
+
+  var block = options && options.block ? options.block : "center";
+  var offset = block === "start" ? 96 : 160;
+  var targetRect = target.getBoundingClientRect();
+  var absoluteTop = window.scrollY + targetRect.top;
+  var nextTop =
+    block === "start"
+      ? Math.max(0, absoluteTop - offset)
+      : Math.max(0, absoluteTop - window.innerHeight / 2 + targetRect.height / 2 - 32);
+
+  window.scrollTo({
+    top: nextTop,
+    behavior: "smooth",
+  });
+}
+
+function forceScrollToMatchReadiness() {
+  var readinessSection = getMatchReadinessSection();
+  if (!readinessSection) {
+    return;
+  }
+
+  var scrollToSection = function () {
+    var targetRect = readinessSection.getBoundingClientRect();
+    var targetTop = Math.max(0, window.scrollY + targetRect.top - 96);
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
+  };
+
+  highlightSignupTarget(readinessSection);
+  scrollToSection();
+  window.requestAnimationFrame(scrollToSection);
+  window.setTimeout(scrollToSection, 160);
+}
+
+function revealField(name, options) {
   if (!name) {
     return;
   }
@@ -289,18 +334,23 @@ function revealField(name) {
   highlightFieldTarget(field);
   renderFieldCallout(field, name);
 
-  field.scrollIntoView({ behavior: "smooth", block: "center" });
+  var section = field.closest(".form-section");
+  var scrollTarget = options && options.preferSection && section ? section : field;
+  scrollSignupTargetIntoView(scrollTarget, options);
   if (typeof field.focus === "function") {
     field.focus({ preventScroll: true });
   }
 }
 
-function highlightFieldTarget(input) {
-  if (!input) {
+function highlightSignupTarget(target) {
+  if (!target) {
     return;
   }
 
-  var field = input.closest(".field") || input.closest(".check-label") || input;
+  var field =
+    target.closest && (target.closest(".field") || target.closest(".check-label"))
+      ? target.closest(".field") || target.closest(".check-label")
+      : target;
   if (!field) {
     return;
   }
@@ -327,6 +377,10 @@ function highlightFieldTarget(input) {
       field.style.transition = "";
     }
   }, 1800);
+}
+
+function highlightFieldTarget(input) {
+  highlightSignupTarget(input);
 }
 
 function renderFieldCallout(input, fieldName) {
@@ -408,13 +462,43 @@ function handleFieldCalloutProgress(event) {
 }
 
 function showValidationError(msg, fieldName, shouldOpenFullProfile) {
+  var fieldLabel = fieldName ? getFieldGuidanceLabel(fieldName) : "this field";
+  var claimButton = document.getElementById("claimBtn");
+  var submitButton = document.getElementById("submitBtn");
+  var form = document.getElementById("applyForm");
+  var data = form ? collectFormData(form) : null;
+  var claimStats = data ? getClaimCompletionStats(getClaimMissingFields(data)) : null;
+  var firstSectionTitle = getSectionProgressConfig()[0] ? getSectionProgressConfig()[0].title : "";
+  var isFirstSectionBlocker = getFieldSectionTitle(fieldName) === firstSectionTitle;
+  var shouldJumpToReadiness =
+    lastSubmitAttemptIntent !== "claim" &&
+    claimStats &&
+    claimStats.completed === 0 &&
+    getMatchReadinessSection();
+
   lastValidationTarget = fieldName || "";
   lastValidationSection = getFieldSectionTitle(fieldName);
   if (shouldOpenFullProfile) {
     openFullProfileDisclosure();
   }
-  showErr(msg);
-  jumpToSignupField(fieldName);
+  if (lastSubmitAttemptIntent === "claim" && claimButton) {
+    claimButton.textContent = "Complete " + fieldLabel + " first";
+  }
+  if (lastSubmitAttemptIntent !== "claim" && submitButton) {
+    submitButton.textContent = "Complete " + fieldLabel + " first";
+  }
+  renderCompletionNudges();
+  showFormBanner(msg, "error", { scroll: false, autoHide: false });
+  if (shouldJumpToReadiness) {
+    forceScrollToMatchReadiness();
+  } else if (fieldName) {
+    jumpToSignupField(fieldName, {
+      preferSection: !isFirstSectionBlocker,
+      block: isFirstSectionBlocker ? "center" : "start",
+    });
+  } else if (form) {
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function getSignupFocusField() {
@@ -838,6 +922,7 @@ function showSuccess(application, source) {
   }
   lastValidationTarget = "";
   lastValidationSection = "";
+  lastSubmitAttemptIntent = "";
   draftSavePending = false;
   setDraftStatus("");
   var successState = getSuccessViewModel(application, source);
@@ -1159,17 +1244,48 @@ function renderReadiness() {
   var form = document.getElementById("applyForm");
   var scoreEl = document.getElementById("readinessScore");
   var labelEl = document.getElementById("readinessLabel");
+  var deltaEl = document.getElementById("readinessDelta");
+  var meterFill = document.getElementById("readinessMeterFill");
   var strengthsEl = document.getElementById("readinessStrengths");
   var missingEl = document.getElementById("readinessMissing");
+  var nudgeKicker = document.getElementById("readinessNudgeKicker");
+  var nudgeCopy = document.getElementById("readinessNudgeCopy");
+  var nudgeButton = document.getElementById("readinessNudgeButton");
+  var milestoneEl = document.getElementById("readinessMilestone");
+  var distanceEl = document.getElementById("readinessDistance");
+  var nextTierEl = document.getElementById("readinessNextTier");
+  var tierRail = document.getElementById("readinessTierRail");
+  var benefitEl = document.getElementById("readinessBenefit");
 
-  if (!form || !scoreEl || !labelEl || !strengthsEl || !missingEl) {
+  if (
+    !form ||
+    !scoreEl ||
+    !labelEl ||
+    !deltaEl ||
+    !meterFill ||
+    !strengthsEl ||
+    !missingEl ||
+    !nudgeKicker ||
+    !nudgeCopy ||
+    !nudgeButton ||
+    !milestoneEl ||
+    !distanceEl ||
+    !nextTierEl ||
+    !tierRail ||
+    !benefitEl
+  ) {
     return;
   }
 
-  var readiness = getTherapistMatchReadiness(collectFormData(form));
+  var data = collectFormData(form);
+  var readiness = getTherapistMatchReadiness(data);
+  var nextField = getNextRecommendedField(data);
+  var displayMeta = getReadinessDisplayMeta(readiness.score);
+  updateReadinessDelta(deltaEl, readiness.score);
   scoreEl.textContent = readiness.score + "/100";
-  labelEl.textContent = readiness.label;
-  labelEl.className = "readiness-label tone-" + readiness.label.toLowerCase().replace(/\s+/g, "-");
+  labelEl.textContent = displayMeta.label;
+  labelEl.className = "readiness-label tone-" + displayMeta.tone;
+  meterFill.style.width = Math.max(0, Math.min(100, readiness.score)) + "%";
 
   strengthsEl.innerHTML = readiness.strengths.length
     ? readiness.strengths
@@ -1187,7 +1303,217 @@ function renderReadiness() {
         .join("")
     : '<span class="readiness-empty">This profile is in strong shape for high-quality matching.</span>';
 
-  renderRevisionWorkspace(collectFormData(form));
+  if (nextField) {
+    nudgeKicker.textContent =
+      readiness.score >= 85
+        ? "Final unlock"
+        : readiness.score >= 65
+          ? "Best next unlock"
+          : "Best next fix";
+    nudgeCopy.textContent = getReadinessNudgeCopy(nextField, readiness.score);
+    nudgeButton.style.display = "inline-flex";
+    nudgeButton.textContent =
+      readiness.score >= 85 ? "Finish final unlock" : "Open " + nextField.label;
+    nudgeButton.onclick = function () {
+      jumpToSignupField(nextField.field);
+    };
+  } else {
+    nudgeKicker.textContent = "Profile strength";
+    nudgeCopy.textContent =
+      "This profile is giving patients enough trust, fit, and next-step clarity to feel shortlist-ready.";
+    nudgeButton.style.display = "none";
+    nudgeButton.onclick = null;
+  }
+
+  milestoneEl.textContent = getReadinessMilestoneCopy(readiness.score);
+  distanceEl.textContent = getReadinessDistanceCopy(readiness.score);
+  nextTierEl.textContent = getNextTierUnlockCopy(readiness.score);
+  renderReadinessTierRail(tierRail, displayMeta.tone);
+  benefitEl.innerHTML =
+    "<strong>What this tier unlocks:</strong> " + getReadinessBenefitCopy(displayMeta.tone);
+
+  renderRevisionWorkspace(data);
+}
+
+function updateReadinessDelta(deltaEl, score) {
+  if (!deltaEl) {
+    return;
+  }
+
+  if (lastReadinessScore == null) {
+    lastReadinessScore = score;
+    deltaEl.style.display = "none";
+    deltaEl.textContent = "";
+    deltaEl.classList.remove("negative");
+    return;
+  }
+
+  var delta = score - lastReadinessScore;
+  lastReadinessScore = score;
+
+  if (!delta) {
+    return;
+  }
+
+  if (readinessDeltaTimer) {
+    window.clearTimeout(readinessDeltaTimer);
+    readinessDeltaTimer = 0;
+  }
+
+  deltaEl.textContent = (delta > 0 ? "+" : "") + delta;
+  deltaEl.style.display = "inline-flex";
+  deltaEl.classList.toggle("negative", delta < 0);
+
+  readinessDeltaTimer = window.setTimeout(function () {
+    deltaEl.style.display = "none";
+    deltaEl.textContent = "";
+    deltaEl.classList.remove("negative");
+    readinessDeltaTimer = 0;
+  }, 1800);
+}
+
+function renderReadinessTierRail(tierRail, activeTone) {
+  if (!tierRail) {
+    return;
+  }
+
+  var tierOrder = ["needs-work", "good-start", "getting-stronger", "match-ready"];
+  var activeIndex = tierOrder.indexOf(activeTone);
+
+  tierRail.querySelectorAll("[data-tier-key]").forEach(function (item) {
+    var key = item.getAttribute("data-tier-key") || "";
+    var index = tierOrder.indexOf(key);
+    item.classList.toggle("active", key === activeTone);
+    item.classList.toggle("complete", activeIndex > -1 && index > -1 && index < activeIndex);
+  });
+}
+
+function getReadinessDisplayMeta(score) {
+  if (score >= 85) {
+    return {
+      label: "Match-ready",
+      tone: "match-ready",
+    };
+  }
+
+  if (score >= 65) {
+    return {
+      label: "Getting stronger",
+      tone: "getting-stronger",
+    };
+  }
+
+  if (score >= 40) {
+    return {
+      label: "Good start",
+      tone: "good-start",
+    };
+  }
+
+  return {
+    label: "Needs work",
+    tone: "needs-work",
+  };
+}
+
+function getReadinessNudgeCopy(nextField, score) {
+  if (!nextField) {
+    return "This profile is already in strong shape for shortlist confidence.";
+  }
+
+  var label = String(nextField.label || "the next detail");
+  var whyMap = {
+    "your name": "so the profile feels real and professionally attributable",
+    "your credentials": "so users can judge trust and licensure immediately",
+    "a valid email": "so outreach has a clear next step",
+    "your license state": "so editorial review can trust the licensure context",
+    "your license number": "so the profile has a stronger trust signal during review",
+    "your city": "so users can tell whether the practice is geographically relevant",
+    "your state": "so matching can place the profile accurately",
+    "a professional bio": "so patients understand why you may be a credible fit",
+    "how you help bipolar clients":
+      "so patients can picture what care with you actually looks like",
+    "at least one specialty": "so the profile feels meaningfully bipolar-relevant",
+    "at least one treatment modality": "so the profile explains how you work in practice",
+    "a session format": "so users can quickly tell whether access fits their situation",
+    "at least one therapist-confirmed field":
+      "so operational trust is strong enough for shortlist confidence",
+  };
+  var why = whyMap[label] || "because it makes the profile easier to trust and shortlist";
+
+  if (score >= 85) {
+    return (
+      "One last high-value detail is still holding this profile back: add " +
+      label +
+      " " +
+      why +
+      "."
+    );
+  }
+  if (score >= 65) {
+    return (
+      "Adding " + label + " should move this profile much closer to shortlist-ready " + why + "."
+    );
+  }
+  return (
+    "Start with " +
+    label +
+    " " +
+    why +
+    ". This score will move faster once the core trust signals are in place."
+  );
+}
+
+function getReadinessMilestoneCopy(score) {
+  if (score >= 85) {
+    return "You are in the final stretch. One or two stronger details should make this feel review-ready.";
+  }
+  if (score >= 65) {
+    return "Next milestone: 85+ for Match-ready. A few more practical details can push this profile into shortlist territory.";
+  }
+  if (score >= 40) {
+    return "Next milestone: 65+ for Getting stronger. The next few trust and fit details will make the biggest difference.";
+  }
+  return "Next milestone: 40+ for Good start. Complete a few essentials first, then the profile will start compounding trust much faster.";
+}
+
+function getReadinessDistanceCopy(score) {
+  if (score >= 85) {
+    return "You are already in the top tier.";
+  }
+  if (score >= 65) {
+    return 85 - score + " points from Match-ready.";
+  }
+  if (score >= 40) {
+    return 65 - score + " points from Getting stronger.";
+  }
+  return 40 - score + " points from Good start.";
+}
+
+function getNextTierUnlockCopy(score) {
+  if (score >= 85) {
+    return "You are already at the strongest public-readiness tier.";
+  }
+  if (score >= 65) {
+    return "Next tier unlock: patients can shortlist this profile with much less hesitation.";
+  }
+  if (score >= 40) {
+    return "Next tier unlock: patients can start comparing this profile seriously against other options.";
+  }
+  return "Next tier unlock: the profile starts feeling real enough to keep considering instead of skipping.";
+}
+
+function getReadinessBenefitCopy(tone) {
+  if (tone === "match-ready") {
+    return "Patients can quickly understand the trust, fit, and next-step details they need to shortlist this profile with confidence.";
+  }
+  if (tone === "getting-stronger") {
+    return "Patients can begin to compare this profile seriously, but a few more practical details would make it much easier to choose.";
+  }
+  if (tone === "good-start") {
+    return "Patients can see the profile is real, but they still may not have enough clarity to feel confident reaching out.";
+  }
+  return "Patients can start recognizing whether this profile feels credible enough to keep considering.";
 }
 
 function setCoachMessage(id, message, tone) {
@@ -2059,7 +2385,7 @@ function ensureProgressSnapshot() {
   return snapshot;
 }
 
-function jumpToSignupField(fieldName) {
+function jumpToSignupField(fieldName, options) {
   if (!fieldName) {
     return;
   }
@@ -2071,7 +2397,7 @@ function jumpToSignupField(fieldName) {
   }
 
   lastValidationSection = getFieldSectionTitle(fieldName);
-  revealField(fieldName);
+  revealField(fieldName, options);
 }
 
 function getRequestedFocusField(data) {
@@ -2538,6 +2864,10 @@ function renderCompletionNudges() {
   var nextFieldLabel = nextField ? nextField.label : "";
   var shouldShowRestorePrefix =
     signupRestoreMode && String(draftStatusMessage || "").trim() !== "Draft restored";
+  var isBlockedFullSubmit =
+    lastSubmitAttemptIntent === "full" && lastValidationTarget && Boolean(nextFieldLabel);
+  var isBlockedClaimSubmit =
+    lastSubmitAttemptIntent === "claim" && lastValidationTarget && Boolean(nextFieldLabel);
 
   configureSecondaryAction();
   refreshSignupWorkspace();
@@ -2576,7 +2906,11 @@ function renderCompletionNudges() {
     }
     submitNote.textContent += getDraftStatusSuffix();
     claimButton.textContent = "Save Progress";
-    submitButton.textContent = fullReady ? "Submit Updated Profile" : "Keep Tightening Revision";
+    submitButton.textContent = isBlockedFullSubmit
+      ? "Complete " + nextFieldLabel + " first"
+      : fullReady
+        ? "Submit Updated Profile"
+        : "Keep Tightening Revision";
     claimButton.title = "Save your current revision progress in this browser";
     submitButton.title = fullReady
       ? "Submit the updated profile for review"
@@ -2608,9 +2942,11 @@ function renderCompletionNudges() {
     }
     submitNote.textContent += getDraftStatusSuffix();
     claimButton.textContent = "Save Progress";
-    submitButton.textContent = fullReady
-      ? "Submit Confirmation Update"
-      : "Keep Building Confirmation Update";
+    submitButton.textContent = isBlockedFullSubmit
+      ? "Complete " + nextFieldLabel + " first"
+      : fullReady
+        ? "Submit Confirmation Update"
+        : "Keep Building Confirmation Update";
     claimButton.title = "Save your current confirmation progress in this browser";
     submitButton.title = fullReady
       ? "Submit this confirmation update"
@@ -2651,8 +2987,16 @@ function renderCompletionNudges() {
   }
   submitNote.textContent += getDraftStatusSuffix();
 
-  claimButton.textContent = claimReady ? "Save Free Claim" : "Finish Claim Basics";
-  submitButton.textContent = fullReady ? "Submit Full Profile" : "Keep Building Full Profile";
+  claimButton.textContent = isBlockedClaimSubmit
+    ? "Complete " + nextFieldLabel + " first"
+    : claimReady
+      ? "Save Free Claim"
+      : "Finish Claim Basics";
+  submitButton.textContent = isBlockedFullSubmit
+    ? "Complete " + nextFieldLabel + " first"
+    : fullReady
+      ? "Submit Full Profile"
+      : "Keep Building Full Profile";
 
   claimButton.title = claimReady ? "Save the free claim" : "Still needed: " + claimMissing[0].label;
   submitButton.title = fullReady
@@ -2704,6 +3048,7 @@ async function handleSubmit(event) {
     submitter && submitter.dataset && submitter.dataset.submitIntent
       ? submitter.dataset.submitIntent
       : "full";
+  lastSubmitAttemptIntent = submitIntent;
   document.getElementById("formError").style.display = "none";
   lastValidationTarget = "";
   lastValidationSection = "";
@@ -3220,6 +3565,14 @@ function clearSignupRestoreMode() {
   signupRestoreMode = "";
 }
 
+function runSignupRenderStep(stepName, renderFn) {
+  try {
+    renderFn();
+  } catch (error) {
+    console.error("Signup render step failed:", stepName, error);
+  }
+}
+
 function initSignupFormUi() {
   var form = document.getElementById("applyForm");
   if (!form) {
@@ -3233,6 +3586,7 @@ function initSignupFormUi() {
     form.elements.therapist_reported_confirmed_at.value = getTodayDateString();
   }
 
+  form.addEventListener("submit", handleSubmit);
   form.addEventListener("input", renderReadiness);
   form.addEventListener("change", renderReadiness);
   form.addEventListener("input", renderFieldCoaching);
@@ -3247,11 +3601,11 @@ function initSignupFormUi() {
   form.addEventListener("input", handleFieldCalloutProgress);
   form.addEventListener("change", handleFieldCalloutProgress);
 
-  renderReadiness();
-  renderFieldCoaching();
-  renderPhotoUploadStatus();
-  renderCompletionNudges();
-  refreshSignupWorkspace();
+  runSignupRenderStep("readiness", renderReadiness);
+  runSignupRenderStep("field coaching", renderFieldCoaching);
+  runSignupRenderStep("photo upload", renderPhotoUploadStatus);
+  runSignupRenderStep("completion nudges", renderCompletionNudges);
+  runSignupRenderStep("workspace", refreshSignupWorkspace);
 }
 
 var fullProfileDisclosure = document.getElementById("fullProfileDetails");
@@ -3267,5 +3621,3 @@ document.addEventListener("visibilitychange", function () {
     saveSignupDraft();
   }
 });
-
-window.handleSubmit = handleSubmit;
