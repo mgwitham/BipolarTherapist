@@ -82,6 +82,30 @@ function normalizeReviewerDirectoryEntries(entries) {
     });
 }
 
+function stringifyExportValue(value) {
+  if (Array.isArray(value)) {
+    return value.join(" | ");
+  }
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value == null ? "" : String(value);
+}
+
+function buildCsvResponse(rows, columns) {
+  const header = columns.map(function (column) {
+    return formatCsvCell(column.header);
+  });
+  const body = rows.map(function (row) {
+    return columns
+      .map(function (column) {
+        return formatCsvCell(stringifyExportValue(row[column.key]));
+      })
+      .join(",");
+  });
+  return [header.join(","), ...body].join("\n");
+}
+
 export async function handleReadRoutes(context) {
   const {
     client,
@@ -233,6 +257,70 @@ export async function handleReadRoutes(context) {
     return true;
   }
 
+  if (request.method === "GET" && routePath === "/match/requests/export") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
+    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const docs = await client.fetch(
+      `*[_type == "matchRequest"] | order(coalesce(createdAt, _createdAt) desc)[0...$limit]{
+        _id,
+        requestId,
+        sessionId,
+        userId,
+        careState,
+        careFormat,
+        careIntent,
+        needsMedicationManagement,
+        insurancePreference,
+        budgetMax,
+        priorityMode,
+        urgency,
+        bipolarFocus,
+        preferredModalities,
+        populationFit,
+        languagePreferences,
+        culturalPreferences,
+        requestSummary,
+        sourceSurface,
+        createdAt
+      }`,
+      { limit },
+    );
+    const items = (Array.isArray(docs) ? docs : []).map(annotateMatchRequestForDisplay);
+
+    if (format === "csv") {
+      const csv = buildCsvResponse(items, [
+        { key: "requestId", header: "request_id" },
+        { key: "careState", header: "care_state" },
+        { key: "careFormat", header: "care_format" },
+        { key: "careIntent", header: "care_intent" },
+        { key: "needsMedicationManagement", header: "needs_medication_management" },
+        { key: "insurancePreference", header: "insurance_preference" },
+        { key: "budgetMax", header: "budget_max" },
+        { key: "priorityMode", header: "priority_mode" },
+        { key: "urgency", header: "urgency" },
+        { key: "bipolarFocus", header: "bipolar_focus" },
+        { key: "preferredModalities", header: "preferred_modalities" },
+        { key: "populationFit", header: "population_fit" },
+        { key: "languagePreferences", header: "language_preferences" },
+        { key: "requestSummary", header: "request_summary" },
+        { key: "sourceSurface", header: "source_surface" },
+        { key: "createdAt", header: "created_at" },
+      ]);
+      const headers = buildTextResponseHeaders(origin, config, "text/csv; charset=utf-8");
+      response.writeHead(200, headers);
+      response.end(csv);
+      return true;
+    }
+
+    sendJson(response, 200, items, origin, config);
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/match/outcomes") {
     if (!isAuthorized(request, config)) {
       sendJson(response, 401, { error: "Unauthorized." }, origin, config);
@@ -266,6 +354,68 @@ export async function handleReadRoutes(context) {
       origin,
       config,
     );
+    return true;
+  }
+
+  if (request.method === "GET" && routePath === "/match/outcomes/export") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
+    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const docs = await client.fetch(
+      `*[_type == "matchOutcome"] | order(coalesce(recordedAt, _createdAt) desc)[0...$limit]{
+        _id,
+        outcomeId,
+        requestId,
+        providerId,
+        therapistSlug,
+        therapistName,
+        rankPosition,
+        resultCount,
+        topSlug,
+        routeType,
+        shortcutType,
+        pivotAt,
+        recommendedWaitWindow,
+        outcome,
+        requestSummary,
+        contextSummary,
+        strategySnapshot,
+        recordedAt
+      }`,
+      { limit },
+    );
+    const items = (Array.isArray(docs) ? docs : []).map(annotateMatchOutcomeForDisplay);
+
+    if (format === "csv") {
+      const csv = buildCsvResponse(items, [
+        { key: "outcomeId", header: "outcome_id" },
+        { key: "requestId", header: "request_id" },
+        { key: "providerId", header: "provider_id" },
+        { key: "therapistSlug", header: "therapist_slug" },
+        { key: "therapistName", header: "therapist_name" },
+        { key: "rankPosition", header: "rank_position" },
+        { key: "resultCount", header: "result_count" },
+        { key: "topSlug", header: "top_slug" },
+        { key: "routeType", header: "route_type" },
+        { key: "shortcutType", header: "shortcut_type" },
+        { key: "pivotAt", header: "pivot_at" },
+        { key: "recommendedWaitWindow", header: "recommended_wait_window" },
+        { key: "outcome", header: "outcome" },
+        { key: "requestSummary", header: "request_summary" },
+        { key: "contextSummary", header: "context_summary" },
+        { key: "recordedAt", header: "recorded_at" },
+      ]);
+      const headers = buildTextResponseHeaders(origin, config, "text/csv; charset=utf-8");
+      response.writeHead(200, headers);
+      response.end(csv);
+      return true;
+    }
+
+    sendJson(response, 200, items, origin, config);
     return true;
   }
 

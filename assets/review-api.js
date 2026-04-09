@@ -414,6 +414,42 @@ export async function fetchMatchOutcomes(options) {
   });
 }
 
+export async function exportMatchRequests(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/match/requests/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/match/requests/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportMatchOutcomes(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/match/outcomes/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/match/outcomes/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 export async function decideTherapistCandidate(candidateId, decisionPayload) {
   const payload = await request(`/candidates/${encodeURIComponent(candidateId)}/decision`, {
     method: "POST",

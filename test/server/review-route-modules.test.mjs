@@ -1271,3 +1271,55 @@ test("top-level review handler returns authenticated match requests and outcomes
   assert.equal(matchOutcomesResponse.payload[0].outcome, "booked_consult");
   assert.equal(matchOutcomesResponse.payload[0].labels.outcome, "Booked consult");
 });
+
+test("top-level review handler exports authenticated match analytics as csv", async function () {
+  const { client } = createMemoryClient({
+    "match-request-1": {
+      _id: "match-request-1",
+      _type: "matchRequest",
+      requestId: "journey-1",
+      careState: "CA",
+      careFormat: "telehealth",
+      priorityMode: "best_overall_fit",
+      languagePreferences: ["english"],
+      createdAt: "2026-04-09T16:00:00.000Z",
+    },
+    "match-outcome-1": {
+      _id: "match-outcome-1",
+      _type: "matchOutcome",
+      outcomeId: "outcome-1",
+      requestId: "journey-1",
+      therapistSlug: "aubri-gomez-los-angeles-ca",
+      outcome: "booked_consult",
+      routeType: "profile",
+      recordedAt: "2026-04-09T16:05:00.000Z",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const requestsExportResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/match/requests/export?format=csv&limit=10",
+  });
+  const outcomesExportResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/match/outcomes/export?format=csv&limit=10",
+  });
+
+  assert.equal(requestsExportResponse.statusCode, 200);
+  assert.match(String(requestsExportResponse.rawBody || ""), /request_id,care_state,care_format/);
+  assert.match(String(requestsExportResponse.rawBody || ""), /journey-1,CA,telehealth/);
+
+  assert.equal(outcomesExportResponse.statusCode, 200);
+  assert.match(String(outcomesExportResponse.rawBody || ""), /outcome_id,request_id,provider_id/);
+  assert.match(String(outcomesExportResponse.rawBody || ""), /outcome-1,journey-1,/);
+});
