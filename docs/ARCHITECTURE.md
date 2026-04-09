@@ -74,6 +74,7 @@ Operational access patterns:
 
 - local inspection scripts in `scripts/inspect-*.mjs`
 - local Sanity-backed export scripts in `scripts/export-*.mjs`
+- local summary scripts in `scripts/summarize-*.mjs`
 - authenticated review API reads and CSV export endpoints in `server/review-read-routes.mjs`
 
 Current authenticated review API coverage:

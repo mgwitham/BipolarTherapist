@@ -249,6 +249,7 @@ You can also export provider observations for one provider directly from Sanity:
 
 ```sh
 npm run cms:export:provider-observations -- provider-ca-12345 --format=json --output=/tmp/provider-observations.json
+npm run cms:summarize:provider-observations -- provider-ca-12345 --output=/tmp/provider-observation-summary.json
 ```
 
 The authenticated review API now supports provider observation reads and exports too:
@@ -265,6 +266,7 @@ npm run cms:inspect:match-requests -- --limit=20
 npm run cms:inspect:match-outcomes -- --limit=20
 npm run cms:export:match-requests -- --format=csv --output=/tmp/match-requests.csv
 npm run cms:export:match-outcomes -- --format=json --output=/tmp/match-outcomes.json
+npm run cms:summarize:match-learning -- --output=/tmp/match-learning-summary.json
 ```
 
 The authenticated review API also supports admin export endpoints for the same match analytics data:
