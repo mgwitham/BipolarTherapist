@@ -26,6 +26,7 @@ import {
   clearFailedLogins,
   createSignedPayload,
   createSignedSession,
+  getAuthorizedActor,
   getSecurityWarnings,
   isAuthorized,
   normalizeRoutePath,
@@ -40,6 +41,7 @@ import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
+  buildApplicationReviewEvent,
   buildCandidateReviewEvent,
   buildTherapistApplicationFieldPatch,
   buildTherapistDocument,
@@ -258,6 +260,8 @@ function buildLicensureOpsEvent(record, updates) {
     decision: updates.decision || "",
     reviewStatus: "",
     publishRecommendation: "",
+    actorName: updates.actorName || "",
+    rationale: updates.rationale || updates.notes || "",
     notes: updates.notes || "",
     changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
     createdAt: now,
@@ -288,6 +292,26 @@ function normalizeCandidate(doc) {
   return normalizePortableCandidate(doc, {
     normalizeLicensureVerification,
   });
+}
+
+function normalizeReviewEvent(doc) {
+  return {
+    id: doc._id,
+    created_at: doc.createdAt || doc._createdAt || "",
+    event_type: doc.eventType || "",
+    provider_id: doc.providerId || "",
+    candidate_id: doc.candidateId || "",
+    candidate_document_id: doc.candidateDocumentId || "",
+    application_id: doc.applicationId || "",
+    therapist_id: doc.therapistId || "",
+    decision: doc.decision || "",
+    review_status: doc.reviewStatus || "",
+    publish_recommendation: doc.publishRecommendation || "",
+    actor_name: doc.actorName || "",
+    rationale: doc.rationale || "",
+    notes: doc.notes || "",
+    changed_fields: Array.isArray(doc.changedFields) ? doc.changedFields : [],
+  };
 }
 
 function normalizePortalRequest(doc) {
@@ -413,6 +437,7 @@ function createReviewRouteModules() {
         canAttemptLogin,
         clearFailedLogins,
         createSignedSession,
+        getAuthorizedActor,
         getSecurityWarnings,
         isAuthorized,
         normalizePortalRequest,
@@ -433,8 +458,11 @@ function createReviewRouteModules() {
         isAuthorized,
         normalizeApplication,
         normalizeCandidate,
+        normalizeReviewEvent,
+        parseBody,
         sendJson,
       },
+      includeUrl: true,
     },
     {
       handler: handleApplicationRoutes,
@@ -443,6 +471,7 @@ function createReviewRouteModules() {
           return buildApplicationDocument(client, input, applicationSupportDeps);
         },
         buildAppliedFieldReviewStatePatch,
+        buildApplicationReviewEvent,
         buildRevisionFieldUpdates: function buildRevisionFieldUpdatesForRoute(
           client,
           input,
@@ -452,8 +481,8 @@ function createReviewRouteModules() {
         },
         buildTherapistApplicationFieldPatch,
         buildTherapistDocument,
-        buildTherapistOpsEvent,
         findDuplicateTherapistEntity,
+        getAuthorizedActor,
         isAuthorized,
         normalizeApplication,
         notifyAdminOfSubmission,
@@ -475,6 +504,7 @@ function createReviewRouteModules() {
         buildTherapistDocumentFromCandidate,
         computeCandidateReviewMeta,
         computeTherapistVerificationMeta,
+        getAuthorizedActor,
         isAuthorized,
         mergeLicensureVerification,
         normalizeLicensureVerification,
@@ -492,6 +522,7 @@ function createReviewRouteModules() {
         buildLicensureOpsEvent,
         buildTherapistOpsEvent,
         computeTherapistVerificationMeta,
+        getAuthorizedActor,
         isAuthorized,
         parseBody,
         sendJson,

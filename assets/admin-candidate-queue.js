@@ -119,6 +119,7 @@ export function renderCandidateQueuePanel(options) {
         const trustSummary = options.getCandidateTrustSummary(item);
         const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
         const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
+        const reviewEvents = options.getReviewEventsForCandidate(item);
         const mergeWorkbench = renderCandidateMergeWorkbench(item, {
           therapists: therapists,
           applications: applications,
@@ -139,7 +140,9 @@ export function renderCandidateQueuePanel(options) {
                 : "Needs a review decision.";
 
         return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
+          '<article class="queue-card" data-candidate-card-id="' +
+          options.escapeHtml(item.id) +
+          '"><div class="queue-head"><div><h3>' +
           options.escapeHtml(item.name || "Unnamed candidate") +
           '</h3><div class="subtle">' +
           options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
@@ -196,6 +199,18 @@ export function renderCandidateQueuePanel(options) {
               options.escapeHtml(item.notes) +
               "</div>"
             : "") +
+          options.renderReviewEventSnippetHtml(reviewEvents, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
+          options.renderReviewEventTimelineHtml(reviewEvents, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
+          options.renderReviewEntityTaskHtml("candidate", item.id, {
+            escapeHtml: options.escapeHtml,
+            formatDate: options.formatDate,
+          }) +
           renderCandidateTrustChips(trustSummary, 4, {
             escapeHtml: options.escapeHtml,
           }) +

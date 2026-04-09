@@ -10,7 +10,17 @@ export function createResponseCapture() {
       this.headers = headers;
     },
     end(body) {
-      this.payload = body ? JSON.parse(body) : null;
+      if (!body) {
+        this.payload = null;
+        this.rawBody = "";
+        return;
+      }
+      this.rawBody = body;
+      try {
+        this.payload = JSON.parse(body);
+      } catch (_error) {
+        this.payload = body;
+      }
     },
   };
 }
@@ -131,6 +141,16 @@ export function createMemoryClient(initialDocuments) {
   };
 
   Object.entries(initialDocuments || {}).forEach(function ([id, value]) {
+    if (Array.isArray(value)) {
+      value.forEach(function (document, index) {
+        if (!document || typeof document !== "object") {
+          return;
+        }
+        const documentId = document._id || document.id || `${id}-${index + 1}`;
+        state.documents.set(documentId, deepClone({ ...document, _id: documentId }));
+      });
+      return;
+    }
     state.documents.set(id, deepClone(value));
   });
 
@@ -159,6 +179,12 @@ export function createMemoryClient(initialDocuments) {
         if (query.includes(`*[_type == "therapist"]`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapist";
+          });
+        }
+
+        if (query.includes(`*[_type == "therapistPublishEvent"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "therapistPublishEvent";
           });
         }
 

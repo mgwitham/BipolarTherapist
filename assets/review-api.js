@@ -19,6 +19,8 @@ function getDefaultReviewApiBaseUrl() {
 
 const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
+const adminActorIdKey = "bt_review_admin_actor_id_v1";
+const adminActorKey = "bt_review_admin_actor_v1";
 
 function sanitizeApplication(application) {
   return normalizePortableApplication(application || {});
@@ -45,6 +47,28 @@ function sanitizeCandidate(candidate) {
       ? candidate.telehealth_states
       : [],
     review_history: Array.isArray(candidate.review_history) ? candidate.review_history : [],
+    review_follow_up:
+      candidate && candidate.review_follow_up && typeof candidate.review_follow_up === "object"
+        ? {
+            status: candidate.review_follow_up.status || "open",
+            note: candidate.review_follow_up.note || "",
+            assignee_id: candidate.review_follow_up.assignee_id || "",
+            assignee_name:
+              candidate.review_follow_up.assignee_name || candidate.review_follow_up.assignee || "",
+            assignee:
+              candidate.review_follow_up.assignee_name || candidate.review_follow_up.assignee || "",
+            due_at: candidate.review_follow_up.due_at || "",
+            updated_at: candidate.review_follow_up.updated_at || "",
+          }
+        : {
+            status: "open",
+            note: "",
+            assignee_id: "",
+            assignee_name: "",
+            assignee: "",
+            due_at: "",
+            updated_at: "",
+          },
     review_lane: candidate.review_lane || "editorial_review",
     review_priority:
       typeof candidate.review_priority === "number" ? candidate.review_priority : null,
@@ -82,6 +106,38 @@ async function request(path, options) {
   return payload;
 }
 
+async function requestText(path, options) {
+  let response;
+  try {
+    response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      headers: {
+        ...(options && options.headers ? options.headers : {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    const networkError = new Error(error && error.message ? error.message : "Request failed.");
+    networkError.isNetworkError = true;
+    throw networkError;
+  }
+
+  const text = await response.text();
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch (_error) {
+      payload = null;
+    }
+    const requestError = new Error(payload && payload.error ? payload.error : "Request failed.");
+    requestError.status = response.status;
+    requestError.payload = payload;
+    throw requestError;
+  }
+
+  return text;
+}
+
 function canUseSessionStorage() {
   try {
     return typeof window !== "undefined" && !!window.sessionStorage;
@@ -106,12 +162,36 @@ export function setAdminSessionToken(adminSessionToken) {
   window.sessionStorage.setItem(adminSessionKey, adminSessionToken);
 }
 
+export function getAdminActorName() {
+  if (!canUseSessionStorage()) {
+    return "";
+  }
+  return window.sessionStorage.getItem(adminActorKey) || "";
+}
+
+export function getAdminActorId() {
+  if (!canUseSessionStorage()) {
+    return "";
+  }
+  return window.sessionStorage.getItem(adminActorIdKey) || "";
+}
+
+export function setAdminActorIdentity(actor) {
+  if (!canUseSessionStorage()) {
+    return;
+  }
+  window.sessionStorage.setItem(adminActorIdKey, String((actor && actor.id) || "").trim());
+  window.sessionStorage.setItem(adminActorKey, String((actor && actor.name) || "").trim());
+}
+
 export function clearAdminSessionToken() {
   if (!canUseSessionStorage()) {
     return;
   }
 
   window.sessionStorage.removeItem(adminSessionKey);
+  window.sessionStorage.removeItem(adminActorIdKey);
+  window.sessionStorage.removeItem(adminActorKey);
 }
 
 function getAdminHeaders() {
@@ -124,10 +204,17 @@ function getAdminHeaders() {
 }
 
 export async function signInAdmin(credentials) {
-  return request("/auth/login", {
+  const payload = await request("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
+  if (payload && (payload.actorName || payload.actorId)) {
+    setAdminActorIdentity({
+      id: payload.actorId || "",
+      name: payload.actorName || "",
+    });
+  }
+  return payload;
 }
 
 export async function signOutAdmin() {
@@ -142,6 +229,20 @@ export async function signOutAdmin() {
   } finally {
     clearAdminSessionToken();
   }
+}
+
+export async function fetchAdminSession() {
+  const payload = await request("/auth/session", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+  if (payload && (payload.actorName || payload.actorId)) {
+    setAdminActorIdentity({
+      id: payload.actorId || "",
+      name: payload.actorName || "",
+    });
+  }
+  return payload;
 }
 
 export async function submitTherapistApplication(application) {
@@ -221,6 +322,21 @@ export async function fetchTherapistApplications() {
   return payload.map(sanitizeApplication);
 }
 
+export async function fetchTherapistReviewers() {
+  return request("/reviewers", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function updateTherapistReviewers(reviewers) {
+  return request("/reviewers", {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ reviewers }),
+  });
+}
+
 export async function fetchTherapistCandidates() {
   const payload = await request("/candidates", {
     method: "GET",
@@ -228,6 +344,38 @@ export async function fetchTherapistCandidates() {
   });
 
   return payload.map(sanitizeCandidate);
+}
+
+export async function fetchReviewEvents(options) {
+  const params = new URLSearchParams();
+  if (options && options.lane) {
+    params.set("lane", options.lane);
+  }
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (options && options.before) {
+    params.set("before", options.before);
+  }
+  return request(`/events${params.toString() ? `?${params.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportReviewEvents(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.lane) {
+    params.set("lane", options.lane);
+  }
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return requestText(`/events/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
 }
 
 export async function decideTherapistCandidate(candidateId, decisionPayload) {
@@ -279,6 +427,16 @@ export async function updateTherapistApplication(applicationId, updates) {
     headers: getAdminHeaders(),
     body: JSON.stringify(updates),
   });
+}
+
+export async function updateTherapistCandidate(candidateId, updates) {
+  return sanitizeCandidate(
+    await request(`/candidates/${encodeURIComponent(candidateId)}`, {
+      method: "PATCH",
+      headers: getAdminHeaders(),
+      body: JSON.stringify(updates),
+    }),
+  );
 }
 
 export async function applyTherapistApplicationFields(applicationId, fields) {

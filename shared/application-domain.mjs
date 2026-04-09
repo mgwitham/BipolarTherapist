@@ -1,5 +1,32 @@
 import { buildProviderId, normalizeFieldReviewStates } from "./therapist-domain.mjs";
 
+export function normalizeReviewFollowUp(value) {
+  if (!value || typeof value !== "object") {
+    return {
+      status: "open",
+      note: "",
+      assignee_id: "",
+      assignee_name: "",
+      assignee: "",
+      due_at: "",
+      updated_at: "",
+    };
+  }
+
+  const assigneeName = String(
+    value.assignee_name || value.assigneeName || value.assignee || "",
+  ).trim();
+  return {
+    status: String(value.status || "open").trim() || "open",
+    note: String(value.note || "").trim(),
+    assignee_id: String(value.assignee_id || value.assigneeId || "").trim(),
+    assignee_name: assigneeName,
+    assignee: assigneeName,
+    due_at: String(value.due_at || value.dueAt || "").trim(),
+    updated_at: String(value.updated_at || value.updatedAt || "").trim(),
+  };
+}
+
 export function getApplicationPortalState(application) {
   const status = String((application && application.status) || "pending").trim() || "pending";
   const intent =
@@ -134,6 +161,7 @@ export function normalizePortableApplication(application) {
     keyStyle: "snake_case",
   });
   const portalState = getApplicationPortalState(application);
+  const reviewFollowUp = normalizeReviewFollowUp(application.review_follow_up);
 
   return {
     ...application,
@@ -161,6 +189,7 @@ export function normalizePortableApplication(application) {
     supporting_source_urls: Array.isArray(application.supporting_source_urls)
       ? application.supporting_source_urls
       : [],
+    review_follow_up: reviewFollowUp,
     source_reviewed_at: application.source_reviewed_at || "",
     revision_history: Array.isArray(application.revision_history)
       ? application.revision_history

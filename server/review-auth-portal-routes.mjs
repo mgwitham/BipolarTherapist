@@ -58,13 +58,20 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     clearFailedLogins(request);
-    const sessionToken = createSignedSession(config);
+    const sessionToken = createSignedSession(config, {
+      username: usingUserPass ? username || config.adminUsername : "legacy-admin-key",
+    });
+    const actorId = usingUserPass
+      ? username || config.adminUsername
+      : "legacy-admin-key";
     sendJson(
       response,
       200,
       {
         ok: true,
         sessionToken,
+        actorId,
+        actorName: actorId,
         authMode: usingUserPass ? "password" : "legacy-key",
       },
       origin,
@@ -86,6 +93,8 @@ export async function handleAuthAndPortalRoutes(context) {
       {
         authenticated: true,
         expiresAt: session.exp,
+        actorId: session.username || "admin",
+        actorName: session.username || "admin",
       },
       origin,
       config,

@@ -351,6 +351,21 @@ export async function updateApplicationFields(client, applicationId, fields) {
     allowedUpdates.reviewRequestMessage = fields.review_request_message.trim();
   }
 
+  if (fields.review_follow_up && typeof fields.review_follow_up === "object") {
+    const assigneeName = String(
+      fields.review_follow_up.assignee_name || fields.review_follow_up.assignee || "",
+    ).trim();
+    allowedUpdates.reviewFollowUp = {
+      status: String(fields.review_follow_up.status || "open").trim() || "open",
+      note: String(fields.review_follow_up.note || "").trim(),
+      assigneeId: String(fields.review_follow_up.assignee_id || "").trim(),
+      assigneeName: assigneeName,
+      assignee: assigneeName,
+      dueAt: String(fields.review_follow_up.due_at || "").trim(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   if (!Object.keys(allowedUpdates).length && !fields.revision_history_entry) {
     throw new Error("No valid application updates were provided.");
   }

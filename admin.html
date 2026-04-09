@@ -1185,6 +1185,83 @@
               </div>
               <div id="portalRequestsQueue"></div>
             </div>
+            <div class="panel" id="reviewActivityPanel" style="margin-bottom: 1rem">
+              <h2>Review Activity</h2>
+              <p class="subtle" style="margin-top: 0">
+                Recent review decisions, publishes, merges, and ops actions from the review API.
+              </p>
+              <div class="toolbar" style="margin-bottom: 0.8rem">
+                <select id="reviewActivityFilter">
+                  <option value="">All activity</option>
+                  <option value="application">Applications</option>
+                  <option value="candidate">Candidates</option>
+                  <option value="therapist">Therapists</option>
+                  <option value="ops">Ops actions</option>
+                </select>
+                <select id="reviewActivitySavedView">
+                  <option value="">Saved views</option>
+                </select>
+                <button class="btn-secondary" type="button" id="reviewActivitySaveView">
+                  Save View
+                </button>
+                <button class="btn-secondary" type="button" id="reviewActivityCopyLink">
+                  Copy Link
+                </button>
+                <button class="btn-secondary" type="button" id="reviewActivityExportJson">
+                  Export JSON
+                </button>
+                <button class="btn-secondary" type="button" id="reviewActivityExportCsv">
+                  Export CSV
+                </button>
+                <div class="subtle" id="reviewActivityCount"></div>
+              </div>
+              <div id="reviewActivitySavedViewMeta"></div>
+              <div id="reviewActivityFeed"></div>
+            </div>
+            <div class="panel" id="reviewAttentionQueuePanel" style="margin-bottom: 1rem">
+              <h2>Attention Queue</h2>
+              <p class="subtle" style="margin-top: 0">
+                The highest-priority follow-up needing action now, based on overdue, stale, and
+                unassigned work.
+              </p>
+              <div
+                class="subtle"
+                id="reviewAttentionQueueScope"
+                style="margin-bottom: 0.7rem"
+              ></div>
+              <div id="reviewAttentionQueue"></div>
+            </div>
+            <div class="panel" id="reviewerWorkloadPanel" style="margin-bottom: 1rem">
+              <h2>Reviewer Workload</h2>
+              <p class="subtle" style="margin-top: 0">
+                Shared follow-up ownership across applications and candidates, including overdue,
+                blocked, and unassigned work.
+              </p>
+              <div class="toolbar" style="margin-bottom: 0.8rem">
+                <select id="reviewerWorkloadFilter">
+                  <option value="">All reviewers</option>
+                </select>
+                <button class="btn-secondary" type="button" id="reviewerMyQueueToggle">
+                  My queue
+                </button>
+                <select id="reviewerWorkloadSlice">
+                  <option value="all">All work</option>
+                  <option value="overdue">Overdue only</option>
+                  <option value="today">Due today</option>
+                  <option value="this_week">Due this week</option>
+                  <option value="stale">Needs nudge</option>
+                  <option value="blocked">Blocked only</option>
+                  <option value="unassigned">Unassigned only</option>
+                </select>
+                <button class="btn-secondary" type="button" id="reviewerRosterAdd">
+                  Add Reviewer
+                </button>
+                <button class="btn-secondary" type="button" id="reviewerRosterRemove">
+                  Remove Reviewer
+                </button>
+              </div>
+              <div id="reviewerWorkload"></div>
+            </div>
             <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
               <h2>Applications</h2>
               <p class="subtle" style="margin-top: 0">

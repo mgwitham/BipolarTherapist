@@ -16,6 +16,24 @@ import {
   runHandlerRequest,
 } from "./test-helpers.mjs";
 
+async function loginAsAdmin(handler) {
+  const response = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(typeof response.payload.sessionToken, "string");
+  return response.payload.sessionToken;
+}
+
 test("auth routes create a signed session on valid login", async function () {
   const response = createResponseCapture();
   let parsedBodyCount = 0;
@@ -81,8 +99,105 @@ test("auth routes create a signed session on valid login", async function () {
   assert.deepEqual(response.payload, {
     ok: true,
     sessionToken: "signed-session-token",
+    actorId: "architect",
+    actorName: "architect",
     authMode: "password",
   });
+});
+
+test("read routes return a shared reviewer roster for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    siteSettings: {
+      _id: "siteSettings",
+      _type: "siteSettings",
+      reviewerDirectory: [
+        { reviewerId: "architect", name: "architect", active: true },
+        { reviewerId: "reviewer-two", name: "reviewer-two", active: true },
+        { reviewerId: "former-reviewer", name: "former-reviewer", active: false },
+      ],
+    },
+    therapistApplications: [
+      {
+        _id: "application-1",
+        _type: "therapistApplication",
+        reviewFollowUp: { assignee: "architect" },
+      },
+    ],
+    therapistCandidates: [
+      {
+        _id: "candidate-1",
+        _type: "therapistCandidate",
+        reviewFollowUp: { assignee: "reviewer-two" },
+      },
+    ],
+    therapistPublishEvents: [
+      {
+        _id: "event-1",
+        _type: "therapistPublishEvent",
+        actorName: "ops-lead",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
+    ],
+  });
+  const handler = createReviewApiHandler(
+    createTestApiConfig(),
+    client,
+  );
+  const sessionToken = await loginAsAdmin(handler);
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/reviewers",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.payload, [
+    { id: "architect", name: "architect", active: true },
+    { id: "ops-lead", name: "ops-lead", active: true },
+    { id: "reviewer-two", name: "reviewer-two", active: true },
+  ]);
+});
+
+test("read routes persist reviewer directory updates for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    siteSettings: {
+      _id: "siteSettings",
+      _type: "siteSettings",
+      reviewerDirectory: [{ reviewerId: "architect", name: "architect", active: true }],
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+  const response = await runHandlerRequest(handler, {
+    body: {
+      reviewers: [
+        { id: "architect", name: "architect", active: true },
+        { id: "reviewer-two", name: "reviewer-two", active: true },
+        { id: "former-reviewer", name: "former-reviewer", active: false },
+      ],
+    },
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "PATCH",
+    url: "/reviewers",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.payload, [
+    { id: "architect", name: "architect", active: true },
+    { id: "reviewer-two", name: "reviewer-two", active: true },
+  ]);
+  const siteSettings = await client.getDocument("siteSettings");
+  assert.deepEqual(siteSettings.reviewerDirectory, [
+    { reviewerId: "architect", name: "architect", active: true },
+    { reviewerId: "reviewer-two", name: "reviewer-two", active: true },
+    { reviewerId: "former-reviewer", name: "former-reviewer", active: false },
+  ]);
 });
 
 test("application routes reject duplicate therapist submissions with conflict details", async function () {
@@ -156,6 +271,111 @@ test("application routes reject duplicate therapist submissions with conflict de
   assert.deepEqual(response.payload.duplicate_reasons, ["license", "email"]);
 });
 
+test("application routes emit follow-up audit events on shared follow-up updates", async function () {
+  const response = createResponseCapture();
+  const application = {
+    _id: "application-follow-up-1",
+    _type: "therapistApplication",
+    status: "reviewing",
+    publishedTherapistId: "therapist-55",
+  };
+  let createdEvent = null;
+
+  const handled = await handleApplicationRoutes({
+    client: {
+      async create(document) {
+        createdEvent = document;
+        return document;
+      },
+      async getDocument(id) {
+        if (id === "application-follow-up-1") {
+          return application;
+        }
+        return null;
+      },
+    },
+    config: {},
+    deps: {
+      async buildApplicationDocument() {
+        return {};
+      },
+      buildAppliedFieldReviewStatePatch() {
+        return {};
+      },
+      buildApplicationReviewEvent(_application, details) {
+        return { _type: "therapistPublishEvent", ...details };
+      },
+      async buildRevisionFieldUpdates() {
+        return {};
+      },
+      buildTherapistApplicationFieldPatch() {
+        return { appliedFields: [], patch: {} };
+      },
+      buildTherapistDocument() {
+        return {};
+      },
+      async findDuplicateTherapistEntity() {
+        return null;
+      },
+      getAuthorizedActor() {
+        return "architect";
+      },
+      isAuthorized() {
+        return true;
+      },
+      normalizeApplication(value) {
+        return value;
+      },
+      async notifyAdminOfSubmission() {},
+      async notifyApplicantOfDecision() {},
+      async parseBody() {
+        return {
+          review_follow_up: {
+            status: "blocked",
+            note: "Waiting on insurer confirmation",
+            assignee: "michael",
+            due_at: "2026-04-15",
+          },
+        };
+      },
+      publishingHelpers: {},
+      sendJson: createSendJson(response),
+      slugify(value) {
+        return value;
+      },
+      async updateApplicationFields() {
+        return {
+          ...application,
+          reviewFollowUp: {
+            status: "blocked",
+            note: "Waiting on insurer confirmation",
+            assignee: "michael",
+            dueAt: "2026-04-15",
+            updatedAt: "2026-04-08T12:00:00.000Z",
+          },
+        };
+      },
+      validateRevisionInput() {},
+    },
+    origin: "",
+    request: {
+      method: "PATCH",
+      headers: {},
+    },
+    response,
+    routePath: "/applications/application-follow-up-1",
+  });
+
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.reviewFollowUp.status, "blocked");
+  assert.equal(response.payload.reviewFollowUp.assignee, "michael");
+  assert.equal(response.payload.reviewFollowUp.dueAt, "2026-04-15");
+  assert.equal(createdEvent.eventType, "application_follow_up_updated");
+  assert.equal(createdEvent.actorName, "architect");
+  assert.deepEqual(createdEvent.changedFields, ["reviewFollowUp"]);
+});
+
 test("candidate routes publish a matched candidate into therapist documents", async function () {
   const response = createResponseCapture();
   const state = {
@@ -224,6 +444,9 @@ test("candidate routes publish a matched candidate into therapist documents", as
           dataCompletenessScore: 90,
         };
       },
+      getAuthorizedActor() {
+        return "architect";
+      },
       isAuthorized() {
         return true;
       },
@@ -269,6 +492,117 @@ test("candidate routes publish a matched candidate into therapist documents", as
   );
 });
 
+test("candidate routes persist shared review follow-up updates", async function () {
+  const response = createResponseCapture();
+  const candidate = {
+    _id: "candidate-2",
+    _type: "therapistCandidate",
+    name: "Dr. Shared Task",
+  };
+  let createdEvent = null;
+
+  const client = {
+    async create(document) {
+      createdEvent = document;
+      return document;
+    },
+    async getDocument(id) {
+      if (id === "candidate-2") {
+        return candidate;
+      }
+      return null;
+    },
+    patch() {
+      return {
+        set() {
+          return this;
+        },
+        async commit() {
+          return {
+            ...candidate,
+            reviewFollowUp: {
+              status: "blocked",
+              note: "Waiting on licensure clarification",
+              assignee: "michael",
+              dueAt: "2026-04-16",
+              updatedAt: "2026-04-08T12:00:00.000Z",
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const handled = await handleCandidateRoutes({
+    client,
+    config: {},
+    deps: {
+      addDays(value) {
+        return value;
+      },
+      buildCandidateReviewEvent(_candidate, details) {
+        return details;
+      },
+      buildFieldTrustMeta() {
+        return {};
+      },
+      buildTherapistDocumentFromCandidate() {
+        return {};
+      },
+      computeCandidateReviewMeta() {
+        return {};
+      },
+      computeTherapistVerificationMeta() {
+        return {};
+      },
+      getAuthorizedActor() {
+        return "architect";
+      },
+      isAuthorized() {
+        return true;
+      },
+      mergeLicensureVerification(primary) {
+        return primary;
+      },
+      normalizeLicensureVerification(value) {
+        return value;
+      },
+      normalizePortableCandidate(value) {
+        return value;
+      },
+      async parseBody() {
+        return {
+          review_follow_up: {
+            status: "blocked",
+            note: "Waiting on licensure clarification",
+            assignee: "michael",
+            due_at: "2026-04-16",
+          },
+        };
+      },
+      publishingHelpers: {},
+      sendJson: createSendJson(response),
+    },
+    origin: "",
+    request: {
+      method: "PATCH",
+      headers: {},
+    },
+    response,
+    routePath: "/candidates/candidate-2",
+  });
+
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.reviewFollowUp.status, "blocked");
+  assert.equal(response.payload.reviewFollowUp.note, "Waiting on licensure clarification");
+  assert.equal(response.payload.reviewFollowUp.assignee, "michael");
+  assert.equal(response.payload.reviewFollowUp.dueAt, "2026-04-16");
+  assert.equal(createdEvent.eventType, "candidate_follow_up_updated");
+  assert.equal(createdEvent.actorName, "architect");
+  assert.deepEqual(createdEvent.changedFields, ["reviewFollowUp"]);
+});
+
 test("ops routes can snooze therapist review work", async function () {
   const response = createResponseCapture();
   const state = {
@@ -310,6 +644,9 @@ test("ops routes can snooze therapist review work", async function () {
       },
       computeTherapistVerificationMeta() {
         return {};
+      },
+      getAuthorizedActor() {
+        return "architect";
       },
       isAuthorized() {
         return true;
@@ -486,6 +823,96 @@ test("top-level review handler returns normalized candidate lists for authorized
   assert.equal(response.payload.length, 1);
   assert.equal(response.payload[0].id, "candidate-list-1");
   assert.equal(response.payload[0].name, "Dr. Listy McListface");
+});
+
+test("top-level review handler returns normalized review events for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    "event-1": {
+      _id: "event-1",
+      _type: "therapistPublishEvent",
+      eventType: "candidate_published",
+      providerId: "provider-123",
+      candidateId: "cand-123",
+      candidateDocumentId: "candidate-123",
+      therapistId: "therapist-123",
+      decision: "publish",
+      reviewStatus: "published",
+      publishRecommendation: "ready",
+      actorName: "architect",
+      rationale: "Final trust pass looked strong",
+      notes: "Published after final review",
+      changedFields: ["reviewStatus", "publishedTherapistId"],
+      createdAt: "2026-04-08T12:00:00.000Z",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/events",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(Array.isArray(response.payload.items), true);
+  assert.equal(response.payload.items.length, 1);
+  assert.equal(response.payload.next_cursor, "");
+  assert.equal(response.payload.items[0].event_type, "candidate_published");
+  assert.equal(response.payload.items[0].provider_id, "provider-123");
+  assert.equal(response.payload.items[0].actor_name, "architect");
+  assert.equal(response.payload.items[0].rationale, "Final trust pass looked strong");
+  assert.deepEqual(response.payload.items[0].changed_fields, [
+    "reviewStatus",
+    "publishedTherapistId",
+  ]);
+});
+
+test("top-level review handler exports filtered review events as csv for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    "event-1": {
+      _id: "event-1",
+      _type: "therapistPublishEvent",
+      eventType: "candidate_published",
+      providerId: "provider-123",
+      candidateId: "cand-123",
+      candidateDocumentId: "candidate-123",
+      therapistId: "therapist-123",
+      actorName: "architect",
+      rationale: "Publish now",
+      notes: "Looks good",
+      createdAt: "2026-04-08T12:00:00.000Z",
+    },
+    "event-2": {
+      _id: "event-2",
+      _type: "therapistPublishEvent",
+      eventType: "therapist_review_deferred",
+      therapistId: "therapist-ops-1",
+      actorName: "architect",
+      rationale: "Wait 7 days",
+      createdAt: "2026-04-07T12:00:00.000Z",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/events/export?format=csv&lane=candidate",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(typeof response.payload, "string");
+  assert.equal(response.payload.includes("candidate_published"), true);
+  assert.equal(response.payload.includes("therapist_review_deferred"), false);
+  assert.equal(response.payload.includes("actor_name"), true);
 });
 
 test("top-level review handler supports authenticated application approval", async function () {

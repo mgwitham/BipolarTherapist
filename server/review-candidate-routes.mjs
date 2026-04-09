@@ -16,6 +16,7 @@ export async function handleCandidateRoutes(context) {
     buildTherapistDocumentFromCandidate,
     computeCandidateReviewMeta,
     computeTherapistVerificationMeta,
+    getAuthorizedActor,
     isAuthorized,
     mergeLicensureVerification,
     normalizeLicensureVerification,
@@ -26,6 +27,75 @@ export async function handleCandidateRoutes(context) {
   } = deps;
 
   const candidateDecisionMatch = routePath.match(/^\/candidates\/([^/]+)\/decision$/);
+  const candidateUpdateMatch = routePath.match(/^\/candidates\/([^/]+)$/);
+  if ((request.method === "PATCH" || request.method === "POST") && candidateUpdateMatch) {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const candidateId = decodeURIComponent(candidateUpdateMatch[1]);
+    const candidate = await client.getDocument(candidateId);
+    if (!candidate || candidate._type !== "therapistCandidate") {
+      sendJson(response, 404, { error: "Candidate not found." }, origin, config);
+      return true;
+    }
+
+    const body = await parseBody(request);
+    const allowedUpdates = {};
+    if (typeof body.notes === "string") {
+      allowedUpdates.notes = body.notes.trim();
+    }
+    if (body.review_follow_up && typeof body.review_follow_up === "object") {
+      const assigneeName = String(
+        body.review_follow_up.assignee_name || body.review_follow_up.assignee || "",
+      ).trim();
+      allowedUpdates.reviewFollowUp = {
+        status: String(body.review_follow_up.status || "open").trim() || "open",
+        note: String(body.review_follow_up.note || "").trim(),
+        assigneeId: String(body.review_follow_up.assignee_id || "").trim(),
+        assigneeName: assigneeName,
+        assignee: assigneeName,
+        dueAt: String(body.review_follow_up.due_at || "").trim(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    if (!Object.keys(allowedUpdates).length) {
+      sendJson(response, 400, { error: "No valid candidate updates were provided." }, origin, config);
+      return true;
+    }
+
+    allowedUpdates.lastReviewedAt = candidate.lastReviewedAt || "";
+    const updated = await client
+      .patch(candidateId)
+      .set(allowedUpdates)
+      .commit({ visibility: "sync" });
+    if (body.review_follow_up && typeof body.review_follow_up === "object") {
+      await client.create(
+        buildCandidateReviewEvent(candidate, {
+          eventType: "candidate_follow_up_updated",
+          decision: "update_follow_up",
+          reviewStatus: candidate.reviewStatus || "queued",
+          publishRecommendation: candidate.publishRecommendation || "",
+          actorName: getAuthorizedActor(request, config) || "admin",
+          rationale: String(body.review_follow_up.note || "").trim(),
+          notes: String(body.review_follow_up.note || "").trim(),
+          changedFields: ["reviewFollowUp"],
+        }),
+      );
+    }
+    sendJson(
+      response,
+      200,
+      normalizePortableCandidate(updated, {
+        normalizeLicensureVerification,
+      }),
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (!(request.method === "POST" && candidateDecisionMatch)) {
     return false;
   }
@@ -62,6 +132,7 @@ export async function handleCandidateRoutes(context) {
   }
 
   const now = new Date().toISOString();
+  const actorName = getAuthorizedActor(request, config) || "admin";
   const historyEntry = {
     _key: `${Date.now()}`,
     type: "review_decision",
@@ -308,6 +379,8 @@ export async function handleCandidateRoutes(context) {
       decision,
       reviewStatus,
       publishRecommendation,
+      actorName,
+      rationale: notes,
       notes,
       changedFields,
     }),
