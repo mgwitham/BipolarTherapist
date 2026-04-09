@@ -56,6 +56,7 @@ import {
 import {
   readFunnelEvents,
   setPromotedExperimentVariant,
+  summarizeContactRouteOutcomePerformance,
   summarizeAdaptiveSignals,
   summarizeExperimentDecisions,
   summarizeExperimentPerformance,
@@ -428,7 +429,6 @@ const clearWorkflowHandoffs = workflowNavigator.clearWorkflowHandoffs;
 const focusAdminWorkflowTarget = workflowNavigator.focusAdminWorkflowTarget;
 const handleWorkflowPrimaryActionClick = workflowNavigator.handleWorkflowPrimaryActionClick;
 const scrollToElementWithOffset = workflowNavigator.scrollToElementWithOffset;
-const showWorkflowHandoff = workflowNavigator.showWorkflowHandoff;
 const syncWorkflowFocusFromHash = workflowNavigator.syncWorkflowFocusFromHash;
 
 function readAdminWorkflowUrlParams() {
@@ -613,6 +613,78 @@ function wrapStatsGroup(title, cards, extraClass) {
     cards.join("") +
     "</div></div>"
   );
+}
+
+function renderFallbackStats() {
+  var statsRoot = document.getElementById("adminStats");
+  if (!statsRoot || authRequired) {
+    return;
+  }
+  var fallbackCards = [
+    buildOperatorGuideCard({
+      kicker: "Add Supply",
+      title: "Add New Listings",
+      copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
+      steps: [
+        "Open the new-listings lane and inspect the source profile.",
+        "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
+      ],
+      done: "The listing is moved into the right next state.",
+      actionLabel: "Open new-listings overview",
+      directActionLabel: "Start with first listing",
+      targetId: "candidateQueuePanel",
+      focusTargetId: "candidateQueueStartHere",
+      targetSummary: "Add New Listings -> first listing row",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Review Supply",
+      title: "Review Applications",
+      copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
+      steps: [
+        "Open the applications lane and start with the oldest or strongest pending item.",
+        "Approve, request changes, reject, or publish so the application leaves limbo.",
+      ],
+      done: "The application has a clear decision.",
+      actionLabel: "Open applications overview",
+      directActionLabel: "Start with top application",
+      targetId: "applicationsPanel",
+      focusTargetId: "applicationReviewStartHere",
+      targetSummary: "Review Applications -> top pending application",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Verify Trust",
+      title: "Fix Missing Listing Details",
+      copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
+      steps: [
+        "Open the missing-details lane and start with the top listing.",
+        "Verify the first missing detail or move the listing into confirmation if therapist input is required.",
+      ],
+      done: "The listing is no longer blocked by its top missing detail.",
+      actionLabel: "Open missing-details overview",
+      directActionLabel: "Start with first listing",
+      targetId: "importBlockerSprintSection",
+      focusTargetId: "importBlockerStartHere",
+      targetSummary: "Fix Missing Listing Details -> first listing row",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Publish And Maintain",
+      title: "Review Listing Updates",
+      copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
+      steps: [
+        "Open the listing-updates lane and start with the highest-risk listing.",
+        "Review the stale or trust-risk fields and decide the next action.",
+      ],
+      done: "The listing has a clear maintenance decision recorded.",
+      actionLabel: "Open listing-updates overview",
+      directActionLabel: "Start with first refresh task",
+      targetId: "refreshQueueSection",
+      focusTargetId: "refreshQueueStartHere",
+      targetSummary: "Review Listing Updates -> first listing task",
+    }),
+  ];
+  statsRoot.innerHTML =
+    '<div class="mini-status" style="margin-bottom:1rem"><strong>Admin note:</strong> Showing the resilient workflow launcher while the full dashboard reloads.</div>' +
+    wrapStatsGroup("Start Here", fallbackCards, "ops-grid");
 }
 
 function buildOperatorGuideCard(config) {
@@ -3806,665 +3878,707 @@ function buildSegmentStrategySnapshots(events, outcomes) {
 }
 
 function renderStats() {
-  if (authRequired) {
-    document.getElementById("adminStats").innerHTML = "";
+  var statsRoot = document.getElementById("adminStats");
+  if (!statsRoot) {
     return;
   }
-
-  const stats =
-    dataMode === "sanity"
-      ? {
-          total_therapists: publishedTherapists.length,
-          states_covered: new Set(
-            publishedTherapists.map(function (item) {
-              return item.state;
-            }),
-          ).size,
-          accepting_count: publishedTherapists.filter(function (item) {
-            return item.accepting_new_patients;
-          }).length,
-        }
-      : getStats();
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
-  const conciergeRequests = readConciergeRequests();
-  const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
-  const outreachOutcomes = readOutreachOutcomes();
-  const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
-  const matchReadyCount = therapists.filter(function (item) {
-    return getTherapistMatchReadiness(item).score >= 85;
-  }).length;
-  const openConciergeCount = conciergeRequests.filter(function (item) {
-    return item.request_status !== "resolved";
-  }).length;
-  const openPortalRequestCount = portalRequests.filter(function (item) {
-    return item.status !== "resolved";
-  }).length;
-  const heardBackCount = outreachOutcomes.filter(function (item) {
-    return item.outcome === "heard_back";
-  }).length;
-  const bookedConsultCount = outreachOutcomes.filter(function (item) {
-    return item.outcome === "booked_consult";
-  }).length;
-  const profilesNeedingRefresh = therapists.filter(function (item) {
-    return (
-      getDataFreshnessSummary(item).status !== "fresh" || getTherapistFieldTrustAttentionCount(item)
-    );
-  }).length;
-  const profilesWithFieldTrustAttention = therapists.filter(function (item) {
-    return getTherapistFieldTrustAttentionCount(item) > 0;
-  }).length;
-  const recentlyMaintainedCount = therapists.filter(function (item) {
-    return Boolean(getConfirmationGraceWindowNote(item));
-  }).length;
-  const profilesNeedingConfirmation = therapists.filter(function (item) {
-    return getTherapistConfirmationAgenda(item).needs_confirmation;
-  }).length;
-  const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
-  const strictImportBlockerCount = strictImportBlockers.length;
-  const topStrictImportBlocker = strictImportBlockers.length
-    ? strictImportBlockers[0].item.name
-    : "";
-  const strictImportBlockerHealth =
-    strictImportBlockerCount === 0
-      ? "Safe import gate clear"
-      : strictImportBlockerCount <= 3
-        ? "Safe import gate blocked by a small top wave"
-        : "Safe import gate still blocked by a broader backlog";
-  const confirmationQueue = getPublishedTherapistConfirmationQueue();
-  const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
-  const refreshQueue = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
-      };
-    })
-    .filter(function (entry) {
-      return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
-    })
-    .sort(function (a, b) {
-      const weight = {
-        aging: 0,
-        watch: 1,
-        fresh: 2,
-      };
-      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
-      if (trustDiff) {
-        return trustDiff;
-      }
-      return (
-        (b.freshness.needs_reconfirmation_fields || []).length -
-        (a.freshness.needs_reconfirmation_fields || []).length
-      );
-    });
-  const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
-  const recentlyMaintainedProfiles = therapists.filter(function (item) {
-    return Boolean(getConfirmationGraceWindowNote(item));
-  });
-  const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
-    ? recentlyMaintainedProfiles[0].name
-    : "";
-  const confirmationQueueState = readConfirmationQueueState();
-  const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
-    var entry = confirmationQueueState[slug];
-    return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
-  }).length;
-  const pendingApplicationsCount = applications.filter(function (item) {
-    return item.status === "pending";
-  }).length;
-  const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
-  const candidateReviewCount = candidateQueueItems.filter(function (item) {
-    return item.review_status !== "published" && item.review_status !== "archived";
-  }).length;
-  const readyToApplyCount = confirmationQueue.filter(function (entry) {
-    var status = entry && entry.workflow ? entry.workflow.status : "not_started";
-    return status === "confirmed";
-  }).length;
-  const listingPromotionCount = therapists.filter(function (item) {
-    return (
-      getTherapistMatchReadiness(item).score >= 90 &&
-      getTherapistMerchandisingQuality(item).score >= 85 &&
-      getDataFreshnessSummary(item).status !== "aging" &&
-      !getTherapistConfirmationAgenda(item).needs_confirmation &&
-      getTherapistFieldTrustAttentionCount(item) === 0
-    );
-  }).length;
-  const nextBestActions = getNextBestAdminActions({
-    applications: applications,
-    getClaimActionQueue: getClaimActionQueue,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-    getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
-    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    getTherapistMatchReadiness: getTherapistMatchReadiness,
-    getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
-    therapists: therapists,
-  });
-  const workQueueSnapshot = reviewerWorkspace.getHumanWorkQueueSnapshot(4);
-  const workQueueCards = [
-    buildWorkQueueCard({
-      bucket: "my_tasks",
-      label: "My Tasks",
-      count: workQueueSnapshot.myTasks.length,
-      meta: workQueueSnapshot.preferredReviewer
-        ? "Assigned to " + workQueueSnapshot.preferredReviewer
-        : "Set a preferred reviewer to use this bucket",
-      topItem: workQueueSnapshot.myTasks[0] || null,
-      items: workQueueSnapshot.myTasks,
-      actionLabel: workQueueSnapshot.myTasks.length ? "Open first owned task" : "Nothing assigned",
-    }),
-    buildWorkQueueCard({
-      bucket: "unassigned",
-      label: "Unassigned",
-      count: workQueueSnapshot.unassigned.length,
-      meta: "Work that still needs an owner",
-      topItem: workQueueSnapshot.unassigned[0] || null,
-      items: workQueueSnapshot.unassigned,
-      actionLabel: workQueueSnapshot.unassigned.length
-        ? "Open first unassigned task"
-        : "No unassigned work",
-    }),
-    buildWorkQueueCard({
-      bucket: "due_today",
-      label: "Due Today",
-      count: workQueueSnapshot.dueToday.length,
-      meta: "Overdue and due-today work across the main lanes",
-      topItem: workQueueSnapshot.dueToday[0] || null,
-      items: workQueueSnapshot.dueToday,
-      actionLabel: workQueueSnapshot.dueToday.length ? "Open first due task" : "Nothing due today",
-    }),
-    buildWorkQueueCard({
-      bucket: "done_recently",
-      label: "Done Recently",
-      count: workQueueSnapshot.doneRecently.length,
-      meta: "Recently completed work for quick handoff context",
-      topItem: workQueueSnapshot.doneRecently[0] || null,
-      items: workQueueSnapshot.doneRecently,
-      actionLabel: workQueueSnapshot.doneRecently.length
-        ? "Open most recent completed task"
-        : "No recent completions",
-    }),
-  ];
-  const publishMaintainCardConfig =
-    readyToApplyCount > 0
-      ? {
-          title: "Apply Ready Updates",
-          countLabel: readyToApplyCount,
-          copy: "Land therapist-confirmed values on live listings so trusted updates do not sit waiting in the queue.",
-          steps: [
-            "Open the confirmed update queue and start with the top ready profile.",
-            "Apply the therapist-confirmed values that are ready for live listings.",
-            "Confirm the listing is now updated and no longer waiting on a live apply decision.",
-          ],
-          done: "The confirmed profile has been applied to the live listing or moved out of the ready-to-apply state with a clear reason.",
-          actionLabel: "Open confirm-details overview",
-          directActionLabel: "Start with first ready update",
-          targetId: "confirmationQueueSection",
-          focusTargetId: "confirmationQueueStartHere",
-          confirmationFilter: "confirmed",
-        }
-      : profilesNeedingRefresh > 0
+  if (authRequired) {
+    statsRoot.innerHTML = "";
+    return;
+  }
+  try {
+    const stats =
+      dataMode === "sanity"
         ? {
-            title: "Review Listing Updates",
-            countLabel: profilesNeedingRefresh,
-            copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
-            steps: [
-              "Open the refresh queue and start with the highest-risk listing.",
-              "Review the stale or trust-risk fields and decide refresh versus confirmation.",
-              "Mark the item reviewed, defer it, or move it into a stronger follow-up path.",
-            ],
-            done: "The listing is no longer the top refresh risk and has a clear maintenance decision recorded.",
-            actionLabel: "Open listing-updates overview",
-            directActionLabel: "Start with first refresh task",
-            targetId: "refreshQueueSection",
-            focusTargetId: "refreshQueueStartHere",
+            total_therapists: publishedTherapists.length,
+            states_covered: new Set(
+              publishedTherapists.map(function (item) {
+                return item.state;
+              }),
+            ).size,
+            accepting_count: publishedTherapists.filter(function (item) {
+              return item.accepting_new_patients;
+            }).length,
           }
-        : {
-            title: "Promote Live Listings",
-            countLabel: listingPromotionCount,
-            copy: "Move strong live listings into the right visibility level so good profiles do not sit under-promoted.",
-            steps: [
-              "Open live-listing controls and start with the top promotion decision.",
-              "Choose the simplest clear state for the profile: feature it, mark it ready to feature, or keep it standard.",
-              "Leave the listing in the right visibility level before moving on.",
-            ],
-            done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
-            actionLabel: "Open listings overview",
-            directActionLabel: "Start with top listing decision",
-            targetId: "publishedListingsSection",
-            focusTargetId: "publishedListingsStartHere",
-          };
-  const verifyTrustCardConfig =
-    strictImportBlockerCount > 0
-      ? {
-          title: "Fix Missing Listing Details",
-          countLabel: strictImportBlockerCount,
-          copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
-          steps: [
-            "Open the missing-details lane and start with the top listing.",
-            "Verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.",
-            "Leave the listing with fewer missing trust details or in the correct follow-up path before moving on.",
-          ],
-          done: "The listing is no longer missing its top trust-critical detail or has been moved into confirmation with a clear next step.",
-          actionLabel: "Open missing-details overview",
-          directActionLabel: "Start with first listing",
-          targetId: "importBlockerSprintSection",
-          focusTargetId: "importBlockerStartHere",
+        : getStats();
+    const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+    const applications = dataMode === "sanity" ? remoteApplications : getApplications();
+    const conciergeRequests = readConciergeRequests();
+    const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
+    const outreachOutcomes = readOutreachOutcomes();
+    const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
+    const matchReadyCount = therapists.filter(function (item) {
+      return getTherapistMatchReadiness(item).score >= 85;
+    }).length;
+    const openConciergeCount = conciergeRequests.filter(function (item) {
+      return item.request_status !== "resolved";
+    }).length;
+    const openPortalRequestCount = portalRequests.filter(function (item) {
+      return item.status !== "resolved";
+    }).length;
+    const heardBackCount = outreachOutcomes.filter(function (item) {
+      return item.outcome === "heard_back";
+    }).length;
+    const bookedConsultCount = outreachOutcomes.filter(function (item) {
+      return item.outcome === "booked_consult";
+    }).length;
+    const profilesNeedingRefresh = therapists.filter(function (item) {
+      return (
+        getDataFreshnessSummary(item).status !== "fresh" ||
+        getTherapistFieldTrustAttentionCount(item)
+      );
+    }).length;
+    const profilesWithFieldTrustAttention = therapists.filter(function (item) {
+      return getTherapistFieldTrustAttentionCount(item) > 0;
+    }).length;
+    const recentlyMaintainedCount = therapists.filter(function (item) {
+      return Boolean(getConfirmationGraceWindowNote(item));
+    }).length;
+    const profilesNeedingConfirmation = therapists.filter(function (item) {
+      return getTherapistConfirmationAgenda(item).needs_confirmation;
+    }).length;
+    const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
+    const strictImportBlockerCount = strictImportBlockers.length;
+    const topStrictImportBlocker = strictImportBlockers.length
+      ? strictImportBlockers[0].item.name
+      : "";
+    const strictImportBlockerHealth =
+      strictImportBlockerCount === 0
+        ? "Safe import gate clear"
+        : strictImportBlockerCount <= 3
+          ? "Safe import gate blocked by a small top wave"
+          : "Safe import gate still blocked by a broader backlog";
+    const confirmationQueue = getPublishedTherapistConfirmationQueue();
+    const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
+    const refreshQueue = therapists
+      .map(function (item) {
+        return {
+          item: item,
+          freshness: getDataFreshnessSummary(item),
+          trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
+        };
+      })
+      .filter(function (entry) {
+        return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
+      })
+      .sort(function (a, b) {
+        const weight = {
+          aging: 0,
+          watch: 1,
+          fresh: 2,
+        };
+        const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
+        if (statusDiff) {
+          return statusDiff;
         }
-      : awaitingConfirmationCount > 0
+        const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
+        if (trustDiff) {
+          return trustDiff;
+        }
+        return (
+          (b.freshness.needs_reconfirmation_fields || []).length -
+          (a.freshness.needs_reconfirmation_fields || []).length
+        );
+      });
+    const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
+    const recentlyMaintainedProfiles = therapists.filter(function (item) {
+      return Boolean(getConfirmationGraceWindowNote(item));
+    });
+    const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
+      ? recentlyMaintainedProfiles[0].name
+      : "";
+    const confirmationQueueState = readConfirmationQueueState();
+    const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
+      var entry = confirmationQueueState[slug];
+      return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
+    }).length;
+    const pendingApplicationsCount = applications.filter(function (item) {
+      return item.status === "pending";
+    }).length;
+    const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
+    const candidateReviewCount = candidateQueueItems.filter(function (item) {
+      return item.review_status !== "published" && item.review_status !== "archived";
+    }).length;
+    const readyToApplyCount = confirmationQueue.filter(function (entry) {
+      var status = entry && entry.workflow ? entry.workflow.status : "not_started";
+      return status === "confirmed";
+    }).length;
+    const listingPromotionCount = therapists.filter(function (item) {
+      return (
+        getTherapistMatchReadiness(item).score >= 90 &&
+        getTherapistMerchandisingQuality(item).score >= 85 &&
+        getDataFreshnessSummary(item).status !== "aging" &&
+        !getTherapistConfirmationAgenda(item).needs_confirmation &&
+        getTherapistFieldTrustAttentionCount(item) === 0
+      );
+    }).length;
+    let nextBestActions = [];
+    try {
+      nextBestActions = getNextBestAdminActions({
+        applications: applications,
+        getClaimActionQueue: getClaimActionQueue,
+        getDataFreshnessSummary: getDataFreshnessSummary,
+        getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+        getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
+        getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+        getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+        getTherapistMatchReadiness: getTherapistMatchReadiness,
+        getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+        therapists: therapists,
+      });
+    } catch (error) {
+      console.error("Admin next-best actions failed to render:", error);
+      nextBestActions = [];
+    }
+    let workQueueSnapshot = {
+      preferredReviewer: "",
+      myTasks: [],
+      unassigned: [],
+      dueToday: [],
+      doneRecently: [],
+    };
+    try {
+      workQueueSnapshot = reviewerWorkspace.getHumanWorkQueueSnapshot(4) || workQueueSnapshot;
+    } catch (error) {
+      console.error("Admin work queue failed to render:", error);
+    }
+    let workQueueCards = [];
+    try {
+      workQueueCards = [
+        buildWorkQueueCard({
+          bucket: "my_tasks",
+          label: "My Tasks",
+          count: workQueueSnapshot.myTasks.length,
+          meta: workQueueSnapshot.preferredReviewer
+            ? "Assigned to " + workQueueSnapshot.preferredReviewer
+            : "Set a preferred reviewer to use this bucket",
+          topItem: workQueueSnapshot.myTasks[0] || null,
+          items: workQueueSnapshot.myTasks,
+          actionLabel: workQueueSnapshot.myTasks.length
+            ? "Open first owned task"
+            : "Nothing assigned",
+        }),
+        buildWorkQueueCard({
+          bucket: "unassigned",
+          label: "Unassigned",
+          count: workQueueSnapshot.unassigned.length,
+          meta: "Work that still needs an owner",
+          topItem: workQueueSnapshot.unassigned[0] || null,
+          items: workQueueSnapshot.unassigned,
+          actionLabel: workQueueSnapshot.unassigned.length
+            ? "Open first unassigned task"
+            : "No unassigned work",
+        }),
+        buildWorkQueueCard({
+          bucket: "due_today",
+          label: "Due Today",
+          count: workQueueSnapshot.dueToday.length,
+          meta: "Overdue and due-today work across the main lanes",
+          topItem: workQueueSnapshot.dueToday[0] || null,
+          items: workQueueSnapshot.dueToday,
+          actionLabel: workQueueSnapshot.dueToday.length
+            ? "Open first due task"
+            : "Nothing due today",
+        }),
+        buildWorkQueueCard({
+          bucket: "done_recently",
+          label: "Done Recently",
+          count: workQueueSnapshot.doneRecently.length,
+          meta: "Recently completed work for quick handoff context",
+          topItem: workQueueSnapshot.doneRecently[0] || null,
+          items: workQueueSnapshot.doneRecently,
+          actionLabel: workQueueSnapshot.doneRecently.length
+            ? "Open most recent completed task"
+            : "No recent completions",
+        }),
+      ];
+    } catch (error) {
+      console.error("Admin work queue cards failed to render:", error);
+      workQueueCards = [];
+    }
+    const publishMaintainCardConfig =
+      readyToApplyCount > 0
         ? {
-            title: "Follow Up Confirmations",
-            countLabel: awaitingConfirmationCount,
-            copy: "Follow up on therapist confirmation requests so trusted listing details do not sit waiting on replies.",
+            title: "Apply Ready Updates",
+            countLabel: readyToApplyCount,
+            copy: "Land therapist-confirmed values on live listings so trusted updates do not sit waiting in the queue.",
             steps: [
-              "Open the follow-up queue and start with the top waiting profile.",
-              "Send the next follow-up or capture a reply if one has arrived.",
-              "Update the confirmation state so the profile moves forward instead of staying in waiting.",
+              "Open the confirmed update queue and start with the top ready profile.",
+              "Apply the therapist-confirmed values that are ready for live listings.",
+              "Confirm the listing is now updated and no longer waiting on a live apply decision.",
             ],
-            done: "The profile is no longer sitting in waiting-on-therapist without a fresh follow-up or captured reply.",
-            actionLabel: "Open reply follow-ups overview",
-            directActionLabel: "Start with first follow-up",
+            done: "The confirmed profile has been applied to the live listing or moved out of the ready-to-apply state with a clear reason.",
+            actionLabel: "Open confirm-details overview",
+            directActionLabel: "Start with first ready update",
             targetId: "confirmationQueueSection",
             focusTargetId: "confirmationQueueStartHere",
-            confirmationFilter: "waiting_on_therapist",
+            confirmationFilter: "confirmed",
           }
-        : {
-            title: "Send Confirmation Requests",
-            countLabel: profilesNeedingConfirmation,
-            copy: "Send new confirmation requests for missing operational details so live listings stay trustworthy and current.",
+        : profilesNeedingRefresh > 0
+          ? {
+              title: "Review Listing Updates",
+              countLabel: profilesNeedingRefresh,
+              copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
+              steps: [
+                "Open the refresh queue and start with the highest-risk listing.",
+                "Review the stale or trust-risk fields and decide refresh versus confirmation.",
+                "Mark the item reviewed, defer it, or move it into a stronger follow-up path.",
+              ],
+              done: "The listing is no longer the top refresh risk and has a clear maintenance decision recorded.",
+              actionLabel: "Open listing-updates overview",
+              directActionLabel: "Start with first refresh task",
+              targetId: "refreshQueueSection",
+              focusTargetId: "refreshQueueStartHere",
+            }
+          : {
+              title: "Promote Live Listings",
+              countLabel: listingPromotionCount,
+              copy: "Move strong live listings into the right visibility level so good profiles do not sit under-promoted.",
+              steps: [
+                "Open live-listing controls and start with the top promotion decision.",
+                "Choose the simplest clear state for the profile: feature it, mark it ready to feature, or keep it standard.",
+                "Leave the listing in the right visibility level before moving on.",
+              ],
+              done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
+              actionLabel: "Open listings overview",
+              directActionLabel: "Start with top listing decision",
+              targetId: "publishedListingsSection",
+              focusTargetId: "publishedListingsStartHere",
+            };
+    const verifyTrustCardConfig =
+      strictImportBlockerCount > 0
+        ? {
+            title: "Fix Missing Listing Details",
+            countLabel: strictImportBlockerCount,
+            copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
             steps: [
-              "Open the confirmation sprint and start with the top profile needing outreach.",
-              "Send the confirmation request using the recommended field order and outreach path.",
-              "Mark the request state clearly so the profile leaves the unsent confirmation pile.",
+              "Open the missing-details lane and start with the top listing.",
+              "Verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.",
+              "Leave the listing with fewer missing trust details or in the correct follow-up path before moving on.",
             ],
-            done: "The profile has a clear confirmation request state and is no longer sitting as an unworked trust task.",
-            actionLabel: "Open confirmation sprint overview",
-            directActionLabel: "Start with first confirmation task",
-            targetId: "confirmationSprintSection",
-            focusTargetId: "confirmationSprintStartHere",
-          };
-  const startHereCards = [
-    buildOperatorGuideCard({
-      kicker: "Add Supply",
-      title: "Add New Listings",
-      countLabel: candidateReviewCount,
-      copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
-      steps: [
-        "Open the new-listings lane and inspect the source profile.",
-        "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
-        "Move the card to the right next state before leaving it.",
-      ],
-      done: "The listing is marked ready, sent to confirmation, merged as a duplicate, or published.",
-      actionLabel: "Open new-listings overview",
-      directActionLabel: "Start with first listing",
-      targetId: "candidateQueuePanel",
-      focusTargetId: "candidateQueueStartHere",
-      targetSummary: "Add New Listings -> first listing row",
-      overviewSummary: "Add New Listings overview",
-    }),
-    buildOperatorGuideCard({
-      kicker: "Review Supply",
-      title: "Review Applications",
-      countLabel: pendingApplicationsCount,
-      copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
-      steps: [
-        "Open the applications lane and start with the oldest or strongest pending item.",
-        "Check trust-critical fields, revision notes, and any therapist follow-up context.",
-        "Approve, request changes, reject, or publish so the application leaves limbo.",
-      ],
-      done: "The application has a clear decision and no longer sits in the pending review pile.",
-      actionLabel: "Open applications overview",
-      directActionLabel: "Start with top application",
-      targetId: "applicationsPanel",
-      applicationStatus: "pending",
-      focusTargetId: "applicationReviewStartHere",
-      targetSummary: "Review Applications -> top pending application",
-      overviewSummary: "Review Applications overview",
-    }),
-    buildOperatorGuideCard({
-      kicker: "Verify Trust",
-      title: verifyTrustCardConfig.title,
-      countLabel: verifyTrustCardConfig.countLabel,
-      copy: verifyTrustCardConfig.copy,
-      steps: verifyTrustCardConfig.steps,
-      done: verifyTrustCardConfig.done,
-      actionLabel: verifyTrustCardConfig.actionLabel,
-      directActionLabel: verifyTrustCardConfig.directActionLabel,
-      targetId: verifyTrustCardConfig.targetId,
-      focusTargetId: verifyTrustCardConfig.focusTargetId,
-      focusSelector: verifyTrustCardConfig.focusSelector,
-      confirmationFilter: verifyTrustCardConfig.confirmationFilter,
-      targetSummary:
-        verifyTrustCardConfig.targetId === "importBlockerSprintSection"
-          ? "Fix Missing Listing Details -> first listing row"
-          : verifyTrustCardConfig.targetId === "confirmationQueueSection"
-            ? "Confirm Listing Details -> first waiting follow-up"
-            : "Send Confirmation Requests -> first outreach task",
-      overviewSummary:
-        verifyTrustCardConfig.targetId === "importBlockerSprintSection"
-          ? "Fix Missing Listing Details overview"
-          : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+            done: "The listing is no longer missing its top trust-critical detail or has been moved into confirmation with a clear next step.",
+            actionLabel: "Open missing-details overview",
+            directActionLabel: "Start with first listing",
+            targetId: "importBlockerSprintSection",
+            focusTargetId: "importBlockerStartHere",
+          }
+        : awaitingConfirmationCount > 0
+          ? {
+              title: "Follow Up Confirmations",
+              countLabel: awaitingConfirmationCount,
+              copy: "Follow up on therapist confirmation requests so trusted listing details do not sit waiting on replies.",
+              steps: [
+                "Open the follow-up queue and start with the top waiting profile.",
+                "Send the next follow-up or capture a reply if one has arrived.",
+                "Update the confirmation state so the profile moves forward instead of staying in waiting.",
+              ],
+              done: "The profile is no longer sitting in waiting-on-therapist without a fresh follow-up or captured reply.",
+              actionLabel: "Open reply follow-ups overview",
+              directActionLabel: "Start with first follow-up",
+              targetId: "confirmationQueueSection",
+              focusTargetId: "confirmationQueueStartHere",
+              confirmationFilter: "waiting_on_therapist",
+            }
+          : {
+              title: "Send Confirmation Requests",
+              countLabel: profilesNeedingConfirmation,
+              copy: "Send new confirmation requests for missing operational details so live listings stay trustworthy and current.",
+              steps: [
+                "Open the confirmation sprint and start with the top profile needing outreach.",
+                "Send the confirmation request using the recommended field order and outreach path.",
+                "Mark the request state clearly so the profile leaves the unsent confirmation pile.",
+              ],
+              done: "The profile has a clear confirmation request state and is no longer sitting as an unworked trust task.",
+              actionLabel: "Open confirmation sprint overview",
+              directActionLabel: "Start with first confirmation task",
+              targetId: "confirmationSprintSection",
+              focusTargetId: "confirmationSprintStartHere",
+            };
+    const startHereCards = [
+      buildOperatorGuideCard({
+        kicker: "Add Supply",
+        title: "Add New Listings",
+        countLabel: candidateReviewCount,
+        copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
+        steps: [
+          "Open the new-listings lane and inspect the source profile.",
+          "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
+          "Move the card to the right next state before leaving it.",
+        ],
+        done: "The listing is marked ready, sent to confirmation, merged as a duplicate, or published.",
+        actionLabel: "Open new-listings overview",
+        directActionLabel: "Start with first listing",
+        targetId: "candidateQueuePanel",
+        focusTargetId: "candidateQueueStartHere",
+        targetSummary: "Add New Listings -> first listing row",
+        overviewSummary: "Add New Listings overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Review Supply",
+        title: "Review Applications",
+        countLabel: pendingApplicationsCount,
+        copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
+        steps: [
+          "Open the applications lane and start with the oldest or strongest pending item.",
+          "Check trust-critical fields, revision notes, and any therapist follow-up context.",
+          "Approve, request changes, reject, or publish so the application leaves limbo.",
+        ],
+        done: "The application has a clear decision and no longer sits in the pending review pile.",
+        actionLabel: "Open applications overview",
+        directActionLabel: "Start with top application",
+        targetId: "applicationsPanel",
+        applicationStatus: "pending",
+        focusTargetId: "applicationReviewStartHere",
+        targetSummary: "Review Applications -> top pending application",
+        overviewSummary: "Review Applications overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Verify Trust",
+        title: verifyTrustCardConfig.title,
+        countLabel: verifyTrustCardConfig.countLabel,
+        copy: verifyTrustCardConfig.copy,
+        steps: verifyTrustCardConfig.steps,
+        done: verifyTrustCardConfig.done,
+        actionLabel: verifyTrustCardConfig.actionLabel,
+        directActionLabel: verifyTrustCardConfig.directActionLabel,
+        targetId: verifyTrustCardConfig.targetId,
+        focusTargetId: verifyTrustCardConfig.focusTargetId,
+        focusSelector: verifyTrustCardConfig.focusSelector,
+        confirmationFilter: verifyTrustCardConfig.confirmationFilter,
+        targetSummary:
+          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+            ? "Fix Missing Listing Details -> first listing row"
+            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+              ? "Confirm Listing Details -> first waiting follow-up"
+              : "Send Confirmation Requests -> first outreach task",
+        overviewSummary:
+          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+            ? "Fix Missing Listing Details overview"
+            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+              ? "Confirm Listing Details overview"
+              : "Send Confirmation Requests overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Publish And Maintain",
+        title: publishMaintainCardConfig.title,
+        countLabel: publishMaintainCardConfig.countLabel,
+        copy: publishMaintainCardConfig.copy,
+        steps: publishMaintainCardConfig.steps,
+        done: publishMaintainCardConfig.done,
+        actionLabel: publishMaintainCardConfig.actionLabel,
+        directActionLabel: publishMaintainCardConfig.directActionLabel,
+        targetId: publishMaintainCardConfig.targetId,
+        focusTargetId: publishMaintainCardConfig.focusTargetId,
+        confirmationFilter: publishMaintainCardConfig.confirmationFilter,
+        targetSummary:
+          publishMaintainCardConfig.targetId === "confirmationQueueSection"
+            ? "Confirm Listing Details -> first ready-to-apply update"
+            : publishMaintainCardConfig.targetId === "refreshQueueSection"
+              ? "Review Listing Updates -> first listing task"
+              : "Promote Live Listings -> top listing decision",
+        overviewSummary:
+          publishMaintainCardConfig.targetId === "confirmationQueueSection"
             ? "Confirm Listing Details overview"
-            : "Send Confirmation Requests overview",
-    }),
-    buildOperatorGuideCard({
-      kicker: "Publish And Maintain",
-      title: publishMaintainCardConfig.title,
-      countLabel: publishMaintainCardConfig.countLabel,
-      copy: publishMaintainCardConfig.copy,
-      steps: publishMaintainCardConfig.steps,
-      done: publishMaintainCardConfig.done,
-      actionLabel: publishMaintainCardConfig.actionLabel,
-      directActionLabel: publishMaintainCardConfig.directActionLabel,
-      targetId: publishMaintainCardConfig.targetId,
-      focusTargetId: publishMaintainCardConfig.focusTargetId,
-      confirmationFilter: publishMaintainCardConfig.confirmationFilter,
-      targetSummary:
-        publishMaintainCardConfig.targetId === "confirmationQueueSection"
-          ? "Confirm Listing Details -> first ready-to-apply update"
-          : publishMaintainCardConfig.targetId === "refreshQueueSection"
-            ? "Review Listing Updates -> first listing task"
-            : "Promote Live Listings -> top listing decision",
-      overviewSummary:
-        publishMaintainCardConfig.targetId === "confirmationQueueSection"
-          ? "Confirm Listing Details overview"
-          : publishMaintainCardConfig.targetId === "refreshQueueSection"
-            ? "Review Listing Updates overview"
-            : "Promote Live Listings overview",
-    }),
-  ];
+            : publishMaintainCardConfig.targetId === "refreshQueueSection"
+              ? "Review Listing Updates overview"
+              : "Promote Live Listings overview",
+      }),
+    ];
 
-  const primaryOpsCards = [
-    buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
-      applicationStatus: "pending",
-      actionLabel: "Open review queue",
-    }),
-    buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
-      conciergeStatus: "open",
-      actionLabel: "Open active items",
-    }),
-    buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
-      portalRequestStatus: "open",
-      actionLabel: "Open portal queue",
-    }),
-    buildActionStatCard(profilesNeedingRefresh, "Listings needing review", "refreshQueueSection", {
-      meta: topRefreshProfile
-        ? "Top: " +
-          topRefreshProfile +
-          (profilesWithFieldTrustAttention
-            ? " · " + profilesWithFieldTrustAttention + " with trust risk"
-            : "")
-        : profilesWithFieldTrustAttention
-          ? profilesWithFieldTrustAttention + " with trust risk"
-          : "",
-      actionLabel: "Open listing-updates lane",
-    }),
-    buildActionStatCard(
-      strictImportBlockerCount,
-      "Listings missing key details",
-      "importBlockerSprintSection",
-      {
-        meta:
-          strictImportBlockerHealth +
-          (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
-        actionLabel: "Open missing-details lane",
-      },
-    ),
-    buildActionStatCard(
-      profilesNeedingConfirmation,
-      "Listings needing confirmation",
-      "confirmationQueueSection",
-      {
-        meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
-        actionLabel: "Open confirm-details lane",
-        focusTargetId: "confirmationQueueStartHere",
-      },
-    ),
-    buildActionStatCard(
-      awaitingConfirmationCount,
-      "Reply follow-ups open",
-      "confirmationQueueSection",
-      {
-        confirmationFilter: "waiting_on_therapist",
-        actionLabel: "Open reply follow-ups",
-        focusTargetId: "confirmationQueueStartHere",
-      },
-    ),
-  ];
+    const primaryOpsCards = [
+      buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
+        applicationStatus: "pending",
+        actionLabel: "Open review queue",
+      }),
+      buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
+        conciergeStatus: "open",
+        actionLabel: "Open active items",
+      }),
+      buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
+        portalRequestStatus: "open",
+        actionLabel: "Open portal queue",
+      }),
+      buildActionStatCard(
+        profilesNeedingRefresh,
+        "Listings needing review",
+        "refreshQueueSection",
+        {
+          meta: topRefreshProfile
+            ? "Top: " +
+              topRefreshProfile +
+              (profilesWithFieldTrustAttention
+                ? " · " + profilesWithFieldTrustAttention + " with trust risk"
+                : "")
+            : profilesWithFieldTrustAttention
+              ? profilesWithFieldTrustAttention + " with trust risk"
+              : "",
+          actionLabel: "Open listing-updates lane",
+        },
+      ),
+      buildActionStatCard(
+        strictImportBlockerCount,
+        "Listings missing key details",
+        "importBlockerSprintSection",
+        {
+          meta:
+            strictImportBlockerHealth +
+            (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
+          actionLabel: "Open missing-details lane",
+        },
+      ),
+      buildActionStatCard(
+        profilesNeedingConfirmation,
+        "Listings needing confirmation",
+        "confirmationQueueSection",
+        {
+          meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
+          actionLabel: "Open confirm-details lane",
+          focusTargetId: "confirmationQueueStartHere",
+        },
+      ),
+      buildActionStatCard(
+        awaitingConfirmationCount,
+        "Reply follow-ups open",
+        "confirmationQueueSection",
+        {
+          confirmationFilter: "waiting_on_therapist",
+          actionLabel: "Open reply follow-ups",
+          focusTargetId: "confirmationQueueStartHere",
+        },
+      ),
+    ];
 
-  const secondaryContextCards = [
-    buildPassiveStatCard(therapists.length, "Live listings"),
-    buildPassiveStatCard(stats.states_covered, "States covered"),
-    buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
-    buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
-    buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
-      actionLabel: "Open concierge queue",
-    }),
-    buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
-    buildPassiveStatCard(bookedConsultCount, "Booked consults"),
-    buildActionStatCard(
-      recentlyMaintainedCount,
-      "Recently maintained",
-      "recentlyMaintainedRefresh",
-      {
-        meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
-        actionLabel: "Open maintained list",
-      },
-    ),
-    buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
-      actionLabel: "Open analytics",
-    }),
-    buildPassiveStatCard(funnelSummary.matches, "Matches run"),
-    buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
-    buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
-  ];
+    const secondaryContextCards = [
+      buildPassiveStatCard(therapists.length, "Live listings"),
+      buildPassiveStatCard(stats.states_covered, "States covered"),
+      buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
+      buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
+      buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
+        actionLabel: "Open concierge queue",
+      }),
+      buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
+      buildPassiveStatCard(bookedConsultCount, "Booked consults"),
+      buildActionStatCard(
+        recentlyMaintainedCount,
+        "Recently maintained",
+        "recentlyMaintainedRefresh",
+        {
+          meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
+          actionLabel: "Open maintained list",
+        },
+      ),
+      buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
+        actionLabel: "Open analytics",
+      }),
+      buildPassiveStatCard(funnelSummary.matches, "Matches run"),
+      buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
+      buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
+    ];
 
-  document.getElementById("adminStats").innerHTML =
-    (getWorkQueueActionFlash()
-      ? '<div class="mini-status" style="margin-bottom:1rem"><strong>Work Queue update:</strong> ' +
-        escapeHtml(getWorkQueueActionFlash()) +
-        "</div>"
-      : "") +
-    wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
-    wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") +
-    (nextBestActions.length
-      ? wrapStatsGroup(
-          "Next Best Actions",
-          nextBestActions.map(function (action, index) {
-            return buildPriorityActionCard(action, index);
-          }),
-          "ops-grid",
-        )
-      : "") +
-    wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
-    wrapStatsGroup("Reference metrics", secondaryContextCards, "");
+    document.getElementById("adminStats").innerHTML =
+      (getWorkQueueActionFlash()
+        ? '<div class="mini-status" style="margin-bottom:1rem"><strong>Work Queue update:</strong> ' +
+          escapeHtml(getWorkQueueActionFlash()) +
+          "</div>"
+        : "") +
+      wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
+      (workQueueCards.length ? wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") : "") +
+      (nextBestActions.length
+        ? wrapStatsGroup(
+            "Next Best Actions",
+            nextBestActions.map(function (action, index) {
+              return buildPriorityActionCard(action, index);
+            }),
+            "ops-grid",
+          )
+        : "") +
+      wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
+      wrapStatsGroup("Reference metrics", secondaryContextCards, "");
 
-  document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var targetId = button.getAttribute("data-admin-scroll-target");
-      var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
-      var applicationStatus = button.getAttribute("data-admin-application-status");
-      var conciergeStatus = button.getAttribute("data-admin-concierge-status");
-      var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
-      var focusSelector = button.getAttribute("data-admin-focus-selector");
-      var focusTargetId = button.getAttribute("data-admin-focus-target-id");
-      var workflowTitle = button.getAttribute("data-admin-workflow-title");
-      var workflowDestination = button.getAttribute("data-admin-workflow-destination");
-      var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
-      var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
-      var workflowDone = button.getAttribute("data-admin-workflow-done");
-      var workflowPrimaryActionLabel = button.getAttribute(
-        "data-admin-workflow-primary-action-label",
-      );
-      var workflowPrimaryActionTargetId = button.getAttribute(
-        "data-admin-workflow-primary-target-id",
-      );
-      if (confirmationFilter) {
-        setConfirmationQueueFilter(confirmationFilter);
-        renderConfirmationQueue();
-      }
-      if (applicationStatus !== null) {
-        applicationFilters.status = applicationStatus || "";
-        var applicationStatusFilter = document.getElementById("applicationStatusFilter");
-        if (applicationStatusFilter) {
-          applicationStatusFilter.value = applicationFilters.status;
+    document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var targetId = button.getAttribute("data-admin-scroll-target");
+        var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
+        var applicationStatus = button.getAttribute("data-admin-application-status");
+        var conciergeStatus = button.getAttribute("data-admin-concierge-status");
+        var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
+        var focusSelector = button.getAttribute("data-admin-focus-selector");
+        var focusTargetId = button.getAttribute("data-admin-focus-target-id");
+        var workflowTitle = button.getAttribute("data-admin-workflow-title");
+        var workflowDestination = button.getAttribute("data-admin-workflow-destination");
+        var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
+        var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
+        var workflowDone = button.getAttribute("data-admin-workflow-done");
+        var workflowPrimaryActionLabel = button.getAttribute(
+          "data-admin-workflow-primary-action-label",
+        );
+        var workflowPrimaryActionTargetId = button.getAttribute(
+          "data-admin-workflow-primary-target-id",
+        );
+        if (confirmationFilter) {
+          setConfirmationQueueFilter(confirmationFilter);
+          renderConfirmationQueue();
         }
-        renderApplications();
-      }
-      if (conciergeStatus !== null) {
-        conciergeFilters.status = conciergeStatus || "";
-        var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
-        if (conciergeStatusFilter) {
-          conciergeStatusFilter.value = conciergeFilters.status;
+        if (applicationStatus !== null) {
+          applicationFilters.status = applicationStatus || "";
+          var applicationStatusFilter = document.getElementById("applicationStatusFilter");
+          if (applicationStatusFilter) {
+            applicationStatusFilter.value = applicationFilters.status;
+          }
+          renderApplications();
         }
-        renderConciergeQueue();
-      }
-      if (portalRequestStatus !== null) {
-        portalRequestFilters.status = portalRequestStatus || "";
-        var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
-        if (portalRequestStatusFilter) {
-          portalRequestStatusFilter.value = portalRequestFilters.status;
+        if (conciergeStatus !== null) {
+          conciergeFilters.status = conciergeStatus || "";
+          var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
+          if (conciergeStatusFilter) {
+            conciergeStatusFilter.value = conciergeFilters.status;
+          }
+          renderConciergeQueue();
         }
-        renderPortalRequestsQueue();
-      }
-      var target = targetId ? document.getElementById(targetId) : null;
-      if (target) {
-        focusAdminWorkflowTarget({
-          sectionTarget: target,
-          focusTargetId: focusTargetId,
-          focusSelector: focusSelector,
-          workflowTitle: workflowTitle,
-          workflowDestination: workflowDestination,
-          workflowFirstStep: workflowFirstStep,
-          workflowNextStep: workflowNextStep,
-          workflowDone: workflowDone,
-          workflowPrimaryActionLabel: workflowPrimaryActionLabel,
-          workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
-        });
-      }
+        if (portalRequestStatus !== null) {
+          portalRequestFilters.status = portalRequestStatus || "";
+          var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
+          if (portalRequestStatusFilter) {
+            portalRequestStatusFilter.value = portalRequestFilters.status;
+          }
+          renderPortalRequestsQueue();
+        }
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) {
+          focusAdminWorkflowTarget({
+            sectionTarget: target,
+            focusTargetId: focusTargetId,
+            focusSelector: focusSelector,
+            workflowTitle: workflowTitle,
+            workflowDestination: workflowDestination,
+            workflowFirstStep: workflowFirstStep,
+            workflowNextStep: workflowNextStep,
+            workflowDone: workflowDone,
+            workflowPrimaryActionLabel: workflowPrimaryActionLabel,
+            workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
+          });
+        }
+      });
     });
-  });
 
-  document.querySelectorAll("[data-work-queue-bucket]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var bucket = button.getAttribute("data-work-queue-bucket") || "";
-      var item =
-        bucket === "my_tasks"
-          ? workQueueSnapshot.myTasks[0]
-          : bucket === "unassigned"
-            ? workQueueSnapshot.unassigned[0]
-            : bucket === "due_today"
-              ? workQueueSnapshot.dueToday[0]
-              : workQueueSnapshot.doneRecently[0];
-      if (!item) {
-        return;
-      }
-      reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+    document.querySelectorAll("[data-work-queue-bucket]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var bucket = button.getAttribute("data-work-queue-bucket") || "";
+        var item =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks[0]
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned[0]
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday[0]
+                : workQueueSnapshot.doneRecently[0];
+        if (!item) {
+          return;
+        }
+        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+      });
     });
-  });
 
-  document.querySelectorAll("[data-work-queue-item]").forEach(function (button) {
-    button.addEventListener("click", function (event) {
-      event.stopPropagation();
-      var bucket = button.getAttribute("data-work-queue-item") || "";
-      var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-      var items =
-        bucket === "my_tasks"
-          ? workQueueSnapshot.myTasks
-          : bucket === "unassigned"
-            ? workQueueSnapshot.unassigned
-            : bucket === "due_today"
-              ? workQueueSnapshot.dueToday
-              : workQueueSnapshot.doneRecently;
-      var item = Array.isArray(items) ? items[index] : null;
-      if (!item) {
-        return;
-      }
-      reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+    document.querySelectorAll("[data-work-queue-item]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-item") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+      });
     });
-  });
 
-  document.querySelectorAll("[data-work-queue-claim]").forEach(function (button) {
-    button.addEventListener("click", async function (event) {
-      event.stopPropagation();
-      var bucket = button.getAttribute("data-work-queue-claim") || "";
-      var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-      var items =
-        bucket === "my_tasks"
-          ? workQueueSnapshot.myTasks
-          : bucket === "unassigned"
-            ? workQueueSnapshot.unassigned
-            : bucket === "due_today"
-              ? workQueueSnapshot.dueToday
-              : workQueueSnapshot.doneRecently;
-      var item = Array.isArray(items) ? items[index] : null;
-      if (!item) {
-        return;
-      }
-      await reviewerWorkspace.claimWorkItem(item.entity_type, item.id);
-      setWorkQueueActionFlash(
-        (item.assignee ? "Reassigned " : "Claimed ") +
-          item.name +
-          " in " +
-          getWorkItemTypeLabel(item.entity_type) +
-          ".",
-      );
-      renderStats();
+    document.querySelectorAll("[data-work-queue-claim]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-claim") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.claimWorkItem(item.entity_type, item.id);
+        setWorkQueueActionFlash(
+          (item.assignee ? "Reassigned " : "Claimed ") +
+            item.name +
+            " in " +
+            getWorkItemTypeLabel(item.entity_type) +
+            ".",
+        );
+        renderStats();
+      });
     });
-  });
 
-  document.querySelectorAll("[data-work-queue-waiting]").forEach(function (button) {
-    button.addEventListener("click", async function (event) {
-      event.stopPropagation();
-      var bucket = button.getAttribute("data-work-queue-waiting") || "";
-      var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-      var items =
-        bucket === "my_tasks"
-          ? workQueueSnapshot.myTasks
-          : bucket === "unassigned"
-            ? workQueueSnapshot.unassigned
-            : bucket === "due_today"
-              ? workQueueSnapshot.dueToday
-              : workQueueSnapshot.doneRecently;
-      var item = Array.isArray(items) ? items[index] : null;
-      if (!item) {
-        return;
-      }
-      await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "waiting");
-      setWorkQueueActionFlash("Moved " + item.name + " to waiting.");
-      renderStats();
+    document.querySelectorAll("[data-work-queue-waiting]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-waiting") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "waiting");
+        setWorkQueueActionFlash("Moved " + item.name + " to waiting.");
+        renderStats();
+      });
     });
-  });
 
-  document.querySelectorAll("[data-work-queue-done]").forEach(function (button) {
-    button.addEventListener("click", async function (event) {
-      event.stopPropagation();
-      var bucket = button.getAttribute("data-work-queue-done") || "";
-      var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-      var items =
-        bucket === "my_tasks"
-          ? workQueueSnapshot.myTasks
-          : bucket === "unassigned"
-            ? workQueueSnapshot.unassigned
-            : bucket === "due_today"
-              ? workQueueSnapshot.dueToday
-              : workQueueSnapshot.doneRecently;
-      var item = Array.isArray(items) ? items[index] : null;
-      if (!item) {
-        return;
-      }
-      await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "done");
-      setWorkQueueActionFlash("Marked " + item.name + " done.");
-      renderStats();
+    document.querySelectorAll("[data-work-queue-done]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-done") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "done");
+        setWorkQueueActionFlash("Marked " + item.name + " done.");
+        renderStats();
+      });
     });
-  });
+  } catch (error) {
+    console.error("Admin stats failed to render:", error);
+    statsRoot.innerHTML =
+      '<div class="empty">The admin dashboard hit a rendering issue. Refresh the page to retry.</div>';
+  }
 }
 
 function inferCoverageRole(item) {
@@ -4544,6 +4658,7 @@ function renderFunnelInsights() {
     events,
     outcomes,
   );
+  const routeOutcomePerformance = summarizeContactRouteOutcomePerformance(outcomes);
   const profileContactExperimentDecision = summarizeProfileContactExperimentDecision(
     events,
     outcomes,
@@ -4783,6 +4898,35 @@ function renderFunnelInsights() {
                 );
               })
               .join("") +
+            "</div>"
+          : "") +
+        (routeOutcomePerformance.rows.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            routeOutcomePerformance.rows
+              .slice(0, 4)
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.route) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.total +
+                      " route-linked outcomes · " +
+                      item.strong +
+                      " strong · " +
+                      item.friction +
+                      " friction",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml(
+                    "Strong rate " + Math.round(item.strong_rate * 100) + "% · Net " + item.net,
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            '</div><div class="mini-status" style="margin-top:0.45rem"><strong>Route outcome readout:</strong> ' +
+            escapeHtml(routeOutcomePerformance.interpretation) +
             "</div>"
           : "") +
         (profileContactExperimentDecision && profileContactExperimentDecision.winner
@@ -5470,47 +5614,6 @@ function renderCandidateQueue() {
     loadData: loadData,
   });
   syncWorkflowFocusFromHash();
-  if (typeof window !== "undefined" && window.location.hash === "#candidateQueueStartHere") {
-    var attempts = 0;
-    var maxAttempts = 50;
-    function focusCandidateStartHere() {
-      attempts += 1;
-      var target = document.getElementById("candidateQueueStartHere");
-      var queueRoot = document.getElementById("candidateQueue");
-      if (target) {
-        showWorkflowHandoff(target, {
-          title: "Start with first candidate",
-          destination: "Candidate Review Queue",
-          firstStep: "Check duplicates and source trust first.",
-          nextStep: "Choose publish, confirmation, merge, or archive before leaving the card.",
-          done: "The candidate leaves the queue with a clear next state.",
-        });
-        scrollToElementWithOffset(target, "start");
-        spotlightSection(target);
-        window.setTimeout(function () {
-          scrollToElementWithOffset(target, "start");
-        }, 140);
-        return;
-      }
-      if (queueRoot && queueRoot.innerHTML.trim() && attempts >= maxAttempts) {
-        showWorkflowHandoff(document.getElementById("candidateQueuePanel"), {
-          title: "Candidate queue is not ready to start",
-          destination: "Candidate Review Queue",
-          firstStep:
-            "This view loaded before a first candidate row was available. Check whether candidates are still loading or no rows match the current filters.",
-          nextStep: "Once a candidate appears, use the first visible card as the starting row.",
-          done: "The queue shows at least one candidate row you can review.",
-        });
-        scrollToElementWithOffset(document.getElementById("candidateQueuePanel"), "start");
-        spotlightSection(document.getElementById("candidateQueuePanel"));
-        return;
-      }
-      if (attempts < maxAttempts) {
-        window.setTimeout(focusCandidateStartHere, 120);
-      }
-    }
-    window.requestAnimationFrame(focusCandidateStartHere);
-  }
 }
 
 function renderConciergeQueue() {
@@ -5979,6 +6082,12 @@ function renderAdminSection(label, renderFn) {
 
 function renderAll() {
   renderAdminSection("stats", renderStats);
+  if (!authRequired) {
+    var statsRoot = document.getElementById("adminStats");
+    if (statsRoot && !statsRoot.innerHTML.trim()) {
+      renderFallbackStats();
+    }
+  }
   renderAdminSection("ingestion scorecard", renderIngestionScorecard);
   renderAdminSection("ops inbox", renderOpsInbox);
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);

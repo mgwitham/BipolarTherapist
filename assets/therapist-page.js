@@ -7,9 +7,15 @@ import {
   getRecentConfirmationSummary,
   getTherapistMatchReadiness,
 } from "./matching-model.js";
-import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
+import {
+  getPublicResponsivenessSignal,
+  summarizeTherapistContactRouteOutcomes,
+} from "./responsiveness-signal.js";
 import {
   getExperimentVariant,
+  readFunnelEvents,
+  rememberTherapistContactRoute,
+  summarizeTherapistContactRoutePerformance,
   trackExperimentExposure,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
@@ -139,6 +145,235 @@ function buildOutreachScript(therapist) {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function getContactStrategy(
+  therapist,
+  responsivenessSignal,
+  routePerformance,
+  routeOutcomePerformance,
+) {
+  var route = "website";
+  var routeLabel = "Use the practice website first";
+  var routeReason = "The website is the clearest starting point on this profile.";
+
+  if (therapist.preferred_contact_method === "booking" && therapist.booking_url) {
+    route = "booking";
+    routeLabel = "Use the booking link first";
+    routeReason = "A booking link usually gives the fastest path to a consult or intake.";
+  } else if (therapist.preferred_contact_method === "phone" && therapist.phone) {
+    route = "phone";
+    routeLabel = "Call the practice first";
+    routeReason =
+      "Phone is marked as the preferred route, so it is the best shot for a quick response.";
+  } else if (therapist.preferred_contact_method === "email" && therapist.email) {
+    route = "email";
+    routeLabel = "Email first";
+    routeReason = "Email is the clearest documented route for a direct first message.";
+  } else if (therapist.preferred_contact_method === "website" && therapist.website) {
+    route = "website";
+    routeLabel = "Use the practice website first";
+    routeReason = "The profile points to the website as the preferred contact path.";
+  } else if (therapist.booking_url) {
+    route = "booking";
+    routeLabel = "Use the booking link first";
+    routeReason = "The booking link creates the most executable next step on this profile.";
+  } else if (therapist.phone) {
+    route = "phone";
+    routeLabel = "Call the practice first";
+    routeReason = "Phone is the most direct route available on this profile.";
+  } else if (therapist.email && therapist.email !== "contact@example.com") {
+    route = "email";
+    routeLabel = "Email first";
+    routeReason = "Email is the cleanest direct route available on this profile.";
+  }
+
+  var outcomeRoute =
+    routeOutcomePerformance &&
+    routeOutcomePerformance.top_route &&
+    routeOutcomePerformance.confidence !== "none" &&
+    routeOutcomePerformance.top_route.route &&
+    routeOutcomePerformance.top_route.route !== "unknown"
+      ? routeOutcomePerformance.top_route.route
+      : "";
+  var performanceRoute =
+    routePerformance &&
+    routePerformance.top_route &&
+    routePerformance.confidence !== "none" &&
+    routePerformance.top_route.route &&
+    routePerformance.top_route.route !== "unknown"
+      ? routePerformance.top_route.route
+      : "";
+  var performanceRouteAvailable =
+    (performanceRoute === "booking" && therapist.booking_url) ||
+    (performanceRoute === "website" && therapist.website) ||
+    (performanceRoute === "phone" && therapist.phone) ||
+    (performanceRoute === "email" && therapist.email && therapist.email !== "contact@example.com");
+
+  var outcomeRouteAvailable =
+    (outcomeRoute === "booking" && therapist.booking_url) ||
+    (outcomeRoute === "website" && therapist.website) ||
+    (outcomeRoute === "phone" && therapist.phone) ||
+    (outcomeRoute === "email" && therapist.email && therapist.email !== "contact@example.com");
+
+  if (outcomeRoute && outcomeRouteAvailable && outcomeRoute !== route) {
+    route = outcomeRoute;
+    routeLabel =
+      route === "booking"
+        ? "Use the booking link first"
+        : route === "phone"
+          ? "Call the practice first"
+          : route === "email"
+            ? "Email first"
+            : "Use the practice website first";
+    routeReason =
+      routeOutcomePerformance.confidence === "strong"
+        ? "Past outreach outcomes most strongly point to this route as the one most likely to lead somewhere useful."
+        : "Past outreach outcomes lean toward this route over the other options so far.";
+  } else if (performanceRoute && performanceRouteAvailable && performanceRoute !== route) {
+    route = performanceRoute;
+    routeLabel =
+      route === "booking"
+        ? "Use the booking link first"
+        : route === "phone"
+          ? "Call the practice first"
+          : route === "email"
+            ? "Email first"
+            : "Use the practice website first";
+    routeReason =
+      routePerformance.confidence === "strong"
+        ? "Real profile behavior most clearly points to this route as the one users choose first."
+        : "Observed profile behavior leans toward this route over the other contact options so far.";
+  } else if (routeOutcomePerformance && routeOutcomePerformance.note) {
+    routeReason =
+      routeOutcomePerformance.confidence === "light"
+        ? routeReason + " " + routeOutcomePerformance.note
+        : routeReason;
+  } else if (routePerformance && routePerformance.note) {
+    routeReason =
+      routePerformance.confidence === "light"
+        ? routeReason + " " + routePerformance.note
+        : routeReason;
+  }
+
+  var replyWindowCopy = therapist.estimated_wait_time
+    ? "Expect the first useful answer to clarify whether timing is still around " +
+      therapist.estimated_wait_time +
+      "."
+    : therapist.accepting_new_patients
+      ? "If this profile is current, you should expect a reply that clarifies intake timing rather than leaving you guessing."
+      : responsivenessSignal && responsivenessSignal.tone === "positive"
+        ? "Public follow-through looks better than usual here, so a reply may still be worth waiting for briefly."
+        : "Treat reply timing as uncertain and use a faster backup plan if you hear nothing.";
+
+  if (responsivenessSignal && responsivenessSignal.tone === "positive") {
+    replyWindowCopy += " Early reply follow-through also looks better than usual here.";
+  }
+
+  var followUpCopy =
+    route === "phone"
+      ? "If you reach voicemail, leave one concise message and try one more call in 2 to 3 business days."
+      : route === "booking"
+        ? "If the booking link does not lead to a real opening, switch to phone or email within 1 to 2 business days."
+        : route === "email"
+          ? "If there is no response after 2 business days, send one short follow-up and then move to the next route."
+          : "If you do not hear back after 2 to 3 business days, follow up once or switch to a more direct route.";
+
+  var backupPlanCopy =
+    therapist.phone && route !== "phone"
+      ? "If this stalls, call the practice next and ask whether they are still taking new bipolar-care inquiries."
+      : therapist.email && therapist.email !== "contact@example.com" && route !== "email"
+        ? "If this stalls, send a short email with your fit question and availability question together."
+        : therapist.website && route !== "website"
+          ? "If this stalls, use the website contact form as a second route before moving on."
+          : "If this stalls after one follow-up, move on to your next shortlist option instead of waiting indefinitely.";
+
+  var confidenceLabel = "Based on profile details";
+  var confidenceNote =
+    "This recommendation is based on the contact routes and practical details listed on the profile.";
+  var confidenceTone = "profile";
+  var proofLine = "";
+
+  if (outcomeRoute && outcomeRouteAvailable) {
+    confidenceLabel =
+      routeOutcomePerformance.confidence === "strong"
+        ? "Based on real outcomes"
+        : "Leaning on early outcomes";
+    confidenceNote = routeOutcomePerformance.note
+      ? routeOutcomePerformance.note
+      : "This recommendation is informed by past replies or consult outcomes tied to this therapist.";
+    confidenceTone = "outcomes";
+  } else if (performanceRoute && performanceRouteAvailable) {
+    confidenceLabel =
+      routePerformance.confidence === "strong"
+        ? "Based on observed behavior"
+        : "Leaning on observed behavior";
+    confidenceNote = routePerformance.note
+      ? routePerformance.note
+      : "This recommendation is informed by the contact route people are choosing most on this profile.";
+    confidenceTone = "behavior";
+  }
+
+  if (route === "booking" && therapist.booking_url) {
+    proofLine = therapist.accepting_new_patients
+      ? "Why this route: there is a live booking path and the profile indicates they are accepting new patients."
+      : "Why this route: there is a live booking path, which is still the most direct way to test current openings.";
+  } else if (
+    route === "phone" &&
+    responsivenessSignal &&
+    responsivenessSignal.tone === "positive"
+  ) {
+    proofLine =
+      "Why this route: early reply follow-through looks better than usual here, so a direct call is worth trying first.";
+  } else if (route === "phone" && therapist.preferred_contact_method === "phone") {
+    proofLine =
+      "Why this route: the profile explicitly marks phone as the preferred contact method.";
+  } else if (route === "email" && therapist.preferred_contact_method === "email") {
+    proofLine =
+      "Why this route: the profile explicitly marks email as the preferred first-contact path.";
+  } else if (route === "website" && therapist.preferred_contact_method === "website") {
+    proofLine =
+      "Why this route: the profile points to the website as the intended first step for inquiries.";
+  } else if (therapist.estimated_wait_time) {
+    proofLine =
+      "Why this route: the profile includes a recent timing note of " +
+      therapist.estimated_wait_time +
+      ", so this is the fastest way to confirm whether that is still current.";
+  } else if (therapist.accepting_new_patients) {
+    proofLine =
+      "Why this route: the profile says they are accepting new patients, so this route is the clearest way to verify the next opening.";
+  } else if (routeOutcomePerformance && routeOutcomePerformance.note) {
+    proofLine = "Why this route: " + routeOutcomePerformance.note;
+  } else if (routePerformance && routePerformance.note) {
+    proofLine = "Why this route: " + routePerformance.note;
+  } else {
+    proofLine =
+      "Why this route: it is the clearest documented way to confirm fit, timing, and next steps on this profile.";
+  }
+
+  return {
+    route: route,
+    routeLabel: routeLabel,
+    routeReason: routeReason,
+    proofLine: proofLine,
+    replyWindowCopy: replyWindowCopy,
+    followUpCopy: followUpCopy,
+    backupPlanCopy: backupPlanCopy,
+    timingTone:
+      therapist.accepting_new_patients || therapist.estimated_wait_time ? "green" : "teal",
+    confidenceLabel: confidenceLabel,
+    confidenceNote: confidenceNote,
+    confidenceTone: confidenceTone,
+    performanceConfidence:
+      routePerformance && routePerformance.confidence ? routePerformance.confidence : "none",
+    performanceNote: routePerformance && routePerformance.note ? routePerformance.note : "",
+    outcomeConfidence:
+      routeOutcomePerformance && routeOutcomePerformance.confidence
+        ? routeOutcomePerformance.confidence
+        : "none",
+    outcomeNote:
+      routeOutcomePerformance && routeOutcomePerformance.note ? routeOutcomePerformance.note : "",
+  };
 }
 
 function getContactAnalyticsMeta(therapist, route) {
@@ -336,6 +571,8 @@ function renderProfile(t) {
   var recentApplied = getRecentAppliedSummary(t);
   var recentConfirmation = getRecentConfirmationSummary(t);
   var responsivenessSignal = getPublicResponsivenessSignal(t);
+  var routePerformance = summarizeTherapistContactRoutePerformance(readFunnelEvents(), t.slug);
+  var routeOutcomePerformance = summarizeTherapistContactRouteOutcomes(t);
   var freshnessSignal = getProminentFreshnessSignal(
     t,
     recentApplied,
@@ -637,6 +874,12 @@ function renderProfile(t) {
     firstStepExpectation ||
     "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
   var outreachScript = buildOutreachScript(t);
+  var contactStrategy = getContactStrategy(
+    t,
+    responsivenessSignal,
+    routePerformance,
+    routeOutcomePerformance,
+  );
   var contactScriptLabel =
     activeTherapistContactExperimentVariant === "action_plan"
       ? "Use this first message"
@@ -848,7 +1091,7 @@ function renderProfile(t) {
   var decisionRailRows = [
     {
       label: "Best next step",
-      value: primaryContactLabel || contactRouteLabel,
+      value: contactStrategy.routeLabel,
       tone: "green",
     },
     {
@@ -918,8 +1161,29 @@ function renderProfile(t) {
 
   contactBtns =
     '<div class="profile-actions-header"><div class="profile-actions-kicker">Best next step</div><div class="profile-actions-title">' +
-    escapeHtml(primaryContactLabel || contactRouteLabel) +
+    escapeHtml(contactStrategy.routeLabel) +
     "</div></div>" +
+    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best contact strategy</div><div class="contact-strategy-title">' +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="contact-strategy-copy">' +
+    escapeHtml(contactStrategy.routeReason) +
+    '</div><div class="contact-strategy-proof">' +
+    escapeHtml(contactStrategy.proofLine) +
+    '</div><div class="contact-strategy-confidence tone-' +
+    escapeHtml(contactStrategy.confidenceTone) +
+    '"><div class="contact-strategy-confidence-label">' +
+    escapeHtml(contactStrategy.confidenceLabel) +
+    '</div><div class="contact-strategy-confidence-note">' +
+    escapeHtml(contactStrategy.confidenceNote) +
+    '</div></div><div class="contact-strategy-grid"><div class="contact-strategy-item"><div class="contact-strategy-label">Expected reply window</div><div class="contact-strategy-value ' +
+    escapeHtml(contactStrategy.timingTone) +
+    '">' +
+    escapeHtml(contactStrategy.replyWindowCopy) +
+    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">Follow up if needed</div><div class="contact-strategy-value">' +
+    escapeHtml(contactStrategy.followUpCopy) +
+    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">If this stalls</div><div class="contact-strategy-value">' +
+    escapeHtml(contactStrategy.backupPlanCopy) +
+    "</div></div></div></div>" +
     '<div class="profile-primary-action">' +
     (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
     '<div class="profile-primary-caption">' +
@@ -1072,7 +1336,14 @@ function renderProfile(t) {
     "</div></section>" +
     '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Contact</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
     '<div class="next-step-item"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
-    escapeHtml(primaryContactLabel || contactRouteLabel) +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="next-step-helper">' +
+    escapeHtml(contactStrategy.routeReason) +
+    "</div></div>" +
+    '<div class="next-step-item"><div class="next-step-label">Expected reply window</div><div class="next-step-value ' +
+    escapeHtml(contactStrategy.timingTone) +
+    '">' +
+    escapeHtml(contactStrategy.replyWindowCopy) +
     "</div></div>" +
     '<div class="next-step-item" data-profile-outreach-script><div class="next-step-label">' +
     escapeHtml(contactScriptLabel) +
@@ -1096,6 +1367,12 @@ function renderProfile(t) {
         contactQuestionHtml +
         "</div></div>"
       : "") +
+    '<div class="next-step-item"><div class="next-step-label">Follow up if needed</div><div class="next-step-value">' +
+    escapeHtml(contactStrategy.followUpCopy) +
+    "</div></div>" +
+    '<div class="next-step-item"><div class="next-step-label">If this stalls</div><div class="next-step-value">' +
+    escapeHtml(contactStrategy.backupPlanCopy) +
+    "</div></div>" +
     '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div></section>" +
@@ -1322,9 +1599,11 @@ function renderProfile(t) {
     .call(document.querySelectorAll("[data-profile-contact-route]"))
     .forEach(function (link) {
       link.addEventListener("click", function () {
+        var route = link.getAttribute("data-profile-contact-route") || "";
+        rememberTherapistContactRoute(t.slug, route, "profile");
         trackFunnelEvent("profile_contact_route_clicked", {
           priority: link.getAttribute("data-profile-contact-priority") || "unknown",
-          ...getContactAnalyticsMeta(t, link.getAttribute("data-profile-contact-route") || ""),
+          ...getContactAnalyticsMeta(t, route),
         });
       });
     });

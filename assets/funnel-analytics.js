@@ -2,6 +2,7 @@ var FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
 var EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
 var EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
 var EXPERIMENT_PROMOTIONS_KEY = "bth_experiment_promotions_v1";
+var THERAPIST_CONTACT_ROUTE_MEMORY_KEY = "bth_therapist_contact_route_memory_v1";
 
 export function readFunnelEvents() {
   try {
@@ -28,6 +29,55 @@ export function trackFunnelEvent(type, payload) {
   } catch (_error) {
     return;
   }
+}
+
+function readTherapistContactRouteMemory() {
+  try {
+    return JSON.parse(window.localStorage.getItem(THERAPIST_CONTACT_ROUTE_MEMORY_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeTherapistContactRouteMemory(value) {
+  try {
+    window.localStorage.setItem(THERAPIST_CONTACT_ROUTE_MEMORY_KEY, JSON.stringify(value || {}));
+  } catch (_error) {
+    return;
+  }
+}
+
+export function rememberTherapistContactRoute(therapistSlug, route, source) {
+  var slug = String(therapistSlug || "").trim();
+  var routeValue = String(route || "").trim();
+  if (!slug || !routeValue) {
+    return;
+  }
+  var memory = readTherapistContactRouteMemory();
+  memory[slug] = {
+    therapist_slug: slug,
+    route: routeValue,
+    source: String(source || "profile"),
+    recorded_at: new Date().toISOString(),
+  };
+  writeTherapistContactRouteMemory(memory);
+}
+
+export function readRememberedTherapistContactRoute(therapistSlug) {
+  var slug = String(therapistSlug || "").trim();
+  if (!slug) {
+    return null;
+  }
+  var memory = readTherapistContactRouteMemory();
+  var entry = memory[slug];
+  if (!entry || !entry.recorded_at) {
+    return null;
+  }
+  var ageMs = Date.now() - new Date(entry.recorded_at).getTime();
+  if (!Number.isFinite(ageMs) || ageMs > 21 * 24 * 60 * 60 * 1000) {
+    return null;
+  }
+  return entry;
 }
 
 function readExperimentAssignments() {
@@ -786,6 +836,171 @@ export function summarizeProfileContactSignals(events) {
           : guidanceEngagementRate >= 0.3
             ? "Some users are engaging with contact guidance before clicking out."
             : "Users are clicking contact routes faster than they are engaging with guidance.",
+  };
+}
+
+export function summarizeTherapistContactRoutePerformance(events, therapistSlug) {
+  var slug = String(therapistSlug || "").trim();
+  if (!slug) {
+    return {
+      total_route_clicks: 0,
+      route_rows: [],
+      top_route: null,
+      confidence: "none",
+      note: "",
+    };
+  }
+
+  var entries = Array.isArray(events) ? events : [];
+  var routeCounts = {
+    booking: 0,
+    website: 0,
+    phone: 0,
+    email: 0,
+    unknown: 0,
+  };
+  var priorityCounts = {
+    primary: 0,
+    secondary: 0,
+    unknown: 0,
+  };
+
+  entries.forEach(function (item) {
+    if (!item || item.type !== "profile_contact_route_clicked" || !item.payload) {
+      return;
+    }
+    if (String(item.payload.therapist_slug || "") !== slug) {
+      return;
+    }
+    var route =
+      item.payload.route && Object.prototype.hasOwnProperty.call(routeCounts, item.payload.route)
+        ? item.payload.route
+        : "unknown";
+    var priority =
+      item.payload.priority &&
+      Object.prototype.hasOwnProperty.call(priorityCounts, item.payload.priority)
+        ? item.payload.priority
+        : "unknown";
+    routeCounts[route] += 1;
+    priorityCounts[priority] += 1;
+  });
+
+  var routeRows = Object.keys(routeCounts)
+    .map(function (route) {
+      return {
+        route: route,
+        count: routeCounts[route],
+      };
+    })
+    .filter(function (item) {
+      return item.count > 0;
+    })
+    .sort(function (a, b) {
+      return b.count - a.count || a.route.localeCompare(b.route);
+    });
+
+  var topRoute = routeRows[0] || null;
+  var runnerUp = routeRows[1] || null;
+  var totalRouteClicks = routeRows.reduce(function (sum, item) {
+    return sum + item.count;
+  }, 0);
+  var topShare = totalRouteClicks && topRoute ? topRoute.count / totalRouteClicks : 0;
+  var confidence =
+    topRoute && topRoute.count >= 4 && topShare >= 0.55
+      ? "strong"
+      : topRoute && topRoute.count >= 2 && topShare >= 0.45
+        ? "medium"
+        : topRoute
+          ? "light"
+          : "none";
+  var note = !topRoute
+    ? ""
+    : confidence === "strong"
+      ? "Observed profile behavior clearly leans toward " +
+        topRoute.route +
+        " as the route users choose first."
+      : confidence === "medium"
+        ? "Observed profile behavior leans toward " + topRoute.route + " over other routes so far."
+        : runnerUp
+          ? "Observed route behavior is still mixed between " +
+            topRoute.route +
+            " and " +
+            runnerUp.route +
+            "."
+          : "There is only light observed route behavior on this profile so far.";
+
+  return {
+    total_route_clicks: totalRouteClicks,
+    route_rows: routeRows,
+    top_route: topRoute,
+    runner_up_route: runnerUp,
+    top_route_share: topShare,
+    primary_clicks: priorityCounts.primary,
+    secondary_clicks: priorityCounts.secondary,
+    confidence: confidence,
+    note: note,
+  };
+}
+
+export function summarizeContactRouteOutcomePerformance(outcomes) {
+  var entries = Array.isArray(outcomes) ? outcomes : [];
+  var buckets = {
+    booking: { route: "booking", total: 0, strong: 0, friction: 0 },
+    website: { route: "website", total: 0, strong: 0, friction: 0 },
+    phone: { route: "phone", total: 0, strong: 0, friction: 0 },
+    email: { route: "email", total: 0, strong: 0, friction: 0 },
+    unknown: { route: "unknown", total: 0, strong: 0, friction: 0 },
+  };
+
+  entries.forEach(function (item) {
+    if (!item || !item.outcome) {
+      return;
+    }
+    var route =
+      item.actual_route_type &&
+      Object.prototype.hasOwnProperty.call(buckets, item.actual_route_type)
+        ? item.actual_route_type
+        : item.route_type && Object.prototype.hasOwnProperty.call(buckets, item.route_type)
+          ? item.route_type
+          : "unknown";
+    var bucket = buckets[route];
+    bucket.total += 1;
+    if (["heard_back", "booked_consult", "good_fit_call"].includes(item.outcome)) {
+      bucket.strong += 1;
+    } else if (["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)) {
+      bucket.friction += 1;
+    }
+  });
+
+  var rows = Object.keys(buckets)
+    .map(function (key) {
+      var bucket = buckets[key];
+      bucket.net = bucket.strong - bucket.friction;
+      bucket.strong_rate = bucket.total ? bucket.strong / bucket.total : 0;
+      return bucket;
+    })
+    .filter(function (item) {
+      return item.total > 0;
+    })
+    .sort(function (a, b) {
+      return (
+        b.net - a.net ||
+        b.strong_rate - a.strong_rate ||
+        b.total - a.total ||
+        a.route.localeCompare(b.route)
+      );
+    });
+
+  return {
+    rows: rows,
+    leader: rows[0] || null,
+    interpretation: !rows.length
+      ? "No route-linked outreach outcomes yet."
+      : rows[0].total < 2
+        ? "Route-linked outcomes are starting to accumulate, but the sample is still light."
+        : rows[0].net > 0
+          ? "Some routes are starting to show stronger downstream follow-through than others."
+          : "Route-linked outcomes are mixed so far.",
   };
 }
 
