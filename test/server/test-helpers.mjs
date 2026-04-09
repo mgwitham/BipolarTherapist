@@ -156,6 +156,12 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (query.includes(`*[_type == "therapist"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "therapist";
+          });
+        }
+
         return [];
       },
       async create(document) {
