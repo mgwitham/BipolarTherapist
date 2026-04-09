@@ -85,6 +85,9 @@ export function renderImportBlockerSprintPanel(options) {
           (index === 0 ? " is-start-here" : "") +
           '"' +
           (index === 0 ? ' id="importBlockerStartHere"' : "") +
+          ' data-admin-therapist-slug="' +
+          options.escapeHtml(item.slug || "") +
+          '"' +
           ">" +
           (index === 0
             ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Open this listing first. It is the fastest way to fix a listing that is still missing key trusted details.</div><div class="start-here-action">Do this now: verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.</div>'

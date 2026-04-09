@@ -117,6 +117,7 @@ const reviewerWorkspaceUi = {
   workloadSlice: "all",
   myQueueMode: false,
 };
+let adminWorkflowUrlParamsApplied = false;
 let conciergeFilters = {
   status: "",
 };
@@ -371,6 +372,7 @@ var savedReviewerPreference = reviewerWorkspace.getSavedPreference();
 if (savedReviewerPreference && typeof savedReviewerPreference.my_queue_mode === "boolean") {
   reviewerWorkspaceUi.myQueueMode = savedReviewerPreference.my_queue_mode;
 }
+applyAdminWorkflowUrlParams();
 
 function spotlightSection(target) {
   if (!target) {
@@ -434,6 +436,35 @@ function applyWorkflowFocusMode(target) {
 
 function buildWorkflowHandoffMarkup(config) {
   var item = config || {};
+  if (item.compact) {
+    return (
+      '<div class="workflow-handoff workflow-handoff-compact" data-workflow-handoff="true"><div class="workflow-handoff-kicker">Start Here</div><div class="workflow-handoff-title">' +
+      escapeHtml(item.title || "Next move") +
+      "</div>" +
+      (item.firstStep
+        ? '<div class="workflow-handoff-copy workflow-handoff-compact-copy">' +
+          escapeHtml(item.firstStep) +
+          "</div>"
+        : "") +
+      '<div class="workflow-handoff-actions" data-workflow-handoff-actions="true">' +
+      (item.primaryActionLabel
+        ? '<button type="button" class="btn-primary btn-inline" data-workflow-primary-action' +
+          (item.primaryActionTargetId
+            ? ' data-workflow-primary-target-id="' + escapeHtml(item.primaryActionTargetId) + '"'
+            : "") +
+          (item.primaryActionSectionTargetId
+            ? ' data-workflow-primary-section-id="' +
+              escapeHtml(item.primaryActionSectionTargetId) +
+              '"'
+            : "") +
+          ">" +
+          escapeHtml(item.primaryActionLabel) +
+          "</button>"
+        : "") +
+      '<button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
+      "</div>"
+    );
+  }
   return (
     '<div class="workflow-handoff" data-workflow-handoff="true"><div class="workflow-handoff-kicker">Start In This Section</div><div class="workflow-handoff-title">' +
     escapeHtml(item.title || "Next move") +
@@ -458,7 +489,22 @@ function buildWorkflowHandoffMarkup(config) {
         escapeHtml(item.done) +
         "</div></div>"
       : "") +
-    '<div class="workflow-handoff-actions"><button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
+    '<div class="workflow-handoff-actions" data-workflow-handoff-actions="true">' +
+    (item.primaryActionLabel
+      ? '<button type="button" class="btn-primary btn-inline" data-workflow-primary-action' +
+        (item.primaryActionTargetId
+          ? ' data-workflow-primary-target-id="' + escapeHtml(item.primaryActionTargetId) + '"'
+          : "") +
+        (item.primaryActionSectionTargetId
+          ? ' data-workflow-primary-section-id="' +
+            escapeHtml(item.primaryActionSectionTargetId) +
+            '"'
+          : "") +
+        ">" +
+        escapeHtml(item.primaryActionLabel) +
+        "</button>"
+      : "") +
+    '<button type="button" class="btn-secondary btn-inline workflow-handoff-exit" data-clear-workflow-focus>Back to full dashboard</button></div>' +
     "</div>"
   );
 }
@@ -486,6 +532,112 @@ function openNearbyPlaybook(target) {
   }
 }
 
+function getWorkflowPrimaryActionTarget(target) {
+  if (!target || typeof target.querySelectorAll !== "function") {
+    return null;
+  }
+  var candidates = Array.prototype.slice.call(
+    target.querySelectorAll(
+      "button.btn-primary, a.btn-primary, [data-candidate-decision], [data-action], [data-confirmation-copy], [data-launch-quick-action], [data-refresh-ops]",
+    ) || [],
+  );
+  for (var index = 0; index < candidates.length; index += 1) {
+    var node = candidates[index];
+    if (!node || node.closest('[data-workflow-handoff="true"]')) {
+      continue;
+    }
+    return node;
+  }
+  return null;
+}
+
+function attachWorkflowPrimaryActionButton(target) {
+  if (!target) {
+    return;
+  }
+  var handoff = target.querySelector('[data-workflow-handoff="true"]');
+  if (!handoff) {
+    return;
+  }
+}
+
+function getWorkflowFirstRowTarget(sectionTarget, explicitTargetId) {
+  if (explicitTargetId) {
+    var explicitTarget = document.getElementById(explicitTargetId);
+    if (explicitTarget) {
+      return explicitTarget;
+    }
+  }
+  if (!sectionTarget || typeof sectionTarget.querySelector !== "function") {
+    return null;
+  }
+  var stableStartTarget = sectionTarget.querySelector(
+    "#candidateQueueStartHere, #applicationReviewStartHere, #importBlockerStartHere, #confirmationQueueStartHere, #confirmationSprintStartHere, #refreshQueueStartHere, #publishedListingsStartHere",
+  );
+  if (stableStartTarget) {
+    return stableStartTarget;
+  }
+  return (
+    sectionTarget.querySelector(
+      ".queue-card.is-start-here, .application-card.is-start-here, .mini-card.is-start-here, .queue-card, .application-card, .mini-card",
+    ) || null
+  );
+}
+
+function handleWorkflowPrimaryActionClick(button) {
+  if (!button) {
+    return;
+  }
+  var explicitTargetId = button.getAttribute("data-workflow-primary-target-id") || "";
+  var sectionId = button.getAttribute("data-workflow-primary-section-id") || "";
+  var handoff = button.closest('[data-workflow-handoff="true"]');
+  var sectionTarget = sectionId ? document.getElementById(sectionId) : null;
+  if (!sectionTarget && handoff && handoff.parentElement) {
+    sectionTarget =
+      handoff.parentElement.closest(".workflow-section") ||
+      handoff.parentElement.closest(".queue-card, .application-card, .mini-card") ||
+      handoff.parentElement;
+  }
+  var attempts = 0;
+  var maxAttempts = 12;
+
+  function tryJump() {
+    attempts += 1;
+    var rowTarget = getWorkflowFirstRowTarget(sectionTarget, explicitTargetId);
+    if (rowTarget) {
+      clearWorkflowHandoffs();
+      rowTarget.setAttribute("tabindex", "-1");
+      rowTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      spotlightSection(rowTarget);
+      window.setTimeout(function () {
+        window.scrollBy(0, -88);
+      }, 180);
+      var rowPrimaryAction = getWorkflowPrimaryActionTarget(rowTarget);
+      if (rowPrimaryAction && typeof rowPrimaryAction.focus === "function") {
+        window.setTimeout(function () {
+          rowPrimaryAction.focus({ preventScroll: true });
+        }, 220);
+      } else if (typeof rowTarget.focus === "function") {
+        window.setTimeout(function () {
+          rowTarget.focus({ preventScroll: true });
+        }, 220);
+      }
+      return;
+    }
+    if (sectionTarget && attempts >= maxAttempts) {
+      clearWorkflowHandoffs();
+      scrollToElementWithOffset(sectionTarget, "start");
+      spotlightSection(sectionTarget);
+      return;
+    }
+    if (attempts < maxAttempts) {
+      window.setTimeout(tryJump, 80);
+    }
+  }
+
+  tryJump();
+}
+
 function showWorkflowHandoff(target, config) {
   if (!target || !config) {
     return;
@@ -503,14 +655,17 @@ function showWorkflowHandoff(target, config) {
     target.classList.contains("mini-card")
   ) {
     target.insertAdjacentHTML("afterbegin", markup);
+    attachWorkflowPrimaryActionButton(target);
     return;
   }
   var heading = target.querySelector("h2");
   if (heading) {
     heading.insertAdjacentHTML("afterend", markup);
+    attachWorkflowPrimaryActionButton(target);
     return;
   }
   target.insertAdjacentHTML("beforebegin", markup);
+  attachWorkflowPrimaryActionButton(target);
 }
 
 function scrollToElementWithOffset(target, block) {
@@ -525,6 +680,34 @@ function scrollToElementWithOffset(target, block) {
   });
 }
 
+function ensureWorkflowSectionRendered(sectionId) {
+  switch (sectionId) {
+    case "candidateQueuePanel":
+      renderCandidateQueue();
+      break;
+    case "applicationsPanel":
+      renderApplications();
+      break;
+    case "importBlockerSprintSection":
+      renderImportBlockerSprint();
+      break;
+    case "confirmationQueueSection":
+      renderConfirmationQueue();
+      break;
+    case "confirmationSprintSection":
+      renderConfirmationSprint();
+      break;
+    case "refreshQueueSection":
+      renderRefreshQueue();
+      break;
+    case "publishedListingsSection":
+      renderListings();
+      break;
+    default:
+      break;
+  }
+}
+
 function focusAdminWorkflowTarget(config) {
   var options = config || {};
   var sectionTarget = options.sectionTarget || null;
@@ -535,6 +718,8 @@ function focusAdminWorkflowTarget(config) {
   var workflowFirstStep = options.workflowFirstStep || "";
   var workflowNextStep = options.workflowNextStep || "";
   var workflowDone = options.workflowDone || "";
+  var workflowPrimaryActionLabel = options.workflowPrimaryActionLabel || "";
+  var workflowPrimaryActionTargetId = options.workflowPrimaryActionTargetId || "";
   var attempts = 0;
   var maxAttempts = 8;
 
@@ -548,6 +733,17 @@ function focusAdminWorkflowTarget(config) {
         focusedTarget = null;
       }
     }
+    if (!focusedTarget && sectionTarget && sectionTarget.id) {
+      ensureWorkflowSectionRendered(sectionTarget.id);
+      focusedTarget = focusTargetId ? document.getElementById(focusTargetId) : null;
+      if (!focusedTarget && focusSelector) {
+        try {
+          focusedTarget = sectionTarget.querySelector(focusSelector);
+        } catch (_error) {
+          focusedTarget = null;
+        }
+      }
+    }
     var handoffTarget = focusedTarget || sectionTarget;
     if (handoffTarget) {
       showWorkflowHandoff(handoffTarget, {
@@ -556,6 +752,10 @@ function focusAdminWorkflowTarget(config) {
         firstStep: workflowFirstStep,
         nextStep: workflowNextStep,
         done: workflowDone,
+        primaryActionLabel: workflowPrimaryActionLabel,
+        primaryActionTargetId: workflowPrimaryActionTargetId,
+        primaryActionSectionTargetId: sectionTarget && sectionTarget.id ? sectionTarget.id : "",
+        compact: !!sectionTarget && handoffTarget === sectionTarget,
       });
     }
     if (focusedTarget) {
@@ -631,12 +831,66 @@ function syncWorkflowFocusFromHash() {
   trySync();
 }
 
+function readAdminWorkflowUrlParams() {
+  if (typeof window === "undefined") {
+    return { owner: "", therapistSlug: "" };
+  }
+  var params = new URLSearchParams(window.location.search || "");
+  return {
+    owner: String(params.get("owner") || "").trim(),
+    therapistSlug: String(params.get("therapistSlug") || "").trim(),
+  };
+}
+
+function applyAdminWorkflowUrlParams() {
+  if (typeof window === "undefined" || adminWorkflowUrlParamsApplied) {
+    return;
+  }
+  var params = readAdminWorkflowUrlParams();
+  if (params.owner) {
+    reviewerWorkspaceUi.workloadFilter = params.owner;
+    reviewerWorkspaceUi.myQueueMode = false;
+  }
+  adminWorkflowUrlParamsApplied = true;
+}
+
+function syncAdminWorkflowUrlFocus() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  var params = readAdminWorkflowUrlParams();
+  if (!params.therapistSlug) {
+    return;
+  }
+
+  var hash = window.location.hash ? window.location.hash.slice(1) : "";
+  var sectionTarget = hash ? document.getElementById(hash) : null;
+  var safeSlug = params.therapistSlug.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  var scopedTarget = document.querySelector('[data-admin-therapist-slug="' + safeSlug + '"]');
+  var target = scopedTarget || sectionTarget;
+  if (!target) {
+    return;
+  }
+  if (sectionTarget) {
+    applyWorkflowFocusMode(sectionTarget);
+  }
+  scrollToElementWithOffset(target, "start");
+  spotlightSection(target);
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", function () {
     syncWorkflowFocusFromHash();
+    window.setTimeout(function () {
+      syncAdminWorkflowUrlFocus();
+    }, 120);
   });
   window.setTimeout(function () {
+    applyAdminWorkflowUrlParams();
     syncWorkflowFocusFromHash();
+    window.setTimeout(function () {
+      syncAdminWorkflowUrlFocus();
+    }, 120);
   }, 0);
 }
 
@@ -818,6 +1072,16 @@ function buildOperatorGuideCard(config) {
   }
   if (item.done !== undefined) {
     mainAttrs.push('data-admin-workflow-done="' + escapeHtml(item.done) + '"');
+  }
+  if (item.directActionLabel !== undefined) {
+    mainAttrs.push(
+      'data-admin-workflow-primary-action-label="' + escapeHtml(item.directActionLabel || "") + '"',
+    );
+  }
+  if (item.focusTargetId !== undefined) {
+    mainAttrs.push(
+      'data-admin-workflow-primary-target-id="' + escapeHtml(item.focusTargetId || "") + '"',
+    );
   }
   if (item.targetSummary !== undefined) {
     mainAttrs.push('data-admin-workflow-destination="' + escapeHtml(item.targetSummary) + '"');
@@ -4436,6 +4700,12 @@ function renderStats() {
       var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
       var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
       var workflowDone = button.getAttribute("data-admin-workflow-done");
+      var workflowPrimaryActionLabel = button.getAttribute(
+        "data-admin-workflow-primary-action-label",
+      );
+      var workflowPrimaryActionTargetId = button.getAttribute(
+        "data-admin-workflow-primary-target-id",
+      );
       if (confirmationFilter) {
         setConfirmationQueueFilter(confirmationFilter);
         renderConfirmationQueue();
@@ -4475,6 +4745,8 @@ function renderStats() {
           workflowFirstStep: workflowFirstStep,
           workflowNextStep: workflowNextStep,
           workflowDone: workflowDone,
+          workflowPrimaryActionLabel: workflowPrimaryActionLabel,
+          workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
         });
       }
     });
@@ -5355,6 +5627,8 @@ function renderOpsInbox() {
     getPreferredFieldOrder: getPreferredFieldOrder,
     getConfirmationQueueEntry: getConfirmationQueueEntry,
     getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
+    getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
+    assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
     getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
     formatFieldLabel: formatFieldLabel,
     formatStatusLabel: formatStatusLabel,
@@ -6313,6 +6587,12 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
 });
 
 document.addEventListener("click", function (event) {
+  var primaryActionButton = event.target.closest("[data-workflow-primary-action]");
+  if (primaryActionButton) {
+    event.preventDefault();
+    handleWorkflowPrimaryActionClick(primaryActionButton);
+    return;
+  }
   var button = event.target.closest("[data-clear-workflow-focus]");
   if (!button) {
     return;

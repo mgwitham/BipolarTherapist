@@ -541,6 +541,24 @@ export function createReviewerWorkspace(dependencies) {
     });
   }
 
+  async function assignReviewEntityTask(entityType, entityId, assigneeName) {
+    if (!entityType || !entityId) return;
+    var currentTask = getReviewEntityTask(entityType, entityId) || {
+      status: "open",
+      note: "",
+    };
+    var trimmedAssignee = String(assigneeName || "").trim();
+    var selectedReviewer = findReviewerEntryByName(trimmedAssignee);
+    await persistReviewEntityTask(entityType, entityId, {
+      status: currentTask.status || "open",
+      note: currentTask.note || "",
+      assignee_id: selectedReviewer ? selectedReviewer.id : "",
+      assignee_name: trimmedAssignee,
+      assignee: trimmedAssignee,
+      due_at: currentTask.due_at || "",
+    });
+  }
+
   async function updateReviewEntityTaskStatus(entityType, entityId, status) {
     if (!entityType || !entityId || !status) return;
     var currentTask = getReviewEntityTask(entityType, entityId) || {
@@ -1467,12 +1485,14 @@ export function createReviewerWorkspace(dependencies) {
 
   return {
     bindEventHandlers,
+    getReviewEntityTask,
     getHumanWorkQueueSnapshot,
     getPreferredReviewer,
     getReviewerRoster,
     getSavedPreference: readReviewerPreference,
     openWorkItem: openAttentionRecord,
     claimWorkItem: claimReviewEntityTask,
+    assignWorkItem: assignReviewEntityTask,
     updateWorkItemStatus: updateReviewEntityTaskStatus,
     renderAttentionQueue,
     renderReviewEntityTaskHtml,

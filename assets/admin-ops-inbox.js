@@ -106,6 +106,50 @@ function appendBlockedProfileActionLog(entry) {
   }
 }
 
+function getLatestBlockedProfileReassignment(actionLog, slug) {
+  return (
+    (Array.isArray(actionLog) ? actionLog : []).find(function (entry) {
+      return entry && entry.slug === slug && entry.action_type === "reassign";
+    }) || null
+  );
+}
+
+function getBlockedProfileReassignmentOutcome(actionLog, slug, reassignment) {
+  if (!slug || !reassignment || !reassignment.created_at) {
+    return null;
+  }
+  const reassignedAt = new Date(reassignment.created_at).getTime();
+  if (!Number.isFinite(reassignedAt)) {
+    return null;
+  }
+  const clearedAction = (Array.isArray(actionLog) ? actionLog : []).find(function (entry) {
+    const actionTime = new Date(entry && entry.created_at ? entry.created_at : "").getTime();
+    return (
+      entry &&
+      entry.slug === slug &&
+      entry.outcome === "cleared" &&
+      Number.isFinite(actionTime) &&
+      actionTime >= reassignedAt
+    );
+  });
+  if (!clearedAction) {
+    return {
+      status: "pending",
+      label: "Still open after reassignment",
+    };
+  }
+  const clearedAt = new Date(clearedAction.created_at).getTime();
+  const daysToClear = Math.max(0, Math.round((clearedAt - reassignedAt) / 86400000));
+  return {
+    status: "cleared",
+    label:
+      "Cleared after reassignment" +
+      (Number.isFinite(daysToClear)
+        ? " in " + daysToClear + " day" + (daysToClear === 1 ? "" : "s")
+        : ""),
+  };
+}
+
 function getWeekBucket(value) {
   const date = value ? new Date(value) : null;
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -363,6 +407,24 @@ function getConversionFieldActionMeta(field, slug) {
     label: "Review " + field.replace(/_/g, " "),
     href: "admin.html#opsInbox",
   };
+}
+
+function buildOwnerScopedWorkflowLink(baseHref, owner, slug) {
+  if (!baseHref) {
+    return "admin.html#opsInbox";
+  }
+  try {
+    var url = new URL(baseHref, "https://example.com/");
+    if (owner && owner !== "Unassigned") {
+      url.searchParams.set("owner", owner);
+    }
+    if (slug) {
+      url.searchParams.set("therapistSlug", slug);
+    }
+    return "admin.html" + (url.search || "") + (url.hash || "#opsInbox");
+  } catch (_error) {
+    return baseHref;
+  }
 }
 
 function buildFeeFollowUpRequest(item) {
@@ -1110,6 +1172,35 @@ function buildBlockedProfileOwnerTrend(
 function buildBlockedProfileOwnerRecommendations(context, options) {
   const topBlockedProfiles = buildTopBlockedProfiles(context, options);
   const ownerMap = new Map();
+  const ownerBySlug = buildBlockedProfileOwnerMap(context, options);
+  const currentClearedSlugs = buildClearedBlockedProfiles(context).map(function (entry) {
+    return entry && entry.slug ? entry.slug : "";
+  });
+  const currentNewSlugs = buildNewlyBlockedProfiles(context, options).map(function (entry) {
+    return entry && entry.slug ? entry.slug : "";
+  });
+  const ownerWeeklyCounts = new Map();
+
+  function ensureOwnerCounts(owner) {
+    const key = owner || "Unassigned";
+    if (!ownerWeeklyCounts.has(key)) {
+      ownerWeeklyCounts.set(key, { cleared: 0, newlyBlocked: 0 });
+    }
+    return ownerWeeklyCounts.get(key);
+  }
+
+  currentClearedSlugs.forEach(function (slug) {
+    if (!slug) {
+      return;
+    }
+    ensureOwnerCounts(ownerBySlug.get(slug)).cleared += 1;
+  });
+  currentNewSlugs.forEach(function (slug) {
+    if (!slug) {
+      return;
+    }
+    ensureOwnerCounts(ownerBySlug.get(slug)).newlyBlocked += 1;
+  });
 
   topBlockedProfiles.forEach(function (entry) {
     const owner = entry.owner || "Unassigned";
@@ -1118,15 +1209,80 @@ function buildBlockedProfileOwnerRecommendations(context, options) {
     }
   });
 
-  return Array.from(ownerMap.entries())
+  const ownerRows = Array.from(ownerMap.entries())
     .map(function (entry) {
+      const weeklyCounts = ownerWeeklyCounts.get(entry[0]) || { cleared: 0, newlyBlocked: 0 };
+      const owner = entry[0];
+      const focusEntry = entry[1];
+      const fallbackOwner = Array.from(ownerWeeklyCounts.entries())
+        .map(function (ownerEntry) {
+          return {
+            owner: ownerEntry[0],
+            cleared: ownerEntry[1].cleared,
+            newlyBlocked: ownerEntry[1].newlyBlocked,
+            net: ownerEntry[1].newlyBlocked - ownerEntry[1].cleared,
+          };
+        })
+        .filter(function (candidate) {
+          return candidate.owner !== owner;
+        })
+        .sort(function (a, b) {
+          if (a.net !== b.net) {
+            return a.net - b.net;
+          }
+          return b.cleared - a.cleared;
+        })[0];
+      const net = weeklyCounts.newlyBlocked - weeklyCounts.cleared;
+      const riskLabel =
+        net >= 2
+          ? "At risk this week"
+          : net === 1
+            ? "Watch this week"
+            : weeklyCounts.cleared > weeklyCounts.newlyBlocked
+              ? "Stabilizing"
+              : "";
+      const rebalanceTarget = net >= 2 && fallbackOwner ? fallbackOwner.owner : "";
+      const rebalanceSuggestion =
+        net >= 2 && fallbackOwner
+          ? "Consider reassigning this blocker to " + fallbackOwner.owner + "."
+          : "";
+      const latestReassignment = getLatestBlockedProfileReassignment(
+        context.blockedProfileActionLog,
+        focusEntry.slug || "",
+      );
+      const reassignmentOutcome = getBlockedProfileReassignmentOutcome(
+        context.blockedProfileActionLog,
+        focusEntry.slug || "",
+        latestReassignment,
+      );
+      const reassignmentAccepted =
+        latestReassignment &&
+        latestReassignment.to_owner &&
+        focusEntry.owner === latestReassignment.to_owner;
       return {
-        owner: entry[0],
-        therapistName: entry[1].name,
-        action: entry[1].ownerAction || entry[1].note || "Clear the next blocker.",
+        owner: owner,
+        therapistName: focusEntry.name,
+        action: focusEntry.ownerAction || focusEntry.note || "Clear the next blocker.",
+        slug: focusEntry.slug || "",
+        executeMeta: focusEntry.executeMeta || null,
+        stateMeta: focusEntry.stateMeta || null,
+        weeklyCounts: weeklyCounts,
+        riskLabel: riskLabel,
+        rebalanceTarget: rebalanceTarget,
+        rebalanceSuggestion: rebalanceSuggestion,
+        reassignmentHistory: latestReassignment,
+        reassignmentAccepted: reassignmentAccepted,
+        reassignmentOutcome: reassignmentOutcome,
+        workflowHref: buildOwnerScopedWorkflowLink(
+          (focusEntry.executeMeta && focusEntry.executeMeta.href) || "admin.html#opsInbox",
+          owner,
+          focusEntry.slug || "",
+        ),
       };
     })
     .slice(0, 3);
+
+  return ownerRows;
 }
 
 function getBlockedProfileReasonTag(fields, workflow, options) {
@@ -1284,6 +1440,20 @@ function getBlockedProfileExecuteMeta(fields, workflow, slug) {
   };
 }
 
+function getBlockedProfileStateMeta(workflow) {
+  const status = workflow && workflow.status ? String(workflow.status) : "";
+  if (!status || status === "not_started") {
+    return { label: "Mark sent", mode: "mark-sent" };
+  }
+  if (status === "sent" || status === "waiting_on_therapist") {
+    return { label: "Mark confirmed", mode: "mark-confirmed" };
+  }
+  if (status === "confirmed") {
+    return { label: "Mark applied", mode: "mark-applied" };
+  }
+  return null;
+}
+
 function buildTopBlockedProfiles(context, options) {
   const persistenceMap = buildBlockedProfilePersistenceMap(context.weeklyDigestSendLog);
   const actionMap = buildBlockedProfileActionMap(context.blockedProfileActionLog);
@@ -1313,6 +1483,7 @@ function buildTopBlockedProfiles(context, options) {
           slug: entry.slug || "",
           name: entry.name,
           note: entry.next_move || entry.freshness_reason || "Refresh this profile next.",
+          workflowStatus: workflow && workflow.status ? workflow.status : "not_started",
           reasonTag: getBlockedProfileReasonTag(confirmationFields, workflow, options),
           ownerAction: getBlockedProfileOwnerAction(
             confirmationFields,
@@ -1320,6 +1491,7 @@ function buildTopBlockedProfiles(context, options) {
             entry.next_move || "Refresh this profile next.",
           ),
           executeMeta: getBlockedProfileExecuteMeta(orderedFields, workflow, entry.slug || ""),
+          stateMeta: getBlockedProfileStateMeta(workflow),
           latestAction: entry.slug && actionMap.has(entry.slug) ? actionMap.get(entry.slug) : null,
           owner: reviewTask && reviewTask.assignee ? reviewTask.assignee : "",
           dueAt: reviewTask && reviewTask.due_at ? reviewTask.due_at : "",
@@ -1347,6 +1519,7 @@ function buildTopBlockedProfiles(context, options) {
             slug: entry.item && entry.item.slug ? entry.item.slug : "",
             name: entry.item && entry.item.name ? entry.item.name : "Unnamed therapist",
             note: "Confirmed values are waiting to be applied or exported.",
+            workflowStatus: workflow && workflow.status ? workflow.status : "confirmed",
             reasonTag:
               workflow && workflow.status === "confirmed"
                 ? "Waiting for apply/import"
@@ -1360,6 +1533,7 @@ function buildTopBlockedProfiles(context, options) {
               workflow,
               entry.item && entry.item.slug ? entry.item.slug : "",
             ),
+            stateMeta: getBlockedProfileStateMeta(workflow),
             latestAction:
               entry.item && entry.item.slug && actionMap.has(entry.item.slug)
                 ? actionMap.get(entry.item.slug)
@@ -1482,8 +1656,73 @@ function buildWeeklyOpsDigest(context, options) {
               options.escapeHtml(entry.owner) +
               ":</strong> " +
               options.escapeHtml(entry.action) +
+              (entry.riskLabel
+                ? ' <span class="tag">' + options.escapeHtml(entry.riskLabel) + "</span>"
+                : "") +
               '<div class="subtle" style="margin-top:0.35rem">' +
               options.escapeHtml("Focus therapist: " + entry.therapistName) +
+              '</div><div class="subtle" style="margin-top:0.35rem">' +
+              options.escapeHtml(
+                "This week: " +
+                  entry.weeklyCounts.cleared +
+                  " cleared · " +
+                  entry.weeklyCounts.newlyBlocked +
+                  " newly blocked",
+              ) +
+              (entry.rebalanceSuggestion
+                ? '</div><div class="subtle" style="margin-top:0.35rem"><strong>Rebalance:</strong> ' +
+                  options.escapeHtml(entry.rebalanceSuggestion) +
+                  "</div>"
+                : "") +
+              (entry.reassignmentHistory
+                ? '<div class="subtle" style="margin-top:0.35rem"><strong>Reassignment:</strong> ' +
+                  options.escapeHtml(
+                    "Moved to " +
+                      (entry.reassignmentHistory.to_owner || "new owner") +
+                      (entry.reassignmentAccepted ? " · accepted" : " · waiting for pickup"),
+                  ) +
+                  "</div>"
+                : "") +
+              (entry.reassignmentOutcome
+                ? '<div class="subtle" style="margin-top:0.35rem"><strong>Reassignment outcome:</strong> ' +
+                  options.escapeHtml(entry.reassignmentOutcome.label) +
+                  "</div>"
+                : "") +
+              '</div><div class="ops-card-actions" style="margin-top:0.6rem">' +
+              (entry.executeMeta && entry.executeMeta.mode
+                ? '<button class="btn-secondary btn-inline" data-owner-next-move-action="' +
+                  options.escapeHtml(entry.slug || "") +
+                  '" data-owner-next-move-mode="' +
+                  options.escapeHtml(entry.executeMeta.mode || "") +
+                  '">' +
+                  options.escapeHtml("Done from digest") +
+                  "</button>"
+                : "") +
+              (entry.stateMeta && entry.stateMeta.mode
+                ? '<button class="btn-secondary btn-inline" data-owner-next-move-state="' +
+                  options.escapeHtml(entry.slug || "") +
+                  '" data-owner-next-move-state-mode="' +
+                  options.escapeHtml(entry.stateMeta.mode || "") +
+                  '">' +
+                  options.escapeHtml(entry.stateMeta.label || "Update state") +
+                  "</button>"
+                : "") +
+              (entry.rebalanceTarget
+                ? '<button class="btn-secondary btn-inline" data-owner-next-move-reassign="' +
+                  options.escapeHtml(entry.slug || "") +
+                  '" data-owner-next-move-reassign-target="' +
+                  options.escapeHtml(entry.rebalanceTarget) +
+                  '">' +
+                  options.escapeHtml("Reassign now") +
+                  "</button>"
+                : "") +
+              '<a class="btn-secondary btn-inline" href="' +
+              options.escapeHtml(entry.workflowHref) +
+              '">' +
+              options.escapeHtml("Open scoped workflow") +
+              '</a><span class="subtle" data-owner-next-move-status="' +
+              options.escapeHtml(entry.slug || "") +
+              '"></span>' +
               "</div></div>"
             );
           })
@@ -1667,8 +1906,23 @@ function buildWeeklyDigestExport(context, options, mode) {
                 entry.owner +
                 ": " +
                 entry.action +
+                (entry.riskLabel ? " [" + entry.riskLabel + "]" : "") +
+                (entry.rebalanceSuggestion ? " " + entry.rebalanceSuggestion : "") +
+                (entry.reassignmentHistory
+                  ? " Reassignment: moved to " +
+                    (entry.reassignmentHistory.to_owner || "new owner") +
+                    (entry.reassignmentAccepted ? " (accepted)." : " (waiting for pickup).")
+                  : "") +
+                (entry.reassignmentOutcome
+                  ? " Outcome: " + entry.reassignmentOutcome.label + "."
+                  : "") +
                 " (focus therapist: " +
                 entry.therapistName +
+                "; this week: " +
+                entry.weeklyCounts.cleared +
+                " cleared, " +
+                entry.weeklyCounts.newlyBlocked +
+                " new" +
                 ")"
               );
             })
@@ -1758,8 +2012,23 @@ function buildWeeklyDigestExport(context, options, mode) {
                 entry.owner +
                 ": " +
                 entry.action +
+                (entry.riskLabel ? " | Risk: " + entry.riskLabel : "") +
+                (entry.rebalanceSuggestion ? " | Rebalance: " + entry.rebalanceSuggestion : "") +
+                (entry.reassignmentHistory
+                  ? " | Reassignment: moved to " +
+                    (entry.reassignmentHistory.to_owner || "new owner") +
+                    (entry.reassignmentAccepted ? " (accepted)" : " (waiting for pickup)")
+                  : "") +
+                (entry.reassignmentOutcome
+                  ? " | Reassignment outcome: " + entry.reassignmentOutcome.label
+                  : "") +
                 " | Focus therapist: " +
-                entry.therapistName
+                entry.therapistName +
+                " | This week: " +
+                entry.weeklyCounts.cleared +
+                " cleared, " +
+                entry.weeklyCounts.newlyBlocked +
+                " newly blocked"
               );
             })
           : ["- None yet."],
@@ -1843,8 +2112,23 @@ function buildWeeklyDigestExport(context, options, mode) {
               entry.owner +
               ": " +
               entry.action +
+              (entry.riskLabel ? " | Risk: " + entry.riskLabel : "") +
+              (entry.rebalanceSuggestion ? " | Rebalance: " + entry.rebalanceSuggestion : "") +
+              (entry.reassignmentHistory
+                ? " | Reassignment: moved to " +
+                  (entry.reassignmentHistory.to_owner || "new owner") +
+                  (entry.reassignmentAccepted ? " (accepted)" : " (waiting for pickup)")
+                : "") +
+              (entry.reassignmentOutcome
+                ? " | Reassignment outcome: " + entry.reassignmentOutcome.label
+                : "") +
               " | Focus therapist: " +
-              entry.therapistName
+              entry.therapistName +
+              " | This week: " +
+              entry.weeklyCounts.cleared +
+              " cleared, " +
+              entry.weeklyCounts.newlyBlocked +
+              " newly blocked"
             );
           })
         : ["- None yet."],
@@ -2874,6 +3158,236 @@ export function renderOpsInboxPanel(options) {
 
       window.setTimeout(function () {
         button.textContent = original;
+      }, 1400);
+      if (options.renderOpsInbox) {
+        options.renderOpsInbox();
+      }
+    });
+  });
+  root.querySelectorAll("[data-owner-next-move-action]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const slug = button.getAttribute("data-owner-next-move-action");
+      const mode = button.getAttribute("data-owner-next-move-mode");
+      const therapist = therapists.find(function (entry) {
+        return entry && entry.slug === slug;
+      });
+      const status = root.querySelector('[data-owner-next-move-status="' + slug + '"]');
+      const original = button.textContent;
+
+      if (!slug || !mode || !therapist) {
+        if (status) {
+          status.textContent = "Could not find this digest action.";
+        }
+        return;
+      }
+
+      try {
+        if (mode === "copy-request") {
+          const fields = getConversionWatchFields(therapist, options);
+          const orderedFields = options.getPreferredFieldOrder(fields, "bipolar_years_experience");
+          await options.copyText(
+            options.buildTherapistFieldConfirmationPrompt(therapist, orderedFields),
+          );
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied confirmation request",
+            mode: mode,
+          });
+          button.textContent = "Request copied";
+          if (status) {
+            status.textContent = "Confirmation request completed from the digest.";
+          }
+        } else if (mode === "copy-fees") {
+          await options.copyText(buildFeeFollowUpRequest(therapist));
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied fee follow-up",
+            mode: mode,
+          });
+          button.textContent = "Fees ask copied";
+          if (status) {
+            status.textContent = "Fee follow-up completed from the digest.";
+          }
+        } else if (mode === "copy-apply-brief") {
+          if (!options.buildConfirmationApplyBrief) {
+            throw new Error("missing apply brief builder");
+          }
+          const orderedFields = getConversionWatchFields(therapist, options);
+          const brief = options.buildConfirmationApplyBrief(
+            therapist,
+            { unknown_fields: orderedFields },
+            options.getConfirmationQueueEntry ? options.getConfirmationQueueEntry(slug) : null,
+          );
+          await options.copyText(brief);
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied apply brief",
+            mode: mode,
+          });
+          button.textContent = "Apply brief copied";
+          if (status) {
+            status.textContent = "Apply brief completed from the digest.";
+          }
+        } else {
+          throw new Error("unsupported mode");
+        }
+      } catch (_error) {
+        button.textContent = "Action failed";
+        if (status) {
+          status.textContent = "Could not complete this digest action.";
+        }
+      }
+
+      window.setTimeout(function () {
+        button.textContent = original;
+      }, 1400);
+      if (options.renderOpsInbox) {
+        options.renderOpsInbox();
+      }
+    });
+  });
+  root.querySelectorAll("[data-owner-next-move-state]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const slug = button.getAttribute("data-owner-next-move-state");
+      const mode = button.getAttribute("data-owner-next-move-state-mode");
+      const therapist = therapists.find(function (entry) {
+        return entry && entry.slug === slug;
+      });
+      const status = root.querySelector('[data-owner-next-move-status="' + slug + '"]');
+      const original = button.textContent;
+
+      if (!slug || !mode || !therapist || !options.updateConfirmationQueueEntry) {
+        if (status) {
+          status.textContent = "Could not update this digest state.";
+        }
+        return;
+      }
+
+      try {
+        if (mode === "mark-sent") {
+          options.updateConfirmationQueueEntry(slug, {
+            status: "sent",
+            last_sent_at: new Date().toISOString(),
+          });
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Marked confirmation request sent",
+            outcome: "in_progress",
+          });
+          button.textContent = "Marked sent";
+          if (status) {
+            status.textContent = "Blocker marked sent from the digest.";
+          }
+        } else if (mode === "mark-confirmed") {
+          options.updateConfirmationQueueEntry(slug, {
+            status: "confirmed",
+          });
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Marked profile confirmed",
+            outcome: "cleared",
+          });
+          button.textContent = "Marked confirmed";
+          if (status) {
+            status.textContent = "Blocker marked confirmed from the digest.";
+          }
+        } else if (mode === "mark-applied") {
+          options.updateConfirmationQueueEntry(slug, {
+            status: "applied",
+            confirmation_applied_at: new Date().toISOString(),
+          });
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Marked profile applied",
+            outcome: "cleared",
+          });
+          appendImportWaveHistoryEntry({
+            action: "Marked applied",
+            label: "Profile moved through import wave",
+            slugs: [therapist.slug],
+            names: [therapist.name],
+            fields: getConversionResponseFields(getConversionWatchFields(therapist, options)),
+          });
+          button.textContent = "Marked applied";
+          if (status) {
+            status.textContent = "Blocker marked applied from the digest.";
+          }
+        } else {
+          throw new Error("unsupported mode");
+        }
+      } catch (_error) {
+        button.textContent = "Update failed";
+        if (status) {
+          status.textContent = "Could not update this blocker state.";
+        }
+      }
+
+      if (options.renderStats) {
+        options.renderStats();
+      }
+      if (options.renderImportBlockerSprint) {
+        options.renderImportBlockerSprint();
+      }
+      if (options.renderCaliforniaPriorityConfirmationWave) {
+        options.renderCaliforniaPriorityConfirmationWave();
+      }
+      if (options.renderConfirmationSprint) {
+        options.renderConfirmationSprint();
+      }
+      if (options.renderConfirmationQueue) {
+        options.renderConfirmationQueue();
+      }
+      window.setTimeout(function () {
+        button.textContent = original;
+      }, 1400);
+      if (options.renderOpsInbox) {
+        options.renderOpsInbox();
+      }
+    });
+  });
+  root.querySelectorAll("[data-owner-next-move-reassign]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const slug = button.getAttribute("data-owner-next-move-reassign");
+      const nextOwner = button.getAttribute("data-owner-next-move-reassign-target");
+      const therapist = therapists.find(function (entry) {
+        return entry && entry.slug === slug;
+      });
+      const therapistId =
+        therapist && (therapist.id || therapist._id) ? therapist.id || therapist._id : "";
+      const status = root.querySelector('[data-owner-next-move-status="' + slug + '"]');
+      const original = button.textContent;
+
+      if (!slug || !nextOwner || !therapistId || !options.assignReviewWorkItem) {
+        if (status) {
+          status.textContent = "Could not reassign this blocker.";
+        }
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Reassigning...";
+      try {
+        await options.assignReviewWorkItem("therapist", therapistId, nextOwner);
+        appendBlockedProfileActionLog({
+          slug: slug,
+          label: "Reassigned blocker to " + nextOwner,
+          action_type: "reassign",
+          to_owner: nextOwner,
+          outcome: "in_progress",
+        });
+        if (status) {
+          status.textContent = "Blocker reassigned to " + nextOwner + ".";
+        }
+      } catch (_error) {
+        button.textContent = "Reassign failed";
+        if (status) {
+          status.textContent = "Could not reassign this blocker.";
+        }
+      }
+
+      window.setTimeout(function () {
+        button.textContent = original;
+        button.disabled = false;
       }, 1400);
       if (options.renderOpsInbox) {
         options.renderOpsInbox();

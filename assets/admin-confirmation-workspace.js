@@ -1055,7 +1055,9 @@ export function createConfirmationWorkspace(options) {
           var item = row.item;
           var workflow = row.workflow;
           return (
-            '<article class="queue-card"><div class="queue-head"><div><h3>' +
+            '<article class="queue-card" data-admin-therapist-slug="' +
+            escapeHtml(item.slug) +
+            '"><div class="queue-head"><div><h3>' +
             escapeHtml(String(row.priority_rank) + ". " + item.name) +
             '</h3><div class="subtle">' +
             escapeHtml(row.agenda.summary) +
