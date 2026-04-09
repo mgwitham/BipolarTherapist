@@ -134,6 +134,73 @@ export function getDirectoryStrategyAudience(filterState) {
   return "people browsing like this";
 }
 
+export function matchesDirectoryFilters(filterState, therapist) {
+  var haystack = [
+    therapist.name,
+    therapist.title,
+    therapist.city,
+    therapist.state,
+    therapist.practice_name,
+    therapist.bio_preview,
+    therapist.care_approach,
+  ]
+    .concat(therapist.specialties || [])
+    .concat(therapist.insurance_accepted || [])
+    .concat(therapist.treatment_modalities || [])
+    .concat(therapist.client_populations || [])
+    .join(" ")
+    .toLowerCase();
+
+  if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
+  if (filterState.state && therapist.state !== filterState.state) return false;
+  if (
+    filterState.city &&
+    String(therapist.city || "").toLowerCase() !== String(filterState.city).toLowerCase()
+  ) {
+    return false;
+  }
+  if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty)) {
+    return false;
+  }
+  if (
+    filterState.modality &&
+    !(therapist.treatment_modalities || []).includes(filterState.modality)
+  ) {
+    return false;
+  }
+  if (
+    filterState.population &&
+    !(therapist.client_populations || []).includes(filterState.population)
+  ) {
+    return false;
+  }
+  if (
+    filterState.verification &&
+    String(therapist.verification_status || "") !== filterState.verification
+  ) {
+    return false;
+  }
+  if (
+    filterState.bipolar_experience &&
+    Number(therapist.bipolar_years_experience || 0) < Number(filterState.bipolar_experience)
+  ) {
+    return false;
+  }
+  if (
+    filterState.insurance &&
+    !(therapist.insurance_accepted || []).includes(filterState.insurance)
+  ) {
+    return false;
+  }
+  if (filterState.telehealth && !therapist.accepts_telehealth) return false;
+  if (filterState.in_person && !therapist.accepts_in_person) return false;
+  if (filterState.accepting && !therapist.accepting_new_patients) return false;
+  if (filterState.medication_management && !therapist.medication_management) return false;
+  if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
+  if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
+  return true;
+}
+
 export function getPreferredContactRoute(therapist) {
   var emailAvailable = therapist.email && therapist.email !== "contact@example.com";
   var customLabel = String(therapist.preferred_contact_label || "").trim();

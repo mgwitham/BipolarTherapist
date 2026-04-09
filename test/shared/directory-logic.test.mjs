@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildDirectoryStrategySegments,
   compareTherapistsWithFilters,
+  matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
 
 test("buildDirectoryStrategySegments captures the active directory filter intent", function () {
@@ -83,4 +84,55 @@ test("compareTherapistsWithFilters favors the stronger specialty match in best-m
 
   assert.ok(compareTherapistsWithFilters(filters, strongerMatch, weakerMatch) < 0);
   assert.ok(compareTherapistsWithFilters(filters, weakerMatch, strongerMatch) > 0);
+});
+
+test("matchesDirectoryFilters applies the shared directory predicate consistently", function () {
+  const filters = {
+    q: "bipolar",
+    state: "CA",
+    city: "Los Angeles",
+    specialty: "Bipolar II",
+    modality: "CBT",
+    population: "Adults",
+    verification: "editorially_verified",
+    bipolar_experience: "5",
+    insurance: "Aetna",
+    telehealth: true,
+    in_person: false,
+    accepting: true,
+    medication_management: false,
+    responsive_contact: false,
+    recently_confirmed: false,
+  };
+
+  const matchingTherapist = {
+    name: "Jamie Rivera",
+    slug: "jamie-rivera",
+    title: "Therapist",
+    city: "Los Angeles",
+    state: "CA",
+    practice_name: "Rivera Therapy",
+    bio_preview: "Bipolar-focused CBT for adults.",
+    care_approach: "Collaborative and practical.",
+    specialties: ["Bipolar II"],
+    treatment_modalities: ["CBT"],
+    client_populations: ["Adults"],
+    insurance_accepted: ["Aetna"],
+    verification_status: "editorially_verified",
+    bipolar_years_experience: 8,
+    accepts_telehealth: true,
+    accepts_in_person: false,
+    accepting_new_patients: true,
+    medication_management: false,
+  };
+
+  const nonMatchingTherapist = {
+    ...matchingTherapist,
+    slug: "sam-lee",
+    city: "San Diego",
+    insurance_accepted: ["United"],
+  };
+
+  assert.equal(matchesDirectoryFilters(filters, matchingTherapist), true);
+  assert.equal(matchesDirectoryFilters(filters, nonMatchingTherapist), false);
 });

@@ -13,6 +13,12 @@ import {
   syncFilterControlsFromState,
 } from "./directory-filters.js";
 import {
+  applyDirectoryFiltersAction,
+  buildDirectoryRenderState,
+  changeDirectorySortAction,
+  resetDirectoryFiltersAction,
+} from "./directory-controller.js";
+import {
   buildCardFitSummary,
   buildDirectoryStrategySegments,
   compareTherapistsWithFilters,
@@ -20,6 +26,7 @@ import {
   getEditorialLaneCandidates,
   getFreshnessRank,
   getMatchScore,
+  matchesDirectoryFilters,
   getResponsivenessRank,
 } from "./directory-logic.js";
 import {
@@ -616,60 +623,7 @@ import {
   function getFilteredWithFilters(filterState) {
     return applyDirectoryPriorityProminence(
       therapists.filter(function (therapist) {
-        var haystack = [
-          therapist.name,
-          therapist.title,
-          therapist.city,
-          therapist.state,
-          therapist.practice_name,
-          therapist.bio_preview,
-          therapist.care_approach,
-        ]
-          .concat(therapist.specialties || [])
-          .concat(therapist.insurance_accepted || [])
-          .concat(therapist.treatment_modalities || [])
-          .concat(therapist.client_populations || [])
-          .join(" ")
-          .toLowerCase();
-
-        if (filterState.q && !haystack.includes(filterState.q.toLowerCase())) return false;
-        if (filterState.state && therapist.state !== filterState.state) return false;
-        if (filterState.city && therapist.city.toLowerCase() !== filterState.city.toLowerCase())
-          return false;
-        if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty))
-          return false;
-        if (
-          filterState.modality &&
-          !(therapist.treatment_modalities || []).includes(filterState.modality)
-        )
-          return false;
-        if (
-          filterState.population &&
-          !(therapist.client_populations || []).includes(filterState.population)
-        )
-          return false;
-        if (
-          filterState.verification &&
-          (therapist.verification_status || "") !== filterState.verification
-        )
-          return false;
-        if (
-          filterState.bipolar_experience &&
-          Number(therapist.bipolar_years_experience || 0) < Number(filterState.bipolar_experience)
-        )
-          return false;
-        if (
-          filterState.insurance &&
-          !(therapist.insurance_accepted || []).includes(filterState.insurance)
-        )
-          return false;
-        if (filterState.telehealth && !therapist.accepts_telehealth) return false;
-        if (filterState.in_person && !therapist.accepts_in_person) return false;
-        if (filterState.accepting && !therapist.accepting_new_patients) return false;
-        if (filterState.medication_management && !therapist.medication_management) return false;
-        if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
-        if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
-        return true;
+        return matchesDirectoryFilters(filterState, therapist);
       }),
       filterState,
     );
@@ -919,15 +873,22 @@ import {
   }
 
   function render() {
-    var results = getFiltered();
-    var start = (currentPage - 1) * pageSize;
-    var pageItems = results.slice(start, start + pageSize);
+    var renderState = buildDirectoryRenderState({
+      results: getFiltered(),
+      currentPage: currentPage,
+      pageSize: pageSize,
+      filters: filters,
+      directoryPage: directoryPage,
+      activePreviewSlug: activePreviewSlug,
+    });
+    var results = renderState.results;
+    var pageItems = renderState.pageItems;
     var grid = getElement("resultsGrid");
     var count = getElement("resultsCount");
     var filterCount = getElement("filterCount");
-    var resultsSuffix = (directoryPage && directoryPage.resultsSuffix) || "specialists found";
-    var singularSuffix = resultsSuffix === "specialists found" ? "specialist found" : resultsSuffix;
-    var activeFilterCount = countActiveFilters(filters);
+    var resultsSuffix = renderState.resultsSuffix;
+    var singularSuffix = renderState.singularSuffix;
+    var activeFilterCount = renderState.activeFilterCount;
 
     count.innerHTML =
       "<strong>" +
@@ -948,11 +909,7 @@ import {
       return;
     }
 
-    activePreviewSlug = pageItems.find(function (item) {
-      return item.slug === activePreviewSlug;
-    })
-      ? activePreviewSlug
-      : pageItems[0].slug;
+    activePreviewSlug = renderState.activePreviewSlug;
     renderDirectoryTradeoffPreview(results);
     renderEditorialLanes(results);
     renderDirectoryLaunchExplainer(results);
@@ -1058,19 +1015,24 @@ import {
   }
 
   function applyFilters() {
-    filters = readFilterStateFromControls(filters, getElement);
+    var nextState = applyDirectoryFiltersAction({
+      filters: filters,
+      getElement: getElement,
+    });
+    filters = nextState.filters;
+    currentPage = nextState.currentPage;
     trackFunnelEvent("directory_filters_applied", {
       active_filter_count: countActiveFilters(filters),
       sort_by: filters.sortBy,
     });
-    currentPage = 1;
     render();
   }
 
   function resetFilters() {
-    filters = { ...defaultFilters };
+    var nextState = resetDirectoryFiltersAction(defaultFilters);
+    filters = nextState.filters;
+    currentPage = nextState.currentPage;
     syncFilterControlsFromState(filters, getElement);
-    currentPage = 1;
     render();
   }
 
@@ -1129,11 +1091,15 @@ import {
   }
 
   getElement("sortBy").addEventListener("change", function () {
-    filters.sortBy = getElement("sortBy").value;
+    var nextState = changeDirectorySortAction({
+      filters: filters,
+      sortBy: getElement("sortBy").value,
+    });
+    filters = nextState.filters;
+    currentPage = nextState.currentPage;
     trackFunnelEvent("directory_sort_changed", {
       sort_by: filters.sortBy,
     });
-    currentPage = 1;
     render();
   });
 

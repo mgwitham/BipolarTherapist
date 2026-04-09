@@ -147,11 +147,14 @@ export function buildShortlistBarViewModel(options) {
       });
     })
     .filter(Boolean);
+  var entryBySlug = new Map(
+    shortlist.map(function (entry) {
+      return [entry.slug, entry];
+    }),
+  );
 
   function getEntryForTherapist(slug) {
-    return shortlist.find(function (item) {
-      return item.slug === slug;
-    });
+    return entryBySlug.get(slug) || null;
   }
 
   function getFeeCopy(therapist) {
@@ -208,6 +211,7 @@ export function buildShortlistBarViewModel(options) {
       return {
         therapist: therapist,
         entry: entry,
+        contactRoute: getPreferredContactRoute(therapist),
         score: scoreTherapistForQueue(therapist, entry),
       };
     })
@@ -236,16 +240,15 @@ export function buildShortlistBarViewModel(options) {
           therapist: lead.therapist,
           title: "Contact first",
           reason:
-            getEntryForTherapist(lead.therapist.slug) &&
-            getEntryForTherapist(lead.therapist.slug).priority
+            lead.entry && lead.entry.priority
               ? "You marked this as " +
-                String(getEntryForTherapist(lead.therapist.slug).priority || "").toLowerCase() +
+                String(lead.entry.priority || "").toLowerCase() +
                 ", and the profile has the strongest current fit-to-action mix."
               : "This profile currently has the strongest fit, timing, and trust mix for first outreach.",
           nextStep:
             lead.therapist.first_step_expectation ||
-            (getPreferredContactRoute(lead.therapist)
-              ? getPreferredContactRoute(lead.therapist).detail
+            (lead.contactRoute
+              ? lead.contactRoute.detail
               : "Open the profile to confirm the best route before you reach out."),
         }
       : null,
@@ -257,13 +260,14 @@ export function buildShortlistBarViewModel(options) {
             "If your first outreach stalls, this is the clearest second option to keep momentum without restarting your search.",
           nextStep:
             backup.therapist.first_step_expectation ||
-            (getPreferredContactRoute(backup.therapist)
-              ? getPreferredContactRoute(backup.therapist).detail
+            (backup.contactRoute
+              ? backup.contactRoute.detail
               : "Open the profile to confirm the best backup route."),
         }
       : null,
     compareCards: selected.map(function (therapist) {
       var entry = getEntryForTherapist(therapist.slug);
+      var freshness = getFreshnessBadgeData(therapist);
       return {
         therapist: therapist,
         meta: [
@@ -273,9 +277,7 @@ export function buildShortlistBarViewModel(options) {
           therapist.estimated_wait_time ||
             (therapist.accepting_new_patients ? "Accepting" : "Timing to confirm"),
           getFeeCopy(therapist),
-          getFreshnessBadgeData(therapist)
-            ? getFreshnessBadgeData(therapist).label
-            : "Freshness to confirm",
+          freshness ? freshness.label : "Freshness to confirm",
         ].join(" • "),
         note:
           entry && entry.note
