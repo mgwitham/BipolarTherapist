@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { Readable } from "node:stream";
 import test from "node:test";
 
 import { handleApplicationRoutes } from "../../server/review-application-routes.mjs";
@@ -7,188 +6,15 @@ import { handleAuthAndPortalRoutes } from "../../server/review-auth-portal-route
 import { handleCandidateRoutes } from "../../server/review-candidate-routes.mjs";
 import { handleOpsRoutes } from "../../server/review-ops-routes.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
-
-function createResponseCapture() {
-  return {
-    statusCode: null,
-    headers: null,
-    payload: null,
-    writeHead(statusCode, headers) {
-      this.statusCode = statusCode;
-      this.headers = headers;
-    },
-    end(body) {
-      this.payload = body ? JSON.parse(body) : null;
-    },
-  };
-}
-
-function createJsonRequest({ body, headers, method, url }) {
-  const payload = body ? JSON.stringify(body) : "";
-  const request = Readable.from(payload ? [payload] : []);
-  request.method = method;
-  request.url = url;
-  request.headers = headers || {};
-  request.socket = {
-    remoteAddress: "127.0.0.1",
-  };
-  request.destroy = function destroy() {};
-  return request;
-}
-
-async function runHandlerRequest(handler, requestOptions) {
-  const response = createResponseCapture();
-  await handler(createJsonRequest(requestOptions), response);
-  return response;
-}
-
-function createSendJson(response) {
-  return function sendJson(_res, statusCode, payload) {
-    response.statusCode = statusCode;
-    response.payload = payload;
-  };
-}
-
-function deepClone(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-}
-
-function createTransactionSpy(state) {
-  const operations = [];
-
-  return {
-    operations,
-    create(document) {
-      operations.push({ type: "create", document });
-      return this;
-    },
-    createOrReplace(document) {
-      operations.push({ type: "createOrReplace", document });
-      return this;
-    },
-    delete(id) {
-      operations.push({ type: "delete", id });
-      return this;
-    },
-    patch(id, builder) {
-      const patchState = {
-        set: {},
-        setIfMissing: {},
-        append: {},
-      };
-      const patchApi = {
-        set(fields) {
-          patchState.set = { ...patchState.set, ...fields };
-          return patchApi;
-        },
-        setIfMissing(fields) {
-          patchState.setIfMissing = { ...patchState.setIfMissing, ...fields };
-          return patchApi;
-        },
-        append(field, values) {
-          patchState.append[field] = values;
-          return patchApi;
-        },
-      };
-      builder(patchApi);
-      operations.push({ type: "patch", id, patchState });
-      return this;
-    },
-    async commit() {
-      if (state.documents) {
-        operations.forEach(function (operation) {
-          if (operation.type === "create" || operation.type === "createOrReplace") {
-            state.documents.set(operation.document._id, deepClone(operation.document));
-            return;
-          }
-
-          if (operation.type === "delete") {
-            state.documents.delete(operation.id);
-            return;
-          }
-
-          if (operation.type === "patch") {
-            const current = deepClone(state.documents.get(operation.id) || {});
-            const nextDocument = {
-              ...current,
-              ...deepClone(operation.patchState.setIfMissing),
-              ...deepClone(operation.patchState.set),
-            };
-
-            Object.entries(operation.patchState.append).forEach(function ([field, values]) {
-              nextDocument[field] = []
-                .concat(Array.isArray(current[field]) ? current[field] : [])
-                .concat(deepClone(values));
-            });
-
-            state.documents.set(operation.id, nextDocument);
-          }
-        });
-      }
-
-      state.lastTransaction = operations.slice();
-      return { transactionId: "txn-1" };
-    },
-  };
-}
-
-function createMemoryClient(initialDocuments) {
-  const state = {
-    documents: new Map(),
-    lastTransaction: null,
-  };
-
-  Object.entries(initialDocuments || {}).forEach(function ([id, value]) {
-    state.documents.set(id, deepClone(value));
-  });
-
-  return {
-    state,
-    client: {
-      async fetch(query) {
-        if (query.includes(`*[_type == "therapistPortalRequest"]`)) {
-          return Array.from(state.documents.values()).filter(function (document) {
-            return document._type === "therapistPortalRequest";
-          });
-        }
-
-        return [];
-      },
-      async create(document) {
-        const created = {
-          ...deepClone(document),
-          _createdAt: document._createdAt || document.requestedAt || new Date().toISOString(),
-        };
-        state.documents.set(created._id, created);
-        return created;
-      },
-      async getDocument(id) {
-        return deepClone(state.documents.get(id) || null);
-      },
-      transaction() {
-        return createTransactionSpy(state);
-      },
-    },
-  };
-}
-
-function createTestApiConfig() {
-  return {
-    projectId: "test-project",
-    dataset: "test-dataset",
-    apiVersion: "2026-04-02",
-    token: "",
-    adminUsername: "architect",
-    adminPassword: "secret-pass",
-    allowLegacyKey: false,
-    adminKey: "",
-    sessionTtlMs: 60000,
-    allowedOrigins: [],
-    sessionSecret: "test-secret",
-    loginWindowMs: 60000,
-    loginMaxAttempts: 5,
-  };
-}
+import {
+  createJsonRequest,
+  createMemoryClient,
+  createResponseCapture,
+  createSendJson,
+  createTestApiConfig,
+  createTransactionSpy,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
 
 test("auth routes create a signed session on valid login", async function () {
   const response = createResponseCapture();
@@ -600,6 +426,68 @@ test("top-level review handler supports authenticated portal request creation an
   assert.equal(listResponse.payload[0].requester_email, "dr.rivera@example.com");
 });
 
+test("top-level review handler rejects invalid portal claim tokens", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/portal/claim-session?token=not-a-real-token",
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.payload.error, "Claim link is invalid or expired.");
+});
+
+test("top-level review handler returns normalized candidate lists for authorized admins", async function () {
+  const { client } = createMemoryClient({
+    "candidate-list-1": {
+      _id: "candidate-list-1",
+      _type: "therapistCandidate",
+      name: "Dr. Listy McListface",
+      city: "Oakland",
+      state: "CA",
+      sourceUrl: "https://example.com/listy",
+      reviewStatus: "queued",
+      publishRecommendation: "",
+      dedupeStatus: "unreviewed",
+      licensureVerification: { status: "verified" },
+      supportingSourceUrls: [],
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/candidates",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(Array.isArray(response.payload), true);
+  assert.equal(response.payload.length, 1);
+  assert.equal(response.payload[0].id, "candidate-list-1");
+  assert.equal(response.payload[0].name, "Dr. Listy McListface");
+});
+
 test("top-level review handler supports authenticated application approval", async function () {
   const { client, state } = createMemoryClient({
     "application-1": {
@@ -652,6 +540,69 @@ test("top-level review handler supports authenticated application approval", asy
     "therapist-dr-jamie-rivera-los-angeles-ca",
   );
   assert.equal(therapist._type, "therapist");
+});
+
+test("top-level review handler rejects unauthorized application approval attempts", async function () {
+  const { client, state } = createMemoryClient({
+    "application-unauthorized": {
+      _id: "application-unauthorized",
+      _type: "therapistApplication",
+      name: "Dr. Unauthorized",
+      email: "unauthorized@example.com",
+      city: "Portland",
+      state: "OR",
+      submittedSlug: "dr-unauthorized-portland-or",
+      status: "pending",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {},
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/applications/application-unauthorized/approve",
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.payload.error, "Unauthorized.");
+  assert.equal(state.documents.get("application-unauthorized").status, "pending");
+  assert.equal(state.documents.has("therapist-dr-unauthorized-portland-or"), false);
+});
+
+test("top-level review handler rejects unauthorized therapist ops actions", async function () {
+  const { client, state } = createMemoryClient({
+    "therapist-ops-unauthorized": {
+      _id: "therapist-ops-unauthorized",
+      _type: "therapist",
+      name: "Dr. Ops Guard",
+      verificationLane: "needs_verification",
+      nextReviewDueAt: "",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      decision: "snooze_30d",
+      notes: "Should not be applied",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/therapists/therapist-ops-unauthorized/ops",
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.payload.error, "Unauthorized.");
+  assert.equal(
+    state.documents.get("therapist-ops-unauthorized").verificationLane,
+    "needs_verification",
+  );
+  assert.equal(state.documents.get("therapist-ops-unauthorized").nextReviewDueAt, "");
 });
 
 test("top-level review handler supports authenticated candidate publish decisions", async function () {

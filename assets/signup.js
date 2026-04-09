@@ -1603,7 +1603,7 @@ function updateReadinessDelta(deltaEl, score) {
   }, 1800);
 }
 
-function getReadinessTierCrossingMessage(label, score) {
+function getReadinessTierCrossingMessage(label) {
   var fieldLabel = lastReadinessInteractionField
     ? capitalizeLabel(getFieldGuidanceLabel(lastReadinessInteractionField))
     : "That change";
@@ -2419,15 +2419,6 @@ function getReadinessNudgeButtonLabel(fieldName) {
   return "Open " + target + " +" + weight;
 }
 
-function getReadinessNavigationLabel(fieldName) {
-  var target = getReadinessTargetLabel(fieldName);
-  if (!target) {
-    return "next recommended field";
-  }
-
-  return target;
-}
-
 function getReadinessTargetLabel(fieldName) {
   return getReadinessPriorityTargetLabel(fieldName) || "next field";
 }
@@ -3046,26 +3037,6 @@ function getNextRecommendedField(data) {
   }
 
   return null;
-}
-
-function formatMissingFieldSummary(items, limit) {
-  var labels = (Array.isArray(items) ? items : []).slice(0, limit || 3).map(function (item) {
-    return item.label;
-  });
-
-  if (!labels.length) {
-    return "";
-  }
-
-  if (labels.length === 1) {
-    return labels[0];
-  }
-
-  if (labels.length === 2) {
-    return labels[0] + " and " + labels[1];
-  }
-
-  return labels.slice(0, -1).join(", ") + ", and " + labels[labels.length - 1];
 }
 
 function formatGuidedFieldSummary(items, limit) {

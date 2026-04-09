@@ -44,7 +44,7 @@
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
-    "test": "node --test",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "lint": "eslint .",
     "smoke:top-flows": "npm run build && node scripts/smoke-top-flows.mjs",
     "format": "prettier --write .",

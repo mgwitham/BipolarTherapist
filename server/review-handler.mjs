@@ -6,7 +6,29 @@ import { createClient } from "@sanity/client";
 import { handleApplicationRoutes } from "./review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
+import {
+  hasEmailConfig,
+  notifyAdminOfSubmission,
+  notifyApplicantOfDecision,
+  sendPortalClaimLink as sendPortalClaimLinkEmail,
+} from "./review-email.mjs";
+import {
+  canAttemptLogin,
+  clearFailedLogins,
+  createSignedPayload,
+  createSignedSession,
+  getSecurityWarnings,
+  isAuthorized,
+  normalizeRoutePath,
+  parseAuthorizationHeader,
+  parseBody as parseJsonBody,
+  readSignedPayload,
+  readSignedSession,
+  recordFailedLogin,
+  sendJson,
+} from "./review-http-auth.mjs";
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
+import { handleReadRoutes } from "./review-read-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
   buildCandidateReviewEvent,
@@ -53,8 +75,6 @@ const DEFAULT_LOGIN_MAX_ATTEMPTS = 10;
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const loginAttemptStore = new Map();
-
 function parseBooleanEnv(value, fallback) {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -88,18 +108,6 @@ function readEnvFile(filePath) {
       accumulator[key] = value;
       return accumulator;
     }, {});
-}
-
-function encodeBase64Url(value) {
-  return Buffer.from(value).toString("base64url");
-}
-
-function decodeBase64Url(value) {
-  return Buffer.from(value, "base64url").toString("utf8");
-}
-
-function signValue(value, secret) {
-  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
 function normalizeSlugCandidate(value) {
@@ -293,217 +301,8 @@ export function getReviewApiConfig() {
   return config;
 }
 
-function hasEmailConfig(config) {
-  return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
-}
-
-function getSecurityWarnings(config) {
-  const warnings = [];
-
-  if (!config.explicitSessionSecret) {
-    warnings.push("Session secret is falling back to another admin secret.");
-  }
-
-  if (config.allowLegacyKey && config.adminKey) {
-    warnings.push("Legacy X-Admin-Key auth is enabled.");
-  }
-
-  if (config.adminPassword === "Password" || config.adminKey === "Password") {
-    warnings.push('Admin auth still uses the placeholder value "Password".');
-  }
-
-  return warnings;
-}
-
-function getAllowedOrigin(origin, config) {
-  if (!origin) {
-    return "";
-  }
-
-  return config.allowedOrigins.includes(origin) ? origin : "";
-}
-
-function normalizeRoutePath(pathname) {
-  if (!pathname) {
-    return "/";
-  }
-
-  if (pathname === "/api/review" || pathname === "/api/review/") {
-    return "/";
-  }
-
-  if (pathname.startsWith("/api/review/")) {
-    return pathname.replace(/^\/api\/review/, "") || "/";
-  }
-
-  return pathname;
-}
-
-function sendJson(response, statusCode, payload, origin, config) {
-  const headers = {
-    "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
-    Vary: "Origin",
-  };
-  const allowedOrigin = getAllowedOrigin(origin, config);
-  if (allowedOrigin) {
-    headers["Access-Control-Allow-Origin"] = allowedOrigin;
-  }
-
-  response.writeHead(statusCode, headers);
-  response.end(JSON.stringify(payload));
-}
-
-function parseAuthorizationHeader(request) {
-  const header = request.headers.authorization;
-  if (!header || typeof header !== "string") {
-    return "";
-  }
-
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1] : "";
-}
-
-function createSignedSession(config) {
-  const payload = {
-    sub: "admin",
-    iat: Date.now(),
-    exp: Date.now() + config.sessionTtlMs,
-    nonce: crypto.randomBytes(12).toString("hex"),
-  };
-  const encodedPayload = encodeBase64Url(JSON.stringify(payload));
-  const signature = signValue(encodedPayload, config.sessionSecret);
-  return `${encodedPayload}.${signature}`;
-}
-
-function createSignedPayload(payload, secret) {
-  const encodedPayload = encodeBase64Url(JSON.stringify(payload));
-  const signature = signValue(encodedPayload, secret);
-  return `${encodedPayload}.${signature}`;
-}
-
-function readSignedPayload(token, secret) {
-  if (!token) {
-    return null;
-  }
-
-  const parts = String(token).split(".");
-  if (parts.length !== 2) {
-    return null;
-  }
-
-  const encodedPayload = parts[0];
-  const signature = parts[1];
-  if (signValue(encodedPayload, secret) !== signature) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(decodeBase64Url(encodedPayload));
-  } catch (_error) {
-    return null;
-  }
-}
-
-function readSignedSession(token, config) {
-  const payload = readSignedPayload(token, config.sessionSecret);
-  if (!payload || payload.sub !== "admin" || !payload.exp || payload.exp <= Date.now()) {
-    return null;
-  }
-
-  return payload;
-}
-
-function isAuthorized(request, config) {
-  const sessionPayload = readSignedSession(parseAuthorizationHeader(request), config);
-  if (sessionPayload) {
-    return true;
-  }
-
-  if (!config.allowLegacyKey || !config.adminKey) {
-    return false;
-  }
-
-  const requestKey = request.headers["x-admin-key"];
-  return typeof requestKey === "string" && requestKey === config.adminKey;
-}
-
 function parseBody(request) {
-  return new Promise(function (resolve, reject) {
-    let raw = "";
-
-    request.on("data", function (chunk) {
-      raw += chunk;
-      if (raw.length > MAX_REQUEST_BODY_BYTES) {
-        reject(new Error("Request body too large."));
-        request.destroy();
-      }
-    });
-
-    request.on("end", function () {
-      if (!raw) {
-        resolve({});
-        return;
-      }
-
-      try {
-        resolve(JSON.parse(raw));
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    request.on("error", reject);
-  });
-}
-
-function getClientAddress(request) {
-  return request.socket && request.socket.remoteAddress ? request.socket.remoteAddress : "unknown";
-}
-
-function purgeExpiredLoginWindows(config) {
-  const now = Date.now();
-  Array.from(loginAttemptStore.entries()).forEach(function ([key, value]) {
-    if (!value || now - value.windowStartedAt > config.loginWindowMs) {
-      loginAttemptStore.delete(key);
-    }
-  });
-}
-
-function canAttemptLogin(request, config) {
-  purgeExpiredLoginWindows(config);
-  const clientAddress = getClientAddress(request);
-  const attempts = loginAttemptStore.get(clientAddress);
-  if (!attempts) {
-    return true;
-  }
-
-  return attempts.count < config.loginMaxAttempts;
-}
-
-function recordFailedLogin(request, config) {
-  purgeExpiredLoginWindows(config);
-  const clientAddress = getClientAddress(request);
-  const existing = loginAttemptStore.get(clientAddress);
-
-  if (!existing) {
-    loginAttemptStore.set(clientAddress, {
-      count: 1,
-      windowStartedAt: Date.now(),
-    });
-    return;
-  }
-
-  loginAttemptStore.set(clientAddress, {
-    count: existing.count + 1,
-    windowStartedAt: existing.windowStartedAt,
-  });
-}
-
-function clearFailedLogins(request) {
-  const clientAddress = getClientAddress(request);
-  loginAttemptStore.delete(clientAddress);
+  return parseJsonBody(request, MAX_REQUEST_BODY_BYTES);
 }
 
 function splitList(value) {
@@ -942,6 +741,12 @@ function normalizeApplication(doc) {
   });
 }
 
+function normalizeCandidate(doc) {
+  return normalizePortableCandidate(doc, {
+    normalizeLicensureVerification,
+  });
+}
+
 function normalizePortalRequest(doc) {
   return {
     id: doc._id,
@@ -1016,102 +821,14 @@ function readPortalClaimToken(config, token) {
   return payload;
 }
 
-async function sendEmail(config, payload) {
-  if (!hasEmailConfig(config)) {
-    return { skipped: true };
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.resendApiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const result = await response.json().catch(function () {
-    return {};
-  });
-
-  if (!response.ok) {
-    throw new Error(result.message || result.error || "Email send failed.");
-  }
-
-  return result;
-}
-
-async function notifyAdminOfSubmission(config, application) {
-  if (!hasEmailConfig(config)) {
-    return;
-  }
-
-  await sendEmail(config, {
-    from: config.emailFrom,
-    to: [config.notificationTo],
-    subject: `New therapist application: ${application.name}`,
-    html: `<h2>New therapist application</h2>
-<p><strong>Name:</strong> ${application.name}</p>
-<p><strong>Email:</strong> ${application.email}</p>
-<p><strong>Location:</strong> ${application.city}, ${application.state}</p>
-<p><strong>Credentials:</strong> ${application.credentials || "Not provided"}</p>
-<p><strong>Specialties:</strong> ${(application.specialties || []).join(", ") || "Not provided"}</p>
-<p><strong>Status:</strong> ${application.status}</p>
-<p>Open the admin review page to review this submission.</p>`,
-  });
-}
-
-async function notifyApplicantOfDecision(config, application, decision) {
-  if (!config.resendApiKey || !config.emailFrom || !application.email) {
-    return;
-  }
-
-  const subject =
-    decision === "approved"
-      ? "Your BipolarTherapyHub application was approved"
-      : "Your BipolarTherapyHub application was reviewed";
-  const html =
-    decision === "approved"
-      ? `<h2>Your listing was approved</h2>
-<p>Hi ${application.name},</p>
-<p>Your BipolarTherapyHub application has been approved and your listing is now live.</p>
-<p>Thank you for joining the directory.</p>`
-      : `<h2>Your application was reviewed</h2>
-<p>Hi ${application.name},</p>
-<p>Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
-<p>You can reply to this email if you want to follow up with updated details later.</p>`;
-
-  await sendEmail(config, {
-    from: config.emailFrom,
-    to: [application.email],
-    reply_to: config.notificationTo,
-    subject: subject,
-    html: html,
-  });
-}
-
 async function sendPortalClaimLink(config, therapist, requesterEmail, portalBaseUrl) {
-  if (!hasEmailConfig(config)) {
-    throw new Error("Email delivery is not configured for claim links yet.");
-  }
-
-  const token = buildPortalClaimToken(config, therapist, requesterEmail);
-  const manageUrl =
-    String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "") +
-    "/portal.html?token=" +
-    encodeURIComponent(token);
-
-  await sendEmail(config, {
-    from: config.emailFrom,
-    to: [requesterEmail],
-    reply_to: config.notificationTo,
-    subject: `Your BipolarTherapyHub manage link for ${therapist.name}`,
-    html: `<h2>Claim or manage your profile</h2>
-<p>Hi ${therapist.name},</p>
-<p>Use the secure link below to access your lightweight profile portal.</p>
-<p><a href="${manageUrl}">${manageUrl}</a></p>
-<p>This link expires in 30 minutes.</p>`,
-  });
+  return sendPortalClaimLinkEmail(
+    config,
+    therapist,
+    requesterEmail,
+    portalBaseUrl,
+    buildPortalClaimToken,
+  );
 }
 
 async function updateApplicationFields(client, applicationId, fields) {
@@ -1171,6 +888,94 @@ async function updatePortalRequestFields(client, requestId, fields) {
   return client.patch(requestId).set(allowedUpdates).commit({ visibility: "sync" });
 }
 
+function createReviewRouteModules() {
+  return [
+    {
+      handler: handleAuthAndPortalRoutes,
+      deps: {
+        buildPortalRequestDocument,
+        canAttemptLogin,
+        clearFailedLogins,
+        createSignedSession,
+        getSecurityWarnings,
+        isAuthorized,
+        normalizePortalRequest,
+        parseAuthorizationHeader,
+        parseBody,
+        readPortalClaimToken,
+        readSignedSession,
+        recordFailedLogin,
+        sendJson,
+        sendPortalClaimLink,
+        updatePortalRequestFields,
+      },
+      includeUrl: true,
+    },
+    {
+      handler: handleReadRoutes,
+      deps: {
+        isAuthorized,
+        normalizeApplication,
+        normalizeCandidate,
+        sendJson,
+      },
+    },
+    {
+      handler: handleApplicationRoutes,
+      deps: {
+        buildApplicationDocument,
+        buildAppliedFieldReviewStatePatch,
+        buildRevisionFieldUpdates,
+        buildTherapistApplicationFieldPatch,
+        buildTherapistDocument,
+        buildTherapistOpsEvent,
+        findDuplicateTherapistEntity,
+        isAuthorized,
+        normalizeApplication,
+        notifyAdminOfSubmission,
+        notifyApplicantOfDecision,
+        parseBody,
+        publishingHelpers,
+        sendJson,
+        slugify,
+        updateApplicationFields,
+        validateRevisionInput,
+      },
+    },
+    {
+      handler: handleCandidateRoutes,
+      deps: {
+        addDays,
+        buildCandidateReviewEvent,
+        buildFieldTrustMeta,
+        buildTherapistDocumentFromCandidate,
+        computeCandidateReviewMeta,
+        computeTherapistVerificationMeta,
+        isAuthorized,
+        mergeLicensureVerification,
+        normalizeLicensureVerification,
+        normalizePortableCandidate,
+        parseBody,
+        publishingHelpers,
+        sendJson,
+      },
+    },
+    {
+      handler: handleOpsRoutes,
+      deps: {
+        addDays,
+        buildFieldTrustMeta,
+        buildLicensureOpsEvent,
+        buildTherapistOpsEvent,
+        computeTherapistVerificationMeta,
+        isAuthorized,
+        parseBody,
+        sendJson,
+      },
+    },
+  ];
+}
+
 export function createReviewApiHandler(configOverride, clientOverride) {
   const config = configOverride || getReviewApiConfig();
   const client =
@@ -1183,6 +988,7 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       useCdn: false,
       perspective: "raw",
     });
+  const routeModules = createReviewRouteModules();
 
   return async function reviewApiHandler(request, response) {
     const origin = request.headers.origin || "";
@@ -1195,157 +1001,22 @@ export function createReviewApiHandler(configOverride, clientOverride) {
     }
 
     try {
-      if (
-        await handleAuthAndPortalRoutes({
-          client,
-          config,
-          deps: {
-            buildPortalRequestDocument,
-            canAttemptLogin,
-            clearFailedLogins,
-            createSignedSession,
-            getSecurityWarnings,
-            isAuthorized,
-            normalizePortalRequest,
-            parseAuthorizationHeader,
-            parseBody,
-            readPortalClaimToken,
-            readSignedSession,
-            recordFailedLogin,
-            sendJson,
-            sendPortalClaimLink,
-            updatePortalRequestFields,
-          },
-          origin,
-          request,
-          response,
-          routePath,
-          url,
-        })
-      ) {
-        return;
-      }
-
-      if (request.method === "GET" && routePath === "/applications") {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      for (const routeModule of routeModules) {
+        if (
+          await routeModule.handler({
+            client,
+            config,
+            deps: routeModule.deps,
+            origin,
+            request,
+            response,
+            routePath,
+            ...(routeModule.includeUrl ? { url } : {}),
+          })
+        ) {
           return;
         }
-
-        const docs = await client.fetch(
-          `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
-            _id, _createdAt, _updatedAt, name, email, credentials, title, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed, practiceName, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
-            licenseState, licenseNumber, bio, careApproach, specialties, treatmentModalities, clientPopulations,
-            insuranceAccepted, languages, yearsExperience, bipolarYearsExperience, acceptsTelehealth, acceptsInPerson,
-            acceptingNewPatients, telehealthStates, estimatedWaitTime, medicationManagement, verificationStatus,
-            sessionFeeMin, sessionFeeMax, slidingScale, status, notes, submittedSlug, submittedAt, updatedAt, reviewRequestMessage, revisionHistory, revisionCount,
-            publishedTherapistId
-          }`,
-        );
-
-        sendJson(response, 200, docs.map(normalizeApplication), origin, config);
-        return;
       }
-
-      if (request.method === "GET" && routePath === "/candidates") {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const docs = await client.fetch(
-          `*[_type == "therapistCandidate"] | order(coalesce(reviewPriority, 0) desc, coalesce(nextReviewDueAt, _updatedAt) asc, _updatedAt desc){
-            ...
-          }`,
-        );
-
-        sendJson(response, 200, docs.map(normalizeCandidate), origin, config);
-        return;
-      }
-
-      if (
-        await handleApplicationRoutes({
-          client,
-          config,
-          deps: {
-            buildApplicationDocument,
-            buildAppliedFieldReviewStatePatch,
-            buildRevisionFieldUpdates,
-            buildTherapistApplicationFieldPatch,
-            buildTherapistDocument,
-            buildTherapistOpsEvent,
-            findDuplicateTherapistEntity,
-            isAuthorized,
-            normalizeApplication,
-            notifyAdminOfSubmission,
-            notifyApplicantOfDecision,
-            parseBody,
-            publishingHelpers,
-            sendJson,
-            slugify,
-            updateApplicationFields,
-            validateRevisionInput,
-          },
-          origin,
-          request,
-          response,
-          routePath,
-        })
-      ) {
-        return;
-      }
-
-      if (
-        await handleCandidateRoutes({
-          client,
-          config,
-          deps: {
-            addDays,
-            buildCandidateReviewEvent,
-            buildFieldTrustMeta,
-            buildTherapistDocumentFromCandidate,
-            computeCandidateReviewMeta,
-            computeTherapistVerificationMeta,
-            isAuthorized,
-            mergeLicensureVerification,
-            normalizeLicensureVerification,
-            normalizePortableCandidate,
-            parseBody,
-            publishingHelpers,
-            sendJson,
-          },
-          origin,
-          request,
-          response,
-          routePath,
-        })
-      ) {
-        return;
-      }
-
-      if (
-        await handleOpsRoutes({
-          client,
-          config,
-          deps: {
-            addDays,
-            buildFieldTrustMeta,
-            buildLicensureOpsEvent,
-            buildTherapistOpsEvent,
-            computeTherapistVerificationMeta,
-            isAuthorized,
-            parseBody,
-            sendJson,
-          },
-          origin,
-          request,
-          response,
-          routePath,
-        })
-      ) {
-        return;
-      }
-
 
       sendJson(response, 404, { error: "Not found." }, origin, config);
     } catch (error) {
