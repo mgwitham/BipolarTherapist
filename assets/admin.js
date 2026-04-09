@@ -49,6 +49,7 @@ import { renderApplicationsPanel } from "./admin-application-review.js";
 import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
 import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
 import { renderLicensureQueuePanel } from "./admin-licensure-queue.js";
+import { renderLicensureSprintPanel } from "./admin-licensure-sprint.js";
 import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
 import { renderConfirmationSprintPanel } from "./admin-confirmation-sprint.js";
 import { renderConfirmationQueuePanel } from "./admin-confirmation-queue.js";
@@ -6899,6 +6900,16 @@ function renderLicensureQueue() {
   });
 }
 
+function renderLicensureSprint() {
+  renderLicensureSprintPanel({
+    root: document.getElementById("licensureSprint"),
+    authRequired: authRequired,
+    rows: licensureRefreshQueue,
+    escapeHtml: escapeHtml,
+    copyText: copyText,
+  });
+}
+
 function renderImportBlockerSprint() {
   renderImportBlockerSprintPanel({
     authRequired: authRequired,
@@ -7487,6 +7498,7 @@ function renderAll() {
   renderListings();
   renderRefreshQueue();
   renderLicensureQueue();
+  renderLicensureSprint();
   renderImportBlockerSprint();
   renderCaliforniaPriorityConfirmationWave();
   renderConfirmationSprint();

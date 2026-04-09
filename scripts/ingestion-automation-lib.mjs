@@ -31,7 +31,22 @@ export function readCsvRowCount(root, relativePath) {
   return Math.max(0, lines.length - 1);
 }
 
+export function readJsonArray(root, relativePath) {
+  const absolutePath = path.join(root, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(absolutePath, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
 export function buildMetrics(root) {
+  const licensureQueue = readJsonArray(root, "data/import/generated-licensure-refresh-queue.json");
+  const licensureSprint = getLicensureSprintRecommendation(licensureQueue);
   return {
     sourceHealthChecks: readCsvRowCount(root, "data/import/generated-source-health-checks.csv"),
     operationalDriftChecks: readCsvRowCount(
@@ -48,6 +63,8 @@ export function buildMetrics(root) {
       root,
       "data/import/generated-licensure-refresh-queue.csv",
     ),
+    licensureSprintLane: licensureSprint.laneKey,
+    licensureSprintCount: licensureSprint.count,
     reverificationItems: readCsvRowCount(root, "data/import/generated-reverification-batch.csv"),
     candidateReviewItems: readCsvRowCount(
       root,
@@ -70,6 +87,13 @@ export function buildAlerts(metrics) {
       level: "warn",
       label: "Licensure refresh pressure",
       message: `${metrics.licensureRefreshItems} licensure records need refresh or first-pass enrichment.`,
+    });
+  }
+  if (metrics.licensureSprintLane === "first_pass" && metrics.licensureSprintCount >= 3) {
+    alerts.push({
+      level: "info",
+      label: "Licensure first-pass wave",
+      message: `${metrics.licensureSprintCount} missing-cache therapists are ready for a first-pass licensure sprint.`,
     });
   }
   if (metrics.reverificationItems >= 20) {
@@ -184,6 +208,7 @@ export function buildTrendAlerts(trends) {
 }
 
 export function buildMarkdown(summary) {
+  const sprintLabel = formatLicensureSprintLabel(summary.metrics.licensureSprintLane);
   const lines = [
     "# Ingestion Automation Run",
     "",
@@ -201,6 +226,7 @@ export function buildMarkdown(summary) {
     `- Sourcing recommendations: ${summary.metrics.sourcingRecommendations}`,
     `- Ops queue items: ${summary.metrics.opsQueueItems}`,
     `- Licensure refresh items: ${summary.metrics.licensureRefreshItems}`,
+    `- Licensure sprint lane: ${sprintLabel}${summary.metrics.licensureSprintCount ? ` (${summary.metrics.licensureSprintCount})` : ""}`,
     `- Reverification items: ${summary.metrics.reverificationItems}`,
     `- Candidate review items: ${summary.metrics.candidateReviewItems}`,
     "",
@@ -254,6 +280,11 @@ export function buildMarkdown(summary) {
     lines.push("## Next move");
     lines.push("");
     lines.push("- Open the admin operations inbox and work the highest-priority publish, duplicate, confirmation, and refresh items.");
+    if (summary.metrics.licensureSprintCount) {
+      lines.push(
+        `- Licensure sprint: ${formatLicensureSprintLabel(summary.metrics.licensureSprintLane)} (${summary.metrics.licensureSprintCount} items).`,
+      );
+    }
     if (summary.alerts.length) {
       lines.push(`- Start with the top alert: ${summary.alerts[0].label}.`);
     } else {
@@ -265,4 +296,41 @@ export function buildMarkdown(summary) {
   }
 
   return lines.join("\n");
+}
+
+export function getLicensureSprintRecommendation(rows) {
+  const queue = Array.isArray(rows) ? rows : [];
+  const firstPassCount = queue.filter(function (item) {
+    return item.queue_reason === "missing_cache";
+  }).length;
+  const failedCount = queue.filter(function (item) {
+    return item.refresh_status === "failed";
+  }).length;
+  const expirationCount = queue.filter(function (item) {
+    return Boolean(item.expiration_date) && item.queue_reason !== "missing_cache";
+  }).length;
+
+  if (firstPassCount) {
+    return { laneKey: "first_pass", count: firstPassCount };
+  }
+  if (failedCount) {
+    return { laneKey: "failed_refresh", count: failedCount };
+  }
+  if (expirationCount) {
+    return { laneKey: "expiration_watch", count: expirationCount };
+  }
+  return { laneKey: "clear", count: 0 };
+}
+
+function formatLicensureSprintLabel(laneKey) {
+  if (laneKey === "first_pass") {
+    return "First-pass enrichment";
+  }
+  if (laneKey === "failed_refresh") {
+    return "Failed refresh recovery";
+  }
+  if (laneKey === "expiration_watch") {
+    return "Expiration watch";
+  }
+  return "Clear";
 }

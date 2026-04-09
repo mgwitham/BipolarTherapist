@@ -170,6 +170,10 @@ function main() {
       return step.ok;
     }).length,
     metrics,
+    licensureSprint: {
+      lane: metrics.licensureSprintLane || "clear",
+      count: metrics.licensureSprintCount || 0,
+    },
     trends,
     alerts,
     steps: results,
