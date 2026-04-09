@@ -36,11 +36,21 @@ function createJsonRequest({ body, headers, method, url }) {
   return request;
 }
 
+async function runHandlerRequest(handler, requestOptions) {
+  const response = createResponseCapture();
+  await handler(createJsonRequest(requestOptions), response);
+  return response;
+}
+
 function createSendJson(response) {
   return function sendJson(_res, statusCode, payload) {
     response.statusCode = statusCode;
     response.payload = payload;
   };
+}
+
+function deepClone(value) {
+  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 }
 
 function createTransactionSpy(state) {
@@ -85,9 +95,98 @@ function createTransactionSpy(state) {
       return this;
     },
     async commit() {
+      if (state.documents) {
+        operations.forEach(function (operation) {
+          if (operation.type === "create" || operation.type === "createOrReplace") {
+            state.documents.set(operation.document._id, deepClone(operation.document));
+            return;
+          }
+
+          if (operation.type === "delete") {
+            state.documents.delete(operation.id);
+            return;
+          }
+
+          if (operation.type === "patch") {
+            const current = deepClone(state.documents.get(operation.id) || {});
+            const nextDocument = {
+              ...current,
+              ...deepClone(operation.patchState.setIfMissing),
+              ...deepClone(operation.patchState.set),
+            };
+
+            Object.entries(operation.patchState.append).forEach(function ([field, values]) {
+              nextDocument[field] = []
+                .concat(Array.isArray(current[field]) ? current[field] : [])
+                .concat(deepClone(values));
+            });
+
+            state.documents.set(operation.id, nextDocument);
+          }
+        });
+      }
+
       state.lastTransaction = operations.slice();
       return { transactionId: "txn-1" };
     },
+  };
+}
+
+function createMemoryClient(initialDocuments) {
+  const state = {
+    documents: new Map(),
+    lastTransaction: null,
+  };
+
+  Object.entries(initialDocuments || {}).forEach(function ([id, value]) {
+    state.documents.set(id, deepClone(value));
+  });
+
+  return {
+    state,
+    client: {
+      async fetch(query) {
+        if (query.includes(`*[_type == "therapistPortalRequest"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "therapistPortalRequest";
+          });
+        }
+
+        return [];
+      },
+      async create(document) {
+        const created = {
+          ...deepClone(document),
+          _createdAt: document._createdAt || document.requestedAt || new Date().toISOString(),
+        };
+        state.documents.set(created._id, created);
+        return created;
+      },
+      async getDocument(id) {
+        return deepClone(state.documents.get(id) || null);
+      },
+      transaction() {
+        return createTransactionSpy(state);
+      },
+    },
+  };
+}
+
+function createTestApiConfig() {
+  return {
+    projectId: "test-project",
+    dataset: "test-dataset",
+    apiVersion: "2026-04-02",
+    token: "",
+    adminUsername: "architect",
+    adminPassword: "secret-pass",
+    allowLegacyKey: false,
+    adminKey: "",
+    sessionTtlMs: 60000,
+    allowedOrigins: [],
+    sessionSecret: "test-secret",
+    loginWindowMs: 60000,
+    loginMaxAttempts: 5,
   };
 }
 
@@ -422,37 +521,8 @@ test("ops routes can snooze therapist review work", async function () {
 
 test("top-level review handler dispatches auth routes before falling through", async function () {
   const response = createResponseCapture();
-  const handler = createReviewApiHandler(
-    {
-      projectId: "test-project",
-      dataset: "test-dataset",
-      apiVersion: "2026-04-02",
-      token: "",
-      adminUsername: "architect",
-      adminPassword: "secret-pass",
-      allowLegacyKey: false,
-      adminKey: "",
-      sessionTtlMs: 60000,
-      allowedOrigins: [],
-      sessionSecret: "test-secret",
-      loginWindowMs: 60000,
-      loginMaxAttempts: 5,
-    },
-    {
-      async fetch() {
-        return [];
-      },
-      async create() {
-        return {};
-      },
-      async getDocument() {
-        return null;
-      },
-      transaction() {
-        return createTransactionSpy({});
-      },
-    },
-  );
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
 
   await handler(
     createJsonRequest({
@@ -473,4 +543,170 @@ test("top-level review handler dispatches auth routes before falling through", a
   assert.equal(response.payload.ok, true);
   assert.equal(typeof response.payload.sessionToken, "string");
   assert.equal(response.payload.authMode, "password");
+});
+
+test("top-level review handler supports authenticated portal request creation and listing", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  const sessionToken = loginResponse.payload.sessionToken;
+  assert.equal(typeof sessionToken, "string");
+
+  const createResponse = await runHandlerRequest(handler, {
+    body: {
+      therapist_slug: "dr-rivera-los-angeles-ca",
+      therapist_name: "Dr. Rivera",
+      request_type: "claim_profile",
+      requester_name: "Dr. Rivera",
+      requester_email: "dr.rivera@example.com",
+      message: "Please help me claim my profile.",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/portal/requests",
+  });
+
+  assert.equal(createResponse.statusCode, 201);
+  assert.equal(createResponse.payload.therapist_slug, "dr-rivera-los-angeles-ca");
+  assert.equal(createResponse.payload.status, "open");
+
+  const listResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/portal/requests",
+  });
+
+  assert.equal(listResponse.statusCode, 200);
+  assert.equal(Array.isArray(listResponse.payload), true);
+  assert.equal(listResponse.payload.length, 1);
+  assert.equal(listResponse.payload[0].request_type, "claim_profile");
+  assert.equal(listResponse.payload[0].requester_email, "dr.rivera@example.com");
+});
+
+test("top-level review handler supports authenticated application approval", async function () {
+  const { client, state } = createMemoryClient({
+    "application-1": {
+      _id: "application-1",
+      _type: "therapistApplication",
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      city: "Los Angeles",
+      state: "CA",
+      submittedSlug: "dr-jamie-rivera-los-angeles-ca",
+      status: "pending",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  const approveResponse = await runHandlerRequest(handler, {
+    body: {},
+    headers: {
+      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/applications/application-1/approve",
+  });
+
+  assert.equal(approveResponse.statusCode, 200);
+  assert.equal(approveResponse.payload.ok, true);
+  assert.equal(
+    approveResponse.payload.therapistId,
+    "therapist-dr-jamie-rivera-los-angeles-ca",
+  );
+
+  const updatedApplication = state.documents.get("application-1");
+  const therapist = state.documents.get("therapist-dr-jamie-rivera-los-angeles-ca");
+  assert.equal(updatedApplication.status, "approved");
+  assert.equal(
+    updatedApplication.publishedTherapistId,
+    "therapist-dr-jamie-rivera-los-angeles-ca",
+  );
+  assert.equal(therapist._type, "therapist");
+});
+
+test("top-level review handler supports authenticated candidate publish decisions", async function () {
+  const { client, state } = createMemoryClient({
+    "candidate-42": {
+      _id: "candidate-42",
+      _type: "therapistCandidate",
+      name: "Dr. Casey North",
+      city: "Seattle",
+      state: "WA",
+      sourceUrl: "https://example.com/casey",
+      supportingSourceUrls: ["https://example.com/casey/bio"],
+      reviewStatus: "queued",
+      publishRecommendation: "",
+      dedupeStatus: "unreviewed",
+      licensureVerification: { status: "verified" },
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  const decisionResponse = await runHandlerRequest(handler, {
+    body: {
+      decision: "publish",
+      notes: "Ready for launch",
+    },
+    headers: {
+      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/candidates/candidate-42/decision",
+  });
+
+  assert.equal(decisionResponse.statusCode, 200);
+  assert.equal(decisionResponse.payload.ok, true);
+  assert.equal(decisionResponse.payload.therapistId, "therapist-dr-casey-north-seattle-wa");
+
+  const updatedCandidate = state.documents.get("candidate-42");
+  const publishedTherapist = state.documents.get("therapist-dr-casey-north-seattle-wa");
+  assert.equal(updatedCandidate.reviewStatus, "published");
+  assert.equal(
+    updatedCandidate.publishedTherapistId,
+    "therapist-dr-casey-north-seattle-wa",
+  );
+  assert.equal(publishedTherapist._type, "therapist");
 });
