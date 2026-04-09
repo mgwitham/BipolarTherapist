@@ -1306,6 +1306,70 @@ import {
     var standoutCopy = buildCardStandoutCopy(therapist);
     var reachabilityCopy = buildCardReachabilityCopy(therapist);
     var trustSnapshot = buildCardTrustSnapshot(therapist);
+    var quickStats = [
+      {
+        label: "Fit",
+        value: therapist.bipolar_years_experience
+          ? therapist.bipolar_years_experience + " yrs bipolar care"
+          : "Check bipolar depth",
+        tone: therapist.bipolar_years_experience ? "green" : "teal",
+      },
+      {
+        label: "Timing",
+        value:
+          therapist.estimated_wait_time ||
+          (therapist.accepting_new_patients ? "Accepting" : "Confirm"),
+        tone: therapist.estimated_wait_time || therapist.accepting_new_patients ? "green" : "",
+      },
+      {
+        label: "Fees",
+        value:
+          therapist.session_fee_min || therapist.session_fee_max
+            ? "$" +
+              escapeHtml(therapist.session_fee_min || therapist.session_fee_max) +
+              (therapist.session_fee_max &&
+              String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
+                ? "-$" + escapeHtml(therapist.session_fee_max)
+                : "")
+            : therapist.sliding_scale
+              ? "Sliding scale"
+              : "Ask directly",
+        tone:
+          therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
+            ? "teal"
+            : "",
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="card-quick-stat"><div class="card-quick-stat-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="card-quick-stat-value ' +
+          escapeHtml(item.tone || "") +
+          '">' +
+          item.value +
+          "</div></div>"
+        );
+      })
+      .join("");
+    var decisionRow = [
+      therapist.accepts_telehealth ? "Telehealth" : "",
+      therapist.accepts_in_person ? "In-person" : "",
+      therapist.medication_management ? "Medication support" : "",
+      therapist.insurance_accepted && therapist.insurance_accepted.length
+        ? therapist.insurance_accepted.slice(0, 1)[0]
+        : "",
+    ]
+      .filter(Boolean)
+      .map(function (item) {
+        return '<span class="card-decision-pill">' + escapeHtml(item) + "</span>";
+      })
+      .join("");
+    var nextStepLine = therapist.first_step_expectation
+      ? therapist.first_step_expectation
+      : contactRoute
+        ? contactRoute.detail
+        : "Open the profile to confirm the best next step.";
 
     return (
       '<article class="t-card" data-card-slug="' +
@@ -1338,6 +1402,10 @@ import {
       '</div><div class="card-fit-note">' +
       escapeHtml(likelyFitCopy) +
       "</div>" +
+      '<div class="card-quick-stats">' +
+      quickStats +
+      "</div>" +
+      (decisionRow ? '<div class="card-decision-row">' + decisionRow + "</div>" : "") +
       '<div class="card-signal-card">' +
       '<div class="card-signal-label">Why this stands out</div>' +
       '<div class="card-signal-copy">' +
@@ -1362,6 +1430,9 @@ import {
       (reviewedDetailsCopy && reviewedDetailsCopy !== trustSnapshot
         ? '<div class="card-contact-detail">' + escapeHtml(reviewedDetailsCopy) + "</div>"
         : "") +
+      '<div class="card-next-step"><div class="card-next-step-label">Best next step</div><div class="card-next-step-copy">' +
+      escapeHtml(nextStepLine) +
+      "</div></div>" +
       contactDetail +
       '<div class="card-actions">' +
       '<button class="card-action-btn' +
@@ -1436,6 +1507,48 @@ import {
         });
       })
       .filter(Boolean);
+    var compareRows = selected
+      .map(function (therapist) {
+        var entry = shortlist.find(function (item) {
+          return item.slug === therapist.slug;
+        });
+        return (
+          '<div class="shortlist-compare-card"><div class="shortlist-compare-name">' +
+          escapeHtml(therapist.name) +
+          '</div><div class="shortlist-compare-meta">' +
+          escapeHtml(
+            [
+              therapist.bipolar_years_experience
+                ? therapist.bipolar_years_experience + " yrs bipolar care"
+                : "Bipolar depth to confirm",
+              therapist.estimated_wait_time ||
+                (therapist.accepting_new_patients ? "Accepting" : "Timing to confirm"),
+              therapist.session_fee_min || therapist.session_fee_max
+                ? "$" +
+                  String(therapist.session_fee_min || therapist.session_fee_max) +
+                  (therapist.session_fee_max &&
+                  String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
+                    ? "-$" + String(therapist.session_fee_max)
+                    : "")
+                : therapist.sliding_scale
+                  ? "Sliding scale"
+                  : "Fee details pending",
+            ].join(" • "),
+          ) +
+          '</div><div class="shortlist-compare-note">' +
+          escapeHtml(
+            entry && entry.note
+              ? entry.note
+              : entry && entry.priority
+                ? entry.priority
+                : buildCardFitSummary(therapist),
+          ) +
+          '</div><a href="therapist.html?slug=' +
+          encodeURIComponent(therapist.slug) +
+          '" class="shortlist-compare-link">Open profile</a></div>'
+        );
+      })
+      .join("");
 
     root.innerHTML =
       '<div class="shortlist-bar-copy"><strong>' +
@@ -1459,7 +1572,8 @@ import {
         .join(" • ") +
       '</span></div><div class="shortlist-bar-actions"><a href="' +
       escapeHtml(buildCompareUrl()) +
-      '" class="shortlist-bar-link">Compare in match flow</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>';
+      '" class="shortlist-bar-link">Compare in match flow</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
+      (compareRows ? '<div class="shortlist-compare-grid">' + compareRows + "</div>" : "");
 
     var clearButton = document.getElementById("clearDirectoryShortlist");
     if (clearButton) {
