@@ -1,4 +1,14 @@
 import { SITE_STATS, THERAPISTS as SEEDED_THERAPISTS } from "./data.js";
+import { normalizePortableApplication } from "../shared/application-domain.mjs";
+import {
+  buildDuplicateIdentity,
+  buildProviderId,
+  compareDuplicateIdentity,
+  createTherapistConfirmedFieldReviewStates,
+  normalizeDisplayRole,
+  resolveApplicationIntakeType,
+  slugify,
+} from "../shared/therapist-domain.mjs";
 
 const THERAPISTS_KEY = "bt_directory_therapists_v2";
 const APPLICATIONS_KEY = "bt_directory_applications_v2";
@@ -30,22 +40,6 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function normalizeKeySegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function createUniqueSlug(name, city, state, existingSlugs) {
   const base = slugify([name, city, state].filter(Boolean).join(" "));
   let slug = base || "listing";
@@ -69,124 +63,11 @@ function ensureSeeded() {
   }
 }
 
-function normalizeDisplayRole(value) {
-  return String(value || "")
-    .replace(/\blicensed clinical psychologist\b/gi, "Therapist")
-    .replace(/\bclinical psychologist\b/gi, "Therapist")
-    .replace(/\bpsychologist\b/gi, "Therapist")
-    .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
-function normalizeLower(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function normalizeLicense(value) {
-  return normalizeLower(value).replace(/[^a-z0-9]/g, "");
-}
-
-function buildProviderId(input) {
-  var licenseState = normalizeKeySegment(input.license_state || input.licenseState);
-  var licenseNumber = normalizeLicense(input.license_number || input.licenseNumber);
-  if (licenseState && licenseNumber) {
-    return "provider-" + licenseState + "-" + licenseNumber;
-  }
-
-  var fallback = normalizeKeySegment(
-    [input.name, input.city, input.state].filter(Boolean).join(" "),
-  );
-  return "provider-" + (fallback || Date.now());
-}
-
-function normalizeEmail(value) {
-  return normalizeLower(value);
-}
-
-function normalizePhone(value) {
-  return String(value || "").replace(/[^0-9]/g, "");
-}
-
-function normalizeWebsite(value) {
-  const raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    const url = new URL(raw);
-    const pathname = url.pathname.replace(/\/+$/, "");
-    return `${url.hostname.toLowerCase()}${pathname}`;
-  } catch (_error) {
-    return raw
-      .toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/\/+$/, "");
-  }
-}
-
-function buildDuplicateIdentity(input) {
-  return {
-    slug: slugify(input.slug || [input.name, input.city, input.state].filter(Boolean).join(" ")),
-    name: normalizeLower(input.name),
-    city: normalizeLower(input.city),
-    state: normalizeLower(input.state),
-    credentials: normalizeLower(input.credentials),
-    email: normalizeEmail(input.email),
-    phone: normalizePhone(input.phone),
-    website: normalizeWebsite(input.website || input.booking_url),
-    licenseState: normalizeLower(input.license_state),
-    licenseNumber: normalizeLicense(input.license_number),
-  };
-}
-
 function findDuplicateEntity(therapists, applications, input) {
   const identity = buildDuplicateIdentity(input);
 
   function duplicateReasons(candidate) {
-    const reasons = [];
-    const candidateSlug = slugify(candidate.slug || "");
-    const candidateLicenseState = normalizeLower(candidate.license_state || candidate.licenseState);
-    const candidateLicenseNumber = normalizeLicense(
-      candidate.license_number || candidate.licenseNumber,
-    );
-    const candidateEmail = normalizeEmail(candidate.email);
-    const candidatePhone = normalizePhone(candidate.phone);
-    const candidateWebsite = normalizeWebsite(candidate.website || candidate.booking_url);
-    const sameNamePlace =
-      identity.name &&
-      identity.city &&
-      identity.state &&
-      identity.name === normalizeLower(candidate.name) &&
-      identity.city === normalizeLower(candidate.city) &&
-      identity.state === normalizeLower(candidate.state);
-
-    if (
-      identity.licenseState &&
-      identity.licenseNumber &&
-      identity.licenseState === candidateLicenseState &&
-      identity.licenseNumber === candidateLicenseNumber
-    ) {
-      reasons.push("license");
-    }
-    if (identity.slug && identity.slug === candidateSlug) {
-      reasons.push("slug");
-    }
-    if (identity.email && identity.email === candidateEmail) {
-      reasons.push("email");
-    }
-    if (
-      sameNamePlace &&
-      ((identity.phone && identity.phone === candidatePhone) ||
-        (identity.website && identity.website === candidateWebsite) ||
-        (identity.credentials && identity.credentials === normalizeLower(candidate.credentials)))
-    ) {
-      reasons.push("name_location");
-    }
-    return reasons;
+    return compareDuplicateIdentity(identity, candidate);
   }
 
   const therapistMatch = (therapists || []).find(function (candidate) {
@@ -224,205 +105,8 @@ function findDuplicateEntity(therapists, applications, input) {
   return null;
 }
 
-function resolveApplicationIntakeType(input) {
-  var requested = String(input.application_intake_type || input.intake_type || "").trim();
-  if (
-    requested === "new_listing" ||
-    requested === "claim_existing" ||
-    requested === "update_existing" ||
-    requested === "confirmation_update"
-  ) {
-    return requested;
-  }
-
-  if (String(input.published_therapist_id || "").trim() || String(input.slug || "").trim()) {
-    return "confirmation_update";
-  }
-
-  return "new_listing";
-}
-
-function getApplicationPortalState(application) {
-  var status = String((application && application.status) || "pending").trim() || "pending";
-  var intent =
-    String((application && application.submission_intent) || "full_profile").trim() ||
-    "full_profile";
-  var intakeType = String((application && application.intake_type) || "new_listing").trim();
-  var claimFollowUpStatus =
-    String((application && application.claim_follow_up_status) || "not_started").trim() ||
-    "not_started";
-
-  if (status === "published") {
-    return {
-      state: "live",
-      label: "Live profile",
-      next_step: "Your profile is live in the directory and matching flow.",
-      upgrade_eligible: intent !== "claim",
-    };
-  }
-
-  if (status === "rejected") {
-    return {
-      state: "not_approved",
-      label: "Not approved",
-      next_step:
-        intent === "claim"
-          ? "Ownership could not be verified yet. Review the details and resubmit if needed."
-          : "Review feedback from the team and decide whether to revise and resubmit.",
-      upgrade_eligible: false,
-    };
-  }
-
-  if (status === "requested_changes") {
-    return {
-      state: intent === "claim" ? "claim_needs_attention" : "profile_needs_changes",
-      label: intent === "claim" ? "Claim needs attention" : "Profile needs changes",
-      next_step:
-        intent === "claim"
-          ? "Update the requested ownership or profile basics so we can finish verification."
-          : "Tighten the requested details and resubmit the fuller profile for review.",
-      upgrade_eligible: false,
-    };
-  }
-
-  if (status === "approved") {
-    return {
-      state:
-        intent === "claim"
-          ? "claimed_ready_for_profile"
-          : intakeType === "confirmation_update"
-            ? "confirmed_update_ready"
-            : "approved_ready_to_publish",
-      label:
-        intent === "claim"
-          ? "Claim approved"
-          : intakeType === "confirmation_update"
-            ? "Update approved"
-            : "Approved for publish",
-      next_step:
-        intent === "claim"
-          ? "Ownership is verified. Complete the fuller profile when you are ready."
-          : intakeType === "confirmation_update"
-            ? "Your confirmed updates are ready to be applied to the live profile."
-            : "This profile is approved and ready to publish live.",
-      upgrade_eligible: intent !== "claim",
-    };
-  }
-
-  if (status === "reviewing") {
-    if (intent !== "claim" && claimFollowUpStatus === "full_profile_started") {
-      return {
-        state: "profile_in_review_after_claim",
-        label: "Full profile in review",
-        next_step:
-          "The fuller profile arrived after claim approval and is now in review for trust, fit, and publish readiness.",
-        upgrade_eligible: false,
-      };
-    }
-    return {
-      state:
-        intent === "claim"
-          ? "claim_in_review"
-          : intakeType === "confirmation_update"
-            ? "update_in_review"
-            : "profile_in_review",
-      label:
-        intent === "claim"
-          ? "Claim in review"
-          : intakeType === "confirmation_update"
-            ? "Update in review"
-            : "Profile in review",
-      next_step:
-        intent === "claim"
-          ? "We are verifying ownership and the core profile details."
-          : intakeType === "confirmation_update"
-            ? "We are reviewing the refreshed operational details before applying them live."
-            : "We are reviewing trust, fit, and readiness details before publishing.",
-      upgrade_eligible: false,
-    };
-  }
-
-  return {
-    state:
-      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
-        ? "profile_submitted_after_claim"
-        : intent === "claim"
-          ? "claim_pending_review"
-          : intakeType === "confirmation_update"
-            ? "update_pending_review"
-            : "profile_pending_review",
-    label:
-      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
-        ? "Full profile submitted"
-        : intent === "claim"
-          ? "Claim pending review"
-          : intakeType === "confirmation_update"
-            ? "Update pending review"
-            : "Profile pending review",
-    next_step:
-      intent !== "claim" && claimFollowUpStatus === "full_profile_started"
-        ? "The therapist finished the fuller profile after claim approval. Review it like a live candidate for publish readiness."
-        : intent === "claim"
-          ? "We received your free claim and will verify ownership before the fuller profile step."
-          : intakeType === "confirmation_update"
-            ? "We received your updated operational details and queued them for review."
-            : "We received your full profile and queued it for editorial review.",
-    upgrade_eligible: false,
-  };
-}
-
 function normalizeApplication(item) {
-  var application = item || {};
-  var portalState = getApplicationPortalState(application);
-  return {
-    ...application,
-    provider_id: application.provider_id || buildProviderId(application),
-    intake_type: application.intake_type || "new_listing",
-    submission_intent: application.submission_intent || "full_profile",
-    target_therapist_slug: application.target_therapist_slug || "",
-    target_therapist_id: application.target_therapist_id || "",
-    photo_url: application.photo_url || "",
-    photo_source_type: application.photo_source_type || "",
-    photo_reviewed_at: application.photo_reviewed_at || "",
-    photo_usage_permission_confirmed: Boolean(application.photo_usage_permission_confirmed),
-    status: application.status || "pending",
-    therapist_reported_fields: Array.isArray(application.therapist_reported_fields)
-      ? application.therapist_reported_fields
-      : [],
-    therapist_reported_confirmed_at: application.therapist_reported_confirmed_at || "",
-    field_review_states: {
-      estimated_wait_time:
-        (application.field_review_states && application.field_review_states.estimated_wait_time) ||
-        "therapist_confirmed",
-      insurance_accepted:
-        (application.field_review_states && application.field_review_states.insurance_accepted) ||
-        "therapist_confirmed",
-      telehealth_states:
-        (application.field_review_states && application.field_review_states.telehealth_states) ||
-        "therapist_confirmed",
-      bipolar_years_experience:
-        (application.field_review_states &&
-          application.field_review_states.bipolar_years_experience) ||
-        "therapist_confirmed",
-    },
-    revision_history: Array.isArray(application.revision_history)
-      ? application.revision_history
-      : [],
-    review_request_message: application.review_request_message || "",
-    revision_count: Number(application.revision_count || 0) || 0,
-    claim_follow_up_status: application.claim_follow_up_status || "not_started",
-    claim_follow_up_sent_at: application.claim_follow_up_sent_at || "",
-    claim_follow_up_response_at: application.claim_follow_up_response_at || "",
-    source_url: application.source_url || "",
-    supporting_source_urls: Array.isArray(application.supporting_source_urls)
-      ? application.supporting_source_urls
-      : [],
-    source_reviewed_at: application.source_reviewed_at || "",
-    portal_state: portalState.state,
-    portal_state_label: portalState.label,
-    portal_next_step: portalState.next_step,
-    upgrade_eligible: Boolean(portalState.upgrade_eligible),
-  };
+  return normalizePortableApplication(item || {});
 }
 
 export function getTherapists() {
@@ -582,12 +266,9 @@ export function submitApplication(input) {
     source_reviewed_at: input.source_reviewed_at || "",
     therapist_reported_fields: therapistReportedFields,
     therapist_reported_confirmed_at: input.therapist_reported_confirmed_at || timestamp,
-    field_review_states: {
-      estimated_wait_time: "therapist_confirmed",
-      insurance_accepted: "therapist_confirmed",
-      telehealth_states: "therapist_confirmed",
-      bipolar_years_experience: "therapist_confirmed",
-    },
+    field_review_states: createTherapistConfirmedFieldReviewStates({
+      keyStyle: "snake_case",
+    }),
     session_fee_min: Number(input.session_fee_min || 0) || null,
     session_fee_max: Number(input.session_fee_max || 0) || null,
     sliding_scale: !!input.sliding_scale,

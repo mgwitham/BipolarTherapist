@@ -14,28 +14,13 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 
-async function loadLaunchProfileControls() {
-  try {
-    var response = await fetch(
-      new URL("../data/import/launch-profile-controls.json", import.meta.url),
-    );
-    if (!response.ok) {
-      return {};
-    }
-    return await response.json();
-  } catch (_error) {
-    return {};
-  }
-}
-
 (async function () {
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
-  var launchProfileControls = await loadLaunchProfileControls();
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
-  var matchPrioritySlugs = Array.isArray(launchProfileControls?.matchPrioritySlugs)
-    ? launchProfileControls.matchPrioritySlugs
+  var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
+    ? content.siteSettings.matchPrioritySlugs
         .map(function (value) {
           return String(value || "").trim();
         })

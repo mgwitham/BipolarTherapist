@@ -1,4 +1,4 @@
-import { fetchPublicTherapists } from "./cms.js";
+import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
 import {
   readFunnelEvents,
@@ -105,28 +105,14 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function normalizePrioritySlugs(controls) {
-  return Array.isArray(controls && controls.matchPrioritySlugs)
-    ? controls.matchPrioritySlugs
+function normalizePrioritySlugs(siteSettings) {
+  return Array.isArray(siteSettings && siteSettings.matchPrioritySlugs)
+    ? siteSettings.matchPrioritySlugs
         .map(function (value) {
           return String(value || "").trim();
         })
         .filter(Boolean)
     : [];
-}
-
-async function loadLaunchProfileControls() {
-  try {
-    var response = await fetch(
-      new URL("../data/import/launch-profile-controls.json", import.meta.url),
-    );
-    if (!response.ok) {
-      return {};
-    }
-    return await response.json();
-  } catch (_error) {
-    return {};
-  }
 }
 
 function applyMatchPriorityProminence(entries) {
@@ -4054,8 +4040,8 @@ function resetForm() {
 }
 
 (async function init() {
-  var launchProfileControls = await loadLaunchProfileControls();
-  MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(launchProfileControls);
+  var siteSettings = await fetchPublicSiteSettings();
+  MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
   await preloadZipcodes();
   therapists = await fetchPublicTherapists();
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());

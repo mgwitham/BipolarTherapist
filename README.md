@@ -117,9 +117,10 @@ Current scope:
 
 - public therapist listings can come from Sanity
 - homepage featured therapists can come from Sanity
-- homepage featured therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and then synced with `node scripts/update-homepage-copy.mjs`
-- match-priority therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and are used as a light editorial prominence boost inside the public match flow
-- if you copy launch controls out of admin, paste them into [generated-launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-launch-profile-controls.json), then run `npm run cms:update:launch-controls` to safely update the repo source of truth
+- homepage featured therapists are delivered from the `homePage` document in Sanity
+- match-priority therapist slugs are delivered from the `siteSettings` document in Sanity and are used as a light editorial prominence boost inside the public match flow
+- [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) remains an ops-side staging input; run `node scripts/update-homepage-copy.mjs` to sync homepage featured slugs and match-priority slugs into Sanity
+- if you copy launch controls out of admin, paste them into [generated-launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-launch-profile-controls.json), then run `npm run cms:update:launch-controls` before syncing into Sanity
 - Sanity Studio manages therapist, homepage, site settings, and therapist application documents
 - the repo includes a future-ready therapist matching model
 - `match.html` provides a guided public-facing shortlist and outreach flow

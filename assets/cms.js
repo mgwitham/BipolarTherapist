@@ -1,3 +1,5 @@
+import { createClient } from "@sanity/client";
+import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
 const env = (import.meta && import.meta.env) || {};
@@ -15,6 +17,23 @@ const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
   error: null,
 };
+
+function normalizeSiteSettings(doc) {
+  if (!doc) {
+    return null;
+  }
+
+  return {
+    ...doc,
+    matchPrioritySlugs: Array.isArray(doc.matchPrioritySlugs)
+      ? doc.matchPrioritySlugs
+          .map(function (value) {
+            return String(value || "").trim();
+          })
+          .filter(Boolean)
+      : [],
+  };
+}
 
 const therapistProjection = `{
   _id,
@@ -77,17 +96,11 @@ const therapistProjection = `{
   "slug": slug.current
 }`;
 
-function normalizeDisplayRole(value) {
-  return String(value || "")
-    .replace(/\blicensed clinical psychologist\b/gi, "Therapist")
-    .replace(/\bclinical psychologist\b/gi, "Therapist")
-    .replace(/\bpsychologist\b/gi, "Therapist")
-    .replace(/\b(?:licensed\s+)?(?:[a-z-]+\s+)*therapist\b/gi, "Therapist")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
 function normalizeTherapist(doc) {
+  const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
+    keyStyle: "camelCase",
+  });
+
   return {
     id: doc._id,
     name: doc.name || "",
@@ -150,15 +163,10 @@ function normalizeTherapist(doc) {
       : [],
     therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
     field_review_states: {
-      estimated_wait_time:
-        (doc.fieldReviewStates && doc.fieldReviewStates.estimatedWaitTime) || "therapist_confirmed",
-      insurance_accepted:
-        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) || "therapist_confirmed",
-      telehealth_states:
-        (doc.fieldReviewStates && doc.fieldReviewStates.telehealthStates) || "therapist_confirmed",
-      bipolar_years_experience:
-        (doc.fieldReviewStates && doc.fieldReviewStates.bipolarYearsExperience) ||
-        "therapist_confirmed",
+      estimated_wait_time: fieldReviewStates.estimatedWaitTime,
+      insurance_accepted: fieldReviewStates.insuranceAccepted,
+      telehealth_states: fieldReviewStates.telehealthStates,
+      bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
     },
     field_trust_meta: {
       estimated_wait_time: (doc.fieldTrustMeta && doc.fieldTrustMeta.estimatedWaitTime) || null,
@@ -212,9 +220,9 @@ async function fetchFromSanity(query, params) {
   }
 
   if (!clientPromise) {
-    clientPromise = import("https://esm.sh/@sanity/client")
-      .then(function (module) {
-        return module.createClient({
+    clientPromise = Promise.resolve()
+      .then(function () {
+        return createClient({
           projectId: projectId,
           dataset: dataset,
           apiVersion: apiVersion,
@@ -354,12 +362,15 @@ export async function fetchHomePageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline
+        footerTagline,
+        matchPrioritySlugs
       }
     }`);
 
     const doc = result && result.homePage ? result.homePage : null;
-    const siteSettings = result && result.siteSettings ? result.siteSettings : null;
+    const siteSettings = normalizeSiteSettings(
+      result && result.siteSettings ? result.siteSettings : null,
+    );
 
     const featuredTherapists =
       doc && Array.isArray(doc.featuredTherapists) && doc.featuredTherapists.length
@@ -440,7 +451,8 @@ export async function fetchDirectoryPageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline
+        footerTagline,
+        matchPrioritySlugs
       }
     }`);
 
@@ -448,7 +460,9 @@ export async function fetchDirectoryPageContent() {
     return {
       therapists: therapists,
       directoryPage: result && result.directoryPage ? result.directoryPage : null,
-      siteSettings: result && result.siteSettings ? result.siteSettings : null,
+      siteSettings: normalizeSiteSettings(
+        result && result.siteSettings ? result.siteSettings : null,
+      ),
     };
   } catch (error) {
     console.error("Failed to load directory page content from Sanity.", error);
@@ -458,5 +472,30 @@ export async function fetchDirectoryPageContent() {
       directoryPage: null,
       siteSettings: null,
     };
+  }
+}
+
+export async function fetchPublicSiteSettings() {
+  if (!cmsEnabled) {
+    setCmsState("seed", null);
+    return null;
+  }
+
+  try {
+    const doc = await fetchFromSanity(`*[_type == "siteSettings"][0]{
+      siteTitle,
+      supportEmail,
+      browseLabel,
+      therapistCtaLabel,
+      therapistCtaUrl,
+      footerTagline,
+      matchPrioritySlugs
+    }`);
+    setCmsState("sanity", null);
+    return normalizeSiteSettings(doc || null);
+  } catch (error) {
+    console.error("Failed to load site settings from Sanity.", error);
+    setCmsState("error", error);
+    return null;
   }
 }

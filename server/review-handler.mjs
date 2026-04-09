@@ -3,6 +3,46 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { createClient } from "@sanity/client";
+import { handleApplicationRoutes } from "./review-application-routes.mjs";
+import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
+import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
+import { handleOpsRoutes } from "./review-ops-routes.mjs";
+import { normalizePortableApplication } from "../shared/application-domain.mjs";
+import {
+  buildCandidateReviewEvent,
+  buildTherapistApplicationFieldPatch,
+  buildTherapistDocument,
+  buildTherapistDocumentFromCandidate,
+  buildTherapistOpsEvent,
+  normalizePortableApplicationDocument,
+  normalizePortableCandidate,
+} from "../shared/therapist-publishing-domain.mjs";
+import {
+  buildFieldTrustMeta,
+  computeTherapistVerificationMeta,
+} from "../shared/therapist-trust-domain.mjs";
+import {
+  buildDuplicateIdentity,
+  buildProviderId,
+  compareDuplicateIdentity,
+  createTherapistConfirmedFieldReviewStates,
+  mapFieldReviewStatesToCamelCase,
+  mapFieldReviewStatesToSnakeCase,
+  normalizeFieldReviewStates,
+  normalizeLower,
+  normalizeText,
+  resolveApplicationIntakeType,
+  slugify,
+} from "../shared/therapist-domain.mjs";
+
+const publishingHelpers = {
+  mergeLicensureVerification,
+  normalizeFieldReviewStates,
+  normalizeLicensureVerification,
+  parseBoolean,
+  parseNumber,
+  splitList,
+};
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -62,133 +102,12 @@ function signValue(value, secret) {
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
-function normalizeText(value) {
-  return String(value || "").trim();
-}
-
-function normalizeLower(value) {
-  return normalizeText(value).toLowerCase();
-}
-
 function normalizeSlugCandidate(value) {
   return slugify(value || "");
 }
 
-function normalizeLicense(value) {
-  return normalizeLower(value).replace(/[^a-z0-9]/g, "");
-}
-
 function normalizeEmail(value) {
   return normalizeLower(value);
-}
-
-function normalizePhone(value) {
-  return normalizeText(value).replace(/[^0-9]/g, "");
-}
-
-function normalizeWebsite(value) {
-  const raw = normalizeText(value);
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    const url = new URL(raw);
-    const pathname = url.pathname.replace(/\/+$/, "");
-    return `${url.hostname.toLowerCase()}${pathname}`;
-  } catch (_error) {
-    return normalizeLower(raw).replace(/^https?:\/\//, "").replace(/\/+$/, "");
-  }
-}
-
-function buildDuplicateIdentity(input) {
-  const name = normalizeLower(input.name);
-  const city = normalizeLower(input.city);
-  const state = normalizeLower(input.state);
-  const credentials = normalizeLower(input.credentials);
-  const website = normalizeWebsite(input.website || input.booking_url);
-  const phone = normalizePhone(input.phone);
-  return {
-    slug: normalizeSlugCandidate(input.slug || [input.name, input.city, input.state].join(" ")),
-    name,
-    city,
-    state,
-    credentials,
-    email: normalizeEmail(input.email),
-    phone,
-    website,
-    licenseState: normalizeLower(input.license_state),
-    licenseNumber: normalizeLicense(input.license_number),
-  };
-}
-
-function compareDuplicateIdentity(identity, candidate) {
-  const candidateSlug = normalizeSlugCandidate(candidate.slug);
-  const candidateEmail = normalizeEmail(candidate.email);
-  const candidatePhone = normalizePhone(candidate.phone);
-  const candidateWebsite = normalizeWebsite(candidate.website || candidate.bookingUrl || candidate.booking_url);
-  const candidateLicenseState = normalizeLower(candidate.licenseState || candidate.license_state);
-  const candidateLicenseNumber = normalizeLicense(candidate.licenseNumber || candidate.license_number);
-  const candidateName = normalizeLower(candidate.name);
-  const candidateCity = normalizeLower(candidate.city);
-  const candidateState = normalizeLower(candidate.state);
-  const candidateCredentials = normalizeLower(candidate.credentials);
-  const reasons = [];
-
-  if (
-    identity.licenseState &&
-    identity.licenseNumber &&
-    identity.licenseState === candidateLicenseState &&
-    identity.licenseNumber === candidateLicenseNumber
-  ) {
-    reasons.push("license");
-  }
-
-  if (identity.slug && identity.slug === candidateSlug) {
-    reasons.push("slug");
-  }
-
-  if (identity.email && identity.email === candidateEmail) {
-    reasons.push("email");
-  }
-
-  const sameNamePlace =
-    identity.name &&
-    identity.city &&
-    identity.state &&
-    identity.name === candidateName &&
-    identity.city === candidateCity &&
-    identity.state === candidateState;
-
-  if (sameNamePlace) {
-    if (
-      (identity.phone && identity.phone === candidatePhone) ||
-      (identity.website && identity.website === candidateWebsite) ||
-      (identity.credentials && identity.credentials === candidateCredentials)
-    ) {
-      reasons.push("name_location");
-    }
-  }
-
-  return reasons;
-}
-
-function parseApplicationIntakeType(input) {
-  const requested = String(input.application_intake_type || input.intake_type || "").trim();
-  if (
-    requested === "new_listing" ||
-    requested === "claim_existing" ||
-    requested === "update_existing" ||
-    requested === "confirmation_update"
-  ) {
-    return requested;
-  }
-
-  if (String(input.published_therapist_id || "").trim() || String(input.slug || "").trim()) {
-    return "confirmation_update";
-  }
-
-  return "new_listing";
 }
 
 async function findDuplicateTherapistEntity(client, input) {
@@ -621,42 +540,6 @@ function parseNumber(value) {
   return Number.isFinite(number) ? number : undefined;
 }
 
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function normalizeKeySegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function normalizeLicenseSegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-}
-
-function buildProviderId(input) {
-  const licenseState = normalizeKeySegment(input.license_state || input.licenseState);
-  const licenseNumber = normalizeLicenseSegment(input.license_number || input.licenseNumber);
-  if (licenseState && licenseNumber) {
-    return `provider-${licenseState}-${licenseNumber}`;
-  }
-
-  const fallback = normalizeKeySegment(
-    [input.name, input.city, input.state].filter(Boolean).join(" "),
-  );
-  return `provider-${fallback || Date.now()}`;
-}
-
 function normalizeLicensureVerification(value) {
   if (!value || typeof value !== "object") {
     return null;
@@ -793,7 +676,7 @@ async function buildApplicationDocument(client, input) {
   const now = new Date().toISOString();
   const photo = await uploadPhotoAssetIfPresent(client, input);
   const photoSourceType = parsePhotoSourceType(input.photo_source_type);
-  const intakeType = parseApplicationIntakeType(input);
+  const intakeType = resolveApplicationIntakeType(input);
   const providerId = buildProviderId(input);
 
   if (
@@ -863,12 +746,9 @@ async function buildApplicationDocument(client, input) {
     sourceReviewedAt: (input.source_reviewed_at || "").trim(),
     therapistReportedFields: splitList(input.therapist_reported_fields),
     therapistReportedConfirmedAt: (input.therapist_reported_confirmed_at || "").trim() || now,
-    fieldReviewStates: {
-      estimatedWaitTime: "therapist_confirmed",
-      insuranceAccepted: "therapist_confirmed",
-      telehealthStates: "therapist_confirmed",
-      bipolarYearsExperience: "therapist_confirmed",
-    },
+    fieldReviewStates: createTherapistConfirmedFieldReviewStates({
+      keyStyle: "camelCase",
+    }),
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
     slidingScale: parseBoolean(input.sliding_scale, false),
@@ -936,21 +816,9 @@ async function buildRevisionFieldUpdates(client, input, existingApplication) {
     sourceReviewedAt: String(input.source_reviewed_at || "").trim(),
     therapistReportedFields: splitList(input.therapist_reported_fields),
     therapistReportedConfirmedAt: String(input.therapist_reported_confirmed_at || "").trim(),
-    fieldReviewStates: {
-      estimatedWaitTime:
-        String(input.field_review_states && input.field_review_states.estimated_wait_time).trim() ||
-        "therapist_confirmed",
-      insuranceAccepted:
-        String(input.field_review_states && input.field_review_states.insurance_accepted).trim() ||
-        "therapist_confirmed",
-      telehealthStates:
-        String(input.field_review_states && input.field_review_states.telehealth_states).trim() ||
-        "therapist_confirmed",
-      bipolarYearsExperience:
-        String(
-          input.field_review_states && input.field_review_states.bipolar_years_experience,
-        ).trim() || "therapist_confirmed",
-    },
+    fieldReviewStates: mapFieldReviewStatesToCamelCase(input.field_review_states, {
+      fallbackState: "therapist_confirmed",
+    }),
     sessionFeeMin: parseNumber(input.session_fee_min),
     sessionFeeMax: parseNumber(input.session_fee_max),
     slidingScale: parseBoolean(input.sliding_scale, false),
@@ -1034,546 +902,6 @@ function computeCandidateReviewMeta(candidateLike) {
   };
 }
 
-function computeTherapistCompletenessScore(record) {
-  const checks = [
-    Boolean(record.name),
-    Boolean(record.credentials),
-    Boolean(record.city && record.state),
-    Boolean(record.email || record.phone || record.website || record.bookingUrl),
-    Boolean(record.careApproach || record.bio),
-    Array.isArray(record.specialties) ? record.specialties.length > 0 : Boolean(record.specialties),
-    Array.isArray(record.insuranceAccepted)
-      ? record.insuranceAccepted.length > 0
-      : Boolean(record.insuranceAccepted),
-    Array.isArray(record.languages) ? record.languages.length > 0 : Boolean(record.languages),
-    Boolean(record.sourceUrl),
-    Boolean(record.sourceReviewedAt || record.therapistReportedConfirmedAt),
-  ];
-  const passed = checks.filter(Boolean).length;
-  return Math.round((passed / checks.length) * 100);
-}
-
-const FIELD_TRUST_KEYS = [
-  "estimatedWaitTime",
-  "insuranceAccepted",
-  "telehealthStates",
-  "bipolarYearsExperience",
-];
-
-const FIELD_STALE_AFTER_DAYS = {
-  estimatedWaitTime: 21,
-  insuranceAccepted: 45,
-  telehealthStates: 45,
-  bipolarYearsExperience: 180,
-};
-
-function toValidDate(value) {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getFieldReviewState(record, fieldName) {
-  return (
-    (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed"
-  );
-}
-
-function getFieldSourceKind(record, fieldName, reviewState) {
-  const hasSourceReview = Boolean(record.sourceReviewedAt);
-  const hasTherapistConfirmation = Boolean(record.therapistReportedConfirmedAt);
-  const reportedFields = Array.isArray(record.therapistReportedFields)
-    ? record.therapistReportedFields
-    : [];
-  const sourceHealthDegraded =
-    record.sourceHealthStatus &&
-    !["healthy", "redirected"].includes(String(record.sourceHealthStatus));
-
-  if (sourceHealthDegraded && reviewState === "needs_reconfirmation") {
-    return "degraded_source";
-  }
-  if (
-    reviewState === "editorially_verified" &&
-    hasSourceReview &&
-    hasTherapistConfirmation &&
-    reportedFields.includes(fieldName)
-  ) {
-    return "blended";
-  }
-  if (reviewState === "editorially_verified" && hasSourceReview) {
-    return "editorial_source_review";
-  }
-  if (hasTherapistConfirmation && reportedFields.includes(fieldName)) {
-    return "therapist_confirmed";
-  }
-  if (hasSourceReview && hasTherapistConfirmation) {
-    return "blended";
-  }
-  return "unknown";
-}
-
-function getFieldVerifiedAt(record, fieldName, sourceKind) {
-  const sourceReviewedAt = toValidDate(record.sourceReviewedAt);
-  const therapistConfirmedAt = toValidDate(record.therapistReportedConfirmedAt);
-
-  if (sourceKind === "editorial_source_review" && sourceReviewedAt) {
-    return sourceReviewedAt.toISOString();
-  }
-  if (sourceKind === "therapist_confirmed" && therapistConfirmedAt) {
-    return therapistConfirmedAt.toISOString();
-  }
-  if (sourceKind === "blended") {
-    const dates = [sourceReviewedAt, therapistConfirmedAt].filter(Boolean);
-    if (dates.length) {
-      return new Date(Math.max.apply(null, dates.map((value) => value.getTime()))).toISOString();
-    }
-  }
-  if (therapistConfirmedAt && Array.isArray(record.therapistReportedFields)) {
-    if (record.therapistReportedFields.includes(fieldName)) {
-      return therapistConfirmedAt.toISOString();
-    }
-  }
-  if (sourceReviewedAt) {
-    return sourceReviewedAt.toISOString();
-  }
-  if (therapistConfirmedAt) {
-    return therapistConfirmedAt.toISOString();
-  }
-  return "";
-}
-
-function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
-  let score =
-    reviewState === "editorially_verified"
-      ? 92
-      : reviewState === "needs_reconfirmation"
-        ? 44
-        : 76;
-
-  if (sourceKind === "blended") {
-    score += 3;
-  } else if (sourceKind === "degraded_source") {
-    score -= 16;
-  } else if (sourceKind === "unknown") {
-    score -= 10;
-  }
-
-  const sourceAgeDays = toValidDate(record.sourceReviewedAt)
-    ? Math.max(0, Math.floor((Date.now() - new Date(record.sourceReviewedAt).getTime()) / 86400000))
-    : null;
-  const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
-    ? Math.max(
-        0,
-        Math.floor((Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
-      )
-    : null;
-
-  if (sourceAgeDays !== null && sourceAgeDays >= 120) {
-    score -= 12;
-  } else if (sourceAgeDays !== null && sourceAgeDays >= 75) {
-    score -= 6;
-  }
-
-  if (confirmationAgeDays !== null && confirmationAgeDays >= 120) {
-    score -= 16;
-  } else if (confirmationAgeDays !== null && confirmationAgeDays >= 60) {
-    score -= 8;
-  }
-
-  return Math.max(5, Math.min(99, score));
-}
-
-function buildFieldTrustMeta(record) {
-  return FIELD_TRUST_KEYS.reduce(function (accumulator, fieldName) {
-    const reviewState = getFieldReviewState(record, fieldName);
-    const sourceKind = getFieldSourceKind(record, fieldName, reviewState);
-    const verifiedAt = getFieldVerifiedAt(record, fieldName, sourceKind);
-    const staleAfterDays = FIELD_STALE_AFTER_DAYS[fieldName];
-    accumulator[fieldName] = {
-      reviewState,
-      confidenceScore: computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind),
-      sourceKind,
-      verifiedAt,
-      staleAfterDays,
-      staleAfterAt: verifiedAt ? addDays(verifiedAt, staleAfterDays) : "",
-    };
-    return accumulator;
-  }, {});
-}
-
-function computeTherapistVerificationMeta(record) {
-  const now = new Date();
-  const sourceReviewedAt = record.sourceReviewedAt ? new Date(record.sourceReviewedAt) : null;
-  const therapistConfirmedAt = record.therapistReportedConfirmedAt
-    ? new Date(record.therapistReportedConfirmedAt)
-    : null;
-  const validDates = [sourceReviewedAt, therapistConfirmedAt].filter(function (value) {
-    return value instanceof Date && !Number.isNaN(value.getTime());
-  });
-  const lastOperationalReviewAt = validDates.length
-    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
-    : "";
-  const needsReconfirmationFields = Object.entries(record.fieldReviewStates || {})
-    .filter(function (entry) {
-      return entry[1] === "needs_reconfirmation";
-    })
-    .map(function (entry) {
-      return entry[0];
-    });
-  const sourceAgeDays =
-    sourceReviewedAt && !Number.isNaN(sourceReviewedAt.getTime())
-      ? Math.max(0, Math.floor((now.getTime() - sourceReviewedAt.getTime()) / 86400000))
-      : null;
-
-  if (!lastOperationalReviewAt) {
-    return {
-      lastOperationalReviewAt: "",
-      nextReviewDueAt: now.toISOString(),
-      verificationPriority: 95,
-      verificationLane: "needs_verification",
-      dataCompletenessScore: computeTherapistCompletenessScore(record),
-    };
-  }
-
-  if (needsReconfirmationFields.length) {
-    return {
-      lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 7),
-      verificationPriority: Math.min(98, 82 + needsReconfirmationFields.length * 4),
-      verificationLane: "needs_reconfirmation",
-      dataCompletenessScore: computeTherapistCompletenessScore(record),
-    };
-  }
-
-  if (sourceAgeDays !== null && sourceAgeDays >= 120) {
-    return {
-      lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
-      verificationPriority: 84,
-      verificationLane: "refresh_now",
-      dataCompletenessScore: computeTherapistCompletenessScore(record),
-    };
-  }
-
-  if (sourceAgeDays !== null && sourceAgeDays >= 75) {
-    return {
-      lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 105),
-      verificationPriority: 61,
-      verificationLane: "refresh_soon",
-      dataCompletenessScore: computeTherapistCompletenessScore(record),
-    };
-  }
-
-  return {
-    lastOperationalReviewAt,
-    nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
-    verificationPriority: 28,
-    verificationLane: "fresh",
-    dataCompletenessScore: computeTherapistCompletenessScore(record),
-  };
-}
-
-function buildTherapistDocument(application, existingId) {
-  const slug =
-    application.submittedSlug ||
-    slugify([application.name, application.city, application.state].filter(Boolean).join(" "));
-  const therapistId = existingId || `therapist-${slug}`;
-  const draft = {
-    sourceUrl: application.sourceUrl || application.website || "",
-    supportingSourceUrls: splitList(application.supportingSourceUrls),
-    sourceReviewedAt: application.sourceReviewedAt || "",
-    therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
-    fieldReviewStates: application.fieldReviewStates || {},
-    name: application.name,
-    credentials: application.credentials,
-    city: application.city,
-    state: application.state,
-    email: application.email,
-    phone: application.phone,
-    website: application.website,
-    bookingUrl: application.bookingUrl,
-    careApproach: application.careApproach,
-    bio: application.bio,
-    specialties: splitList(application.specialties),
-    insuranceAccepted: splitList(application.insuranceAccepted),
-    languages: splitList(application.languages),
-  };
-  const verificationMeta = computeTherapistVerificationMeta(draft);
-  const fieldTrustMeta = buildFieldTrustMeta(draft);
-
-  return {
-    _id: therapistId,
-    _type: "therapist",
-    providerId: application.providerId || buildProviderId(application),
-    name: application.name,
-    slug: {
-      _type: "slug",
-      current: slug,
-    },
-    credentials: application.credentials || "",
-    title: application.title || "",
-    ...(application.photo ? { photo: application.photo } : {}),
-    photoSourceType: application.photoSourceType || "",
-    photoReviewedAt: application.photoReviewedAt || "",
-    photoUsagePermissionConfirmed: Boolean(application.photoUsagePermissionConfirmed),
-    bio: application.bio || "",
-    bioPreview: application.bio || "",
-    practiceName: application.practiceName || "",
-    email: application.email || "",
-    phone: application.phone || "",
-    website: application.website || "",
-    preferredContactMethod: application.preferredContactMethod || "",
-    preferredContactLabel: application.preferredContactLabel || "",
-    contactGuidance: application.contactGuidance || "",
-    firstStepExpectation: application.firstStepExpectation || "",
-    bookingUrl: application.bookingUrl || "",
-    city: application.city || "",
-    state: application.state || "",
-    zip: application.zip || "",
-    country: application.country || "US",
-    licenseState: application.licenseState || "",
-    licenseNumber: application.licenseNumber || "",
-    licensureVerification: normalizeLicensureVerification(application.licensureVerification),
-    specialties: splitList(application.specialties),
-    treatmentModalities: splitList(application.treatmentModalities),
-    clientPopulations: splitList(application.clientPopulations),
-    insuranceAccepted: splitList(application.insuranceAccepted),
-    languages: splitList(application.languages).length
-      ? splitList(application.languages)
-      : ["English"],
-    yearsExperience: parseNumber(application.yearsExperience),
-    bipolarYearsExperience: parseNumber(application.bipolarYearsExperience),
-    acceptsTelehealth: parseBoolean(application.acceptsTelehealth, true),
-    acceptsInPerson: parseBoolean(application.acceptsInPerson, true),
-    acceptingNewPatients: parseBoolean(application.acceptingNewPatients, true),
-    telehealthStates: splitList(application.telehealthStates),
-    estimatedWaitTime: application.estimatedWaitTime || "",
-    careApproach: application.careApproach || "",
-    medicationManagement: parseBoolean(application.medicationManagement, false),
-    verificationStatus: "editorially_verified",
-    sourceUrl: application.sourceUrl || application.website || "",
-    supportingSourceUrls: splitList(application.supportingSourceUrls),
-    sourceReviewedAt: application.sourceReviewedAt || "",
-    therapistReportedFields: Array.isArray(application.therapistReportedFields)
-      ? application.therapistReportedFields
-      : [],
-    therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
-    lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
-    nextReviewDueAt: verificationMeta.nextReviewDueAt,
-    verificationPriority: verificationMeta.verificationPriority,
-    verificationLane: verificationMeta.verificationLane,
-    dataCompletenessScore: verificationMeta.dataCompletenessScore,
-    fieldTrustMeta,
-    sessionFeeMin: parseNumber(application.sessionFeeMin),
-    sessionFeeMax: parseNumber(application.sessionFeeMax),
-    slidingScale: parseBoolean(application.slidingScale, false),
-    listingActive: true,
-    status: "active",
-  };
-}
-
-function buildTherapistDocumentFromCandidate(candidate, existingId) {
-  const slug = slugify([candidate.name, candidate.city, candidate.state].filter(Boolean).join(" "));
-  const therapistId =
-    existingId || candidate.matchedTherapistId || candidate.publishedTherapistId || `therapist-${slug}`;
-  const draft = {
-    sourceUrl: candidate.sourceUrl || candidate.website || "",
-    supportingSourceUrls: splitList(candidate.supportingSourceUrls),
-    sourceReviewedAt: candidate.sourceReviewedAt || "",
-    therapistReportedConfirmedAt: "",
-    fieldReviewStates: {},
-    name: candidate.name,
-    credentials: candidate.credentials,
-    city: candidate.city,
-    state: candidate.state,
-    email: candidate.email,
-    phone: candidate.phone,
-    website: candidate.website,
-    bookingUrl: candidate.bookingUrl,
-    careApproach: candidate.careApproach,
-    bio: candidate.careApproach,
-    specialties: splitList(candidate.specialties),
-    insuranceAccepted: splitList(candidate.insuranceAccepted),
-    languages: splitList(candidate.languages),
-  };
-  const verificationMeta = computeTherapistVerificationMeta(draft);
-  const fieldTrustMeta = buildFieldTrustMeta(draft);
-
-  return {
-    _id: therapistId,
-    _type: "therapist",
-    providerId: candidate.providerId || buildProviderId(candidate),
-    name: candidate.name || "",
-    slug: {
-      _type: "slug",
-      current: slug,
-    },
-    credentials: candidate.credentials || "",
-    title: candidate.title || "",
-    bio: candidate.careApproach || "",
-    bioPreview: candidate.careApproach || "",
-    practiceName: candidate.practiceName || "",
-    email: candidate.email || "",
-    phone: candidate.phone || "",
-    website: candidate.website || "",
-    preferredContactMethod: "",
-    preferredContactLabel: "",
-    contactGuidance: "",
-    firstStepExpectation: "",
-    bookingUrl: candidate.bookingUrl || "",
-    city: candidate.city || "",
-    state: candidate.state || "",
-    zip: candidate.zip || "",
-    country: candidate.country || "US",
-    licenseState: candidate.licenseState || "",
-    licenseNumber: candidate.licenseNumber || "",
-    licensureVerification: normalizeLicensureVerification(candidate.licensureVerification),
-    specialties: splitList(candidate.specialties),
-    treatmentModalities: splitList(candidate.treatmentModalities),
-    clientPopulations: splitList(candidate.clientPopulations),
-    insuranceAccepted: splitList(candidate.insuranceAccepted),
-    languages: splitList(candidate.languages).length
-      ? splitList(candidate.languages)
-      : ["English"],
-    yearsExperience: undefined,
-    bipolarYearsExperience: undefined,
-    acceptsTelehealth: parseBoolean(candidate.acceptsTelehealth, true),
-    acceptsInPerson: parseBoolean(candidate.acceptsInPerson, true),
-    acceptingNewPatients: parseBoolean(candidate.acceptingNewPatients, true),
-    telehealthStates: splitList(candidate.telehealthStates),
-    estimatedWaitTime: candidate.estimatedWaitTime || "",
-    careApproach: candidate.careApproach || "",
-    medicationManagement: parseBoolean(candidate.medicationManagement, false),
-    verificationStatus:
-      candidate.sourceReviewedAt || candidate.reviewStatus === "published"
-        ? "editorially_verified"
-        : "under_review",
-    sourceUrl: candidate.sourceUrl || candidate.website || "",
-    supportingSourceUrls: splitList(candidate.supportingSourceUrls),
-    sourceReviewedAt: candidate.sourceReviewedAt || "",
-    therapistReportedFields: [],
-    therapistReportedConfirmedAt: "",
-    lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
-    nextReviewDueAt: verificationMeta.nextReviewDueAt,
-    verificationPriority: verificationMeta.verificationPriority,
-    verificationLane: verificationMeta.verificationLane,
-    dataCompletenessScore: verificationMeta.dataCompletenessScore,
-    fieldTrustMeta,
-    sessionFeeMin: parseNumber(candidate.sessionFeeMin),
-    sessionFeeMax: parseNumber(candidate.sessionFeeMax),
-    slidingScale: parseBoolean(candidate.slidingScale, false),
-    listingActive: true,
-    status: "active",
-  };
-}
-
-function normalizeCandidate(doc) {
-  return {
-    id: doc._id,
-    candidate_id: doc.candidateId || "",
-    provider_id: doc.providerId || buildProviderId(doc),
-    provider_fingerprint: doc.providerFingerprint || "",
-    name: doc.name || "",
-    credentials: doc.credentials || "",
-    title: doc.title || "",
-    practice_name: doc.practiceName || "",
-    city: doc.city || "",
-    state: doc.state || "",
-    zip: doc.zip || "",
-    country: doc.country || "US",
-    license_state: doc.licenseState || "",
-    license_number: doc.licenseNumber || "",
-    email: doc.email || "",
-    phone: doc.phone || "",
-    website: doc.website || "",
-    booking_url: doc.bookingUrl || "",
-    source_type: doc.sourceType || "",
-    source_url: doc.sourceUrl || "",
-    licensure_verification: normalizeLicensureVerification(doc.licensureVerification),
-    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
-    raw_source_snapshot: doc.rawSourceSnapshot || "",
-    extracted_at: doc.extractedAt || "",
-    source_reviewed_at: doc.sourceReviewedAt || "",
-    extraction_version: doc.extractionVersion || "",
-    extraction_confidence:
-      typeof doc.extractionConfidence === "number" ? doc.extractionConfidence : null,
-    care_approach: doc.careApproach || "",
-    specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
-    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
-    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
-    insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
-    languages: Array.isArray(doc.languages) ? doc.languages : [],
-    accepts_telehealth: doc.acceptsTelehealth !== false,
-    accepts_in_person: doc.acceptsInPerson !== false,
-    accepting_new_patients: doc.acceptingNewPatients !== false,
-    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
-    estimated_wait_time: doc.estimatedWaitTime || "",
-    medication_management: Boolean(doc.medicationManagement),
-    session_fee_min: typeof doc.sessionFeeMin === "number" ? doc.sessionFeeMin : null,
-    session_fee_max: typeof doc.sessionFeeMax === "number" ? doc.sessionFeeMax : null,
-    sliding_scale: Boolean(doc.slidingScale),
-    dedupe_status: doc.dedupeStatus || "unreviewed",
-    dedupe_confidence: typeof doc.dedupeConfidence === "number" ? doc.dedupeConfidence : null,
-    matched_therapist_slug: doc.matchedTherapistSlug || "",
-    matched_therapist_id: doc.matchedTherapistId || "",
-    matched_application_id: doc.matchedApplicationId || "",
-    published_therapist_id: doc.publishedTherapistId || "",
-    published_at: doc.publishedAt || "",
-    review_status: doc.reviewStatus || "queued",
-    review_lane: doc.reviewLane || "editorial_review",
-    review_priority: typeof doc.reviewPriority === "number" ? doc.reviewPriority : null,
-    next_review_due_at: doc.nextReviewDueAt || "",
-    last_reviewed_at: doc.lastReviewedAt || "",
-    readiness_score: typeof doc.readinessScore === "number" ? doc.readinessScore : null,
-    publish_recommendation: doc.publishRecommendation || "",
-    notes: doc.notes || "",
-    review_history: Array.isArray(doc.reviewHistory) ? doc.reviewHistory : [],
-  };
-}
-
-function buildCandidateReviewEvent(candidate, updates) {
-  const now = new Date().toISOString();
-  return {
-    _id: `therapist-publish-event-${candidate.candidateId || candidate._id}-${crypto.randomUUID()}`,
-    _type: "therapistPublishEvent",
-    eventType: updates.eventType,
-    providerId: candidate.providerId || buildProviderId(candidate),
-    candidateId: candidate.candidateId || "",
-    candidateDocumentId: candidate._id,
-    applicationId: updates.applicationId || candidate.matchedApplicationId || "",
-    therapistId: updates.therapistId || candidate.matchedTherapistId || "",
-    decision: updates.decision || "",
-    reviewStatus: updates.reviewStatus || "",
-    publishRecommendation: updates.publishRecommendation || "",
-    notes: updates.notes || "",
-    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
-    createdAt: now,
-  };
-}
-
-function buildTherapistOpsEvent(therapist, updates) {
-  const now = new Date().toISOString();
-  return {
-    _id: `therapist-publish-event-${therapist._id}-${crypto.randomUUID()}`,
-    _type: "therapistPublishEvent",
-    eventType: updates.eventType,
-    providerId: therapist.providerId || buildProviderId(therapist),
-    candidateId: "",
-    candidateDocumentId: "",
-    applicationId: "",
-    therapistId: therapist._id,
-    decision: updates.decision || "",
-    reviewStatus: "",
-    publishRecommendation: "",
-    notes: updates.notes || "",
-    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
-    createdAt: now,
-  };
-}
-
 function buildLicensureOpsEvent(record, updates) {
   const now = new Date().toISOString();
   return {
@@ -1594,96 +922,6 @@ function buildLicensureOpsEvent(record, updates) {
   };
 }
 
-function buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso) {
-  const allowed = new Set([
-    "credentials",
-    "title",
-    "location",
-    "website",
-    "email",
-    "phone",
-    "preferred_contact_method",
-    "preferred_contact_label",
-    "insurance_accepted",
-    "telehealth_states",
-    "accepting_new_patients",
-    "medication_management",
-  ]);
-  const fields = Array.isArray(selectedFields)
-    ? selectedFields.map((field) => String(field || "").trim()).filter((field) => allowed.has(field))
-    : [];
-
-  const patch = {};
-  fields.forEach(function (field) {
-    if (field === "credentials") patch.credentials = application.credentials || "";
-    else if (field === "title") patch.title = application.title || "";
-    else if (field === "location") {
-      patch.city = application.city || "";
-      patch.state = application.state || "";
-      patch.zip = application.zip || "";
-    } else if (field === "website") patch.website = application.website || "";
-    else if (field === "email") patch.email = application.email || "";
-    else if (field === "phone") patch.phone = application.phone || "";
-    else if (field === "preferred_contact_method")
-      patch.preferredContactMethod = application.preferredContactMethod || "";
-    else if (field === "preferred_contact_label")
-      patch.preferredContactLabel = application.preferredContactLabel || "";
-    else if (field === "insurance_accepted")
-      patch.insuranceAccepted = splitList(application.insuranceAccepted);
-    else if (field === "telehealth_states")
-      patch.telehealthStates = splitList(application.telehealthStates);
-    else if (field === "accepting_new_patients")
-      patch.acceptingNewPatients = parseBoolean(application.acceptingNewPatients, true);
-    else if (field === "medication_management")
-      patch.medicationManagement = parseBoolean(application.medicationManagement, false);
-  });
-
-  const mergedDraft = {
-    ...therapist,
-    ...patch,
-    licensureVerification: mergeLicensureVerification(
-      therapist.licensureVerification,
-      application.licensureVerification,
-    ),
-    sourceUrl: therapist.sourceUrl || application.sourceUrl || application.website || "",
-    supportingSourceUrls: mergeUniqueUrls(
-      therapist.sourceUrl,
-      therapist.supportingSourceUrls,
-      mergeUniqueUrls(
-        application.sourceUrl,
-        application.supportingSourceUrls,
-        application.website ? [application.website] : [],
-      ),
-    ),
-    sourceReviewedAt: application.sourceReviewedAt || therapist.sourceReviewedAt || nowIso,
-    therapistReportedConfirmedAt:
-      application.therapistReportedConfirmedAt || therapist.therapistReportedConfirmedAt || "",
-    fieldReviewStates: therapist.fieldReviewStates || {},
-    therapistReportedFields: Array.from(
-      new Set([].concat(therapist.therapistReportedFields || []).concat(application.therapistReportedFields || [])),
-    ),
-  };
-  const verificationMeta = computeTherapistVerificationMeta(mergedDraft);
-
-  return {
-    patch: {
-      ...patch,
-      licensureVerification: mergedDraft.licensureVerification,
-      supportingSourceUrls: mergedDraft.supportingSourceUrls,
-      sourceReviewedAt: mergedDraft.sourceReviewedAt,
-      therapistReportedConfirmedAt: mergedDraft.therapistReportedConfirmedAt,
-      therapistReportedFields: mergedDraft.therapistReportedFields,
-      fieldTrustMeta: buildFieldTrustMeta(mergedDraft),
-      lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
-      nextReviewDueAt: verificationMeta.nextReviewDueAt,
-      verificationPriority: verificationMeta.verificationPriority,
-      verificationLane: verificationMeta.verificationLane,
-      dataCompletenessScore: verificationMeta.dataCompletenessScore,
-    },
-    appliedFields: fields,
-  };
-}
-
 function buildAppliedFieldReviewStatePatch(selectedFields) {
   const nextStates = {};
   (Array.isArray(selectedFields) ? selectedFields : []).forEach(function (field) {
@@ -1697,102 +935,11 @@ function buildAppliedFieldReviewStatePatch(selectedFields) {
   return nextStates;
 }
 
-function mergeUniqueUrls(primary, supporting, extra) {
-  const urls = []
-    .concat(primary ? [primary] : [])
-    .concat(Array.isArray(supporting) ? supporting : [])
-    .concat(Array.isArray(extra) ? extra : [])
-    .map(function (value) {
-      return String(value || "").trim();
-    })
-    .filter(Boolean);
-
-  return Array.from(new Set(urls));
-}
-
 function normalizeApplication(doc) {
-  return {
-    id: doc._id,
-    created_at: doc.submittedAt || doc._createdAt,
-    updated_at: doc.updatedAt || doc._updatedAt || doc.submittedAt || doc._createdAt,
-    status: doc.status || "pending",
-    intake_type: doc.intakeType || "new_listing",
-    provider_id: doc.providerId || buildProviderId(doc),
-    target_therapist_slug: doc.targetTherapistSlug || "",
-    target_therapist_id: doc.targetTherapistId || "",
-    slug: doc.submittedSlug || "",
-    name: doc.name || "",
-    credentials: doc.credentials || "",
-    title: doc.title || "",
-    photo_url: doc.photo && doc.photo.asset ? doc.photo.asset.url || "" : "",
-    photo_source_type: doc.photoSourceType || "",
-    photo_reviewed_at: doc.photoReviewedAt || "",
-    photo_usage_permission_confirmed: Boolean(doc.photoUsagePermissionConfirmed),
-    bio: doc.bio || "",
-    email: doc.email || "",
-    phone: doc.phone || "",
-    website: doc.website || "",
-    preferred_contact_method: doc.preferredContactMethod || "",
-    preferred_contact_label: doc.preferredContactLabel || "",
-    contact_guidance: doc.contactGuidance || "",
-    first_step_expectation: doc.firstStepExpectation || "",
-    booking_url: doc.bookingUrl || "",
-    practice_name: doc.practiceName || "",
-    city: doc.city || "",
-    state: doc.state || "",
-    zip: doc.zip || "",
-    license_state: doc.licenseState || "",
-    license_number: doc.licenseNumber || "",
-    specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
-    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
-    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
-    insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
-    accepts_telehealth: doc.acceptsTelehealth !== false,
-    accepts_in_person: doc.acceptsInPerson !== false,
-    accepting_new_patients: doc.acceptingNewPatients !== false,
-    years_experience: doc.yearsExperience || null,
-    bipolar_years_experience: doc.bipolarYearsExperience || null,
-    languages: Array.isArray(doc.languages) && doc.languages.length ? doc.languages : ["English"],
-    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
-    estimated_wait_time: doc.estimatedWaitTime || "",
-    care_approach: doc.careApproach || "",
-    medication_management: Boolean(doc.medicationManagement),
-    verification_status: doc.verificationStatus || "",
-    source_url: doc.sourceUrl || "",
-    licensure_verification: normalizeLicensureVerification(doc.licensureVerification),
-    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
-    source_reviewed_at: doc.sourceReviewedAt || "",
-    source_health_status: doc.sourceHealthStatus || "",
-    source_health_checked_at: doc.sourceHealthCheckedAt || "",
-    source_health_status_code:
-      typeof doc.sourceHealthStatusCode === "number" ? doc.sourceHealthStatusCode : null,
-    source_health_final_url: doc.sourceHealthFinalUrl || "",
-    source_health_error: doc.sourceHealthError || "",
-    source_drift_signals: Array.isArray(doc.sourceDriftSignals) ? doc.sourceDriftSignals : [],
-    therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
-      ? doc.therapistReportedFields
-      : [],
-    therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
-    field_review_states: {
-      estimated_wait_time:
-        (doc.fieldReviewStates && doc.fieldReviewStates.estimatedWaitTime) || "therapist_confirmed",
-      insurance_accepted:
-        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) || "therapist_confirmed",
-      telehealth_states:
-        (doc.fieldReviewStates && doc.fieldReviewStates.telehealthStates) || "therapist_confirmed",
-      bipolar_years_experience:
-        (doc.fieldReviewStates && doc.fieldReviewStates.bipolarYearsExperience) ||
-        "therapist_confirmed",
-    },
-    session_fee_min: doc.sessionFeeMin || null,
-    session_fee_max: doc.sessionFeeMax || null,
-    sliding_scale: Boolean(doc.slidingScale),
-    notes: doc.notes || "",
-    review_request_message: doc.reviewRequestMessage || "",
-    revision_history: Array.isArray(doc.revisionHistory) ? doc.revisionHistory : [],
-    revision_count: doc.revisionCount || 0,
-    published_therapist_id: doc.publishedTherapistId || "",
-  };
+  return normalizePortableApplicationDocument(doc, {
+    normalizeFieldReviewStates,
+    normalizeLicensureVerification,
+  });
 }
 
 function normalizePortalRequest(doc) {
@@ -2046,91 +1193,34 @@ export function createReviewApiHandler(configOverride) {
     }
 
     try {
-      if (request.method === "GET" && routePath === "/health") {
-        sendJson(
-          response,
-          200,
-          {
-            ok: true,
-            authMode: config.adminUsername && config.adminPassword ? "password" : "legacy-key",
-            sessionTtlMs: config.sessionTtlMs,
-            legacyKeyEnabled: config.allowLegacyKey && Boolean(config.adminKey),
-            securityWarnings: getSecurityWarnings(config),
+      if (
+        await handleAuthAndPortalRoutes({
+          client,
+          config,
+          deps: {
+            buildPortalRequestDocument,
+            canAttemptLogin,
+            clearFailedLogins,
+            createSignedSession,
+            getSecurityWarnings,
+            isAuthorized,
+            normalizePortalRequest,
+            parseAuthorizationHeader,
+            parseBody,
+            readPortalClaimToken,
+            readSignedSession,
+            recordFailedLogin,
+            sendJson,
+            sendPortalClaimLink,
+            updatePortalRequestFields,
           },
           origin,
-          config,
-        );
-        return;
-      }
-
-      if (request.method === "POST" && routePath === "/auth/login") {
-        if (!canAttemptLogin(request, config)) {
-          sendJson(
-            response,
-            429,
-            { error: "Too many login attempts. Try again later." },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        const body = await parseBody(request);
-        const username = String(body.username || "").trim();
-        const password = String(body.password || "");
-        const usingUserPass = config.adminUsername && config.adminPassword;
-        const usingLegacyKey = config.allowLegacyKey && config.adminKey;
-
-        const valid =
-          (usingUserPass &&
-            username === config.adminUsername &&
-            password === config.adminPassword) ||
-          (usingLegacyKey && password === config.adminKey);
-
-        if (!valid) {
-          recordFailedLogin(request, config);
-          sendJson(response, 401, { error: "Invalid admin credentials." }, origin, config);
-          return;
-        }
-
-        clearFailedLogins(request);
-        const sessionToken = createSignedSession(config);
-        sendJson(
+          request,
           response,
-          200,
-          {
-            ok: true,
-            sessionToken: sessionToken,
-            authMode: usingUserPass ? "password" : "legacy-key",
-          },
-          origin,
-          config,
-        );
-        return;
-      }
-
-      if (request.method === "GET" && routePath === "/auth/session") {
-        const session = readSignedSession(parseAuthorizationHeader(request), config);
-        if (!session) {
-          sendJson(response, 401, { authenticated: false }, origin, config);
-          return;
-        }
-
-        sendJson(
-          response,
-          200,
-          {
-            authenticated: true,
-            expiresAt: session.exp,
-          },
-          origin,
-          config,
-        );
-        return;
-      }
-
-      if (request.method === "POST" && routePath === "/auth/logout") {
-        sendJson(response, 200, { ok: true }, origin, config);
+          routePath,
+          url,
+        })
+      ) {
         return;
       }
 
@@ -2171,936 +1261,89 @@ export function createReviewApiHandler(configOverride) {
         return;
       }
 
-      if (request.method === "GET" && routePath === "/portal/requests") {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const docs = await client.fetch(
-          `*[_type == "therapistPortalRequest"] | order(coalesce(requestedAt, _createdAt) desc){
-            _id, _createdAt, therapistSlug, therapistName, requestType, requesterName, requesterEmail, licenseNumber, message, status, requestedAt, reviewedAt
-          }`,
-        );
-
-        sendJson(response, 200, docs.map(normalizePortalRequest), origin, config);
-        return;
-      }
-
-      if (request.method === "POST" && routePath === "/portal/requests") {
-        const body = await parseBody(request);
-        const document = buildPortalRequestDocument(body);
-        const created = await client.create(document);
-        sendJson(response, 201, normalizePortalRequest(created), origin, config);
-        return;
-      }
-
-      const portalRequestUpdateMatch = routePath.match(/^\/portal\/requests\/([^/]+)$/);
-      if ((request.method === "PATCH" || request.method === "POST") && portalRequestUpdateMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const requestId = decodeURIComponent(portalRequestUpdateMatch[1]);
-        const existing = await client.getDocument(requestId);
-        if (!existing || existing._type !== "therapistPortalRequest") {
-          sendJson(response, 404, { error: "Portal request not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const updated = await updatePortalRequestFields(client, requestId, body);
-        sendJson(response, 200, normalizePortalRequest(updated), origin, config);
-        return;
-      }
-
-      if (request.method === "POST" && routePath === "/portal/claim-link") {
-        const body = await parseBody(request);
-        const therapistSlug = String(body.therapist_slug || "").trim();
-        const requesterEmail = String(body.requester_email || "")
-          .trim()
-          .toLowerCase();
-
-        if (!therapistSlug || !requesterEmail) {
-          sendJson(response, 400, { error: "Missing therapist slug or email." }, origin, config);
-          return;
-        }
-
-        const therapist = await client.fetch(
-          `*[_type == "therapist" && slug.current == $slug][0]{
-            _id, name, email, claimStatus, "slug": slug
-          }`,
-          { slug: therapistSlug },
-        );
-
-        if (!therapist || !therapist.slug || !therapist.slug.current) {
-          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
-          return;
-        }
-
-        const profileEmail = String(therapist.email || "")
-          .trim()
-          .toLowerCase();
-        if (!profileEmail || profileEmail !== requesterEmail) {
-          sendJson(
-            response,
-            403,
-            {
-              error:
-                "That email does not match the public contact email on this profile yet. Use the request form instead so we can verify ownership manually.",
-            },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        await sendPortalClaimLink(
+      if (
+        await handleApplicationRoutes({
+          client,
           config,
-          therapist,
-          requesterEmail,
-          `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-        );
-
-        await client
-          .patch(therapist._id)
-          .set({
-            claimStatus: therapist.claimStatus === "claimed" ? "claimed" : "claim_requested",
-          })
-          .commit({ visibility: "sync" });
-
-        sendJson(
-          response,
-          200,
-          { ok: true, message: "Claim link sent if the profile email matched." },
-          origin,
-          config,
-        );
-        return;
-      }
-
-      if (request.method === "GET" && routePath === "/portal/claim-session") {
-        const token = String(url.searchParams.get("token") || "").trim();
-        const payload = readPortalClaimToken(config, token);
-        if (!payload) {
-          sendJson(response, 401, { error: "Claim link is invalid or expired." }, origin, config);
-          return;
-        }
-
-        const therapist = await client.fetch(
-          `*[_type == "therapist" && slug.current == $slug][0]{
-            _id, name, email, city, state, practiceName, claimStatus, claimedByEmail, claimedAt,
-            portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-            "slug": slug.current
-          }`,
-          { slug: payload.slug },
-        );
-
-        if (!therapist) {
-          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
-          return;
-        }
-
-        sendJson(
-          response,
-          200,
-          {
-            ok: true,
-            therapist: {
-              slug: therapist.slug,
-              name: therapist.name,
-              email: therapist.email || "",
-              city: therapist.city || "",
-              state: therapist.state || "",
-              practice_name: therapist.practiceName || "",
-              claim_status: therapist.claimStatus || "unclaimed",
-              claimed_by_email: therapist.claimedByEmail || "",
-              claimed_at: therapist.claimedAt || "",
-              portal_last_seen_at: therapist.portalLastSeenAt || "",
-              listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
-              listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
-            },
+          deps: {
+            buildApplicationDocument,
+            buildAppliedFieldReviewStatePatch,
+            buildRevisionFieldUpdates,
+            buildTherapistApplicationFieldPatch,
+            buildTherapistDocument,
+            buildTherapistOpsEvent,
+            findDuplicateTherapistEntity,
+            isAuthorized,
+            normalizeApplication,
+            notifyAdminOfSubmission,
+            notifyApplicantOfDecision,
+            parseBody,
+            publishingHelpers,
+            sendJson,
+            slugify,
+            updateApplicationFields,
+            validateRevisionInput,
           },
           origin,
-          config,
-        );
+          request,
+          response,
+          routePath,
+        })
+      ) {
         return;
       }
 
-      if (request.method === "POST" && routePath === "/portal/claim-accept") {
-        const body = await parseBody(request);
-        const token = String(body.token || "").trim();
-        const payload = readPortalClaimToken(config, token);
-        if (!payload) {
-          sendJson(response, 401, { error: "Claim link is invalid or expired." }, origin, config);
-          return;
-        }
-
-        const therapist = await client.fetch(
-          `*[_type == "therapist" && slug.current == $slug][0]{ _id, name, "slug": slug.current }`,
-          { slug: payload.slug },
-        );
-        if (!therapist) {
-          sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
-          return;
-        }
-
-        const now = new Date().toISOString();
-        await client
-          .patch(therapist._id)
-          .set({
-            claimStatus: "claimed",
-            claimedByEmail: payload.email,
-            claimedAt: now,
-            portalLastSeenAt: now,
-          })
-          .commit({ visibility: "sync" });
-
-        sendJson(
-          response,
-          200,
-          {
-            ok: true,
-            therapist_slug: therapist.slug,
-            claimed_by_email: payload.email,
+      if (
+        await handleCandidateRoutes({
+          client,
+          config,
+          deps: {
+            addDays,
+            buildCandidateReviewEvent,
+            buildFieldTrustMeta,
+            buildTherapistDocumentFromCandidate,
+            computeCandidateReviewMeta,
+            computeTherapistVerificationMeta,
+            isAuthorized,
+            mergeLicensureVerification,
+            normalizeLicensureVerification,
+            normalizePortableCandidate,
+            parseBody,
+            publishingHelpers,
+            sendJson,
           },
           origin,
-          config,
-        );
-        return;
-      }
-
-      if (request.method === "POST" && routePath === "/applications") {
-        const body = await parseBody(request);
-        const duplicate = await findDuplicateTherapistEntity(client, body);
-        if (duplicate) {
-          const responsePayload =
-            duplicate.kind === "therapist"
-              ? {
-                  error:
-                    "This therapist already has a listing. Please claim or update the existing profile instead of creating a new application.",
-                  duplicate_kind: duplicate.kind,
-                  duplicate_id: duplicate.id,
-                  duplicate_slug: duplicate.slug,
-                  duplicate_name: duplicate.name,
-                  duplicate_reasons: duplicate.reasons,
-                  recommended_intake_type: "claim_existing",
-                }
-              : {
-                  error:
-                    "An application is already in progress for this therapist. Please continue that application instead of starting a new one.",
-                  duplicate_kind: duplicate.kind,
-                  duplicate_id: duplicate.id,
-                  duplicate_slug: duplicate.slug,
-                  duplicate_name: duplicate.name,
-                  duplicate_status: duplicate.status,
-                  duplicate_reasons: duplicate.reasons,
-                  recommended_intake_type: "update_existing",
-                };
-          sendJson(response, 409, responsePayload, origin, config);
-          return;
-        }
-        const document = await buildApplicationDocument(client, body);
-        const created = await client.create(document);
-        try {
-          await notifyAdminOfSubmission(config, created);
-        } catch (error) {
-          console.error("Failed to send new-submission email.", error);
-        }
-        sendJson(response, 201, normalizeApplication(created), origin, config);
-        return;
-      }
-
-      const revisionFetchMatch = routePath.match(/^\/applications\/([^/]+)\/revision$/);
-      if (request.method === "GET" && revisionFetchMatch) {
-        const applicationId = decodeURIComponent(revisionFetchMatch[1]);
-        const application = await client.getDocument(applicationId);
-        if (!application || application._type !== "therapistApplication") {
-          sendJson(response, 404, { error: "Application not found." }, origin, config);
-          return;
-        }
-
-        if (application.status !== "requested_changes") {
-          sendJson(
-            response,
-            409,
-            { error: "This application is not currently open for revision." },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        sendJson(response, 200, normalizeApplication(application), origin, config);
-        return;
-      }
-
-      const revisionSubmitMatch = routePath.match(/^\/applications\/([^/]+)\/revise$/);
-      if (request.method === "POST" && revisionSubmitMatch) {
-        const applicationId = decodeURIComponent(revisionSubmitMatch[1]);
-        const application = await client.getDocument(applicationId);
-        if (!application || application._type !== "therapistApplication") {
-          sendJson(response, 404, { error: "Application not found." }, origin, config);
-          return;
-        }
-
-        if (application.status !== "requested_changes") {
-          sendJson(
-            response,
-            409,
-            { error: "This application is not currently open for revision." },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        const body = await parseBody(request);
-        validateRevisionInput(body);
-        const timestamp = new Date().toISOString();
-        const updated = await client
-          .patch(applicationId)
-          .set({
-            ...(await buildRevisionFieldUpdates(client, body, application)),
-            status: "pending",
-            reviewRequestMessage: "",
-            updatedAt: timestamp,
-            revisionCount: (Number(application.revisionCount || 0) || 0) + 1,
-          })
-          .setIfMissing({ revisionHistory: [] })
-          .append("revisionHistory", [
-            {
-              _key: `${Date.now()}`,
-              type: "resubmitted",
-              at: timestamp,
-              message: "Therapist submitted an updated revision.",
-            },
-          ])
-          .commit({ visibility: "sync" });
-
-        sendJson(response, 200, normalizeApplication(updated), origin, config);
-        return;
-      }
-
-      const updateMatch = routePath.match(/^\/applications\/([^/]+)$/);
-      if ((request.method === "PATCH" || request.method === "POST") && updateMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const applicationId = decodeURIComponent(updateMatch[1]);
-        const existing = await client.getDocument(applicationId);
-        if (!existing || existing._type !== "therapistApplication") {
-          sendJson(response, 404, { error: "Application not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const updated = await updateApplicationFields(client, applicationId, body);
-        sendJson(response, 200, normalizeApplication(updated), origin, config);
-        return;
-      }
-
-      const applyLiveFieldsMatch = routePath.match(/^\/applications\/([^/]+)\/apply-live-fields$/);
-      if (request.method === "POST" && applyLiveFieldsMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const applicationId = decodeURIComponent(applyLiveFieldsMatch[1]);
-        const application = await client.getDocument(applicationId);
-        if (!application || application._type !== "therapistApplication") {
-          sendJson(response, 404, { error: "Application not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const selectedFields = Array.isArray(body.fields) ? body.fields : [];
-        if (!selectedFields.length) {
-          sendJson(response, 400, { error: "No fields selected." }, origin, config);
-          return;
-        }
-
-        const therapistId =
-          application.targetTherapistId ||
-          application.publishedTherapistId ||
-          (application.targetTherapistSlug ? `therapist-${application.targetTherapistSlug}` : "");
-        if (!therapistId) {
-          sendJson(
-            response,
-            409,
-            { error: "This application is not linked to a live therapist yet." },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        const therapist = await client.getDocument(therapistId);
-        if (!therapist || therapist._type !== "therapist") {
-          sendJson(response, 404, { error: "Linked therapist not found." }, origin, config);
-          return;
-        }
-
-        const nowIso = new Date().toISOString();
-        const nextPatch = buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso);
-        const fieldReviewStatePatch = buildAppliedFieldReviewStatePatch(selectedFields);
-        if (!nextPatch.appliedFields.length) {
-          sendJson(
-            response,
-            400,
-            { error: "No supported changed fields were selected." },
-            origin,
-            config,
-          );
-          return;
-        }
-
-        const transaction = client.transaction();
-        transaction.patch(therapistId, function (patch) {
-          return patch.set({
-            ...nextPatch.patch,
-            ...(Object.keys(fieldReviewStatePatch).length
-              ? {
-                  fieldReviewStates: {
-                    ...(therapist.fieldReviewStates || {}),
-                    ...fieldReviewStatePatch,
-                  },
-                }
-              : {}),
-          });
-        });
-        transaction.patch(applicationId, function (patch) {
-          return patch
-            .set({
-              status: "approved",
-              updatedAt: nowIso,
-              publishedTherapistId: therapistId,
-              ...(Object.keys(fieldReviewStatePatch).length
-                ? {
-                    fieldReviewStates: {
-                      ...(application.fieldReviewStates || {}),
-                      ...fieldReviewStatePatch,
-                    },
-                  }
-                : {}),
-            })
-            .setIfMissing({ revisionHistory: [] })
-            .append("revisionHistory", [
-              {
-                _key: `${Date.now()}`,
-                type: "applied_live_fields",
-                at: nowIso,
-                message: `Applied live fields: ${nextPatch.appliedFields.join(", ")}`,
-              },
-            ]);
-        });
-        transaction.create(
-          buildTherapistOpsEvent(therapist, {
-            eventType: "therapist_live_fields_applied",
-            decision: "apply_live_fields",
-            notes: `Application ${applicationId} applied fields: ${nextPatch.appliedFields.join(", ")}`,
-            changedFields: nextPatch.appliedFields,
-          }),
-        );
-
-        await transaction.commit({ visibility: "sync" });
-        const updatedTherapist = await client.getDocument(therapistId);
-        const updatedApplication = await client.getDocument(applicationId);
-        sendJson(
+          request,
           response,
-          200,
-          {
-            ok: true,
-            therapist: updatedTherapist,
-            application: normalizeApplication(updatedApplication),
-            applied_fields: nextPatch.appliedFields,
+          routePath,
+        })
+      ) {
+        return;
+      }
+
+      if (
+        await handleOpsRoutes({
+          client,
+          config,
+          deps: {
+            addDays,
+            buildFieldTrustMeta,
+            buildLicensureOpsEvent,
+            buildTherapistOpsEvent,
+            computeTherapistVerificationMeta,
+            isAuthorized,
+            parseBody,
+            sendJson,
           },
           origin,
-          config,
-        );
-        return;
-      }
-
-      const candidateDecisionMatch = routePath.match(/^\/candidates\/([^/]+)\/decision$/);
-      if (request.method === "POST" && candidateDecisionMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const candidateId = decodeURIComponent(candidateDecisionMatch[1]);
-        const candidate = await client.getDocument(candidateId);
-        if (!candidate || candidate._type !== "therapistCandidate") {
-          sendJson(response, 404, { error: "Candidate not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const decision = String(body.decision || "").trim();
-        const notes = String(body.notes || "").trim();
-        const allowedDecisions = new Set([
-          "mark_ready",
-          "needs_review",
-          "needs_confirmation",
-          "archive",
-          "reject_duplicate",
-          "merge_to_therapist",
-          "merge_to_application",
-          "publish",
-        ]);
-
-        if (!allowedDecisions.has(decision)) {
-          sendJson(response, 400, { error: "Unsupported candidate decision." }, origin, config);
-          return;
-        }
-
-        const now = new Date().toISOString();
-        const historyEntry = {
-          _key: `${Date.now()}`,
-          type: "review_decision",
-          at: now,
-          decision,
-          note: notes,
-        };
-
-        let reviewStatus = candidate.reviewStatus || "queued";
-        let publishRecommendation = candidate.publishRecommendation || "";
-        let dedupeStatus = candidate.dedupeStatus || "unreviewed";
-        let eventType = "candidate_reviewed";
-        let therapistId = "";
-        let applicationId = "";
-        const changedFields = [
-          "reviewStatus",
-          "publishRecommendation",
-          "notes",
-          "reviewHistory",
-          "reviewLane",
-          "reviewPriority",
-          "nextReviewDueAt",
-          "lastReviewedAt",
-        ];
-
-        if (decision === "mark_ready") {
-          reviewStatus = "ready_to_publish";
-          publishRecommendation = "ready";
-        } else if (decision === "needs_review") {
-          reviewStatus = "needs_review";
-        } else if (decision === "needs_confirmation") {
-          reviewStatus = "needs_confirmation";
-          publishRecommendation = "needs_confirmation";
-        } else if (decision === "archive") {
-          reviewStatus = "archived";
-          publishRecommendation = "hold";
-          eventType = "candidate_archived";
-        } else if (decision === "reject_duplicate") {
-          reviewStatus = "archived";
-          publishRecommendation = "reject";
-          dedupeStatus = "rejected_duplicate";
-          eventType = "candidate_marked_duplicate";
-          changedFields.push("dedupeStatus");
-        } else if (decision === "merge_to_therapist") {
-          therapistId = candidate.matchedTherapistId || "";
-          if (!therapistId) {
-            sendJson(
-              response,
-              409,
-              { error: "This candidate is not linked to an existing therapist yet." },
-              origin,
-              config,
-            );
-            return;
-          }
-          reviewStatus = "archived";
-          publishRecommendation = "hold";
-          dedupeStatus = "merged";
-          eventType = "candidate_merged";
-          changedFields.push("matchedTherapistId", "dedupeStatus");
-        } else if (decision === "publish") {
-          const nextTherapist = buildTherapistDocumentFromCandidate(
-            candidate,
-            candidate.matchedTherapistId,
-          );
-          therapistId = nextTherapist._id;
-          reviewStatus = "published";
-          publishRecommendation = "ready";
-          eventType = "candidate_published";
-          changedFields.push("publishedTherapistId", "publishedAt", "matchedTherapistId");
-        } else if (decision === "merge_to_application") {
-          applicationId = candidate.matchedApplicationId || "";
-          if (!applicationId) {
-            sendJson(
-              response,
-              409,
-              { error: "This candidate is not linked to an existing application yet." },
-              origin,
-              config,
-            );
-            return;
-          }
-          reviewStatus = "archived";
-          publishRecommendation = "hold";
-          dedupeStatus = "merged";
-          eventType = "candidate_merged";
-          changedFields.push("matchedApplicationId", "dedupeStatus");
-        }
-
-        const reviewMeta = computeCandidateReviewMeta({
-          ...candidate,
-          reviewStatus,
-          publishRecommendation,
-          dedupeStatus,
-        });
-
-        const transaction = client.transaction();
-        if (decision === "publish") {
-          transaction.createOrReplace(buildTherapistDocumentFromCandidate(candidate, therapistId));
-          transaction.delete(`drafts.${therapistId}`);
-        } else if (decision === "merge_to_therapist") {
-          const therapist = await client.getDocument(therapistId);
-          if (!therapist || therapist._type !== "therapist") {
-            sendJson(response, 404, { error: "Matched therapist not found." }, origin, config);
-            return;
-          }
-          const mergedTherapistDraft = {
-            ...therapist,
-            licensureVerification: mergeLicensureVerification(
-              therapist.licensureVerification,
-              candidate.licensureVerification,
-            ),
-            supportingSourceUrls: mergeUniqueUrls(
-              therapist.sourceUrl,
-              therapist.supportingSourceUrls,
-              mergeUniqueUrls(
-                candidate.sourceUrl,
-                candidate.supportingSourceUrls,
-                candidate.website ? [candidate.website] : [],
-              ),
-            ),
-            sourceReviewedAt: candidate.sourceReviewedAt || therapist.sourceReviewedAt || now,
-          };
-
-          transaction.patch(therapistId, function (patch) {
-            return patch.set({
-              licensureVerification: mergedTherapistDraft.licensureVerification,
-              supportingSourceUrls: mergedTherapistDraft.supportingSourceUrls,
-              sourceReviewedAt: mergedTherapistDraft.sourceReviewedAt,
-              fieldTrustMeta: buildFieldTrustMeta(mergedTherapistDraft),
-            });
-          });
-        } else if (decision === "merge_to_application") {
-          const application = await client.getDocument(applicationId);
-          if (!application || application._type !== "therapistApplication") {
-            sendJson(response, 404, { error: "Matched application not found." }, origin, config);
-            return;
-          }
-
-          transaction.patch(applicationId, function (patch) {
-            return patch.set({
-              licensureVerification: mergeLicensureVerification(
-                application.licensureVerification,
-                candidate.licensureVerification,
-              ),
-              supportingSourceUrls: mergeUniqueUrls(
-                application.sourceUrl,
-                application.supportingSourceUrls,
-                mergeUniqueUrls(
-                  candidate.sourceUrl,
-                  candidate.supportingSourceUrls,
-                  candidate.website ? [candidate.website] : [],
-                ),
-              ),
-              sourceReviewedAt: candidate.sourceReviewedAt || application.sourceReviewedAt || now,
-              notes: [application.notes, notes, `Merged candidate: ${candidate.name || candidate.candidateId}`]
-                .filter(Boolean)
-                .join("\n\n"),
-            });
-          });
-        }
-
-        transaction.patch(candidateId, function (patch) {
-          return patch
-            .set({
-              reviewStatus,
-              publishRecommendation,
-              dedupeStatus,
-              reviewLane: reviewMeta.reviewLane,
-              reviewPriority: reviewMeta.reviewPriority,
-              nextReviewDueAt: reviewMeta.nextReviewDueAt,
-              lastReviewedAt: now,
-              notes,
-              sourceReviewedAt: candidate.sourceReviewedAt || now,
-              ...(therapistId
-                ? {
-                    matchedTherapistId: therapistId,
-                    ...(decision === "publish"
-                      ? {
-                          publishedTherapistId: therapistId,
-                          publishedAt: now,
-                        }
-                      : {}),
-                  }
-                : {}),
-              ...(applicationId ? { matchedApplicationId: applicationId } : {}),
-            })
-            .setIfMissing({ reviewHistory: [] })
-            .append("reviewHistory", [historyEntry]);
-        });
-
-        transaction.create(
-          buildCandidateReviewEvent(candidate, {
-            eventType,
-            therapistId,
-            applicationId,
-            decision,
-            reviewStatus,
-            publishRecommendation,
-            notes,
-            changedFields,
-          }),
-        );
-
-        await transaction.commit({ visibility: "sync" });
-        const updatedCandidate = await client.getDocument(candidateId);
-        sendJson(
+          request,
           response,
-          200,
-          {
-            ok: true,
-            candidate: normalizeCandidate(updatedCandidate),
-            therapistId: therapistId || updatedCandidate.publishedTherapistId || "",
-          },
-          origin,
-          config,
-        );
+          routePath,
+        })
+      ) {
         return;
       }
 
-      const therapistOpsMatch = routePath.match(/^\/therapists\/([^/]+)\/ops$/);
-      if (request.method === "POST" && therapistOpsMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const therapistId = decodeURIComponent(therapistOpsMatch[1]);
-        const therapist = await client.getDocument(therapistId);
-        if (!therapist || therapist._type !== "therapist") {
-          sendJson(response, 404, { error: "Therapist not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const decision = String(body.decision || "").trim();
-        const notes = String(body.notes || "").trim();
-        const allowedDecisions = new Set(["mark_reviewed", "snooze_7d", "snooze_30d"]);
-
-        if (!allowedDecisions.has(decision)) {
-          sendJson(response, 400, { error: "Unsupported therapist ops decision." }, origin, config);
-          return;
-        }
-
-        const nowIso = new Date().toISOString();
-        let patchFields;
-        let eventType;
-        let changedFields;
-
-        if (decision === "mark_reviewed") {
-          const nextTherapist = {
-            ...therapist,
-            sourceReviewedAt: nowIso,
-          };
-          const verificationMeta = computeTherapistVerificationMeta({
-            ...nextTherapist,
-          });
-          patchFields = {
-            sourceReviewedAt: nowIso,
-            lastOperationalReviewAt: verificationMeta.lastOperationalReviewAt,
-            nextReviewDueAt: verificationMeta.nextReviewDueAt,
-            verificationPriority: verificationMeta.verificationPriority,
-            verificationLane: verificationMeta.verificationLane,
-            dataCompletenessScore: verificationMeta.dataCompletenessScore,
-            fieldTrustMeta: buildFieldTrustMeta(nextTherapist),
-          };
-          eventType = "therapist_review_completed";
-          changedFields = [
-            "sourceReviewedAt",
-            "lastOperationalReviewAt",
-            "nextReviewDueAt",
-            "verificationPriority",
-            "verificationLane",
-            "dataCompletenessScore",
-            "fieldTrustMeta",
-          ];
-        } else {
-          const snoozeDays = decision === "snooze_30d" ? 30 : 7;
-          patchFields = {
-            nextReviewDueAt: addDays(nowIso, snoozeDays),
-            verificationLane: "refresh_soon",
-          };
-          eventType = "therapist_review_deferred";
-          changedFields = ["nextReviewDueAt", "verificationLane"];
-        }
-
-        const transaction = client.transaction();
-        transaction.patch(therapistId, function (patch) {
-          return patch.set(patchFields);
-        });
-        transaction.create(
-          buildTherapistOpsEvent(therapist, {
-            eventType,
-            decision,
-            notes,
-            changedFields,
-          }),
-        );
-
-        await transaction.commit({ visibility: "sync" });
-        const updatedTherapist = await client.getDocument(therapistId);
-        sendJson(response, 200, { ok: true, therapist: updatedTherapist }, origin, config);
-        return;
-      }
-
-      const licensureOpsMatch = routePath.match(/^\/licensure-records\/([^/]+)\/ops$/);
-      if (request.method === "POST" && licensureOpsMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const recordId = decodeURIComponent(licensureOpsMatch[1]);
-        const record = await client.getDocument(recordId);
-        if (!record || record._type !== "licensureRecord") {
-          sendJson(response, 404, { error: "Licensure record not found." }, origin, config);
-          return;
-        }
-
-        const body = await parseBody(request);
-        const decision = String(body.decision || "").trim();
-        const notes = String(body.notes || "").trim();
-        const allowedDecisions = new Set(["snooze_7d", "snooze_30d", "unsnooze_now"]);
-        if (!allowedDecisions.has(decision)) {
-          sendJson(response, 400, { error: "Unsupported licensure ops decision." }, origin, config);
-          return;
-        }
-
-        const nowIso = new Date().toISOString();
-        let patchFields;
-        let changedFields;
-        let eventType;
-
-        if (decision === "unsnooze_now") {
-          patchFields = {
-            deferredUntilAt: "",
-            nextRefreshDueAt: nowIso,
-            refreshStatus:
-              record.refreshStatus === "healthy" ? "needs_refresh" : record.refreshStatus || "queued",
-          };
-          changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
-          eventType = "licensure_refresh_deferred";
-        } else {
-          const snoozeDays = decision === "snooze_30d" ? 30 : 7;
-          patchFields = {
-            deferredUntilAt: addDays(nowIso, snoozeDays),
-            nextRefreshDueAt: addDays(nowIso, snoozeDays),
-            refreshStatus:
-              record.refreshStatus === "failed" ? "needs_refresh" : record.refreshStatus || "queued",
-          };
-          changedFields = ["deferredUntilAt", "nextRefreshDueAt", "refreshStatus"];
-          eventType = "licensure_refresh_deferred";
-        }
-
-        const transaction = client.transaction();
-        transaction.patch(recordId, function (patch) {
-          return patch.set(patchFields);
-        });
-        transaction.create(
-          buildLicensureOpsEvent(record, {
-            eventType: eventType,
-            decision,
-            notes,
-            changedFields,
-          }),
-        );
-
-        await transaction.commit({ visibility: "sync" });
-        const updatedRecord = await client.getDocument(recordId);
-        sendJson(response, 200, { ok: true, licensureRecord: updatedRecord }, origin, config);
-        return;
-      }
-
-      const approveMatch = routePath.match(/^\/applications\/([^/]+)\/approve$/);
-      if (request.method === "POST" && approveMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const applicationId = decodeURIComponent(approveMatch[1]);
-        const application = await client.getDocument(applicationId);
-        if (!application || application._type !== "therapistApplication") {
-          sendJson(response, 404, { error: "Application not found." }, origin, config);
-          return;
-        }
-
-        const slug =
-          application.submittedSlug ||
-          slugify(
-            [application.name, application.city, application.state].filter(Boolean).join(" "),
-          );
-        const therapistId = application.publishedTherapistId || `therapist-${slug}`;
-
-        const transaction = client.transaction();
-        transaction.createOrReplace(buildTherapistDocument(application, therapistId));
-        transaction.delete(`drafts.${therapistId}`);
-        transaction.patch(applicationId, function (patch) {
-          return patch.set({
-            status: "approved",
-            updatedAt: new Date().toISOString(),
-            publishedTherapistId: therapistId,
-          });
-        });
-
-        await transaction.commit({ visibility: "sync" });
-
-        try {
-          await notifyApplicantOfDecision(config, application, "approved");
-        } catch (error) {
-          console.error("Failed to send approval email.", error);
-        }
-
-        sendJson(response, 200, { ok: true, therapistId: therapistId }, origin, config);
-        return;
-      }
-
-      const rejectMatch = routePath.match(/^\/applications\/([^/]+)\/reject$/);
-      if (request.method === "POST" && rejectMatch) {
-        if (!isAuthorized(request, config)) {
-          sendJson(response, 401, { error: "Unauthorized." }, origin, config);
-          return;
-        }
-
-        const applicationId = decodeURIComponent(rejectMatch[1]);
-        const application = await client.getDocument(applicationId);
-        await client
-          .patch(applicationId)
-          .set({ status: "rejected", updatedAt: new Date().toISOString() })
-          .commit({ visibility: "sync" });
-
-        if (application) {
-          try {
-            await notifyApplicantOfDecision(config, application, "rejected");
-          } catch (error) {
-            console.error("Failed to send rejection email.", error);
-          }
-        }
-
-        sendJson(response, 200, { ok: true }, origin, config);
-        return;
-      }
 
       sendJson(response, 404, { error: "Not found." }, origin, config);
     } catch (error) {

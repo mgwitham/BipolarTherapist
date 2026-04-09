@@ -6,6 +6,7 @@ import { createClient } from "@sanity/client";
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const HOMEPAGE_ID = "homePage";
+const SITE_SETTINGS_ID = "siteSettings";
 const LAUNCH_PROFILE_CONTROLS_PATH = path.join(
   ROOT,
   "data",
@@ -109,10 +110,28 @@ function getHomepageFeaturedSlugs() {
   }
 }
 
+function getMatchPrioritySlugs() {
+  if (!fs.existsSync(LAUNCH_PROFILE_CONTROLS_PATH)) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(LAUNCH_PROFILE_CONTROLS_PATH, "utf8"));
+    return Array.isArray(parsed?.matchPrioritySlugs)
+      ? parsed.matchPrioritySlugs.map((value) => String(value || "").trim()).filter(Boolean)
+      : [];
+  } catch (error) {
+    throw new Error(
+      `Could not read match priority slugs from ${LAUNCH_PROFILE_CONTROLS_PATH}: ${error.message || error}`,
+    );
+  }
+}
+
 async function main() {
   const config = getConfig();
   const client = getClient(config);
   const homepageFeaturedSlugs = getHomepageFeaturedSlugs();
+  const matchPrioritySlugs = getMatchPrioritySlugs();
 
   const existing = await client.fetch(`*[_type == "homePage" && _id == $id][0]{_id, sections}`, {
     id: HOMEPAGE_ID,
@@ -196,8 +215,9 @@ async function main() {
   };
 
   await client.patch(HOMEPAGE_ID).set(patch).commit();
+  await client.patch(SITE_SETTINGS_ID).set({ matchPrioritySlugs }).commit();
   console.log(
-    `Updated homepage copy and featured therapist set in Sanity dataset "${config.dataset}" for document "${HOMEPAGE_ID}" using ${homepageFeaturedSlugs.length} slug(s) from ${LAUNCH_PROFILE_CONTROLS_PATH}.`,
+    `Updated homepage featured therapists and match priority slugs in Sanity dataset "${config.dataset}" using ${homepageFeaturedSlugs.length} homepage slug(s) and ${matchPrioritySlugs.length} match slug(s) from ${LAUNCH_PROFILE_CONTROLS_PATH}.`,
   );
 }
 

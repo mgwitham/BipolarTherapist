@@ -7,7 +7,7 @@ This repository contains both source-of-truth inputs and generated operational p
 These are durable and should usually stay in git:
 
 - Import templates such as `therapists-template.csv`
-- Stable source-of-truth configuration such as `launch-profile-controls.json`
+- Stable ops-side staging inputs such as `launch-profile-controls.json`
 - Approved datasets that the business depends on to reproduce the current product state
 - Durable handoff documents that represent a real decision point, review packet, or operating record
 
@@ -40,9 +40,14 @@ If the answer to all three is no, prefer not to commit it.
 Keep tracked:
 
 - Templates in `data/import/`
-- `launch-profile-controls.json`
+- `launch-profile-controls.json` when it remains the intentional ops-to-CMS staging input
 - `generated-launch-profile-controls.json` only if it remains part of the intentional admin-to-repo sync workflow
 - Durable California confirmation or sourcing packets that you actively use as operating records
+
+Treat as CMS-owned runtime config instead of file-owned runtime config:
+
+- homepage featured therapist references in Sanity `homePage`
+- match-priority slugs in Sanity `siteSettings`
 
 Gradually stop tracking by default:
 
