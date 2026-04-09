@@ -6,6 +6,171 @@ import {
   renderCandidateTrustChips,
 } from "./admin-candidate-review.js";
 
+const IMPORT_WAVE_HISTORY_KEY = "bth_import_wave_history_v1";
+const IMPORT_WAVE_HISTORY_LIMIT = 8;
+const WEEKLY_DIGEST_RECIPIENTS_KEY = "bth_weekly_digest_recipients_v1";
+const WEEKLY_DIGEST_SEND_LOG_KEY = "bth_weekly_digest_send_log_v1";
+const WEEKLY_DIGEST_SEND_LOG_LIMIT = 12;
+const BLOCKED_PROFILE_ACTION_LOG_KEY = "bth_blocked_profile_action_log_v1";
+const BLOCKED_PROFILE_ACTION_LOG_LIMIT = 40;
+
+function readImportWaveHistory() {
+  try {
+    return JSON.parse(window.localStorage.getItem(IMPORT_WAVE_HISTORY_KEY) || "[]");
+  } catch (_error) {
+    return [];
+  }
+}
+
+function writeImportWaveHistory(value) {
+  try {
+    window.localStorage.setItem(IMPORT_WAVE_HISTORY_KEY, JSON.stringify(value || []));
+  } catch (_error) {
+    return;
+  }
+}
+
+function appendImportWaveHistoryEntry(entry) {
+  const all = readImportWaveHistory();
+  all.unshift({
+    id: String(Date.now()),
+    created_at: new Date().toISOString(),
+    ...entry,
+  });
+  writeImportWaveHistory(all.slice(0, IMPORT_WAVE_HISTORY_LIMIT));
+}
+
+function readWeeklyDigestRecipients() {
+  try {
+    return String(window.localStorage.getItem(WEEKLY_DIGEST_RECIPIENTS_KEY) || "").trim();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function writeWeeklyDigestRecipients(value) {
+  try {
+    window.localStorage.setItem(WEEKLY_DIGEST_RECIPIENTS_KEY, String(value || "").trim());
+  } catch (_error) {
+    return;
+  }
+}
+
+function readWeeklyDigestSendLog() {
+  try {
+    return JSON.parse(window.localStorage.getItem(WEEKLY_DIGEST_SEND_LOG_KEY) || "[]");
+  } catch (_error) {
+    return [];
+  }
+}
+
+function appendWeeklyDigestSendLog(entry) {
+  const all = readWeeklyDigestSendLog();
+  all.unshift({
+    id: String(Date.now()),
+    created_at: new Date().toISOString(),
+    ...entry,
+  });
+  try {
+    window.localStorage.setItem(
+      WEEKLY_DIGEST_SEND_LOG_KEY,
+      JSON.stringify(all.slice(0, WEEKLY_DIGEST_SEND_LOG_LIMIT)),
+    );
+  } catch (_error) {
+    return;
+  }
+}
+
+function readBlockedProfileActionLog() {
+  try {
+    return JSON.parse(window.localStorage.getItem(BLOCKED_PROFILE_ACTION_LOG_KEY) || "[]");
+  } catch (_error) {
+    return [];
+  }
+}
+
+function appendBlockedProfileActionLog(entry) {
+  const all = readBlockedProfileActionLog();
+  all.unshift({
+    id: String(Date.now()),
+    created_at: new Date().toISOString(),
+    ...entry,
+  });
+  try {
+    window.localStorage.setItem(
+      BLOCKED_PROFILE_ACTION_LOG_KEY,
+      JSON.stringify(all.slice(0, BLOCKED_PROFILE_ACTION_LOG_LIMIT)),
+    );
+  } catch (_error) {
+    return;
+  }
+}
+
+function getWeekBucket(value) {
+  const date = value ? new Date(value) : null;
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const normalized = new Date(date.getTime());
+  normalized.setHours(0, 0, 0, 0);
+  const day = normalized.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  normalized.setDate(normalized.getDate() + mondayOffset);
+  return normalized.toISOString().slice(0, 10);
+}
+
+function addDays(value, days) {
+  const date = value ? new Date(value) : null;
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const next = new Date(date.getTime());
+  next.setDate(next.getDate() + days);
+  return next.toISOString().slice(0, 10);
+}
+
+function buildWeeklyDigestCadence(sendLog) {
+  const log = Array.isArray(sendLog) ? sendLog : [];
+  const uniqueWeeks = Array.from(
+    new Set(
+      log
+        .map(function (entry) {
+          return getWeekBucket(entry && entry.created_at ? entry.created_at : "");
+        })
+        .filter(Boolean),
+    ),
+  ).sort(function (a, b) {
+    return b.localeCompare(a);
+  });
+
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  let streak = 0;
+  let expectedWeek = currentWeek;
+
+  uniqueWeeks.forEach(function (week) {
+    if (week === expectedWeek) {
+      streak += 1;
+      expectedWeek = addDays(expectedWeek, -7);
+    }
+  });
+
+  const missedCurrentWeek = uniqueWeeks[0] !== currentWeek;
+
+  return {
+    streak: streak,
+    missedCurrentWeek: missedCurrentWeek,
+    currentWeek: currentWeek,
+    latestWeek: uniqueWeeks[0] || "",
+    label: missedCurrentWeek
+      ? "Weekly digest missed this week."
+      : streak > 1
+        ? "Weekly digest streak is " + streak + " weeks."
+        : streak === 1
+          ? "Weekly digest sent this week."
+          : "Weekly digest has not been sent yet.",
+  };
+}
+
 function getTherapistOpsReason(freshness, item, helpers) {
   const trustSummary = helpers.getTherapistFieldTrustSummary(item);
   if (trustSummary.watchFields.length) {
@@ -357,6 +522,899 @@ function buildConversionApplyPreviewHtml(therapist, responseFields, response) {
   );
 }
 
+function getImportWaveHistoryFieldLabels(fields, options) {
+  return (Array.isArray(fields) ? fields : [])
+    .map(function (field) {
+      return options.formatFieldLabel(field);
+    })
+    .join(", ");
+}
+
+function daysSinceTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  return Math.max(0, Math.round((Date.now() - timestamp) / 86400000));
+}
+
+function buildImportWaveMetrics(readyToImportQueue, importWaveHistory) {
+  const queue = Array.isArray(readyToImportQueue) ? readyToImportQueue : [];
+  const history = Array.isArray(importWaveHistory) ? importWaveHistory : [];
+  const waitingConfirmed = queue.filter(function (entry) {
+    return entry.workflow && entry.workflow.status === "confirmed";
+  }).length;
+  const alreadyApplied = queue.filter(function (entry) {
+    return entry.workflow && entry.workflow.status === "applied";
+  }).length;
+  const movedThisWeek = history.filter(function (entry) {
+    return (
+      entry &&
+      entry.action === "Marked applied" &&
+      daysSinceTimestamp(entry.created_at) !== null &&
+      daysSinceTimestamp(entry.created_at) <= 7
+    );
+  }).length;
+  const exportedThisWeek = history.filter(function (entry) {
+    return (
+      entry &&
+      String(entry.action || "").indexOf("Copied apply") === 0 &&
+      daysSinceTimestamp(entry.created_at) !== null &&
+      daysSinceTimestamp(entry.created_at) <= 7
+    );
+  }).length;
+
+  let bottleneck = "No import-wave bottleneck yet.";
+  if (waitingConfirmed > Math.max(1, alreadyApplied)) {
+    bottleneck =
+      "Bottleneck: confirmed profiles are stacking up faster than they are being applied.";
+  } else if (alreadyApplied > 0 && exportedThisWeek === 0) {
+    bottleneck =
+      "Bottleneck: profiles are being marked applied, but the import packet has not been exported recently.";
+  } else if (exportedThisWeek > movedThisWeek && waitingConfirmed > 0) {
+    bottleneck =
+      "Bottleneck: export is happening, but confirmed profiles are still waiting to clear the apply step.";
+  } else if (queue.length === 0) {
+    bottleneck =
+      "Bottleneck: nothing is ready to import yet, so the next leverage is getting more profiles to confirmed state.";
+  }
+
+  return {
+    waitingConfirmed: waitingConfirmed,
+    alreadyApplied: alreadyApplied,
+    movedThisWeek: movedThisWeek,
+    exportedThisWeek: exportedThisWeek,
+    bottleneck: bottleneck,
+  };
+}
+
+function buildBlockedProfilePersistenceMap(sendLog) {
+  const log = Array.isArray(sendLog) ? sendLog : [];
+  const weeklySnapshots = Array.from(
+    new Map(
+      log
+        .map(function (entry) {
+          return [getWeekBucket(entry && entry.created_at ? entry.created_at : ""), entry];
+        })
+        .filter(function (entry) {
+          return entry[0];
+        }),
+    ).entries(),
+  )
+    .map(function (entry) {
+      return {
+        week: entry[0],
+        blockedProfiles: Array.isArray(entry[1] && entry[1].blocked_profiles)
+          ? entry[1].blocked_profiles
+          : [],
+      };
+    })
+    .sort(function (a, b) {
+      return b.week.localeCompare(a.week);
+    });
+
+  const profileWeeks = new Map();
+  weeklySnapshots.forEach(function (snapshot) {
+    snapshot.blockedProfiles.forEach(function (profile) {
+      const slug = profile && profile.slug ? profile.slug : "";
+      if (!slug) {
+        return;
+      }
+      if (!profileWeeks.has(slug)) {
+        profileWeeks.set(slug, []);
+      }
+      profileWeeks.get(slug).push(snapshot.week);
+    });
+  });
+
+  const persistence = new Map();
+  profileWeeks.forEach(function (weeks, slug) {
+    const sortedWeeks = weeks.slice().sort(function (a, b) {
+      return b.localeCompare(a);
+    });
+    let streak = 0;
+    let expectedWeek = sortedWeeks[0] || "";
+    let oldestWeek = expectedWeek;
+    sortedWeeks.forEach(function (week) {
+      if (week === expectedWeek) {
+        streak += 1;
+        oldestWeek = week;
+        expectedWeek = addDays(expectedWeek, -7);
+      }
+    });
+    persistence.set(slug, {
+      streak: streak,
+      oldestWeek: oldestWeek,
+    });
+  });
+
+  return persistence;
+}
+
+function buildBlockedProfileActionMap(actionLog) {
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const latestBySlug = new Map();
+  (Array.isArray(actionLog) ? actionLog : []).forEach(function (entry) {
+    const slug = entry && entry.slug ? entry.slug : "";
+    if (!slug || getWeekBucket(entry && entry.created_at ? entry.created_at : "") !== currentWeek) {
+      return;
+    }
+    if (!latestBySlug.has(slug)) {
+      latestBySlug.set(slug, entry);
+    }
+  });
+  return latestBySlug;
+}
+
+function getBlockedProfileOutcomeLabel(action) {
+  if (!action || !action.outcome) {
+    return "";
+  }
+  if (action.outcome === "cleared") {
+    return "Blocker cleared";
+  }
+  if (action.outcome === "in_progress") {
+    return "Blocker in progress";
+  }
+  return "";
+}
+
+function buildClearedBlockedProfiles(context) {
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const therapistMap = new Map(
+    (Array.isArray(context.therapists) ? context.therapists : [])
+      .filter(function (item) {
+        return item && item.slug;
+      })
+      .map(function (item) {
+        return [item.slug, item];
+      }),
+  );
+
+  return (Array.isArray(context.blockedProfileActionLog) ? context.blockedProfileActionLog : [])
+    .filter(function (entry) {
+      return (
+        entry &&
+        entry.slug &&
+        entry.outcome === "cleared" &&
+        getWeekBucket(entry.created_at || "") === currentWeek
+      );
+    })
+    .filter(function (entry, index, list) {
+      return (
+        list.findIndex(function (item) {
+          return item.slug === entry.slug;
+        }) === index
+      );
+    })
+    .slice(0, 4)
+    .map(function (entry) {
+      const therapist = therapistMap.get(entry.slug);
+      return {
+        slug: entry.slug,
+        name: therapist && therapist.name ? therapist.name : entry.slug,
+        label: entry.label || "Blocker cleared",
+        createdAt: entry.created_at || "",
+      };
+    });
+}
+
+function buildNewlyBlockedProfiles(context, options) {
+  const currentWeek = getWeekBucket(new Date().toISOString());
+  const previousSnapshot = (
+    Array.isArray(context.weeklyDigestSendLog) ? context.weeklyDigestSendLog : []
+  )
+    .map(function (entry) {
+      return {
+        week: getWeekBucket(entry && entry.created_at ? entry.created_at : ""),
+        blockedProfiles: Array.isArray(entry && entry.blocked_profiles)
+          ? entry.blocked_profiles
+          : [],
+      };
+    })
+    .filter(function (entry) {
+      return entry.week && entry.week !== currentWeek;
+    })
+    .sort(function (a, b) {
+      return b.week.localeCompare(a.week);
+    })[0];
+
+  const previousSlugs = new Set(
+    (previousSnapshot && Array.isArray(previousSnapshot.blockedProfiles)
+      ? previousSnapshot.blockedProfiles
+      : []
+    ).map(function (entry) {
+      return entry && entry.slug ? entry.slug : "";
+    }),
+  );
+
+  return buildTopBlockedProfiles(context, options)
+    .filter(function (entry) {
+      return entry.slug && !previousSlugs.has(entry.slug);
+    })
+    .slice(0, 4)
+    .map(function (entry) {
+      return {
+        slug: entry.slug,
+        name: entry.name,
+        note: entry.note,
+        reasonTag: entry.reasonTag,
+      };
+    });
+}
+
+function getBlockedProfileReasonTag(fields, workflow, options) {
+  const normalizedFields = Array.isArray(fields) ? fields.filter(Boolean) : [];
+  const status = workflow && workflow.status ? String(workflow.status) : "";
+
+  if (status === "waiting_on_therapist" || status === "sent") {
+    return "Waiting on therapist reply";
+  }
+  if (
+    normalizedFields.includes("bipolar_years_experience") ||
+    normalizedFields.includes("bipolarYearsExperience")
+  ) {
+    return "Missing bipolar experience";
+  }
+  if (
+    normalizedFields.includes("estimated_wait_time") ||
+    normalizedFields.includes("estimatedWaitTime")
+  ) {
+    return "Missing wait time";
+  }
+  if (
+    normalizedFields.includes("session_fee_min") ||
+    normalizedFields.includes("session_fee_max") ||
+    normalizedFields.includes("sessionFeeMin") ||
+    normalizedFields.includes("sessionFeeMax") ||
+    normalizedFields.includes("sliding_scale") ||
+    normalizedFields.includes("slidingScale")
+  ) {
+    return "Missing fee details";
+  }
+  if (
+    normalizedFields.includes("insurance_accepted") ||
+    normalizedFields.includes("insuranceAccepted")
+  ) {
+    return "Missing insurance details";
+  }
+  if (
+    normalizedFields.includes("preferred_contact_method") ||
+    normalizedFields.includes("preferredContactMethod")
+  ) {
+    return "Missing contact path";
+  }
+  if (
+    normalizedFields.includes("telehealth_states") ||
+    normalizedFields.includes("telehealthStates")
+  ) {
+    return "Missing telehealth coverage";
+  }
+  if (
+    normalizedFields.includes("source_reviewed_at") ||
+    normalizedFields.includes("therapist_reported_confirmed_at")
+  ) {
+    return "Needs re-confirmation";
+  }
+  if (normalizedFields.length && options && typeof options.formatFieldLabel === "function") {
+    return "Blocked on " + options.formatFieldLabel(normalizedFields[0]);
+  }
+
+  return "Trust details still unresolved";
+}
+
+function getBlockedProfileOwnerAction(fields, workflow, fallbackAction) {
+  const normalizedFields = Array.isArray(fields) ? fields.filter(Boolean) : [];
+  const status = workflow && workflow.status ? String(workflow.status) : "";
+  const fallback = fallbackAction || "Open the profile and clear the next trust-critical blocker.";
+
+  if (status === "waiting_on_therapist" || status === "sent") {
+    return "Send or follow up on the confirmation request, then capture the reply in the workflow.";
+  }
+  if (
+    normalizedFields.includes("bipolar_years_experience") ||
+    normalizedFields.includes("bipolarYearsExperience")
+  ) {
+    return "Confirm bipolar-specific experience and record it for the profile.";
+  }
+  if (
+    normalizedFields.includes("estimated_wait_time") ||
+    normalizedFields.includes("estimatedWaitTime")
+  ) {
+    return "Confirm current wait time and update the profile timing details.";
+  }
+  if (
+    normalizedFields.includes("session_fee_min") ||
+    normalizedFields.includes("session_fee_max") ||
+    normalizedFields.includes("sessionFeeMin") ||
+    normalizedFields.includes("sessionFeeMax") ||
+    normalizedFields.includes("sliding_scale") ||
+    normalizedFields.includes("slidingScale")
+  ) {
+    return "Confirm fee range or sliding-scale details and capture them for import.";
+  }
+  if (
+    normalizedFields.includes("insurance_accepted") ||
+    normalizedFields.includes("insuranceAccepted")
+  ) {
+    return "Verify insurance coverage and update the profile with the confirmed plans.";
+  }
+  if (
+    normalizedFields.includes("preferred_contact_method") ||
+    normalizedFields.includes("preferredContactMethod")
+  ) {
+    return "Clarify the best contact path so outreach feels executable.";
+  }
+  if (
+    normalizedFields.includes("telehealth_states") ||
+    normalizedFields.includes("telehealthStates")
+  ) {
+    return "Verify telehealth coverage so users can quickly tell whether this therapist is eligible.";
+  }
+  if (
+    normalizedFields.includes("source_reviewed_at") ||
+    normalizedFields.includes("therapist_reported_confirmed_at")
+  ) {
+    return "Re-confirm the highest-impact trust fields and stamp the profile with a fresh review date.";
+  }
+
+  return fallback;
+}
+
+function getBlockedProfileExecuteMeta(fields, workflow, slug) {
+  const normalizedFields = Array.isArray(fields) ? fields.filter(Boolean) : [];
+  const status = workflow && workflow.status ? String(workflow.status) : "";
+  const primaryField = normalizedFields[0] || "";
+  const primaryAction = primaryField ? getConversionFieldActionMeta(primaryField, slug) : null;
+
+  if (status === "waiting_on_therapist" || status === "sent") {
+    return {
+      label: "Copy confirmation request",
+      mode: "copy-request",
+    };
+  }
+  if (status === "confirmed") {
+    return {
+      label: "Copy apply brief",
+      mode: "copy-apply-brief",
+    };
+  }
+  if (primaryAction && primaryAction.mode === "copy-fees") {
+    return {
+      label: primaryAction.label,
+      mode: "copy-fees",
+    };
+  }
+  if (primaryAction && primaryAction.href) {
+    return {
+      label: primaryAction.label,
+      href: primaryAction.href,
+    };
+  }
+
+  return {
+    label: "Open confirmation queue",
+    href: "admin.html#confirmationQueue",
+  };
+}
+
+function buildTopBlockedProfiles(context, options) {
+  const persistenceMap = buildBlockedProfilePersistenceMap(context.weeklyDigestSendLog);
+  const actionMap = buildBlockedProfileActionMap(context.blockedProfileActionLog);
+  return []
+    .concat(
+      (context.conversionFreshnessQueue || []).map(function (entry) {
+        const therapist = (context.therapists || []).find(function (item) {
+          return item && item.slug === entry.slug;
+        });
+        const confirmationFields = therapist ? getConversionWatchFields(therapist, options) : [];
+        const orderedFields = options.getPreferredFieldOrder
+          ? options.getPreferredFieldOrder(
+              confirmationFields,
+              confirmationFields.includes("bipolar_years_experience")
+                ? "bipolar_years_experience"
+                : "",
+            )
+          : confirmationFields;
+        const workflow = options.getConfirmationQueueEntry
+          ? options.getConfirmationQueueEntry(entry.slug || "")
+          : null;
+        const reviewTask =
+          therapist && options.getReviewEntityTask && (therapist.id || therapist._id)
+            ? options.getReviewEntityTask("therapist", therapist.id || therapist._id)
+            : null;
+        return {
+          slug: entry.slug || "",
+          name: entry.name,
+          note: entry.next_move || entry.freshness_reason || "Refresh this profile next.",
+          reasonTag: getBlockedProfileReasonTag(confirmationFields, workflow, options),
+          ownerAction: getBlockedProfileOwnerAction(
+            confirmationFields,
+            workflow,
+            entry.next_move || "Refresh this profile next.",
+          ),
+          executeMeta: getBlockedProfileExecuteMeta(orderedFields, workflow, entry.slug || ""),
+          latestAction: entry.slug && actionMap.has(entry.slug) ? actionMap.get(entry.slug) : null,
+          owner: reviewTask && reviewTask.assignee ? reviewTask.assignee : "",
+          dueAt: reviewTask && reviewTask.due_at ? reviewTask.due_at : "",
+          unchangedSince:
+            entry.slug &&
+            persistenceMap.has(entry.slug) &&
+            persistenceMap.get(entry.slug).streak >= 2
+              ? persistenceMap.get(entry.slug).oldestWeek
+              : "",
+        };
+      }),
+    )
+    .concat(
+      (context.readyToImportQueue || [])
+        .filter(function (entry) {
+          return entry.workflow && entry.workflow.status === "confirmed";
+        })
+        .map(function (entry) {
+          const reviewTask =
+            options.getReviewEntityTask && entry.item && (entry.item.id || entry.item._id)
+              ? options.getReviewEntityTask("therapist", entry.item.id || entry.item._id)
+              : null;
+          const workflow = entry.workflow || null;
+          return {
+            slug: entry.item && entry.item.slug ? entry.item.slug : "",
+            name: entry.item && entry.item.name ? entry.item.name : "Unnamed therapist",
+            note: "Confirmed values are waiting to be applied or exported.",
+            reasonTag:
+              workflow && workflow.status === "confirmed"
+                ? "Waiting for apply/import"
+                : "Import step still open",
+            ownerAction:
+              workflow && workflow.status === "confirmed"
+                ? "Apply the confirmed values or include this profile in the next import wave."
+                : "Move this profile through the remaining import steps.",
+            executeMeta: getBlockedProfileExecuteMeta(
+              [],
+              workflow,
+              entry.item && entry.item.slug ? entry.item.slug : "",
+            ),
+            latestAction:
+              entry.item && entry.item.slug && actionMap.has(entry.item.slug)
+                ? actionMap.get(entry.item.slug)
+                : null,
+            owner: reviewTask && reviewTask.assignee ? reviewTask.assignee : "",
+            dueAt: reviewTask && reviewTask.due_at ? reviewTask.due_at : "",
+            unchangedSince:
+              entry.item &&
+              entry.item.slug &&
+              persistenceMap.has(entry.item.slug) &&
+              persistenceMap.get(entry.item.slug).streak >= 2
+                ? persistenceMap.get(entry.item.slug).oldestWeek
+                : "",
+          };
+        }),
+    )
+    .slice(0, 4);
+}
+
+function buildWeeklyOpsDigest(context, options) {
+  const freshnessRiskCount =
+    (context.conversionFreshnessQueue || []).length + (context.refreshQueue || []).length;
+  const confirmedValueThroughput = (context.readyToImportQueue || []).filter(function (entry) {
+    return entry.workflow && entry.workflow.status === "confirmed";
+  }).length;
+  const topBlockedProfiles = buildTopBlockedProfiles(context, options);
+  const clearedBlockedProfiles = buildClearedBlockedProfiles(context);
+  const newlyBlockedProfiles = buildNewlyBlockedProfiles(context, options);
+
+  return (
+    '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">Weekly Digest</h3><div class="subtle">A compact operator view of freshness risk, confirmation throughput, import-wave movement, and the profiles most likely to stall progress.</div></div><div class="ops-card-actions"><button class="btn-primary" data-weekly-digest-start>Start this week\'s digest</button><button class="btn-secondary" data-weekly-digest-copy="slack">Copy Slack digest</button><button class="btn-secondary" data-weekly-digest-copy="email">Copy email digest</button><button class="btn-secondary" data-weekly-digest-copy="handoff">Copy handoff digest</button><button class="btn-secondary" data-weekly-digest-log="slack">Log Slack sent</button><button class="btn-secondary" data-weekly-digest-log="email">Log email sent</button><button class="btn-secondary" data-weekly-digest-log="handoff">Log handoff sent</button></div></div>' +
+    '<div class="ops-list"><article class="ops-card"><div class="ops-card-body">' +
+    '<div class="queue-summary"><strong>Recipients:</strong> <input class="queue-select" data-weekly-digest-recipients value="' +
+    options.escapeHtml(context.weeklyDigestRecipients || "") +
+    '" placeholder="e.g. ops@team.com, #growth-ops, founder@company.com" /></div>' +
+    '<div class="queue-summary subtle"><strong>Cadence:</strong> ' +
+    options.escapeHtml(
+      context.weeklyDigestCadence ? context.weeklyDigestCadence.label : "No cadence data yet.",
+    ) +
+    "</div>" +
+    '<div class="queue-summary subtle"><strong>Streak:</strong> ' +
+    options.escapeHtml(
+      context.weeklyDigestCadence
+        ? String(context.weeklyDigestCadence.streak) +
+            " week" +
+            (context.weeklyDigestCadence.streak === 1 ? "" : "s")
+        : "0 weeks",
+    ) +
+    " · " +
+    (context.weeklyDigestCadence && context.weeklyDigestCadence.missedCurrentWeek
+      ? '<span class="status rejected">Missed this week</span>'
+      : '<span class="status approved">On track</span>') +
+    "</div>" +
+    (context.latestWeeklyDigestSend
+      ? '<div class="queue-summary subtle"><strong>Last sent:</strong> ' +
+        options.escapeHtml(
+          [
+            context.latestWeeklyDigestSend.channel
+              ? context.latestWeeklyDigestSend.channel.toUpperCase()
+              : "Unknown channel",
+            context.latestWeeklyDigestSend.created_at
+              ? options.formatDate(context.latestWeeklyDigestSend.created_at)
+              : "Recently",
+            context.latestWeeklyDigestSend.recipients
+              ? "to " + context.latestWeeklyDigestSend.recipients
+              : "recipient not recorded",
+          ].join(" · "),
+        ) +
+        "</div>"
+      : '<div class="queue-summary subtle">No digest send has been logged yet.</div>') +
+    '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness risk</div><div class="ops-card-kpi-value">' +
+    options.escapeHtml(String(freshnessRiskCount)) +
+    '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Confirmed waiting</div><div class="ops-card-kpi-value">' +
+    options.escapeHtml(String(confirmedValueThroughput)) +
+    '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Moved this week</div><div class="ops-card-kpi-value">' +
+    options.escapeHtml(String(context.importWaveMetrics.movedThisWeek)) +
+    '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Exports this week</div><div class="ops-card-kpi-value">' +
+    options.escapeHtml(String(context.importWaveMetrics.exportedThisWeek)) +
+    '</div></div></div><div class="queue-summary"><strong>Current bottleneck:</strong> ' +
+    options.escapeHtml(context.importWaveMetrics.bottleneck) +
+    "</div>" +
+    (clearedBlockedProfiles.length
+      ? '<div class="queue-summary"><strong>Cleared blockers this week:</strong></div><div class="queue-shortlist">' +
+        clearedBlockedProfiles
+          .map(function (entry) {
+            return (
+              '<div class="queue-shortlist-item"><strong>' +
+              options.escapeHtml(entry.name) +
+              ":</strong> " +
+              options.escapeHtml(entry.label) +
+              (entry.createdAt
+                ? '<div class="subtle" style="margin-top:0.35rem">' +
+                  options.escapeHtml("Cleared on " + options.formatDate(entry.createdAt)) +
+                  "</div>"
+                : "") +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : "") +
+    (newlyBlockedProfiles.length
+      ? '<div class="queue-summary"><strong>Newly blocked this week:</strong></div><div class="queue-shortlist">' +
+        newlyBlockedProfiles
+          .map(function (entry) {
+            return (
+              '<div class="queue-shortlist-item"><strong>' +
+              options.escapeHtml(entry.name) +
+              ":</strong> " +
+              options.escapeHtml(entry.note) +
+              (entry.reasonTag
+                ? '<div class="subtle" style="margin-top:0.35rem">' +
+                  options.escapeHtml(entry.reasonTag) +
+                  "</div>"
+                : "") +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : "") +
+    (topBlockedProfiles.length
+      ? '<div class="queue-summary"><strong>Top blocked profiles:</strong></div><div class="queue-shortlist">' +
+        topBlockedProfiles
+          .map(function (entry) {
+            return (
+              '<div class="queue-shortlist-item"><strong>' +
+              options.escapeHtml(entry.name) +
+              ":</strong> " +
+              options.escapeHtml(entry.note) +
+              (entry.reasonTag
+                ? '<div class="subtle" style="margin-top:0.35rem"><strong>Why still unchanged:</strong> ' +
+                  options.escapeHtml(entry.reasonTag) +
+                  "</div>"
+                : "") +
+              (entry.ownerAction
+                ? '<div class="subtle" style="margin-top:0.35rem"><strong>Recommended next owner action:</strong> ' +
+                  options.escapeHtml(entry.ownerAction) +
+                  "</div>"
+                : "") +
+              (entry.executeMeta
+                ? '<div class="ops-card-actions" style="margin-top:0.6rem">' +
+                  (entry.executeMeta.href
+                    ? '<a class="btn-secondary btn-inline" href="' +
+                      options.escapeHtml(entry.executeMeta.href) +
+                      '">' +
+                      options.escapeHtml(entry.executeMeta.label) +
+                      "</a>"
+                    : '<button class="btn-secondary btn-inline" data-blocked-profile-action="' +
+                      options.escapeHtml(entry.slug || "") +
+                      '" data-blocked-profile-action-mode="' +
+                      options.escapeHtml(entry.executeMeta.mode || "") +
+                      '">' +
+                      options.escapeHtml(entry.executeMeta.label) +
+                      "</button>") +
+                  '<span class="subtle" data-blocked-profile-status="' +
+                  options.escapeHtml(entry.slug || "") +
+                  '"></span></div>'
+                : "") +
+              (entry.latestAction
+                ? '<div class="subtle" style="margin-top:0.35rem"><strong>Action taken this week:</strong> ' +
+                  options.escapeHtml(
+                    (entry.latestAction.label || "Unblock action logged") +
+                      (entry.latestAction.created_at
+                        ? " on " + options.formatDate(entry.latestAction.created_at)
+                        : "") +
+                      (getBlockedProfileOutcomeLabel(entry.latestAction)
+                        ? " · " + getBlockedProfileOutcomeLabel(entry.latestAction)
+                        : ""),
+                  ) +
+                  "</div>"
+                : "") +
+              (entry.owner || entry.dueAt
+                ? '<div class="subtle" style="margin-top:0.35rem">' +
+                  options.escapeHtml(
+                    [
+                      entry.owner ? "Owner: " + entry.owner : "Owner: unassigned",
+                      entry.dueAt ? "Due: " + options.formatDate(entry.dueAt) : "Due: not set",
+                    ].join(" · "),
+                  ) +
+                  "</div>"
+                : "") +
+              (entry.unchangedSince
+                ? '<div class="subtle" style="margin-top:0.35rem">' +
+                  options.escapeHtml("Unchanged since week of " + entry.unchangedSince) +
+                  "</div>"
+                : "") +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : '<div class="queue-summary">No major blocked profiles right now.</div>') +
+    "</article></div></section>"
+  );
+}
+
+function buildWeeklyDigestExport(context, options, mode) {
+  const freshnessRiskCount =
+    (context.conversionFreshnessQueue || []).length + (context.refreshQueue || []).length;
+  const waitingConfirmed = context.importWaveMetrics.waitingConfirmed;
+  const movedThisWeek = context.importWaveMetrics.movedThisWeek;
+  const exportedThisWeek = context.importWaveMetrics.exportedThisWeek;
+  const topBlockedProfiles = buildTopBlockedProfiles(context, options).map(function (entry) {
+    return {
+      ...entry,
+      dueAt: entry.dueAt ? options.formatDate(entry.dueAt) : "not set",
+    };
+  });
+  const clearedBlockedProfiles = buildClearedBlockedProfiles(context);
+  const newlyBlockedProfiles = buildNewlyBlockedProfiles(context, options);
+
+  if (mode === "slack") {
+    return [
+      "*Weekly conversion ops digest*",
+      "- Freshness risk: " + freshnessRiskCount,
+      "- Confirmed waiting to apply: " + waitingConfirmed,
+      "- Import-wave moved this week: " + movedThisWeek,
+      "- Import-wave exports this week: " + exportedThisWeek,
+      "- Bottleneck: " + context.importWaveMetrics.bottleneck,
+      "- Cleared blockers this week:",
+    ]
+      .concat(
+        clearedBlockedProfiles.length
+          ? clearedBlockedProfiles.map(function (entry) {
+              return (
+                "  - " +
+                entry.name +
+                " — " +
+                entry.label +
+                (entry.createdAt ? " (" + options.formatDate(entry.createdAt) + ")" : "")
+              );
+            })
+          : ["  - None yet this week."],
+      )
+      .concat(["- Newly blocked this week:"])
+      .concat(
+        newlyBlockedProfiles.length
+          ? newlyBlockedProfiles.map(function (entry) {
+              return (
+                "  - " +
+                entry.name +
+                " — " +
+                entry.note +
+                (entry.reasonTag ? " [" + entry.reasonTag + "]" : "")
+              );
+            })
+          : ["  - None yet this week."],
+      )
+      .concat(["- Top blocked profiles:"])
+      .concat(
+        topBlockedProfiles.map(function (entry) {
+          return (
+            "  - " +
+            entry.name +
+            " — " +
+            entry.note +
+            (entry.reasonTag ? " [" + entry.reasonTag + "]" : "") +
+            (entry.ownerAction ? " Next owner action: " + entry.ownerAction : "") +
+            (entry.latestAction
+              ? " Action taken this week: " +
+                entry.latestAction.label +
+                (getBlockedProfileOutcomeLabel(entry.latestAction)
+                  ? " (" + getBlockedProfileOutcomeLabel(entry.latestAction) + ")"
+                  : "") +
+                "."
+              : "") +
+            " (owner: " +
+            entry.owner +
+            ", due: " +
+            entry.dueAt +
+            (entry.unchangedSince ? ", unchanged since week of " + entry.unchangedSince : "") +
+            ")"
+          );
+        }),
+      )
+      .join("\n");
+  }
+
+  if (mode === "email") {
+    return [
+      "Subject: Weekly conversion ops digest",
+      "",
+      "Weekly conversion ops digest",
+      "",
+      "Freshness risk: " + freshnessRiskCount,
+      "Confirmed waiting to apply: " + waitingConfirmed,
+      "Import-wave moved this week: " + movedThisWeek,
+      "Import-wave exports this week: " + exportedThisWeek,
+      "Current bottleneck: " + context.importWaveMetrics.bottleneck,
+      "",
+      "Cleared blockers this week:",
+    ]
+      .concat(
+        clearedBlockedProfiles.length
+          ? clearedBlockedProfiles.map(function (entry) {
+              return (
+                "- " +
+                entry.name +
+                ": " +
+                entry.label +
+                (entry.createdAt ? " | Cleared on: " + options.formatDate(entry.createdAt) : "")
+              );
+            })
+          : ["- None yet this week."],
+      )
+      .concat(["", "Newly blocked this week:"])
+      .concat(
+        newlyBlockedProfiles.length
+          ? newlyBlockedProfiles.map(function (entry) {
+              return (
+                "- " +
+                entry.name +
+                ": " +
+                entry.note +
+                (entry.reasonTag ? " | Why blocked: " + entry.reasonTag : "")
+              );
+            })
+          : ["- None yet this week."],
+      )
+      .concat(["Top blocked profiles:"])
+      .concat(
+        topBlockedProfiles.map(function (entry) {
+          return (
+            "- " +
+            entry.name +
+            ": " +
+            entry.note +
+            (entry.reasonTag ? " | Why still unchanged: " + entry.reasonTag : "") +
+            (entry.ownerAction ? " | Recommended next owner action: " + entry.ownerAction : "") +
+            (entry.latestAction
+              ? " | Action taken this week: " +
+                entry.latestAction.label +
+                (getBlockedProfileOutcomeLabel(entry.latestAction)
+                  ? " (" + getBlockedProfileOutcomeLabel(entry.latestAction) + ")"
+                  : "")
+              : "") +
+            " | Owner: " +
+            entry.owner +
+            " | Due: " +
+            entry.dueAt +
+            (entry.unchangedSince ? " | Unchanged since week of: " + entry.unchangedSince : "")
+          );
+        }),
+      )
+      .join("\n");
+  }
+
+  return [
+    "# Weekly Conversion Ops Digest",
+    "",
+    "- Freshness risk: " + freshnessRiskCount,
+    "- Confirmed waiting to apply: " + waitingConfirmed,
+    "- Import-wave moved this week: " + movedThisWeek,
+    "- Import-wave exports this week: " + exportedThisWeek,
+    "- Current bottleneck: " + context.importWaveMetrics.bottleneck,
+    "",
+    "## Cleared blockers this week",
+  ]
+    .concat(
+      clearedBlockedProfiles.length
+        ? clearedBlockedProfiles.map(function (entry) {
+            return (
+              "- " +
+              entry.name +
+              ": " +
+              entry.label +
+              (entry.createdAt ? " | Cleared on: " + options.formatDate(entry.createdAt) : "")
+            );
+          })
+        : ["- None yet this week."],
+    )
+    .concat(["", "## Newly blocked this week"])
+    .concat(
+      newlyBlockedProfiles.length
+        ? newlyBlockedProfiles.map(function (entry) {
+            return (
+              "- " +
+              entry.name +
+              ": " +
+              entry.note +
+              (entry.reasonTag ? " | Why blocked: " + entry.reasonTag : "")
+            );
+          })
+        : ["- None yet this week."],
+    )
+    .concat(["", "## Top blocked profiles"])
+    .concat(
+      topBlockedProfiles.map(function (entry) {
+        return (
+          "- " +
+          entry.name +
+          ": " +
+          entry.note +
+          (entry.reasonTag ? " | Why still unchanged: " + entry.reasonTag : "") +
+          (entry.ownerAction ? " | Recommended next owner action: " + entry.ownerAction : "") +
+          (entry.latestAction
+            ? " | Action taken this week: " +
+              entry.latestAction.label +
+              (getBlockedProfileOutcomeLabel(entry.latestAction)
+                ? " (" + getBlockedProfileOutcomeLabel(entry.latestAction) + ")"
+                : "")
+            : "") +
+          " | Owner: " +
+          entry.owner +
+          " | Due: " +
+          entry.dueAt +
+          (entry.unchangedSince ? " | Unchanged since week of: " + entry.unchangedSince : "")
+        );
+      }),
+    )
+    .join("\n");
+}
+
+function getLatestWeeklyDigestSend(sendLog) {
+  return Array.isArray(sendLog) && sendLog.length ? sendLog[0] : null;
+}
+
 export function renderOpsInboxPanel(options) {
   const root = options.root;
   if (!root) {
@@ -474,6 +1532,13 @@ export function renderOpsInboxPanel(options) {
       );
     })
     .slice(0, 4);
+  const importWaveHistory = readImportWaveHistory();
+  const weeklyDigestRecipients = readWeeklyDigestRecipients();
+  const weeklyDigestSendLog = readWeeklyDigestSendLog();
+  const blockedProfileActionLog = readBlockedProfileActionLog();
+  const latestWeeklyDigestSend = getLatestWeeklyDigestSend(weeklyDigestSendLog);
+  const weeklyDigestCadence = buildWeeklyDigestCadence(weeklyDigestSendLog);
+  const importWaveMetrics = buildImportWaveMetrics(readyToImportQueue, importWaveHistory);
 
   const totalActions =
     publishNow.length +
@@ -922,6 +1987,35 @@ export function renderOpsInboxPanel(options) {
     );
   }
 
+  function renderImportWaveHistoryCard(entry) {
+    const profileCount = Array.isArray(entry.slugs) ? entry.slugs.length : 0;
+    return (
+      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      options.escapeHtml(entry.label || "Import wave event") +
+      '</h3><div class="ops-card-meta">' +
+      options.escapeHtml(entry.created_at ? options.formatDate(entry.created_at) : "Recently") +
+      '</div></div><span class="tag">' +
+      options.escapeHtml(entry.action || "Logged") +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Profiles</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(String(profileCount)) +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Fields</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(getImportWaveHistoryFieldLabels(entry.fields, options) || "Not recorded") +
+      "</div></div></div>" +
+      (Array.isArray(entry.names) && entry.names.length
+        ? '<div class="queue-shortlist">' +
+          entry.names
+            .slice(0, 4)
+            .map(function (name) {
+              return '<div class="queue-shortlist-item">' + options.escapeHtml(name) + "</div>";
+            })
+            .join("") +
+          "</div>"
+        : "") +
+      "</article>"
+    );
+  }
+
   function renderGroup(title, note, rowsHtml, actionsHtml) {
     return (
       '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">' +
@@ -945,6 +2039,8 @@ export function renderOpsInboxPanel(options) {
       { value: refreshQueue.length, label: "Refresh live profiles" },
       { value: conversionFreshnessQueue.length, label: "Conversion watch" },
       { value: readyToImportQueue.length, label: "Ready to import" },
+      { value: importWaveMetrics.waitingConfirmed, label: "Waiting to apply" },
+      { value: importWaveMetrics.movedThisWeek, label: "Moved this week" },
       { value: licensureQueue.length, label: "Licensure work" },
     ]
       .map(function (item) {
@@ -958,6 +2054,21 @@ export function renderOpsInboxPanel(options) {
       })
       .join("") +
     '</div></div><div class="review-coach-status" id="opsInboxExportStatus"></div>' +
+    buildWeeklyOpsDigest(
+      {
+        conversionFreshnessQueue: conversionFreshnessQueue,
+        refreshQueue: refreshQueue,
+        readyToImportQueue: readyToImportQueue,
+        importWaveMetrics: importWaveMetrics,
+        weeklyDigestRecipients: weeklyDigestRecipients,
+        latestWeeklyDigestSend: latestWeeklyDigestSend,
+        weeklyDigestCadence: weeklyDigestCadence,
+        weeklyDigestSendLog: weeklyDigestSendLog,
+        blockedProfileActionLog: blockedProfileActionLog,
+        therapists: therapists,
+      },
+      options,
+    ) +
     renderGroup(
       "Publish now",
       "High-readiness candidates that are closest to becoming live therapists.",
@@ -1003,6 +2114,29 @@ export function renderOpsInboxPanel(options) {
         ? '<button class="btn-secondary" data-ready-import-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-ready-import-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-ready-import-export="apply-checklist">Copy apply checklist</button>'
         : "",
     ) +
+    '<div class="queue-summary"><strong>Import wave health:</strong> ' +
+    options.escapeHtml(
+      importWaveMetrics.waitingConfirmed +
+        " waiting to apply · " +
+        importWaveMetrics.alreadyApplied +
+        " already applied · " +
+        importWaveMetrics.exportedThisWeek +
+        " export event" +
+        (importWaveMetrics.exportedThisWeek === 1 ? "" : "s") +
+        " this week · " +
+        importWaveMetrics.movedThisWeek +
+        " moved this week.",
+    ) +
+    '</div><div class="queue-summary subtle">' +
+    options.escapeHtml(importWaveMetrics.bottleneck) +
+    "</div>" +
+    renderGroup(
+      "Import wave history",
+      "Recent export and apply actions from the ready-to-import queue.",
+      importWaveHistory.length
+        ? importWaveHistory.map(renderImportWaveHistoryCard).join("")
+        : '<div class="subtle">No import wave history yet. Export or apply a batch to start the trail.</div>',
+    ) +
     renderGroup(
       "Licensure trust",
       "Primary-source licensure upgrades and refreshes that strengthen identity and compliance confidence.",
@@ -1041,9 +2175,230 @@ export function renderOpsInboxPanel(options) {
       }
     });
   });
+  root.querySelectorAll("[data-weekly-digest-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const mode = button.getAttribute("data-weekly-digest-copy");
+      const text = buildWeeklyDigestExport(
+        {
+          conversionFreshnessQueue: conversionFreshnessQueue,
+          refreshQueue: refreshQueue,
+          readyToImportQueue: readyToImportQueue,
+          importWaveMetrics: importWaveMetrics,
+          weeklyDigestSendLog: weeklyDigestSendLog,
+          blockedProfileActionLog: blockedProfileActionLog,
+          therapists: therapists,
+        },
+        options,
+        mode,
+      );
+      const success = text ? await options.copyText(text) : false;
+      const status = root.querySelector("#opsInboxExportStatus");
+      if (status) {
+        status.textContent = success
+          ? mode === "slack"
+            ? "Weekly Slack digest copied."
+            : mode === "email"
+              ? "Weekly email digest copied."
+              : "Weekly handoff digest copied."
+          : mode === "slack"
+            ? "Could not copy weekly Slack digest."
+            : mode === "email"
+              ? "Could not copy weekly email digest."
+              : "Could not copy weekly handoff digest.";
+      }
+    });
+  });
+  root.querySelectorAll("[data-weekly-digest-start]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const recipientsInput = root.querySelector("[data-weekly-digest-recipients]");
+      if (recipientsInput) {
+        recipientsInput.focus();
+        recipientsInput.select();
+      }
+      const text = buildWeeklyDigestExport(
+        {
+          conversionFreshnessQueue: conversionFreshnessQueue,
+          refreshQueue: refreshQueue,
+          readyToImportQueue: readyToImportQueue,
+          importWaveMetrics: importWaveMetrics,
+          weeklyDigestSendLog: weeklyDigestSendLog,
+          blockedProfileActionLog: blockedProfileActionLog,
+          therapists: therapists,
+        },
+        options,
+        "handoff",
+      );
+      const success = text ? await options.copyText(text) : false;
+      const status = root.querySelector("#opsInboxExportStatus");
+      if (status) {
+        status.textContent = success
+          ? "This week's digest is ready: recipients focused and handoff digest copied."
+          : "Digest start opened, but the handoff digest could not be copied.";
+      }
+    });
+  });
+  root.querySelectorAll("[data-weekly-digest-recipients]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      writeWeeklyDigestRecipients(String(input.value || "").trim());
+      const status = root.querySelector("#opsInboxExportStatus");
+      if (status) {
+        status.textContent = "Weekly digest recipients saved.";
+      }
+    });
+  });
+  root.querySelectorAll("[data-weekly-digest-log]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const channel = button.getAttribute("data-weekly-digest-log") || "handoff";
+      const recipientsInput = root.querySelector("[data-weekly-digest-recipients]");
+      const recipients = recipientsInput ? String(recipientsInput.value || "").trim() : "";
+      const blockedProfiles = buildTopBlockedProfiles(
+        {
+          conversionFreshnessQueue: conversionFreshnessQueue,
+          readyToImportQueue: readyToImportQueue,
+          therapists: therapists,
+          weeklyDigestSendLog: weeklyDigestSendLog,
+          blockedProfileActionLog: blockedProfileActionLog,
+        },
+        options,
+      ).map(function (entry) {
+        return {
+          slug: entry.slug || "",
+          name: entry.name || "",
+          note: entry.note || "",
+          reason_tag: entry.reasonTag || "",
+          owner_action: entry.ownerAction || "",
+          execute_label:
+            entry.executeMeta && entry.executeMeta.label ? entry.executeMeta.label : "",
+          execute_mode: entry.executeMeta && entry.executeMeta.mode ? entry.executeMeta.mode : "",
+          execute_href: entry.executeMeta && entry.executeMeta.href ? entry.executeMeta.href : "",
+          latest_action_label:
+            entry.latestAction && entry.latestAction.label ? entry.latestAction.label : "",
+          latest_action_outcome:
+            entry.latestAction && entry.latestAction.outcome ? entry.latestAction.outcome : "",
+        };
+      });
+      if (recipients) {
+        writeWeeklyDigestRecipients(recipients);
+      }
+      appendWeeklyDigestSendLog({
+        channel: channel,
+        recipients: recipients,
+        waiting_confirmed: importWaveMetrics.waitingConfirmed,
+        moved_this_week: importWaveMetrics.movedThisWeek,
+        bottleneck: importWaveMetrics.bottleneck,
+        blocked_profiles: blockedProfiles,
+      });
+      const status = root.querySelector("#opsInboxExportStatus");
+      if (status) {
+        status.textContent =
+          channel === "slack"
+            ? "Weekly Slack digest send logged."
+            : channel === "email"
+              ? "Weekly email digest send logged."
+              : "Weekly handoff digest send logged.";
+      }
+      if (options.renderOpsInbox) {
+        options.renderOpsInbox();
+      }
+    });
+  });
+  root.querySelectorAll("[data-blocked-profile-action]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const slug = button.getAttribute("data-blocked-profile-action");
+      const mode = button.getAttribute("data-blocked-profile-action-mode");
+      const therapist = therapists.find(function (entry) {
+        return entry && entry.slug === slug;
+      });
+      const status =
+        root.querySelector('[data-blocked-profile-status="' + slug + '"]') ||
+        root.querySelector('[data-conversion-watch-status="' + slug + '"]');
+      const original = button.textContent;
+
+      if (!slug || !mode || !therapist) {
+        if (status) {
+          status.textContent = "Could not find the workflow target for this profile.";
+        }
+        return;
+      }
+
+      try {
+        if (mode === "copy-request") {
+          const fields = getConversionWatchFields(therapist, options);
+          const orderedFields = options.getPreferredFieldOrder(fields, "bipolar_years_experience");
+          await options.copyText(
+            options.buildTherapistFieldConfirmationPrompt(therapist, orderedFields),
+          );
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied confirmation request",
+            mode: mode,
+          });
+          button.textContent = "Request copied";
+          if (status) {
+            status.textContent = "Confirmation request copied from the weekly digest.";
+          }
+        } else if (mode === "copy-fees") {
+          await options.copyText(buildFeeFollowUpRequest(therapist));
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied fee follow-up",
+            mode: mode,
+          });
+          button.textContent = "Fees ask copied";
+          if (status) {
+            status.textContent = "Fee follow-up copied from the weekly digest.";
+          }
+        } else if (mode === "copy-apply-brief") {
+          if (!options.buildConfirmationApplyBrief) {
+            throw new Error("missing apply brief builder");
+          }
+          const orderedFields = getConversionWatchFields(therapist, options);
+          const brief = options.buildConfirmationApplyBrief(
+            therapist,
+            { unknown_fields: orderedFields },
+            options.getConfirmationQueueEntry ? options.getConfirmationQueueEntry(slug) : null,
+          );
+          await options.copyText(brief);
+          appendBlockedProfileActionLog({
+            slug: slug,
+            label: "Copied apply brief",
+            mode: mode,
+          });
+          button.textContent = "Apply brief copied";
+          if (status) {
+            status.textContent = "Apply brief copied from the weekly digest.";
+          }
+        } else {
+          throw new Error("unsupported mode");
+        }
+      } catch (_error) {
+        button.textContent = "Action failed";
+        if (status) {
+          status.textContent = "Could not complete the recommended owner action.";
+        }
+      }
+
+      window.setTimeout(function () {
+        button.textContent = original;
+      }, 1400);
+      if (options.renderOpsInbox) {
+        options.renderOpsInbox();
+      }
+    });
+  });
   root.querySelectorAll("[data-ready-import-export]").forEach(function (button) {
     button.addEventListener("click", async function () {
       const mode = button.getAttribute("data-ready-import-export");
+      const historyRows = readyToImportQueue.map(function (entry) {
+        return entry.item;
+      });
+      const historyFields = Array.from(
+        new Set(
+          readyToImportQueue.flatMap(function (entry) {
+            return getConversionResponseFields(getConversionWatchFields(entry.item, options));
+          }),
+        ),
+      );
       const text =
         mode === "apply-csv"
           ? options.buildConfirmationApplyCsv(readyToImportQueue)
@@ -1072,6 +2427,27 @@ export function renderOpsInboxPanel(options) {
             : mode === "apply-summary"
               ? "Could not copy ready-to-import apply summary."
               : "Could not copy ready-to-import apply checklist.";
+      }
+      if (success) {
+        appendImportWaveHistoryEntry({
+          action:
+            mode === "apply-csv"
+              ? "Copied apply CSV"
+              : mode === "apply-summary"
+                ? "Copied apply summary"
+                : "Copied apply checklist",
+          label: "Ready-to-import wave exported",
+          slugs: historyRows.map(function (item) {
+            return item.slug;
+          }),
+          names: historyRows.map(function (item) {
+            return item.name;
+          }),
+          fields: historyFields,
+        });
+        if (options.renderOpsInbox) {
+          options.renderOpsInbox();
+        }
       }
     });
   });
@@ -1244,6 +2620,11 @@ export function renderOpsInboxPanel(options) {
       button.textContent = "Saving...";
       try {
         await options.decideTherapistOps(therapistId, { decision: "mark_reviewed" });
+        appendBlockedProfileActionLog({
+          slug: slug,
+          label: "Marked profile reviewed",
+          outcome: "cleared",
+        });
         if (status) {
           status.textContent = "Profile marked reviewed.";
         }
@@ -1294,6 +2675,11 @@ export function renderOpsInboxPanel(options) {
           status: "sent",
           last_sent_at: new Date().toISOString(),
         });
+        appendBlockedProfileActionLog({
+          slug: slug,
+          label: "Marked confirmation request sent",
+          outcome: "in_progress",
+        });
         options.renderStats();
         options.renderImportBlockerSprint();
         options.renderCaliforniaPriorityConfirmationWave();
@@ -1327,6 +2713,11 @@ export function renderOpsInboxPanel(options) {
       }
       options.updateConfirmationQueueEntry(slug, {
         status: "confirmed",
+      });
+      appendBlockedProfileActionLog({
+        slug: slug,
+        label: "Marked profile confirmed",
+        outcome: "cleared",
       });
       options.renderStats();
       options.renderConfirmationSprint();
@@ -1371,6 +2762,9 @@ export function renderOpsInboxPanel(options) {
     button.addEventListener("click", function () {
       const slug = button.getAttribute("data-conversion-mark-applied");
       const status = root.querySelector('[data-conversion-watch-status="' + slug + '"]');
+      const therapist = therapists.find(function (entry) {
+        return entry && entry.slug === slug;
+      });
       if (!slug || !options.updateConfirmationQueueEntry) {
         return;
       }
@@ -1378,6 +2772,20 @@ export function renderOpsInboxPanel(options) {
         status: "applied",
         confirmation_applied_at: new Date().toISOString(),
       });
+      appendBlockedProfileActionLog({
+        slug: slug,
+        label: "Marked profile applied",
+        outcome: "cleared",
+      });
+      if (therapist) {
+        appendImportWaveHistoryEntry({
+          action: "Marked applied",
+          label: "Profile moved through import wave",
+          slugs: [therapist.slug],
+          names: [therapist.name],
+          fields: getConversionResponseFields(getConversionWatchFields(therapist, options)),
+        });
+      }
       options.renderStats();
       options.renderConfirmationSprint();
       options.renderConfirmationQueue();
