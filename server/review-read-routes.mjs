@@ -188,6 +188,73 @@ export async function handleReadRoutes(context) {
     return true;
   }
 
+  if (request.method === "GET" && routePath === "/match/requests") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 50, 200);
+    const docs = await client.fetch(
+      `*[_type == "matchRequest"] | order(coalesce(createdAt, _createdAt) desc)[0...$limit]{
+        _id,
+        requestId,
+        sessionId,
+        userId,
+        careState,
+        careFormat,
+        careIntent,
+        needsMedicationManagement,
+        insurancePreference,
+        budgetMax,
+        priorityMode,
+        urgency,
+        bipolarFocus,
+        preferredModalities,
+        populationFit,
+        languagePreferences,
+        culturalPreferences,
+        requestSummary,
+        sourceSurface,
+        createdAt
+      }`,
+      { limit },
+    );
+
+    sendJson(response, 200, Array.isArray(docs) ? docs : [], origin, config);
+    return true;
+  }
+
+  if (request.method === "GET" && routePath === "/match/outcomes") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 50, 200);
+    const docs = await client.fetch(
+      `*[_type == "matchOutcome"] | order(coalesce(recordedAt, _createdAt) desc)[0...$limit]{
+        _id,
+        outcomeId,
+        requestId,
+        providerId,
+        therapistSlug,
+        rankPosition,
+        resultCount,
+        topSlug,
+        routeType,
+        outcome,
+        requestSummary,
+        strategySnapshot,
+        recordedAt
+      }`,
+      { limit },
+    );
+
+    sendJson(response, 200, Array.isArray(docs) ? docs : [], origin, config);
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/reviewers") {
     if (!isAuthorized(request, config)) {
       sendJson(response, 401, { error: "Unauthorized." }, origin, config);

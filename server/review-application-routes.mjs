@@ -12,11 +12,13 @@ export async function handleApplicationRoutes(context) {
   const {
     buildApplicationDocument,
     buildAppliedFieldReviewStatePatch,
+    buildApplicationReviewEvent,
     buildRevisionFieldUpdates,
     buildTherapistApplicationFieldPatch,
     buildTherapistDocument,
-    buildTherapistOpsEvent,
+    buildTherapistObservationDocuments,
     findDuplicateTherapistEntity,
+    getAuthorizedActor,
     isAuthorized,
     normalizeApplication,
     notifyAdminOfSubmission,
@@ -157,6 +159,22 @@ export async function handleApplicationRoutes(context) {
 
     const body = await parseBody(request);
     const updated = await updateApplicationFields(client, applicationId, body);
+    if (body.review_follow_up && typeof body.review_follow_up === "object") {
+      const actorName = getAuthorizedActor(request, config) || "admin";
+      await client.create(
+        buildApplicationReviewEvent(existing, {
+          eventType: "application_follow_up_updated",
+          therapistId:
+            existing.publishedTherapistId || existing.targetTherapistId || "",
+          decision: "update_follow_up",
+          reviewStatus: existing.status || "pending",
+          actorName,
+          rationale: String(body.review_follow_up.note || "").trim(),
+          notes: String(body.review_follow_up.note || "").trim(),
+          changedFields: ["reviewFollowUp"],
+        }),
+      );
+    }
     sendJson(response, 200, normalizeApplication(updated), origin, config);
     return true;
   }
@@ -176,6 +194,7 @@ export async function handleApplicationRoutes(context) {
     }
 
     const body = await parseBody(request);
+    const actorName = getAuthorizedActor(request, config) || "admin";
     const selectedFields = Array.isArray(body.fields) ? body.fields : [];
     if (!selectedFields.length) {
       sendJson(response, 400, { error: "No fields selected." }, origin, config);
@@ -263,9 +282,12 @@ export async function handleApplicationRoutes(context) {
         ]);
     });
     transaction.create(
-      buildTherapistOpsEvent(therapist, {
+      buildApplicationReviewEvent(application, {
         eventType: "therapist_live_fields_applied",
+        therapistId,
         decision: "apply_live_fields",
+        actorName,
+        rationale: body.rationale || `Applied live fields from application ${applicationId}`,
         notes: `Application ${applicationId} applied fields: ${nextPatch.appliedFields.join(", ")}`,
         changedFields: nextPatch.appliedFields,
       }),
@@ -307,9 +329,15 @@ export async function handleApplicationRoutes(context) {
       application.submittedSlug ||
       slugify([application.name, application.city, application.state].filter(Boolean).join(" "));
     const therapistId = application.publishedTherapistId || `therapist-${slug}`;
+    const actorName = getAuthorizedActor(request, config) || "admin";
+    const body = await parseBody(request);
 
     const transaction = client.transaction();
-    transaction.createOrReplace(buildTherapistDocument(application, therapistId, publishingHelpers));
+    const therapistDocument = buildTherapistDocument(application, therapistId, publishingHelpers);
+    transaction.createOrReplace(therapistDocument);
+    buildTherapistObservationDocuments(therapistDocument).forEach(function (observation) {
+      transaction.createOrReplace(observation);
+    });
     transaction.delete(`drafts.${therapistId}`);
     transaction.patch(applicationId, function (patch) {
       return patch.set({
@@ -318,6 +346,18 @@ export async function handleApplicationRoutes(context) {
         publishedTherapistId: therapistId,
       });
     });
+    transaction.create(
+      buildApplicationReviewEvent(application, {
+        eventType: "application_approved",
+        therapistId,
+        decision: "approve",
+        reviewStatus: "approved",
+        actorName,
+        rationale: String(body.rationale || body.notes || "").trim(),
+        notes: String(body.notes || "").trim(),
+        changedFields: ["status", "publishedTherapistId"],
+      }),
+    );
 
     await transaction.commit({ visibility: "sync" });
 
@@ -340,9 +380,32 @@ export async function handleApplicationRoutes(context) {
 
     const applicationId = decodeURIComponent(rejectMatch[1]);
     const application = await client.getDocument(applicationId);
+    const actorName = getAuthorizedActor(request, config) || "admin";
+    const body = await parseBody(request);
     await client
-      .patch(applicationId)
-      .set({ status: "rejected", updatedAt: new Date().toISOString() })
+      .transaction()
+      .patch(applicationId, function (patch) {
+        return patch.set({ status: "rejected", updatedAt: new Date().toISOString() });
+      })
+      .create(
+        buildApplicationReviewEvent(
+          application || {
+            _id: applicationId,
+            providerId: "",
+            publishedTherapistId: "",
+            targetTherapistId: "",
+          },
+          {
+            eventType: "application_rejected",
+            decision: "reject",
+            reviewStatus: "rejected",
+            actorName,
+            rationale: String(body.rationale || body.notes || "").trim(),
+            notes: String(body.notes || "").trim(),
+            changedFields: ["status"],
+          },
+        ),
+      )
       .commit({ visibility: "sync" });
 
     if (application) {

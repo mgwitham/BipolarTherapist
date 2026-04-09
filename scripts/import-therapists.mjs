@@ -2,6 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
+import {
+  buildProviderFieldObservationId,
+  buildProviderFieldObservationsFromSource,
+} from "../shared/provider-field-observation-domain.mjs";
+import { buildProviderId } from "../shared/therapist-domain.mjs";
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
@@ -191,32 +196,6 @@ function parseClaimStatus(value) {
     return normalized;
   }
   return "unclaimed";
-}
-
-function normalizeKeySegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function normalizeLicenseSegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-}
-
-function buildProviderId(row) {
-  const licenseState = normalizeKeySegment(row.licenseState);
-  const licenseNumber = normalizeLicenseSegment(row.licenseNumber);
-  if (licenseState && licenseNumber) {
-    return `provider-${licenseState}-${licenseNumber}`;
-  }
-
-  const fallback = normalizeKeySegment([row.name, row.city, row.state].filter(Boolean).join(" "));
-  return `provider-${fallback || Date.now()}`;
 }
 
 function addDays(isoString, days) {
@@ -611,6 +590,29 @@ async function run() {
     transaction.delete(`drafts.${document._id}`);
     getLegacyTherapistIds(document).forEach(function (legacyId) {
       transaction.delete(legacyId);
+    });
+
+    buildProviderFieldObservationsFromSource(document, {
+      sourceType: "therapist",
+      sourceDocumentType: "therapist",
+      sourceDocumentId: document._id,
+      sourceUrl: document.sourceUrl || document.website || "",
+      observedAt: document.sourceReviewedAt || document._updatedAt || new Date().toISOString(),
+      verifiedAt:
+        document.therapistReportedConfirmedAt || document.sourceReviewedAt || new Date().toISOString(),
+      verificationMethod: "editorial_review",
+      confidenceScore: 90,
+      isCurrent: true,
+    }).forEach(function (observation) {
+      transaction.createOrReplace({
+        ...observation,
+        _id: buildProviderFieldObservationId({
+          providerId: observation.providerId,
+          fieldName: observation.fieldName,
+          sourceType: observation.sourceType,
+          sourceDocumentId: observation.sourceDocumentId,
+        }),
+      });
     });
   });
 

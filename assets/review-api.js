@@ -261,6 +261,20 @@ export async function submitTherapistPortalRequest(requestPayload) {
   });
 }
 
+export async function submitMatchRequest(matchRequest) {
+  return request("/match/requests", {
+    method: "POST",
+    body: JSON.stringify(matchRequest),
+  });
+}
+
+export async function submitMatchOutcome(matchOutcome) {
+  return request("/match/outcomes", {
+    method: "POST",
+    body: JSON.stringify(matchOutcome),
+  });
+}
+
 export async function fetchTherapistPortalRequests() {
   return request("/portal/requests", {
     method: "GET",
@@ -373,6 +387,28 @@ export async function exportReviewEvents(format, options) {
     params.set("limit", String(options.limit));
   }
   return requestText(`/events/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function fetchMatchRequests(options) {
+  const params = new URLSearchParams();
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/match/requests${params.toString() ? `?${params.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function fetchMatchOutcomes(options) {
+  const params = new URLSearchParams();
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/match/outcomes${params.toString() ? `?${params.toString()}` : ""}`, {
     method: "GET",
     headers: getAdminHeaders(),
   });

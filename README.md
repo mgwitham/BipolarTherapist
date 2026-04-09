@@ -40,6 +40,8 @@ The review API is no longer centered on one giant handler file.
 
 The shared business rules behind those routes now live in `shared/`, with tests in both `test/shared/` and `test/server/`.
 
+The admin review activity panel now uses the review API's filtered event contract and supports JSON/CSV export for audit work. The event schema and query model are documented in [docs/ARCHITECTURE.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/ARCHITECTURE.md).
+
 ## Project Structure
 
 - `index.html`: homepage
@@ -231,6 +233,10 @@ For ready-to-send copy and simple execution tracking for that exact wave, use [C
 
 If you want the repeated top California ask isolated into its own file-based packet, run `npm run cms:generate:california-priority-shared-ask`. That writes [generated-california-priority-shared-ask.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.md) and [generated-california-priority-shared-ask.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.csv), which currently isolate the shared `bipolarYearsExperience` ask across the full California priority wave.
 
+For the new provider observation substrate, run `npm run cms:generate:provider-field-observations-preview` when you want a non-destructive preview of observation documents derived from current therapist, application, and candidate records. It writes [generated-provider-field-observations-preview.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-provider-field-observations-preview.json) without changing live records. Add `-- --write` only when you intentionally want to create or replace `providerFieldObservation` documents in Sanity.
+
+If you want to inspect the live observation substrate for a specific provider, run `npm run cms:inspect:provider-observations -- provider-ca-12345`. It prints the current observation records for that provider ID as JSON so you can sanity-check field coverage, source lineage, and freshness without opening Studio documents one by one.
+
 ## CMS Import
 
 You can bulk import therapist listings into Sanity from CSV instead of hand-entering them.
@@ -397,6 +403,10 @@ That command reads [california-priority-confirmation-responses.csv](/Users/micha
 
 Run the `check` command first to see exactly which profile fields would change before writing anything.
 If you want one command for the whole local safety loop, use `npm run cms:apply:confirmation-safe`.
+
+For the new match persistence layer, you can create one reversible Sanity smoke pair with
+`npm run cms:smoke:match-persistence` and remove it again with
+`npm run cms:smoke:match-persistence:cleanup`.
 
 ## Deployment
 

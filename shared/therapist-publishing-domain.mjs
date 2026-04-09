@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 
-import { normalizePortableApplication } from "./application-domain.mjs";
+import { normalizePortableApplication, normalizeReviewFollowUp } from "./application-domain.mjs";
+import {
+  buildProviderFieldObservationId,
+  buildProviderFieldObservationsFromSource,
+} from "./provider-field-observation-domain.mjs";
 import {
   buildProviderId,
   mapFieldReviewStatesToSnakeCase,
@@ -22,6 +26,37 @@ function mergeUniqueUrls(primary, supporting, extra) {
     .filter(Boolean);
 
   return Array.from(new Set(urls));
+}
+
+export function buildTherapistObservationDocuments(therapistDocument) {
+  return buildProviderFieldObservationsFromSource(therapistDocument, {
+    sourceType: "therapist",
+    sourceDocumentType: "therapist",
+    sourceDocumentId: therapistDocument && therapistDocument._id ? therapistDocument._id : "",
+    sourceUrl:
+      (therapistDocument && (therapistDocument.sourceUrl || therapistDocument.website)) || "",
+    observedAt:
+      (therapistDocument &&
+        (therapistDocument.sourceReviewedAt || therapistDocument.therapistReportedConfirmedAt)) ||
+      new Date().toISOString(),
+    verifiedAt:
+      (therapistDocument &&
+        (therapistDocument.therapistReportedConfirmedAt || therapistDocument.sourceReviewedAt)) ||
+      "",
+    verificationMethod: "editorial_review",
+    confidenceScore: 90,
+    isCurrent: true,
+  }).map(function (observation) {
+    return {
+      ...observation,
+      _id: buildProviderFieldObservationId({
+        providerId: observation.providerId,
+        fieldName: observation.fieldName,
+        sourceType: observation.sourceType,
+        sourceDocumentId: observation.sourceDocumentId,
+      }),
+    };
+  });
 }
 
 export function buildTherapistDocument(application, existingId, helpers) {
@@ -273,6 +308,7 @@ export function normalizePortableCandidate(doc, helpers) {
     matched_application_id: doc.matchedApplicationId || "",
     published_therapist_id: doc.publishedTherapistId || "",
     published_at: doc.publishedAt || "",
+    review_follow_up: normalizeReviewFollowUp(doc.reviewFollowUp),
     review_status: doc.reviewStatus || "queued",
     review_lane: doc.reviewLane || "editorial_review",
     review_priority: typeof doc.reviewPriority === "number" ? doc.reviewPriority : null,
@@ -299,6 +335,30 @@ export function buildCandidateReviewEvent(candidate, updates) {
     decision: updates.decision || "",
     reviewStatus: updates.reviewStatus || "",
     publishRecommendation: updates.publishRecommendation || "",
+    actorName: updates.actorName || "",
+    rationale: updates.rationale || updates.notes || "",
+    notes: updates.notes || "",
+    changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
+    createdAt: now,
+  };
+}
+
+export function buildApplicationReviewEvent(application, updates) {
+  const now = new Date().toISOString();
+  return {
+    _id: `therapist-publish-event-${application._id}-${crypto.randomUUID()}`,
+    _type: "therapistPublishEvent",
+    eventType: updates.eventType,
+    providerId: application.providerId || buildProviderId(application),
+    candidateId: "",
+    candidateDocumentId: "",
+    applicationId: application._id,
+    therapistId: updates.therapistId || application.publishedTherapistId || application.targetTherapistId || "",
+    decision: updates.decision || "",
+    reviewStatus: updates.reviewStatus || "",
+    publishRecommendation: updates.publishRecommendation || "",
+    actorName: updates.actorName || "",
+    rationale: updates.rationale || updates.notes || "",
     notes: updates.notes || "",
     changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
     createdAt: now,
@@ -319,6 +379,8 @@ export function buildTherapistOpsEvent(therapist, updates) {
     decision: updates.decision || "",
     reviewStatus: "",
     publishRecommendation: "",
+    actorName: updates.actorName || "",
+    rationale: updates.rationale || updates.notes || "",
     notes: updates.notes || "",
     changedFields: Array.isArray(updates.changedFields) ? updates.changedFields : [],
     createdAt: now,
@@ -487,6 +549,7 @@ export function normalizePortableApplicationDocument(doc, helpers) {
     session_fee_max: doc.sessionFeeMax || null,
     sliding_scale: Boolean(doc.slidingScale),
     notes: doc.notes || "",
+    review_follow_up: normalizeReviewFollowUp(doc.reviewFollowUp),
     review_request_message: doc.reviewRequestMessage || "",
     revision_history: Array.isArray(doc.revisionHistory) ? doc.revisionHistory : [],
     revision_count: doc.revisionCount || 0,

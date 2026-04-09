@@ -4,6 +4,7 @@ import test from "node:test";
 import { handleApplicationRoutes } from "../../server/review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "../../server/review-auth-portal-routes.mjs";
 import { handleCandidateRoutes } from "../../server/review-candidate-routes.mjs";
+import { handleMatchRoutes } from "../../server/review-match-routes.mjs";
 import { handleOpsRoutes } from "../../server/review-ops-routes.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
 import {
@@ -428,6 +429,16 @@ test("candidate routes publish a matched candidate into therapist documents", as
           _id: therapistId || createdTherapist._id,
         };
       },
+      buildTherapistObservationDocuments() {
+        return [
+          {
+            _id: "provider-field-observation-provider-test-specialties-therapist-therapist-candidate-1",
+            _type: "providerFieldObservation",
+            providerId: "provider-test",
+            fieldName: "specialties",
+          },
+        ];
+      },
       computeCandidateReviewMeta() {
         return {
           reviewLane: "ready_to_publish",
@@ -490,6 +501,55 @@ test("candidate routes publish a matched candidate into therapist documents", as
     }),
     true,
   );
+});
+
+test("match routes persist public match requests without admin auth", async function () {
+  const response = createResponseCapture();
+  const state = {
+    documents: new Map(),
+    lastTransaction: null,
+  };
+
+  const handled = await handleMatchRoutes({
+    client: {
+      transaction() {
+        return createTransactionSpy(state);
+      },
+    },
+    config: {},
+    deps: {
+      buildMatchRequestDocument(input) {
+        return {
+          _id: "match-request-journey-123",
+          _type: "matchRequest",
+          requestId: input.journey_id,
+        };
+      },
+      buildMatchOutcomeDocument() {
+        return {};
+      },
+      async parseBody() {
+        return { journey_id: "journey-123" };
+      },
+      sendJson: createSendJson(response),
+    },
+    origin: "",
+    request: {
+      method: "POST",
+      headers: {},
+    },
+    response,
+    routePath: "/match/requests",
+  });
+
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 201);
+  assert.deepEqual(response.payload, {
+    ok: true,
+    id: "match-request-journey-123",
+    type: "matchRequest",
+  });
+  assert.equal(state.documents.get("match-request-journey-123")._type, "matchRequest");
 });
 
 test("candidate routes persist shared review follow-up updates", async function () {
@@ -924,6 +984,8 @@ test("top-level review handler supports authenticated application approval", asy
       email: "jamie@example.com",
       city: "Los Angeles",
       state: "CA",
+      specialties: ["Bipolar Disorder"],
+      languages: ["English"],
       submittedSlug: "dr-jamie-rivera-los-angeles-ca",
       status: "pending",
     },
@@ -961,12 +1023,26 @@ test("top-level review handler supports authenticated application approval", asy
 
   const updatedApplication = state.documents.get("application-1");
   const therapist = state.documents.get("therapist-dr-jamie-rivera-los-angeles-ca");
+  const observationDocuments = Array.from(state.documents.values()).filter(function (document) {
+    return (
+      document &&
+      document._type === "providerFieldObservation" &&
+      document.providerId === therapist.providerId
+    );
+  });
   assert.equal(updatedApplication.status, "approved");
   assert.equal(
     updatedApplication.publishedTherapistId,
     "therapist-dr-jamie-rivera-los-angeles-ca",
   );
   assert.equal(therapist._type, "therapist");
+  assert.equal(observationDocuments.length > 0, true);
+  assert.equal(
+    observationDocuments.some(function (document) {
+      return document.fieldName === "specialties";
+    }),
+    true,
+  );
 });
 
 test("top-level review handler rejects unauthorized application approval attempts", async function () {
@@ -1040,6 +1116,8 @@ test("top-level review handler supports authenticated candidate publish decision
       name: "Dr. Casey North",
       city: "Seattle",
       state: "WA",
+      specialties: ["Bipolar Disorder"],
+      languages: ["English"],
       sourceUrl: "https://example.com/casey",
       supportingSourceUrls: ["https://example.com/casey/bio"],
       reviewStatus: "queued",
@@ -1081,10 +1159,110 @@ test("top-level review handler supports authenticated candidate publish decision
 
   const updatedCandidate = state.documents.get("candidate-42");
   const publishedTherapist = state.documents.get("therapist-dr-casey-north-seattle-wa");
+  const observationDocuments = Array.from(state.documents.values()).filter(function (document) {
+    return (
+      document &&
+      document._type === "providerFieldObservation" &&
+      document.providerId === publishedTherapist.providerId
+    );
+  });
   assert.equal(updatedCandidate.reviewStatus, "published");
   assert.equal(
     updatedCandidate.publishedTherapistId,
     "therapist-dr-casey-north-seattle-wa",
   );
   assert.equal(publishedTherapist._type, "therapist");
+  assert.equal(observationDocuments.length > 0, true);
+  assert.equal(
+    observationDocuments.some(function (document) {
+      return document.fieldName === "specialties";
+    }),
+    true,
+  );
+});
+
+test("top-level review handler accepts public match outcome persistence", async function () {
+  const { client, state } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      request_id: "journey-123",
+      therapist_slug: "dr-casey-north-seattle-wa",
+      outcome: "booked_consult",
+      recorded_at: "2026-04-09T16:00:00.000Z",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/match/outcomes",
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.payload.ok, true);
+
+  const persisted = Array.from(state.documents.values()).find(function (document) {
+    return document && document._type === "matchOutcome";
+  });
+  assert.equal(Boolean(persisted), true);
+  assert.equal(persisted.requestId, "journey-123");
+  assert.equal(persisted.outcome, "booked_consult");
+});
+
+test("top-level review handler returns authenticated match requests and outcomes", async function () {
+  const { client } = createMemoryClient({
+    "match-request-1": {
+      _id: "match-request-1",
+      _type: "matchRequest",
+      requestId: "journey-1",
+      careState: "CA",
+      createdAt: "2026-04-09T16:00:00.000Z",
+    },
+    "match-outcome-1": {
+      _id: "match-outcome-1",
+      _type: "matchOutcome",
+      outcomeId: "outcome-1",
+      requestId: "journey-1",
+      outcome: "booked_consult",
+      recordedAt: "2026-04-09T16:05:00.000Z",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  const matchRequestsResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/match/requests?limit=10",
+  });
+  const matchOutcomesResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/match/outcomes?limit=10",
+  });
+
+  assert.equal(matchRequestsResponse.statusCode, 200);
+  assert.equal(Array.isArray(matchRequestsResponse.payload), true);
+  assert.equal(matchRequestsResponse.payload[0].requestId, "journey-1");
+
+  assert.equal(matchOutcomesResponse.statusCode, 200);
+  assert.equal(Array.isArray(matchOutcomesResponse.payload), true);
+  assert.equal(matchOutcomesResponse.payload[0].outcome, "booked_consult");
 });

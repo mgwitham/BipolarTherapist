@@ -188,6 +188,18 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (query.includes(`*[_type == "matchRequest"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "matchRequest";
+          });
+        }
+
+        if (query.includes(`*[_type == "matchOutcome"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "matchOutcome";
+          });
+        }
+
         return [];
       },
       async create(document) {

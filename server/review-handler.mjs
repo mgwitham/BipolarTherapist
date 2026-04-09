@@ -15,6 +15,7 @@ import { handleApplicationRoutes } from "./review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
+import { handleMatchRoutes } from "./review-match-routes.mjs";
 import {
   hasEmailConfig,
   notifyAdminOfSubmission,
@@ -41,11 +42,16 @@ import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
+  buildMatchOutcomeDocument,
+  buildMatchRequestDocument,
+} from "../shared/match-persistence-domain.mjs";
+import {
   buildApplicationReviewEvent,
   buildCandidateReviewEvent,
   buildTherapistApplicationFieldPatch,
   buildTherapistDocument,
   buildTherapistDocumentFromCandidate,
+  buildTherapistObservationDocuments,
   buildTherapistOpsEvent,
   normalizePortableApplicationDocument,
   normalizePortableCandidate,
@@ -453,6 +459,15 @@ function createReviewRouteModules() {
       includeUrl: true,
     },
     {
+      handler: handleMatchRoutes,
+      deps: {
+        buildMatchOutcomeDocument,
+        buildMatchRequestDocument,
+        parseBody,
+        sendJson,
+      },
+    },
+    {
       handler: handleReadRoutes,
       deps: {
         isAuthorized,
@@ -481,6 +496,7 @@ function createReviewRouteModules() {
         },
         buildTherapistApplicationFieldPatch,
         buildTherapistDocument,
+        buildTherapistObservationDocuments,
         findDuplicateTherapistEntity,
         getAuthorizedActor,
         isAuthorized,
@@ -502,6 +518,7 @@ function createReviewRouteModules() {
         buildCandidateReviewEvent,
         buildFieldTrustMeta,
         buildTherapistDocumentFromCandidate,
+        buildTherapistObservationDocuments,
         computeCandidateReviewMeta,
         computeTherapistVerificationMeta,
         getAuthorizedActor,

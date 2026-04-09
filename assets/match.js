@@ -1,5 +1,6 @@
 import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
+import { submitMatchOutcome, submitMatchRequest } from "./review-api.js";
 import {
   readFunnelEvents,
   summarizeAdaptiveSignals,
@@ -13,6 +14,7 @@ var latestProfile = null;
 var latestEntries = [];
 var latestLearningSignals = null;
 var currentJourneyId = null;
+var persistedJourneyId = "";
 var outreachFocusSlug = "";
 var activeShortcutContext = null;
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
@@ -3208,6 +3210,40 @@ function buildMatchTrackingPayload(slug, extra) {
   return payload;
 }
 
+function persistMatchRequest(profile, entries) {
+  if (!currentJourneyId || persistedJourneyId === currentJourneyId) {
+    return;
+  }
+
+  persistedJourneyId = currentJourneyId;
+  submitMatchRequest({
+    journey_id: currentJourneyId,
+    source_surface: "match_flow",
+    created_at: new Date().toISOString(),
+    request_summary: profile ? buildRequestSummary(profile) : "Directory shortlist comparison",
+    care_state: profile && profile.care_state ? profile.care_state : "",
+    care_format: profile && profile.care_format ? profile.care_format : "",
+    care_intent: profile && profile.care_intent ? profile.care_intent : "",
+    needs_medication_management:
+      profile && profile.needs_medication_management ? profile.needs_medication_management : "",
+    insurance: profile && profile.insurance ? profile.insurance : "",
+    budget_max: profile && profile.budget_max ? profile.budget_max : null,
+    priority_mode: profile && profile.priority_mode ? profile.priority_mode : "",
+    urgency: profile && profile.urgency ? profile.urgency : "",
+    bipolar_focus: profile && Array.isArray(profile.bipolar_focus) ? profile.bipolar_focus : [],
+    preferred_modalities:
+      profile && Array.isArray(profile.preferred_modalities) ? profile.preferred_modalities : [],
+    population_fit: profile && Array.isArray(profile.population_fit) ? profile.population_fit : [],
+    language_preferences:
+      profile && Array.isArray(profile.language_preferences) ? profile.language_preferences : [],
+    cultural_preferences:
+      profile && profile.cultural_preferences ? profile.cultural_preferences : "",
+    top_slug: entries && entries[0] && entries[0].therapist ? entries[0].therapist.slug : "",
+  }).catch(function () {
+    persistedJourneyId = persistedJourneyId || currentJourneyId;
+  });
+}
+
 function getLatestOutreachOutcome(slug) {
   var outcomes = readOutreachOutcomes()
     .filter(function (item) {
@@ -3272,6 +3308,31 @@ function recordEntryOutreachOutcome(slug, outcome) {
     outreachFocusSlug = slug;
   }
   renderResults(latestEntries, latestProfile);
+  submitMatchOutcome({
+    request_id: currentJourneyId || buildJourneyId(latestProfile, latestEntries),
+    provider_id:
+      (entry.therapist && (entry.therapist.provider_id || entry.therapist.providerId)) || "",
+    therapist_slug: entry.therapist.slug,
+    therapist_name: entry.therapist.name,
+    rank_position: rankPosition || 1,
+    result_count: Array.isArray(latestEntries) ? latestEntries.length : 0,
+    top_slug: latestEntries[0] && latestEntries[0].therapist ? latestEntries[0].therapist.slug : "",
+    route_type: routeType,
+    shortcut_type: shortcutContext ? shortcutContext.shortcut_type : "",
+    pivot_at: contactPlan ? contactPlan.pivotAt : "",
+    recommended_wait_window: contactPlan ? contactPlan.waitWindow : "",
+    outcome: outcome,
+    request_summary: latestProfile
+      ? buildRequestSummary(latestProfile)
+      : "Directory shortlist comparison",
+    recorded_at: new Date().toISOString(),
+    context: {
+      summary: latestProfile
+        ? buildRequestSummary(latestProfile)
+        : "Directory shortlist comparison",
+      strategy: buildAdaptiveStrategySnapshot(latestProfile),
+    },
+  }).catch(function () {});
   if (shouldAdvanceOutreachFocus(outcome)) {
     var nextSlug = getNextOutreachSlug(slug);
     var nextEntry = (latestEntries || []).find(function (item) {
@@ -3880,6 +3941,7 @@ function renderResults(entries, profile) {
   if (!currentJourneyId) {
     currentJourneyId = buildJourneyId(profile, entries);
   }
+  persistMatchRequest(profile, entries);
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
@@ -4000,6 +4062,7 @@ function renderDirectoryShortlist(slugs) {
   latestProfile = null;
   latestEntries = selected;
   currentJourneyId = buildJourneyId(null, selected);
+  persistMatchRequest(null, selected);
   safeRenderResults(selected, null);
   setActionState(
     true,
@@ -4019,6 +4082,7 @@ function resetForm() {
   latestProfile = null;
   latestEntries = [];
   currentJourneyId = null;
+  persistedJourneyId = "";
   window.history.replaceState({}, "", "match.html");
   setActionState(false, "Run a match to review your top options.");
   document.getElementById("matchResults").className = "match-empty";

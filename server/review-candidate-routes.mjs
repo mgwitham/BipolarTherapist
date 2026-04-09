@@ -14,6 +14,7 @@ export async function handleCandidateRoutes(context) {
     buildCandidateReviewEvent,
     buildFieldTrustMeta,
     buildTherapistDocumentFromCandidate,
+    buildTherapistObservationDocuments,
     computeCandidateReviewMeta,
     computeTherapistVerificationMeta,
     getAuthorizedActor,
@@ -232,9 +233,15 @@ export async function handleCandidateRoutes(context) {
 
   const transaction = client.transaction();
   if (decision === "publish") {
-    transaction.createOrReplace(
-      buildTherapistDocumentFromCandidate(candidate, therapistId, publishingHelpers),
+    const therapistDocument = buildTherapistDocumentFromCandidate(
+      candidate,
+      therapistId,
+      publishingHelpers,
     );
+    transaction.createOrReplace(therapistDocument);
+    buildTherapistObservationDocuments(therapistDocument).forEach(function (observation) {
+      transaction.createOrReplace(observation);
+    });
     transaction.delete(`drafts.${therapistId}`);
   } else if (decision === "merge_to_therapist") {
     const therapist = await client.getDocument(therapistId);

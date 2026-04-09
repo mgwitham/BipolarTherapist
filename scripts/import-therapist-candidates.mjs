@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
+import { buildProviderId } from "../shared/therapist-domain.mjs";
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapist-candidates.csv");
@@ -213,19 +214,6 @@ function normalizeWebsite(value) {
       .replace(/^https?:\/\//, "")
       .replace(/\/+$/, "");
   }
-}
-
-function buildProviderId(record) {
-  const licenseState = normalizeKeySegment(record.licenseState || record.license_state);
-  const licenseNumber = normalizeLicenseSegment(record.licenseNumber || record.license_number);
-  if (licenseState && licenseNumber) {
-    return `provider-${licenseState}-${licenseNumber}`;
-  }
-
-  const fallback = normalizeKeySegment(
-    [record.name, record.city, record.state].filter(Boolean).join(" "),
-  );
-  return `provider-${fallback || Date.now()}`;
 }
 
 function buildProviderFingerprint(record) {
