@@ -285,6 +285,18 @@
         display: flex;
         justify-content: flex-end;
       }
+      .workflow-handoff-compact {
+        padding: 0.85rem 0.95rem;
+      }
+      .workflow-handoff-compact-copy {
+        margin-top: 0.5rem;
+        max-width: 56rem;
+      }
+      .workflow-handoff-compact .workflow-handoff-actions {
+        justify-content: flex-start;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
       .workflow-handoff-exit {
         font-size: 0.78rem;
       }
@@ -439,8 +451,81 @@
         flex-wrap: wrap;
         align-items: center;
       }
+      .decision-guide {
+        margin-top: 0.8rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(26, 122, 143, 0.14);
+      }
+      .decision-guide-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .decision-guide-note {
+        margin-top: 0.5rem;
+        color: var(--navy);
+        font-size: 0.87rem;
+        line-height: 1.5;
+      }
+      .decision-guide-list {
+        margin-top: 0.55rem;
+        display: grid;
+        gap: 0.42rem;
+      }
+      .decision-guide-item {
+        padding: 0.58rem 0.7rem;
+        border-radius: 12px;
+        background: rgba(26, 122, 143, 0.07);
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.5;
+      }
       .secondary-actions {
         margin-top: 0.72rem;
+      }
+      .queue-more-details {
+        margin-top: 0.9rem;
+        border-top: 1px solid var(--border);
+        padding-top: 0.8rem;
+      }
+      .queue-more-details summary {
+        cursor: pointer;
+        color: var(--teal-dark);
+        font-weight: 700;
+        list-style: none;
+      }
+      .queue-more-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .queue-more-details-body {
+        margin-top: 0.8rem;
+      }
+      .lane-intro-details {
+        margin-top: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fbfdfe;
+      }
+      .lane-intro-details summary {
+        cursor: pointer;
+        padding: 0.95rem 1rem;
+        color: var(--teal-dark);
+        font-weight: 700;
+        list-style: none;
+      }
+      .lane-intro-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .lane-intro-details .sop-note {
+        margin-top: 0;
+        border-top: 1px solid var(--border);
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 0 0 16px 16px;
+        box-shadow: none;
       }
       .queue-card h3 {
         margin: 0;
@@ -1976,57 +2061,6 @@
                 New therapist listings land here before they become live profiles. Review
                 duplicates, trust readiness, and publishing decisions in one place.
               </p>
-              <div class="sop-note">
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Purpose</div>
-                  <div class="sop-note-copy">
-                    Turn newly sourced therapist leads into publishable listings, confirmation
-                    follow-up, duplicate merges, or a clean archive decision.
-                  </div>
-                </div>
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Use This When</div>
-                  <div class="sop-note-copy">
-                    You are adding supply, checking whether a new listing is real and unique, or
-                    deciding whether it is ready to publish.
-                  </div>
-                </div>
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Done Means</div>
-                  <div class="sop-note-copy">
-                    The new listing is published, sent to confirmation, merged as a duplicate, or
-                    archived with a clear reason.
-                  </div>
-                </div>
-                <details class="playbook">
-                  <summary>Operator Playbook</summary>
-                  <div class="playbook-body">
-                    <div class="playbook-section">
-                      <div class="playbook-label">Good First Move</div>
-                      <div class="playbook-copy">
-                        Check for duplicates first, then decide whether the new listing is strong
-                        enough to publish now, needs confirmation, or should be archived. This keeps
-                        low-quality supply from cluttering the system.
-                      </div>
-                    </div>
-                    <div class="playbook-section">
-                      <div class="playbook-label">Strong Decision Example</div>
-                      <div class="playbook-copy">
-                        If the new listing looks unique and has enough trustworthy detail, move it
-                        toward publish-ready. If it is promising but missing a crucial operational
-                        fact, send it to confirmation instead of forcing a publish decision.
-                      </div>
-                    </div>
-                    <div class="playbook-section">
-                      <div class="playbook-label">Avoid</div>
-                      <div class="playbook-copy">
-                        Do not keep marginal new listings around without a reason. Every listing
-                        should be published, sent to follow-up, merged, or removed from the queue.
-                      </div>
-                    </div>
-                  </div>
-                </details>
-              </div>
               <div class="toolbar" style="margin-bottom: 0.8rem">
                 <input
                   type="search"
@@ -2061,6 +2095,60 @@
                 <div class="subtle" id="candidateQueueCount"></div>
               </div>
               <div id="candidateQueue"></div>
+              <details class="lane-intro-details">
+                <summary>How this lane works</summary>
+                <div class="sop-note">
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Purpose</div>
+                    <div class="sop-note-copy">
+                      Turn newly sourced therapist leads into publishable listings, confirmation
+                      follow-up, duplicate merges, or a clean archive decision.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Use This When</div>
+                    <div class="sop-note-copy">
+                      You are adding supply, checking whether a new listing is real and unique, or
+                      deciding whether it is ready to publish.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Done Means</div>
+                    <div class="sop-note-copy">
+                      The new listing is published, sent to confirmation, merged as a duplicate, or
+                      archived with a clear reason.
+                    </div>
+                  </div>
+                  <details class="playbook">
+                    <summary>Operator Playbook</summary>
+                    <div class="playbook-body">
+                      <div class="playbook-section">
+                        <div class="playbook-label">Good First Move</div>
+                        <div class="playbook-copy">
+                          Check for duplicates first, then decide whether the new listing is strong
+                          enough to publish now, needs confirmation, or should be archived. This
+                          keeps low-quality supply from cluttering the system.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Strong Decision Example</div>
+                        <div class="playbook-copy">
+                          If the new listing looks unique and has enough trustworthy detail, move it
+                          toward publish-ready. If it is promising but missing a crucial operational
+                          fact, send it to confirmation instead of forcing a publish decision.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Avoid</div>
+                        <div class="playbook-copy">
+                          Do not keep marginal new listings around without a reason. Every listing
+                          should be published, sent to follow-up, merged, or removed from the queue.
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </details>
             </div>
             <div id="applicationsList"></div>
           </main>
