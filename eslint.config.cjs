@@ -3,7 +3,7 @@ module.exports = [
     ignores: ["dist/**", "node_modules/**", "studio/**"],
   },
   {
-    files: ["eslint.config.js"],
+    files: ["eslint.config.cjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "commonjs",

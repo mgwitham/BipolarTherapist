@@ -2,6 +2,7 @@
   "name": "bipolar-therapist-directory",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "description": "BipolarTherapyHub local product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.",
   "scripts": {
     "dev": "vite",
