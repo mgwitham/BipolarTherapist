@@ -42,6 +42,8 @@ import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
+  annotateMatchOutcomeForDisplay,
+  annotateMatchRequestForDisplay,
   buildMatchOutcomeDocument,
   buildMatchRequestDocument,
 } from "../shared/match-persistence-domain.mjs";
@@ -470,6 +472,8 @@ function createReviewRouteModules() {
     {
       handler: handleReadRoutes,
       deps: {
+        annotateMatchOutcomeForDisplay,
+        annotateMatchRequestForDisplay,
         isAuthorized,
         normalizeApplication,
         normalizeCandidate,

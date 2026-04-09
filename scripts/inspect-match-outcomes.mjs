@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
+import { annotateMatchOutcomeForDisplay } from "../shared/match-persistence-domain.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -102,7 +103,7 @@ async function main() {
     JSON.stringify(
       {
         count: Array.isArray(outcomes) ? outcomes.length : 0,
-        outcomes: Array.isArray(outcomes) ? outcomes : [],
+        outcomes: Array.isArray(outcomes) ? outcomes.map(annotateMatchOutcomeForDisplay) : [],
       },
       null,
       2,

@@ -26,11 +26,21 @@ const CARE_FORMAT_OPTIONS = {
   "in-person": "in_person",
   either: "either",
 };
+const CARE_FORMAT_LABELS = {
+  telehealth: "Telehealth",
+  in_person: "In-person",
+  either: "Either",
+};
 
 const CARE_INTENT_OPTIONS = {
   therapy: "therapy",
   psychiatry: "psychiatry",
   either: "either",
+};
+const CARE_INTENT_LABELS = {
+  therapy: "Therapy",
+  psychiatry: "Psychiatry",
+  either: "Either",
 };
 
 const MEDICATION_OPTIONS = {
@@ -39,6 +49,11 @@ const MEDICATION_OPTIONS = {
   open: "open",
   open_to_either: "open",
 };
+const MEDICATION_LABELS = {
+  yes: "Yes",
+  no: "No",
+  open: "Open to either",
+};
 
 const PRIORITY_MODE_OPTIONS = {
   best_overall_fit: "best_overall_fit",
@@ -46,12 +61,24 @@ const PRIORITY_MODE_OPTIONS = {
   lowest_cost: "lowest_cost",
   highest_specialization: "highest_specialization",
 };
+const PRIORITY_MODE_LABELS = {
+  best_overall_fit: "Best overall fit",
+  soonest_availability: "Soonest availability",
+  lowest_cost: "Lowest cost",
+  highest_specialization: "Highest specialization",
+};
 
 const URGENCY_OPTIONS = {
   asap: "asap",
   within_2_weeks: "within_2_weeks",
   within_a_month: "within_a_month",
   flexible: "flexible",
+};
+const URGENCY_LABELS = {
+  asap: "ASAP",
+  within_2_weeks: "Within 2 weeks",
+  within_a_month: "Within a month",
+  flexible: "Flexible",
 };
 
 const BIPOLAR_FOCUS_OPTIONS = {
@@ -64,6 +91,16 @@ const BIPOLAR_FOCUS_OPTIONS = {
   medication_management: "medication_management",
   family_support: "family_support",
 };
+const BIPOLAR_FOCUS_LABELS = {
+  bipolar_i: "Bipolar I",
+  bipolar_ii: "Bipolar II",
+  cyclothymia: "Cyclothymia",
+  rapid_cycling: "Rapid cycling",
+  mixed_episodes: "Mixed episodes",
+  psychosis: "Psychosis",
+  medication_management: "Medication management",
+  family_support: "Family support",
+};
 
 const MODALITY_OPTIONS = {
   cbt: "cbt",
@@ -73,6 +110,15 @@ const MODALITY_OPTIONS = {
   psychodynamic: "psychodynamic",
   emdr: "emdr",
   family_systems: "family_systems",
+};
+const MODALITY_LABELS = {
+  cbt: "CBT",
+  dbt: "DBT",
+  ipsrt: "IPSRT",
+  act: "ACT",
+  psychodynamic: "Psychodynamic",
+  emdr: "EMDR",
+  family_systems: "Family systems",
 };
 
 const POPULATION_OPTIONS = {
@@ -84,6 +130,16 @@ const POPULATION_OPTIONS = {
   professionals: "professionals",
   college_students: "college_students",
   lgbtq: "lgbtq",
+};
+const POPULATION_LABELS = {
+  adults: "Adults",
+  young_adults: "Young adults",
+  adolescents: "Adolescents",
+  couples: "Couples",
+  families: "Families",
+  professionals: "Professionals",
+  college_students: "College students",
+  lgbtq: "LGBTQ+",
 };
 
 const LANGUAGE_OPTIONS = {
@@ -101,6 +157,39 @@ const LANGUAGE_OPTIONS = {
   russian: "russian",
   japanese: "japanese",
   german: "german",
+};
+const LANGUAGE_LABELS = {
+  english: "English",
+  spanish: "Spanish",
+  mandarin: "Mandarin",
+  cantonese: "Cantonese",
+  hindi: "Hindi",
+  french: "French",
+  korean: "Korean",
+  vietnamese: "Vietnamese",
+  tagalog: "Tagalog",
+  arabic: "Arabic",
+  portuguese: "Portuguese",
+  russian: "Russian",
+  japanese: "Japanese",
+  german: "German",
+};
+
+const MATCH_OUTCOME_LABELS = {
+  reached_out: "Reached out",
+  heard_back: "Heard back",
+  booked_consult: "Booked consult",
+  good_fit_call: "Good fit call",
+  insurance_mismatch: "Insurance mismatch",
+  waitlist: "Waitlist",
+  no_response: "No response",
+};
+
+const ROUTE_TYPE_LABELS = {
+  profile: "Profile",
+  booking: "Booking",
+  email: "Email",
+  phone: "Phone",
 };
 
 function normalizeList(value) {
@@ -121,6 +210,20 @@ function normalizeControlledList(value, options) {
       return normalizeEnumValue(item, options);
     })
     .filter(Boolean);
+}
+
+function labelFor(value, labels) {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return "";
+  }
+  return labels[normalized] || normalized.replace(/[_-]+/g, " ");
+}
+
+function labelsFor(values, labels) {
+  return normalizeList(values).map(function (value) {
+    return labelFor(value, labels);
+  });
 }
 
 function stringify(value) {
@@ -284,5 +387,35 @@ export function buildMatchOutcomeDocument(input) {
     requestSummary: record.request_summary,
     contextSummary: record.context_summary,
     strategySnapshot: record.strategy_snapshot,
+  };
+}
+
+export function annotateMatchRequestForDisplay(document) {
+  const source = document && typeof document === "object" ? document : {};
+  return {
+    ...source,
+    labels: {
+      careFormat: labelFor(source.careFormat, CARE_FORMAT_LABELS),
+      careIntent: labelFor(source.careIntent, CARE_INTENT_LABELS),
+      needsMedicationManagement: labelFor(source.needsMedicationManagement, MEDICATION_LABELS),
+      priorityMode: labelFor(source.priorityMode, PRIORITY_MODE_LABELS),
+      urgency: labelFor(source.urgency, URGENCY_LABELS),
+      bipolarFocus: labelsFor(source.bipolarFocus, BIPOLAR_FOCUS_LABELS),
+      preferredModalities: labelsFor(source.preferredModalities, MODALITY_LABELS),
+      populationFit: labelsFor(source.populationFit, POPULATION_LABELS),
+      languagePreferences: labelsFor(source.languagePreferences, LANGUAGE_LABELS),
+    },
+  };
+}
+
+export function annotateMatchOutcomeForDisplay(document) {
+  const source = document && typeof document === "object" ? document : {};
+  return {
+    ...source,
+    labels: {
+      outcome: labelFor(source.outcome, MATCH_OUTCOME_LABELS),
+      routeType: labelFor(source.routeType, ROUTE_TYPE_LABELS),
+      shortcutType: normalizeText(source.shortcutType).replace(/[_-]+/g, " "),
+    },
   };
 }

@@ -95,6 +95,8 @@ export async function handleReadRoutes(context) {
   } = context;
 
   const {
+    annotateMatchOutcomeForDisplay,
+    annotateMatchRequestForDisplay,
     isAuthorized,
     normalizeApplication,
     normalizeCandidate,
@@ -221,7 +223,13 @@ export async function handleReadRoutes(context) {
       { limit },
     );
 
-    sendJson(response, 200, Array.isArray(docs) ? docs : [], origin, config);
+    sendJson(
+      response,
+      200,
+      (Array.isArray(docs) ? docs : []).map(annotateMatchRequestForDisplay),
+      origin,
+      config,
+    );
     return true;
   }
 
@@ -251,7 +259,13 @@ export async function handleReadRoutes(context) {
       { limit },
     );
 
-    sendJson(response, 200, Array.isArray(docs) ? docs : [], origin, config);
+    sendJson(
+      response,
+      200,
+      (Array.isArray(docs) ? docs : []).map(annotateMatchOutcomeForDisplay),
+      origin,
+      config,
+    );
     return true;
   }
 

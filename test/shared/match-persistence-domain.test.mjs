@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  annotateMatchOutcomeForDisplay,
+  annotateMatchRequestForDisplay,
   buildMatchOutcomeDocument,
   buildMatchRequestDocument,
   normalizePortableMatchOutcome,
@@ -119,4 +121,37 @@ test("buildMatchOutcomeDocument preserves high-signal outcome context fields", f
   assert.equal(document.pivotAt, "2026-04-09T12:00:00.000Z");
   assert.equal(document.recommendedWaitWindow, "48 hours");
   assert.equal(document.contextSummary, "State: CA • Insurance: Aetna");
+});
+
+test("annotateMatchRequestForDisplay adds human-readable labels for normalized fields", function () {
+  const annotated = annotateMatchRequestForDisplay({
+    careFormat: "telehealth",
+    careIntent: "therapy",
+    needsMedicationManagement: "open",
+    priorityMode: "best_overall_fit",
+    urgency: "within_2_weeks",
+    bipolarFocus: ["bipolar_ii"],
+    preferredModalities: ["cbt"],
+    populationFit: ["lgbtq"],
+    languagePreferences: ["english", "tagalog"],
+  });
+
+  assert.equal(annotated.labels.careFormat, "Telehealth");
+  assert.equal(annotated.labels.priorityMode, "Best overall fit");
+  assert.equal(annotated.labels.urgency, "Within 2 weeks");
+  assert.deepEqual(annotated.labels.bipolarFocus, ["Bipolar II"]);
+  assert.deepEqual(annotated.labels.populationFit, ["LGBTQ+"]);
+  assert.deepEqual(annotated.labels.languagePreferences, ["English", "Tagalog"]);
+});
+
+test("annotateMatchOutcomeForDisplay adds human-readable labels for normalized outcome fields", function () {
+  const annotated = annotateMatchOutcomeForDisplay({
+    outcome: "booked_consult",
+    routeType: "profile",
+    shortcutType: "shortlist",
+  });
+
+  assert.equal(annotated.labels.outcome, "Booked consult");
+  assert.equal(annotated.labels.routeType, "Profile");
+  assert.equal(annotated.labels.shortcutType, "shortlist");
 });

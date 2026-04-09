@@ -1217,6 +1217,8 @@ test("top-level review handler returns authenticated match requests and outcomes
       _type: "matchRequest",
       requestId: "journey-1",
       careState: "CA",
+      careFormat: "telehealth",
+      languagePreferences: ["english"],
       createdAt: "2026-04-09T16:00:00.000Z",
     },
     "match-outcome-1": {
@@ -1261,8 +1263,11 @@ test("top-level review handler returns authenticated match requests and outcomes
   assert.equal(matchRequestsResponse.statusCode, 200);
   assert.equal(Array.isArray(matchRequestsResponse.payload), true);
   assert.equal(matchRequestsResponse.payload[0].requestId, "journey-1");
+  assert.equal(matchRequestsResponse.payload[0].labels.careFormat, "Telehealth");
+  assert.deepEqual(matchRequestsResponse.payload[0].labels.languagePreferences, ["English"]);
 
   assert.equal(matchOutcomesResponse.statusCode, 200);
   assert.equal(Array.isArray(matchOutcomesResponse.payload), true);
   assert.equal(matchOutcomesResponse.payload[0].outcome, "booked_consult");
+  assert.equal(matchOutcomesResponse.payload[0].labels.outcome, "Booked consult");
 });
