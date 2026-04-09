@@ -76,6 +76,15 @@ Operational access patterns:
 - local Sanity-backed export scripts in `scripts/export-*.mjs`
 - authenticated review API reads and CSV export endpoints in `server/review-read-routes.mjs`
 
+Current authenticated review API coverage:
+
+- `GET /provider-observations`: provider-scoped observation reads
+- `GET /provider-observations/export`: provider-scoped JSON or CSV export
+- `GET /match/requests`: persisted match request reads
+- `GET /match/requests/export`: match request JSON or CSV export
+- `GET /match/outcomes`: persisted match outcome reads
+- `GET /match/outcomes/export`: match outcome JSON or CSV export
+
 ## Server Testing
 
 Server behavior is protected at two levels:

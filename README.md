@@ -251,6 +251,13 @@ You can also export provider observations for one provider directly from Sanity:
 npm run cms:export:provider-observations -- provider-ca-12345 --format=json --output=/tmp/provider-observations.json
 ```
 
+The authenticated review API now supports provider observation reads and exports too:
+
+```sh
+GET /provider-observations?providerId=provider-ca-12345&limit=50
+GET /provider-observations/export?providerId=provider-ca-12345&format=csv&limit=200
+```
+
 For match analytics, the local Sanity-backed inspection and export tools are:
 
 ```sh
