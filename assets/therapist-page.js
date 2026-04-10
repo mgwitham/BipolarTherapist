@@ -1116,8 +1116,8 @@ function updateShortlistAction(slugValue) {
     button.classList.toggle("is-saved", shortlisted);
   });
   status.textContent = shortlisted
-    ? "This therapist is saved for comparison in your shortlist."
-    : "Save up to 3 therapists to compare later as you narrow toward the right fit.";
+    ? "Saved in your shortlist on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
+    : "Save up to 3 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
 
   if (decisionMemory) {
     var memoryState = buildProfileDecisionMemoryState(slugValue);
@@ -2002,6 +2002,9 @@ function renderProfile(t, therapistDirectory) {
     '<a href="portal.html?slug=' +
     encodeURIComponent(t.slug) +
     '" class="btn-website">Claim or manage profile</a>';
+  var mobileDockActions =
+    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to shortlist</button>';
 
   contactBtns =
     '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
@@ -2155,6 +2158,11 @@ function renderProfile(t, therapistDirectory) {
       ? '<div class="action-panel-note">' + escapeHtml(contactGuidance) + "</div>"
       : "") +
     "</div>" +
+    '<div class="profile-mobile-dock"><div class="profile-mobile-dock-label">Best next move</div><div class="profile-mobile-dock-copy">' +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="profile-mobile-dock-actions">' +
+    mobileDockActions +
+    "</div></div>" +
     "</div>" +
     sectionNavHtml +
     '<div class="profile-body">' +

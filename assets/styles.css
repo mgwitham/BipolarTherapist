@@ -499,6 +499,44 @@ nav {
   color: var(--slate);
 }
 
+.public-trust-system {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.public-trust-card {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 122, 143, 0.12);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+  box-shadow: 0 12px 24px rgba(14, 77, 95, 0.05);
+}
+
+.public-trust-card-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.24rem;
+}
+
+.public-trust-card-title {
+  font-size: 0.94rem;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.public-trust-card-copy {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.58;
+  color: var(--slate);
+}
+
 .directory-tradeoff-preview {
   display: grid;
   gap: 0.75rem;
@@ -750,6 +788,13 @@ nav {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+}
+
+.nav-shortlist.is-filled {
+  padding: 0.34rem 0.62rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.08);
+  color: var(--teal-dark);
 }
 
 .nav-shortlist-count {
@@ -2001,6 +2046,10 @@ footer a {
 }
 
 @media (max-width: 640px) {
+  body {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  }
+
   nav {
     padding: 0 1rem;
   }
@@ -2042,12 +2091,37 @@ footer a {
     width: 100%;
   }
 
+  .mobile-filter-toggle {
+    position: sticky;
+    top: 76px;
+    z-index: 75;
+    justify-content: center;
+    box-shadow: 0 16px 32px rgba(14, 77, 95, 0.12);
+  }
+
   .directory-shortlist-bar {
     align-items: stretch;
   }
 
+  .directory-shortlist-bar:not(:empty) {
+    position: sticky;
+    bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    z-index: 85;
+    margin-top: 1rem;
+    border-radius: 20px;
+    background:
+      linear-gradient(90deg, rgba(26, 122, 143, 0.12), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(240, 247, 249, 0.96));
+    backdrop-filter: blur(14px);
+    box-shadow: 0 22px 42px rgba(14, 77, 95, 0.14);
+  }
+
   .directory-decision-preview {
     padding: 1rem;
+  }
+
+  .public-trust-system {
+    grid-template-columns: 1fr;
   }
 
   .shortlist-bar-actions {
@@ -2058,6 +2132,10 @@ footer a {
 
   .shortlist-bar-actions > * {
     width: 100%;
+  }
+
+  .shortlist-bar-primary {
+    min-width: 0;
   }
 
   .shortlist-compare-grid {

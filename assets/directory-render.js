@@ -302,7 +302,7 @@ export function renderShortlistBarMarkup(options) {
   var model = options.model;
   if (!model.shortlist.length) {
     return {
-      html: '<div class="shortlist-bar-copy"><strong>Your compare list is empty.</strong><span>Save up to 3 therapists to narrow your options before you reach out.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
+      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave quick notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved shortlist stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
     };
   }
 
@@ -352,11 +352,15 @@ export function renderShortlistBarMarkup(options) {
     html:
       '<div class="shortlist-bar-copy"><strong>' +
       (model.leadTherapist
-        ? "Your outreach queue is ready"
-        : model.selected.length + " saved for comparison") +
+        ? "Your saved progress is ready to use"
+        : model.selected.length +
+          " therapist" +
+          (model.selected.length === 1 ? "" : "s") +
+          " saved") +
       "</strong><span>" +
       escapeHtml(model.queueSummary || model.summary.join(" • ")) +
       "</span>" +
+      '<span class="shortlist-bar-progress">This shortlist is saved on this browser, so you can compare now and come back without losing your place.</span>' +
       (model.outreachQueueNote
         ? '<span class="shortlist-bar-progress">' + escapeHtml(model.outreachQueueNote) + "</span>"
         : "") +

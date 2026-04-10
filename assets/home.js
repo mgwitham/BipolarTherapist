@@ -275,11 +275,11 @@ function applyAdaptiveHomepageMode() {
     if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready shortlist faster.";
     if (handoffCopy1)
       handoffCopy1.textContent =
-        "The next step is built to shorten the distance between starting and knowing who to contact first.";
+        "The next step is built to shorten the distance between starting and knowing who to contact first, without making the search feel heavier.";
     if (handoffTitle2) handoffTitle2.textContent = "This path is optimized for momentum.";
     if (handoffCopy2)
       handoffCopy2.textContent =
-        "It leans harder on follow-through and lower-friction contact signals so the search keeps moving.";
+        "It leans harder on follow-through and lower-friction contact signals so the search keeps moving with less hesitation.";
     if (handoffTitle3) handoffTitle3.textContent = "You can still slow down if you need to.";
     if (handoffCopy3)
       handoffCopy3.textContent =
@@ -307,12 +307,12 @@ function applyAdaptiveHomepageMode() {
     if (handoffTitle1) handoffTitle1.textContent = "You answer a few questions that sharpen fit.";
     if (handoffCopy1)
       handoffCopy1.textContent =
-        "The next step helps the shortlist lean harder on specialty relevance instead of broad similarity.";
+        "The next step helps the shortlist lean harder on specialty relevance instead of broad similarity, so the comparison feels more grounded.";
     if (handoffTitle2)
       handoffTitle2.textContent = "This is for quality of fit, not just more results.";
     if (handoffCopy2)
       handoffCopy2.textContent =
-        "It is designed for people who want the shortlist to feel more clinically and practically aligned.";
+        "It is designed for people who want the shortlist to feel more clinically and practically aligned before they spend energy reaching out.";
     if (handoffTitle3) handoffTitle3.textContent = "You are not locked into one path.";
     if (handoffCopy3)
       handoffCopy3.textContent =
@@ -341,7 +341,7 @@ function applyAdaptiveHomepageMode() {
       handoffTitle1.textContent = "You move quickly into a clearer first outreach plan.";
     if (handoffCopy1)
       handoffCopy1.textContent =
-        "The match is tuned to help you feel more certain about who to contact and what to do next.";
+        "The match is tuned to help you feel more certain about who to contact and what to do next, without forcing a rushed decision.";
     if (handoffTitle2) handoffTitle2.textContent = "This path is built for lower hesitation.";
     if (handoffCopy2)
       handoffCopy2.textContent =
@@ -372,7 +372,7 @@ function applyAdaptiveHomepageMode() {
   if (handoffTitle2) handoffTitle2.textContent = "It is designed to reduce second-guessing.";
   if (handoffCopy2)
     handoffCopy2.textContent =
-      "The goal is not endless browsing. It is to help you decide where to focus first with more trust and less search fatigue.";
+      "The goal is not endless browsing. It is to help you decide where to focus first with more trust, less noise, and less search fatigue.";
   if (handoffTitle3) handoffTitle3.textContent = "You are not signing up for a heavy process.";
   if (handoffCopy3)
     handoffCopy3.textContent =
@@ -725,6 +725,70 @@ function syncHomeSearchHiddenFields(interest, elements) {
   medicationNeedInput.value = "";
 }
 
+function readHomepageShortlist() {
+  try {
+    return JSON.parse(window.localStorage.getItem("bth_directory_shortlist_v1") || "[]")
+      .map(function (item) {
+        if (typeof item === "string") {
+          return { slug: item };
+        }
+        return item && item.slug ? item : null;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function readHomepageOutcomes() {
+  try {
+    return JSON.parse(window.localStorage.getItem("bth_outreach_outcomes_v1") || "[]");
+  } catch (_error) {
+    return [];
+  }
+}
+
+function renderHomepageReturnJourney() {
+  var panel = document.getElementById("homeReturnPanel");
+  var title = document.getElementById("homeReturnTitle");
+  var copy = document.getElementById("homeReturnCopy");
+  var actions = document.getElementById("homeReturnActions");
+  if (!panel || !title || !copy || !actions) {
+    return;
+  }
+
+  var shortlist = readHomepageShortlist();
+  if (!shortlist.length) {
+    panel.classList.remove("is-visible");
+    title.textContent = "";
+    copy.textContent = "";
+    actions.innerHTML = "";
+    return;
+  }
+
+  var shortlistSlugs = shortlist.map(function (item) {
+    return item.slug;
+  });
+  var touchedCount = readHomepageOutcomes().filter(function (item) {
+    return item && shortlistSlugs.indexOf(item.therapist_slug) !== -1;
+  }).length;
+
+  panel.classList.add("is-visible");
+  title.textContent =
+    touchedCount > 0
+      ? "Your saved shortlist is still here, and some outreach progress is already in motion."
+      : "Your saved shortlist is still here and ready whenever you want to pick the search back up.";
+  copy.textContent =
+    touchedCount > 0
+      ? "Resume the shortlist to compare the same saved therapists, review where outreach stands, and decide your next move without rebuilding context."
+      : "You can reopen the shortlist, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
+  actions.innerHTML =
+    '<a class="hero-return-link primary" href="match.html?shortlist=' +
+    encodeURIComponent(shortlistSlugs.join(",")) +
+    '">Resume saved shortlist</a><a class="hero-return-link secondary" href="directory.html">Browse with saved progress</a>';
+}
+
 function validateHomeSearchInputs(elements) {
   var values = readHomeSearchInputs(elements);
   var zipStatus = getZipMarketStatus(values.locationQuery);
@@ -851,6 +915,7 @@ function initHomeSearchForm() {
   }
   syncHomeSearchHiddenFields(interestInput ? String(interestInput.value || "").trim() : "");
   syncHeroSearchState();
+  renderHomepageReturnJourney();
 
   try {
     var content = await fetchHomePageContent();
@@ -865,6 +930,7 @@ function initHomeSearchForm() {
       surface: "homepage",
     });
     applyAdaptiveHomepageMode();
+    renderHomepageReturnJourney();
     renderPageSections(content.homePage, content.featuredTherapists || []);
   } catch (error) {
     console.error("Failed to initialize homepage content.", error);
@@ -876,6 +942,7 @@ function initHomeSearchForm() {
       surface: "homepage",
     });
     applyAdaptiveHomepageMode();
+    renderHomepageReturnJourney();
     renderPageSections(null, []);
   }
 })();

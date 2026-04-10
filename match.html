@@ -47,6 +47,39 @@
         gap: 0.5rem;
         margin-top: 1rem;
       }
+      .match-trust-system {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      .match-trust-card {
+        padding: 0.92rem 0.98rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-trust-card-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.24rem;
+      }
+      .match-trust-card-title {
+        font-size: 0.94rem;
+        line-height: 1.35;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-trust-card-copy {
+        margin-top: 0.28rem;
+        font-size: 0.82rem;
+        line-height: 1.56;
+        color: var(--slate);
+      }
       .match-decision-strip {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2721,6 +2754,9 @@
         }
       }
       @media (max-width: 640px) {
+        body {
+          padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+        }
         .match-hero-copy {
           text-align: center;
         }
@@ -2753,9 +2789,25 @@
         }
         .match-summary-actions {
           flex-direction: column;
+          position: sticky;
+          bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+          z-index: 75;
+          padding: 0.78rem;
+          border-radius: 20px;
+          border: 1px solid rgba(14, 77, 95, 0.12);
+          background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.94) 0%,
+            rgba(244, 249, 251, 0.98) 100%
+          );
+          backdrop-filter: blur(16px);
+          box-shadow: 0 20px 38px rgba(14, 77, 95, 0.14);
         }
         .match-summary-decision-grid {
           grid-template-columns: 1fr;
+        }
+        .match-summary-title {
+          max-width: none;
         }
         .match-summary-actions .btn-secondary,
         .match-summary-actions .btn-primary {
@@ -2845,6 +2897,9 @@
         .match-trust-strip {
           justify-content: center;
         }
+        .match-trust-system {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -2874,37 +2929,38 @@
         <div class="match-hero-kicker">Loading your first matches</div>
         <h1>Finding a stronger starting shortlist for bipolar-informed care.</h1>
         <p>
-          We’re pulling together the best providers to start with now. If you want a tighter fit,
-          you can add ZIP code, care type, insurance, format, or medication needs below.
+          We’re pulling together the strongest providers to start with now. If you want a tighter
+          fit, you can add a few more details below, but the first pass is meant to feel light.
         </p>
         <div class="match-decision-strip" aria-label="Why use the guided match">
           <div class="match-decision-card">
             <div class="match-decision-label">Why start here</div>
             <div class="match-decision-title">
-              The match helps narrow the field before you compare.
+              The match helps you narrow the field before the search gets noisy again.
             </div>
             <div class="match-decision-copy">
               It is built to reduce search fatigue by turning a broad directory into a smaller set
-              of stronger first options.
+              of stronger first options you can actually evaluate.
             </div>
           </div>
           <div class="match-decision-card">
             <div class="match-decision-label">Best for</div>
             <div class="match-decision-title">
-              People who want a clearer first move, not more tabs.
+              People who want a clearer next move, not a heavier process.
             </div>
             <div class="match-decision-copy">
               Use this when you want help deciding where to focus before opening and comparing a lot
-              of profiles.
+              of profiles on your own.
             </div>
           </div>
           <div class="match-decision-card">
             <div class="match-decision-label">What you get</div>
             <div class="match-decision-title">
-              A shortlist built around fit, trust, and next steps.
+              A shortlist built around fit, trust, and a calmer first outreach path.
             </div>
             <div class="match-decision-copy">
-              The strongest matches should feel easier to act on, not just easier to browse.
+              The strongest matches should feel easier to understand and easier to act on, not just
+              easier to browse.
             </div>
           </div>
         </div>
@@ -2912,6 +2968,32 @@
           <span class="match-trust-pill">Built for bipolar-specific care</span>
           <span class="match-trust-pill">Reviewed profile details where available</span>
           <span class="match-trust-pill">Clear next-step guidance</span>
+        </div>
+        <div class="match-trust-system" aria-label="How trust works in matching">
+          <div class="match-trust-card">
+            <div class="match-trust-card-label">What the match emphasizes</div>
+            <div class="match-trust-card-title">Fit, trust, and practical next steps together</div>
+            <div class="match-trust-card-copy">
+              The shortlist is designed to raise bipolar-relevant fit signals, trust cues, and the
+              clearest contact-ready paths at the same time.
+            </div>
+          </div>
+          <div class="match-trust-card">
+            <div class="match-trust-card-label">What trust means here</div>
+            <div class="match-trust-card-title">A more decision-ready shortlist</div>
+            <div class="match-trust-card-copy">
+              Stronger trust signals mean a profile should be easier to judge quickly, not that it
+              is guaranteed to be the right clinical or financial fit.
+            </div>
+          </div>
+          <div class="match-trust-card">
+            <div class="match-trust-card-label">What you still verify</div>
+            <div class="match-trust-card-title">Openings, coverage, and fit in conversation</div>
+            <div class="match-trust-card-copy">
+              Use the shortlist to focus faster, then let outreach confirm the final details that no
+              matching system should pretend to know for certain.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2930,8 +3012,8 @@
                     <div class="match-pathframe-kicker">Start with the strongest default move</div>
                     <div class="match-pathframe-title">Get to your first shortlist faster</div>
                     <div class="match-pathframe-copy">
-                      You only need two answers to begin. The rest of the refinements can wait until
-                      you want a more specific ranking.
+                      You only need two answers to begin. The rest can wait until you want a more
+                      specific ranking, so the first step stays manageable.
                     </div>
                   </div>
                   <div class="match-pathframe-grid" aria-label="Why this intake is low-friction">
@@ -2939,8 +3021,8 @@
                       <div class="match-pathframe-label">Required to begin</div>
                       <div class="match-pathframe-card-title">Care type and ZIP code</div>
                       <div class="match-pathframe-card-copy">
-                        That is enough to generate a useful first-pass shortlist without making you
-                        fill out a long intake first.
+                        That is enough to generate a useful first-pass shortlist without turning the
+                        opening step into a long intake.
                       </div>
                     </div>
                     <div class="match-pathframe-card">
@@ -2990,13 +3072,14 @@
                   </button>
                 </div>
                 <div class="match-start-helper" id="matchStartHelper">
-                  <strong>Next:</strong> choose your care type and California ZIP code to begin.
+                  <strong>Next:</strong> choose your care type and California ZIP code to begin
+                  without overfilling the form.
                 </div>
                 <div class="match-start-promise">
                   <div class="match-start-promise-label">What this should do for you</div>
                   <div class="match-start-promise-copy">
                     The first shortlist should make the search feel lighter by giving you a smaller,
-                    more decision-ready place to start.
+                    more decision-ready place to start from.
                   </div>
                 </div>
                 <div class="match-start-trust" aria-label="Match trust signals">

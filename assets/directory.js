@@ -141,6 +141,54 @@ import {
       " in similar browsing patterns, with a California-first launch focus.";
   }
 
+  function renderDirectoryReturnJourney() {
+    var root = getElement("directoryReturnJourney");
+    if (!root) {
+      return;
+    }
+
+    if (!shortlist.length) {
+      root.innerHTML = "";
+      return;
+    }
+
+    var progress = getShortlistOutreachProgress();
+    root.innerHTML =
+      '<div class="public-trust-card"><div class="public-trust-card-label">Welcome back</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        progress.hasProgress
+          ? "Your saved shortlist and outreach momentum are still here."
+          : "Your saved shortlist is still here and ready to reopen.",
+      ) +
+      '</div><div class="public-trust-card-copy">' +
+      escapeHtml(
+        progress.hasProgress
+          ? "Resume comparing the same saved therapists, review where outreach stands, and keep moving without rebuilding your context."
+          : "You can keep comparing the therapists you already saved, add notes, and return to the strongest options without starting over.",
+      ) +
+      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Saved progress</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        shortlist.length +
+          " therapist" +
+          (shortlist.length === 1 ? "" : "s") +
+          " saved on this browser",
+      ) +
+      '</div><div class="public-trust-card-copy">' +
+      escapeHtml(
+        progress.summary ||
+          "Your shortlist, notes, and labels stay available here so you can return later without losing your place.",
+      ) +
+      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Best next move</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        progress.hasProgress ? "Resume the shortlist in motion" : "Open your saved shortlist",
+      ) +
+      '</div><div class="public-trust-card-copy"><a href="' +
+      escapeHtml(progress.hasProgress ? buildOutreachQueueUrl() : buildCompareUrl()) +
+      '" class="shortlist-compare-link">' +
+      escapeHtml(progress.hasProgress ? "Resume saved momentum" : "Open saved shortlist") +
+      "</a> so you can keep moving from the same decision context you already created.</div></div>";
+  }
+
   function renderDirectoryLaunchExplainer(results) {
     var root = getElement("directoryLaunchExplainer");
     if (!root) {
@@ -1022,6 +1070,7 @@ import {
       renderEditorialLanes([]);
       renderDirectoryLaunchExplainer([]);
       renderDirectoryAdaptiveExplainer();
+      renderDirectoryReturnJourney();
       renderPagination(0);
       renderShortlistBar();
       updateUrl();
@@ -1033,6 +1082,7 @@ import {
     renderEditorialLanes(results);
     renderDirectoryLaunchExplainer(results);
     renderDirectoryAdaptiveExplainer();
+    renderDirectoryReturnJourney();
     grid.innerHTML = pageItems.map(renderCard).join("");
     if (pendingMotionSlug) {
       var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
