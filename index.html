@@ -111,15 +111,16 @@
         color: white;
       }
       .hero-inner {
-        max-width: 860px;
+        max-width: 1120px;
         margin: 0 auto;
         display: grid;
-        gap: 1.6rem;
-        justify-items: center;
-        text-align: center;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 430px);
+        gap: 1.8rem;
+        align-items: start;
       }
       .hero-copy {
-        max-width: 620px;
+        max-width: 660px;
+        text-align: left;
       }
       .hero-eyebrow {
         display: inline-flex;
@@ -147,6 +148,39 @@
         font-size: 1.02rem;
         line-height: 1.7;
         color: rgba(255, 255, 255, 0.9);
+      }
+      .hero-decision-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin-top: 1.25rem;
+      }
+      .hero-decision-card {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+      .hero-decision-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.28rem;
+      }
+      .hero-decision-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: white;
+      }
+      .hero-decision-copy {
+        margin-top: 0.3rem;
+        font-size: 0.82rem;
+        line-height: 1.56;
+        color: rgba(255, 255, 255, 0.82);
       }
       .hero-proof {
         display: grid;
@@ -180,17 +214,17 @@
       .tool-shell {
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 24px;
+        border-radius: 28px;
         padding: 1.2rem;
         box-shadow: 0 28px 60px rgba(3, 25, 31, 0.2);
         backdrop-filter: blur(6px);
-        width: min(100%, 600px);
+        width: 100%;
       }
       .tool-card {
         background: white;
         color: var(--navy);
-        border-radius: 18px;
-        padding: 1.4rem;
+        border-radius: 22px;
+        padding: 1.35rem;
         box-shadow: 0 14px 36px rgba(10, 45, 56, 0.16);
       }
       .tool-card p {
@@ -219,6 +253,66 @@
       }
       .tool-title + p {
         margin-top: 0.6rem;
+      }
+      .pathframe {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .pathframe-header {
+        display: grid;
+        gap: 0.3rem;
+      }
+      .pathframe-kicker {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+      .pathframe-title {
+        font-family: "Lora", serif;
+        font-size: 1.22rem;
+        line-height: 1.2;
+        color: var(--navy);
+      }
+      .pathframe-copy {
+        font-size: 0.9rem;
+        line-height: 1.62;
+        color: var(--slate);
+      }
+      .path-options {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .path-option {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+      }
+      .path-option--primary {
+        background: linear-gradient(180deg, #f2fbfc 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.18);
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.08);
+      }
+      .path-option-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.24rem;
+      }
+      .path-option-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .path-option-copy {
+        margin-top: 0.3rem;
+        font-size: 0.82rem;
+        line-height: 1.56;
+        color: var(--slate);
       }
       .search-box {
         background: #f7fbfc;
@@ -450,7 +544,40 @@
         flex-wrap: wrap;
         gap: 0.55rem;
         margin-top: 0.95rem;
-        justify-content: center;
+        justify-content: flex-start;
+      }
+      .hero-handoff {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin-top: 0.9rem;
+      }
+      .hero-handoff-card {
+        padding: 0.82rem 0.88rem;
+        border-radius: 16px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        box-shadow: 0 10px 22px rgba(14, 77, 95, 0.04);
+      }
+      .hero-handoff-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hero-handoff-title {
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--navy);
+      }
+      .hero-handoff-copy {
+        margin-top: 0.24rem;
+        font-size: 0.79rem;
+        line-height: 1.58;
+        color: var(--slate);
       }
       .tool-trust-pill {
         display: inline-flex;
@@ -496,7 +623,10 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1);
       }
       .hero-actions {
-        display: none;
+        display: flex;
+        gap: 0.7rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
       }
       .hero-link {
         display: inline-flex;
@@ -1032,6 +1162,13 @@
           justify-items: stretch;
           text-align: center;
         }
+        .hero-copy {
+          text-align: center;
+          max-width: 100%;
+        }
+        .hero-decision-strip {
+          grid-template-columns: 1fr;
+        }
         .ease-strip-grid {
           grid-template-columns: 1fr;
         }
@@ -1047,6 +1184,10 @@
         }
         .tool-trust-row {
           gap: 0.65rem;
+          justify-content: center;
+        }
+        .hero-handoff {
+          grid-template-columns: 1fr;
         }
         .tool-trust-pill {
           min-width: 0;
@@ -1096,9 +1237,39 @@
           <div class="hero-eyebrow" id="heroEyebrow">Bipolar-focused therapist matching</div>
           <h1 id="heroTitle">Find a bipolar-informed therapist without the usual guesswork</h1>
           <p id="heroDescription">
-            Tell us your ZIP code and the kind of support you want. We’ll guide you to a smaller,
-            more relevant shortlist built around bipolar care.
+            Start with a calmer way to narrow the field. We’ll turn a broad search into a smaller,
+            more trustworthy shortlist shaped around bipolar-informed care.
           </p>
+          <div class="hero-decision-strip" aria-label="Why this is different">
+            <div class="hero-decision-card">
+              <div class="hero-decision-label">Why start here</div>
+              <div class="hero-decision-title">A calmer first move than opening ten tabs alone</div>
+              <div class="hero-decision-copy">
+                The goal is to narrow faster around bipolar-relevant fit, practical trust, and a
+                clearer first contact path.
+              </div>
+            </div>
+            <div class="hero-decision-card">
+              <div class="hero-decision-label">Best for</div>
+              <div class="hero-decision-title">
+                People who want a stronger shortlist before comparing
+              </div>
+              <div class="hero-decision-copy">
+                Start with matching if you want help deciding where to focus before spending energy
+                on a long list of profiles.
+              </div>
+            </div>
+            <div class="hero-decision-card">
+              <div class="hero-decision-label">If you’re not ready</div>
+              <div class="hero-decision-title">
+                You can still browse first without committing to a process
+              </div>
+              <div class="hero-decision-copy">
+                Explore the directory if you want a lower-pressure start, then come back when you
+                want a more guided shortlist.
+              </div>
+            </div>
+          </div>
           <div class="hero-proof" aria-label="Why start here">
             <div class="hero-proof-item">
               <span class="hero-proof-label" id="heroProofLabel1">How long it takes</span>
@@ -1122,12 +1293,37 @@
         </div>
         <div class="tool-shell">
           <div class="tool-card">
-            <div class="tool-kicker">Start your match</div>
-            <div class="tool-title" id="toolTitle">Get a smaller, more relevant shortlist</div>
-            <p>
-              Pick the kind of support you want and enter your ZIP code. We’ll take you straight
-              into the guided match flow.
-            </p>
+            <div class="pathframe">
+              <div class="pathframe-header">
+                <div class="pathframe-kicker">Choose your entry path</div>
+                <div class="pathframe-title" id="toolTitle">
+                  Get a smaller, more relevant shortlist
+                </div>
+                <div class="pathframe-copy">
+                  The strongest default move is to start with the guided match. It reduces noise,
+                  helps surface more credible options first, and gets you to a shortlist that feels
+                  easier to act on.
+                </div>
+              </div>
+              <div class="path-options" aria-label="Entry path comparison">
+                <div class="path-option path-option--primary">
+                  <div class="path-option-label">Recommended</div>
+                  <div class="path-option-title">Start with the guided match</div>
+                  <div class="path-option-copy">
+                    Best if you want the platform to help you narrow by fit, trust, and clearer next
+                    steps before you compare profiles.
+                  </div>
+                </div>
+                <div class="path-option">
+                  <div class="path-option-label">Lower-pressure option</div>
+                  <div class="path-option-title">Browse the directory first</div>
+                  <div class="path-option-copy">
+                    Better if you want to explore on your own first, then move into matching once
+                    you know what feels promising.
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
               <div class="hero-validation-title">Almost there</div>
               <div class="hero-validation-list" id="heroValidationList"></div>
@@ -1176,6 +1372,38 @@
             <div class="search-helper" id="searchHelper">
               <strong>Next:</strong> answer a few quick questions and see a more relevant shortlist.
             </div>
+            <div class="hero-handoff" aria-label="What happens after you start">
+              <div class="hero-handoff-card">
+                <div class="hero-handoff-label">What happens next</div>
+                <div class="hero-handoff-title" id="handoffTitle1">
+                  You answer a few focused questions.
+                </div>
+                <div class="hero-handoff-copy" id="handoffCopy1">
+                  The match uses only a small amount of information up front so you can get to a
+                  useful shortlist quickly.
+                </div>
+              </div>
+              <div class="hero-handoff-card">
+                <div class="hero-handoff-label">Why people use this</div>
+                <div class="hero-handoff-title" id="handoffTitle2">
+                  It is designed to reduce second-guessing.
+                </div>
+                <div class="hero-handoff-copy" id="handoffCopy2">
+                  The goal is not endless browsing. It is to help you decide where to focus first
+                  with more trust and less search fatigue.
+                </div>
+              </div>
+              <div class="hero-handoff-card">
+                <div class="hero-handoff-label">What you are not doing</div>
+                <div class="hero-handoff-title" id="handoffTitle3">
+                  You are not signing up for a heavy process.
+                </div>
+                <div class="hero-handoff-copy" id="handoffCopy3">
+                  No account is required to start, and you can still browse on your own at any point
+                  if that feels better.
+                </div>
+              </div>
+            </div>
             <div class="tool-trust-row" aria-label="Trust signals">
               <div class="tool-trust-pill" id="homeTrustPill1">
                 Built specifically for bipolar-related care search
@@ -1184,6 +1412,10 @@
               <a class="tool-trust-pill tool-trust-pill--secondary" href="directory.html">
                 Prefer to browse first?
               </a>
+            </div>
+            <div class="hero-actions">
+              <a class="hero-link primary" href="#homeSearchForm">Start with guided match</a>
+              <a class="hero-link secondary" href="directory.html">Browse the directory first</a>
             </div>
           </div>
         </div>

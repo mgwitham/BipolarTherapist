@@ -156,22 +156,22 @@ function getHeroButtonLabel(interest) {
 
 function getHeroHelperCopy(interest, hasLocation) {
   if (!interest && !hasLocation) {
-    return "<strong>Next:</strong> choose your support type and California ZIP code to begin.";
+    return "<strong>Recommended:</strong> choose your support type and California ZIP code to start with the calmer guided match.";
   }
 
   if (interest && !hasLocation) {
     return (
-      "<strong>Next:</strong> add your California ZIP code to see " +
+      "<strong>Next:</strong> add your California ZIP code to see a more trustworthy " +
       escapeHtml(interest === "psychiatrist" ? "psychiatry" : "therapy") +
-      " matches."
+      " shortlist."
     );
   }
 
   if (!interest && hasLocation) {
-    return "<strong>Next:</strong> choose the kind of support you want so we can narrow the shortlist.";
+    return "<strong>Next:</strong> choose the kind of support you want so we can narrow toward the strongest first shortlist.";
   }
 
-  return "<strong>Next:</strong> answer a few quick questions and review a more relevant shortlist.";
+  return "<strong>Next:</strong> answer a few quick questions and review a smaller, more decision-ready shortlist built for bipolar care.";
 }
 
 function getHeroValidationMessages() {
@@ -249,10 +249,16 @@ function applyAdaptiveHomepageMode() {
   var proofValue3 = document.getElementById("heroProofValue3");
   var trustPill1 = document.getElementById("homeTrustPill1");
   var trustPill2 = document.getElementById("homeTrustPill2");
+  var handoffTitle1 = document.getElementById("handoffTitle1");
+  var handoffCopy1 = document.getElementById("handoffCopy1");
+  var handoffTitle2 = document.getElementById("handoffTitle2");
+  var handoffCopy2 = document.getElementById("handoffCopy2");
+  var handoffTitle3 = document.getElementById("handoffTitle3");
+  var handoffCopy3 = document.getElementById("handoffCopy3");
 
   if (mode === "speed") {
     if (eyebrow) eyebrow.textContent = "Faster start for bipolar-informed care";
-    if (toolTitle) toolTitle.textContent = "See the fastest next options first";
+    if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong shortlist";
     if (proofLabel1) proofLabel1.textContent = "Fastest path";
     if (proofValue1)
       proofValue1.textContent = "Start with a quick match and get to contact-ready options faster.";
@@ -266,12 +272,24 @@ function applyAdaptiveHomepageMode() {
         "Similar users have been responding well to speed and follow-through cues.";
     if (trustPill1) trustPill1.textContent = "Built to reduce time-to-first-contact";
     if (trustPill2) trustPill2.textContent = "Highlights easier follow-through paths";
+    if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready shortlist faster.";
+    if (handoffCopy1)
+      handoffCopy1.textContent =
+        "The next step is built to shorten the distance between starting and knowing who to contact first.";
+    if (handoffTitle2) handoffTitle2.textContent = "This path is optimized for momentum.";
+    if (handoffCopy2)
+      handoffCopy2.textContent =
+        "It leans harder on follow-through and lower-friction contact signals so the search keeps moving.";
+    if (handoffTitle3) handoffTitle3.textContent = "You can still slow down if you need to.";
+    if (handoffCopy3)
+      handoffCopy3.textContent =
+        "A faster start does not trap you. You can still browse, compare, or pause before reaching out.";
     return;
   }
 
   if (mode === "specialization") {
     if (eyebrow) eyebrow.textContent = "Specialty-first bipolar care matching";
-    if (toolTitle) toolTitle.textContent = "Surface the strongest bipolar-specific fit";
+    if (toolTitle) toolTitle.textContent = "Start with the strongest bipolar-specific fit signals";
     if (proofLabel1) proofLabel1.textContent = "What rises";
     if (proofValue1)
       proofValue1.textContent =
@@ -286,12 +304,25 @@ function applyAdaptiveHomepageMode() {
         "Recent journeys suggest specialization signals are doing more decision work.";
     if (trustPill1) trustPill1.textContent = "Leans harder on bipolar-specific depth";
     if (trustPill2) trustPill2.textContent = "Built for fit before volume";
+    if (handoffTitle1) handoffTitle1.textContent = "You answer a few questions that sharpen fit.";
+    if (handoffCopy1)
+      handoffCopy1.textContent =
+        "The next step helps the shortlist lean harder on specialty relevance instead of broad similarity.";
+    if (handoffTitle2)
+      handoffTitle2.textContent = "This is for quality of fit, not just more results.";
+    if (handoffCopy2)
+      handoffCopy2.textContent =
+        "It is designed for people who want the shortlist to feel more clinically and practically aligned.";
+    if (handoffTitle3) handoffTitle3.textContent = "You are not locked into one path.";
+    if (handoffCopy3)
+      handoffCopy3.textContent =
+        "You can still step back into browsing if you want to compare more widely before acting.";
     return;
   }
 
   if (mode === "contact") {
     if (eyebrow) eyebrow.textContent = "Clearer path to first outreach";
-    if (toolTitle) toolTitle.textContent = "Get to a stronger next contact step";
+    if (toolTitle) toolTitle.textContent = "Start with the clearest path to first outreach";
     if (proofLabel1) proofLabel1.textContent = "What happens next";
     if (proofValue1)
       proofValue1.textContent =
@@ -306,11 +337,24 @@ function applyAdaptiveHomepageMode() {
         "Recent journeys suggest contact-readiness is helping people move sooner.";
     if (trustPill1) trustPill1.textContent = "Built to reduce contact hesitation";
     if (trustPill2) trustPill2.textContent = "Stronger next-step guidance near the match";
+    if (handoffTitle1)
+      handoffTitle1.textContent = "You move quickly into a clearer first outreach plan.";
+    if (handoffCopy1)
+      handoffCopy1.textContent =
+        "The match is tuned to help you feel more certain about who to contact and what to do next.";
+    if (handoffTitle2) handoffTitle2.textContent = "This path is built for lower hesitation.";
+    if (handoffCopy2)
+      handoffCopy2.textContent =
+        "It favors providers with clearer route and follow-through signals so the shortlist feels easier to use.";
+    if (handoffTitle3) handoffTitle3.textContent = "You can still pause before outreach.";
+    if (handoffCopy3)
+      handoffCopy3.textContent =
+        "Nothing about starting the match forces immediate contact. It simply gets you to a better first move.";
     return;
   }
 
   if (eyebrow) eyebrow.textContent = "Bipolar-focused therapist matching";
-  if (toolTitle) toolTitle.textContent = "Get a smaller, more relevant shortlist";
+  if (toolTitle) toolTitle.textContent = "Start with a smaller, more relevant shortlist";
   if (proofLabel1) proofLabel1.textContent = "How long it takes";
   if (proofValue1)
     proofValue1.textContent = "About 2 minutes to begin and get to a more focused shortlist.";
@@ -321,6 +365,18 @@ function applyAdaptiveHomepageMode() {
   if (proofValue3) proofValue3.textContent = "Matching California ZIP codes right now.";
   if (trustPill1) trustPill1.textContent = "Built specifically for bipolar-related care search";
   if (trustPill2) trustPill2.textContent = "No account required";
+  if (handoffTitle1) handoffTitle1.textContent = "You answer a few focused questions.";
+  if (handoffCopy1)
+    handoffCopy1.textContent =
+      "The match uses only a small amount of information up front so you can get to a useful shortlist quickly.";
+  if (handoffTitle2) handoffTitle2.textContent = "It is designed to reduce second-guessing.";
+  if (handoffCopy2)
+    handoffCopy2.textContent =
+      "The goal is not endless browsing. It is to help you decide where to focus first with more trust and less search fatigue.";
+  if (handoffTitle3) handoffTitle3.textContent = "You are not signing up for a heavy process.";
+  if (handoffCopy3)
+    handoffCopy3.textContent =
+      "No account is required to start, and you can still browse on your own at any point if that feels better.";
 }
 
 function initHeroCareDropdown() {

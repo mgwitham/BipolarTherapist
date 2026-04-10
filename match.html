@@ -47,6 +47,39 @@
         gap: 0.5rem;
         margin-top: 1rem;
       }
+      .match-decision-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin-top: 1rem;
+      }
+      .match-decision-card {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-decision-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.28rem;
+      }
+      .match-decision-title {
+        font-size: 0.95rem;
+        line-height: 1.35;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-decision-copy {
+        margin-top: 0.3rem;
+        font-size: 0.82rem;
+        line-height: 1.56;
+        color: var(--slate);
+      }
       .match-hero-kicker {
         display: inline-flex;
         align-items: center;
@@ -140,6 +173,67 @@
         border-radius: 18px;
         padding: 1.2rem;
         box-shadow: 0 14px 36px rgba(10, 45, 56, 0.08);
+      }
+      .match-pathframe {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .match-pathframe-header {
+        display: grid;
+        gap: 0.28rem;
+      }
+      .match-pathframe-kicker {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+      .match-pathframe-title {
+        font-family: "Lora", serif;
+        font-size: 1.22rem;
+        line-height: 1.2;
+        color: var(--navy);
+      }
+      .match-pathframe-copy {
+        font-size: 0.88rem;
+        line-height: 1.62;
+        color: var(--slate);
+      }
+      .match-pathframe-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+      .match-pathframe-card {
+        padding: 0.9rem 0.95rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .match-pathframe-card.is-primary {
+        background: linear-gradient(180deg, #eef8fa 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.16);
+        box-shadow: 0 12px 24px rgba(14, 77, 95, 0.07);
+      }
+      .match-pathframe-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.24rem;
+      }
+      .match-pathframe-card-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-pathframe-card-copy {
+        margin-top: 0.28rem;
+        font-size: 0.8rem;
+        line-height: 1.55;
+        color: var(--slate);
       }
       .match-builder.is-results-mode .match-tool-card {
         padding: 1rem 1rem 0.95rem;
@@ -396,6 +490,27 @@
         justify-content: center;
         gap: 0.55rem;
         margin-top: 0.8rem;
+      }
+      .match-start-promise {
+        display: grid;
+        gap: 0.32rem;
+        margin-top: 0.82rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+      }
+      .match-start-promise-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-start-promise-copy {
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
       }
       .match-start-pill {
         display: inline-flex;
@@ -1628,6 +1743,43 @@
         line-height: 1.45;
         color: var(--slate);
       }
+      .match-card-contact-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+      .match-card-contact-item {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.72rem 0.76rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .match-card-contact-label {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-card-contact-value {
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: var(--slate);
+      }
+      .match-card-contact-note {
+        padding: 0.78rem 0.82rem;
+        border-radius: 14px;
+        background: rgba(26, 122, 143, 0.07);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        font-size: 0.79rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .match-card-contact-note strong {
+        color: var(--navy);
+      }
       .match-card-cta {
         min-height: 52px;
         width: 100%;
@@ -1661,6 +1813,10 @@
       }
       .match-card-copy-btn.btn-secondary {
         width: auto;
+      }
+      .match-card-copy-btn.is-soft {
+        border-color: rgba(26, 122, 143, 0.16);
+        background: rgba(255, 255, 255, 0.9);
       }
       .contact-readiness-card {
         display: grid;
@@ -1698,10 +1854,15 @@
       }
       .match-summary-bar {
         margin-bottom: 1rem;
-        padding: 1rem 1.1rem;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-        border: 1px solid var(--border);
+        padding: 1.15rem 1.15rem 1.2rem;
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at top right, rgba(26, 122, 143, 0.08), transparent 26%),
+          linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        box-shadow:
+          0 16px 34px rgba(14, 77, 95, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.72);
         text-align: left;
       }
       .match-summary-top {
@@ -1712,19 +1873,30 @@
         flex-wrap: wrap;
       }
       .match-summary-meta {
-        margin-top: 0.35rem;
-        font-size: 0.78rem;
-        color: var(--muted);
-        max-width: 74ch;
+        margin-top: 0.32rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+        max-width: 76ch;
       }
       .match-summary-kicker {
         display: block;
         margin: 0 0 0.3rem;
         font-size: 0.74rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
+        font-weight: 800;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
+      }
+      .match-summary-title {
+        margin: 0;
+        font-size: clamp(1.28rem, 2vw, 1.75rem);
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+        color: var(--navy);
+        max-width: 16ch;
+      }
+      .match-summary-title span {
+        color: var(--teal-dark);
       }
       .match-summary-actions {
         display: flex;
@@ -1750,6 +1922,56 @@
         flex-wrap: wrap;
         gap: 0.5rem;
         margin-top: 0.85rem;
+      }
+      .match-summary-decision-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin-top: 0.95rem;
+      }
+      .match-summary-decision-card {
+        display: grid;
+        gap: 0.42rem;
+        padding: 0.9rem 0.92rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.09);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 24px rgba(14, 77, 95, 0.04);
+      }
+      .match-summary-decision-card.tone-primary {
+        background: linear-gradient(180deg, #f6fcff 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.16);
+      }
+      .match-summary-decision-card.tone-secondary {
+        background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+        border-color: rgba(194, 157, 76, 0.18);
+      }
+      .match-summary-decision-card.tone-refine {
+        background: linear-gradient(180deg, #fbfbff 0%, #ffffff 100%);
+        border-color: rgba(87, 98, 182, 0.14);
+      }
+      .match-summary-decision-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-summary-decision-title {
+        font-size: 0.98rem;
+        line-height: 1.28;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-summary-decision-copy {
+        font-size: 0.82rem;
+        line-height: 1.6;
+        color: var(--slate);
+      }
+      .match-summary-decision-note {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--teal-dark);
       }
       .match-summary-applied-label {
         flex-basis: 100%;
@@ -2010,6 +2232,98 @@
         margin-top: 0.85rem;
         padding-top: 0.85rem;
         border-top: 1px solid var(--border);
+      }
+      .first-contact-journey {
+        display: grid;
+        gap: 0.7rem;
+        margin-bottom: 0.8rem;
+        padding: 0.9rem 0.95rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+      }
+      .first-contact-journey.tone-positive {
+        background: linear-gradient(180deg, #f7fcf9 0%, #ffffff 100%);
+        border-color: rgba(81, 153, 112, 0.18);
+      }
+      .first-contact-journey.tone-negative {
+        background: linear-gradient(180deg, #fffbf5 0%, #ffffff 100%);
+        border-color: rgba(194, 157, 76, 0.2);
+      }
+      .first-contact-journey.tone-neutral {
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+      }
+      .first-contact-journey-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+      }
+      .first-contact-journey-kicker {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .first-contact-journey-state {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0.34rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+      .first-contact-journey-state.tone-positive {
+        background: #e8f5ee;
+        color: #1f7a52;
+      }
+      .first-contact-journey-state.tone-negative {
+        background: #fff7ed;
+        color: #9a4d14;
+      }
+      .first-contact-journey-state.tone-neutral {
+        background: #eef7f9;
+        color: var(--teal-dark);
+      }
+      .first-contact-journey-title {
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1.3;
+      }
+      .first-contact-journey-copy {
+        font-size: 0.83rem;
+        color: var(--slate);
+        line-height: 1.58;
+      }
+      .first-contact-journey-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+      }
+      .first-contact-journey-card {
+        display: grid;
+        gap: 0.2rem;
+        padding: 0.72rem 0.78rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .first-contact-journey-label {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .first-contact-journey-value {
+        font-size: 0.8rem;
+        line-height: 1.52;
+        color: var(--slate);
       }
       .first-contact-tracker-title {
         font-size: 0.76rem;
@@ -2380,6 +2694,10 @@
         line-height: 1.6;
       }
       @media (max-width: 900px) {
+        .match-decision-strip,
+        .match-pathframe-grid {
+          grid-template-columns: 1fr;
+        }
         .match-list {
           grid-template-columns: 1fr;
         }
@@ -2403,6 +2721,9 @@
         }
       }
       @media (max-width: 640px) {
+        .match-hero-copy {
+          text-align: center;
+        }
         .match-builder.is-results-mode .match-search-box {
           grid-template-columns: 1fr;
         }
@@ -2433,9 +2754,15 @@
         .match-summary-actions {
           flex-direction: column;
         }
+        .match-summary-decision-grid {
+          grid-template-columns: 1fr;
+        }
         .match-summary-actions .btn-secondary,
         .match-summary-actions .btn-primary {
           width: 100%;
+        }
+        .match-card-contact-grid {
+          grid-template-columns: 1fr;
         }
         .match-options {
           grid-template-columns: 1fr;
@@ -2459,6 +2786,7 @@
           font-size: 0.8rem;
         }
         .first-contact-top,
+        .first-contact-journey-top,
         .match-support-panel-static,
         .match-outreach-header,
         .insight-item-top {
@@ -2491,6 +2819,9 @@
           display: grid;
           grid-template-columns: 1fr 1fr;
         }
+        .first-contact-journey-grid {
+          grid-template-columns: 1fr;
+        }
         .match-queue-card {
           grid-template-columns: 1fr;
         }
@@ -2510,6 +2841,9 @@
         .match-actions .btn-primary,
         .match-actions .btn-secondary {
           width: 100%;
+        }
+        .match-trust-strip {
+          justify-content: center;
         }
       }
     </style>
@@ -2543,6 +2877,37 @@
           We’re pulling together the best providers to start with now. If you want a tighter fit,
           you can add ZIP code, care type, insurance, format, or medication needs below.
         </p>
+        <div class="match-decision-strip" aria-label="Why use the guided match">
+          <div class="match-decision-card">
+            <div class="match-decision-label">Why start here</div>
+            <div class="match-decision-title">
+              The match helps narrow the field before you compare.
+            </div>
+            <div class="match-decision-copy">
+              It is built to reduce search fatigue by turning a broad directory into a smaller set
+              of stronger first options.
+            </div>
+          </div>
+          <div class="match-decision-card">
+            <div class="match-decision-label">Best for</div>
+            <div class="match-decision-title">
+              People who want a clearer first move, not more tabs.
+            </div>
+            <div class="match-decision-copy">
+              Use this when you want help deciding where to focus before opening and comparing a lot
+              of profiles.
+            </div>
+          </div>
+          <div class="match-decision-card">
+            <div class="match-decision-label">What you get</div>
+            <div class="match-decision-title">
+              A shortlist built around fit, trust, and next steps.
+            </div>
+            <div class="match-decision-copy">
+              The strongest matches should feel easier to act on, not just easier to browse.
+            </div>
+          </div>
+        </div>
         <div class="match-trust-strip" aria-label="Trust highlights">
           <span class="match-trust-pill">Built for bipolar-specific care</span>
           <span class="match-trust-pill">Reviewed profile details where available</span>
@@ -2560,12 +2925,36 @@
           <form id="matchForm" class="match-form">
             <div class="match-tool-shell">
               <div class="match-tool-card">
-                <div class="match-tool-kicker">Only two answers required to begin</div>
-                <div class="match-tool-title">Get to your first shortlist faster</div>
-                <p class="match-tool-copy">
-                  Pick the type of support you want and enter your ZIP code. We’ll start with the
-                  strongest shortlist we can build from there.
-                </p>
+                <div class="match-pathframe">
+                  <div class="match-pathframe-header">
+                    <div class="match-pathframe-kicker">Start with the strongest default move</div>
+                    <div class="match-pathframe-title">Get to your first shortlist faster</div>
+                    <div class="match-pathframe-copy">
+                      You only need two answers to begin. The rest of the refinements can wait until
+                      you want a more specific ranking.
+                    </div>
+                  </div>
+                  <div class="match-pathframe-grid" aria-label="Why this intake is low-friction">
+                    <div class="match-pathframe-card is-primary">
+                      <div class="match-pathframe-label">Required to begin</div>
+                      <div class="match-pathframe-card-title">Care type and ZIP code</div>
+                      <div class="match-pathframe-card-copy">
+                        That is enough to generate a useful first-pass shortlist without making you
+                        fill out a long intake first.
+                      </div>
+                    </div>
+                    <div class="match-pathframe-card">
+                      <div class="match-pathframe-label">Optional later</div>
+                      <div class="match-pathframe-card-title">
+                        Insurance, format, budget, and preferences
+                      </div>
+                      <div class="match-pathframe-card-copy">
+                        Add these only when you want the shortlist to become tighter and more
+                        opinionated.
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="match-search-box">
                   <div class="search-field search-field--prompt" data-match-care-field>
                     <label for="care_intent">Type of care</label>
@@ -2602,6 +2991,13 @@
                 </div>
                 <div class="match-start-helper" id="matchStartHelper">
                   <strong>Next:</strong> choose your care type and California ZIP code to begin.
+                </div>
+                <div class="match-start-promise">
+                  <div class="match-start-promise-label">What this should do for you</div>
+                  <div class="match-start-promise-copy">
+                    The first shortlist should make the search feel lighter by giving you a smaller,
+                    more decision-ready place to start.
+                  </div>
                 </div>
                 <div class="match-start-trust" aria-label="Match trust signals">
                   <div class="match-start-pill">Only care type and ZIP are required</div>
