@@ -1535,11 +1535,11 @@ function renderProfile(t, therapistDirectory) {
   contactQuestionItems.push("What usually happens after the first message or consult?");
 
   fitHeadline = quickFitItems.length
-    ? "This looks like a credible bipolar-care option."
-    : "This could still be worth contacting, but the page leaves a few key questions for outreach.";
+    ? "This looks like a strong first-pass therapy option."
+    : "This profile could still be worth a message, but it needs a little more confirmation first.";
   fitSubheadline = quickFitItems.length
-    ? "The first screen should tell you why this profile could be worth contacting."
-    : "Use the strongest trust and logistics cues here to decide whether this is a smart first message or a better save-for-later option.";
+    ? "You should be able to decide quickly whether to contact now, save for later, or keep comparing."
+    : "Use the strongest trust and logistics signals here to decide whether this is a smart outreach now or a profile to keep in reserve.";
 
   var quickFitHtml = renderList(quickFitItems.slice(0, 3), "decision-list-item");
   var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
@@ -1612,6 +1612,47 @@ function renderProfile(t, therapistDirectory) {
         escapeHtml(item.tone || "") +
         '">' +
         escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+  var decisionProofHtml = [
+    {
+      label: "Recommended move",
+      title: contactStrategy.routeLabel,
+      copy: contactStrategy.routeReason,
+    },
+    {
+      label: "Why this feels credible",
+      title:
+        t.verification_status === "editorially_verified"
+          ? "Editorially verified profile"
+          : sourceReviewedDate
+            ? "Recently source-reviewed profile"
+            : "Decision support available",
+      copy:
+        sourceReviewCopy ||
+        reviewedDetailsCopy ||
+        "The strongest trust cues are surfaced here so you can make a faster first-pass decision.",
+    },
+    {
+      label: "What to confirm fast",
+      title: t.accepting_new_patients
+        ? t.estimated_wait_time || "Current opening timing"
+        : "Openings and timing",
+      copy:
+        bestNextStepCopy ||
+        "The first contact should confirm current timing, cost path, and what happens after the first reply.",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="decision-proof-card"><div class="decision-proof-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="decision-proof-title">' +
+        escapeHtml(item.title) +
+        '</div><div class="decision-proof-copy">' +
+        escapeHtml(item.copy) +
         "</div></div>"
       );
     })
@@ -1696,13 +1737,20 @@ function renderProfile(t, therapistDirectory) {
     '" class="btn-website">Claim or manage profile</a>';
 
   contactBtns =
-    '<div class="profile-actions-header"><div class="profile-actions-kicker">Best next step</div><div class="profile-actions-title">' +
+    '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended move</div><div class="profile-actions-intro-title">' +
     escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="profile-actions-intro-copy">' +
+    escapeHtml(contactStrategy.routeReason) +
     "</div></div>" +
-    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best contact strategy</div><div class="contact-strategy-title">' +
+    '<div class="profile-actions-header"><div class="profile-actions-kicker">What to do now</div><div class="profile-actions-title">' +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="profile-actions-microcopy">This action rail is designed to help you move from interest to a smart first outreach with less second-guessing.</div></div>' +
+    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best outreach path</div><div class="contact-strategy-title">' +
     escapeHtml(contactStrategy.routeLabel) +
     '</div><div class="contact-strategy-copy">' +
     escapeHtml(contactStrategy.routeReason) +
+    '</div><div class="contact-strategy-highlight"><strong>Why this route now:</strong> ' +
+    escapeHtml(contactStrategy.proofLine) +
     '</div><div class="contact-strategy-proof">' +
     escapeHtml(contactStrategy.proofLine) +
     '</div><div class="contact-strategy-confidence tone-' +
@@ -1720,11 +1768,11 @@ function renderProfile(t, therapistDirectory) {
     '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">If this stalls</div><div class="contact-strategy-value">' +
     escapeHtml(contactStrategy.backupPlanCopy) +
     "</div></div></div></div>" +
-    '<div class="profile-primary-action">' +
+    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
     (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
-    "</div></div>" +
+    "</div></div></div>" +
     renderBackupCard(backupState) +
     '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
     secondaryButtons +
@@ -1792,6 +1840,9 @@ function renderProfile(t, therapistDirectory) {
     '</p><div class="fit-summary">' +
     escapeHtml(fitSummaryCopy) +
     "</div></div>" +
+    '<div class="decision-proof-strip">' +
+    decisionProofHtml +
+    "</div>" +
     '<div class="hero-decision-grid"><div class="hero-summary-card"><div class="hero-summary-label">Why this could fit</div>' +
     (quickFitHtml ||
       '<div class="decision-list-item">Use the focus areas, logistics, and contact strategy below to make a quick first-pass fit decision.</div>') +

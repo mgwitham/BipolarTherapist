@@ -162,11 +162,23 @@ export function renderCardMarkup(options) {
       return '<span class="card-decision-pill">' + escapeHtml(item) + "</span>";
     })
     .join("");
+  var primaryDecisionTitle = model.contactRoute ? model.contactRoute.label : "Open profile first";
+  var primaryDecisionCopy =
+    model.contactRoute && model.contactRoute.detail
+      ? model.contactRoute.detail
+      : model.nextStepLine || model.likelyFitCopy;
 
   return (
     '<article class="t-card" data-card-slug="' +
     escapeHtml(therapist.slug) +
     '">' +
+    '<div class="card-hero-rail"><div class="card-hero-kicker">' +
+    escapeHtml(model.handoffLabel || "Best profile to open now") +
+    '</div><div class="card-hero-title">' +
+    escapeHtml(model.openReason || model.fitSummary) +
+    '</div><div class="card-hero-copy">' +
+    escapeHtml(model.proofLine || model.standoutCopy) +
+    "</div></div>" +
     '<div class="t-card-top"><div class="t-avatar">' +
     avatar +
     '</div><div class="t-info"><div class="t-name">' +
@@ -191,11 +203,16 @@ export function renderCardMarkup(options) {
         escapeHtml(model.freshnessBadge.note) +
         "</div></div>"
       : "") +
-    '<div class="t-fit-summary">' +
+    '<div class="t-fit-summary"><div class="card-fit-summary-label">Fast fit read</div>' +
     escapeHtml(model.fitSummary) +
     '</div><div class="card-fit-note">' +
     escapeHtml(model.likelyFitCopy) +
     "</div>" +
+    '<div class="card-primary-decision"><div class="card-primary-decision-label">Recommended move</div><div class="card-primary-decision-title">' +
+    escapeHtml(primaryDecisionTitle) +
+    '</div><div class="card-primary-decision-copy">' +
+    escapeHtml(primaryDecisionCopy) +
+    "</div></div>" +
     '<div class="card-quick-stats">' +
     quickStats +
     "</div>" +
@@ -219,7 +236,7 @@ export function renderCardMarkup(options) {
     (model.reviewedDetailsCopy && model.reviewedDetailsCopy !== model.trustSnapshot
       ? '<div class="card-contact-detail">' + escapeHtml(model.reviewedDetailsCopy) + "</div>"
       : "") +
-    '<div class="card-next-step"><div class="card-next-step-label">Best next step</div><div class="card-next-step-copy">' +
+    '<div class="card-next-step"><div class="card-next-step-label">What happens next</div><div class="card-next-step-copy">' +
     escapeHtml(model.nextStepLine) +
     "</div></div>" +
     contactDetail +

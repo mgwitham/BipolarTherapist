@@ -57,6 +57,33 @@
           🔧 Filters <span id="filterCount"></span>
         </button>
         <div class="sidebar" id="sidebar">
+          <div class="filter-brief">
+            <div class="filter-brief-kicker">Refine your shortlist</div>
+            <div class="filter-brief-title">Narrow by fit, trust, and easier follow-through.</div>
+            <div class="filter-brief-copy">
+              Use filters to move from a broad list to the therapists most worth contacting first.
+            </div>
+            <div class="filter-preset-row">
+              <button type="button" class="filter-preset-btn" data-filter-preset="trusted_fast">
+                Trusted and ready
+              </button>
+              <button type="button" class="filter-preset-btn" data-filter-preset="responsive">
+                Easiest to reach
+              </button>
+              <button type="button" class="filter-preset-btn" data-filter-preset="value">
+                Lower-friction cost
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-active-panel">
+            <div class="filter-active-label">Active narrowing</div>
+            <div class="filter-active-copy" id="activeFilterSummary">
+              No filters applied yet. Start with one strong narrowing move.
+            </div>
+            <div class="filter-active-chips" id="activeFilterChips"></div>
+          </div>
+
           <div class="filter-panel">
             <h3>🔍 <span id="searchPanelTitle">Search</span></h3>
             <div class="filter-group">

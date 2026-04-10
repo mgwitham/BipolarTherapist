@@ -81,6 +81,24 @@ import {
   var filters = { ...defaultFilters };
   var shortlist = readShortlist();
   var pendingMotionSlug = "";
+  var FILTER_PRESETS = {
+    trusted_fast: {
+      verification: "editorially_verified",
+      recently_confirmed: true,
+      accepting: true,
+      sortBy: "freshest_details",
+    },
+    responsive: {
+      responsive_contact: true,
+      accepting: true,
+      sortBy: "most_responsive",
+    },
+    value: {
+      insurance: "",
+      telehealth: true,
+      sortBy: "lowest_fee",
+    },
+  };
 
   function getElement(id) {
     return document.getElementById(id);
@@ -468,6 +486,106 @@ import {
     if (footerTagline && siteSettings.footerTagline) {
       footerTagline.textContent = siteSettings.footerTagline;
     }
+  }
+
+  function summarizeActiveFilters() {
+    var chips = [];
+    if (filters.q) {
+      chips.push('Keyword: "' + filters.q + '"');
+    }
+    if (filters.state) {
+      chips.push(filters.state);
+    }
+    if (filters.city) {
+      chips.push(filters.city);
+    }
+    if (filters.specialty) {
+      chips.push(filters.specialty);
+    }
+    if (filters.modality) {
+      chips.push(filters.modality);
+    }
+    if (filters.population) {
+      chips.push(filters.population);
+    }
+    if (filters.verification === "editorially_verified") {
+      chips.push("Editorially verified");
+    }
+    if (filters.bipolar_experience) {
+      chips.push(filters.bipolar_experience + "+ yrs bipolar care");
+    }
+    if (filters.insurance) {
+      chips.push(filters.insurance);
+    }
+    if (filters.telehealth) {
+      chips.push("Telehealth");
+    }
+    if (filters.in_person) {
+      chips.push("In-person");
+    }
+    if (filters.accepting) {
+      chips.push("Accepting patients");
+    }
+    if (filters.medication_management) {
+      chips.push("Medication management");
+    }
+    if (filters.responsive_contact) {
+      chips.push("Responsive contact");
+    }
+    if (filters.recently_confirmed) {
+      chips.push("Recently confirmed");
+    }
+    return chips;
+  }
+
+  function renderActiveFilterSummary(resultsLength) {
+    var summary = getElement("activeFilterSummary");
+    var chipsRoot = getElement("activeFilterChips");
+    if (!summary || !chipsRoot) {
+      return;
+    }
+
+    var active = summarizeActiveFilters();
+    if (!active.length) {
+      summary.textContent =
+        "No filters applied yet. Start with one strong narrowing move so the directory can behave more like a shortlist than a marketplace.";
+      chipsRoot.innerHTML = "";
+      return;
+    }
+
+    summary.textContent =
+      "You are narrowing toward " +
+      resultsLength +
+      " option" +
+      (resultsLength === 1 ? "" : "s") +
+      " using " +
+      active.length +
+      " signal" +
+      (active.length === 1 ? "" : "s") +
+      ". This should improve fit clarity before you open profiles.";
+    chipsRoot.innerHTML = active
+      .slice(0, 8)
+      .map(function (item) {
+        return '<span class="filter-chip">' + escapeHtml(item) + "</span>";
+      })
+      .join("");
+  }
+
+  function applyFilterPreset(name) {
+    var preset = FILTER_PRESETS[name];
+    if (!preset) {
+      return;
+    }
+
+    filters = Object.assign({}, filters, preset);
+    currentPage = 1;
+    syncFilterControlsFromState(filters, getElement);
+    trackFunnelEvent("directory_filter_preset_applied", {
+      preset_name: name,
+      active_filter_count: countActiveFilters(filters),
+      sort_by: filters.sortBy,
+    });
+    render();
   }
 
   function uniqueCounts(field, nested) {
@@ -896,6 +1014,7 @@ import {
       "</strong> " +
       (results.length === 1 ? singularSuffix : resultsSuffix);
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
+    renderActiveFilterSummary(results.length);
 
     if (!pageItems.length) {
       grid.innerHTML = renderEmptyStateMarkup(directoryPage);
@@ -1089,6 +1208,12 @@ import {
   if (mobileFilterToggle) {
     mobileFilterToggle.addEventListener("click", toggleFilters);
   }
+
+  document.querySelectorAll("[data-filter-preset]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      applyFilterPreset(button.getAttribute("data-filter-preset"));
+    });
+  });
 
   getElement("sortBy").addEventListener("change", function () {
     var nextState = changeDirectorySortAction({
