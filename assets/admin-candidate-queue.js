@@ -218,7 +218,9 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   return (
     '<article class="queue-card' +
     (index === 0 ? " is-start-here" : "") +
-    '" data-candidate-card-id="' +
+    '"' +
+    (actionFlash ? ' data-has-action-flash="true"' : "") +
+    ' data-candidate-card-id="' +
     options.escapeHtml(item.id) +
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +

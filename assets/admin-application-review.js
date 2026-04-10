@@ -730,7 +730,9 @@ export function renderApplicationsPanel(options) {
         return (
           '<article class="application-card' +
           (index === 0 ? " is-start-here" : "") +
-          '" data-application-card-id="' +
+          '"' +
+          (actionFlash ? ' data-has-action-flash="true"' : "") +
+          ' data-application-card-id="' +
           options.escapeHtml(item.id) +
           '"' +
           (index === 0 ? ' id="applicationReviewStartHere"' : "") +
