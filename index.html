@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BipolarTherapyHub — Guided Bipolar Therapist Matching</title>
+    <title>BipolarTherapyHub — Find Therapists Who Understand Bipolar Disorder</title>
     <meta
       name="description"
-      content="Find reviewed bipolar-specialist therapists and psychiatrists with clearer trust details, decision-ready profiles, and a calmer path from shortlist to first contact."
+      content="Find bipolar-informed therapists with a clearer, calmer way to search by fit, location, and type of care."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -81,7 +81,7 @@
       }
       .nav-links {
         display: flex;
-        gap: 1.5rem;
+        gap: 1.15rem;
         align-items: center;
         list-style: none;
       }
@@ -95,24 +95,6 @@
       .nav-links a:hover {
         color: var(--teal);
       }
-      .nav-shortlist {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-      }
-      .nav-shortlist-count {
-        min-width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 999px;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0 0.35rem;
-      }
       .nav-cta {
         background: var(--teal) !important;
         color: white !important;
@@ -125,23 +107,32 @@
       }
       .hero {
         background: linear-gradient(135deg, #0e4d5f 0%, #1a7a8f 55%, #2a9cb3 100%);
-        padding: 5rem 1.5rem 3.5rem;
-        text-align: center;
+        padding: 5.25rem 1.5rem 3.5rem;
         color: white;
       }
-      .hero-badge {
+      .hero-inner {
+        max-width: 860px;
+        margin: 0 auto;
+        display: grid;
+        gap: 1.6rem;
+        justify-items: center;
+        text-align: center;
+      }
+      .hero-copy {
+        max-width: 620px;
+      }
+      .hero-eyebrow {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        color: white;
-        font-size: 0.75rem;
+        gap: 0.45rem;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.76rem;
         font-weight: 700;
-        padding: 0.35rem 0.9rem;
-        border-radius: 100px;
-        margin-bottom: 1.5rem;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
       }
       .hero h1 {
@@ -149,54 +140,103 @@
         font-size: clamp(1.9rem, 5vw, 3rem);
         font-weight: 600;
         line-height: 1.2;
-        margin-bottom: 1rem;
-        max-width: 660px;
-        margin-left: auto;
-        margin-right: auto;
+        margin-bottom: 0;
       }
-      .hero p {
-        font-size: 1.05rem;
-        opacity: 0.88;
-        max-width: 500px;
-        margin: 0 auto 2.5rem;
+      .hero-copy p {
+        margin-top: 0.85rem;
+        font-size: 1.02rem;
         line-height: 1.7;
-      }
-      .hero-helper {
-        margin: -1rem auto 1.35rem;
-        max-width: 640px;
-        font-size: 0.88rem;
         color: rgba(255, 255, 255, 0.9);
       }
-      .search-box {
-        background: white;
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        max-width: 660px;
-        margin: 0 auto;
+      .hero-proof {
         display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: center;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.75rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        margin-top: 1.35rem;
       }
-      .cms-banner {
-        margin: 1rem auto 0;
-        max-width: 660px;
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.24);
-        font-size: 0.82rem;
-        line-height: 1.5;
+      .hero-proof-item {
+        padding: 0.85rem 0.9rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        text-align: left;
       }
-      .cms-banner a {
+      .hero-proof-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+      }
+      .hero-proof-value {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.96rem;
+        font-weight: 600;
+        line-height: 1.45;
         color: white;
-        font-weight: 700;
+      }
+      .tool-shell {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 24px;
+        padding: 1.2rem;
+        box-shadow: 0 28px 60px rgba(3, 25, 31, 0.2);
+        backdrop-filter: blur(6px);
+        width: min(100%, 600px);
+      }
+      .tool-card {
+        background: white;
+        color: var(--navy);
+        border-radius: 18px;
+        padding: 1.4rem;
+        box-shadow: 0 14px 36px rgba(10, 45, 56, 0.16);
+      }
+      .tool-card p {
+        color: var(--slate);
+        font-size: 0.96rem;
+        line-height: 1.6;
+        max-width: 31rem;
+        margin: 0 auto 1.05rem;
+      }
+      .tool-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.55rem;
+        color: var(--teal-dark);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tool-title {
+        font-family: "Lora", serif;
+        font-size: clamp(1.35rem, 2.8vw, 1.7rem);
+        line-height: 1.2;
+        color: var(--navy);
+      }
+      .tool-title + p {
+        margin-top: 0.6rem;
+      }
+      .search-box {
+        background: #f7fbfc;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.05rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
       }
       .search-field {
         display: flex;
         flex-direction: column;
         gap: 0.2rem;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
       }
       .search-field label {
         font-size: 0.68rem;
@@ -208,10 +248,146 @@
       .search-field input {
         border: none;
         outline: none;
-        font-size: 0.95rem;
+        font-size: 1rem;
         color: var(--navy);
         background: transparent;
         font-family: inherit;
+      }
+      .search-field--zip {
+        gap: 0;
+        padding: 0.15rem 0;
+        border: none;
+        border-bottom: 2px solid rgba(29, 58, 74, 0.16);
+        border-radius: 0;
+        background: transparent;
+        cursor: text;
+      }
+      .search-field--zip label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .search-field--zip input {
+        font-family: "Lora", serif;
+        font-size: clamp(1rem, 2.2vw, 1.32rem);
+        line-height: 1.2;
+        color: #8a88a9;
+        text-align: left;
+        padding: 0 0 0.55rem;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .search-field--zip .zip-inline {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.7rem;
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .search-field--zip .zip-inline input {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+      }
+      .search-field--zip .zip-inline.is-resolved input {
+        flex: 0 0 6.5ch;
+        width: 6.5ch;
+        min-width: 6.5ch;
+      }
+      .search-field--zip .zip-resolved {
+        display: none;
+        flex: 0 1 auto;
+        min-width: 0;
+        font-family: "Lora", serif;
+        font-size: clamp(0.84rem, 1.55vw, 1rem);
+        line-height: 1.3;
+        color: #8a88a9;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-bottom: 0.6rem;
+      }
+      .search-field--zip .zip-resolved.is-visible {
+        display: block;
+      }
+      .search-field--zip input::placeholder {
+        color: #8a88a9;
+        opacity: 1;
+      }
+      .search-field--zip input:focus {
+        color: var(--navy);
+      }
+      .search-field--zip input:-webkit-autofill,
+      .search-field--zip input:-webkit-autofill:hover,
+      .search-field--zip input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--navy);
+        transition: background-color 9999s ease-out 0s;
+        -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+      }
+      .search-field--prompt {
+        position: relative;
+        display: block;
+        padding: 0.15rem 0;
+        border: none;
+        border-bottom: 2px solid rgba(29, 58, 74, 0.16);
+        border-radius: 0;
+        background: transparent;
+      }
+      .search-field--prompt label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .search-field--prompt select {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-family: "Lora", serif;
+        font-size: clamp(1rem, 2.2vw, 1.32rem);
+        line-height: 1.2;
+        color: #8a88a9;
+        display: block;
+        text-align: left;
+        cursor: pointer;
+        padding-right: 3rem;
+        padding-bottom: 0.55rem;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        border-radius: 0;
+      }
+      .search-field--prompt select:focus,
+      .search-field--prompt.has-value select {
+        color: var(--navy);
+      }
+      .search-field--prompt::after {
+        position: absolute;
+        content: "";
+        width: 0.85rem;
+        height: 0.85rem;
+        border-right: 3px solid rgba(29, 58, 74, 0.85);
+        border-bottom: 3px solid rgba(29, 58, 74, 0.85);
+        transform: rotate(45deg) translateY(-0.45rem);
+        right: 1.6rem;
+        bottom: 1rem;
+        pointer-events: none;
       }
       .search-divider {
         background: var(--border);
@@ -222,24 +398,105 @@
         background: var(--teal);
         color: white;
         border: none;
-        border-radius: 10px;
-        padding: 0.8rem 1.5rem;
-        font-size: 0.9rem;
+        border-radius: 12px;
+        padding: 0.95rem 1.15rem;
+        font-size: 0.95rem;
         font-weight: 600;
         cursor: pointer;
         transition: background 0.2s;
-        white-space: nowrap;
         font-family: inherit;
       }
       .search-btn:hover {
         background: var(--teal-dark);
       }
-      .hero-actions {
+      .search-helper {
+        margin-top: 0.2rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+      .search-helper strong {
+        color: var(--navy);
+      }
+      .search-launch-note {
+        margin-top: -0.35rem;
+        text-align: left;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+      .hero-validation-popup {
+        display: none;
+        margin: 0.2rem 0 0.55rem;
+        padding: 0.15rem 0;
+        text-align: center;
+      }
+      .hero-validation-popup.is-visible {
+        display: block;
+      }
+      .hero-validation-title {
+        display: none;
+      }
+      .hero-validation-list {
+        display: grid;
+        gap: 0.1rem;
+        color: #b43545;
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+      .tool-trust-row {
         display: flex;
-        justify-content: center;
-        gap: 0.85rem;
         flex-wrap: wrap;
-        margin-top: 1rem;
+        gap: 0.55rem;
+        margin-top: 0.95rem;
+        justify-content: center;
+      }
+      .tool-trust-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        padding: 0.48rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(26, 122, 143, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          background 0.18s ease,
+          color 0.18s ease;
+      }
+      .tool-trust-pill:hover,
+      .tool-trust-pill:focus-visible {
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1);
+        color: var(--slate);
+        outline: none;
+        transform: translateY(-1px);
+      }
+      .tool-trust-pill:active {
+        transform: translateY(0);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1);
+      }
+      .tool-trust-pill--secondary {
+        background: rgba(255, 255, 255, 0.58);
+        color: #7f95a0;
+      }
+      .tool-trust-pill--secondary:hover,
+      .tool-trust-pill--secondary:focus-visible {
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--slate);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1);
+      }
+      .hero-actions {
+        display: none;
       }
       .hero-link {
         display: inline-flex;
@@ -267,121 +524,26 @@
       .hero-link.secondary:hover {
         background: rgba(255, 255, 255, 0.18);
       }
-      .hero-stats {
-        display: flex;
-        justify-content: center;
-        gap: 2.5rem;
-        margin-top: 2.5rem;
-        flex-wrap: wrap;
-      }
-      .hero-stat {
-        text-align: center;
-        color: white;
-      }
-      .hero-stat-num {
-        font-size: 1.8rem;
-        font-weight: 700;
-        line-height: 1;
-      }
-      .hero-stat-label {
-        font-size: 0.78rem;
-        opacity: 0.8;
-        margin-top: 0.2rem;
-      }
-      .start-here {
-        padding: 0 1.5rem 1rem;
-        margin-top: -1.1rem;
-      }
-      .start-here-card {
-        max-width: 1080px;
-        margin: 0 auto;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 1.25rem;
-        box-shadow: 0 16px 32px rgba(14, 77, 95, 0.08);
-      }
-      .start-here-top {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: end;
-        margin-bottom: 1rem;
-      }
-      .start-here-kicker {
-        font-size: 0.74rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .start-here-card h2 {
-        font-family: "Lora", serif;
-        font-size: 1.65rem;
-        line-height: 1.2;
-        margin-top: 0.25rem;
-      }
-      .start-here-card p {
-        color: var(--slate);
-        max-width: 58ch;
-      }
-      .start-here-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.9rem;
-      }
-      .start-here-option {
-        display: grid;
-        gap: 0.45rem;
-        padding: 1rem;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        text-decoration: none;
-        color: inherit;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
-      }
-      .start-here-option:hover {
-        border-color: rgba(26, 122, 143, 0.3);
-        box-shadow: 0 10px 22px rgba(14, 77, 95, 0.06);
-      }
-      .start-here-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-      .start-here-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .start-here-copy {
-        font-size: 0.87rem;
-        color: var(--slate);
-      }
-      .start-here-link {
-        font-size: 0.84rem;
-        font-weight: 700;
-        color: var(--teal);
-      }
       .ease-strip {
-        padding: 1rem 1.5rem 0;
+        padding: 1.2rem 1.5rem 0;
+        margin-top: -0.8rem;
+        scroll-margin-top: 84px;
       }
       .ease-strip-card {
-        max-width: 1080px;
+        max-width: 980px;
         margin: 0 auto;
-        background: #eef7f9;
+        background: #ffffff;
         border: 1px solid var(--border);
         border-radius: 18px;
-        padding: 1rem 1.1rem;
+        padding: 1rem 1.1rem 1.1rem;
+        box-shadow: 0 12px 28px rgba(14, 77, 95, 0.04);
       }
       .ease-strip-top {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: end;
-        flex-wrap: wrap;
+        display: block;
+        margin-top: 1rem;
+      }
+      .ease-strip-copy {
+        max-width: 680px;
       }
       .ease-strip-kicker {
         font-size: 0.74rem;
@@ -391,11 +553,12 @@
         letter-spacing: 0.05em;
       }
       .ease-strip-card h2 {
-        font-size: 1.2rem;
-        margin-top: 0.15rem;
+        font-size: 1.08rem;
+        margin-top: 0.1rem;
       }
       .ease-strip-card p {
         color: var(--slate);
+        margin-top: 0.35rem;
       }
       .ease-strip-grid {
         display: grid;
@@ -426,125 +589,6 @@
         font-size: 0.86rem;
         color: var(--slate);
         margin-top: 0.25rem;
-      }
-      .home-teaser {
-        max-width: 1080px;
-        margin: -1.4rem auto 0;
-        padding: 0 1.5rem 1.5rem;
-        position: relative;
-        z-index: 2;
-      }
-      .home-teaser-card {
-        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
-        border: 1px solid rgba(26, 122, 143, 0.14);
-        border-radius: 20px;
-        padding: 1.2rem;
-        box-shadow: 0 18px 45px rgba(14, 77, 95, 0.08);
-      }
-      .home-teaser-top {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: end;
-        flex-wrap: wrap;
-        margin-bottom: 0.9rem;
-      }
-      .home-teaser-kicker {
-        font-size: 0.74rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 0.35rem;
-      }
-      .home-teaser-top h2 {
-        font-size: 1.15rem;
-        margin: 0 0 0.15rem;
-      }
-      .home-teaser-top p {
-        margin: 0;
-        color: var(--slate);
-        max-width: 62ch;
-      }
-      .home-teaser-tabs {
-        display: flex;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-      }
-      .home-teaser-tab {
-        border: 1px solid var(--border);
-        background: white;
-        color: var(--navy);
-        border-radius: 999px;
-        padding: 0.5rem 0.85rem;
-        font-size: 0.8rem;
-        font-weight: 700;
-        cursor: pointer;
-        font-family: inherit;
-      }
-      .home-teaser-tab.active {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-      }
-      .home-teaser-body {
-        display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
-        gap: 1rem;
-      }
-      .home-teaser-explainer {
-        padding: 1rem;
-        border-radius: 16px;
-        background: linear-gradient(180deg, rgba(26, 122, 143, 0.04), transparent 42%), white;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-      }
-      .home-teaser-title {
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 0.4rem;
-      }
-      .home-teaser-copy {
-        color: var(--slate);
-        margin-bottom: 0.8rem;
-      }
-      .home-teaser-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      .home-teaser-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.38rem 0.62rem;
-        border-radius: 999px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: #f9fcfd;
-        font-size: 0.76rem;
-        color: var(--slate);
-      }
-      .home-teaser-preview {
-        padding: 1rem;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #0f5366 0%, #156779 100%);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-      .home-teaser-preview-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        opacity: 0.8;
-        margin-bottom: 0.45rem;
-      }
-      .home-teaser-preview-name {
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-      }
-      .home-teaser-preview-copy {
-        opacity: 0.9;
-        font-size: 0.84rem;
       }
       section {
         padding: 4rem 1.5rem;
@@ -663,8 +707,8 @@
         margin: 0 auto;
       }
       .ranking-note {
-        max-width: 920px;
-        margin: 0 auto 1.25rem;
+        max-width: 820px;
+        margin: 0 auto 0;
         padding: 1rem 1.1rem;
         border-radius: 14px;
         border: 1px solid var(--border);
@@ -978,22 +1022,19 @@
         margin-top: 2rem;
       }
       @media (max-width: 640px) {
-        .start-here-top,
-        .ease-strip-top,
-        .home-teaser-top {
+        .ease-strip-top {
           flex-direction: column;
           align-items: start;
         }
-        .start-here-grid,
-        .ease-strip-grid,
-        .home-teaser-body {
+        .hero-inner {
+          display: grid;
+          grid-template-columns: 1fr;
+          justify-items: stretch;
+          text-align: center;
+        }
+        .ease-strip-grid {
           grid-template-columns: 1fr;
         }
-        .home-teaser {
-          margin-top: -1rem;
-          padding: 0 1rem 1rem;
-        }
-        .start-here-card,
         .ease-strip-card {
           padding: 1rem;
         }
@@ -1001,11 +1042,38 @@
           grid-template-columns: 1fr;
           gap: 0.6rem;
         }
+        .hero-stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .tool-trust-row {
+          gap: 0.65rem;
+        }
+        .tool-trust-pill {
+          min-width: 0;
+          width: 100%;
+        }
+        .tool-card {
+          padding: 1.15rem 1rem 1rem;
+        }
+        .tool-card p {
+          font-size: 0.98rem;
+          line-height: 1.45;
+        }
+        .hero-actions {
+          justify-content: center;
+        }
+        .hero-link {
+          width: 100%;
+          justify-content: center;
+        }
         .search-divider {
           display: none;
         }
         .nav-links li:not(:last-child) {
           display: none;
+        }
+        .hero-proof {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -1016,162 +1084,138 @@
         <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="match.html">Get Matched</a></li>
-        <li>
-          <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
-          >
-        </li>
-        <li><a href="directory.html" id="navBrowseLink">Find a Therapist</a></li>
-        <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
+        <li><a href="#howItWorks">How it works</a></li>
+        <li><a href="directory.html" id="navBrowseLink">Browse therapists</a></li>
+        <li><a href="signup.html" class="nav-cta" id="navCtaLink">For Therapists</a></li>
       </ul>
     </nav>
 
-    <section class="hero">
-      <div class="hero-badge" id="heroBadge">🎗️ Guided Bipolar Specialist Matching</div>
-      <h1 id="heroTitle">
-        Find a bipolar specialist in Los Angeles or across California telehealth
-      </h1>
-      <p id="heroDescription">
-        Find reviewed bipolar-specialist therapy or psychiatry with clearer trust signals, simpler
-        comparison, and a calmer path to first contact in Los Angeles and across California
-        telehealth.
-      </p>
-      <div class="hero-helper">
-        Most people should start with matching. Use the directory if you already know you want to
-        browse profiles yourself.
-      </div>
-      <form class="search-box" onsubmit="handleSearch(event)">
-        <div class="search-field">
-          <label id="locationLabel">Location</label>
-          <input type="text" id="location" placeholder="Los Angeles, Pasadena, Telehealth" />
-        </div>
-        <button type="submit" class="search-btn" id="searchButton">Start matching →</button>
-      </form>
-      <div class="hero-actions">
-        <a href="match.html" class="hero-link primary">Get matched</a>
-        <a href="directory.html" class="hero-link secondary">Browse reviewed specialists</a>
-      </div>
-      <div class="cms-banner" id="cmsBadge">
-        CMS fallback mode: this preview is still using the seeded local data until Sanity is
-        connected.
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-num" id="statT">—</div>
-          <div class="hero-stat-label">Reviewed Specialists</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num" id="statS">—</div>
-          <div class="hero-stat-label">Licensed States</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num" id="statTH">—</div>
-          <div class="hero-stat-label">Offer Telehealth</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num" id="statAcc">—</div>
-          <div class="hero-stat-label">Accepting Patients</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="start-here">
-      <div class="start-here-card">
-        <div class="start-here-top">
-          <div>
-            <div class="start-here-kicker">Start Here</div>
-            <h2>Choose one of two simple paths</h2>
-          </div>
-          <p>
-            Most first-time visitors should start with matching. Browse directly only if you already
-            know you want to compare profiles yourself.
+    <section class="hero" id="startMatch">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="hero-eyebrow" id="heroEyebrow">Bipolar-focused therapist matching</div>
+          <h1 id="heroTitle">Find a bipolar-informed therapist without the usual guesswork</h1>
+          <p id="heroDescription">
+            Tell us your ZIP code and the kind of support you want. We’ll guide you to a smaller,
+            more relevant shortlist built around bipolar care.
           </p>
+          <div class="hero-proof" aria-label="Why start here">
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel1">How long it takes</span>
+              <span class="hero-proof-value" id="heroProofValue1"
+                >About 2 minutes to begin and get to a more focused shortlist.</span
+              >
+            </div>
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel2">Designed for</span>
+              <span class="hero-proof-value" id="heroProofValue2"
+                >Therapy and psychiatry options shaped around bipolar care.</span
+              >
+            </div>
+            <div class="hero-proof-item">
+              <span class="hero-proof-label" id="heroProofLabel3">Currently available</span>
+              <span class="hero-proof-value" id="heroProofValue3"
+                >Matching California ZIP codes right now.</span
+              >
+            </div>
+          </div>
         </div>
-        <div class="start-here-grid">
-          <a href="match.html" class="start-here-option">
-            <div class="start-here-label">Recommended first step</div>
-            <div class="start-here-title">Get matched</div>
-            <div class="start-here-copy">
-              Answer a few questions and let the product narrow the field for you with calmer,
-              trust-first shortlist guidance.
+        <div class="tool-shell">
+          <div class="tool-card">
+            <div class="tool-kicker">Start your match</div>
+            <div class="tool-title" id="toolTitle">Get a smaller, more relevant shortlist</div>
+            <p>
+              Pick the kind of support you want and enter your ZIP code. We’ll take you straight
+              into the guided match flow.
+            </p>
+            <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
+              <div class="hero-validation-title">Almost there</div>
+              <div class="hero-validation-list" id="heroValidationList"></div>
             </div>
-            <div class="start-here-link">Start with matching →</div>
-          </a>
-          <a href="directory.html" class="start-here-option">
-            <div class="start-here-label">Browse on your own</div>
-            <div class="start-here-title">Browse reviewed specialists</div>
-            <div class="start-here-copy">
-              Compare bipolar-focused therapists and psychiatrists with clearer trust, reachability,
-              and contact detail.
+            <form
+              class="search-box"
+              id="homeSearchForm"
+              action="match.html"
+              method="get"
+              novalidate
+            >
+              <div class="search-field search-field--prompt">
+                <label for="homepage_interest">What kind of support do you want first?</label>
+                <select id="homepage_interest" required>
+                  <option value="">What kind of support do you want first?</option>
+                  <option value="therapist">Therapy</option>
+                  <option value="psychiatrist">Psychiatry</option>
+                </select>
+              </div>
+              <div class="search-field search-field--zip">
+                <label id="locationLabel">Enter your ZIP code</label>
+                <div class="zip-inline">
+                  <input
+                    type="text"
+                    id="location"
+                    name="location_query"
+                    placeholder="Enter ZIP code"
+                    inputmode="numeric"
+                    maxlength="5"
+                    pattern="[0-9]{5}"
+                    required
+                  />
+                  <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
+                </div>
+              </div>
+              <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
+              <input
+                type="hidden"
+                id="homepage_medication_need"
+                name="needs_medication_management"
+                value=""
+              />
+              <div class="search-launch-note">Currently matching California ZIP codes.</div>
+              <button type="submit" class="search-btn" id="searchButton">Start my match</button>
+            </form>
+            <div class="search-helper" id="searchHelper">
+              <strong>Next:</strong> answer a few quick questions and see a more relevant shortlist.
             </div>
-            <div class="start-here-link">Open the directory →</div>
-          </a>
+            <div class="tool-trust-row" aria-label="Trust signals">
+              <div class="tool-trust-pill" id="homeTrustPill1">
+                Built specifically for bipolar-related care search
+              </div>
+              <div class="tool-trust-pill" id="homeTrustPill2">No account required</div>
+              <a class="tool-trust-pill tool-trust-pill--secondary" href="directory.html">
+                Prefer to browse first?
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="ease-strip">
+    <section class="ease-strip" id="howItWorks">
       <div class="ease-strip-card">
-        <div class="ease-strip-top">
-          <div>
-            <div class="ease-strip-kicker">How It Works</div>
-            <h2>What happens after you start</h2>
-          </div>
-          <p>
-            We try to make the first good decision easier, not force you through a complicated
-            search.
-          </p>
-        </div>
+        <div class="ease-strip-kicker">How It Works</div>
         <div class="ease-strip-grid">
           <div class="ease-strip-step">
             <div class="ease-strip-step-num">Step 1</div>
-            <div class="ease-strip-step-title">Tell us what kind of care you need</div>
+            <div class="ease-strip-step-title">Start with the care you need</div>
             <div class="ease-strip-step-copy">
-              Start with Los Angeles or California telehealth, then add practical needs like format,
-              insurance, or medication support.
+              Choose your ZIP code and whether you want therapy or psychiatry support first.
             </div>
           </div>
           <div class="ease-strip-step">
             <div class="ease-strip-step-num">Step 2</div>
-            <div class="ease-strip-step-title">Review a calmer shortlist</div>
+            <div class="ease-strip-step-title">Compare bipolar-relevant options</div>
             <div class="ease-strip-step-copy">
-              See why profiles stand out, what was reviewed, and which options look easiest to act
-              on first.
+              Review profiles built to highlight fit, specialty relevance, and practical next-step
+              details.
             </div>
           </div>
           <div class="ease-strip-step">
             <div class="ease-strip-step-num">Step 3</div>
-            <div class="ease-strip-step-title">Reach out with clearer next steps</div>
+            <div class="ease-strip-step-title">Reach out with more confidence</div>
             <div class="ease-strip-step-copy">
-              Use the contact path, trust detail, and backup options to decide who to contact first
-              without guessing.
+              Move from browsing to contact with less guesswork about who may be the strongest fit.
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-teaser">
-      <div class="home-teaser-card">
-        <div class="home-teaser-top">
-          <div>
-            <div class="home-teaser-kicker">Why This Feels Easier</div>
-            <h2>See what the product helps you notice before you reach out</h2>
-            <p>
-              BipolarTherapyHub is built to make the first good decision easier: who looks most
-              credible, who feels most reachable, and which next step seems easiest to actually use.
-            </p>
-          </div>
-          <div class="home-teaser-tabs" id="homeTeaserTabs"></div>
-        </div>
-        <div class="home-teaser-body">
-          <div class="home-teaser-explainer" id="homeTeaserExplainer"></div>
-          <div class="home-teaser-preview" id="homeTeaserPreview"></div>
-        </div>
-        <div class="disc" style="margin-top: 1rem">
-          We can compare structured trust, fit, and follow-through signals, but we cannot know
-          personal chemistry, exact live availability, or clinical quality from profile data alone.
         </div>
       </div>
     </section>
@@ -1181,7 +1225,8 @@
     <footer>
       <div class="f-logo">BipolarTherapyHub</div>
       <p id="footerTagline">
-        Guided bipolar-specialist matching with trust signals and backup planning
+        A focused directory for finding bipolar-informed therapy with more clarity and less
+        overwhelm
       </p>
       <ul>
         <li><a href="directory.html">Find a Therapist</a></li>
@@ -1195,6 +1240,85 @@
       </div>
     </footer>
 
+    <script>
+      (function () {
+        var form = document.getElementById("homeSearchForm");
+        var locationInput = document.getElementById("location");
+        var interestInput = document.getElementById("homepage_interest");
+        var careIntentInput = document.getElementById("homepage_care_intent");
+        var medicationNeedInput = document.getElementById("homepage_medication_need");
+        if (!form) {
+          return;
+        }
+
+        function isLikelyCaliforniaZip(loc) {
+          if (!/^\d{5}$/.test(loc)) {
+            return false;
+          }
+
+          var zipPrefix = Number(loc.slice(0, 3));
+          return zipPrefix >= 900 && zipPrefix <= 961;
+        }
+
+        function syncHiddenFields() {
+          var loc = locationInput ? String(locationInput.value || "").trim() : "";
+          var interest = interestInput ? String(interestInput.value || "").trim() : "";
+
+          if (!careIntentInput || !medicationNeedInput) {
+            return;
+          }
+
+          if (interest === "therapist") {
+            careIntentInput.value = "Therapy";
+            medicationNeedInput.value = "No";
+            return;
+          }
+
+          if (interest === "psychiatrist") {
+            careIntentInput.value = "Psychiatry";
+            medicationNeedInput.value = "Yes";
+            return;
+          }
+
+          careIntentInput.value = "";
+          medicationNeedInput.value = "";
+        }
+
+        form.addEventListener("submit", function (event) {
+          syncHiddenFields();
+
+          if (typeof window.handleSearch === "function") {
+            window.handleSearch(event);
+            return;
+          }
+
+          var loc = locationInput ? String(locationInput.value || "").trim() : "";
+          var interest = interestInput ? String(interestInput.value || "").trim() : "";
+          if (!interest) {
+            event.preventDefault();
+            if (interestInput) {
+              interestInput.focus();
+            }
+            return;
+          }
+
+          if (!/^\d{5}$/.test(loc) || !isLikelyCaliforniaZip(loc)) {
+            event.preventDefault();
+            if (locationInput) {
+              locationInput.focus();
+            }
+            return;
+          }
+        });
+
+        var button = document.getElementById("searchButton");
+        if (button) {
+          button.addEventListener("click", function () {
+            syncHiddenFields();
+          });
+        }
+      })();
+    </script>
     <script type="module" src="assets/home.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>

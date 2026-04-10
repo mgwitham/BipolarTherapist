@@ -1,5 +1,6 @@
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
+import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
   fetchTherapistClaimSession,
@@ -144,6 +145,551 @@ function buildPortalRequestOptions(verifiedClaim, therapist) {
   });
 }
 
+function getRelatedApplication(therapist, options) {
+  if (!therapist) {
+    return null;
+  }
+
+  var claimedEmail = String(
+    (options && options.claimedEmail) || therapist.claimed_by_email || therapist.email || "",
+  )
+    .trim()
+    .toLowerCase();
+  var therapistSlug = String(therapist.slug || "").trim();
+  var applications = getApplications();
+
+  return (
+    applications.find(function (item) {
+      var itemEmail = String(item.email || "")
+        .trim()
+        .toLowerCase();
+      return (
+        item.target_therapist_slug === therapistSlug ||
+        item.slug === therapistSlug ||
+        (claimedEmail && itemEmail === claimedEmail)
+      );
+    }) || null
+  );
+}
+
+function buildPortalProgressData(application) {
+  if (!application) {
+    return null;
+  }
+
+  var portalState = application.portal_state || "";
+  var followUpStatus = application.claim_follow_up_status || "not_started";
+  var stages = [
+    {
+      label: "Claim submitted",
+      done:
+        ["claim_pending_review", "claim_in_review", "claim_needs_attention"].includes(
+          portalState,
+        ) ||
+        application.submission_intent === "claim" ||
+        application.status === "approved",
+    },
+    {
+      label: "Claim approved",
+      done: [
+        "claimed_ready_for_profile",
+        "profile_submitted_after_claim",
+        "profile_in_review_after_claim",
+        "approved_ready_to_publish",
+        "live",
+      ].includes(portalState),
+    },
+    {
+      label: "Follow-up received",
+      done: ["sent", "responded", "full_profile_started"].includes(followUpStatus),
+    },
+    {
+      label: "Full profile started",
+      done: followUpStatus === "full_profile_started",
+    },
+    {
+      label: "Full profile submitted",
+      done: ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
+        portalState,
+      ),
+    },
+  ];
+
+  var nextAction = "Use the update flow if you need to change any operational details.";
+  if (portalState === "claimed_ready_for_profile") {
+    nextAction = "Complete your fuller profile so we can review trust, fit, and listing readiness.";
+  } else if (portalState === "profile_submitted_after_claim") {
+    nextAction = "Your fuller profile is submitted. We are preparing it for review.";
+  } else if (portalState === "profile_in_review_after_claim") {
+    nextAction =
+      "Your fuller profile is in review. We are checking trust, fit, and publish readiness.";
+  } else if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
+    nextAction = "We are still verifying ownership and your core profile details.";
+  } else if (portalState === "claim_needs_attention") {
+    nextAction = "Review the requested fixes so we can finish verifying your claim.";
+  }
+
+  return {
+    statusLabel: application.portal_state_label || "In progress",
+    nextStep: application.portal_next_step || nextAction,
+    stages: stages,
+  };
+}
+
+function buildPortalNextAction(therapist, application) {
+  if (!application) {
+    return {
+      title: "Claim your profile first",
+      body: "Once your claim is verified, this portal can show your exact progress and next step.",
+      ctaLabel: "",
+      href: "",
+    };
+  }
+
+  var focusField = getPortalResumeField(application);
+  var focusLabel = getPortalResumeFieldLabel(focusField);
+  var resumeHref = getPortalSignupHref(therapist, application, focusField);
+  var liveProfileHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug);
+  var portalState = application.portal_state || "";
+
+  if (portalState === "claimed_ready_for_profile") {
+    return {
+      title: "Complete your full profile",
+      body:
+        "Your claim is approved. Start with " +
+        focusLabel +
+        " so we can review your listing for trust, fit, and publish readiness.",
+      ctaLabel: "Complete full profile",
+      href: resumeHref,
+    };
+  }
+
+  if (portalState === "profile_submitted_after_claim") {
+    return {
+      title: "Full profile received",
+      body: "Your fuller profile arrived after claim approval and is queued for review.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  if (portalState === "profile_in_review_after_claim") {
+    return {
+      title: "Full profile in review",
+      body: "We are reviewing trust, fit, and listing readiness before this profile moves toward publish.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  if (portalState === "claim_needs_attention") {
+    return {
+      title: "Your claim needs one more pass",
+      body:
+        "We still need a few ownership or profile basics tightened before we can finish verifying the claim. Start with " +
+        focusLabel +
+        ".",
+      ctaLabel: "Update claim details",
+      href: resumeHref,
+    };
+  }
+
+  if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
+    return {
+      title: "Claim review in progress",
+      body: "We are verifying ownership and your core profile details. Once that clears, your next step will be the fuller profile.",
+      ctaLabel: "View live profile",
+      href: liveProfileHref,
+    };
+  }
+
+  return {
+    title: "Your profile is moving",
+    body:
+      application.portal_next_step ||
+      "We will keep this portal aligned to your current review step.",
+    ctaLabel: "View live profile",
+    href: liveProfileHref,
+  };
+}
+
+function getPortalResumeField(application) {
+  if (!application) {
+    return "";
+  }
+
+  if (!application.bio || String(application.bio).trim().length < 50) {
+    return "bio";
+  }
+  if (!application.care_approach || String(application.care_approach).trim().length < 40) {
+    return "care_approach";
+  }
+  if (!(application.specialties && application.specialties.length)) {
+    return "specialties";
+  }
+  if (!(application.treatment_modalities && application.treatment_modalities.length)) {
+    return "treatment_modalities";
+  }
+  if (!application.contact_guidance) {
+    return "contact_guidance";
+  }
+  if (!application.first_step_expectation) {
+    return "first_step_expectation";
+  }
+  if (!application.preferred_contact_label) {
+    return "preferred_contact_label";
+  }
+  if (!application.estimated_wait_time) {
+    return "estimated_wait_time";
+  }
+  if (
+    application.accepts_telehealth &&
+    !(application.telehealth_states && application.telehealth_states.length)
+  ) {
+    return "telehealth_states";
+  }
+  return "bio";
+}
+
+function getPortalResumeFieldLabel(fieldName) {
+  if (fieldName === "bio") return "your professional bio";
+  if (fieldName === "care_approach") return "how you help bipolar clients";
+  if (fieldName === "specialties") return "your specialties";
+  if (fieldName === "treatment_modalities") return "your treatment modalities";
+  if (fieldName === "contact_guidance") return "your contact guidance";
+  if (fieldName === "first_step_expectation") return "what happens after outreach";
+  if (fieldName === "preferred_contact_label") return "your primary contact button";
+  if (fieldName === "estimated_wait_time") return "your wait-time details";
+  if (fieldName === "telehealth_states") return "your telehealth states";
+  return "your profile details";
+}
+
+function getPortalSignupHref(therapist, application, focusField) {
+  var focusSuffix = focusField ? "&focus=" + encodeURIComponent(focusField) : "";
+  var targetSlug =
+    (application && application.target_therapist_slug) || (therapist && therapist.slug) || "";
+
+  if (application && application.portal_state === "claim_needs_attention" && application.id) {
+    return "signup.html?revise=" + encodeURIComponent(application.id) + focusSuffix;
+  }
+
+  if (targetSlug) {
+    return "signup.html?confirm=" + encodeURIComponent(targetSlug) + focusSuffix;
+  }
+
+  return "signup.html" + (focusField ? "?focus=" + encodeURIComponent(focusField) : "");
+}
+
+function buildPortalProfileCoaching(application) {
+  if (!application) {
+    return null;
+  }
+
+  var readiness = getTherapistMatchReadiness(application);
+  var missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
+  var strengths = Array.isArray(readiness.strengths) ? readiness.strengths : [];
+
+  if (!missingItems.length && !strengths.length) {
+    return null;
+  }
+
+  return {
+    scoreLabel: readiness.label + " · " + readiness.score + "/100",
+    missingItems: missingItems.slice(0, 4),
+    strengths: strengths.slice(0, 3),
+  };
+}
+
+function buildPortalTimeline(application, therapist) {
+  var items = [];
+  if (therapist && therapist.claimed_at) {
+    items.push({
+      label: "Profile claimed",
+      date: therapist.claimed_at,
+    });
+  }
+  if (application && application.created_at) {
+    items.push({
+      label:
+        application.submission_intent === "claim"
+          ? "Claim submitted"
+          : "Profile submission received",
+      date: application.created_at,
+    });
+  }
+  if (application && application.claim_follow_up_sent_at) {
+    items.push({
+      label: "Follow-up sent",
+      date: application.claim_follow_up_sent_at,
+    });
+  }
+  if (application && application.claim_follow_up_response_at) {
+    items.push({
+      label:
+        application.claim_follow_up_status === "full_profile_started"
+          ? "Full profile started"
+          : "Therapist responded",
+      date: application.claim_follow_up_response_at,
+    });
+  }
+  if (application && application.updated_at && application.portal_state) {
+    items.push({
+      label: application.portal_state_label || "Status updated",
+      date: application.updated_at,
+    });
+  }
+
+  return items
+    .filter(function (item) {
+      return item.date;
+    })
+    .sort(function (a, b) {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    })
+    .slice(0, 5);
+}
+
+function buildPortalExpectations(application) {
+  if (!application) {
+    return {
+      headline: "Claim review usually starts after ownership is confirmed.",
+      body: "Once a claim is verified, the next milestone is completing the fuller profile so it can move into listing review.",
+    };
+  }
+
+  var portalState = application.portal_state || "";
+
+  if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
+    return {
+      headline: "Next expected step: claim verification.",
+      body: "Expect the next update to be either claim approval or a request for a few ownership details to be tightened.",
+    };
+  }
+
+  if (portalState === "claim_needs_attention") {
+    return {
+      headline: "Next expected step: revised claim review.",
+      body: "Once you update the requested details, the next milestone is finishing claim approval so you can move into the fuller profile.",
+    };
+  }
+
+  if (portalState === "claimed_ready_for_profile") {
+    return {
+      headline: "Next expected step: fuller profile submission.",
+      body: "The biggest unlock now is completing the richer trust, fit, and care details so your listing can move into review.",
+    };
+  }
+
+  if (portalState === "profile_submitted_after_claim") {
+    return {
+      headline: "Next expected step: review start.",
+      body: "Your fuller profile is in the queue. The next visible move should be review activity on trust, fit, and publish readiness.",
+    };
+  }
+
+  if (portalState === "profile_in_review_after_claim") {
+    return {
+      headline: "Next expected step: publish decision or requested changes.",
+      body: "Once review completes, the most likely outcomes are a publish-ready decision or a short list of profile fixes.",
+    };
+  }
+
+  if (portalState === "approved_ready_to_publish" || portalState === "live") {
+    return {
+      headline: "Next expected step: live listing upkeep.",
+      body: "From here, the main work is keeping operational details fresh so the profile stays trustworthy and match-ready.",
+    };
+  }
+
+  return {
+    headline: "Next expected step: review progress.",
+    body:
+      application.portal_next_step ||
+      "We will keep this portal aligned to the next review milestone.",
+  };
+}
+
+function buildPortalUrgency(application) {
+  if (!application) {
+    return null;
+  }
+
+  var portalState = application.portal_state || "";
+  var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+  var now = new Date();
+  var ageDays =
+    updatedAt && !Number.isNaN(updatedAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+  if (portalState === "claimed_ready_for_profile" && ageDays >= 3) {
+    return {
+      label: "Recommended this week",
+      body: "Your claim is already approved. Completing the fuller profile now is the fastest way to keep your listing momentum moving.",
+    };
+  }
+
+  if (portalState === "claim_needs_attention") {
+    return {
+      label: "Needs attention",
+      body: "There are still a few details to tighten before we can finish claim verification.",
+    };
+  }
+
+  if (portalState === "profile_submitted_after_claim" && ageDays >= 2) {
+    return {
+      label: "In queue now",
+      body: "Your fuller profile is already submitted and should be moving through review next.",
+    };
+  }
+
+  if (portalState === "profile_in_review_after_claim" && ageDays >= 5) {
+    return {
+      label: "Review taking longer",
+      body: "Your fuller profile is still in review. Nothing is wrong on its face, but this is taking longer than the fastest review path.",
+    };
+  }
+
+  return null;
+}
+
+function buildPortalReviewerFeedback(application) {
+  if (!application) {
+    return null;
+  }
+
+  var message = String(application.review_request_message || "").trim();
+  var history = Array.isArray(application.revision_history) ? application.revision_history : [];
+  var latestRequest = history
+    .slice()
+    .reverse()
+    .find(function (entry) {
+      return entry && entry.type === "requested_changes";
+    });
+
+  if (!message && !(latestRequest && latestRequest.message)) {
+    return null;
+  }
+
+  return {
+    message: message || (latestRequest && latestRequest.message) || "",
+    requestedAt: latestRequest && latestRequest.at ? latestRequest.at : "",
+  };
+}
+
+function buildPortalReviewReadinessSignal(application) {
+  if (!application) {
+    return null;
+  }
+
+  var portalState = String(application.portal_state || "");
+  var readiness = getTherapistMatchReadiness(application);
+  var missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
+
+  if (
+    ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState) &&
+    readiness.score >= 85 &&
+    readiness.completeness_score >= 80
+  ) {
+    return {
+      label: "Strong review candidate",
+      body: "Your fuller profile is detailed enough that it looks close to publish-ready after review. Keep practical details fresh while it moves through the queue.",
+    };
+  }
+
+  if (portalState === "profile_in_review_after_claim") {
+    var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+    var ageDays =
+      updatedAt && !Number.isNaN(updatedAt.getTime())
+        ? Math.max(
+            0,
+            Math.floor((new Date().getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)),
+          )
+        : 0;
+    if (ageDays >= 5) {
+      return {
+        label: "Still moving, just slower",
+        body: "Your profile is already in the real review queue. This step is taking longer than the fastest cases, but the right move is still to keep practical details accurate while we finish the review pass.",
+      };
+    }
+  }
+
+  if (portalState === "claimed_ready_for_profile" && readiness.score >= 75) {
+    return {
+      label: "Close to review-ready",
+      body: "You already have a strong base. Finishing the remaining trust and fit details should move this much closer to a real review pass.",
+    };
+  }
+
+  if (portalState === "claim_needs_attention" && missingItems.length) {
+    return {
+      label: "One focused update helps most",
+      body:
+        "Tightening the next missing item is the fastest way to keep this moving: " +
+        missingItems[0],
+    };
+  }
+
+  return null;
+}
+
+function buildPortalReviewTiming(application) {
+  if (!application) {
+    return null;
+  }
+
+  var portalState = String(application.portal_state || "");
+  var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+  var createdAt = application.created_at ? new Date(application.created_at) : null;
+  var now = new Date();
+  var updatedAgeDays =
+    updatedAt && !Number.isNaN(updatedAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+  var createdAgeDays =
+    createdAt && !Number.isNaN(createdAt.getTime())
+      ? Math.max(0, Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+  if (portalState === "profile_in_review_after_claim") {
+    return {
+      label: "Current review age",
+      body:
+        "Your fuller profile has been in the review phase for " +
+        updatedAgeDays +
+        " day" +
+        (updatedAgeDays === 1 ? "" : "s") +
+        ".",
+    };
+  }
+
+  if (portalState === "profile_submitted_after_claim") {
+    return {
+      label: "Waiting in queue",
+      body:
+        "Your fuller profile was submitted " +
+        createdAgeDays +
+        " day" +
+        (createdAgeDays === 1 ? "" : "s") +
+        " ago and is waiting for the next review pass.",
+    };
+  }
+
+  if (portalState === "claimed_ready_for_profile") {
+    return {
+      label: "Time since claim approval",
+      body:
+        "Your approved claim has been waiting on the fuller profile for " +
+        updatedAgeDays +
+        " day" +
+        (updatedAgeDays === 1 ? "" : "s") +
+        ".",
+    };
+  }
+
+  return null;
+}
+
 function renderLookupState() {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -194,6 +740,20 @@ function renderPortal(therapist, options) {
   var requestOptions = buildPortalRequestOptions(verifiedClaim, therapist);
   var quickAttentionItems = getQuickAttentionItems(therapist);
   var claimedEmail = therapist.claimed_by_email || therapist.email || "";
+  var relatedApplication = verifiedClaim
+    ? getRelatedApplication(therapist, { claimedEmail: claimedEmail })
+    : null;
+  var progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
+  var nextAction = buildPortalNextAction(therapist, relatedApplication);
+  var profileCoaching = verifiedClaim ? buildPortalProfileCoaching(relatedApplication) : null;
+  var portalTimeline = verifiedClaim ? buildPortalTimeline(relatedApplication, therapist) : [];
+  var expectations = verifiedClaim ? buildPortalExpectations(relatedApplication) : null;
+  var urgency = verifiedClaim ? buildPortalUrgency(relatedApplication) : null;
+  var reviewerFeedback = verifiedClaim ? buildPortalReviewerFeedback(relatedApplication) : null;
+  var reviewReadinessSignal = verifiedClaim
+    ? buildPortalReviewReadinessSignal(relatedApplication)
+    : null;
+  var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">Claim and manage your profile</p><h1>' +
@@ -260,6 +820,121 @@ function renderPortal(therapist, options) {
         ".</span>"
       : "") +
     "</div></article>" +
+    '<article class="portal-card"><h2>Recommended next step</h2><div class="portal-list"><div><strong>' +
+    escapeHtml(nextAction.title) +
+    "</strong></div><div>" +
+    escapeHtml(nextAction.body) +
+    "</div></div>" +
+    (nextAction.href && nextAction.ctaLabel
+      ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
+        escapeHtml(nextAction.href) +
+        '">' +
+        escapeHtml(nextAction.ctaLabel) +
+        "</a></div>"
+      : "") +
+    "</article>" +
+    (progress
+      ? '<article class="portal-card"><h2>Your progress</h2><div class="portal-list"><div><strong>Current status:</strong> ' +
+        escapeHtml(progress.statusLabel) +
+        "</div><div><strong>Next step:</strong> " +
+        escapeHtml(progress.nextStep) +
+        '</div></div><div class="portal-list" style="margin-top:0.85rem">' +
+        progress.stages
+          .map(function (stage) {
+            return "<div>" + (stage.done ? "✓ " : "○ ") + escapeHtml(stage.label) + "</div>";
+          })
+          .join("") +
+        (relatedApplication && relatedApplication.portal_state === "claimed_ready_for_profile"
+          ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
+            escapeHtml(
+              getPortalSignupHref(
+                therapist,
+                relatedApplication,
+                getPortalResumeField(relatedApplication),
+              ),
+            ) +
+            '">Complete full profile</a></div>'
+          : "") +
+        "</div></article>"
+      : "") +
+    (profileCoaching
+      ? '<article class="portal-card"><h2>What Will Strengthen Your Profile</h2><div class="portal-list"><div><strong>Current readiness:</strong> ' +
+        escapeHtml(profileCoaching.scoreLabel) +
+        "</div>" +
+        (profileCoaching.missingItems.length
+          ? '<div><strong>Best next additions:</strong></div><div class="portal-list">' +
+            profileCoaching.missingItems
+              .map(function (item) {
+                return "<div>• " + escapeHtml(item) + "</div>";
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileCoaching.strengths.length
+          ? '<div style="margin-top:0.4rem"><strong>Already helping your profile:</strong></div><div class="portal-list">' +
+            profileCoaching.strengths
+              .map(function (item) {
+                return "<div>✓ " + escapeHtml(item) + "</div>";
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        "</div></article>"
+      : "") +
+    (portalTimeline.length
+      ? '<article class="portal-card"><h2>Recent Progress</h2><div class="portal-list">' +
+        portalTimeline
+          .map(function (item) {
+            return (
+              "<div><strong>" +
+              escapeHtml(item.label) +
+              ":</strong> " +
+              escapeHtml(formatDate(item.date) || "Recently") +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div></article>"
+      : "") +
+    (expectations
+      ? '<article class="portal-card"><h2>What To Expect Next</h2><div class="portal-list"><div><strong>' +
+        escapeHtml(expectations.headline) +
+        "</strong></div><div>" +
+        escapeHtml(expectations.body) +
+        "</div></div></article>"
+      : "") +
+    (urgency
+      ? '<article class="portal-card"><h2>Priority Signal</h2><div class="portal-list"><div><strong>' +
+        escapeHtml(urgency.label) +
+        "</strong></div><div>" +
+        escapeHtml(urgency.body) +
+        "</div></div></article>"
+      : "") +
+    (reviewReadinessSignal
+      ? '<article class="portal-card"><h2>Review Readiness Signal</h2><div class="portal-list"><div><strong>' +
+        escapeHtml(reviewReadinessSignal.label) +
+        "</strong></div><div>" +
+        escapeHtml(reviewReadinessSignal.body) +
+        "</div></div></article>"
+      : "") +
+    (reviewTiming
+      ? '<article class="portal-card"><h2>Review Timing</h2><div class="portal-list"><div><strong>' +
+        escapeHtml(reviewTiming.label) +
+        "</strong></div><div>" +
+        escapeHtml(reviewTiming.body) +
+        "</div></div></article>"
+      : "") +
+    (reviewerFeedback
+      ? '<article class="portal-card"><h2>Reviewer Feedback</h2><div class="portal-list">' +
+        (reviewerFeedback.requestedAt
+          ? "<div><strong>Requested:</strong> " +
+            escapeHtml(formatDate(reviewerFeedback.requestedAt) || "Recently") +
+            "</div>"
+          : "") +
+        "<div>" +
+        escapeHtml(reviewerFeedback.message) +
+        "</div></div></article>"
+      : "") +
     '<article class="portal-card"><h2>What needs attention</h2><div class="portal-list">' +
     quickAttentionItems
       .map(function (item) {
