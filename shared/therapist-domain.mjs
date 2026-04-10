@@ -70,7 +70,9 @@ export function normalizeWebsite(value) {
     const pathname = url.pathname.replace(/\/+$/, "");
     return `${url.hostname.toLowerCase()}${pathname}`;
   } catch (_error) {
-    return normalizeLower(raw).replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    return normalizeLower(raw)
+      .replace(/^https?:\/\//, "")
+      .replace(/\/+$/, "");
   }
 }
 
@@ -103,9 +105,13 @@ export function compareDuplicateIdentity(identity, candidate) {
   const candidateSlug = slugify(candidate.slug || candidate.submittedSlug || "");
   const candidateEmail = normalizeEmail(candidate.email);
   const candidatePhone = normalizePhone(candidate.phone);
-  const candidateWebsite = normalizeWebsite(candidate.website || candidate.bookingUrl || candidate.booking_url);
+  const candidateWebsite = normalizeWebsite(
+    candidate.website || candidate.bookingUrl || candidate.booking_url,
+  );
   const candidateLicenseState = normalizeLower(candidate.licenseState || candidate.license_state);
-  const candidateLicenseNumber = normalizeLicense(candidate.licenseNumber || candidate.license_number);
+  const candidateLicenseNumber = normalizeLicense(
+    candidate.licenseNumber || candidate.license_number,
+  );
   const candidateName = normalizeLower(candidate.name);
   const candidateCity = normalizeLower(candidate.city);
   const candidateState = normalizeLower(candidate.state);
@@ -184,9 +190,7 @@ export function buildProviderId(input) {
 export function normalizeFieldReviewStates(value, options = {}) {
   const keyStyle = options.keyStyle === "camelCase" ? "camelCase" : "snake_case";
   const fallback =
-    options.fallbackState === undefined
-      ? FIELD_REVIEW_STATE_UNKNOWN
-      : options.fallbackState;
+    options.fallbackState === undefined ? FIELD_REVIEW_STATE_UNKNOWN : options.fallbackState;
   const states = value && typeof value === "object" ? value : {};
 
   return FIELD_REVIEW_STATE_KEYS[keyStyle].reduce(function (accumulator, key) {
