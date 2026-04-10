@@ -9,6 +9,16 @@ const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const DEFAULT_LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const DEFAULT_LOGIN_MAX_ATTEMPTS = 10;
 
+function getDefaultAllowedOrigins() {
+  const ports = Array.from({ length: 13 }, function (_value, index) {
+    return 5173 + index;
+  });
+
+  return ports.flatMap(function (port) {
+    return [`http://localhost:${port}`, `http://127.0.0.1:${port}`];
+  });
+}
+
 function parseBooleanEnv(value, fallback) {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -50,14 +60,7 @@ export function getReviewApiConfig() {
   const allowedOrigins = (
     process.env.REVIEW_API_ALLOWED_ORIGINS ||
     rootEnv.REVIEW_API_ALLOWED_ORIGINS ||
-    [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "http://localhost:5174",
-      "http://127.0.0.1:5174",
-      "http://localhost:5175",
-      "http://127.0.0.1:5175",
-    ].join(",")
+    getDefaultAllowedOrigins().join(",")
   )
     .split(",")
     .map(function (origin) {

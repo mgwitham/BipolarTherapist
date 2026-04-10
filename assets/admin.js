@@ -383,8 +383,12 @@ const listingsWorkspace = createListingsWorkspace({
   getTherapistMatchReadiness: getTherapistMatchReadiness,
   getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
   getRouteHealthWarnings: getRouteHealthWarnings,
-  getRouteHealthActionItems: getRouteHealthActionItems,
-  queueRouteHealthFollowUp: queueRouteHealthFollowUp,
+  getRouteHealthActionItems: function (record) {
+    return getRouteHealthActionItems(record);
+  },
+  queueRouteHealthFollowUp: function (therapistId, actionKey) {
+    return queueRouteHealthFollowUp(therapistId, actionKey);
+  },
   getTherapists: getTherapists,
   homepageFeaturedFallbackSlugs: [
     "dr-stacia-mills-pasadena-ca",
