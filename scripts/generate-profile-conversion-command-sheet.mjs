@@ -4,7 +4,12 @@ import process from "node:process";
 
 const ROOT = process.cwd();
 const INPUT_PATH = path.join(ROOT, "data", "import", "generated-profile-conversion-tracker.csv");
-const OUTPUT_PATH = path.join(ROOT, "data", "import", "generated-profile-conversion-command-sheet.md");
+const OUTPUT_PATH = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-profile-conversion-command-sheet.md",
+);
 const DEFAULT_LIMIT = 5;
 
 function parseCsv(content) {
@@ -76,7 +81,9 @@ function mapRowsToObjects(rows) {
 function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find((arg) => arg.startsWith("--limit="));
-  const limit = limitArg ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT) : DEFAULT_LIMIT;
+  const limit = limitArg
+    ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT)
+    : DEFAULT_LIMIT;
   const rows = mapRowsToObjects(parseCsv(fs.readFileSync(INPUT_PATH, "utf8"))).slice(0, limit);
 
   const lines = [

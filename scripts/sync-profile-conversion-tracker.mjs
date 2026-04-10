@@ -147,7 +147,9 @@ function main() {
 
   const trackerData = mapRowsToObjects(parseCsv(fs.readFileSync(config.tracker, "utf8")));
   const responseData = mapRowsToObjects(parseCsv(fs.readFileSync(config.input, "utf8")));
-  const trackerBySlug = new Map(trackerData.items.map((row) => [String(row.slug || "").trim(), row]));
+  const trackerBySlug = new Map(
+    trackerData.items.map((row) => [String(row.slug || "").trim(), row]),
+  );
   let updatedCount = 0;
 
   responseData.items.forEach((response) => {

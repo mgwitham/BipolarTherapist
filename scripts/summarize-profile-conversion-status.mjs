@@ -91,7 +91,9 @@ function mapRowsToObjects(rows) {
 }
 
 function normalize(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function countBy(rows, predicate) {
@@ -111,10 +113,12 @@ function main() {
   const sent = countBy(rows, (row) => normalize(row.outreach_status) === "sent");
   const replied = countBy(rows, (row) => normalize(row.reply_status) === "received");
   const applied = countBy(rows, (row) => normalize(row.applied_to_profile) === "yes");
-  const followUpDue = rows.filter((row) => row.follow_up_due).map((row) => ({
-    name: row.name,
-    due: row.follow_up_due,
-  }));
+  const followUpDue = rows
+    .filter((row) => row.follow_up_due)
+    .map((row) => ({
+      name: row.name,
+      due: row.follow_up_due,
+    }));
 
   console.log(`Profiles in conversion tracker: ${total}`);
   console.log(`Not started: ${notStarted}`);
