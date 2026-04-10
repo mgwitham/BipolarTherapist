@@ -1,13 +1,5 @@
 export async function handleApplicationRoutes(context) {
-  const {
-    client,
-    config,
-    deps,
-    origin,
-    request,
-    response,
-    routePath,
-  } = context;
+  const { client, config, deps, origin, request, response, routePath } = context;
 
   const {
     buildApplicationDocument,
@@ -164,8 +156,7 @@ export async function handleApplicationRoutes(context) {
       await client.create(
         buildApplicationReviewEvent(existing, {
           eventType: "application_follow_up_updated",
-          therapistId:
-            existing.publishedTherapistId || existing.targetTherapistId || "",
+          therapistId: existing.publishedTherapistId || existing.targetTherapistId || "",
           decision: "update_follow_up",
           reviewStatus: existing.status || "pending",
           actorName,

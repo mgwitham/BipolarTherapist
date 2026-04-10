@@ -38,7 +38,10 @@ function purgeExpiredLoginWindows(config) {
 export function getSecurityWarnings(config) {
   const warnings = [];
 
-  if (!(config.adminUsername && config.adminPassword) && !(config.allowLegacyKey && config.adminKey)) {
+  if (
+    !(config.adminUsername && config.adminPassword) &&
+    !(config.allowLegacyKey && config.adminKey)
+  ) {
     warnings.push("Review API admin credentials are not configured.");
   }
   if (config.allowLegacyKey && config.adminKey) {

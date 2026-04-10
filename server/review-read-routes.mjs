@@ -107,16 +107,7 @@ function buildCsvResponse(rows, columns) {
 }
 
 export async function handleReadRoutes(context) {
-  const {
-    client,
-    config,
-    deps,
-    origin,
-    request,
-    response,
-    routePath,
-    url,
-  } = context;
+  const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
     annotateProviderFieldObservationForDisplay,
@@ -265,7 +256,9 @@ export async function handleReadRoutes(context) {
     }
 
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
-    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const format = String((url && url.searchParams.get("format")) || "json")
+      .trim()
+      .toLowerCase();
     const docs = await client.fetch(
       `*[_type == "matchRequest"] | order(coalesce(createdAt, _createdAt) desc)[0...$limit]{
         _id,
@@ -365,7 +358,9 @@ export async function handleReadRoutes(context) {
     }
 
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
-    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const format = String((url && url.searchParams.get("format")) || "json")
+      .trim()
+      .toLowerCase();
     const docs = await client.fetch(
       `*[_type == "matchOutcome"] | order(coalesce(recordedAt, _createdAt) desc)[0...$limit]{
         _id,
@@ -476,7 +471,9 @@ export async function handleReadRoutes(context) {
     }
 
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 200, 1000);
-    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const format = String((url && url.searchParams.get("format")) || "json")
+      .trim()
+      .toLowerCase();
     const docs = await client.fetch(
       `*[_type == "providerFieldObservation" && providerId == $providerId] | order(fieldName asc)[0...$limit]{
         _id,
@@ -548,7 +545,13 @@ export async function handleReadRoutes(context) {
         configuredReviewers.length
           ? []
           : config.adminUsername
-            ? [{ id: slugifyReviewerId(config.adminUsername), name: config.adminUsername, active: true }]
+            ? [
+                {
+                  id: slugifyReviewerId(config.adminUsername),
+                  name: config.adminUsername,
+                  active: true,
+                },
+              ]
             : [],
       )
       .concat(
@@ -665,7 +668,9 @@ export async function handleReadRoutes(context) {
     }
 
     const laneFilter = String((url && url.searchParams.get("lane")) || "").trim();
-    const format = String((url && url.searchParams.get("format")) || "json").trim().toLowerCase();
+    const format = String((url && url.searchParams.get("format")) || "json")
+      .trim()
+      .toLowerCase();
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 500, 1000);
 
     const docs = await client.fetch(
@@ -731,9 +736,11 @@ export async function handleReadRoutes(context) {
       const csv = [headers.join(",")]
         .concat(
           rows.map(function (row) {
-            return headers.map(function (key) {
-              return formatCsvCell(row[key]);
-            }).join(",");
+            return headers
+              .map(function (key) {
+                return formatCsvCell(row[key]);
+              })
+              .join(",");
           }),
         )
         .join("\n");

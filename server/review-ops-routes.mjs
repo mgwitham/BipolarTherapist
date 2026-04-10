@@ -1,13 +1,5 @@
 export async function handleOpsRoutes(context) {
-  const {
-    client,
-    config,
-    deps,
-    origin,
-    request,
-    response,
-    routePath,
-  } = context;
+  const { client, config, deps, origin, request, response, routePath } = context;
 
   const {
     addDays,

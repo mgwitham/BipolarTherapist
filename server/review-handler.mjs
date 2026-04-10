@@ -208,9 +208,15 @@ function addDays(isoString, days) {
 function computeCandidateReviewMeta(candidateLike) {
   const readiness = Number(candidateLike.readinessScore || 0) || 0;
   const extractionConfidence = Number(candidateLike.extractionConfidence || 0) || 0;
-  const reviewStatus = String(candidateLike.reviewStatus || "queued").trim().toLowerCase();
-  const dedupeStatus = String(candidateLike.dedupeStatus || "unreviewed").trim().toLowerCase();
-  const recommendation = String(candidateLike.publishRecommendation || "").trim().toLowerCase();
+  const reviewStatus = String(candidateLike.reviewStatus || "queued")
+    .trim()
+    .toLowerCase();
+  const dedupeStatus = String(candidateLike.dedupeStatus || "unreviewed")
+    .trim()
+    .toLowerCase();
+  const recommendation = String(candidateLike.publishRecommendation || "")
+    .trim()
+    .toLowerCase();
   const now = new Date().toISOString();
 
   if (reviewStatus === "published" || reviewStatus === "archived") {
@@ -498,7 +504,12 @@ function createReviewRouteModules() {
           input,
           existingApplication,
         ) {
-          return buildRevisionFieldUpdates(client, input, existingApplication, applicationSupportDeps);
+          return buildRevisionFieldUpdates(
+            client,
+            input,
+            existingApplication,
+            applicationSupportDeps,
+          );
         },
         buildTherapistApplicationFieldPatch,
         buildTherapistDocument,

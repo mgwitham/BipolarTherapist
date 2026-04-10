@@ -140,10 +140,7 @@ test("read routes return a shared reviewer roster for authorized admins", async 
       },
     ],
   });
-  const handler = createReviewApiHandler(
-    createTestApiConfig(),
-    client,
-  );
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
   const sessionToken = await loginAsAdmin(handler);
   const response = await runHandlerRequest(handler, {
     headers: {
@@ -1016,10 +1013,7 @@ test("top-level review handler supports authenticated application approval", asy
 
   assert.equal(approveResponse.statusCode, 200);
   assert.equal(approveResponse.payload.ok, true);
-  assert.equal(
-    approveResponse.payload.therapistId,
-    "therapist-dr-jamie-rivera-los-angeles-ca",
-  );
+  assert.equal(approveResponse.payload.therapistId, "therapist-dr-jamie-rivera-los-angeles-ca");
 
   const updatedApplication = state.documents.get("application-1");
   const therapist = state.documents.get("therapist-dr-jamie-rivera-los-angeles-ca");
@@ -1031,10 +1025,7 @@ test("top-level review handler supports authenticated application approval", asy
     );
   });
   assert.equal(updatedApplication.status, "approved");
-  assert.equal(
-    updatedApplication.publishedTherapistId,
-    "therapist-dr-jamie-rivera-los-angeles-ca",
-  );
+  assert.equal(updatedApplication.publishedTherapistId, "therapist-dr-jamie-rivera-los-angeles-ca");
   assert.equal(therapist._type, "therapist");
   assert.equal(observationDocuments.length > 0, true);
   assert.equal(
@@ -1167,10 +1158,7 @@ test("top-level review handler supports authenticated candidate publish decision
     );
   });
   assert.equal(updatedCandidate.reviewStatus, "published");
-  assert.equal(
-    updatedCandidate.publishedTherapistId,
-    "therapist-dr-casey-north-seattle-wa",
-  );
+  assert.equal(updatedCandidate.publishedTherapistId, "therapist-dr-casey-north-seattle-wa");
   assert.equal(publishedTherapist._type, "therapist");
   assert.equal(observationDocuments.length > 0, true);
   assert.equal(
@@ -1331,8 +1319,8 @@ test("top-level review handler returns and exports provider observations for aut
       _type: "providerFieldObservation",
       providerId: "provider-ca-88804",
       fieldName: "languages",
-      rawValue: "[\"English\",\"Spanish\"]",
-      normalizedValue: "[\"English\",\"Spanish\"]",
+      rawValue: '["English","Spanish"]',
+      normalizedValue: '["English","Spanish"]',
       sourceType: "therapist",
       sourceDocumentType: "therapist",
       sourceDocumentId: "therapist-aubri-gomez-los-angeles-ca",

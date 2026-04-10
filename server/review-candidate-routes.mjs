@@ -1,13 +1,5 @@
 export async function handleCandidateRoutes(context) {
-  const {
-    client,
-    config,
-    deps,
-    origin,
-    request,
-    response,
-    routePath,
-  } = context;
+  const { client, config, deps, origin, request, response, routePath } = context;
 
   const {
     addDays,
@@ -62,7 +54,13 @@ export async function handleCandidateRoutes(context) {
       };
     }
     if (!Object.keys(allowedUpdates).length) {
-      sendJson(response, 400, { error: "No valid candidate updates were provided." }, origin, config);
+      sendJson(
+        response,
+        400,
+        { error: "No valid candidate updates were provided." },
+        origin,
+        config,
+      );
       return true;
     }
 
@@ -342,7 +340,11 @@ export async function handleCandidateRoutes(context) {
           ),
         ),
         sourceReviewedAt: candidate.sourceReviewedAt || application.sourceReviewedAt || now,
-        notes: [application.notes, notes, `Merged candidate: ${candidate.name || candidate.candidateId}`]
+        notes: [
+          application.notes,
+          notes,
+          `Merged candidate: ${candidate.name || candidate.candidateId}`,
+        ]
           .filter(Boolean)
           .join("\n\n"),
       });

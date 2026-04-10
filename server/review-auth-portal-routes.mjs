@@ -1,14 +1,5 @@
 export async function handleAuthAndPortalRoutes(context) {
-  const {
-    client,
-    config,
-    deps,
-    origin,
-    request,
-    response,
-    routePath,
-    url,
-  } = context;
+  const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
     buildPortalRequestDocument,
@@ -46,9 +37,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const usingLegacyKey = config.allowLegacyKey && config.adminKey;
 
     const valid =
-      (usingUserPass &&
-        username === config.adminUsername &&
-        password === config.adminPassword) ||
+      (usingUserPass && username === config.adminUsername && password === config.adminPassword) ||
       (usingLegacyKey && password === config.adminKey);
 
     if (!valid) {
@@ -61,9 +50,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const sessionToken = createSignedSession(config, {
       username: usingUserPass ? username || config.adminUsername : "legacy-admin-key",
     });
-    const actorId = usingUserPass
-      ? username || config.adminUsername
-      : "legacy-admin-key";
+    const actorId = usingUserPass ? username || config.adminUsername : "legacy-admin-key";
     sendJson(
       response,
       200,
