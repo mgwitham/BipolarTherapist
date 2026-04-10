@@ -429,7 +429,11 @@ async function run() {
   fs.writeFileSync(OUTPUT_JSON, JSON.stringify(queues.activeRows, null, 2) + "\n", "utf8");
   writeCsv(DEFERRED_OUTPUT_CSV, queues.deferredRows);
   writeMarkdown(DEFERRED_OUTPUT_MD, "Deferred Licensure Queue", queues.deferredRows);
-  fs.writeFileSync(DEFERRED_OUTPUT_JSON, JSON.stringify(queues.deferredRows, null, 2) + "\n", "utf8");
+  fs.writeFileSync(
+    DEFERRED_OUTPUT_JSON,
+    JSON.stringify(queues.deferredRows, null, 2) + "\n",
+    "utf8",
+  );
 
   console.log(
     `Generated licensure refresh queue with ${queues.activeRows.length} active record(s) and ${queues.deferredRows.length} deferred record(s).`,

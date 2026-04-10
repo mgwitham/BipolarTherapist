@@ -26,7 +26,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -185,7 +187,9 @@ function buildRows(data) {
       licensure_record_id: "",
       name: (therapist && therapist.name) || "Unnamed therapist",
       credentials: (therapist && therapist.credentials) || "",
-      location: therapist ? [therapist.city, therapist.state, therapist.zip].filter(Boolean).join(", ") : "",
+      location: therapist
+        ? [therapist.city, therapist.state, therapist.zip].filter(Boolean).join(", ")
+        : "",
       license_status: "",
       official_profile_url: "",
       profile_link: therapist && therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
@@ -234,7 +238,16 @@ function writeCsv(rows) {
 }
 
 function writeMarkdown(rows) {
-  const lines = ["# Licensure Activity Feed", "", `Generated: ${new Date().toISOString()}`, "", `- Activity items: ${rows.length}`, "", "## Recent activity", ""];
+  const lines = [
+    "# Licensure Activity Feed",
+    "",
+    `Generated: ${new Date().toISOString()}`,
+    "",
+    `- Activity items: ${rows.length}`,
+    "",
+    "## Recent activity",
+    "",
+  ];
   rows.slice(0, 25).forEach((row, index) => {
     lines.push(`### ${index + 1}. ${row.name || "Unnamed therapist"}`);
     lines.push(`- Activity: ${labelActivityType(row.activity_type)}`);

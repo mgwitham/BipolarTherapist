@@ -83,7 +83,8 @@ function scoreCandidate(candidate) {
   if (Array.isArray(candidate.languages) && candidate.languages.length) score += 5;
   if (candidate.acceptingNewPatients) score += 5;
   if (candidate.preferredContactMethod) score += 5;
-  if (candidate.extractionConfidence) score += Math.round(Number(candidate.extractionConfidence) * 15);
+  if (candidate.extractionConfidence)
+    score += Math.round(Number(candidate.extractionConfidence) * 15);
   if (candidate.dedupeStatus === "possible_duplicate") score -= 25;
   if (candidate.reviewStatus === "needs_confirmation") score -= 10;
   return Math.max(0, Math.min(100, score));
@@ -165,7 +166,9 @@ function buildCsv(candidates) {
       joinList(candidate.specialties),
       joinList(candidate.languages),
       candidate.notes,
-    ].map(csvEscape).join(",");
+    ]
+      .map(csvEscape)
+      .join(",");
   });
 
   return [headers.join(","), ...rows].join("\n");
@@ -204,7 +207,9 @@ function buildMarkdown(candidates) {
 
   candidates.slice(0, 15).forEach(function (candidate, index) {
     lines.push(`### ${index + 1}. ${candidate.name || "Unnamed candidate"}`);
-    lines.push(`- Location: ${[candidate.city, candidate.state, candidate.zip].filter(Boolean).join(", ")}`);
+    lines.push(
+      `- Location: ${[candidate.city, candidate.state, candidate.zip].filter(Boolean).join(", ")}`,
+    );
     lines.push(`- Review status: ${candidate.reviewStatus || "queued"}`);
     lines.push(`- Dedupe status: ${candidate.dedupeStatus || "unreviewed"}`);
     lines.push(`- Readiness score: ${candidate.readinessScore || 0}`);

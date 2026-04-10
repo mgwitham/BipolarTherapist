@@ -228,15 +228,13 @@ function buildRows(data) {
       profile_link: therapist.slug ? `therapist.html?slug=${therapist.slug}` : "",
     }));
 
-  return candidateRows
-    .concat(therapistRows)
-    .sort((a, b) => {
-      const priorityDiff = (Number(b.priority) || 0) - (Number(a.priority) || 0);
-      if (priorityDiff) {
-        return priorityDiff;
-      }
-      return toTimestamp(a.next_due) - toTimestamp(b.next_due);
-    });
+  return candidateRows.concat(therapistRows).sort((a, b) => {
+    const priorityDiff = (Number(b.priority) || 0) - (Number(a.priority) || 0);
+    if (priorityDiff) {
+      return priorityDiff;
+    }
+    return toTimestamp(a.next_due) - toTimestamp(b.next_due);
+  });
 }
 
 function writeCsv(rows) {

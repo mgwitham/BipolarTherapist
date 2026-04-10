@@ -206,7 +206,12 @@ function computeTherapistVerificationMeta(row) {
     return value instanceof Date && !Number.isNaN(value.getTime());
   });
   const lastOperationalReviewAt = validDates.length
-    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
+    ? new Date(
+        Math.max.apply(
+          null,
+          validDates.map((value) => value.getTime()),
+        ),
+      ).toISOString()
     : "";
   const needsReconfirmationCount = [
     row.estimatedWaitTimeReviewState,
