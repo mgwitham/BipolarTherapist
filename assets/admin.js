@@ -1,4 +1,5 @@
 import {
+  approveApplication,
   getApplications,
   getStats,
   getTherapists,
@@ -10,9 +11,27 @@ import {
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
 import {
+  checkAdminReviewApiAvailability,
+  loadGeneratedAdminArtifacts,
+  loadRemoteAdminSnapshot,
+} from "./admin-data.js";
+import { createAdminReviewModels } from "./admin-review-models.js";
+import { createReviewerWorkspace } from "./admin-reviewer-workspace.js";
+import {
   approveTherapistApplication,
+  applyTherapistApplicationFields,
   checkReviewApiHealth,
+  decideTherapistCandidate,
+  decideLicensureOps,
+  decideTherapistOps,
+  exportReviewEvents,
+  fetchAdminSession,
+  fetchReviewEvents,
+  fetchTherapistCandidates,
   fetchTherapistPortalRequests,
+  fetchTherapistReviewers,
+  getAdminActorId,
+  getAdminActorName,
   getAdminSessionToken,
   fetchTherapistApplications,
   rejectTherapistApplication as rejectTherapistApplicationRemote,
@@ -20,6 +39,8 @@ import {
   signInAdmin,
   signOutAdmin,
   updateTherapistApplication,
+  updateTherapistCandidate,
+  updateTherapistReviewers,
   updateTherapistPortalRequest,
 } from "./review-api.js";
 import {
@@ -34,17 +55,109 @@ import {
 } from "./matching-model.js";
 import {
   readFunnelEvents,
+  setPromotedExperimentVariant,
+  summarizeContactRouteOutcomePerformance,
   summarizeAdaptiveSignals,
+  summarizeDirectoryProfileOpenQuality,
+  summarizeExperimentDecisions,
+  summarizeExperimentPerformance,
   summarizeFunnelEvents,
+  summarizeProfileContactExperimentDecision,
+  summarizeProfileContactOutcomeValidation,
+  summarizeProfileContactSignals,
+  summarizeProfileQueueProgress,
+  summarizePatientJourney,
 } from "./funnel-analytics.js";
+import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
+import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
+import { renderCandidateQueuePanel } from "./admin-candidate-queue.js";
+import { renderApplicationsPanel } from "./admin-application-review.js";
+import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
+import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
+import { renderLicensureQueuePanel } from "./admin-licensure-queue.js";
+import { renderLicensureSprintPanel } from "./admin-licensure-sprint.js";
+import { renderDeferredLicensureQueuePanel } from "./admin-licensure-deferred-queue.js";
+import { renderLicensureActivityPanel } from "./admin-licensure-activity.js";
+import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
+import { renderConfirmationSprintPanel } from "./admin-confirmation-sprint.js";
+import { renderConfirmationQueuePanel } from "./admin-confirmation-queue.js";
+import { renderConciergeQueuePanel } from "./admin-concierge-queue.js";
+import { createConfirmationWorkspace } from "./admin-confirmation-workspace.js";
+import { createListingsWorkspace } from "./admin-listings-workspace.js";
+import { getNextBestAdminActions } from "./admin-priority-actions.js";
+import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
+import { createAdminDashboardCardBuilders } from "./admin-dashboard-cards.js";
+import { createAdminWorkQueueHelpers } from "./admin-work-queue.js";
+import { createAdminRouteHealthActions } from "./admin-route-health-actions.js";
+import { getSourceReferenceMeta } from "./admin-source-reference.js";
+import {
+  getRouteHealthWarnings,
+  isBookingRouteHealthy,
+  isWebsiteRouteHealthy,
+} from "./route-health.js";
+import {
+  createAdminRuntimeState,
+  createRemoteAuthRequiredState,
+  createRemoteSignedInState,
+} from "./admin-state.js";
+import {
+  buildCoverageInsights,
+  renderCoverageIntelligencePanel,
+  renderSourcePerformancePanel,
+} from "./admin-sourcing-intelligence.js";
+
+if (typeof document !== "undefined" && document.documentElement) {
+  document.documentElement.setAttribute("data-admin-boot", "script-loaded");
+}
+if (typeof window !== "undefined" && window.addEventListener && document.documentElement) {
+  window.addEventListener("error", function (event) {
+    document.documentElement.setAttribute("data-admin-boot", "boot-error");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String(
+        (event && event.error && event.error.message) ||
+          (event && event.message) ||
+          "unknown-error",
+      ),
+    );
+  });
+  window.addEventListener("unhandledrejection", function (event) {
+    var reason = event ? event.reason : "";
+    document.documentElement.setAttribute("data-admin-boot", "boot-error");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String((reason && reason.message) || reason || "unhandled-rejection"),
+    );
+  });
+}
 
 let dataMode = "local";
 let remoteApplications = [];
+let remoteCandidates = [];
 let remotePortalRequests = [];
+let remoteReviewEvents = [];
+let remoteReviewerRoster = [];
+let reviewActivityItems = [];
+let reviewActivityNextCursor = "";
+let reviewActivityLoading = false;
 let publishedTherapists = [];
+let applicationLiveApplySummaries = {};
+let ingestionAutomationHistory = [];
+let licensureRefreshQueue = [];
+let deferredLicensureQueue = [];
+let licensureActivityFeed = [];
+let profileConversionFreshnessQueue = [];
 let authRequired = false;
-let rankingRiskFilter = "";
-let confirmationQueueFilter = "";
+let licensureQueueFilter = "";
+let licensureActivityFilter = "";
+let reviewActivityFilter = "";
+let reviewActivitySavedViewId = "";
+const reviewerWorkspaceUi = {
+  workloadFilter: "",
+  workloadSlice: "all",
+  myQueueMode: false,
+};
+let adminWorkflowUrlParamsApplied = false;
 let conciergeFilters = {
   status: "",
 };
@@ -53,23 +166,8 @@ let portalRequestFilters = {
 };
 const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-const CONFIRMATION_QUEUE_KEY = "bth_confirmation_queue_v1";
-const CONFIRMATION_RESPONSE_VALUES_KEY = "bth_confirmation_response_values_v1";
-const LAUNCH_PROFILE_CONTROLS_KEY = "bth_launch_profile_controls_v1";
-const CONFIRMATION_RESPONSE_FIELDS = [
-  "bipolarYearsExperience",
-  "estimatedWaitTime",
-  "insuranceAccepted",
-  "yearsExperience",
-  "telehealthStates",
-];
-const CONFIRMATION_RESPONSE_ITEM_FIELD_MAP = {
-  bipolarYearsExperience: ["bipolarYearsExperience", "bipolar_years_experience"],
-  estimatedWaitTime: ["estimatedWaitTime", "estimated_wait_time"],
-  insuranceAccepted: ["insuranceAccepted", "insurance_accepted"],
-  yearsExperience: ["yearsExperience", "years_experience"],
-  telehealthStates: ["telehealthStates", "telehealth_states"],
-};
+const REVIEW_ACTIVITY_VIEW_KEY = "bth_review_activity_view_v1";
+const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
 const REQUEST_STATUS_OPTIONS = ["new", "triaging", "in_progress", "waiting_on_user", "resolved"];
 const THERAPIST_FOLLOW_UP_OPTIONS = [
   "unreviewed",
@@ -85,138 +183,488 @@ const CONFIRMATION_STATUS_OPTIONS = [
   "confirmed",
   "applied",
 ];
-const LAUNCH_STATE_OPTIONS = ["standard", "launch_ready", "featured"];
-const HOMEPAGE_FEATURED_FALLBACK_SLUGS = [
-  "dr-stacia-mills-pasadena-ca",
-  "dr-sylvia-cartwright-la-jolla-ca",
-  "dr-kalen-flynn-los-angeles-ca",
-  "dr-mike-mah-los-angeles-ca",
-  "dr-daniel-kaushansky-los-angeles-ca",
-  "dr-je-ko-los-angeles-ca",
-];
-const CALIFORNIA_PRIORITY_CONFIRMATION_SLUGS = [
-  "maya-smolarek-pasadena-ca",
-  "dr-stacia-mills-pasadena-ca",
-  "dr-sylvia-cartwright-la-jolla-ca",
-  "dr-je-ko-los-angeles-ca",
-  "dr-daniel-kaushansky-los-angeles-ca",
-];
-const CALIFORNIA_PRIORITY_CONFIRMATION_META = {
-  "maya-smolarek-pasadena-ca": {
-    first_action:
-      "Ask for Dr. Maya Smolarek by name and confirm whether Pasadena or California telehealth is the right intake path first.",
-    follow_up_rule:
-      "If front-desk staff cannot confirm on the call, ask for the best email or callback path and follow up within 2 business days.",
-    follow_up_business_days: 2,
-  },
-  "dr-stacia-mills-pasadena-ca": {
-    first_action:
-      "Lead with the free mini-consultation framing and keep the ask tight: bipolar-years first, wait time second.",
-    follow_up_rule:
-      "If there is no reply, follow up once after 4 business days and then leave the fields unchanged until confirmed.",
-    follow_up_business_days: 4,
-  },
-  "dr-sylvia-cartwright-la-jolla-ca": {
-    first_action:
-      "Use the online scheduling or contact path and position this as a brief profile-accuracy confirmation for California telehealth patients.",
-    follow_up_rule:
-      "If there is no response through the website path, try one phone follow-up during listed office hours before pausing.",
-    follow_up_business_days: 2,
-  },
-  "dr-je-ko-los-angeles-ca": {
-    first_action:
-      "Lead with whether the inquiry is for Westwood in-person care or California telepsychiatry, then keep the ask tight: bipolar-years first, timing second.",
-    follow_up_rule:
-      "If there is no response through the website path, follow up once by phone during listed office hours before pausing.",
-    follow_up_business_days: 2,
-  },
-  "dr-daniel-kaushansky-los-angeles-ca": {
-    first_action:
-      "Lead with the free bipolar therapy consultation framing and keep the ask focused on bipolar-years first, then timing and insurance stance if available.",
-    follow_up_rule:
-      "If there is no reply, follow up once by email or phone within 3 business days and then leave the fields unchanged until confirmed.",
-    follow_up_business_days: 3,
-  },
-};
 let applicationFilters = {
   q: "",
   status: "",
   focus: "",
   goal: "balanced",
 };
-let launchProfileFilters = {
-  state: "",
-  lane: "",
+let candidateFilters = {
+  q: "",
+  review_status: "",
+  dedupe_status: "",
+  review_lane: "",
 };
+const reviewerWorkspace = createReviewerWorkspace({
+  applicationFilters: applicationFilters,
+  candidateFilters: candidateFilters,
+  escapeHtml: escapeHtml,
+  formatDate: formatDate,
+  getAdminActorId: getAdminActorId,
+  getAdminActorName: getAdminActorName,
+  getApplications: getApplications,
+  getPublishedTherapists: function () {
+    return dataMode === "sanity" ? publishedTherapists : getTherapists();
+  },
+  getRuntimeState: function () {
+    return {
+      authRequired: authRequired,
+      dataMode: dataMode,
+      remoteApplications: remoteApplications,
+      remoteCandidates: remoteCandidates,
+      remoteReviewerRoster: remoteReviewerRoster,
+    };
+  },
+  loadData: loadData,
+  renderApplications: function () {
+    renderApplications();
+  },
+  renderCandidateQueue: function () {
+    renderCandidateQueue();
+  },
+  renderTherapistOpsQueues: function () {
+    renderRefreshQueue();
+    renderImportBlockerSprint();
+    renderConfirmationSprint();
+    renderConfirmationQueue();
+  },
+  setRemoteReviewerRoster: function (nextRoster) {
+    remoteReviewerRoster = nextRoster;
+  },
+  uiState: reviewerWorkspaceUi,
+  updateTherapistApplication: updateTherapistApplication,
+  updateTherapistCandidate: updateTherapistCandidate,
+  updateTherapistReviewers: updateTherapistReviewers,
+});
+const reviewModels = createAdminReviewModels({
+  applicationFilters: applicationFilters,
+  applicationLiveApplySummaries: function () {
+    return applicationLiveApplySummaries;
+  },
+  escapeHtml: escapeHtml,
+  formatDate: formatDate,
+  formatFieldLabel: formatFieldLabel,
+  formatLocationLine: formatLocationLine,
+  formatStatusLabel: formatStatusLabel,
+  getAfterClaimReviewStall: getAfterClaimReviewStall,
+  getBooleanRecordValue: getBooleanRecordValue,
+  getClaimFollowUpUrgency: getClaimFollowUpUrgency,
+  getDataMode: function () {
+    return dataMode;
+  },
+  getPhotoSourceLabel: getPhotoSourceLabel,
+  getPublishedTherapists: function () {
+    return publishedTherapists;
+  },
+  getRecordValue: getRecordValue,
+  getTherapistMatchReadiness: getTherapistMatchReadiness,
+  getTherapists: getTherapists,
+  hasPreferredPhotoSource: hasPreferredPhotoSource,
+  isConfirmationRefreshApplication: isConfirmationRefreshApplication,
+  normalizeListValue: normalizeListValue,
+});
+const confirmationWorkspace = createConfirmationWorkspace({
+  buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+  buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
+  buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
+  buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
+  buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+  californiaPriorityConfirmationMeta: {
+    "maya-smolarek-pasadena-ca": {
+      first_action:
+        "Ask for Dr. Maya Smolarek by name and confirm whether Pasadena or California telehealth is the right intake path first.",
+      follow_up_rule:
+        "If front-desk staff cannot confirm on the call, ask for the best email or callback path and follow up within 2 business days.",
+      follow_up_business_days: 2,
+    },
+    "dr-stacia-mills-pasadena-ca": {
+      first_action:
+        "Lead with the free mini-consultation framing and keep the ask tight: bipolar-years first, wait time second.",
+      follow_up_rule:
+        "If there is no reply, follow up once after 4 business days and then leave the fields unchanged until confirmed.",
+      follow_up_business_days: 4,
+    },
+    "dr-sylvia-cartwright-la-jolla-ca": {
+      first_action:
+        "Use the online scheduling or contact path and position this as a brief profile-accuracy confirmation for California telehealth patients.",
+      follow_up_rule:
+        "If there is no response through the website path, try one phone follow-up during listed office hours before pausing.",
+      follow_up_business_days: 2,
+    },
+    "dr-je-ko-los-angeles-ca": {
+      first_action:
+        "Lead with whether the inquiry is for Westwood in-person care or California telepsychiatry, then keep the ask tight: bipolar-years first, timing second.",
+      follow_up_rule:
+        "If there is no response through the website path, follow up once by phone during listed office hours before pausing.",
+      follow_up_business_days: 2,
+    },
+    "dr-daniel-kaushansky-los-angeles-ca": {
+      first_action:
+        "Lead with the free bipolar therapy consultation framing and keep the ask focused on bipolar-years first, then timing and insurance stance if available.",
+      follow_up_rule:
+        "If there is no reply, follow up once by email or phone within 3 business days and then leave the fields unchanged until confirmed.",
+      follow_up_business_days: 3,
+    },
+  },
+  californiaPriorityConfirmationSlugs: [
+    "maya-smolarek-pasadena-ca",
+    "dr-stacia-mills-pasadena-ca",
+    "dr-sylvia-cartwright-la-jolla-ca",
+    "dr-je-ko-los-angeles-ca",
+    "dr-daniel-kaushansky-los-angeles-ca",
+  ],
+  confirmationQueueKey: "bth_confirmation_queue_v1",
+  confirmationResponseFields: [
+    "bipolarYearsExperience",
+    "estimatedWaitTime",
+    "insuranceAccepted",
+    "yearsExperience",
+    "telehealthStates",
+    "sessionFeeMin",
+    "sessionFeeMax",
+    "slidingScale",
+  ],
+  confirmationResponseItemFieldMap: {
+    bipolarYearsExperience: ["bipolarYearsExperience", "bipolar_years_experience"],
+    estimatedWaitTime: ["estimatedWaitTime", "estimated_wait_time"],
+    insuranceAccepted: ["insuranceAccepted", "insurance_accepted"],
+    yearsExperience: ["yearsExperience", "years_experience"],
+    telehealthStates: ["telehealthStates", "telehealth_states"],
+    sessionFeeMin: ["sessionFeeMin", "session_fee_min"],
+    sessionFeeMax: ["sessionFeeMax", "session_fee_max"],
+    slidingScale: ["slidingScale", "sliding_scale"],
+  },
+  confirmationResponseValuesKey: "bth_confirmation_response_values_v1",
+  confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
+  copyText: copyText,
+  escapeHtml: escapeHtml,
+  formatDate: formatDate,
+  formatFieldLabel: formatFieldLabel,
+  formatStatusLabel: formatStatusLabel,
+  getPreferredFieldOrder: getPreferredFieldOrder,
+  getRuntimeState: function () {
+    return {
+      authRequired: authRequired,
+      dataMode: dataMode,
+      publishedTherapists: publishedTherapists,
+    };
+  },
+  getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+  getTherapists: getTherapists,
+  renderConfirmationQueue: function () {
+    renderConfirmationQueue();
+  },
+  renderConfirmationSprint: function () {
+    renderConfirmationSprint();
+  },
+  renderImportBlockerSprint: function () {
+    renderImportBlockerSprint();
+  },
+  renderStats: function () {
+    renderStats();
+  },
+});
+const listingsWorkspace = createListingsWorkspace({
+  copyText: copyText,
+  escapeHtml: escapeHtml,
+  formatDate: formatDate,
+  getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+  getDataFreshnessSummary: getDataFreshnessSummary,
+  getEditoriallyVerifiedOperationalCount: getEditoriallyVerifiedOperationalCount,
+  getRecentConfirmationSummary: getRecentConfirmationSummary,
+  getRuntimeState: function () {
+    return {
+      authRequired: authRequired,
+      dataMode: dataMode,
+      publishedTherapists: publishedTherapists,
+    };
+  },
+  getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+  getTherapistMatchReadiness: getTherapistMatchReadiness,
+  getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+  getRouteHealthWarnings: getRouteHealthWarnings,
+  getRouteHealthActionItems: getRouteHealthActionItems,
+  queueRouteHealthFollowUp: queueRouteHealthFollowUp,
+  getTherapists: getTherapists,
+  homepageFeaturedFallbackSlugs: [
+    "dr-stacia-mills-pasadena-ca",
+    "dr-sylvia-cartwright-la-jolla-ca",
+    "dr-kalen-flynn-los-angeles-ca",
+    "dr-mike-mah-los-angeles-ca",
+    "dr-daniel-kaushansky-los-angeles-ca",
+    "dr-je-ko-los-angeles-ca",
+  ],
+  launchProfileControlsKey: "bth_launch_profile_controls_v1",
+  launchStateOptions: ["standard", "launch_ready", "featured"],
+  readFunnelEvents: readFunnelEvents,
+  spotlightSection: function (target) {
+    spotlightSection(target);
+  },
+});
+const savedReviewActivityView = readReviewActivityView();
+if (savedReviewActivityView && typeof savedReviewActivityView.filter === "string") {
+  reviewActivityFilter = savedReviewActivityView.filter;
+}
+if (typeof window !== "undefined") {
+  var reviewActivityLaneParam = new URL(window.location.href).searchParams.get(
+    "reviewActivityLane",
+  );
+  if (typeof reviewActivityLaneParam === "string") {
+    reviewActivityFilter = reviewActivityLaneParam;
+  }
+}
+var savedReviewerPreference = reviewerWorkspace.getSavedPreference();
+if (savedReviewerPreference && typeof savedReviewerPreference.my_queue_mode === "boolean") {
+  reviewerWorkspaceUi.myQueueMode = savedReviewerPreference.my_queue_mode;
+}
+applyAdminWorkflowUrlParams();
 
-function spotlightSection(target) {
+function ensureWorkflowSectionRendered(sectionId) {
+  switch (sectionId) {
+    case "candidateQueuePanel":
+      renderCandidateQueue();
+      break;
+    case "applicationsPanel":
+      renderApplications();
+      break;
+    case "importBlockerSprintSection":
+      renderImportBlockerSprint();
+      break;
+    case "confirmationQueueSection":
+      renderConfirmationQueue();
+      break;
+    case "confirmationSprintSection":
+      renderConfirmationSprint();
+      break;
+    case "refreshQueueSection":
+      renderRefreshQueue();
+      break;
+    case "publishedListingsSection":
+      renderListings();
+      break;
+    default:
+      break;
+  }
+}
+const workflowNavigator = createAdminWorkflowNavigator({
+  escapeHtml: escapeHtml,
+  ensureSectionRendered: ensureWorkflowSectionRendered,
+  getGrid: function () {
+    return document.querySelector("#adminApp .grid");
+  },
+  workflowHashMap: {
+    candidateQueueStartHere: "candidateQueuePanel",
+    applicationReviewStartHere: "applicationsPanel",
+    importBlockerStartHere: "importBlockerSprintSection",
+    confirmationQueueStartHere: "confirmationQueueSection",
+    confirmationSprintStartHere: "confirmationSprintSection",
+    refreshQueueStartHere: "refreshQueueSection",
+    publishedListingsStartHere: "publishedListingsSection",
+  },
+});
+const applyWorkflowFocusMode = workflowNavigator.applyWorkflowFocusMode;
+const spotlightSection = workflowNavigator.spotlightSection;
+const clearWorkflowFocusMode = workflowNavigator.clearWorkflowFocusMode;
+const clearWorkflowHandoffs = workflowNavigator.clearWorkflowHandoffs;
+const focusAdminWorkflowTarget = workflowNavigator.focusAdminWorkflowTarget;
+const handleWorkflowPrimaryActionClick = workflowNavigator.handleWorkflowPrimaryActionClick;
+const scrollToElementWithOffset = workflowNavigator.scrollToElementWithOffset;
+const syncWorkflowFocusFromHash = workflowNavigator.syncWorkflowFocusFromHash;
+
+function readAdminWorkflowUrlParams() {
+  if (typeof window === "undefined") {
+    return { owner: "", therapistSlug: "" };
+  }
+  var params = new URLSearchParams(window.location.search || "");
+  return {
+    owner: String(params.get("owner") || "").trim(),
+    therapistSlug: String(params.get("therapistSlug") || "").trim(),
+  };
+}
+
+function applyAdminWorkflowUrlParams() {
+  if (typeof window === "undefined" || adminWorkflowUrlParamsApplied) {
+    return;
+  }
+  var params = readAdminWorkflowUrlParams();
+  if (params.owner) {
+    reviewerWorkspaceUi.workloadFilter = params.owner;
+    reviewerWorkspaceUi.myQueueMode = false;
+  }
+  adminWorkflowUrlParamsApplied = true;
+}
+
+function syncAdminWorkflowUrlFocus() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  var params = readAdminWorkflowUrlParams();
+  if (!params.therapistSlug) {
+    return;
+  }
+
+  var hash = window.location.hash ? window.location.hash.slice(1) : "";
+  var sectionTarget = hash ? document.getElementById(hash) : null;
+  var safeSlug = params.therapistSlug.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  var scopedTarget = document.querySelector('[data-admin-therapist-slug="' + safeSlug + '"]');
+  var target = scopedTarget || sectionTarget;
   if (!target) {
     return;
   }
-  target.classList.add("section-spotlight");
+  if (sectionTarget) {
+    applyWorkflowFocusMode(sectionTarget);
+  }
+  scrollToElementWithOffset(target, "start");
+  spotlightSection(target);
+}
+
+if (typeof window !== "undefined") {
+  if (window.history && "scrollRestoration" in window.history) {
+    window.history.scrollRestoration = "manual";
+  }
+  window.addEventListener("hashchange", function () {
+    syncWorkflowFocusFromHash();
+    window.setTimeout(function () {
+      syncAdminWorkflowUrlFocus();
+    }, 120);
+  });
   window.setTimeout(function () {
-    target.classList.remove("section-spotlight");
-  }, 1800);
+    applyAdminWorkflowUrlParams();
+    syncWorkflowFocusFromHash();
+    window.setTimeout(function () {
+      syncAdminWorkflowUrlFocus();
+    }, 120);
+    if (!window.location.hash && !readAdminWorkflowUrlParams().therapistSlug) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, 0);
 }
 
-function buildPassiveStatCard(value, label, meta) {
-  return (
-    '<div class="stat-card is-passive"><div class="stat-value">' +
-    escapeHtml(value) +
-    '</div><div class="stat-label">' +
-    escapeHtml(label) +
-    "</div>" +
-    (meta ? '<div class="stat-meta">' + escapeHtml(meta) + "</div>" : "") +
-    "</div>"
-  );
+function applyAdminRuntimeState(nextState) {
+  if (!nextState) {
+    return;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextState, "dataMode")) {
+    dataMode = nextState.dataMode;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "remoteApplications")) {
+    remoteApplications = nextState.remoteApplications;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "remoteCandidates")) {
+    remoteCandidates = nextState.remoteCandidates;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "remotePortalRequests")) {
+    remotePortalRequests = nextState.remotePortalRequests;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "remoteReviewEvents")) {
+    remoteReviewEvents = nextState.remoteReviewEvents;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "remoteReviewerRoster")) {
+    remoteReviewerRoster = nextState.remoteReviewerRoster;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityItems")) {
+    reviewActivityItems = nextState.reviewActivityItems;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityNextCursor")) {
+    reviewActivityNextCursor = nextState.reviewActivityNextCursor;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityLoading")) {
+    reviewActivityLoading = nextState.reviewActivityLoading;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "publishedTherapists")) {
+    publishedTherapists = nextState.publishedTherapists;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "ingestionAutomationHistory")) {
+    ingestionAutomationHistory = nextState.ingestionAutomationHistory;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "licensureRefreshQueue")) {
+    licensureRefreshQueue = nextState.licensureRefreshQueue;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "deferredLicensureQueue")) {
+    deferredLicensureQueue = nextState.deferredLicensureQueue;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "licensureActivityFeed")) {
+    licensureActivityFeed = nextState.licensureActivityFeed;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "profileConversionFreshnessQueue")) {
+    profileConversionFreshnessQueue = nextState.profileConversionFreshnessQueue;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, "authRequired")) {
+    authRequired = nextState.authRequired;
+  }
 }
 
-function buildActionStatCard(value, label, targetId, options) {
-  var config = options || {};
-  var attrs = [
-    'type="button"',
-    'class="stat-card is-actionable"',
-    'data-admin-scroll-target="' + escapeHtml(targetId) + '"',
-    'style="text-align:left;cursor:pointer"',
+function renderFallbackStats() {
+  var statsRoot = document.getElementById("adminStats");
+  if (!statsRoot || authRequired) {
+    return;
+  }
+  var fallbackCards = [
+    buildOperatorGuideCard({
+      kicker: "Add Supply",
+      title: "Add New Listings",
+      copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
+      steps: [
+        "Open the new-listings lane and inspect the original source.",
+        "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
+      ],
+      done: "The listing is moved into the right next state.",
+      actionLabel: "Open new-listings overview",
+      directActionLabel: "Start with first listing",
+      targetId: "candidateQueuePanel",
+      focusTargetId: "candidateQueueStartHere",
+      targetSummary: "Add New Listings -> first listing row",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Review Supply",
+      title: "Review Applications",
+      copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
+      steps: [
+        "Open the applications lane and start with the oldest or strongest pending item.",
+        "Approve, request changes, reject, or publish so the application leaves limbo.",
+      ],
+      done: "The application has a clear decision.",
+      actionLabel: "Open applications overview",
+      directActionLabel: "Start with top application",
+      targetId: "applicationsPanel",
+      focusTargetId: "applicationReviewStartHere",
+      targetSummary: "Review Applications -> top pending application",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Verify Trust",
+      title: "Fix Missing Listing Details",
+      copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
+      steps: [
+        "Open the missing-details lane and start with the top listing.",
+        "Verify the first missing detail or move the listing into confirmation if therapist input is required.",
+      ],
+      done: "The listing is no longer blocked by its top missing detail.",
+      actionLabel: "Open missing-details overview",
+      directActionLabel: "Start with first listing",
+      targetId: "importBlockerSprintSection",
+      focusTargetId: "importBlockerStartHere",
+      targetSummary: "Fix Missing Listing Details -> first listing row",
+    }),
+    buildOperatorGuideCard({
+      kicker: "Publish And Maintain",
+      title: "Review Listing Updates",
+      copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
+      steps: [
+        "Open the listing-updates lane and start with the highest-risk listing.",
+        "Review the stale or trust-risk fields and decide the next action.",
+      ],
+      done: "The listing has a clear maintenance decision recorded.",
+      actionLabel: "Open listing-updates overview",
+      directActionLabel: "Start with first refresh task",
+      targetId: "refreshQueueSection",
+      focusTargetId: "refreshQueueStartHere",
+      targetSummary: "Review Listing Updates -> first listing task",
+    }),
   ];
-  if (config.confirmationFilter !== undefined) {
-    attrs.push('data-admin-confirmation-filter="' + escapeHtml(config.confirmationFilter) + '"');
-  }
-  if (config.applicationStatus !== undefined) {
-    attrs.push('data-admin-application-status="' + escapeHtml(config.applicationStatus) + '"');
-  }
-  if (config.conciergeStatus !== undefined) {
-    attrs.push('data-admin-concierge-status="' + escapeHtml(config.conciergeStatus) + '"');
-  }
-  if (config.portalRequestStatus !== undefined) {
-    attrs.push('data-admin-portal-request-status="' + escapeHtml(config.portalRequestStatus) + '"');
-  }
-
-  return (
-    "<button " +
-    attrs.join(" ") +
-    '><div class="stat-value">' +
-    escapeHtml(value) +
-    '</div><div class="stat-label">' +
-    escapeHtml(label) +
-    "</div>" +
-    (config.meta ? '<div class="stat-meta">' + escapeHtml(config.meta) + "</div>" : "") +
-    '<div class="stat-action-note">' +
-    escapeHtml(config.actionLabel || "Open workflow") +
-    "</div></button>"
-  );
-}
-
-function wrapStatsGroup(title, cards, extraClass) {
-  return (
-    '<div class="stats-group"><div class="stats-group-title">' +
-    escapeHtml(title) +
-    '</div><div class="stats-grid' +
-    (extraClass ? " " + escapeHtml(extraClass) : "") +
-    '">' +
-    cards.join("") +
-    "</div></div>"
-  );
+  statsRoot.innerHTML =
+    '<div class="mini-status" style="margin-bottom:1rem"><strong>Admin note:</strong> Showing the resilient workflow launcher while the full dashboard reloads.</div>' +
+    wrapStatsGroup("Start Here", fallbackCards, "ops-grid");
 }
 
 function escapeHtml(value) {
@@ -226,6 +674,182 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function readReviewActivityView() {
+  try {
+    return JSON.parse(window.localStorage.getItem(REVIEW_ACTIVITY_VIEW_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeReviewActivityView(value) {
+  try {
+    window.localStorage.setItem(REVIEW_ACTIVITY_VIEW_KEY, JSON.stringify(value || {}));
+  } catch (_error) {
+    // Ignore storage errors and keep the UI usable.
+  }
+}
+
+function readReviewActivitySavedViews() {
+  try {
+    var views = JSON.parse(window.localStorage.getItem(REVIEW_ACTIVITY_SAVED_VIEWS_KEY) || "[]");
+    return Array.isArray(views) ? views : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function writeReviewActivitySavedViews(value) {
+  try {
+    window.localStorage.setItem(
+      REVIEW_ACTIVITY_SAVED_VIEWS_KEY,
+      JSON.stringify(Array.isArray(value) ? value : []),
+    );
+  } catch (_error) {
+    // Ignore storage errors and keep the UI usable.
+  }
+}
+
+function buildReviewActivityDeepLink() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  var nextUrl = new URL(window.location.href);
+  if (reviewActivityFilter) {
+    nextUrl.searchParams.set("reviewActivityLane", reviewActivityFilter);
+  } else {
+    nextUrl.searchParams.delete("reviewActivityLane");
+  }
+  return nextUrl.toString();
+}
+
+function syncReviewActivityDeepLink() {
+  if (typeof window === "undefined" || !window.history || !window.history.replaceState) {
+    return;
+  }
+  window.history.replaceState({}, "", buildReviewActivityDeepLink());
+}
+
+function renderReviewActivitySavedViews() {
+  var select = document.getElementById("reviewActivitySavedView");
+  if (!select) {
+    return;
+  }
+  var views = readReviewActivitySavedViews();
+  select.innerHTML =
+    '<option value="">Saved views</option>' +
+    views
+      .map(function (view) {
+        return (
+          '<option value="' +
+          escapeHtml(view.id) +
+          '">' +
+          escapeHtml(view.name || view.filter || "Saved view") +
+          "</option>"
+        );
+      })
+      .join("");
+  select.value = reviewActivitySavedViewId || "";
+}
+
+function getActiveReviewActivitySavedView() {
+  if (!reviewActivitySavedViewId) {
+    return null;
+  }
+  return (
+    readReviewActivitySavedViews().find(function (item) {
+      return item.id === reviewActivitySavedViewId;
+    }) || null
+  );
+}
+
+function renderReviewActivitySavedViewMeta() {
+  var root = document.getElementById("reviewActivitySavedViewMeta");
+  if (!root) {
+    return;
+  }
+  var activeView = getActiveReviewActivitySavedView();
+  if (!activeView) {
+    root.innerHTML = "";
+    return;
+  }
+  var statusLabel =
+    activeView.status === "resolved"
+      ? "Resolved"
+      : activeView.status === "blocked"
+        ? "Blocked"
+        : activeView.status === "watching"
+          ? "Watching"
+          : "Open";
+  root.innerHTML =
+    '<div class="mini-card" style="padding:0.9rem 1rem;margin:0 0 0.85rem">' +
+    '<div style="display:flex;justify-content:space-between;gap:0.8rem;align-items:flex-start;flex-wrap:wrap">' +
+    '<div><div style="font-weight:700;color:var(--navy)">' +
+    escapeHtml(activeView.name || "Saved review view") +
+    '</div><div class="subtle" style="margin-top:0.2rem">Saved handoff workspace for the current audit slice.</div></div>' +
+    '<span class="tag">' +
+    escapeHtml(statusLabel) +
+    "</span></div>" +
+    (activeView.note
+      ? '<div style="margin-top:0.7rem;font-size:0.88rem;color:var(--slate)">' +
+        escapeHtml(activeView.note) +
+        "</div>"
+      : '<div style="margin-top:0.7rem;font-size:0.84rem;color:var(--muted)">No reviewer note yet.</div>') +
+    '<div class="queue-actions" style="margin-top:0.8rem">' +
+    '<button class="btn-secondary" type="button" id="reviewActivityEditViewNote">Edit note</button>' +
+    '<button class="btn-secondary" type="button" id="reviewActivityToggleResolved">' +
+    escapeHtml(activeView.status === "resolved" ? "Mark Open" : "Mark Resolved") +
+    '</button><button class="btn-secondary" type="button" id="reviewActivityDeleteView">Delete View</button></div></div>';
+}
+
+function getRecordValue(record, keys) {
+  if (!record || typeof record !== "object") {
+    return "";
+  }
+  for (var index = 0; index < keys.length; index += 1) {
+    var key = keys[index];
+    if (record[key] !== undefined && record[key] !== null && String(record[key]).trim() !== "") {
+      return record[key];
+    }
+  }
+  return "";
+}
+
+function getBooleanRecordValue(record, keys) {
+  if (!record || typeof record !== "object") {
+    return null;
+  }
+  for (var index = 0; index < keys.length; index += 1) {
+    var key = keys[index];
+    if (record[key] === true || record[key] === false) {
+      return record[key];
+    }
+  }
+  return null;
+}
+
+function normalizeListValue(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(function (item) {
+        return String(item || "").trim();
+      })
+      .filter(Boolean)
+      .sort()
+      .join(", ");
+  }
+  return String(value || "").trim();
+}
+
+function formatLocationLine(record) {
+  var city = getRecordValue(record, ["city"]);
+  var state = getRecordValue(record, ["state"]);
+  var zip = getRecordValue(record, ["zip"]);
+  return [city, state ? (city ? state : state) : "", zip]
+    .filter(Boolean)
+    .join(city && state ? ", " : " ");
 }
 
 function formatDate(value) {
@@ -238,6 +862,287 @@ function formatFieldLabel(value) {
     .replace(/\b\w/g, function (character) {
       return character.toUpperCase();
     });
+}
+
+const {
+  buildWorkItemSummary,
+  getWorkItemLaneLabel,
+  getWorkItemTriageLabel,
+  getWorkItemTypeLabel,
+  getWorkQueueActionFlash,
+  setWorkQueueActionFlash,
+} = createAdminWorkQueueHelpers({
+  formatDate: formatDate,
+  getLaneScopeState: function () {
+    return [
+      {
+        node: document.getElementById("importBlockerSprint"),
+        label: "Fix Missing Listing Details",
+      },
+      {
+        node: document.getElementById("confirmationQueue"),
+        label: "Confirm Listing Details",
+      },
+      {
+        node: document.getElementById("confirmationSprint"),
+        label: "Send Confirmation Requests",
+      },
+      {
+        node: document.getElementById("refreshQueue"),
+        label: "Review Listing Updates",
+      },
+    ];
+  },
+});
+
+const {
+  buildActionStatCard,
+  buildOperatorGuideCard,
+  buildPassiveStatCard,
+  buildPriorityActionCard,
+  buildWorkQueueCard,
+  wrapStatsGroup,
+} = createAdminDashboardCardBuilders({
+  escapeHtml: escapeHtml,
+  getWorkItemTriageLabel: getWorkItemTriageLabel,
+  buildWorkItemSummary: buildWorkItemSummary,
+  getWorkItemLaneLabel: getWorkItemLaneLabel,
+  getWorkItemTypeLabel: getWorkItemTypeLabel,
+});
+
+const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
+  isWebsiteRouteHealthy: isWebsiteRouteHealthy,
+  isBookingRouteHealthy: isBookingRouteHealthy,
+  getTherapistById: function (therapistId) {
+    return (dataMode === "sanity" ? publishedTherapists : getTherapists()).find(function (item) {
+      return String(item && item.id) === String(therapistId);
+    });
+  },
+  reviewerWorkspace: reviewerWorkspace,
+  renderListings: function () {
+    renderListings();
+  },
+  renderRefreshQueue: function () {
+    renderRefreshQueue();
+  },
+});
+
+const FIELD_TRUST_META_KEYS = [
+  "estimated_wait_time",
+  "insurance_accepted",
+  "telehealth_states",
+  "bipolar_years_experience",
+];
+
+function getFieldTrustValue(entry, camelKey, snakeKey) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  if (entry[camelKey] !== undefined) {
+    return entry[camelKey];
+  }
+  if (entry[snakeKey] !== undefined) {
+    return entry[snakeKey];
+  }
+  return null;
+}
+
+function getFieldTrustEntries(item) {
+  const fieldTrust = item && item.field_trust_meta ? item.field_trust_meta : {};
+  return FIELD_TRUST_META_KEYS.map(function (key) {
+    return {
+      key: key,
+      label: formatFieldLabel(key),
+      meta: fieldTrust[key] || null,
+    };
+  });
+}
+
+function getFieldTrustTier(meta) {
+  if (!meta) {
+    return "unknown";
+  }
+
+  const reviewState = getFieldTrustValue(meta, "reviewState", "review_state");
+  const confidenceScore = Number(
+    getFieldTrustValue(meta, "confidenceScore", "confidence_score") || 0,
+  );
+  const staleAfterAt = getFieldTrustValue(meta, "staleAfterAt", "stale_after_at");
+  const staleAt = staleAfterAt ? new Date(staleAfterAt).getTime() : null;
+
+  if (staleAt && Number.isFinite(staleAt) && staleAt < Date.now()) {
+    return "stale";
+  }
+  if (reviewState === "needs_reconfirmation" || reviewState === "needs_review") {
+    return "watch";
+  }
+  if (confidenceScore >= 85) {
+    return "high";
+  }
+  if (confidenceScore >= 65) {
+    return "medium";
+  }
+  if (confidenceScore > 0) {
+    return "watch";
+  }
+  return "unknown";
+}
+
+function getFieldTrustChipClass(tier) {
+  if (tier === "high") return "status approved";
+  if (tier === "medium") return "status reviewing";
+  if (tier === "watch" || tier === "stale") return "status rejected";
+  return "status";
+}
+
+function getTherapistFieldTrustSummary(item) {
+  const entries = getFieldTrustEntries(item);
+  const strong = [];
+  const attention = [];
+  const stale = [];
+  const unknown = [];
+
+  entries.forEach(function (entry) {
+    const tier = getFieldTrustTier(entry.meta);
+    if (tier === "high") {
+      strong.push(entry.label);
+      return;
+    }
+    if (tier === "medium") {
+      return;
+    }
+    if (tier === "stale") {
+      stale.push(entry.label);
+      return;
+    }
+    if (tier === "watch") {
+      attention.push(entry.label);
+      return;
+    }
+    unknown.push(entry.label);
+  });
+
+  const watchFields = stale.concat(attention).concat(unknown).slice(0, 3);
+  const headline = watchFields.length
+    ? "Watch " + watchFields.join(", ")
+    : strong.length
+      ? "High confidence on " + strong.slice(0, 2).join(", ")
+      : "Trust signals still building";
+
+  return {
+    entries: entries,
+    strong: strong,
+    attention: attention,
+    stale: stale,
+    unknown: unknown,
+    watchFields: watchFields,
+    headline: headline,
+  };
+}
+
+function getTherapistFieldTrustAttentionCount(item) {
+  return getTherapistFieldTrustSummary(item).watchFields.length;
+}
+
+function getTherapistTrustRecommendation(item, freshness, trustSummary) {
+  const summary = trustSummary || getTherapistFieldTrustSummary(item);
+  const watchedEntries = (summary.entries || []).filter(function (entry) {
+    const tier = getFieldTrustTier(entry.meta);
+    return tier === "stale" || tier === "watch" || tier === "unknown";
+  });
+  const watchedKeys = watchedEntries.map(function (entry) {
+    return entry.key;
+  });
+
+  if (item.source_health_status && !["healthy", "redirected"].includes(item.source_health_status)) {
+    return "Check the source page first, then confirm any unsupported operational fields.";
+  }
+  if (watchedKeys.includes("insurance_accepted") && watchedKeys.includes("estimated_wait_time")) {
+    return "Confirm insurance and wait time first. Those are the highest-value trust gaps.";
+  }
+  if (watchedKeys.includes("telehealth_states") && watchedKeys.includes("insurance_accepted")) {
+    return "Reconfirm telehealth states and insurance before leaving the profile live as-is.";
+  }
+  if (watchedKeys.includes("estimated_wait_time")) {
+    return "Update the wait-time signal before spending time on lower-value fields.";
+  }
+  if (watchedKeys.includes("insurance_accepted")) {
+    return "Confirm insurance acceptance next so this profile stays decision-ready.";
+  }
+  if (watchedKeys.includes("telehealth_states")) {
+    return "Recheck telehealth states next to keep location routing trustworthy.";
+  }
+  if (watchedKeys.includes("bipolar_years_experience")) {
+    return "Reconfirm bipolar experience next so trust and ranking stay defensible.";
+  }
+  if (freshness && freshness.needs_reconfirmation_fields.length) {
+    return (
+      "Reconfirm " +
+      freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ") +
+      " next."
+    );
+  }
+  return "Refresh source review and keep the strongest operational fields current.";
+}
+
+function renderFieldTrustChips(summary, limit) {
+  if (!summary || !Array.isArray(summary.entries)) {
+    return "";
+  }
+
+  const ordered = []
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "stale";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "watch";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "medium";
+      }),
+    )
+    .concat(
+      summary.entries.filter(function (entry) {
+        return getFieldTrustTier(entry.meta) === "high";
+      }),
+    )
+    .slice(0, limit || 4);
+
+  if (!ordered.length) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-filters" style="margin-top:0.7rem">' +
+    ordered
+      .map(function (entry) {
+        const tier = getFieldTrustTier(entry.meta);
+        const tierLabel =
+          tier === "stale"
+            ? "Needs refresh"
+            : tier === "watch"
+              ? "Watch"
+              : tier === "medium"
+                ? "Okay"
+                : tier === "high"
+                  ? "Strong"
+                  : "Unknown";
+        return (
+          '<span class="' +
+          getFieldTrustChipClass(tier) +
+          '">' +
+          escapeHtml(entry.label + ": " + tierLabel) +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
 }
 
 function buildConfirmationChecklist(item, agenda, preferredPrimaryField) {
@@ -354,344 +1259,44 @@ function buildConfirmationApplyBrief(item, agenda, workflow, preferredPrimaryFie
 }
 
 function buildConfirmationApplySummary(rows, heading) {
-  var readyRows = buildConfirmationApplyCsvRows(rows);
-  if (!readyRows.length) {
-    return "";
-  }
-
-  var lines = [
-    heading || "# Confirmation Apply Summary",
-    "",
-    "Therapist-confirmed values captured in admin and ready to apply back into live profiles.",
-    "",
-  ];
-
-  readyRows.forEach(function (row) {
-    var orderedFields = getPreferredFieldOrder(
-      (row.agenda && row.agenda.unknown_fields) || [],
-      row.primaryAskField || row.primary_ask_field || "",
-    );
-    var response = getConfirmationResponseEntry(row.item.slug);
-    var confirmedLines = orderedFields
-      .filter(function (field) {
-        return response[field];
-      })
-      .map(function (field) {
-        return "- " + formatFieldLabel(field) + ": " + response[field];
-      });
-
-    lines.push("## " + row.item.name);
-    lines.push("");
-    lines.push("- Slug: " + row.item.slug);
-    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
-    if (row.workflow.last_updated_at) {
-      lines.push("- Confirmed in admin: " + formatDate(row.workflow.last_updated_at));
-    }
-    if (confirmedLines.length) {
-      lines.push("- Captured values:");
-      confirmedLines.forEach(function (line) {
-        lines.push("  " + line);
-      });
-    } else {
-      lines.push("- Captured values: none entered yet");
-    }
-    lines.push(
-      "- Profile URL: " +
-        new URL(
-          "therapist.html?slug=" + encodeURIComponent(row.item.slug),
-          window.location.href,
-        ).toString(),
-    );
-    lines.push("");
-  });
-
-  return lines.join("\n");
+  return confirmationWorkspace.buildConfirmationApplySummary(rows, heading);
 }
 
 function buildConfirmationApplyOperatorChecklist(rows, heading) {
-  var readyRows = buildConfirmationApplyCsvRows(rows);
-  if (!readyRows.length) {
-    return "";
-  }
-
-  return [
-    heading || "# Confirmation Apply Operator Checklist",
-    "",
-    "Use this when therapist-confirmed values are ready to move from admin into the import CSV.",
-    "",
-    "Files involved:",
-    "- data/import/california-priority-confirmation-responses.csv",
-    "- data/import/therapists.csv",
-    "",
-    "Steps:",
-    "1. Copy the apply CSV from admin and paste the confirmed values into data/import/california-priority-confirmation-responses.csv.",
-    "2. Optionally copy the apply summary too so the human context stays with the values.",
-    "3. Run: npm run cms:check:confirmation-responses",
-    "4. Review the printed field diffs carefully.",
-    "5. Run: npm run cms:apply:confirmation-responses",
-    "6. Run: npm run lint",
-    "7. Run: npm run build",
-    "8. If the changes should go live, run: npm run cms:import:therapists",
-    "",
-    "Profiles currently ready to apply:",
-  ]
-    .concat(
-      readyRows.map(function (row) {
-        return (
-          "- " +
-          row.item.name +
-          " (" +
-          row.item.slug +
-          ")" +
-          (row.workflow.last_updated_at
-            ? " — confirmed in admin " + formatDate(row.workflow.last_updated_at)
-            : "")
-        );
-      }),
-    )
-    .join("\n");
-}
-
-function readConfirmationResponseState() {
-  try {
-    return JSON.parse(window.localStorage.getItem(CONFIRMATION_RESPONSE_VALUES_KEY) || "{}");
-  } catch (_error) {
-    return {};
-  }
-}
-
-function writeConfirmationResponseState(value) {
-  try {
-    window.localStorage.setItem(CONFIRMATION_RESPONSE_VALUES_KEY, JSON.stringify(value));
-  } catch (_error) {
-    return;
-  }
-}
-
-function getConfirmationResponseEntry(slug) {
-  var all = readConfirmationResponseState();
-  var entry = all && slug ? all[slug] : null;
-  var normalized = {
-    updated_at: entry && entry.updated_at ? entry.updated_at : "",
-  };
-  CONFIRMATION_RESPONSE_FIELDS.forEach(function (field) {
-    normalized[field] = entry && entry[field] ? String(entry[field]) : "";
-  });
-  return normalized;
-}
-
-function updateConfirmationResponseEntry(slug, updates) {
-  if (!slug) {
-    return;
-  }
-  var all = readConfirmationResponseState();
-  var current = getConfirmationResponseEntry(slug);
-  var next = {
-    ...current,
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
-  all[slug] = next;
-  writeConfirmationResponseState(all);
-}
-
-function clearConfirmationResponseEntry(slug) {
-  if (!slug) {
-    return;
-  }
-  var all = readConfirmationResponseState();
-  delete all[slug];
-  writeConfirmationResponseState(all);
-}
-
-function getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug) {
-  var ordered = [];
-  var seen = new Set();
-  [primaryAskField]
-    .concat(addOnAskFields || [])
-    .concat(CONFIRMATION_RESPONSE_FIELDS)
-    .forEach(function (field) {
-      if (!field || !CONFIRMATION_RESPONSE_FIELDS.includes(field) || seen.has(field)) {
-        return;
-      }
-      seen.add(field);
-      ordered.push(field);
-    });
-
-  var stored = getConfirmationResponseEntry(slug);
-  CONFIRMATION_RESPONSE_FIELDS.forEach(function (field) {
-    if (stored[field] && !seen.has(field)) {
-      seen.add(field);
-      ordered.push(field);
-    }
-  });
-
-  return ordered;
-}
-
-function getConfirmationResponseFieldPlaceholder(field) {
-  if (field === "bipolarYearsExperience" || field === "yearsExperience") {
-    return "e.g. 8";
-  }
-  if (field === "estimatedWaitTime") {
-    return "e.g. 2 to 3 weeks";
-  }
-  if (field === "insuranceAccepted") {
-    return "Use | between multiple values";
-  }
-  if (field === "telehealthStates") {
-    return "e.g. CA|NY";
-  }
-  return "Enter confirmed value";
-}
-
-function getTherapistFieldCurrentValue(item, field) {
-  var candidates = CONFIRMATION_RESPONSE_ITEM_FIELD_MAP[field] || [field];
-  for (var index = 0; index < candidates.length; index += 1) {
-    var key = candidates[index];
-    var value = item ? item[key] : "";
-    if (Array.isArray(value)) {
-      if (value.length) {
-        return value.join("|");
-      }
-      continue;
-    }
-    if (value !== undefined && value !== null && String(value).trim() !== "") {
-      return String(value).trim();
-    }
-  }
-  return "";
+  return confirmationWorkspace.buildConfirmationApplyOperatorChecklist(rows, heading);
 }
 
 function buildConfirmationApplyPreviewHtml(item, slug, primaryAskField, addOnAskFields) {
-  var response = getConfirmationResponseEntry(slug);
-  var fields = getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug).filter(
-    function (field) {
-      return response[field];
-    },
-  );
-
-  if (!fields.length) {
-    return "";
-  }
-
-  return (
-    '<div class="queue-summary"><strong>Apply preview:</strong> These are the field-level changes that would flow into the next apply CSV export.</div><div class="queue-shortlist">' +
-    fields
-      .map(function (field) {
-        var currentValue = getTherapistFieldCurrentValue(item, field) || "Not set";
-        return (
-          '<div class="queue-shortlist-item"><strong>' +
-          escapeHtml(formatFieldLabel(field)) +
-          ":</strong> " +
-          escapeHtml(currentValue) +
-          " → " +
-          escapeHtml(response[field]) +
-          "</div>"
-        );
-      })
-      .join("") +
-    "</div>"
+  return confirmationWorkspace.buildConfirmationApplyPreviewHtml(
+    item,
+    slug,
+    primaryAskField,
+    addOnAskFields,
   );
 }
 
 function buildConfirmationResponseCaptureHtml(slug, primaryAskField, addOnAskFields) {
-  var response = getConfirmationResponseEntry(slug);
-  var fields = getConfirmationResponseCaptureFields(primaryAskField, addOnAskFields, slug);
-
-  return (
-    '<div class="queue-summary"><strong>Captured response values:</strong> Save therapist-confirmed answers here so apply CSV exports can prefill them.' +
-    (response.updated_at
-      ? " Last updated " + escapeHtml(formatDate(response.updated_at)) + "."
-      : "") +
-    '</div><div class="queue-shortlist" data-confirmation-response-form="' +
-    escapeHtml(slug) +
-    '">' +
-    fields
-      .map(function (field) {
-        return (
-          '<label class="queue-select-label" for="confirmation-response-' +
-          escapeHtml(slug) +
-          "-" +
-          escapeHtml(field) +
-          '">' +
-          escapeHtml(formatFieldLabel(field)) +
-          '</label><input class="queue-select" id="confirmation-response-' +
-          escapeHtml(slug) +
-          "-" +
-          escapeHtml(field) +
-          '" data-confirmation-response-field="' +
-          escapeHtml(field) +
-          '" value="' +
-          escapeHtml(response[field] || "") +
-          '" placeholder="' +
-          escapeHtml(getConfirmationResponseFieldPlaceholder(field)) +
-          '" />'
-        );
-      })
-      .join("") +
-    '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-response-save="' +
-    escapeHtml(slug) +
-    '">Save confirmed values</button><button class="btn-secondary" data-confirmation-response-clear="' +
-    escapeHtml(slug) +
-    '">Clear confirmed values</button></div>'
+  return confirmationWorkspace.buildConfirmationResponseCaptureHtml(
+    slug,
+    primaryAskField,
+    addOnAskFields,
   );
 }
 
 function buildConfirmationApplyCsvRows(rows) {
-  return (rows || []).filter(function (row) {
-    var status = row && row.workflow ? row.workflow.status : "not_started";
-    return status === "confirmed" || status === "applied";
-  });
+  return confirmationWorkspace.buildConfirmationApplyCsvRows(rows);
 }
 
 function buildConfirmationApplyCsv(rows) {
-  var readyRows = buildConfirmationApplyCsvRows(rows);
-  var headers = [
-    "slug",
-    "confirmedAt",
-    "bipolarYearsExperience",
-    "estimatedWaitTime",
-    "insuranceAccepted",
-    "yearsExperience",
-    "telehealthStates",
-  ];
-  var lines = [headers.join(",")];
-
-  readyRows.forEach(function (row) {
-    var response = getConfirmationResponseEntry(row.item.slug);
-    lines.push(
-      [
-        row.item.slug,
-        row.workflow && row.workflow.last_updated_at
-          ? new Date(row.workflow.last_updated_at).toISOString().slice(0, 10)
-          : "",
-        response.bipolarYearsExperience || "",
-        response.estimatedWaitTime || "",
-        response.insuranceAccepted || "",
-        response.yearsExperience || "",
-        response.telehealthStates || "",
-      ]
-        .map(csvEscape)
-        .join(","),
-    );
-  });
-
-  return lines.join("\n");
+  return confirmationWorkspace.buildConfirmationApplyCsv(rows);
 }
 
 function buildConfirmationLink(slug) {
-  return new URL(
-    "signup.html?confirm=" + encodeURIComponent(slug),
-    window.location.href,
-  ).toString();
+  return confirmationWorkspace.buildConfirmationLink(slug);
 }
 
 function setConfirmationActionStatus(root, id, message) {
-  var status = root.querySelector('[data-confirmation-status-id="' + id + '"]');
-  if (status) {
-    status.textContent = message;
-  }
+  confirmationWorkspace.setConfirmationActionStatus(root, id, message);
 }
 
 function setPortalRequestActionStatus(root, id, message) {
@@ -702,46 +1307,7 @@ function setPortalRequestActionStatus(root, id, message) {
 }
 
 function bindConfirmationResponseCapture(root) {
-  if (!root) {
-    return;
-  }
-
-  root.querySelectorAll("[data-confirmation-response-save]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-confirmation-response-save");
-      var form = root.querySelector('[data-confirmation-response-form="' + slug + '"]');
-      if (!slug || !form) {
-        return;
-      }
-
-      var values = {};
-      form.querySelectorAll("[data-confirmation-response-field]").forEach(function (input) {
-        var field = input.getAttribute("data-confirmation-response-field");
-        if (!field) {
-          return;
-        }
-        values[field] = String(input.value || "").trim();
-      });
-
-      updateConfirmationResponseEntry(slug, values);
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-response-clear]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-confirmation-response-clear");
-      if (!slug) {
-        return;
-      }
-      clearConfirmationResponseEntry(slug);
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
+  confirmationWorkspace.bindConfirmationResponseCapture(root);
 }
 
 function isConfirmationRefreshApplication(item) {
@@ -751,559 +1317,6 @@ function isConfirmationRefreshApplication(item) {
       String(item.notes || "")
         .toLowerCase()
         .includes("confirmation update submitted for live therapist slug")),
-  );
-}
-
-function getRankingRiskMatches(therapist) {
-  var freshness = getDataFreshnessSummary(therapist);
-  var confirmationAgenda = getTherapistConfirmationAgenda(therapist);
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  var verifiedOperationalCount = getEditoriallyVerifiedOperationalCount(therapist);
-
-  return {
-    aging_data: freshness.status === "aging",
-    refresh_soon: freshness.status === "watch",
-    confirmation_needed: confirmationAgenda.needs_confirmation,
-    no_recent_confirmation: !recentConfirmation,
-    weak_editorial_depth: verifiedOperationalCount < 2,
-  };
-}
-
-function getRankingRiskMeta(key) {
-  var meta = {
-    confirmation_needed: {
-      note: "These profiles still have high-value unknowns that are costing trust and visibility.",
-      action: "Open confirmation queue",
-      target: "confirmationQueue",
-    },
-    no_recent_confirmation: {
-      note: "These profiles have not been re-confirmed by the specialist recently, so they miss the freshness lift.",
-      action: "Open confirmation queue",
-      target: "confirmationQueue",
-    },
-    weak_editorial_depth: {
-      note: "These profiles need stronger editor-verified operational coverage to earn more ranking trust.",
-      action: "Review published listings first",
-      target: "publishedListings",
-    },
-    aging_data: {
-      note: "These profiles are already losing some ranking strength because their operational data is aging.",
-      action: "Open refresh queue",
-      target: "refreshQueue",
-    },
-    refresh_soon: {
-      note: "These profiles are not in trouble yet, but they are the next best refresh candidates.",
-      action: "Open refresh queue",
-      target: "refreshQueue",
-    },
-  };
-
-  return (
-    meta[key] || {
-      note: "Review the affected profiles and decide the strongest next trust update.",
-      action: "Review published listings",
-      target: "publishedListings",
-    }
-  );
-}
-
-function readLaunchProfileControlsState() {
-  try {
-    return JSON.parse(window.localStorage.getItem(LAUNCH_PROFILE_CONTROLS_KEY) || "{}");
-  } catch (_error) {
-    return {};
-  }
-}
-
-function writeLaunchProfileControlsState(value) {
-  try {
-    window.localStorage.setItem(LAUNCH_PROFILE_CONTROLS_KEY, JSON.stringify(value));
-  } catch (_error) {
-    return;
-  }
-}
-
-function getLaunchStateLabel(value) {
-  if (value === "featured") {
-    return "Featured";
-  }
-  if (value === "launch_ready") {
-    return "Launch-ready";
-  }
-  return "Live only";
-}
-
-function getLaunchStateWeight(value) {
-  if (value === "featured") {
-    return 0;
-  }
-  if (value === "launch_ready") {
-    return 1;
-  }
-  return 2;
-}
-
-function getDefaultLaunchProfileControl(item) {
-  var readiness = getTherapistMatchReadiness(item);
-  var quality = getTherapistMerchandisingQuality(item);
-  var homepageFeatured = HOMEPAGE_FEATURED_FALLBACK_SLUGS.includes(item && item.slug);
-  var matchPriority =
-    readiness.score >= 85 &&
-    quality.score >= 80 &&
-    Boolean(
-      item && (item.accepting_new_patients || item.contact_guidance || item.first_step_expectation),
-    );
-
-  return {
-    launch_state: homepageFeatured ? "featured" : matchPriority ? "launch_ready" : "standard",
-    homepage_featured: homepageFeatured,
-    match_priority: matchPriority,
-    updated_at: "",
-  };
-}
-
-function getLaunchProfileControlEntry(item) {
-  var defaults = getDefaultLaunchProfileControl(item || {});
-  var all = readLaunchProfileControlsState();
-  var stored = item && item.slug ? all[item.slug] || {} : {};
-  var launchState = LAUNCH_STATE_OPTIONS.includes(stored.launch_state)
-    ? stored.launch_state
-    : defaults.launch_state;
-
-  return {
-    launch_state: launchState,
-    homepage_featured:
-      typeof stored.homepage_featured === "boolean"
-        ? stored.homepage_featured
-        : defaults.homepage_featured,
-    match_priority:
-      typeof stored.match_priority === "boolean" ? stored.match_priority : defaults.match_priority,
-    updated_at: stored.updated_at || defaults.updated_at || "",
-  };
-}
-
-function updateLaunchProfileControlEntry(slug, updates) {
-  if (!slug) {
-    return;
-  }
-  var all = readLaunchProfileControlsState();
-  var current = all[slug] || {};
-  all[slug] = {
-    ...current,
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
-  writeLaunchProfileControlsState(all);
-}
-
-function getLaunchControlRows(therapists) {
-  return (Array.isArray(therapists) ? therapists : [])
-    .map(function (item) {
-      return {
-        item: item,
-        control: getLaunchProfileControlEntry(item),
-        readiness: getTherapistMatchReadiness(item),
-        quality: getTherapistMerchandisingQuality(item),
-        freshness: getDataFreshnessSummary(item),
-      };
-    })
-    .sort(function (a, b) {
-      return (
-        getLaunchStateWeight(a.control.launch_state) -
-          getLaunchStateWeight(b.control.launch_state) ||
-        Number(b.control.homepage_featured) - Number(a.control.homepage_featured) ||
-        Number(b.control.match_priority) - Number(a.control.match_priority) ||
-        b.quality.score - a.quality.score ||
-        b.readiness.score - a.readiness.score ||
-        a.item.name.localeCompare(b.item.name)
-      );
-    });
-}
-
-function getLaunchControlCounts(rows) {
-  return (rows || []).reduce(
-    function (counts, row) {
-      counts.total += 1;
-      if (row.control.launch_state === "launch_ready") {
-        counts.launch_ready += 1;
-      }
-      if (row.control.launch_state === "featured") {
-        counts.featured += 1;
-      }
-      if (row.control.homepage_featured) {
-        counts.homepage_featured += 1;
-      }
-      if (row.control.match_priority) {
-        counts.match_priority += 1;
-      }
-      return counts;
-    },
-    {
-      total: 0,
-      launch_ready: 0,
-      featured: 0,
-      homepage_featured: 0,
-      match_priority: 0,
-    },
-  );
-}
-
-function getLaunchControlSummaryNote(counts) {
-  if (!counts.total) {
-    return "No live profiles available for launch control yet.";
-  }
-  if (counts.featured || counts.homepage_featured || counts.match_priority) {
-    return (
-      counts.featured +
-      " featured, " +
-      counts.homepage_featured +
-      " homepage-featured, and " +
-      counts.match_priority +
-      " match-priority profile" +
-      (counts.match_priority === 1 ? "" : "s") +
-      " are currently staged."
-    );
-  }
-  return "No explicit launch control overrides are staged yet. Start by marking the strongest public profiles as launch-ready or featured.";
-}
-
-function getLaunchLaneRows(rows, lane) {
-  return (rows || []).filter(function (row) {
-    if (lane === "homepage") {
-      return row.control.homepage_featured;
-    }
-    if (lane === "match") {
-      return row.control.match_priority;
-    }
-    return false;
-  });
-}
-
-function getLaunchLaneHealthSummary(rows, lane) {
-  var laneRows = getLaunchLaneRows(rows, lane);
-  var label = lane === "homepage" ? "Homepage featured lane" : "Match-priority lane";
-  if (!laneRows.length) {
-    return label + ": no profiles staged yet.";
-  }
-
-  var featuredCount = laneRows.filter(function (row) {
-    return row.control.launch_state === "featured";
-  }).length;
-  var launchReadyCount = laneRows.filter(function (row) {
-    return row.control.launch_state === "launch_ready";
-  }).length;
-  var agingCount = laneRows.filter(function (row) {
-    return row.freshness.status === "aging";
-  }).length;
-  var weakCount = laneRows.filter(function (row) {
-    return row.readiness.score < 75 || row.quality.score < 75;
-  }).length;
-
-  if (laneRows.length < 3) {
-    return (
-      label + ": thin supply. Add a few more strong profiles before leaning on this lane heavily."
-    );
-  }
-  if (agingCount >= 2) {
-    return label + ": usable, but freshness is slipping across the current set.";
-  }
-  if (weakCount >= Math.ceil(laneRows.length / 2)) {
-    return label + ": staged, but too many profiles still look weaker than ideal.";
-  }
-  if (featuredCount >= Math.ceil(laneRows.length / 2)) {
-    return (
-      label +
-      ": strong. " +
-      featuredCount +
-      " featured and " +
-      launchReadyCount +
-      " launch-ready profile" +
-      (launchReadyCount === 1 ? "" : "s") +
-      " are carrying this lane."
-    );
-  }
-  return (
-    label +
-    ": healthy enough to use, with " +
-    featuredCount +
-    " featured and " +
-    launchReadyCount +
-    " launch-ready profile" +
-    (launchReadyCount === 1 ? "" : "s") +
-    "."
-  );
-}
-
-function getLaunchControlBottleneck(rows) {
-  var homepageRows = getLaunchLaneRows(rows, "homepage");
-  var matchRows = getLaunchLaneRows(rows, "match");
-  var staleHomepage = homepageRows.filter(function (row) {
-    return row.freshness.status === "aging";
-  }).length;
-  var weakMatch = matchRows.filter(function (row) {
-    return row.readiness.score < 75 || row.quality.score < 75;
-  }).length;
-
-  if (!homepageRows.length) {
-    return "Next bottleneck: no homepage featured set is staged yet.";
-  }
-  if (!matchRows.length) {
-    return "Next bottleneck: no match-priority set is staged yet.";
-  }
-  if (homepageRows.length < 4) {
-    return "Next bottleneck: homepage featured supply is still too thin for a confident rotation.";
-  }
-  if (staleHomepage >= 2) {
-    return "Next bottleneck: homepage featured supply needs freshness work before stronger promotion.";
-  }
-  if (weakMatch >= Math.ceil(Math.max(matchRows.length, 1) / 2)) {
-    return "Next bottleneck: match-priority profiles need stronger trust or merchandising quality.";
-  }
-  return "Next bottleneck: keep the featured lanes fresh while promoting the strongest launch-ready profiles up into featured state.";
-}
-
-function summarizeLaunchProfileSignals(rows, events) {
-  var signalMap = {};
-  (rows || []).forEach(function (row) {
-    signalMap[row.item.slug] = {
-      shortlist_saves: 0,
-      contact_intents: 0,
-      profile_opens: 0,
-    };
-  });
-
-  (Array.isArray(events) ? events : []).forEach(function (event) {
-    var payload = event && event.payload ? event.payload : {};
-    var slug = payload.therapist_slug || payload.top_slug || "";
-    if (!slug || !signalMap[slug]) {
-      return;
-    }
-
-    if (event.type === "directory_shortlist_saved" || event.type === "match_shortlist_saved") {
-      signalMap[slug].shortlist_saves += 1;
-      return;
-    }
-
-    if (
-      event.type === "match_recommended_outreach_started" ||
-      event.type === "match_fallback_outreach_started" ||
-      event.type === "match_entry_outreach_started" ||
-      event.type === "match_recommended_draft_copied" ||
-      event.type === "match_fallback_draft_copied" ||
-      event.type === "match_entry_draft_copied" ||
-      event.type === "directory_primary_cta_clicked"
-    ) {
-      signalMap[slug].contact_intents += 1;
-      return;
-    }
-
-    if (
-      event.type === "match_result_profile_opened" ||
-      event.type === "directory_profile_review_clicked"
-    ) {
-      signalMap[slug].profile_opens += 1;
-    }
-  });
-
-  return signalMap;
-}
-
-function getLaunchLaneSignalSummary(rows, lane, signalMap) {
-  var laneRows = getLaunchLaneRows(rows, lane);
-  var label = lane === "homepage" ? "Homepage featured" : "Match-priority";
-  if (!laneRows.length) {
-    return label + ": no staged profiles yet, so no behavior signal exists.";
-  }
-
-  var totals = laneRows.reduce(
-    function (accumulator, row) {
-      var signals = signalMap[row.item.slug] || {
-        shortlist_saves: 0,
-        contact_intents: 0,
-        profile_opens: 0,
-      };
-      accumulator.shortlist_saves += signals.shortlist_saves;
-      accumulator.contact_intents += signals.contact_intents;
-      accumulator.profile_opens += signals.profile_opens;
-      return accumulator;
-    },
-    { shortlist_saves: 0, contact_intents: 0, profile_opens: 0 },
-  );
-
-  return (
-    label +
-    ": " +
-    totals.shortlist_saves +
-    " shortlist save" +
-    (totals.shortlist_saves === 1 ? "" : "s") +
-    ", " +
-    totals.contact_intents +
-    " contact intent" +
-    (totals.contact_intents === 1 ? "" : "s") +
-    ", and " +
-    totals.profile_opens +
-    " profile open" +
-    (totals.profile_opens === 1 ? "" : "s") +
-    " tracked so far."
-  );
-}
-
-function getLaunchSignalStrength(signals) {
-  var summary = signals || {};
-  return (
-    Number(summary.contact_intents || 0) * 3 +
-    Number(summary.shortlist_saves || 0) * 2 +
-    Number(summary.profile_opens || 0)
-  );
-}
-
-function getUnderperformingFeaturedRows(rows, signalMap) {
-  return (rows || [])
-    .filter(function (row) {
-      if (!(row.control.homepage_featured || row.control.match_priority)) {
-        return false;
-      }
-      var signals = signalMap[row.item.slug] || {};
-      var signalStrength = getLaunchSignalStrength(signals);
-      var weakProfile = row.readiness.score < 75 || row.quality.score < 75;
-      var aging = row.freshness.status === "aging";
-      return weakProfile || aging || signalStrength === 0;
-    })
-    .sort(function (a, b) {
-      var aSignals = getLaunchSignalStrength(signalMap[a.item.slug] || {});
-      var bSignals = getLaunchSignalStrength(signalMap[b.item.slug] || {});
-      return (
-        aSignals - bSignals ||
-        Number(a.freshness.status === "aging") - Number(b.freshness.status === "aging") ||
-        a.readiness.score - b.readiness.score ||
-        a.quality.score - b.quality.score
-      );
-    })
-    .slice(0, 3);
-}
-
-function getPromotionCandidateRows(rows, signalMap) {
-  return (rows || [])
-    .filter(function (row) {
-      if (row.control.homepage_featured || row.control.match_priority) {
-        return false;
-      }
-      if (row.readiness.score < 80 || row.quality.score < 80) {
-        return false;
-      }
-      if (row.freshness.status === "aging") {
-        return false;
-      }
-      var signals = signalMap[row.item.slug] || {};
-      return getLaunchSignalStrength(signals) > 0 || row.control.launch_state !== "standard";
-    })
-    .sort(function (a, b) {
-      var aSignals = getLaunchSignalStrength(signalMap[a.item.slug] || {});
-      var bSignals = getLaunchSignalStrength(signalMap[b.item.slug] || {});
-      return (
-        bSignals - aSignals ||
-        getLaunchStateWeight(a.control.launch_state) -
-          getLaunchStateWeight(b.control.launch_state) ||
-        b.quality.score - a.quality.score ||
-        b.readiness.score - a.readiness.score
-      );
-    })
-    .slice(0, 3);
-}
-
-function getLaunchRecommendationSummary(underperformingRows, promotionRows) {
-  if (underperformingRows.length && promotionRows.length) {
-    return "Suggested swap window: some promoted profiles are underperforming while stronger unstaged candidates are emerging.";
-  }
-  if (underperformingRows.length) {
-    return "Suggested cleanup: a few promoted profiles may need refresh, demotion, or replacement.";
-  }
-  if (promotionRows.length) {
-    return "Suggested promotion: a few unstaged profiles look strong enough to move into the launch lanes.";
-  }
-  return "No obvious launch-lane swaps stand out yet.";
-}
-
-function buildLaunchProfilePacket(rows) {
-  var stagedRows = (rows || []).filter(function (row) {
-    return (
-      row.control.launch_state !== "standard" ||
-      row.control.homepage_featured ||
-      row.control.match_priority
-    );
-  });
-
-  if (!stagedRows.length) {
-    return [
-      "# Launch / Featured Profile Control",
-      "",
-      "No launch-state or featured-profile overrides are staged yet.",
-    ].join("\n");
-  }
-
-  var lines = [
-    "# Launch / Featured Profile Control",
-    "",
-    "Profiles currently staged for launch-ready or featured visibility work.",
-    "",
-  ];
-
-  stagedRows.forEach(function (row, index) {
-    var lanes = [];
-    if (row.control.homepage_featured) {
-      lanes.push("Homepage featured");
-    }
-    if (row.control.match_priority) {
-      lanes.push("Match priority");
-    }
-
-    lines.push("## " + (index + 1) + ". " + row.item.name);
-    lines.push("");
-    lines.push("- Slug: " + row.item.slug);
-    lines.push("- Launch state: " + getLaunchStateLabel(row.control.launch_state));
-    lines.push("- Lanes: " + (lanes.length ? lanes.join(", ") : "No explicit featured lanes"));
-    lines.push("- Merchandising score: " + row.quality.score);
-    lines.push("- Match readiness: " + row.readiness.score + "/100");
-    lines.push("- Freshness: " + row.freshness.label);
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildHomepageFeaturedSlugSnippet(rows) {
-  var featuredSlugs = (rows || [])
-    .filter(function (row) {
-      return row.control.homepage_featured;
-    })
-    .map(function (row) {
-      return row.item.slug;
-    });
-
-  return JSON.stringify(
-    {
-      homepageFeaturedSlugs: featuredSlugs,
-    },
-    null,
-    2,
-  );
-}
-
-function buildMatchPrioritySlugSnippet(rows) {
-  var prioritySlugs = (rows || [])
-    .filter(function (row) {
-      return row.control.match_priority;
-    })
-    .map(function (row) {
-      return row.item.slug;
-    });
-
-  return JSON.stringify(
-    {
-      matchPrioritySlugs: prioritySlugs,
-    },
-    null,
-    2,
   );
 }
 
@@ -1324,296 +1337,323 @@ function hasPreferredPhotoSource(value) {
   return value === "therapist_uploaded" || value === "practice_uploaded";
 }
 
-function getApplicationReviewSnapshot(item) {
-  var readiness = getTherapistMatchReadiness(item);
-  var isConfirmationRefresh = isConfirmationRefreshApplication(item);
-  var missingCriticalFields = [];
-  var photoSourceType = item.photo_source_type || "";
-  var hasPhotoAsset = Boolean(item.photo_url);
-  var preferredPhotoSource = hasPreferredPhotoSource(photoSourceType);
-
-  if (!item.license_number) {
-    missingCriticalFields.push("license number");
-  }
-  if (!item.preferred_contact_label) {
-    missingCriticalFields.push("CTA label");
-  }
-  if (!item.contact_guidance) {
-    missingCriticalFields.push("contact guidance");
-  }
-  if (!item.first_step_expectation) {
-    missingCriticalFields.push("first-step expectation");
-  }
-  if (!item.care_approach) {
-    missingCriticalFields.push("care approach");
-  }
-  if (!hasPhotoAsset) {
-    missingCriticalFields.push("headshot");
-  } else if (!photoSourceType) {
-    missingCriticalFields.push("headshot source");
+function getAfterClaimReviewStall(item) {
+  if (!item) {
+    return { stalled: false, ageDays: 0, label: "", note: "" };
   }
 
-  var focus = "active_review";
-  var label = "Active review";
-  var note =
-    "Keep tightening the operational truth and make a clear decision on publish versus request changes.";
-
-  if (isConfirmationRefresh) {
-    focus = "confirmation_refresh";
-    label = "Confirmation refresh";
-    note =
-      "Treat this like upkeep on a live profile, not a brand-new listing. Prioritize confirmed operational truth and apply it back to the existing profile.";
-  } else if (missingCriticalFields.length >= 3 || readiness.completeness_score < 65) {
-    focus = "needs_changes";
-    label = "Needs fixes";
-    note =
-      "This is more likely to benefit from a request-changes round before publishing because too many trust-critical basics are still thin.";
-  } else if (
-    readiness.score >= 75 &&
-    readiness.completeness_score >= 75 &&
-    missingCriticalFields.length <= 1
-  ) {
-    focus = "publish_ready";
-    label = "Publish-ready";
-    note =
-      "This looks like a strong publish candidate after one final quality pass on trust and source clarity.";
+  var portalState = String(item.portal_state || "");
+  if (portalState !== "profile_in_review_after_claim") {
+    return { stalled: false, ageDays: 0, label: "", note: "" };
   }
 
-  return {
-    focus: focus,
-    label: label,
-    note: note,
-    photoStatusLabel: !hasPhotoAsset
-      ? "No headshot uploaded"
-      : getPhotoSourceLabel(photoSourceType),
-    photoNextMove: !hasPhotoAsset
-      ? "Ask for a therapist- or practice-uploaded headshot before treating the profile as launch-ready."
-      : !photoSourceType
-        ? "Ask for a therapist- or practice-uploaded headshot before treating the profile as fully launch-ready."
-        : preferredPhotoSource
-          ? "The headshot source is already in the preferred uploaded tier."
-          : "Treat this as a temporary photo fallback and prefer a therapist- or practice-uploaded headshot next.",
-    missingCriticalFields: missingCriticalFields,
-    nextMove:
-      focus === "confirmation_refresh"
-        ? "Review as a live-profile refresh and apply confirmed fields back into the existing profile."
-        : focus === "needs_changes"
-          ? "Request changes before publishing."
-          : focus === "publish_ready"
-            ? "Do a final trust pass, then publish."
-            : item.status === "pending"
-              ? "Move into reviewing and decide what still blocks trust."
-              : "Keep reviewing and make the next decision explicit.",
-  };
-}
+  var updatedAt = item.updated_at ? new Date(item.updated_at) : null;
+  var ageDays =
+    updatedAt && !Number.isNaN(updatedAt.getTime())
+      ? Math.max(
+          0,
+          Math.floor((new Date().getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)),
+        )
+      : 0;
 
-function getApplicationPriorityScore(item) {
-  var snapshot = getApplicationReviewSnapshot(item);
-  var readiness = getTherapistMatchReadiness(item);
-  var score = 0;
-
-  if (snapshot.focus === "publish_ready") {
-    score += 120;
-  } else if (snapshot.focus === "confirmation_refresh") {
-    score += 95;
-  } else if (snapshot.focus === "active_review") {
-    score += 80;
-  } else if (snapshot.focus === "needs_changes") {
-    score += 40;
-  }
-
-  if (item.status === "reviewing") {
-    score += 35;
-  } else if (item.status === "pending") {
-    score += 20;
-  } else if (item.status === "requested_changes") {
-    score -= 10;
-  } else if (item.status === "approved") {
-    score -= 25;
-  } else if (item.status === "rejected") {
-    score -= 40;
-  }
-
-  score += Math.round((readiness.score || 0) / 5);
-  score += Math.round((readiness.completeness_score || 0) / 10);
-
-  return score;
-}
-
-function getApplicationReviewGoalMeta(goal) {
-  if (goal === "publish_now") {
+  if (ageDays >= 5) {
     return {
-      label: "Clear publish-ready work",
-      batchTitle: "Publish-Ready Batch",
-      sortNote:
-        "Applications are sorted to surface the fastest trustworthy publish decisions first.",
-      batchIntro:
-        "If you want quick wins right now, clear these publish-ready or nearly-ready applications first.",
-      packetHeading: "# Recommended Review Batch — Clear Publish-Ready Work",
-      primaryActionLabel: "Copy publish batch",
-      primaryActionMode: "packet",
+      stalled: true,
+      ageDays: ageDays,
+      label: "Review aging",
+      note:
+        "This after-claim profile has been sitting in review for " +
+        ageDays +
+        " days and is at risk of losing therapist momentum.",
     };
   }
-  if (goal === "fix_weak") {
-    return {
-      label: "Clean up weak applications",
-      batchTitle: "Fix-First Batch",
-      sortNote:
-        "Applications are sorted to surface the weakest trust cases and highest-fix review work first.",
-      batchIntro:
-        "If this session is about cleanup, start with the applications that need the clearest trust repairs.",
-      packetHeading: "# Recommended Review Batch — Clean Up Weak Applications",
-      primaryActionLabel: "Copy fix requests",
-      primaryActionMode: "requests",
-    };
-  }
-  if (goal === "refresh_first") {
-    return {
-      label: "Handle refresh updates",
-      batchTitle: "Refresh Review Batch",
-      sortNote:
-        "Applications are sorted to surface live-profile refresh updates and confirmation upkeep work first.",
-      batchIntro:
-        "If this session is about upkeep, start with these refresh-driven review actions first.",
-      packetHeading: "# Recommended Review Batch — Refresh Updates First",
-      primaryActionLabel: "Copy refresh batch",
-      primaryActionMode: "packet",
-    };
-  }
-  return {
-    label: "Balanced review",
-    batchTitle: "Recommended Review Batch",
-    sortNote:
-      "Applications are sorted by current review priority, so publish-ready and active high-leverage review work rises first.",
-    batchIntro: "If you only clear a few items right now, start with these.",
-    packetHeading: "# Recommended Review Batch",
-    primaryActionLabel: "Copy balanced batch",
-    primaryActionMode: "packet",
-  };
+
+  return { stalled: false, ageDays: ageDays, label: "", note: "" };
 }
 
-function isGoalMatchedReviewCard(goal, item) {
-  if (goal === "publish_now") {
-    return item.focus === "publish_ready";
-  }
-  if (goal === "fix_weak") {
-    return item.focus === "needs_changes";
-  }
-  if (goal === "refresh_first") {
-    return item.focus === "confirmation_refresh";
-  }
-  return item.focus === "publish_ready" || item.focus === "active_review";
+function formatPercent(value) {
+  return Math.max(0, Math.round(Number(value || 0))) + "%";
 }
 
-function getGoalAdjustedApplicationPriorityScore(item, goal) {
-  var snapshot = getApplicationReviewSnapshot(item);
-  var score = getApplicationPriorityScore(item);
+function buildOverdueClaimFollowUpPacket(items) {
+  var rows = (Array.isArray(items) ? items : []).filter(function (item) {
+    return getClaimFollowUpUrgency(item).tone === "urgent";
+  });
 
-  if (goal === "publish_now") {
-    if (snapshot.focus === "publish_ready") {
-      score += 90;
-    } else if (snapshot.focus === "active_review") {
-      score += 20;
-    } else if (snapshot.focus === "confirmation_refresh") {
-      score -= 5;
-    } else if (snapshot.focus === "needs_changes") {
-      score -= 40;
-    }
-  } else if (goal === "fix_weak") {
-    if (snapshot.focus === "needs_changes") {
-      score += 100;
-    } else if (snapshot.focus === "active_review") {
-      score += 20;
-    } else if (snapshot.focus === "publish_ready") {
-      score -= 30;
-    } else if (snapshot.focus === "confirmation_refresh") {
-      score -= 10;
-    }
-    if (item.status === "requested_changes") {
-      score += 25;
-    }
-  } else if (goal === "refresh_first") {
-    if (snapshot.focus === "confirmation_refresh") {
-      score += 110;
-    } else if (snapshot.focus === "active_review") {
-      score += 10;
-    } else if (snapshot.focus === "publish_ready") {
-      score -= 15;
-    } else if (snapshot.focus === "needs_changes") {
-      score -= 25;
-    }
+  if (!rows.length) {
+    return "";
   }
 
-  return score;
+  return [
+    "# Overdue Claim Follow-Ups",
+    "",
+    "Approved claims that need immediate follow-up so the therapist does not cool off before finishing the fuller profile.",
+    "",
+  ]
+    .concat(
+      rows.map(function (item, index) {
+        var urgency = getClaimFollowUpUrgency(item);
+        var fullProfileLink = new URL(
+          "signup.html?revise=" + encodeURIComponent(item.id),
+          window.location.href,
+        ).toString();
+        return [
+          index + 1 + ". " + (item.name || "Unknown therapist"),
+          "- Portal status: " + (item.portal_state_label || "Claim approved"),
+          "- Follow-up urgency: " + urgency.label,
+          "- Why now: " + urgency.note,
+          "- Email: " + (item.email || "Not provided"),
+          "- Claim status: " + getClaimFollowUpLabel(item.claim_follow_up_status),
+          "- Full profile link: " + fullProfileLink,
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
 }
 
-function getApplicationBatchReason(item, goal) {
-  var snapshot = getApplicationReviewSnapshot(item);
+function getClaimLaunchCandidates(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var portalState = String(item.portal_state || "");
+      var readiness = getTherapistMatchReadiness(item);
+      var snapshot = reviewModels.getApplicationReviewSnapshot(item);
+      var ageMs =
+        new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
+      var ageDays = Number.isFinite(ageMs)
+        ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
+        : 0;
 
-  if (goal === "publish_now") {
-    if (snapshot.focus === "publish_ready") {
-      return "Strong trust signals make this a fast publish decision candidate.";
-    }
-    if (snapshot.focus === "active_review") {
-      return "This is close enough to publish-ready that one more clear decision could move it.";
-    }
-    return "This stays in view as secondary review work after the fastest publish decisions.";
-  }
+      if (
+        !["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState)
+      ) {
+        return null;
+      }
 
-  if (goal === "fix_weak") {
-    if (snapshot.focus === "needs_changes") {
-      return "This is missing trust-critical basics and benefits most from explicit fixes first.";
-    }
-    if (snapshot.focus === "active_review") {
-      return "This still needs a clear review call and could slip into a weak state without intervention.";
-    }
-    return "This is lower-leverage cleanup work once the weakest applications are handled.";
-  }
+      if (!["pending", "reviewing"].includes(String(item.status || ""))) {
+        return null;
+      }
 
-  if (goal === "refresh_first") {
-    if (snapshot.focus === "confirmation_refresh") {
-      return "This is live-profile upkeep work and belongs at the top of a refresh session.";
-    }
-    return "This is supporting review work after the refresh-specific items are cleared.";
-  }
+      if (
+        readiness.score < 80 ||
+        readiness.completeness_score < 75 ||
+        snapshot.missingCriticalFields.length > 1
+      ) {
+        return null;
+      }
 
-  if (snapshot.focus === "publish_ready") {
-    return "This is strong, near-finish review work that can create momentum quickly.";
-  }
-  if (snapshot.focus === "confirmation_refresh") {
-    return "This is high-leverage upkeep work on an existing live profile.";
-  }
-  if (snapshot.focus === "active_review") {
-    return "This already has momentum and needs a clear next review decision.";
-  }
-  return "This needs more repair work before it becomes strong publish or refresh inventory.";
+      return {
+        id: item.id,
+        name: item.name || "Unknown therapist",
+        readiness: readiness,
+        snapshot: snapshot,
+        ageDays: ageDays,
+        reason:
+          readiness.score >= 90
+            ? "Exceptionally strong after-claim profile with enough trust detail to be close to live."
+            : "Strong after-claim profile with a realistic path to live after a focused review pass.",
+        priority:
+          readiness.score * 2 +
+          readiness.completeness_score +
+          (item.status === "reviewing" ? 8 : 0) -
+          ageDays,
+      };
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return (
+        b.priority - a.priority || b.readiness.score - a.readiness.score || a.ageDays - b.ageDays
+      );
+    })
+    .slice(0, 4);
 }
 
-function getApplicationEmptyStateCopy(goal) {
-  if (goal === "publish_now") {
-    return "No applications match the current filters for a publish-focused session. Try broadening the filters or switch back to balanced review.";
-  }
-  if (goal === "fix_weak") {
-    return "No applications match the current filters for a fix-first session. Try broadening the filters or switch back to balanced review.";
-  }
-  if (goal === "refresh_first") {
-    return "No applications match the current filters for a refresh-review session. Try broadening the filters or switch back to balanced review.";
-  }
-  return "No applications match the current review filters. Try a different search or status.";
+function getStalledAfterClaimReviews(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var stall = getAfterClaimReviewStall(item);
+      if (!stall.stalled) {
+        return null;
+      }
+      var readiness = getTherapistMatchReadiness(item);
+      return {
+        id: item.id,
+        name: item.name || "Unknown therapist",
+        stall: stall,
+        readiness: readiness,
+        nextMove: reviewModels.getApplicationReviewSnapshot(item).nextMove,
+      };
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return b.stall.ageDays - a.stall.ageDays || b.readiness.score - a.readiness.score;
+    })
+    .slice(0, 4);
 }
 
-function getApplicationFilterChips() {
-  var chips = [];
-  if (applicationFilters.status) {
-    chips.push("Status: " + formatStatusLabel(applicationFilters.status));
+function buildClaimLaunchPriorityPacket(items) {
+  var rows = getClaimLaunchCandidates(items);
+
+  if (!rows.length) {
+    return "";
   }
-  if (applicationFilters.focus) {
-    chips.push("Focus: " + formatFieldLabel(applicationFilters.focus));
+
+  return [
+    "# Fast-Track Live Supply Candidates",
+    "",
+    "After-claim profiles that are closest to becoming trustworthy live supply if reviewed decisively now.",
+    "",
+  ]
+    .concat(
+      rows.map(function (row, index) {
+        return [
+          index + 1 + ". " + row.name,
+          "- Readiness: " + row.readiness.label + " (" + row.readiness.score + "/100)",
+          "- Completeness: " + row.readiness.completeness_score + "/100",
+          "- Review lane: " + row.snapshot.label,
+          "- Why prioritize: " + row.reason,
+          "- Next move: " + row.snapshot.nextMove,
+          "- Missing critical fields: " +
+            (row.snapshot.missingCriticalFields.length
+              ? row.snapshot.missingCriticalFields.join(", ")
+              : "None currently flagged"),
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
+function buildStalledAfterClaimReviewPacket(items) {
+  var rows = getStalledAfterClaimReviews(items);
+
+  if (!rows.length) {
+    return "";
   }
-  if (applicationFilters.q) {
-    chips.push('Search: "' + applicationFilters.q + '"');
+
+  return [
+    "# Stalled After-Claim Reviews",
+    "",
+    "After-claim profiles already in review that need a decisive next call before therapist momentum cools further.",
+    "",
+  ]
+    .concat(
+      rows.map(function (row, index) {
+        return [
+          index + 1 + ". " + row.name,
+          "- Review age: " + row.stall.ageDays + " days",
+          "- Stall signal: " + row.stall.label,
+          "- Why now: " + row.stall.note,
+          "- Readiness: " + row.readiness.label + " (" + row.readiness.score + "/100)",
+          "- Next move: " + row.nextMove,
+          "",
+        ].join("\n");
+      }),
+    )
+    .join("\n");
+}
+
+function getClaimFunnelBottleneck(claimFunnel, rates) {
+  if ((claimFunnel && claimFunnel.followUpDue) > 0) {
+    return "Biggest leak: approved claims are sitting without timely follow-up. Clear that queue first.";
   }
-  return chips;
+  if ((claimFunnel && claimFunnel.stalledReviews) > 0) {
+    return "Biggest leak: therapists already finished the fuller profile, but some after-claim reviews are aging too long.";
+  }
+  if ((rates && rates.followUpRate) < 60 && (claimFunnel && claimFunnel.approved) > 0) {
+    return "Biggest leak: approved claims are not consistently getting follow-up sent.";
+  }
+  if ((rates && rates.conversionRate) < 35 && (claimFunnel && claimFunnel.approved) > 0) {
+    return "Biggest leak: therapists are getting approved but too few are returning to finish the fuller profile.";
+  }
+  if ((claimFunnel && claimFunnel.approved) === 0 && (claimFunnel && claimFunnel.submitted) > 0) {
+    return "Biggest bottleneck: claims are entering the funnel but not yet getting approved.";
+  }
+  return "The loop is moving. Keep approved-claim follow-up and after-claim reviews tight so momentum does not cool off.";
+}
+
+function getClaimActionQueue(applications) {
+  return (Array.isArray(applications) ? applications : [])
+    .map(function (item) {
+      var urgency = getClaimFollowUpUrgency(item);
+      var portalState = String(item.portal_state || "");
+      var readiness = getTherapistMatchReadiness(item);
+      var snapshot = reviewModels.getApplicationReviewSnapshot(item);
+      var ageMs =
+        new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
+      var ageDays = Number.isFinite(ageMs)
+        ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
+        : 0;
+      var action = null;
+
+      if (urgency.tone === "urgent") {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Overdue follow-up",
+          note: urgency.note,
+          priority: 300 + ageDays,
+        };
+      } else if (getAfterClaimReviewStall(item).stalled) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Stalled after-claim review",
+          note: getAfterClaimReviewStall(item).note,
+          priority: 285 + ageDays,
+        };
+      } else if (
+        ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState) &&
+        readiness.score >= 85 &&
+        readiness.completeness_score >= 80 &&
+        snapshot.missingCriticalFields.length <= 1
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Fast-track live supply",
+          note: "This after-claim profile is strong enough that a decisive review could turn it into live supply quickly.",
+          priority: 270 + readiness.score - ageDays,
+        };
+      } else if (portalState === "profile_submitted_after_claim") {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Review after-claim profile",
+          note: "The therapist completed the fuller profile. Review it before the follow-through momentum cools.",
+          priority: 240 + ageDays,
+        };
+      } else if (
+        portalState === "claimed_ready_for_profile" &&
+        item.claim_follow_up_status === "responded"
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Nudge full-profile completion",
+          note: "The therapist has responded. The next leverage is getting the fuller profile finished.",
+          priority: 220 + ageDays,
+        };
+      } else if (
+        ["claim_pending_review", "claim_in_review"].includes(portalState) &&
+        ageDays >= 3
+      ) {
+        action = {
+          id: item.id,
+          title: item.name || "Unknown therapist",
+          lane: "Clear claim review",
+          note: "This claim has been waiting " + ageDays + " days and should get a clear decision.",
+          priority: 180 + ageDays,
+        };
+      }
+
+      return action;
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return b.priority - a.priority || a.title.localeCompare(b.title);
+    })
+    .slice(0, 3);
 }
 
 function buildRecommendedReviewBatchPacket(items, goal) {
@@ -1621,7 +1661,7 @@ function buildRecommendedReviewBatchPacket(items, goal) {
   if (!rows.length) {
     return "";
   }
-  var goalMeta = getApplicationReviewGoalMeta(goal);
+  var goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
 
   var lines = [
     goalMeta.packetHeading,
@@ -1632,10 +1672,10 @@ function buildRecommendedReviewBatchPacket(items, goal) {
   ];
 
   rows.forEach(function (item, index) {
-    var snapshot = getApplicationReviewSnapshot(item);
+    var snapshot = reviewModels.getApplicationReviewSnapshot(item);
     var coaching = getTherapistReviewCoaching(item);
     var request = buildImprovementRequest(item, coaching);
-    var batchReason = getApplicationBatchReason(item, goal);
+    var batchReason = reviewModels.getApplicationBatchReason(item, goal);
     var revisionLink = new URL(
       "signup.html?revise=" + encodeURIComponent(item.id),
       window.location.href,
@@ -1665,7 +1705,7 @@ function buildRecommendedReviewBatchRequests(items, goal) {
   if (!rows.length) {
     return "";
   }
-  var goalMeta = getApplicationReviewGoalMeta(goal);
+  var goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
 
   return ["Reviewer goal: " + goalMeta.label, ""]
     .concat(
@@ -1756,905 +1796,51 @@ function readOutreachOutcomes() {
 }
 
 function readConfirmationQueueState() {
-  try {
-    return JSON.parse(window.localStorage.getItem(CONFIRMATION_QUEUE_KEY) || "{}");
-  } catch (_error) {
-    return {};
-  }
-}
-
-function writeConfirmationQueueState(value) {
-  try {
-    window.localStorage.setItem(CONFIRMATION_QUEUE_KEY, JSON.stringify(value));
-  } catch (_error) {
-    return;
-  }
+  return confirmationWorkspace.readConfirmationQueueState();
 }
 
 function getConfirmationQueueEntry(slug) {
-  var all = readConfirmationQueueState();
-  var entry = all && slug ? all[slug] : null;
-  return {
-    status:
-      entry && CONFIRMATION_STATUS_OPTIONS.includes(entry.status) ? entry.status : "not_started",
-    last_sent_at: entry && entry.last_sent_at ? entry.last_sent_at : "",
-    last_updated_at: entry && entry.last_updated_at ? entry.last_updated_at : "",
-    confirmation_applied_at:
-      entry && entry.confirmation_applied_at ? entry.confirmation_applied_at : "",
-  };
+  return confirmationWorkspace.getConfirmationQueueEntry(slug);
 }
 
 function updateConfirmationQueueEntry(slug, updates) {
-  if (!slug) {
-    return;
-  }
-  var all = readConfirmationQueueState();
-  var current = getConfirmationQueueEntry(slug);
-  var next = {
-    ...current,
-    ...updates,
-    last_updated_at: new Date().toISOString(),
-  };
-  all[slug] = next;
-  writeConfirmationQueueState(all);
+  confirmationWorkspace.updateConfirmationQueueEntry(slug, updates);
 }
 
 function getPublishedTherapistConfirmationQueue() {
-  var therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  return therapists
-    .map(function (item) {
-      var workflow = getConfirmationQueueEntry(item.slug);
-      return {
-        item: {
-          ...item,
-          confirmation_applied_at: workflow.confirmation_applied_at,
-        },
-        agenda: getTherapistConfirmationAgenda(item),
-        workflow: workflow,
-      };
-    })
-    .filter(function (entry) {
-      return entry.agenda.needs_confirmation;
-    })
-    .sort(function (a, b) {
-      var statusWeight = {
-        not_started: 0,
-        sent: 1,
-        waiting_on_therapist: 2,
-        confirmed: 3,
-        applied: 4,
-      };
-      var statusDiff =
-        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      var weight = { high: 0, medium: 1, low: 2 };
-      var priorityDiff = (weight[a.agenda.priority] || 9) - (weight[b.agenda.priority] || 9);
-      if (priorityDiff) {
-        return priorityDiff;
-      }
-      return b.agenda.unknown_fields.length - a.agenda.unknown_fields.length;
-    });
+  return confirmationWorkspace.getPublishedTherapistConfirmationQueue();
 }
 
-function getCaliforniaPriorityConfirmationQueue() {
-  var queue = getPublishedTherapistConfirmationQueue();
-  return CALIFORNIA_PRIORITY_CONFIRMATION_SLUGS.map(function (slug) {
-    return queue.find(function (entry) {
-      return entry.item && entry.item.slug === slug;
-    });
-  }).filter(Boolean);
+function getConfirmationQueueFilter() {
+  return confirmationWorkspace.getConfirmationQueueFilter();
 }
 
-function getCaliforniaPriorityConfirmationRows() {
-  return getCaliforniaPriorityConfirmationQueue().map(function (entry, index) {
-    var item = entry.item;
-    var agenda = entry.agenda;
-    var workflow = getConfirmationQueueEntry(item.slug);
-    var meta = CALIFORNIA_PRIORITY_CONFIRMATION_META[item.slug] || {};
-    var orderedUnknownFields = getPreferredFieldOrder(agenda.unknown_fields || []);
-    return {
-      priority_rank: index + 1,
-      item: item,
-      agenda: agenda,
-      workflow: workflow,
-      primaryAskField: orderedUnknownFields[0] || "",
-      addOnAskFields: orderedUnknownFields.slice(1),
-      firstAction: meta.first_action || "Use the preferred contact path first.",
-      followUpRule:
-        meta.follow_up_rule ||
-        "Follow up once if needed, then leave the field unchanged until confirmed.",
-      followUpBusinessDays: Number(meta.follow_up_business_days) || 0,
-    };
-  });
-}
-
-function addBusinessDays(startDate, businessDays) {
-  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || businessDays <= 0) {
-    return null;
-  }
-  var next = new Date(startDate.getTime());
-  var remaining = businessDays;
-  while (remaining > 0) {
-    next.setDate(next.getDate() + 1);
-    var day = next.getDay();
-    if (day !== 0 && day !== 6) {
-      remaining -= 1;
-    }
-  }
-  return next;
-}
-
-function getCaliforniaPriorityFollowUpNote(row) {
-  if (!row || !row.workflow) {
-    return "";
-  }
-  var status = row.workflow.status;
-  if (status !== "sent" && status !== "waiting_on_therapist") {
-    return "";
-  }
-  if (!row.followUpBusinessDays || !row.workflow.last_sent_at) {
-    return "Follow-up timing starts once the request is sent.";
-  }
-  var sentAt = new Date(row.workflow.last_sent_at);
-  if (Number.isNaN(sentAt.getTime())) {
-    return "Follow-up timing is not available yet.";
-  }
-  var dueDate = addBusinessDays(sentAt, row.followUpBusinessDays);
-  if (!dueDate) {
-    return "Follow-up timing is not available yet.";
-  }
-  var now = new Date();
-  var msPerDay = 24 * 60 * 60 * 1000;
-  var daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / msPerDay);
-  if (daysUntilDue <= 0) {
-    return (
-      "Follow-up due now. Original outreach went out on " +
-      formatDate(row.workflow.last_sent_at) +
-      "."
-    );
-  }
-  if (daysUntilDue === 1) {
-    return (
-      "Follow-up due within 1 day. Original outreach went out on " +
-      formatDate(row.workflow.last_sent_at) +
-      "."
-    );
-  }
-  return (
-    "Follow-up due in " +
-    daysUntilDue +
-    " days. Original outreach went out on " +
-    formatDate(row.workflow.last_sent_at) +
-    "."
-  );
-}
-
-function getCaliforniaPriorityFollowUpSummary(rows) {
-  var dueNow = 0;
-  var dueSoon = 0;
-  (rows || []).forEach(function (row) {
-    var note = getCaliforniaPriorityFollowUpNote(row);
-    if (!note) {
-      return;
-    }
-    if (note.indexOf("Follow-up due now") === 0) {
-      dueNow += 1;
-      return;
-    }
-    if (note.indexOf("Follow-up due within 1 day") === 0) {
-      dueSoon += 1;
-    }
-  });
-  if (!dueNow && !dueSoon) {
-    return "";
-  }
-  if (dueNow && dueSoon) {
-    return (
-      "Follow-up urgency: " +
-      dueNow +
-      " due now and " +
-      dueSoon +
-      " due within 1 day across the California wave."
-    );
-  }
-  if (dueNow) {
-    return (
-      "Follow-up urgency: " +
-      dueNow +
-      " California-wave follow-up" +
-      (dueNow === 1 ? " is" : "s are") +
-      " due now."
-    );
-  }
-  return (
-    "Follow-up urgency: " +
-    dueSoon +
-    " California-wave follow-up" +
-    (dueSoon === 1 ? " is" : "s are") +
-    " due within 1 day."
-  );
-}
-
-function getCaliforniaPriorityWaveHealth(rows) {
-  var counts = { not_started: 0, sent: 0, waiting_on_therapist: 0, confirmed: 0, applied: 0 };
-  (rows || []).forEach(function (row) {
-    var status = row && row.workflow ? row.workflow.status : "not_started";
-    if (Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status] += 1;
-    }
-  });
-  var parts = [];
-  if (counts.not_started) parts.push(counts.not_started + " not started");
-  if (counts.sent) parts.push(counts.sent + " sent");
-  if (counts.waiting_on_therapist) parts.push(counts.waiting_on_therapist + " waiting");
-  if (counts.confirmed) parts.push(counts.confirmed + " confirmed");
-  if (counts.applied) parts.push(counts.applied + " applied");
-  return parts.length
-    ? "Current California wave: " + parts.join(" · ") + "."
-    : "Current California wave: no active work.";
-}
-
-function getCaliforniaPriorityWaveBottleneck(rows) {
-  var counts = { not_started: 0, sent: 0, waiting_on_therapist: 0, confirmed: 0, applied: 0 };
-  (rows || []).forEach(function (row) {
-    var status = row && row.workflow ? row.workflow.status : "not_started";
-    if (Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status] += 1;
-    }
-  });
-  if (
-    counts.not_started >=
-    Math.max(counts.sent, counts.waiting_on_therapist, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: the highest-value California confirmations still need first outreach.";
-  }
-  if (
-    counts.waiting_on_therapist >=
-    Math.max(counts.not_started, counts.sent, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: this wave is mostly blocked on therapist replies.";
-  }
-  if (
-    counts.sent >=
-    Math.max(counts.not_started, counts.waiting_on_therapist, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: requests are in flight, so follow-up discipline matters most.";
-  }
-  if (counts.confirmed > 0) {
-    return "Next bottleneck: confirmed answers are ready to apply back into live profiles.";
-  }
-  if (counts.applied > 0) {
-    return "Next bottleneck: move from recently applied profiles back into the next confirmation target.";
-  }
-  return "Next bottleneck: no active blocker yet.";
-}
-
-function getCaliforniaPrioritySharedAsk(rows) {
-  var counts = {};
-  (rows || []).forEach(function (row) {
-    var field = row && row.primaryAskField ? row.primaryAskField : "";
-    if (!field) {
-      return;
-    }
-    if (!counts[field]) {
-      counts[field] = { field: field, count: 0, rows: [] };
-    }
-    counts[field].count += 1;
-    counts[field].rows.push(row);
-  });
-  return (
-    Object.keys(counts)
-      .map(function (key) {
-        return counts[key];
-      })
-      .sort(function (a, b) {
-        return b.count - a.count || a.field.localeCompare(b.field);
-      })[0] || null
-  );
-}
-
-function buildCaliforniaPriorityWavePacket(rows) {
-  var lines = [
-    "# California Priority Confirmation Wave",
-    "",
-    "Top live California confirmation targets to work first.",
-    "",
-  ];
-
-  (rows || []).forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.item.name);
-    lines.push("");
-    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
-    lines.push("- Result: " + getConfirmationResultLabel(row.workflow.status));
-    lines.push("- Target: " + getConfirmationTarget(row.item));
-    lines.push("- Primary ask: " + formatFieldLabel(row.primaryAskField));
-    if (row.addOnAskFields.length) {
-      lines.push("- Add-on asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
-    }
-    lines.push("- First action: " + row.firstAction);
-    lines.push("- Follow-up rule: " + row.followUpRule);
-    if (getCaliforniaPriorityFollowUpNote(row)) {
-      lines.push("- Follow-up timing: " + getCaliforniaPriorityFollowUpNote(row));
-    }
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildCaliforniaPrioritySharedAskPacket(rows) {
-  var sharedAsk = getCaliforniaPrioritySharedAsk(rows);
-  if (!sharedAsk || !sharedAsk.rows.length) {
-    return "";
-  }
-
-  var lines = [
-    "# California Priority Shared Ask",
-    "",
-    "Best shared ask across the current California confirmation wave.",
-    "",
-    "Shared ask: " + formatFieldLabel(sharedAsk.field),
-    "Coverage: " + sharedAsk.count + " of " + (rows || []).length + " California-wave profiles",
-    "",
-  ];
-
-  sharedAsk.rows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.item.name);
-    lines.push("");
-    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
-    lines.push("- Target: " + getConfirmationTarget(row.item));
-    lines.push("- Primary ask: " + formatFieldLabel(row.primaryAskField));
-    if (row.addOnAskFields.length) {
-      lines.push("- Add-on asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
-    }
-    lines.push("- First action: " + row.firstAction);
-    lines.push("- Follow-up rule: " + row.followUpRule);
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildCaliforniaPriorityWaveTrackerCsv(rows) {
-  var headers = [
-    "priority_rank",
-    "name",
-    "slug",
-    "status",
-    "result",
-    "target",
-    "primary_ask_field",
-    "add_on_ask_fields",
-    "first_action",
-    "follow_up_rule",
-    "follow_up_timing",
-    "last_action",
-  ];
-  var lines = [headers.join(",")];
-
-  (rows || []).forEach(function (row) {
-    lines.push(
-      [
-        row.priority_rank,
-        row.item.name,
-        row.item.slug,
-        row.workflow.status,
-        getConfirmationResultLabel(row.workflow.status),
-        getConfirmationTarget(row.item),
-        row.primaryAskField,
-        row.addOnAskFields.join("|"),
-        row.firstAction,
-        row.followUpRule,
-        getCaliforniaPriorityFollowUpNote(row),
-        getConfirmationLastActionNote(row.workflow).replace(/^Last action:\s*/, ""),
-      ]
-        .map(csvEscape)
-        .join(","),
-    );
-  });
-
-  return lines.join("\n");
-}
-
-function buildCaliforniaPriorityWaveApplyPacket(rows) {
-  var readyRows = (rows || []).filter(function (row) {
-    var status = row && row.workflow ? row.workflow.status : "not_started";
-    return status === "confirmed" || status === "applied";
-  });
-
-  if (!readyRows.length) {
-    return "";
-  }
-
-  var lines = [
-    "# California Priority Apply Queue",
-    "",
-    "Confirmed California-wave answers ready to apply back into live profiles.",
-    "",
-  ];
-
-  readyRows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.item.name);
-    lines.push("");
-    lines.push("- Status: " + formatStatusLabel(row.workflow.status));
-    lines.push("- Result: " + getConfirmationResultLabel(row.workflow.status));
-    lines.push(
-      "- Primary confirmed ask: " +
-        (row.primaryAskField ? formatFieldLabel(row.primaryAskField) : "None"),
-    );
-    if (row.addOnAskFields.length) {
-      lines.push("- Secondary asks: " + row.addOnAskFields.map(formatFieldLabel).join(", "));
-    }
-    lines.push(
-      "- Ordered apply flow: " +
-        [row.primaryAskField]
-          .concat(row.addOnAskFields)
-          .filter(Boolean)
-          .map(formatFieldLabel)
-          .join(" -> "),
-    );
-    lines.push(
-      "- Last action: " +
-        getConfirmationLastActionNote(row.workflow).replace(/^Last action:\s*/, ""),
-    );
-    lines.push(
-      "- Profile URL: " +
-        new URL(
-          "therapist.html?slug=" + encodeURIComponent(row.item.slug),
-          window.location.href,
-        ).toString(),
-    );
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildCaliforniaPriorityWaveApplyCsv(rows) {
-  return buildConfirmationApplyCsv(rows);
+function setConfirmationQueueFilter(value) {
+  confirmationWorkspace.setConfirmationQueueFilter(value);
 }
 
 function renderCaliforniaPriorityConfirmationWave() {
-  var root = document.getElementById("californiaPriorityConfirmationWave");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  var rows = getCaliforniaPriorityConfirmationRows();
-  var readyToApplyRows = rows.filter(function (row) {
-    var status = row && row.workflow ? row.workflow.status : "not_started";
-    return status === "confirmed" || status === "applied";
-  });
-  var followUpSummary = getCaliforniaPriorityFollowUpSummary(rows);
-  var sharedAsk = getCaliforniaPrioritySharedAsk(rows);
-  if (!rows.length) {
-    root.innerHTML =
-      '<div class="subtle">No California priority confirmations are currently active.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-summary"><strong>This is the current highest-leverage California confirmation wave.</strong></div><div class="queue-summary subtle">These profiles are visible, strategically important, and now mostly blocked on therapist-confirmed operational truth, not more source work.</div><div class="queue-summary"><strong>' +
-    escapeHtml(getCaliforniaPriorityWaveHealth(rows)) +
-    '</strong></div><div class="queue-summary subtle">' +
-    escapeHtml(getCaliforniaPriorityWaveBottleneck(rows)) +
-    "</div>" +
-    (followUpSummary
-      ? '<div class="queue-summary"><strong>' + escapeHtml(followUpSummary) + "</strong></div>"
-      : "") +
-    (sharedAsk
-      ? '<div class="queue-summary"><strong>Best shared ask to send next:</strong> ' +
-        escapeHtml(formatFieldLabel(sharedAsk.field)) +
-        " (" +
-        escapeHtml(String(sharedAsk.count)) +
-        " of " +
-        escapeHtml(String(rows.length)) +
-        " profiles).</div>"
-      : "") +
-    (readyToApplyRows.length
-      ? '<div class="queue-summary"><strong>Ready to apply now:</strong> ' +
-        escapeHtml(
-          readyToApplyRows.length === 1
-            ? readyToApplyRows[0].item.name + " is ready to apply back into the live profile."
-            : readyToApplyRows.length +
-                " California-wave profiles are ready to apply back into live profiles.",
-        ) +
-        '</div><div class="queue-insights"><div class="queue-insights-title">Ready to apply now</div><div class="subtle" style="margin-bottom:0.7rem">Use this lane once therapist-confirmed answers come back and you are ready to update the live profile.</div><div class="queue-insights-grid">' +
-        readyToApplyRows
-          .map(function (row) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-              escapeHtml(row.item.name) +
-              '</strong></div><div class="queue-insight-note">' +
-              escapeHtml(getConfirmationResultLabel(row.workflow.status)) +
-              '</div><div class="queue-insight-action"><button class="btn-secondary" data-california-priority-apply-brief="' +
-              escapeHtml(row.item.slug) +
-              '">Copy apply brief</button></div></div>'
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" data-california-priority-export="packet">Copy wave packet</button><button class="btn-secondary" data-california-priority-export="tracker">Copy wave tracker CSV</button>' +
-    (sharedAsk
-      ? '<button class="btn-secondary" data-california-priority-export="shared-ask">Copy shared ask packet</button>'
-      : "") +
-    (readyToApplyRows.length
-      ? '<button class="btn-secondary" data-california-priority-export="apply-packet">Copy apply packet</button><button class="btn-secondary" data-california-priority-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-california-priority-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-california-priority-export="apply-checklist">Copy apply checklist</button>'
-      : "") +
-    '</div><div class="review-coach-status" id="californiaPriorityWaveStatus"></div>' +
-    rows
-      .map(function (row) {
-        var item = row.item;
-        var workflow = row.workflow;
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(String(row.priority_rank) + ". " + item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(row.agenda.summary) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span><span class="tag">' +
-          escapeHtml(getConfirmationResultLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Primary ask:</strong> ' +
-          escapeHtml(formatFieldLabel(row.primaryAskField)) +
-          "</div>" +
-          (row.addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              escapeHtml(row.addOnAskFields.map(formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Target:</strong> ' +
-          escapeHtml(getConfirmationTarget(item)) +
-          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
-          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-          '</div><div class="queue-summary"><strong>First action:</strong> ' +
-          escapeHtml(row.firstAction) +
-          '</div><div class="queue-summary"><strong>Follow-up rule:</strong> ' +
-          escapeHtml(row.followUpRule) +
-          (getCaliforniaPriorityFollowUpNote(row)
-            ? '</div><div class="queue-summary"><strong>Follow-up timing:</strong> ' +
-              escapeHtml(getCaliforniaPriorityFollowUpNote(row))
-            : "") +
-          "</div>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationResponseCaptureHtml(
-                item.slug,
-                row.primaryAskField,
-                row.addOnAskFields,
-              )
-            : "") +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationApplyPreviewHtml(
-                item,
-                item.slug,
-                row.primaryAskField,
-                row.addOnAskFields,
-              )
-            : "") +
-          '<div class="queue-actions"><button class="btn-secondary" data-california-priority-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy request</button><button class="btn-secondary" data-california-priority-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button><button class="btn-secondary" data-california-priority-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="sent">Mark sent</button><button class="btn-secondary" data-california-priority-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="waiting_on_therapist">Mark waiting</button><button class="btn-secondary" data-california-priority-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="confirmed">Mark confirmed</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-california-priority-apply-brief="' +
-              escapeHtml(item.slug) +
-              '">Copy apply brief</button><button class="btn-secondary" data-california-priority-status="' +
-              escapeHtml(item.slug) +
-              '" data-next-status="applied">Mark applied</button>'
-            : "") +
-          '<button class="btn-secondary" data-california-priority-queue="' +
-          escapeHtml(item.slug) +
-          '">Show in queue</button></div><div class="review-coach-status" data-california-priority-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-california-priority-copy]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-california-priority-copy");
-      var row = rows.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!row) {
-        return;
-      }
-      var text = [
-        buildOrderedConfirmationRequestMessage(
-          row.item,
-          row.agenda.unknown_fields || [],
-          row.primaryAskField,
-        ),
-        "",
-        "Confirmation form:",
-        buildConfirmationLink(slug),
-      ]
-        .filter(Boolean)
-        .join("\n");
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "California priority request copied." : "Could not copy confirmation request.",
-      );
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderCaliforniaPriorityConfirmationWave();
-        renderImportBlockerSprint();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-california-priority-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-california-priority-export");
-      var text =
-        mode === "tracker"
-          ? buildCaliforniaPriorityWaveTrackerCsv(rows)
-          : mode === "shared-ask"
-            ? buildCaliforniaPrioritySharedAskPacket(rows)
-            : mode === "apply-csv"
-              ? buildCaliforniaPriorityWaveApplyCsv(rows)
-              : mode === "apply-summary"
-                ? buildConfirmationApplySummary(rows, "# California Priority Apply Summary")
-                : mode === "apply-checklist"
-                  ? buildConfirmationApplyOperatorChecklist(
-                      rows,
-                      "# California Priority Apply Checklist",
-                    )
-                  : mode === "apply-packet"
-                    ? buildCaliforniaPriorityWaveApplyPacket(rows)
-                    : buildCaliforniaPriorityWavePacket(rows);
-      var success = await copyText(text);
-      var status = root.querySelector("#californiaPriorityWaveStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "tracker"
-            ? "California wave tracker CSV copied."
-            : mode === "shared-ask"
-              ? "California shared ask packet copied."
-              : mode === "apply-csv"
-                ? "California apply CSV copied."
-                : mode === "apply-summary"
-                  ? "California apply summary copied."
-                  : mode === "apply-checklist"
-                    ? "California apply checklist copied."
-                    : mode === "apply-packet"
-                      ? "California wave apply packet copied."
-                      : "California wave packet copied."
-          : "Could not copy the California wave export.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-california-priority-link]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-california-priority-link");
-      var success = await copyText(buildConfirmationLink(slug));
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Confirmation link copied." : "Could not copy confirmation link.",
-      );
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderCaliforniaPriorityConfirmationWave();
-        renderImportBlockerSprint();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-california-priority-status]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-california-priority-status");
-      var nextStatus = button.getAttribute("data-next-status");
-      if (!slug || !nextStatus) {
-        return;
-      }
-      updateConfirmationQueueEntry(slug, {
-        status: nextStatus,
-        last_sent_at:
-          nextStatus === "sent"
-            ? new Date().toISOString()
-            : getConfirmationQueueEntry(slug).last_sent_at,
-        confirmation_applied_at:
-          nextStatus === "applied"
-            ? new Date().toISOString()
-            : nextStatus === "confirmed" ||
-                nextStatus === "waiting_on_therapist" ||
-                nextStatus === "sent"
-              ? ""
-              : getConfirmationQueueEntry(slug).confirmation_applied_at,
-      });
-      renderStats();
-      renderCaliforniaPriorityConfirmationWave();
-      renderImportBlockerSprint();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  root.querySelectorAll("[data-california-priority-apply-brief]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-california-priority-apply-brief");
-      var row = rows.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!row) {
-        return;
-      }
-      var text = buildConfirmationApplyBrief(
-        row.item,
-        row.agenda,
-        getConfirmationQueueEntry(slug),
-        row.primaryAskField,
-      );
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Apply brief copied." : "Could not copy apply brief.",
-      );
-    });
-  });
-
-  root.querySelectorAll("[data-california-priority-queue]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      confirmationQueueFilter = "";
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  bindConfirmationResponseCapture(root);
+  confirmationWorkspace.renderCaliforniaPriorityConfirmationWave();
 }
 
 function getConfirmationResultLabel(status) {
-  if (status === "applied") {
-    return "Applied to live profile";
-  }
-  if (status === "confirmed") {
-    return "Confirmed by therapist";
-  }
-  if (status === "waiting_on_therapist") {
-    return "Waiting on therapist";
-  }
-  if (status === "sent") {
-    return "Request sent";
-  }
-  return "Not started";
+  return confirmationWorkspace.getConfirmationResultLabel(status);
 }
 
 function getConfirmationLastActionNote(workflow) {
-  var entry = workflow || {};
-  if (entry.status === "applied" && entry.last_updated_at) {
-    return "Last action: marked applied on " + formatDate(entry.last_updated_at) + ".";
-  }
-  if (entry.status === "confirmed" && entry.last_updated_at) {
-    return "Last action: marked confirmed on " + formatDate(entry.last_updated_at) + ".";
-  }
-  if (entry.status === "waiting_on_therapist" && entry.last_updated_at) {
-    return "Last action: marked waiting on " + formatDate(entry.last_updated_at) + ".";
-  }
-  if (entry.status === "sent" && entry.last_sent_at) {
-    return "Last action: request sent on " + formatDate(entry.last_sent_at) + ".";
-  }
-  if (entry.last_updated_at) {
-    return "Last action: updated on " + formatDate(entry.last_updated_at) + ".";
-  }
-  return "Last action: not started yet.";
+  return confirmationWorkspace.getConfirmationLastActionNote(workflow);
 }
 
 function getConfirmationGraceWindowNote(item) {
-  var appliedAt =
-    item && item.confirmation_applied_at ? new Date(item.confirmation_applied_at) : null;
-  if (!appliedAt || Number.isNaN(appliedAt.getTime())) {
-    return "";
-  }
-  var now = new Date();
-  var diffDays = Math.max(0, Math.round((now.getTime() - appliedAt.getTime()) / 86400000));
-  if (diffDays > 21) {
-    return "";
-  }
-  return "Grace window active after recent applied updates.";
+  return confirmationWorkspace.getConfirmationGraceWindowNote(item);
 }
 
 function getConfirmationTarget(item) {
-  var therapist = item || {};
-  if (therapist.preferred_contact_method === "email" && therapist.email) {
-    return therapist.email;
-  }
-  if (therapist.preferred_contact_method === "phone" && therapist.phone) {
-    return therapist.phone;
-  }
-  if (
-    (therapist.preferred_contact_method === "website" ||
-      therapist.preferred_contact_method === "booking") &&
-    (therapist.booking_url || therapist.website)
-  ) {
-    return therapist.booking_url || therapist.website;
-  }
-  return (
-    therapist.booking_url ||
-    therapist.website ||
-    therapist.email ||
-    therapist.phone ||
-    "Manual review"
-  );
-}
-
-function getImportBlockerFields() {
-  return [
-    "license_number",
-    "insurance_accepted",
-    "estimated_wait_time",
-    "bipolar_years_experience",
-  ];
+  return confirmationWorkspace.getConfirmationTarget(item);
 }
 
 function getImportBlockerFieldBuckets(fields) {
-  var sourceFirst = [];
-  var therapistConfirmation = [];
-
-  (Array.isArray(fields) ? fields : []).forEach(function (field) {
-    if (field === "license_number" || field === "insurance_accepted") {
-      sourceFirst.push(field);
-    } else {
-      therapistConfirmation.push(field);
-    }
-  });
-
-  return {
-    source_first: sourceFirst,
-    therapist_confirmation: therapistConfirmation,
-  };
-}
-
-function getImportBlockerSourcePathStatus(buckets) {
-  var sourceFirstFields = Array.isArray(buckets?.source_first) ? buckets.source_first : [];
-  var confirmationFields = Array.isArray(buckets?.therapist_confirmation)
-    ? buckets.therapist_confirmation
-    : [];
-
-  if (sourceFirstFields.length && confirmationFields.length) {
-    return "Still worth one more public-source pass before therapist confirmation.";
-  }
-  if (sourceFirstFields.length) {
-    return "Public-source path still open.";
-  }
-  return "Public-source path exhausted. Therapist confirmation is the honest next move.";
+  return confirmationWorkspace.getImportBlockerFieldBuckets(fields);
 }
 
 function getPreferredFieldOrder(fields, preferredPrimaryField) {
@@ -2693,416 +1879,51 @@ function buildImportBlockerRequestMessage(item, fields, preferredPrimaryField) {
 }
 
 function getPublishedTherapistImportBlockerQueue() {
-  var blockerFields = getImportBlockerFields();
-  return getPublishedTherapistConfirmationQueue()
-    .map(function (entry) {
-      var blockerUnknownFields = (entry.agenda.unknown_fields || []).filter(function (field) {
-        return blockerFields.includes(field);
-      });
-      return {
-        ...entry,
-        blocker_unknown_fields: blockerUnknownFields,
-      };
-    })
-    .filter(function (entry) {
-      return entry.blocker_unknown_fields.length > 0;
-    })
-    .sort(function (a, b) {
-      var blockerDiff = b.blocker_unknown_fields.length - a.blocker_unknown_fields.length;
-      if (blockerDiff) {
-        return blockerDiff;
-      }
-      var statusWeight = {
-        not_started: 0,
-        sent: 1,
-        waiting_on_therapist: 2,
-        confirmed: 3,
-        applied: 4,
-      };
-      var statusDiff =
-        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      return a.item.name.localeCompare(b.item.name);
-    });
+  return confirmationWorkspace.getPublishedTherapistImportBlockerQueue();
 }
 
 function getImportBlockerSprintRows(limit) {
-  var selectedEntries = getPublishedTherapistImportBlockerQueue().slice(0, limit || 3);
-  var fieldCounts = {};
-  selectedEntries.forEach(function (entry) {
-    entry.blocker_unknown_fields.forEach(function (field) {
-      fieldCounts[field] = (fieldCounts[field] || 0) + 1;
-    });
-  });
-  var preferredPrimaryField = Object.keys(fieldCounts).sort(function (a, b) {
-    var countDiff = fieldCounts[b] - fieldCounts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-
-  return selectedEntries.map(function (entry, index) {
-    var item = entry.item;
-    var workflow = entry.workflow || getConfirmationQueueEntry(item.slug);
-    var buckets = getImportBlockerFieldBuckets(entry.blocker_unknown_fields);
-    var sourcePathStatus = getImportBlockerSourcePathStatus(buckets);
-    var nextMove = "";
-    if (buckets.source_first.length && buckets.therapist_confirmation.length) {
-      nextMove =
-        "Try one more public-source pass for " +
-        buckets.source_first.map(formatFieldLabel).join(", ") +
-        ", then use therapist confirmation for " +
-        buckets.therapist_confirmation.map(formatFieldLabel).join(", ") +
-        ".";
-    } else if (buckets.source_first.length) {
-      nextMove =
-        "Try one more public-source pass for " +
-        buckets.source_first.map(formatFieldLabel).join(", ") +
-        " before treating this blocker as confirmation-only.";
-    } else {
-      nextMove =
-        "Use therapist confirmation to clear " +
-        buckets.therapist_confirmation.map(formatFieldLabel).join(", ") +
-        ".";
-    }
-    var blockerMode = buckets.source_first.length
-      ? buckets.therapist_confirmation.length
-        ? "Mixed blocker"
-        : "Source-first blocker"
-      : "Therapist-confirmation blocker";
-    return {
-      priority_rank: index + 1,
-      name: item.name,
-      slug: item.slug,
-      status: formatStatusLabel(workflow.status),
-      result: getConfirmationResultLabel(workflow.status),
-      blocker_mode: blockerMode,
-      blocker_count: entry.blocker_unknown_fields.length,
-      blocker_fields: entry.blocker_unknown_fields.join("|"),
-      source_first_fields: buckets.source_first.join("|"),
-      therapist_confirmation_fields: buckets.therapist_confirmation.join("|"),
-      source_path_status: sourcePathStatus,
-      contact_target: getConfirmationTarget(item),
-      why_it_matters: buckets.source_first.length
-        ? item.name +
-          " is still blocking the strict safe-import gate because " +
-          entry.blocker_unknown_fields.map(formatFieldLabel).join(", ") +
-          " remain unresolved."
-        : item.name +
-          " is still blocking the strict safe-import gate because " +
-          entry.blocker_unknown_fields.map(formatFieldLabel).join(", ") +
-          " still need therapist-confirmed truth, not more guessing.",
-      request_subject: buildImportBlockerRequestSubject(
-        item,
-        entry.blocker_unknown_fields,
-        preferredPrimaryField,
-      ),
-      request_message: buildImportBlockerRequestMessage(
-        item,
-        entry.blocker_unknown_fields,
-        preferredPrimaryField,
-      ),
-      next_best_move: nextMove,
-    };
-  });
+  return confirmationWorkspace.getImportBlockerSprintRows(limit);
 }
 
 function getImportBlockerSprintSummary(rows) {
-  if (!rows.length) {
-    return "No strong-warning profiles are currently blocking the strict safe-import gate.";
-  }
-
-  return (
-    rows.length +
-    " profile" +
-    (rows.length === 1 ? "" : "s") +
-    " currently sit at the top of the strict safe-import blocker queue."
-  );
+  return confirmationWorkspace.getImportBlockerSprintSummary(rows);
 }
 
 function getImportBlockerSprintBottleneck(rows) {
-  if (!rows.length) {
-    return "";
-  }
-
-  var notStarted = rows.filter(function (row) {
-    return row.status === "Not started";
-  }).length;
-  var waiting = rows.filter(function (row) {
-    return row.status === "Waiting on therapist";
-  }).length;
-  var confirmed = rows.filter(function (row) {
-    return row.status === "Confirmed by therapist";
-  }).length;
-
-  if (notStarted >= 2) {
-    return "The strict gate is still mostly blocked on first outreach to unresolved high-trust profiles.";
-  }
-  if (waiting >= 1) {
-    return "The strict gate is now mostly waiting on therapist replies for the top blocker profiles.";
-  }
-  if (confirmed >= 1) {
-    return "Some strict-gate blockers look ready to apply back into the live profile data.";
-  }
-  return "The strict gate backlog is active, but the top blockers are already moving.";
+  return confirmationWorkspace.getImportBlockerSprintBottleneck(rows);
 }
 
 function getImportBlockerSprintWaveShape(rows) {
-  if (!rows.length) {
-    return "";
-  }
-
-  var sourceFirstCount = rows.filter(function (row) {
-    return row.blocker_mode === "Source-first blocker";
-  }).length;
-  var mixedCount = rows.filter(function (row) {
-    return row.blocker_mode === "Mixed blocker";
-  }).length;
-  var confirmationOnlyCount = rows.filter(function (row) {
-    return row.blocker_mode === "Therapist-confirmation blocker";
-  }).length;
-
-  if (confirmationOnlyCount === rows.length) {
-    return "Wave shape: all top blockers are now confirmation-only.";
-  }
-  if (sourceFirstCount === rows.length) {
-    return "Wave shape: all top blockers still have a public-source path open.";
-  }
-  if (mixedCount === rows.length) {
-    return "Wave shape: the whole top wave is mixed, with both source and therapist-confirmation work.";
-  }
-  if (confirmationOnlyCount > 0 && !sourceFirstCount) {
-    return (
-      "Wave shape: mostly confirmation-only, with " +
-      mixedCount +
-      " mixed blocker" +
-      (mixedCount === 1 ? "" : "s") +
-      " still needing a last source pass."
-    );
-  }
-  if (sourceFirstCount > 0 && !confirmationOnlyCount) {
-    return (
-      "Wave shape: mostly source-first, with " +
-      mixedCount +
-      " mixed blocker" +
-      (mixedCount === 1 ? "" : "s") +
-      " also needing therapist confirmation."
-    );
-  }
-  return "Wave shape: mixed blocker work across the top wave, combining source checks and therapist confirmation.";
+  return confirmationWorkspace.getImportBlockerSprintWaveShape(rows);
 }
 
 function getImportBlockerSprintFieldPattern(rows) {
-  if (!rows.length) {
-    return "";
-  }
-
-  var counts = {};
-  rows.forEach(function (row) {
-    String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .forEach(function (field) {
-        counts[field] = (counts[field] || 0) + 1;
-      });
-  });
-
-  var ranked = Object.keys(counts)
-    .sort(function (a, b) {
-      var countDiff = counts[b] - counts[a];
-      if (countDiff) {
-        return countDiff;
-      }
-      return a.localeCompare(b);
-    })
-    .slice(0, 3)
-    .map(function (field) {
-      return formatFieldLabel(field);
-    });
-
-  if (!ranked.length) {
-    return "";
-  }
-
-  return "Most common blockers right now: " + ranked.join(", ") + ".";
+  return confirmationWorkspace.getImportBlockerSprintFieldPattern(rows);
 }
 
 function getImportBlockerPromptMap() {
-  return {
-    estimated_wait_time:
-      "What is your current typical wait time for a new bipolar-related therapy or psychiatry intake?",
-    bipolar_years_experience:
-      "About how many years have you been treating bipolar-spectrum conditions specifically?",
-    insurance_accepted:
-      "Which insurance plans do you currently accept, and if you are out of network, do you provide superbills?",
-    telehealth_states: "Which states are you currently able to see patients in by telehealth?",
-    license_number:
-      "What is your current license number for the license you want displayed on your profile?",
-  };
+  return confirmationWorkspace.getImportBlockerPromptMap();
 }
 
 function getImportBlockerSprintSharedAskDetails(rows) {
-  if (!rows.length) {
-    return null;
-  }
-
-  var counts = {};
-  rows.forEach(function (row) {
-    String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .forEach(function (field) {
-        counts[field] = (counts[field] || 0) + 1;
-      });
-  });
-
-  var topField = Object.keys(counts).sort(function (a, b) {
-    var countDiff = counts[b] - counts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-
-  if (!topField) {
-    return null;
-  }
-
-  var ask = getImportBlockerPromptMap()[topField];
-  if (!ask) {
-    return null;
-  }
-
-  return {
-    field: topField,
-    ask: ask,
-    count: counts[topField] || 0,
-  };
+  return confirmationWorkspace.getImportBlockerSprintSharedAskDetails(rows);
 }
 
 function getImportBlockerSprintSharedAsk(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  return (
-    "Best shared ask to send next (" +
-    details.count +
-    " of " +
-    rows.length +
-    " top blockers): " +
-    details.ask
-  );
+  return confirmationWorkspace.getImportBlockerSprintSharedAsk(rows);
 }
 
 function getImportBlockerSprintSharedAskText(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  return details ? details.ask : "";
+  return confirmationWorkspace.getImportBlockerSprintSharedAskText(rows);
 }
 
 function getImportBlockerSprintSharedAskStatus(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  var matchingRows = rows.filter(function (row) {
-    return String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(details.field);
-  });
-
-  if (!matchingRows.length) {
-    return "";
-  }
-
-  var unsent = matchingRows.filter(function (row) {
-    return row.status === "Not started";
-  }).length;
-  var inFlight = matchingRows.filter(function (row) {
-    return row.status === "Request sent" || row.status === "Waiting on therapist";
-  }).length;
-  var confirmed = matchingRows.filter(function (row) {
-    return row.status === "Confirmed by therapist" || row.status === "Applied to live profile";
-  }).length;
-
-  if (unsent === matchingRows.length) {
-    return (
-      "Shared ask status: not started yet across all " +
-      matchingRows.length +
-      " matching top blockers."
-    );
-  }
-  if (inFlight === matchingRows.length) {
-    return (
-      "Shared ask status: already in flight across all " +
-      matchingRows.length +
-      " matching top blockers."
-    );
-  }
-  if (confirmed === matchingRows.length) {
-    return (
-      "Shared ask status: already confirmed or applied across all " +
-      matchingRows.length +
-      " matching top blockers."
-    );
-  }
-
-  var parts = [];
-  if (unsent) {
-    parts.push(unsent + " unsent");
-  }
-  if (inFlight) {
-    parts.push(inFlight + " in flight");
-  }
-  if (confirmed) {
-    parts.push(confirmed + " confirmed/applied");
-  }
-
-  return "Shared ask status: " + parts.join(", ") + ".";
+  return confirmationWorkspace.getImportBlockerSprintSharedAskStatus(rows);
 }
 
 function getImportBlockerSprintSharedAskImpact(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  var matchingCount = rows.filter(function (row) {
-    return String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(details.field);
-  }).length;
-
-  if (!matchingCount) {
-    return "";
-  }
-
-  return (
-    "Shared ask impact: clearing this answer would likely move " +
-    matchingCount +
-    " of the top " +
-    rows.length +
-    " strict-gate blockers."
-  );
+  return confirmationWorkspace.getImportBlockerSprintSharedAskImpact(rows);
 }
 
 function getConfirmationSprintThemeDetails(rows) {
@@ -3244,42 +2065,7 @@ function getOverlappingAskExtraAsks(row, key, sharedField) {
 }
 
 function getImportBlockerSprintSharedAskNextMove(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  var matchingRows = rows.filter(function (row) {
-    return String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(details.field);
-  });
-
-  if (!matchingRows.length) {
-    return "";
-  }
-
-  var unsent = matchingRows.filter(function (row) {
-    return row.status === "Not started";
-  }).length;
-  var inFlight = matchingRows.filter(function (row) {
-    return row.status === "Request sent" || row.status === "Waiting on therapist";
-  }).length;
-  var confirmed = matchingRows.filter(function (row) {
-    return row.status === "Confirmed by therapist" || row.status === "Applied to live profile";
-  }).length;
-
-  if (unsent >= inFlight && unsent >= confirmed) {
-    return "Best next move: start outreach on this shared ask across the top matching blockers.";
-  }
-  if (inFlight >= unsent && inFlight >= confirmed) {
-    return "Best next move: follow up on replies for this shared ask before widening the wave.";
-  }
-  return "Best next move: apply confirmed answers from this shared ask back into the live profiles.";
+  return confirmationWorkspace.getImportBlockerSprintSharedAskNextMove(rows);
 }
 
 function getImportBlockerLeverageNote(rows, fields) {
@@ -4229,9 +3015,132 @@ function buildImprovementRequest(item, coaching) {
   return [greeting, "", intro, "", bullets, "", close].join("\n");
 }
 
+function buildClaimReviewRequest(item) {
+  var greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
+  var close =
+    "Once those basics are confirmed, we can move your claim forward.\n\nThank you,\nBipolarTherapyHub Review";
+  return [
+    greeting,
+    "",
+    "Thanks for claiming your profile on BipolarTherapyHub. Before we can verify ownership, we need a few core details tightened.",
+    "",
+    "- Confirm the license state and license number exactly as they should appear for review.",
+    "- Double-check your contact email and any practice basics that identify the listing.",
+    "- If this claim is tied to an existing live profile, clarify any mismatch between the current listing and your submitted details.",
+    "",
+    close,
+  ].join("\n");
+}
+
+function getClaimFollowUpLabel(value) {
+  if (value === "sent") return "Follow-up sent";
+  if (value === "responded") return "Therapist responded";
+  if (value === "full_profile_started") return "Full profile started";
+  return "Not started";
+}
+
+function getClaimFollowUpUrgency(application) {
+  if (!application || application.portal_state !== "claimed_ready_for_profile") {
+    return {
+      tone: "steady",
+      label: "Not in approved-claim follow-up",
+      note: "",
+    };
+  }
+
+  var followUpStatus = String(application.claim_follow_up_status || "not_started");
+  var sentAt = application.claim_follow_up_sent_at
+    ? new Date(application.claim_follow_up_sent_at)
+    : null;
+  var approvedAt = application.updated_at ? new Date(application.updated_at) : null;
+  var now = new Date();
+  var msPerDay = 1000 * 60 * 60 * 24;
+  var ageFromApproval =
+    approvedAt && !Number.isNaN(approvedAt.getTime())
+      ? Math.floor((now.getTime() - approvedAt.getTime()) / msPerDay)
+      : 0;
+  var ageFromSend =
+    sentAt && !Number.isNaN(sentAt.getTime())
+      ? Math.floor((now.getTime() - sentAt.getTime()) / msPerDay)
+      : 0;
+
+  if (followUpStatus === "not_started" && ageFromApproval >= 3) {
+    return {
+      tone: "urgent",
+      label: "Follow-up overdue",
+      note: "Claim was approved " + ageFromApproval + " days ago and no follow-up has been sent.",
+    };
+  }
+  if (followUpStatus === "sent" && ageFromSend >= 5) {
+    return {
+      tone: "watch",
+      label: "Reply check due",
+      note: "Follow-up went out " + ageFromSend + " days ago and still needs a response check.",
+    };
+  }
+  if (followUpStatus === "responded") {
+    return {
+      tone: "steady",
+      label: "Waiting on full profile",
+      note: "Therapist has responded. The next leverage is nudging completion of the fuller profile.",
+    };
+  }
+  return {
+    tone: "steady",
+    label: "On track",
+    note:
+      followUpStatus === "sent"
+        ? "Follow-up is in flight."
+        : "Approved claim is still within the normal follow-up window.",
+  };
+}
+
+function buildClaimFollowUpMessage(item) {
+  var revisionLink = new URL(
+    "signup.html?revise=" + encodeURIComponent(item.id),
+    window.location.href,
+  ).toString();
+  return [
+    "Subject: Finish your BipolarTherapyHub profile",
+    "",
+    "Hi " + (item && item.name ? item.name : "") + ",",
+    "",
+    "Your profile claim has been approved on BipolarTherapyHub.",
+    "",
+    "The next step is to complete your fuller profile so we can review your trust details, care fit, and public listing readiness.",
+    "",
+    "Complete your profile here:",
+    revisionLink,
+    "",
+    "Once you submit the fuller profile, we can move it through review.",
+    "",
+    "Thank you,",
+    "BipolarTherapyHub Review",
+  ].join("\n");
+}
+
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function downloadText(filename, text, mimeType) {
+  try {
+    const blob = new window.Blob([text], { type: mimeType || "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 0);
     return true;
   } catch (_error) {
     return false;
@@ -4251,6 +3160,13 @@ function appendImprovementRequestToNotes(root, id, requestText) {
 
 function setCoachActionStatus(root, id, message) {
   var status = root.querySelector('[data-coach-status-id="' + id + '"]');
+  if (status) {
+    status.textContent = message;
+  }
+}
+
+function setApplyLiveFieldsStatus(root, id, message) {
+  var status = root.querySelector('[data-apply-live-fields-status="' + id + '"]');
   if (status) {
     status.textContent = message;
   }
@@ -4648,224 +3564,763 @@ function buildSegmentStrategySnapshots(events, outcomes) {
 }
 
 function renderStats() {
-  if (authRequired) {
-    document.getElementById("adminStats").innerHTML = "";
+  var statsRoot = document.getElementById("adminStats");
+  if (!statsRoot) {
     return;
   }
-
-  const stats =
-    dataMode === "sanity"
-      ? {
-          total_therapists: publishedTherapists.length,
-          states_covered: new Set(
-            publishedTherapists.map(function (item) {
-              return item.state;
-            }),
-          ).size,
-          accepting_count: publishedTherapists.filter(function (item) {
-            return item.accepting_new_patients;
-          }).length,
-        }
-      : getStats();
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
-  const conciergeRequests = readConciergeRequests();
-  const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
-  const outreachOutcomes = readOutreachOutcomes();
-  const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
-  const matchReadyCount = therapists.filter(function (item) {
-    return getTherapistMatchReadiness(item).score >= 85;
-  }).length;
-  const openConciergeCount = conciergeRequests.filter(function (item) {
-    return item.request_status !== "resolved";
-  }).length;
-  const openPortalRequestCount = portalRequests.filter(function (item) {
-    return item.status !== "resolved";
-  }).length;
-  const heardBackCount = outreachOutcomes.filter(function (item) {
-    return item.outcome === "heard_back";
-  }).length;
-  const bookedConsultCount = outreachOutcomes.filter(function (item) {
-    return item.outcome === "booked_consult";
-  }).length;
-  const profilesNeedingRefresh = therapists.filter(function (item) {
-    return getDataFreshnessSummary(item).status !== "fresh";
-  }).length;
-  const recentlyMaintainedCount = therapists.filter(function (item) {
-    return Boolean(getConfirmationGraceWindowNote(item));
-  }).length;
-  const profilesNeedingConfirmation = therapists.filter(function (item) {
-    return getTherapistConfirmationAgenda(item).needs_confirmation;
-  }).length;
-  const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
-  const strictImportBlockerCount = strictImportBlockers.length;
-  const topStrictImportBlocker = strictImportBlockers.length
-    ? strictImportBlockers[0].item.name
-    : "";
-  const strictImportBlockerHealth =
-    strictImportBlockerCount === 0
-      ? "Safe import gate clear"
-      : strictImportBlockerCount <= 3
-        ? "Safe import gate blocked by a small top wave"
-        : "Safe import gate still blocked by a broader backlog";
-  const confirmationQueue = getPublishedTherapistConfirmationQueue();
-  const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
-  const refreshQueue = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-      };
-    })
-    .filter(function (entry) {
-      return entry.freshness.status !== "fresh";
-    })
-    .sort(function (a, b) {
-      const weight = {
-        aging: 0,
-        watch: 1,
-        fresh: 2,
-      };
-      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
+  if (authRequired) {
+    statsRoot.innerHTML = "";
+    return;
+  }
+  try {
+    const stats =
+      dataMode === "sanity"
+        ? {
+            total_therapists: publishedTherapists.length,
+            states_covered: new Set(
+              publishedTherapists.map(function (item) {
+                return item.state;
+              }),
+            ).size,
+            accepting_count: publishedTherapists.filter(function (item) {
+              return item.accepting_new_patients;
+            }).length,
+          }
+        : getStats();
+    const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+    const applications = dataMode === "sanity" ? remoteApplications : getApplications();
+    const conciergeRequests = readConciergeRequests();
+    const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
+    const outreachOutcomes = readOutreachOutcomes();
+    const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
+    const matchReadyCount = therapists.filter(function (item) {
+      return getTherapistMatchReadiness(item).score >= 85;
+    }).length;
+    const openConciergeCount = conciergeRequests.filter(function (item) {
+      return item.request_status !== "resolved";
+    }).length;
+    const openPortalRequestCount = portalRequests.filter(function (item) {
+      return item.status !== "resolved";
+    }).length;
+    const heardBackCount = outreachOutcomes.filter(function (item) {
+      return item.outcome === "heard_back";
+    }).length;
+    const bookedConsultCount = outreachOutcomes.filter(function (item) {
+      return item.outcome === "booked_consult";
+    }).length;
+    const profilesNeedingRefresh = therapists.filter(function (item) {
       return (
-        (b.freshness.needs_reconfirmation_fields || []).length -
-        (a.freshness.needs_reconfirmation_fields || []).length
+        getDataFreshnessSummary(item).status !== "fresh" ||
+        getTherapistFieldTrustAttentionCount(item)
       );
+    }).length;
+    const profilesWithFieldTrustAttention = therapists.filter(function (item) {
+      return getTherapistFieldTrustAttentionCount(item) > 0;
+    }).length;
+    const recentlyMaintainedCount = therapists.filter(function (item) {
+      return Boolean(getConfirmationGraceWindowNote(item));
+    }).length;
+    const profilesNeedingConfirmation = therapists.filter(function (item) {
+      return getTherapistConfirmationAgenda(item).needs_confirmation;
+    }).length;
+    const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
+    const strictImportBlockerCount = strictImportBlockers.length;
+    const topStrictImportBlocker = strictImportBlockers.length
+      ? strictImportBlockers[0].item.name
+      : "";
+    const strictImportBlockerHealth =
+      strictImportBlockerCount === 0
+        ? "Safe import gate clear"
+        : strictImportBlockerCount <= 3
+          ? "Safe import gate blocked by a small top wave"
+          : "Safe import gate still blocked by a broader backlog";
+    const confirmationQueue = getPublishedTherapistConfirmationQueue();
+    const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
+    const refreshQueue = therapists
+      .map(function (item) {
+        return {
+          item: item,
+          freshness: getDataFreshnessSummary(item),
+          trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
+        };
+      })
+      .filter(function (entry) {
+        return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
+      })
+      .sort(function (a, b) {
+        const weight = {
+          aging: 0,
+          watch: 1,
+          fresh: 2,
+        };
+        const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
+        if (statusDiff) {
+          return statusDiff;
+        }
+        const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
+        if (trustDiff) {
+          return trustDiff;
+        }
+        return (
+          (b.freshness.needs_reconfirmation_fields || []).length -
+          (a.freshness.needs_reconfirmation_fields || []).length
+        );
+      });
+    const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
+    const recentlyMaintainedProfiles = therapists.filter(function (item) {
+      return Boolean(getConfirmationGraceWindowNote(item));
     });
-  const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
-  const recentlyMaintainedProfiles = therapists.filter(function (item) {
-    return Boolean(getConfirmationGraceWindowNote(item));
+    const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
+      ? recentlyMaintainedProfiles[0].name
+      : "";
+    const confirmationQueueState = readConfirmationQueueState();
+    const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
+      var entry = confirmationQueueState[slug];
+      return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
+    }).length;
+    const pendingApplicationsCount = applications.filter(function (item) {
+      return item.status === "pending";
+    }).length;
+    const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
+    const candidateReviewCount = candidateQueueItems.filter(function (item) {
+      return item.review_status !== "published" && item.review_status !== "archived";
+    }).length;
+    const readyToApplyCount = confirmationQueue.filter(function (entry) {
+      var status = entry && entry.workflow ? entry.workflow.status : "not_started";
+      return status === "confirmed";
+    }).length;
+    const listingPromotionCount = therapists.filter(function (item) {
+      return (
+        getTherapistMatchReadiness(item).score >= 90 &&
+        getTherapistMerchandisingQuality(item).score >= 85 &&
+        getDataFreshnessSummary(item).status !== "aging" &&
+        !getTherapistConfirmationAgenda(item).needs_confirmation &&
+        getTherapistFieldTrustAttentionCount(item) === 0
+      );
+    }).length;
+    let nextBestActions = [];
+    try {
+      nextBestActions = getNextBestAdminActions({
+        applications: applications,
+        getClaimActionQueue: getClaimActionQueue,
+        getDataFreshnessSummary: getDataFreshnessSummary,
+        getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+        getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
+        getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+        getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+        getTherapistMatchReadiness: getTherapistMatchReadiness,
+        getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+        therapists: therapists,
+      });
+    } catch (error) {
+      console.error("Admin next-best actions failed to render:", error);
+      nextBestActions = [];
+    }
+    let workQueueSnapshot = {
+      preferredReviewer: "",
+      myTasks: [],
+      unassigned: [],
+      dueToday: [],
+      doneRecently: [],
+    };
+    try {
+      workQueueSnapshot = reviewerWorkspace.getHumanWorkQueueSnapshot(4) || workQueueSnapshot;
+    } catch (error) {
+      console.error("Admin work queue failed to render:", error);
+    }
+    let workQueueCards = [];
+    try {
+      workQueueCards = [
+        buildWorkQueueCard({
+          bucket: "my_tasks",
+          label: "My Tasks",
+          count: workQueueSnapshot.myTasks.length,
+          meta: workQueueSnapshot.preferredReviewer
+            ? "Assigned to " + workQueueSnapshot.preferredReviewer
+            : "Set a preferred reviewer to use this bucket",
+          topItem: workQueueSnapshot.myTasks[0] || null,
+          items: workQueueSnapshot.myTasks,
+          actionLabel: workQueueSnapshot.myTasks.length
+            ? "Open first owned task"
+            : "Nothing assigned",
+        }),
+        buildWorkQueueCard({
+          bucket: "unassigned",
+          label: "Unassigned",
+          count: workQueueSnapshot.unassigned.length,
+          meta: "Work that still needs an owner",
+          topItem: workQueueSnapshot.unassigned[0] || null,
+          items: workQueueSnapshot.unassigned,
+          actionLabel: workQueueSnapshot.unassigned.length
+            ? "Open first unassigned task"
+            : "No unassigned work",
+        }),
+        buildWorkQueueCard({
+          bucket: "due_today",
+          label: "Due Today",
+          count: workQueueSnapshot.dueToday.length,
+          meta: "Overdue and due-today work across the main lanes",
+          topItem: workQueueSnapshot.dueToday[0] || null,
+          items: workQueueSnapshot.dueToday,
+          actionLabel: workQueueSnapshot.dueToday.length
+            ? "Open first due task"
+            : "Nothing due today",
+        }),
+        buildWorkQueueCard({
+          bucket: "done_recently",
+          label: "Done Recently",
+          count: workQueueSnapshot.doneRecently.length,
+          meta: "Recently completed work for quick handoff context",
+          topItem: workQueueSnapshot.doneRecently[0] || null,
+          items: workQueueSnapshot.doneRecently,
+          actionLabel: workQueueSnapshot.doneRecently.length
+            ? "Open most recent completed task"
+            : "No recent completions",
+        }),
+      ];
+    } catch (error) {
+      console.error("Admin work queue cards failed to render:", error);
+      workQueueCards = [];
+    }
+    const publishMaintainCardConfig =
+      readyToApplyCount > 0
+        ? {
+            title: "Apply Ready Updates",
+            countLabel: readyToApplyCount,
+            copy: "Land therapist-confirmed values on live listings so trusted updates do not sit waiting in the queue.",
+            steps: [
+              "Open the confirmed update queue and start with the top ready profile.",
+              "Apply the therapist-confirmed values that are ready for live listings.",
+              "Confirm the listing is now updated and no longer waiting on a live apply decision.",
+            ],
+            done: "The confirmed profile has been applied to the live listing or moved out of the ready-to-apply state with a clear reason.",
+            actionLabel: "Open confirm-details overview",
+            directActionLabel: "Start with first ready update",
+            targetId: "confirmationQueueSection",
+            focusTargetId: "confirmationQueueStartHere",
+            confirmationFilter: "confirmed",
+          }
+        : profilesNeedingRefresh > 0
+          ? {
+              title: "Review Listing Updates",
+              countLabel: profilesNeedingRefresh,
+              copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
+              steps: [
+                "Open the refresh queue and start with the highest-risk listing.",
+                "Review the stale or trust-risk fields and decide refresh versus confirmation.",
+                "Mark the item reviewed, defer it, or move it into a stronger follow-up path.",
+              ],
+              done: "The listing is no longer the top refresh risk and has a clear maintenance decision recorded.",
+              actionLabel: "Open listing-updates overview",
+              directActionLabel: "Start with first refresh task",
+              targetId: "refreshQueueSection",
+              focusTargetId: "refreshQueueStartHere",
+            }
+          : {
+              title: "Promote Live Listings",
+              countLabel: listingPromotionCount,
+              copy: "Move strong live listings into the right visibility level so good profiles do not sit under-promoted.",
+              steps: [
+                "Open live-listing controls and start with the top promotion decision.",
+                "Choose the simplest clear state for the profile: feature it, mark it ready to feature, or keep it standard.",
+                "Leave the listing in the right visibility level before moving on.",
+              ],
+              done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
+              actionLabel: "Open listings overview",
+              directActionLabel: "Start with top listing decision",
+              targetId: "publishedListingsSection",
+              focusTargetId: "publishedListingsStartHere",
+            };
+    const verifyTrustCardConfig =
+      strictImportBlockerCount > 0
+        ? {
+            title: "Fix Missing Listing Details",
+            countLabel: strictImportBlockerCount,
+            copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
+            steps: [
+              "Open the missing-details lane and start with the top listing.",
+              "Verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.",
+              "Leave the listing with fewer missing trust details or in the correct follow-up path before moving on.",
+            ],
+            done: "The listing is no longer missing its top trust-critical detail or has been moved into confirmation with a clear next step.",
+            actionLabel: "Open missing-details overview",
+            directActionLabel: "Start with first listing",
+            targetId: "importBlockerSprintSection",
+            focusTargetId: "importBlockerStartHere",
+          }
+        : awaitingConfirmationCount > 0
+          ? {
+              title: "Follow Up Confirmations",
+              countLabel: awaitingConfirmationCount,
+              copy: "Follow up on therapist confirmation requests so trusted listing details do not sit waiting on replies.",
+              steps: [
+                "Open the follow-up queue and start with the top waiting profile.",
+                "Send the next follow-up or capture a reply if one has arrived.",
+                "Update the confirmation state so the profile moves forward instead of staying in waiting.",
+              ],
+              done: "The profile is no longer sitting in waiting-on-therapist without a fresh follow-up or captured reply.",
+              actionLabel: "Open reply follow-ups overview",
+              directActionLabel: "Start with first follow-up",
+              targetId: "confirmationQueueSection",
+              focusTargetId: "confirmationQueueStartHere",
+              confirmationFilter: "waiting_on_therapist",
+            }
+          : {
+              title: "Send Confirmation Requests",
+              countLabel: profilesNeedingConfirmation,
+              copy: "Send new confirmation requests for missing operational details so live listings stay trustworthy and current.",
+              steps: [
+                "Open the confirmation sprint and start with the top profile needing outreach.",
+                "Send the confirmation request using the recommended field order and outreach path.",
+                "Mark the request state clearly so the profile leaves the unsent confirmation pile.",
+              ],
+              done: "The profile has a clear confirmation request state and is no longer sitting as an unworked trust task.",
+              actionLabel: "Open confirmation sprint overview",
+              directActionLabel: "Start with first confirmation task",
+              targetId: "confirmationSprintSection",
+              focusTargetId: "confirmationSprintStartHere",
+            };
+    const startHereCards = [
+      buildOperatorGuideCard({
+        kicker: "Add Supply",
+        title: "Add New Listings",
+        countLabel: candidateReviewCount,
+        copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
+        steps: [
+          "Open the new-listings lane and inspect the original source.",
+          "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
+          "Move the card to the right next state before leaving it.",
+        ],
+        done: "The listing is marked ready, sent to confirmation, merged as a duplicate, or published.",
+        actionLabel: "Open new-listings overview",
+        directActionLabel: "Start with first listing",
+        targetId: "candidateQueuePanel",
+        focusTargetId: "candidateQueueStartHere",
+        targetSummary: "Add New Listings -> first listing row",
+        overviewSummary: "Add New Listings overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Review Supply",
+        title: "Review Applications",
+        countLabel: pendingApplicationsCount,
+        copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
+        steps: [
+          "Open the applications lane and start with the oldest or strongest pending item.",
+          "Check trust-critical fields, revision notes, and any therapist follow-up context.",
+          "Approve, request changes, reject, or publish so the application leaves limbo.",
+        ],
+        done: "The application has a clear decision and no longer sits in the pending review pile.",
+        actionLabel: "Open applications overview",
+        directActionLabel: "Start with top application",
+        targetId: "applicationsPanel",
+        applicationStatus: "pending",
+        focusTargetId: "applicationReviewStartHere",
+        targetSummary: "Review Applications -> top pending application",
+        overviewSummary: "Review Applications overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Verify Trust",
+        title: verifyTrustCardConfig.title,
+        countLabel: verifyTrustCardConfig.countLabel,
+        copy: verifyTrustCardConfig.copy,
+        steps: verifyTrustCardConfig.steps,
+        done: verifyTrustCardConfig.done,
+        actionLabel: verifyTrustCardConfig.actionLabel,
+        directActionLabel: verifyTrustCardConfig.directActionLabel,
+        targetId: verifyTrustCardConfig.targetId,
+        focusTargetId: verifyTrustCardConfig.focusTargetId,
+        focusSelector: verifyTrustCardConfig.focusSelector,
+        confirmationFilter: verifyTrustCardConfig.confirmationFilter,
+        targetSummary:
+          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+            ? "Fix Missing Listing Details -> first listing row"
+            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+              ? "Confirm Listing Details -> first waiting follow-up"
+              : "Send Confirmation Requests -> first outreach task",
+        overviewSummary:
+          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
+            ? "Fix Missing Listing Details overview"
+            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
+              ? "Confirm Listing Details overview"
+              : "Send Confirmation Requests overview",
+      }),
+      buildOperatorGuideCard({
+        kicker: "Publish And Maintain",
+        title: publishMaintainCardConfig.title,
+        countLabel: publishMaintainCardConfig.countLabel,
+        copy: publishMaintainCardConfig.copy,
+        steps: publishMaintainCardConfig.steps,
+        done: publishMaintainCardConfig.done,
+        actionLabel: publishMaintainCardConfig.actionLabel,
+        directActionLabel: publishMaintainCardConfig.directActionLabel,
+        targetId: publishMaintainCardConfig.targetId,
+        focusTargetId: publishMaintainCardConfig.focusTargetId,
+        confirmationFilter: publishMaintainCardConfig.confirmationFilter,
+        targetSummary:
+          publishMaintainCardConfig.targetId === "confirmationQueueSection"
+            ? "Confirm Listing Details -> first ready-to-apply update"
+            : publishMaintainCardConfig.targetId === "refreshQueueSection"
+              ? "Review Listing Updates -> first listing task"
+              : "Promote Live Listings -> top listing decision",
+        overviewSummary:
+          publishMaintainCardConfig.targetId === "confirmationQueueSection"
+            ? "Confirm Listing Details overview"
+            : publishMaintainCardConfig.targetId === "refreshQueueSection"
+              ? "Review Listing Updates overview"
+              : "Promote Live Listings overview",
+      }),
+    ];
+
+    const primaryOpsCards = [
+      buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
+        applicationStatus: "pending",
+        actionLabel: "Open review queue",
+      }),
+      buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
+        conciergeStatus: "open",
+        actionLabel: "Open active items",
+      }),
+      buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
+        portalRequestStatus: "open",
+        actionLabel: "Open portal queue",
+      }),
+      buildActionStatCard(
+        profilesNeedingRefresh,
+        "Listings needing review",
+        "refreshQueueSection",
+        {
+          meta: topRefreshProfile
+            ? "Top: " +
+              topRefreshProfile +
+              (profilesWithFieldTrustAttention
+                ? " · " + profilesWithFieldTrustAttention + " with trust risk"
+                : "")
+            : profilesWithFieldTrustAttention
+              ? profilesWithFieldTrustAttention + " with trust risk"
+              : "",
+          actionLabel: "Open listing-updates lane",
+        },
+      ),
+      buildActionStatCard(
+        strictImportBlockerCount,
+        "Listings missing key details",
+        "importBlockerSprintSection",
+        {
+          meta:
+            strictImportBlockerHealth +
+            (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
+          actionLabel: "Open missing-details lane",
+        },
+      ),
+      buildActionStatCard(
+        profilesNeedingConfirmation,
+        "Listings needing confirmation",
+        "confirmationQueueSection",
+        {
+          meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
+          actionLabel: "Open confirm-details lane",
+          focusTargetId: "confirmationQueueStartHere",
+        },
+      ),
+      buildActionStatCard(
+        awaitingConfirmationCount,
+        "Reply follow-ups open",
+        "confirmationQueueSection",
+        {
+          confirmationFilter: "waiting_on_therapist",
+          actionLabel: "Open reply follow-ups",
+          focusTargetId: "confirmationQueueStartHere",
+        },
+      ),
+    ];
+
+    const secondaryContextCards = [
+      buildPassiveStatCard(therapists.length, "Live listings"),
+      buildPassiveStatCard(stats.states_covered, "States covered"),
+      buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
+      buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
+      buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
+        actionLabel: "Open concierge queue",
+      }),
+      buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
+      buildPassiveStatCard(bookedConsultCount, "Booked consults"),
+      buildActionStatCard(
+        recentlyMaintainedCount,
+        "Recently maintained",
+        "recentlyMaintainedRefresh",
+        {
+          meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
+          actionLabel: "Open maintained list",
+        },
+      ),
+      buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
+        actionLabel: "Open analytics",
+      }),
+      buildPassiveStatCard(funnelSummary.matches, "Matches run"),
+      buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
+      buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
+    ];
+
+    document.getElementById("adminStats").innerHTML =
+      (getWorkQueueActionFlash()
+        ? '<div class="mini-status" style="margin-bottom:1rem"><strong>Work Queue update:</strong> ' +
+          escapeHtml(getWorkQueueActionFlash()) +
+          "</div>"
+        : "") +
+      wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
+      (nextBestActions.length
+        ? wrapStatsGroup(
+            "Next Best Actions",
+            nextBestActions.map(function (action, index) {
+              return buildPriorityActionCard(action, index);
+            }),
+            "ops-grid",
+          )
+        : "") +
+      (workQueueCards.length ? wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") : "") +
+      wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
+      wrapStatsGroup("Reference metrics", secondaryContextCards, "");
+
+    document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var targetId = button.getAttribute("data-admin-scroll-target");
+        var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
+        var applicationStatus = button.getAttribute("data-admin-application-status");
+        var conciergeStatus = button.getAttribute("data-admin-concierge-status");
+        var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
+        var focusSelector = button.getAttribute("data-admin-focus-selector");
+        var focusTargetId = button.getAttribute("data-admin-focus-target-id");
+        var workflowTitle = button.getAttribute("data-admin-workflow-title");
+        var workflowDestination = button.getAttribute("data-admin-workflow-destination");
+        var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
+        var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
+        var workflowDone = button.getAttribute("data-admin-workflow-done");
+        var workflowPrimaryActionLabel = button.getAttribute(
+          "data-admin-workflow-primary-action-label",
+        );
+        var workflowPrimaryActionTargetId = button.getAttribute(
+          "data-admin-workflow-primary-target-id",
+        );
+        if (confirmationFilter) {
+          setConfirmationQueueFilter(confirmationFilter);
+          renderConfirmationQueue();
+        }
+        if (applicationStatus !== null) {
+          applicationFilters.status = applicationStatus || "";
+          var applicationStatusFilter = document.getElementById("applicationStatusFilter");
+          if (applicationStatusFilter) {
+            applicationStatusFilter.value = applicationFilters.status;
+          }
+          renderApplications();
+        }
+        if (conciergeStatus !== null) {
+          conciergeFilters.status = conciergeStatus || "";
+          var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
+          if (conciergeStatusFilter) {
+            conciergeStatusFilter.value = conciergeFilters.status;
+          }
+          renderConciergeQueue();
+        }
+        if (portalRequestStatus !== null) {
+          portalRequestFilters.status = portalRequestStatus || "";
+          var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
+          if (portalRequestStatusFilter) {
+            portalRequestStatusFilter.value = portalRequestFilters.status;
+          }
+          renderPortalRequestsQueue();
+        }
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) {
+          focusAdminWorkflowTarget({
+            sectionTarget: target,
+            focusTargetId: focusTargetId,
+            focusSelector: focusSelector,
+            workflowTitle: workflowTitle,
+            workflowDestination: workflowDestination,
+            workflowFirstStep: workflowFirstStep,
+            workflowNextStep: workflowNextStep,
+            workflowDone: workflowDone,
+            workflowPrimaryActionLabel: workflowPrimaryActionLabel,
+            workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
+          });
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-work-queue-bucket]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var bucket = button.getAttribute("data-work-queue-bucket") || "";
+        var item =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks[0]
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned[0]
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday[0]
+                : workQueueSnapshot.doneRecently[0];
+        if (!item) {
+          return;
+        }
+        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+      });
+    });
+
+    document.querySelectorAll("[data-work-queue-item]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-item") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
+      });
+    });
+
+    document.querySelectorAll("[data-work-queue-claim]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-claim") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.claimWorkItem(item.entity_type, item.id);
+        setWorkQueueActionFlash(
+          (item.assignee ? "Reassigned " : "Claimed ") +
+            item.name +
+            " in " +
+            getWorkItemTypeLabel(item.entity_type) +
+            ".",
+        );
+        renderStats();
+      });
+    });
+
+    document.querySelectorAll("[data-work-queue-waiting]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-waiting") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "waiting");
+        setWorkQueueActionFlash("Moved " + item.name + " to waiting.");
+        renderStats();
+      });
+    });
+
+    document.querySelectorAll("[data-work-queue-done]").forEach(function (button) {
+      button.addEventListener("click", async function (event) {
+        event.stopPropagation();
+        var bucket = button.getAttribute("data-work-queue-done") || "";
+        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
+        var items =
+          bucket === "my_tasks"
+            ? workQueueSnapshot.myTasks
+            : bucket === "unassigned"
+              ? workQueueSnapshot.unassigned
+              : bucket === "due_today"
+                ? workQueueSnapshot.dueToday
+                : workQueueSnapshot.doneRecently;
+        var item = Array.isArray(items) ? items[index] : null;
+        if (!item) {
+          return;
+        }
+        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "done");
+        setWorkQueueActionFlash("Marked " + item.name + " done.");
+        renderStats();
+      });
+    });
+  } catch (error) {
+    console.error("Admin stats failed to render:", error);
+    statsRoot.innerHTML =
+      '<div class="empty">The admin dashboard hit a rendering issue. Refresh the page to retry.</div>';
+  }
+}
+
+function inferCoverageRole(item) {
+  const title = String(item.title || "").toLowerCase();
+  const credentials = String(item.credentials || "").toLowerCase();
+  if (item.medication_management || title.includes("psychiatrist") || credentials.includes("md")) {
+    return "psychiatry";
+  }
+  return "therapy";
+}
+
+function renderCoverageIntelligence() {
+  renderCoverageIntelligencePanel({
+    root: document.getElementById("coverageIntelligence"),
+    authRequired: authRequired,
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    inferCoverageRole: inferCoverageRole,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    escapeHtml: escapeHtml,
+    csvEscape: csvEscape,
+    copyText: copyText,
+    downloadText: downloadText,
   });
-  const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
-    ? recentlyMaintainedProfiles[0].name
-    : "";
-  const confirmationQueueState = readConfirmationQueueState();
-  const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
-    var entry = confirmationQueueState[slug];
-    return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
-  }).length;
-  const pendingApplicationsCount = applications.filter(function (item) {
-    return item.status === "pending";
-  }).length;
+}
 
-  const primaryOpsCards = [
-    buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
-      applicationStatus: "pending",
-      actionLabel: "Open review queue",
-    }),
-    buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
-      conciergeStatus: "open",
-      actionLabel: "Open active items",
-    }),
-    buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
-      portalRequestStatus: "open",
-      actionLabel: "Open portal queue",
-    }),
-    buildActionStatCard(profilesNeedingRefresh, "Profiles needing refresh", "refreshQueue", {
-      meta: topRefreshProfile ? "Top: " + topRefreshProfile : "",
-      actionLabel: "Open refresh queue",
-    }),
-    buildActionStatCard(strictImportBlockerCount, "Strict import blockers", "importBlockerSprint", {
-      meta:
-        strictImportBlockerHealth +
-        (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
-      actionLabel: "Open blocker sprint",
-    }),
-    buildActionStatCard(
-      profilesNeedingConfirmation,
-      "Profiles needing confirmation",
-      "confirmationQueue",
-      {
-        meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
-        actionLabel: "Open confirmation queue",
-      },
-    ),
-    buildActionStatCard(
-      awaitingConfirmationCount,
-      "Confirmation follow-ups open",
-      "confirmationQueue",
-      {
-        confirmationFilter: "waiting_on_therapist",
-        actionLabel: "Open follow-ups",
-      },
-    ),
-  ];
+function renderIngestionScorecard() {
+  var latestAutomationRun = ingestionAutomationHistory.length
+    ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
+    : null;
+  renderIngestionScorecardPanel({
+    root: document.getElementById("ingestionScorecard"),
+    authRequired: authRequired,
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    ingestionAutomationHistory: ingestionAutomationHistory,
+    latestAutomationRun: latestAutomationRun,
+    licensureRefreshQueue: licensureRefreshQueue,
+    licensureActivityFeed: licensureActivityFeed,
+    buildCoverageInsights: buildCoverageInsights,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
+  });
+}
 
-  const secondaryContextCards = [
-    buildPassiveStatCard(therapists.length, "Published listings"),
-    buildPassiveStatCard(stats.states_covered, "States covered"),
-    buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
-    buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
-    buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
-      actionLabel: "Open concierge queue",
-    }),
-    buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
-    buildPassiveStatCard(bookedConsultCount, "Booked consults"),
-    buildActionStatCard(
-      recentlyMaintainedCount,
-      "Recently maintained",
-      "recentlyMaintainedRefresh",
-      {
-        meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
-        actionLabel: "Open maintained list",
-      },
-    ),
-    buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
-      actionLabel: "Open analytics",
-    }),
-    buildPassiveStatCard(funnelSummary.matches, "Matches run"),
-    buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
-    buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
-  ];
-
-  document.getElementById("adminStats").innerHTML =
-    wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
-    wrapStatsGroup("Reference metrics", secondaryContextCards, "");
-
-  document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var targetId = button.getAttribute("data-admin-scroll-target");
-      var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
-      var applicationStatus = button.getAttribute("data-admin-application-status");
-      var conciergeStatus = button.getAttribute("data-admin-concierge-status");
-      var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
-      if (confirmationFilter) {
-        confirmationQueueFilter = confirmationFilter;
-        renderConfirmationQueue();
-      }
-      if (applicationStatus !== null) {
-        applicationFilters.status = applicationStatus || "";
-        var applicationStatusFilter = document.getElementById("applicationStatusFilter");
-        if (applicationStatusFilter) {
-          applicationStatusFilter.value = applicationFilters.status;
-        }
-        renderApplications();
-      }
-      if (conciergeStatus !== null) {
-        conciergeFilters.status = conciergeStatus || "";
-        var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
-        if (conciergeStatusFilter) {
-          conciergeStatusFilter.value = conciergeFilters.status;
-        }
-        renderConciergeQueue();
-      }
-      if (portalRequestStatus !== null) {
-        portalRequestFilters.status = portalRequestStatus || "";
-        var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
-        if (portalRequestStatusFilter) {
-          portalRequestStatusFilter.value = portalRequestFilters.status;
-        }
-        renderPortalRequestsQueue();
-      }
-      var target = targetId ? document.getElementById(targetId) : null;
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-        spotlightSection(target);
-      }
-    });
+function renderSourcePerformance() {
+  renderSourcePerformancePanel({
+    root: document.getElementById("sourcePerformance"),
+    authRequired: authRequired,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    inferCoverageRole: inferCoverageRole,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    escapeHtml: escapeHtml,
   });
 }
 
@@ -4882,7 +4337,22 @@ function renderFunnelInsights() {
 
   const events = readFunnelEvents();
   const summary = summarizeFunnelEvents(events);
+  const patientJourney = summarizePatientJourney(events);
+  const profileContactSignals = summarizeProfileContactSignals(events);
+  const profileQueueProgress = summarizeProfileQueueProgress(events);
+  const directoryProfileOpenQuality = summarizeDirectoryProfileOpenQuality(events);
   const outcomes = readOutreachOutcomes();
+  const profileContactOutcomeValidation = summarizeProfileContactOutcomeValidation(
+    events,
+    outcomes,
+  );
+  const routeOutcomePerformance = summarizeContactRouteOutcomePerformance(outcomes);
+  const profileContactExperimentDecision = summarizeProfileContactExperimentDecision(
+    events,
+    outcomes,
+  );
+  const experimentPerformance = summarizeExperimentPerformance(events);
+  const experimentDecisions = summarizeExperimentDecisions(events);
   const adaptive = summarizeAdaptiveSignals(events, outcomes);
   const strategyHealth = buildStrategyHealthSummary(outcomes);
   const strategyPerformance = analyzeStrategyPerformance(events, outcomes);
@@ -4914,6 +4384,427 @@ function renderFunnelInsights() {
       })
       .join("") +
     "</div></div>" +
+    '<div class="queue-insights"><div class="queue-insights-title">Patient journey checkpoints</div><div class="queue-insights-grid">' +
+    patientJourney.stages
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="queue-insight-note">' +
+          escapeHtml(item.note) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div><div class="mini-status" style="margin-top:0.75rem"><strong>' +
+    escapeHtml(
+      patientJourney.biggest_dropoff ? "Biggest patient drop-off" : "Patient journey note",
+    ) +
+    ":</strong> " +
+    escapeHtml(
+      patientJourney.biggest_dropoff
+        ? patientJourney.biggest_dropoff.from_label +
+            " -> " +
+            patientJourney.biggest_dropoff.to_label +
+            " is currently the steepest falloff."
+        : "We need more patient journey data before a clear drop-off is visible.",
+    ) +
+    "</div></div>" +
+    (directoryProfileOpenQuality.rows.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Directory-to-profile quality</div><div class="queue-insights-grid">' +
+        directoryProfileOpenQuality.rows
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.source) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.opens +
+                  " opens · " +
+                  item.high_readiness +
+                  " high-readiness · " +
+                  item.fresh_profiles +
+                  " fresh",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                "High-readiness " +
+                  Math.round(item.high_readiness_rate * 100) +
+                  "% · Accepting " +
+                  Math.round(item.accepting_rate * 100) +
+                  "% · Bipolar detail " +
+                  Math.round(item.bipolar_rate * 100) +
+                  "%",
+              ) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        '</div><div class="mini-status" style="margin-top:0.75rem"><strong>Interpretation:</strong> ' +
+        escapeHtml(directoryProfileOpenQuality.interpretation) +
+        "</div></div>"
+      : "") +
+    '<div class="queue-insights"><div class="queue-insights-title">Recovery and friction signals</div><div class="queue-insights-grid">' +
+    [
+      {
+        label: "Recovery clicks",
+        count: patientJourney.recovery_moves,
+      },
+      {
+        label: "Refinement opens",
+        count: patientJourney.refinement_opens,
+      },
+      {
+        label: "Direct outreach actions",
+        count: patientJourney.direct_outreach_actions,
+      },
+    ]
+      .map(function (item) {
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-value">' +
+          escapeHtml(item.count) +
+          '</div><div class="queue-insight-label">' +
+          escapeHtml(item.label) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>" +
+    (profileContactSignals.total_route_clicks ||
+    profileContactSignals.section_views ||
+    profileContactSignals.script_engagements ||
+    profileContactSignals.question_engagements
+      ? '<div class="queue-insights"><div class="queue-insights-title">Profile contact conversion signals</div><div class="queue-insights-grid">' +
+        [
+          {
+            label: "Contact section views",
+            count: profileContactSignals.section_views,
+          },
+          {
+            label: "Route clicks",
+            count: profileContactSignals.total_route_clicks,
+          },
+          {
+            label: "Script engagements",
+            count: profileContactSignals.script_engagements,
+          },
+          {
+            label: "Question-list engagements",
+            count: profileContactSignals.question_engagements,
+          },
+        ]
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.count) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(item.label) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div>" +
+        '<div class="mini-status" style="margin-top:0.75rem"><strong>Interpretation:</strong> ' +
+        escapeHtml(profileContactSignals.interpretation) +
+        "</div>" +
+        (profileContactSignals.top_route
+          ? '<div class="mini-status" style="margin-top:0.45rem"><strong>Current leading route:</strong> ' +
+            escapeHtml(
+              profileContactSignals.top_route.route +
+                " with " +
+                profileContactSignals.top_route.count +
+                " click" +
+                (profileContactSignals.top_route.count === 1 ? "" : "s"),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.route_rows.length
+          ? '<div class="mini-status" style="margin-top:0.75rem"><strong>Most-used contact routes:</strong> ' +
+            escapeHtml(
+              profileContactSignals.route_rows
+                .slice(0, 4)
+                .map(function (item) {
+                  return item.route + " " + item.count;
+                })
+                .join(" · "),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.weak_guidance_profiles.length
+          ? '<div class="mini-status" style="margin-top:0.45rem"><strong>Watchlist:</strong> ' +
+            escapeHtml(
+              profileContactSignals.weak_guidance_profiles
+                .slice(0, 3)
+                .map(function (item) {
+                  return item.slug + " (" + item.clicks + " clicks)";
+                })
+                .join(" · "),
+            ) +
+            "</div>"
+          : "") +
+        (profileContactSignals.top_profiles.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactSignals.top_profiles
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.slug) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.clicks +
+                      " route click" +
+                      (item.clicks === 1 ? "" : "s") +
+                      " · " +
+                      item.primary +
+                      " primary · " +
+                      item.secondary +
+                      " secondary",
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileContactSignals.variant_rows.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactSignals.variant_rows
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.variant) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.exposures +
+                      " exposures · " +
+                      item.route_clicks +
+                      " route clicks · " +
+                      item.guidance_engagements +
+                      " guidance engagements",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml(
+                    "Route click rate " +
+                      Math.round(item.route_click_rate * 100) +
+                      "% · Guidance rate " +
+                      Math.round(item.guidance_rate * 100) +
+                      "% of clicks",
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (profileQueueProgress.updates
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            [
+              {
+                label: "Profile updates saved",
+                count: profileQueueProgress.updates,
+              },
+              {
+                label: "Therapists updated",
+                count: profileQueueProgress.therapist_count,
+              },
+              {
+                label: "Reached out",
+                count: profileQueueProgress.reached_out,
+              },
+              {
+                label: "Reply progress",
+                count: profileQueueProgress.heard_back + profileQueueProgress.good_fit_call,
+              },
+              {
+                label: "Friction saved",
+                count:
+                  profileQueueProgress.no_response +
+                  profileQueueProgress.waitlist +
+                  profileQueueProgress.insurance_mismatch,
+              },
+            ]
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.count) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(item.label) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            '</div><div class="mini-status" style="margin-top:0.45rem"><strong>Profile queue readout:</strong> ' +
+            escapeHtml(profileQueueProgress.interpretation) +
+            "</div>"
+          : "") +
+        (profileContactOutcomeValidation.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            profileContactOutcomeValidation
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.variant) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.therapist_count +
+                      " therapists touched · " +
+                      item.strong_outcomes +
+                      " strong outcomes · " +
+                      item.friction_outcomes +
+                      " friction outcomes",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml("Downstream validation score " + item.downstream_score) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            "</div>"
+          : "") +
+        (routeOutcomePerformance.rows.length
+          ? '<div class="queue-insights-grid" style="margin-top:0.75rem">' +
+            routeOutcomePerformance.rows
+              .slice(0, 4)
+              .map(function (item) {
+                return (
+                  '<div class="queue-insight-card"><div class="queue-insight-value">' +
+                  escapeHtml(item.route) +
+                  '</div><div class="queue-insight-label">' +
+                  escapeHtml(
+                    item.total +
+                      " route-linked outcomes · " +
+                      item.strong +
+                      " strong · " +
+                      item.friction +
+                      " friction",
+                  ) +
+                  '</div><div class="queue-insight-note">' +
+                  escapeHtml(
+                    "Strong rate " + Math.round(item.strong_rate * 100) + "% · Net " + item.net,
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("") +
+            '</div><div class="mini-status" style="margin-top:0.45rem"><strong>Route outcome readout:</strong> ' +
+            escapeHtml(routeOutcomePerformance.interpretation) +
+            "</div>"
+          : "") +
+        (profileContactExperimentDecision && profileContactExperimentDecision.winner
+          ? '<div class="queue-insight-card" style="margin-top:0.75rem"><div class="queue-insight-value">' +
+            escapeHtml(profileContactExperimentDecision.experiment_name) +
+            '</div><div class="queue-insight-label">' +
+            escapeHtml(
+              profileContactExperimentDecision.winner.variant +
+                " · " +
+                profileContactExperimentDecision.recommendation,
+            ) +
+            '</div><div class="queue-insight-note">' +
+            escapeHtml(
+              profileContactExperimentDecision.note +
+                " Confidence gap: " +
+                Math.round(profileContactExperimentDecision.confidence_gap * 100) / 100,
+            ) +
+            '</div><div class="queue-insight-action">' +
+            (profileContactExperimentDecision.recommendation === "Promising winner"
+              ? '<button type="button" class="btn-secondary btn-inline" data-promote-experiment="' +
+                escapeHtml(profileContactExperimentDecision.experiment_name) +
+                '" data-promote-variant="' +
+                escapeHtml(profileContactExperimentDecision.winner.variant) +
+                '">Promote ' +
+                escapeHtml(profileContactExperimentDecision.winner.variant) +
+                "</button>"
+              : "") +
+            (profileContactExperimentDecision.promoted_variant
+              ? ' <button type="button" class="btn-secondary btn-inline" data-clear-experiment-promotion="' +
+                escapeHtml(profileContactExperimentDecision.experiment_name) +
+                '">Clear promoted default</button><div class="queue-insight-note">Promoted now: ' +
+                escapeHtml(profileContactExperimentDecision.promoted_variant) +
+                "</div>"
+              : "") +
+            "</div></div>"
+          : "") +
+        "</div>"
+      : "") +
+    (experimentPerformance.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Experiment variants in the wild</div><div class="queue-insights-grid">' +
+        experimentPerformance
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.experiment_name + " · " + item.variant) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.exposures +
+                  " exposures · " +
+                  item.matches +
+                  " matches · " +
+                  item.shortlist_actions +
+                  " shortlist actions · " +
+                  item.outreach_starts +
+                  " outreach starts",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                "Match rate " +
+                  Math.round(item.match_rate * 100) +
+                  "% · Outreach rate " +
+                  Math.round(item.outreach_rate * 100) +
+                  "% from matches",
+              ) +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    (experimentDecisions.length
+      ? '<div class="queue-insights"><div class="queue-insights-title">Experiment recommendations</div><div class="queue-insights-grid">' +
+        experimentDecisions
+          .map(function (item) {
+            return (
+              '<div class="queue-insight-card"><div class="queue-insight-value">' +
+              escapeHtml(item.experiment_name) +
+              '</div><div class="queue-insight-label">' +
+              escapeHtml(
+                item.winner
+                  ? item.winner.variant + " · " + item.recommendation
+                  : "No clear recommendation yet",
+              ) +
+              '</div><div class="queue-insight-note">' +
+              escapeHtml(
+                item.winner
+                  ? "Current leader: " +
+                      item.winner.variant +
+                      ". Composite gap: " +
+                      Math.round(item.confidence_gap * 100) / 100
+                  : "We need more traffic before recommending a variant.",
+              ) +
+              '</div><div class="queue-insight-action">' +
+              (item.winner
+                ? '<button type="button" class="btn-secondary btn-inline" data-promote-experiment="' +
+                  escapeHtml(item.experiment_name) +
+                  '" data-promote-variant="' +
+                  escapeHtml(item.winner.variant) +
+                  '">Promote ' +
+                  escapeHtml(item.winner.variant) +
+                  "</button>"
+                : "") +
+              (item.promoted_variant
+                ? ' <button type="button" class="btn-secondary btn-inline" data-clear-experiment-promotion="' +
+                  escapeHtml(item.experiment_name) +
+                  '">Clear promoted default</button><div class="queue-insight-note">Promoted now: ' +
+                  escapeHtml(item.promoted_variant) +
+                  "</div>"
+                : "") +
+              "</div></div>"
+            );
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
     '<div class="queue-insights"><div class="queue-insights-title">Current adaptive strategy</div><div class="queue-insights-grid">' +
     [
       {
@@ -5019,2856 +4910,498 @@ function renderFunnelInsights() {
           .join("") +
         "</div></div>"
       : "");
+
+  root.querySelectorAll("[data-promote-experiment]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var experimentName = button.getAttribute("data-promote-experiment") || "";
+      var variant = button.getAttribute("data-promote-variant") || "";
+      if (!experimentName || !variant) {
+        return;
+      }
+      setPromotedExperimentVariant(experimentName, variant);
+      renderFunnelInsights();
+    });
+  });
+
+  root.querySelectorAll("[data-clear-experiment-promotion]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var experimentName = button.getAttribute("data-clear-experiment-promotion") || "";
+      if (!experimentName) {
+        return;
+      }
+      setPromotedExperimentVariant(experimentName, "");
+      renderFunnelInsights();
+    });
+  });
 }
 
 function renderListings() {
-  if (authRequired) {
-    document.getElementById("publishedListings").innerHTML = "";
-    var refreshRoot = document.getElementById("refreshQueue");
-    if (refreshRoot) {
-      refreshRoot.innerHTML = "";
-    }
-    return;
-  }
-
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const root = document.getElementById("publishedListings");
-  const launchRows = getLaunchControlRows(therapists);
-  const launchCounts = getLaunchControlCounts(launchRows);
-  const launchSignalMap = summarizeLaunchProfileSignals(launchRows, readFunnelEvents());
-  const underperformingFeaturedRows = getUnderperformingFeaturedRows(launchRows, launchSignalMap);
-  const promotionCandidateRows = getPromotionCandidateRows(launchRows, launchSignalMap);
-  var rankingRiskTotals = {
-    aging_data: 0,
-    refresh_soon: 0,
-    confirmation_needed: 0,
-    no_recent_confirmation: 0,
-    weak_editorial_depth: 0,
-  };
-
-  therapists.forEach(function (item) {
-    var matches = getRankingRiskMatches(item);
-
-    if (matches.aging_data) {
-      rankingRiskTotals.aging_data += 1;
-    } else if (matches.refresh_soon) {
-      rankingRiskTotals.refresh_soon += 1;
-    }
-    if (matches.confirmation_needed) {
-      rankingRiskTotals.confirmation_needed += 1;
-    }
-    if (matches.no_recent_confirmation) {
-      rankingRiskTotals.no_recent_confirmation += 1;
-    }
-    if (matches.weak_editorial_depth) {
-      rankingRiskTotals.weak_editorial_depth += 1;
-    }
-  });
-
-  var topRankingRisks = [
-    {
-      key: "confirmation_needed",
-      label: "Profiles still need therapist confirmation",
-      count: rankingRiskTotals.confirmation_needed,
-    },
-    {
-      key: "no_recent_confirmation",
-      label: "Profiles do not have recent specialist re-confirmation",
-      count: rankingRiskTotals.no_recent_confirmation,
-    },
-    {
-      key: "weak_editorial_depth",
-      label: "Profiles have shallow editorial verification depth",
-      count: rankingRiskTotals.weak_editorial_depth,
-    },
-    {
-      key: "aging_data",
-      label: "Profiles are already being held back by aging data",
-      count: rankingRiskTotals.aging_data,
-    },
-    {
-      key: "refresh_soon",
-      label: "Profiles will need refresh soon",
-      count: rankingRiskTotals.refresh_soon,
-    },
-  ]
-    .filter(function (item) {
-      return item.count > 0;
-    })
-    .sort(function (a, b) {
-      return b.count - a.count || a.label.localeCompare(b.label);
-    })
-    .slice(0, 4);
-
-  var visibleRows = launchRows.filter(function (row) {
-    if (rankingRiskFilter && !getRankingRiskMatches(row.item)[rankingRiskFilter]) {
-      return false;
-    }
-    if (launchProfileFilters.state && row.control.launch_state !== launchProfileFilters.state) {
-      return false;
-    }
-    if (launchProfileFilters.lane === "homepage" && !row.control.homepage_featured) {
-      return false;
-    }
-    if (launchProfileFilters.lane === "match" && !row.control.match_priority) {
-      return false;
-    }
-    if (launchProfileFilters.lane === "featured" && row.control.launch_state !== "featured") {
-      return false;
-    }
-    return true;
-  });
-
-  root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Launch control</div><div class="subtle" style="margin-bottom:0.7rem">Use launch state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
-    [
-      {
-        label: "All live profiles",
-        count: launchCounts.total,
-        note: "Full published set",
-        state: "",
-        lane: "",
-      },
-      {
-        label: "Launch-ready",
-        count: launchCounts.launch_ready,
-        note: "Strong enough to promote next",
-        state: "launch_ready",
-        lane: "",
-      },
-      {
-        label: "Featured",
-        count: launchCounts.featured,
-        note: "Top-of-funnel profiles",
-        state: "featured",
-        lane: "featured",
-      },
-      {
-        label: "Homepage featured",
-        count: launchCounts.homepage_featured,
-        note: "Current homepage set",
-        state: "",
-        lane: "homepage",
-      },
-      {
-        label: "Match priority",
-        count: launchCounts.match_priority,
-        note: "Preferred for match prominence",
-        state: "",
-        lane: "match",
-      },
-    ]
-      .map(function (card) {
-        var isActive =
-          launchProfileFilters.state === (card.state || "") &&
-          launchProfileFilters.lane === (card.lane || "");
-        return (
-          '<button type="button" class="queue-insight-card launch-filter-card' +
-          (isActive ? " is-active" : "") +
-          '" data-launch-filter-state="' +
-          escapeHtml(card.state || "") +
-          '" data-launch-filter-lane="' +
-          escapeHtml(card.lane || "") +
-          '"><div class="queue-insight-value">' +
-          escapeHtml(card.count) +
-          '</div><div class="queue-insight-label">' +
-          escapeHtml(card.label) +
-          '</div><div class="queue-insight-note">' +
-          escapeHtml(card.note) +
-          "</div></button>"
-        );
-      })
-      .join("") +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchControlSummaryNote(launchCounts)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchLaneHealthSummary(launchRows, "homepage")) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchLaneSignalSummary(launchRows, "homepage", launchSignalMap)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchLaneHealthSummary(launchRows, "match")) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchLaneSignalSummary(launchRows, "match", launchSignalMap)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getLaunchControlBottleneck(launchRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(
-      getLaunchRecommendationSummary(underperformingFeaturedRows, promotionCandidateRows),
-    ) +
-    '</div><div class="queue-actions"><button class="btn-secondary" data-launch-export="packet">Copy launch packet</button><button class="btn-secondary" data-launch-export="homepage">Copy homepage featured slugs</button><button class="btn-secondary" data-launch-export="match">Copy match-priority slugs</button>' +
-    (launchProfileFilters.state || launchProfileFilters.lane || rankingRiskFilter
-      ? '<button class="btn-secondary" data-clear-launch-filters>Clear listing filters</button>'
-      : "") +
-    '</div><div class="review-coach-status" id="launchControlStatus"></div></div>' +
-    (underperformingFeaturedRows.length || promotionCandidateRows.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Suggested launch moves</div><div class="queue-insights-grid">' +
-        underperformingFeaturedRows
-          .map(function (row) {
-            var signals = launchSignalMap[row.item.slug] || {};
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-              escapeHtml(row.item.name) +
-              '</strong></div><div class="queue-insight-note">Underperforming featured profile. Signals: ' +
-              escapeHtml(
-                (signals.contact_intents || 0) +
-                  " contact · " +
-                  (signals.shortlist_saves || 0) +
-                  " save · " +
-                  (signals.profile_opens || 0) +
-                  " open",
-              ) +
-              '. Consider refresh or demotion.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-focus="' +
-              escapeHtml(row.item.slug) +
-              '">Focus profile</button></div></div>'
-            );
-          })
-          .join("") +
-        promotionCandidateRows
-          .map(function (row) {
-            var signals = launchSignalMap[row.item.slug] || {};
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-              escapeHtml(row.item.name) +
-              '</strong></div><div class="queue-insight-note">Promotion candidate. Signals: ' +
-              escapeHtml(
-                (signals.contact_intents || 0) +
-                  " contact · " +
-                  (signals.shortlist_saves || 0) +
-                  " save · " +
-                  (signals.profile_opens || 0) +
-                  " open",
-              ) +
-              '. Strong enough to test in a launch lane.</div><div class="queue-insight-action"><button class="btn-secondary" data-launch-promote="' +
-              escapeHtml(row.item.slug) +
-              '">Promote to launch-ready</button></div></div>'
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    (topRankingRisks.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">Top ranking risks across live profiles</div>' +
-        (rankingRiskFilter || launchProfileFilters.state || launchProfileFilters.lane
-          ? '<div class="mini-status" style="margin-bottom:0.75rem"><strong>Showing profiles for:</strong> ' +
-            escapeHtml(
-              [
-                rankingRiskFilter
-                  ? (
-                      topRankingRisks.find(function (item) {
-                        return item.key === rankingRiskFilter;
-                      }) || {
-                        label: rankingRiskFilter.replace(/_/g, " "),
-                      }
-                    ).label
-                  : "",
-                launchProfileFilters.state
-                  ? "Launch state: " + getLaunchStateLabel(launchProfileFilters.state)
-                  : "",
-                launchProfileFilters.lane === "homepage"
-                  ? "Lane: Homepage featured"
-                  : launchProfileFilters.lane === "match"
-                    ? "Lane: Match priority"
-                    : launchProfileFilters.lane === "featured"
-                      ? "Lane: Featured"
-                      : "",
-              ]
-                .filter(Boolean)
-                .join(" · "),
-            ) +
-            ' <button class="btn-secondary" type="button" data-clear-ranking-risk-filter style="margin-left:0.65rem">Clear</button></div>'
-          : "") +
-        '<div class="queue-insights-grid">' +
-        topRankingRisks
-          .map(function (item) {
-            var meta = getRankingRiskMeta(item.key);
-            return (
-              '<button type="button" class="queue-insight-card" data-ranking-risk-filter="' +
-              escapeHtml(item.key) +
-              '"><div class="queue-insight-value">' +
-              escapeHtml(item.count) +
-              '</div><div class="queue-insight-label">' +
-              escapeHtml(item.label) +
-              '</div><div class="queue-insight-note">' +
-              escapeHtml(meta.note) +
-              '</div><div class="queue-insight-action" data-ranking-risk-next="' +
-              escapeHtml(item.key) +
-              '" data-target="' +
-              escapeHtml(meta.target) +
-              '">' +
-              escapeHtml(meta.action) +
-              "</div></button>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    (visibleRows.length
-      ? '<div class="mini-status" style="margin-bottom:0.75rem">Showing ' +
-        escapeHtml(visibleRows.length) +
-        " of " +
-        escapeHtml(launchRows.length) +
-        " live profile" +
-        (launchRows.length === 1 ? "" : "s") +
-        ".</div>"
-      : "") +
-    visibleRows
-      .map(function (row) {
-        const item = row.item;
-        const control = row.control;
-        const readiness = row.readiness;
-        const quality = row.quality;
-        const freshness = row.freshness;
-        const signals = launchSignalMap[item.slug] || {
-          shortlist_saves: 0,
-          contact_intents: 0,
-          profile_opens: 0,
-        };
-        const recentConfirmation = getRecentConfirmationSummary(item);
-        const graceWindowNote = getConfirmationGraceWindowNote(item);
-        const sourceReviewed = item.source_reviewed_at ? formatDate(item.source_reviewed_at) : "";
-        const primarySource = item.source_url || item.website || "";
-        let primarySourceHost = "";
-        try {
-          primarySourceHost = primarySource
-            ? new URL(primarySource).hostname.replace(/^www\./, "")
-            : "";
-        } catch (_error) {
-          primarySourceHost = "";
-        }
-        var rankingImpact = graceWindowNote
-          ? "Temporarily protected by a freshness grace window after recently applied updates."
-          : freshness.status === "aging"
-            ? "Being held back a bit by aging operational data."
-            : freshness.status === "watch"
-              ? "Losing a small amount of ranking strength until key details are refreshed."
-              : recentConfirmation
-                ? "Earning a modest lift from recent specialist re-confirmation."
-                : "Ranking is currently driven more by profile quality than freshness.";
-        return (
-          '<div class="mini-card launch-mini-card"><div class="launch-card-main"><strong>' +
-          escapeHtml(item.name) +
-          '</strong><div class="subtle">' +
-          escapeHtml(item.city + ", " + item.state + " · " + item.credentials) +
-          '</div><div class="tag-row"><span class="tag">' +
-          escapeHtml(getLaunchStateLabel(control.launch_state)) +
-          "</span>" +
-          (control.homepage_featured ? '<span class="tag">Homepage featured</span>' : "") +
-          (control.match_priority ? '<span class="tag">Match priority</span>' : "") +
-          '</div><div class="subtle">' +
-          escapeHtml(quality.label) +
-          " · merchandising " +
-          escapeHtml(quality.score) +
-          '</div><div class="subtle">' +
-          escapeHtml(readiness.label) +
-          " · " +
-          escapeHtml(readiness.score) +
-          "/100</div>" +
-          '<div class="subtle">' +
-          escapeHtml(freshness.label) +
-          "</div>" +
-          '<div class="subtle">' +
-          escapeHtml(rankingImpact) +
-          "</div>" +
-          (graceWindowNote ? '<div class="subtle">' + escapeHtml(graceWindowNote) + "</div>" : "") +
-          (sourceReviewed
-            ? '<div class="subtle">Source reviewed: ' +
-              escapeHtml(sourceReviewed) +
-              (primarySourceHost ? " · " + escapeHtml(primarySourceHost) : "") +
-              "</div>"
-            : "") +
-          '<div class="subtle">Signals: ' +
-          escapeHtml(
-            signals.shortlist_saves +
-              " shortlist saves · " +
-              signals.contact_intents +
-              " contact intents · " +
-              signals.profile_opens +
-              " profile opens",
-          ) +
-          "</div>" +
-          '</div><div class="launch-card-controls"><label class="queue-select-label" for="launch-state-' +
-          escapeHtml(item.slug) +
-          '">Launch state</label><select class="queue-select" id="launch-state-' +
-          escapeHtml(item.slug) +
-          '" data-launch-state="' +
-          escapeHtml(item.slug) +
-          '">' +
-          LAUNCH_STATE_OPTIONS.map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (control.launch_state === option ? " selected" : "") +
-              ">" +
-              escapeHtml(getLaunchStateLabel(option)) +
-              "</option>"
-            );
-          }).join("") +
-          '</select><label class="launch-checkbox"><input type="checkbox" data-launch-homepage="' +
-          escapeHtml(item.slug) +
-          '"' +
-          (control.homepage_featured ? " checked" : "") +
-          '> Homepage featured</label><label class="launch-checkbox"><input type="checkbox" data-launch-match="' +
-          escapeHtml(item.slug) +
-          '"' +
-          (control.match_priority ? " checked" : "") +
-          '> Match priority</label><a href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile</a></div></div>'
-        );
-      })
-      .join("") +
-    (!visibleRows.length
-      ? '<div class="empty">No live profiles match the current launch or risk filters.</div>'
-      : "");
-
-  root
-    .querySelectorAll("[data-launch-filter-state], [data-launch-filter-lane]")
-    .forEach(function (button) {
-      button.addEventListener("click", function () {
-        var nextState = button.getAttribute("data-launch-filter-state") || "";
-        var nextLane = button.getAttribute("data-launch-filter-lane") || "";
-        var isActive =
-          launchProfileFilters.state === nextState && launchProfileFilters.lane === nextLane;
-        launchProfileFilters.state = isActive ? "" : nextState;
-        launchProfileFilters.lane = isActive ? "" : nextLane;
-        renderListings();
-      });
-    });
-
-  root.querySelectorAll("[data-launch-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-launch-export");
-      var text =
-        mode === "homepage"
-          ? buildHomepageFeaturedSlugSnippet(launchRows)
-          : mode === "match"
-            ? buildMatchPrioritySlugSnippet(launchRows)
-            : buildLaunchProfilePacket(launchRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#launchControlStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "homepage"
-            ? "Homepage featured slug snippet copied."
-            : mode === "match"
-              ? "Match-priority slugs copied."
-              : "Launch profile packet copied."
-          : mode === "homepage"
-            ? "Could not copy homepage featured slug snippet."
-            : mode === "match"
-              ? "Could not copy match-priority slugs."
-              : "Could not copy launch profile packet.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-launch-state]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      updateLaunchProfileControlEntry(select.getAttribute("data-launch-state"), {
-        launch_state: select.value,
-      });
-      renderListings();
-    });
-  });
-
-  root.querySelectorAll("[data-launch-homepage]").forEach(function (input) {
-    input.addEventListener("change", function () {
-      updateLaunchProfileControlEntry(input.getAttribute("data-launch-homepage"), {
-        homepage_featured: input.checked,
-      });
-      renderListings();
-    });
-  });
-
-  root.querySelectorAll("[data-launch-match]").forEach(function (input) {
-    input.addEventListener("change", function () {
-      updateLaunchProfileControlEntry(input.getAttribute("data-launch-match"), {
-        match_priority: input.checked,
-      });
-      renderListings();
-    });
-  });
-
-  root.querySelectorAll("[data-launch-focus]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-launch-focus") || "";
-      if (!slug) {
-        return;
-      }
-      launchProfileFilters.state = "";
-      launchProfileFilters.lane = "";
-      rankingRiskFilter = "";
-      renderListings();
-      var target = root.querySelector('[data-launch-state="' + slug + '"]');
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
-        spotlightSection(target.closest(".mini-card"));
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-launch-promote]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-launch-promote") || "";
-      if (!slug) {
-        return;
-      }
-      updateLaunchProfileControlEntry(slug, {
-        launch_state: "launch_ready",
-      });
-      renderListings();
-      var status = root.querySelector("#launchControlStatus");
-      if (status) {
-        status.textContent = "Promoted profile to launch-ready.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-ranking-risk-filter]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      rankingRiskFilter = button.getAttribute("data-ranking-risk-filter") || "";
-      renderListings();
-    });
-  });
-
-  root.querySelectorAll("[data-ranking-risk-next]").forEach(function (element) {
-    element.addEventListener("click", function (event) {
-      event.stopPropagation();
-      var key = element.getAttribute("data-ranking-risk-next") || "";
-      var targetId = element.getAttribute("data-target") || "";
-      rankingRiskFilter = key;
-      renderListings();
-      var target = document.getElementById(targetId);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  var clearButton = root.querySelector("[data-clear-ranking-risk-filter]");
-  if (clearButton) {
-    clearButton.addEventListener("click", function () {
-      rankingRiskFilter = "";
-      launchProfileFilters.state = "";
-      launchProfileFilters.lane = "";
-      renderListings();
-    });
-  }
-
-  var clearLaunchFiltersButton = root.querySelector("[data-clear-launch-filters]");
-  if (clearLaunchFiltersButton) {
-    clearLaunchFiltersButton.addEventListener("click", function () {
-      rankingRiskFilter = "";
-      launchProfileFilters.state = "";
-      launchProfileFilters.lane = "";
-      renderListings();
-    });
-  }
+  listingsWorkspace.renderListings();
 }
 
 function renderRefreshQueue() {
-  const root = document.getElementById("refreshQueue");
-  if (!root) {
-    return;
-  }
+  renderRefreshQueuePanel({
+    authRequired: authRequired,
+    dataMode: dataMode,
+    publishedTherapists: publishedTherapists,
+    getTherapists: getTherapists,
+    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistMatchReadiness: getTherapistMatchReadiness,
+    getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    getRouteHealthWarnings: getRouteHealthWarnings,
+    getRouteHealthActionItems: getRouteHealthActionItems,
+    queueRouteHealthFollowUp: queueRouteHealthFollowUp,
+    getSourceReferenceMeta: getSourceReferenceMeta,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
+    decideTherapistOps: decideTherapistOps,
+    loadData: loadData,
+  });
+}
 
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
+function renderLicensureQueue() {
+  renderLicensureQueuePanel({
+    root: document.getElementById("licensureQueue"),
+    countEl: document.getElementById("licensureQueueCount"),
+    authRequired: authRequired,
+    rows: licensureRefreshQueue,
+    activityFeed: licensureActivityFeed,
+    activeFilter: licensureQueueFilter,
+    onFilterChange: function (nextFilter) {
+      licensureQueueFilter = nextFilter;
+      renderLicensureQueue();
+    },
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
+    escapeHtml: escapeHtml,
+    copyText: copyText,
+  });
+}
 
-  const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  const recentlyMaintained = therapists
-    .filter(function (item) {
-      return Boolean(getConfirmationGraceWindowNote(item));
-    })
-    .slice(0, 4);
-  const queue = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-      };
-    })
-    .filter(function (entry) {
-      return entry.freshness.status !== "fresh";
-    })
-    .sort(function (a, b) {
-      const weight = {
-        aging: 0,
-        watch: 1,
-        fresh: 2,
-      };
-      const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      return (
-        (b.freshness.needs_reconfirmation_fields || []).length -
-        (a.freshness.needs_reconfirmation_fields || []).length
-      );
-    });
+function renderLicensureSprint() {
+  var latestAutomationRun = ingestionAutomationHistory.length
+    ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
+    : null;
+  renderLicensureSprintPanel({
+    root: document.getElementById("licensureSprint"),
+    authRequired: authRequired,
+    rows: licensureRefreshQueue,
+    activityFeed: licensureActivityFeed,
+    latestAutomationRun: latestAutomationRun,
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
+    escapeHtml: escapeHtml,
+    copyText: copyText,
+  });
+}
 
-  if (!queue.length && !recentlyMaintained.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles are currently flagged for refresh.</div>';
-    return;
-  }
+function renderDeferredLicensureQueue() {
+  renderDeferredLicensureQueuePanel({
+    root: document.getElementById("deferredLicensureQueue"),
+    countEl: document.getElementById("deferredLicensureQueueCount"),
+    authRequired: authRequired,
+    rows: deferredLicensureQueue,
+    activityFeed: licensureActivityFeed,
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
+    escapeHtml: escapeHtml,
+  });
+}
 
-  root.innerHTML =
-    (recentlyMaintained.length
-      ? '<div class="queue-insights" id="recentlyMaintainedRefresh"><div class="queue-insights-title">Recently maintained</div><div class="subtle" style="margin-bottom:0.7rem">These profiles were updated recently and are currently in a short freshness grace window.</div><div class="queue-insights-grid">' +
-        recentlyMaintained
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-              escapeHtml(item.name) +
-              '</strong></div><div class="queue-insight-note">' +
-              escapeHtml(getConfirmationGraceWindowNote(item)) +
-              '</div><div class="queue-insight-action"><a href="therapist.html?slug=' +
-              encodeURIComponent(item.slug) +
-              '">Open profile</a></div></div>'
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    queue
-      .map(function (entry) {
-        const item = entry.item;
-        const freshness = entry.freshness;
-        const nextMove = freshness.needs_reconfirmation_fields.length
-          ? "Re-confirm " +
-            freshness.needs_reconfirmation_fields.map(formatFieldLabel).slice(0, 2).join(", ")
-          : "Refresh source review";
-        return (
-          '<div class="mini-card"><div><strong>' +
-          escapeHtml(item.name) +
-          '</strong><div class="subtle">' +
-          escapeHtml(freshness.label) +
-          '</div><div class="subtle">' +
-          escapeHtml(freshness.note) +
-          '</div><div class="subtle">Next move: ' +
-          escapeHtml(nextMove) +
-          '</div></div><a href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile</a></div>'
-        );
-      })
-      .join("");
+function renderLicensureActivity() {
+  renderLicensureActivityPanel({
+    root: document.getElementById("licensureActivity"),
+    countEl: document.getElementById("licensureActivityCount"),
+    authRequired: authRequired,
+    rows: licensureActivityFeed,
+    activeFilter: licensureActivityFilter,
+    onFilterChange: function (nextFilter) {
+      licensureActivityFilter = nextFilter;
+      renderLicensureActivity();
+    },
+    escapeHtml: escapeHtml,
+  });
 }
 
 function renderImportBlockerSprint() {
-  const root = document.getElementById("importBlockerSprint");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const queue = getPublishedTherapistImportBlockerQueue().slice(0, 3);
-  const sprintRows = getImportBlockerSprintRows(3);
-  const confirmationRows = getConfirmationSprintRows(5);
-  const overlappingAsk = getOverlappingAskDetails(sprintRows, confirmationRows);
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No strong-warning profiles are currently blocking the strict safe-import gate.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-summary"><strong>' +
-    escapeHtml(getImportBlockerSprintSummary(sprintRows)) +
-    '</strong></div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintBottleneck(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(
-      getPrimaryAskHeaderLine(getImportBlockerSprintSharedAskDetails(sprintRows)?.field || ""),
-    ) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintWaveShape(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintFieldPattern(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAsk(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAskStatus(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerSprintSharedAskImpact(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getBlockerConfirmationThemeBridge(sprintRows, confirmationRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getImportBlockerRecommendationNote(sprintRows, confirmationRows)) +
-    "</div>" +
-    (overlappingAsk
-      ? '<div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelMixSummary(getTopOutreachWaveRows(sprintRows, confirmationRows, 3)),
-        ) +
-        '</div><div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelNextMoveSummary(
-            getTopOutreachWaveRows(sprintRows, confirmationRows, 3),
-          ),
-        ) +
-        "</div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        ".</span></div>"
-      : "") +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-import-blocker-copy-top>Copy top blocker request</button><button class="btn-secondary" data-import-blocker-copy-shared-ask>Copy shared ask</button><button class="btn-secondary" data-import-blocker-copy-shared-packet>Copy shared ask packet</button>' +
-    (overlappingAsk
-      ? '<button class="btn-secondary" data-import-blocker-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-import-blocker-copy-top-wave>Copy top outreach wave</button>'
-      : "") +
-    '<button class="btn-secondary" data-import-blocker-copy-packet>Copy top 3 blocker packet</button><button class="btn-secondary" data-import-blocker-open-queue>Show in confirmation queue</button><button class="btn-secondary" data-import-blocker-export="markdown">Copy blocker sprint markdown</button><button class="btn-secondary" data-import-blocker-export="csv">Copy blocker sprint CSV</button></div><div class="review-coach-status" id="importBlockerSprintStatus"></div>' +
-    queue
-      .map(function (entry, index) {
-        const item = entry.item;
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const blockerBuckets = getImportBlockerFieldBuckets(entry.blocker_unknown_fields);
-        const blockerRow =
-          sprintRows.find(function (row) {
-            return row.slug === item.slug;
-          }) || null;
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(String(index + 1) + ". " + item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(
-            "Blocking fields: " + entry.blocker_unknown_fields.map(formatFieldLabel).join(", "),
-          ) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml((blockerRow && blockerRow.blocker_mode) || "Blocker") +
-          '</span><span class="tag">' +
-          escapeHtml(
-            String(entry.blocker_unknown_fields.length) +
-              " blocker" +
-              (entry.blocker_unknown_fields.length === 1 ? "" : "s"),
-          ) +
-          '</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Strict gate impact:</strong> ' +
-          escapeHtml(
-            (blockerRow && blockerRow.why_it_matters) ||
-              item.name +
-                " still prevents the safe importer from passing while these strong-warning fields remain unresolved.",
-          ) +
-          '</div><div class="queue-summary"><strong>Source path status:</strong> ' +
-          escapeHtml(
-            (blockerRow && blockerRow.source_path_status) ||
-              "Public-source path status still needs review.",
-          ) +
-          '</div><div class="queue-summary"><strong>Source-first:</strong> ' +
-          escapeHtml(
-            blockerBuckets.source_first.length
-              ? blockerBuckets.source_first.map(formatFieldLabel).join(", ")
-              : "Complete",
-          ) +
-          '</div><div class="queue-summary"><strong>Therapist-confirmation:</strong> ' +
-          escapeHtml(
-            blockerBuckets.therapist_confirmation.length
-              ? blockerBuckets.therapist_confirmation.map(formatFieldLabel).join(", ")
-              : "None",
-          ) +
-          '</div><div class="queue-summary"><strong>Next move:</strong> ' +
-          escapeHtml((blockerRow && blockerRow.next_best_move) || "") +
-          '</div><div class="queue-summary"><strong>Target:</strong> ' +
-          escapeHtml(getConfirmationTarget(item)) +
-          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
-          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-import-blocker-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy blocker request</button><button class="btn-secondary" data-import-blocker-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button><button class="btn-secondary" data-import-blocker-show-queue="' +
-          escapeHtml(item.slug) +
-          '" data-current-status="' +
-          escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="review-coach-status" data-import-blocker-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root
-    .querySelector("[data-import-blocker-copy-top]")
-    ?.addEventListener("click", async function () {
-      var topEntry = queue[0];
-      if (!topEntry) {
-        return;
-      }
-      var slug = topEntry.item.slug;
-      var blockerRow =
-        sprintRows.find(function (row) {
-          return row.slug === slug;
-        }) || null;
-      var leverageNote = getImportBlockerLeverageNote(sprintRows, topEntry.blocker_unknown_fields);
-      var text = [
-        (blockerRow && blockerRow.request_subject) ||
-          buildImportBlockerRequestSubject(topEntry.item, topEntry.blocker_unknown_fields),
-        "",
-        (blockerRow && blockerRow.request_message) ||
-          buildImportBlockerRequestMessage(topEntry.item, topEntry.blocker_unknown_fields),
-        leverageNote ? "" : null,
-        leverageNote || null,
-        "",
-        "Confirmation form:",
-        buildConfirmationLink(slug),
-      ]
-        .filter(Boolean)
-        .join("\n");
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top blocker request copied."
-          : "Could not copy the top blocker request.";
-      }
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderImportBlockerSprint();
-        renderCaliforniaPriorityConfirmationWave();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-
-  root.querySelector("[data-import-blocker-open-queue]")?.addEventListener("click", function () {
-    confirmationQueueFilter = "";
-    renderCaliforniaPriorityConfirmationWave();
-    renderConfirmationQueue();
-    var queueRoot = document.getElementById("confirmationQueue");
-    if (queueRoot) {
-      queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
-
-  root
-    .querySelector("[data-import-blocker-copy-packet]")
-    ?.addEventListener("click", async function () {
-      var text = buildImportBlockerPacket(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top blocker packet copied."
-          : "Could not copy the top blocker packet.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-shared-ask]")
-    ?.addEventListener("click", async function () {
-      var text = getImportBlockerSprintSharedAskText(sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Shared blocker ask copied."
-          : "Could not copy the shared blocker ask.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-shared-packet]")
-    ?.addEventListener("click", async function () {
-      var text = buildImportBlockerSharedAskPacket(sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Shared ask packet copied."
-          : "Could not copy the shared ask packet.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-overlap]")
-    ?.addEventListener("click", async function () {
-      var text = buildOverlappingAskPacket(sprintRows, confirmationRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Unified outreach wave copied."
-          : "Could not copy the unified outreach wave.";
-      }
-    });
-
-  root
-    .querySelector("[data-import-blocker-copy-top-wave]")
-    ?.addEventListener("click", async function () {
-      var text = buildTopOutreachWavePacket(sprintRows, confirmationRows, 3);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top outreach wave copied."
-          : "Could not copy the top outreach wave.";
-      }
-    });
-
-  root.querySelectorAll("[data-import-blocker-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-import-blocker-export");
-      var text =
-        mode === "csv"
-          ? buildImportBlockerSprintCsv(sprintRows)
-          : buildImportBlockerSprintMarkdown(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#importBlockerSprintStatus");
-      if (status) {
-        status.textContent = success
-          ? "Import blocker sprint " + mode.toUpperCase() + " copied."
-          : "Could not copy import blocker sprint " + mode.toUpperCase() + ".";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-copy]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-import-blocker-copy");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var blockerRow =
-        sprintRows.find(function (row) {
-          return row.slug === slug;
-        }) || null;
-      var leverageNote = getImportBlockerLeverageNote(sprintRows, entry.blocker_unknown_fields);
-      var text = [
-        (blockerRow && blockerRow.request_subject) ||
-          buildImportBlockerRequestSubject(entry.item, entry.blocker_unknown_fields),
-        "",
-        (blockerRow && blockerRow.request_message) ||
-          buildImportBlockerRequestMessage(entry.item, entry.blocker_unknown_fields),
-        leverageNote ? "" : null,
-        leverageNote || null,
-        "",
-        "Confirmation form:",
-        buildConfirmationLink(slug),
-      ]
-        .filter(Boolean)
-        .join("\n");
-      var success = await copyText(text);
-      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success
-          ? "Blocker request copied."
-          : "Could not copy blocker request.";
-      }
-      if (success) {
-        updateConfirmationQueueEntry(slug, {
-          status: "sent",
-          last_sent_at: new Date().toISOString(),
-        });
-        renderStats();
-        renderImportBlockerSprint();
-        renderCaliforniaPriorityConfirmationWave();
-        renderConfirmationSprint();
-        renderConfirmationQueue();
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-link]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-import-blocker-link");
-      var success = await copyText(buildConfirmationLink(slug));
-      var status = root.querySelector('[data-import-blocker-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success
-          ? "Confirmation link copied."
-          : "Could not copy confirmation link.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-import-blocker-show-queue]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var currentStatus = button.getAttribute("data-current-status") || "";
-      confirmationQueueFilter = currentStatus;
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
+  renderImportBlockerSprintPanel({
+    authRequired: authRequired,
+    getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
+    getImportBlockerSprintRows: getImportBlockerSprintRows,
+    getConfirmationSprintRows: getConfirmationSprintRows,
+    getOverlappingAskDetails: getOverlappingAskDetails,
+    escapeHtml: escapeHtml,
+    getImportBlockerSprintSummary: getImportBlockerSprintSummary,
+    getImportBlockerSprintBottleneck: getImportBlockerSprintBottleneck,
+    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+    getImportBlockerSprintSharedAskDetails: getImportBlockerSprintSharedAskDetails,
+    getImportBlockerSprintWaveShape: getImportBlockerSprintWaveShape,
+    getImportBlockerSprintFieldPattern: getImportBlockerSprintFieldPattern,
+    getImportBlockerSprintSharedAsk: getImportBlockerSprintSharedAsk,
+    getImportBlockerSprintSharedAskStatus: getImportBlockerSprintSharedAskStatus,
+    getImportBlockerSprintSharedAskImpact: getImportBlockerSprintSharedAskImpact,
+    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+    getImportBlockerRecommendationNote: getImportBlockerRecommendationNote,
+    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+    getTopOutreachWaveRows: getTopOutreachWaveRows,
+    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+    formatFieldLabel: formatFieldLabel,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getImportBlockerFieldBuckets: getImportBlockerFieldBuckets,
+    formatStatusLabel: formatStatusLabel,
+    getConfirmationTarget: getConfirmationTarget,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    getImportBlockerLeverageNote: getImportBlockerLeverageNote,
+    buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
+    buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
+    buildConfirmationLink: buildConfirmationLink,
+    copyText: copyText,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    setConfirmationQueueFilter: function (value) {
+      setConfirmationQueueFilter(value);
+    },
+    buildImportBlockerPacket: buildImportBlockerPacket,
+    getImportBlockerSprintSharedAskText: getImportBlockerSprintSharedAskText,
+    buildImportBlockerSharedAskPacket: buildImportBlockerSharedAskPacket,
+    buildOverlappingAskPacket: buildOverlappingAskPacket,
+    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+    buildImportBlockerSprintCsv: buildImportBlockerSprintCsv,
+    buildImportBlockerSprintMarkdown: buildImportBlockerSprintMarkdown,
   });
 }
 
 function renderConfirmationSprint() {
-  const root = document.getElementById("confirmationSprint");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const queue = getPublishedTherapistConfirmationQueue().slice(0, 5);
-  const sprintRows = getConfirmationSprintRows(5);
-  const blockerRows = getImportBlockerSprintRows(3);
-  const overlappingAsk = getOverlappingAskDetails(blockerRows, sprintRows);
-  const readySprintRows = buildConfirmationApplyCsvRows(sprintRows);
-  const recommendation = applyOverlapRecommendationContext(
-    getConfirmationSprintRecommendation(sprintRows),
-    blockerRows,
-    sprintRows,
-  );
-  const miniLanes = getConfirmationSprintMiniLanes(sprintRows);
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-summary"><strong>' +
-    escapeHtml(getConfirmationSprintHealthSummary(sprintRows)) +
-    '</strong></div><div class="queue-summary subtle">' +
-    escapeHtml(getConfirmationSprintBottleneckSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(
-      getPrimaryAskHeaderLine(getConfirmationSprintThemeDetails(sprintRows)?.field || ""),
-    ) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getConfirmationSprintThemeSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(getBlockerConfirmationThemeBridge(blockerRows, sprintRows)) +
-    "</div>" +
-    (overlappingAsk
-      ? '<div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelMixSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
-        ) +
-        '</div><div class="queue-summary subtle">' +
-        escapeHtml(
-          getOutreachChannelNextMoveSummary(getTopOutreachWaveRows(blockerRows, sprintRows, 3)),
-        ) +
-        "</div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        ".</span></div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-insights"><div class="queue-insights-title">Shared Ask Wave</div><div class="subtle" style="margin-bottom:0.7rem">This same ask currently spans ' +
-        escapeHtml(String(overlappingAsk.blocker_count)) +
-        " blocker profile" +
-        (overlappingAsk.blocker_count === 1 ? "" : "s") +
-        " and " +
-        escapeHtml(String(overlappingAsk.confirmation_count)) +
-        " confirmation sprint profile" +
-        (overlappingAsk.confirmation_count === 1 ? "" : "s") +
-        '.</div><div class="subtle" style="margin-bottom:0.7rem">Primary shared ask right now: ' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        '.</div><div class="queue-insights-grid"><div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-        escapeHtml(formatFieldLabel(overlappingAsk.field)) +
-        '</strong></div><div class="queue-insight-note">Shared ask across both queues</div><div class="queue-insight-action"><button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button></div></div></div></div>'
-      : "") +
-    '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-confirmation-sprint-recommendation="' +
-    escapeHtml(recommendation.mode) +
-    '"' +
-    (recommendation.slug ? ' data-slug="' + escapeHtml(recommendation.slug) + '"' : "") +
-    (recommendation.targetId ? ' data-target="' + escapeHtml(recommendation.targetId) + '"' : "") +
-    ">" +
-    escapeHtml(recommendation.label) +
-    "</button>" +
-    (overlappingAsk
-      ? '<button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-confirmation-copy-top-wave>Copy top outreach wave</button>'
-      : "") +
-    '<button class="btn-secondary" data-confirmation-sprint-export="markdown">Copy sprint markdown</button><button class="btn-secondary" data-confirmation-sprint-export="csv">Copy sprint CSV</button>' +
-    (readySprintRows.length
-      ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-sprint-export="apply-checklist">Copy apply checklist</button>'
-      : "") +
-    '</div><div class="queue-summary subtle">' +
-    escapeHtml(recommendation.note) +
-    "</div>" +
-    (miniLanes.length
-      ? miniLanes
-          .map(function (lane) {
-            return (
-              '<div class="queue-insights"><div class="queue-insights-title">' +
-              escapeHtml(lane.title) +
-              '</div><div class="subtle" style="margin-bottom:0.7rem">' +
-              escapeHtml(lane.note) +
-              '</div><div class="queue-insights-grid">' +
-              lane.rows
-                .map(function (row) {
-                  return (
-                    '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-                    escapeHtml(row.name) +
-                    '</strong></div><div class="queue-insight-note">' +
-                    escapeHtml(row.result) +
-                    '</div><div class="queue-insight-action">' +
-                    (lane.filter === "confirmed" || lane.filter === "applied"
-                      ? '<button class="btn-secondary" data-confirmation-mini-apply="' +
-                        escapeHtml(row.slug) +
-                        '">Copy apply brief</button>'
-                      : '<button class="btn-secondary" data-confirmation-mini-lane="' +
-                        escapeHtml(lane.filter) +
-                        '">' +
-                        escapeHtml("Show in queue") +
-                        "</button>") +
-                    "</div></div>"
-                  );
-                })
-                .join("") +
-              "</div></div>"
-            );
-          })
-          .join("")
-      : "") +
-    '<div class="review-coach-status" id="confirmationSprintExportStatus"></div>' +
-    queue
-      .map(function (entry) {
-        const item = entry.item;
-        const agenda = entry.agenda;
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const graceWindowNote = getConfirmationGraceWindowNote(item);
-        const confirmationLink = buildConfirmationLink(item.slug);
-        const sprintRow = sprintRows.find(function (row) {
-          return row.slug === item.slug;
-        });
-        const orderedUnknownFields = sprintRow
-          ? getPreferredFieldOrder(agenda.unknown_fields || [], sprintRow.primary_ask_field || "")
-          : agenda.unknown_fields || [];
-        const primaryAskField = sprintRow?.primary_ask_field || orderedUnknownFields[0] || "";
-        const addOnAskFields = sprintRow?.add_on_ask_fields
-          ? String(sprintRow.add_on_ask_fields)
-              .split("|")
-              .map(function (field) {
-                return field.trim();
-              })
-              .filter(Boolean)
-          : orderedUnknownFields.slice(1);
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(String(queue.indexOf(entry) + 1) + ". " + item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(agenda.summary) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(agenda.priority)) +
-          ' priority</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Status:</strong> ' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</div><div class="queue-summary"><strong>Result:</strong> ' +
-          escapeHtml(getConfirmationResultLabel(workflow.status)) +
-          '</div><div class="queue-summary"><strong>Target:</strong> ' +
-          escapeHtml(getConfirmationTarget(item)) +
-          '</div><div class="queue-summary"><strong>Last action:</strong> ' +
-          escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-          (graceWindowNote
-            ? '</div><div class="queue-summary"><strong>Grace window:</strong> ' +
-              escapeHtml(graceWindowNote)
-            : "") +
-          '</div><div class="queue-summary"><strong>Needs:</strong> ' +
-          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
-          "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              escapeHtml(formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
-          "</div>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          '<div class="queue-actions" style="margin-top:0.8rem"><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="sent">Mark sent</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="waiting_on_therapist">Mark waiting</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="confirmed">Mark confirmed</button><button class="btn-secondary" data-confirmation-quick-status="' +
-          escapeHtml(item.slug) +
-          '" data-next-status="applied">Mark applied</button><button class="btn-secondary" data-confirmation-show-queue="' +
-          escapeHtml(item.slug) +
-          '" data-current-status="' +
-          escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="queue-shortlist"><div class="queue-shortlist-item">[ ] Review current profile and source trail</div><div class="queue-shortlist-item">[ ] Send request through preferred channel</div><div class="queue-shortlist-item">[ ] Record send state in admin</div><div class="queue-shortlist-item">[ ] Mark reply or follow-up outcome</div></div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
-            : "") +
-          '<a class="btn-secondary btn-inline" href="' +
-          escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a></div><div class="review-coach-status" data-confirmation-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-confirmation-sprint-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-sprint-export");
-      var text =
-        mode === "apply-csv"
-          ? buildConfirmationApplyCsv(sprintRows)
-          : mode === "apply-summary"
-            ? buildConfirmationApplySummary(sprintRows, "# Confirmation Sprint Apply Summary")
-            : mode === "apply-checklist"
-              ? buildConfirmationApplyOperatorChecklist(
-                  sprintRows,
-                  "# Confirmation Sprint Apply Checklist",
-                )
-              : mode === "csv"
-                ? buildConfirmationSprintCsv(sprintRows)
-                : buildConfirmationSprintMarkdown(sprintRows);
-      var success = await copyText(text);
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "apply-csv"
-            ? "Confirmation sprint apply CSV copied."
-            : mode === "apply-summary"
-              ? "Confirmation sprint apply summary copied."
-              : mode === "apply-checklist"
-                ? "Confirmation sprint apply checklist copied."
-                : "Confirmation sprint " + mode.toUpperCase() + " copied."
-          : mode === "apply-csv"
-            ? "Could not copy confirmation sprint apply CSV."
-            : mode === "apply-summary"
-              ? "Could not copy confirmation sprint apply summary."
-              : mode === "apply-checklist"
-                ? "Could not copy confirmation sprint apply checklist."
-                : "Could not copy confirmation sprint " + mode.toUpperCase() + ".";
-      }
-    });
-  });
-
-  root
-    .querySelector("[data-confirmation-copy-overlap]")
-    ?.addEventListener("click", async function () {
-      var text = buildOverlappingAskPacket(blockerRows, sprintRows);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? "Unified outreach wave copied."
-          : "Could not copy the unified outreach wave.";
-      }
-    });
-
-  root
-    .querySelector("[data-confirmation-copy-top-wave]")
-    ?.addEventListener("click", async function () {
-      var text = buildTopOutreachWavePacket(blockerRows, sprintRows, 3);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success
-          ? "Top outreach wave copied."
-          : "Could not copy the top outreach wave.";
-      }
-    });
-
-  root.querySelectorAll("[data-confirmation-sprint-recommendation]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-sprint-recommendation");
-      if (mode === "copy_request") {
-        var slug = button.getAttribute("data-slug");
-        var sprintRow = sprintRows.find(function (row) {
-          return row.slug === slug;
-        });
-        if (!sprintRow) {
-          return;
-        }
-        var text = [
-          sprintRow.request_message,
-          "",
-          "Confirmation form:",
-          buildConfirmationLink(slug),
-        ]
-          .filter(Boolean)
-          .join("\n");
-        var success = await copyText(text);
-        var status = root.querySelector("#confirmationSprintExportStatus");
-        if (status) {
-          status.textContent = success
-            ? "Top therapist request copied."
-            : "Could not copy the top therapist request.";
-        }
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-        return;
-      }
-
-      if (mode === "copy_apply_brief") {
-        var applySlug = button.getAttribute("data-slug");
-        var applyEntry = queue.find(function (item) {
-          return item.item && item.item.slug === applySlug;
-        });
-        var applySprintRow = sprintRows.find(function (row) {
-          return row.slug === applySlug;
-        });
-        if (!applyEntry) {
-          return;
-        }
-        var applyText = buildConfirmationApplyBrief(
-          applyEntry.item,
-          applyEntry.agenda,
-          getConfirmationQueueEntry(applySlug),
-          applySprintRow?.primary_ask_field || "",
-        );
-        var applySuccess = await copyText(applyText);
-        var applyStatus = root.querySelector("#confirmationSprintExportStatus");
-        if (applyStatus) {
-          applyStatus.textContent = applySuccess
-            ? "Apply brief copied."
-            : "Could not copy apply brief.";
-        }
-        return;
-      }
-
-      var targetId = button.getAttribute("data-target");
-      var target = targetId ? document.getElementById(targetId) : null;
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-mini-lane]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      confirmationQueueFilter = button.getAttribute("data-confirmation-mini-lane") || "";
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-mini-apply]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-mini-apply");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      var sprintRow = sprintRows.find(function (row) {
-        return row.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-        sprintRow?.primary_ask_field || "",
-      );
-      var success = await copyText(text);
-      var status = root.querySelector("#confirmationSprintExportStatus");
-      if (status) {
-        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-quick-status]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var slug = button.getAttribute("data-confirmation-quick-status");
-      var nextStatus = button.getAttribute("data-next-status");
-      if (!slug || !nextStatus) {
-        return;
-      }
-      updateConfirmationQueueEntry(slug, {
-        status: nextStatus,
-        last_sent_at:
-          nextStatus === "sent"
-            ? new Date().toISOString()
-            : getConfirmationQueueEntry(slug).last_sent_at,
-        confirmation_applied_at:
-          nextStatus === "applied"
-            ? new Date().toISOString()
-            : nextStatus === "confirmed" ||
-                nextStatus === "waiting_on_therapist" ||
-                nextStatus === "sent" ||
-                nextStatus === "not_started"
-              ? ""
-              : getConfirmationQueueEntry(slug).confirmation_applied_at,
-      });
-      renderStats();
-      renderImportBlockerSprint();
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-show-queue]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var currentStatus = button.getAttribute("data-current-status") || "";
-      confirmationQueueFilter = currentStatus;
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-      var queueRoot = document.getElementById("confirmationQueue");
-      if (queueRoot) {
-        queueRoot.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-apply-brief");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      var queuePrimaryField = getConfirmationQueuePrimaryField(queue);
-      var orderedUnknownFields = getPreferredFieldOrder(
-        entry.agenda.unknown_fields || [],
-        queuePrimaryField,
-      );
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-        orderedUnknownFields[0] || "",
-      );
-      var success = await copyText(text);
-      var status = root.querySelector('[data-confirmation-status-id="' + slug + '"]');
-      if (status) {
-        status.textContent = success ? "Apply brief copied." : "Could not copy apply brief.";
-      }
-    });
+  renderConfirmationSprintPanel({
+    authRequired: authRequired,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationSprintRows: getConfirmationSprintRows,
+    getImportBlockerSprintRows: getImportBlockerSprintRows,
+    getOverlappingAskDetails: getOverlappingAskDetails,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    applyOverlapRecommendationContext: applyOverlapRecommendationContext,
+    getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
+    getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
+    escapeHtml: escapeHtml,
+    getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
+    getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
+    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+    getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
+    getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
+    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+    getTopOutreachWaveRows: getTopOutreachWaveRows,
+    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+    formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationResultLabel: getConfirmationResultLabel,
+    getConfirmationTarget: getConfirmationTarget,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    buildConfirmationSprintCsv: buildConfirmationSprintCsv,
+    buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
+    copyText: copyText,
+    buildOverlappingAskPacket: buildOverlappingAskPacket,
+    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    setConfirmationQueueFilter: function (value) {
+      setConfirmationQueueFilter(value);
+    },
   });
 }
 
 function renderConfirmationQueue() {
-  const root = document.getElementById("confirmationQueue");
-  const statusFilter = document.getElementById("confirmationQueueStatusFilter");
-  const countLabel = document.getElementById("confirmationQueueCount");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  if (statusFilter) {
-    statusFilter.value = confirmationQueueFilter;
-  }
-
-  const queue = getPublishedTherapistConfirmationQueue();
-  const preferredPrimaryField = getConfirmationQueuePrimaryField(queue);
-  const filteredQueue = queue.filter(function (entry) {
-    if (!confirmationQueueFilter) {
-      return true;
-    }
-    return getConfirmationQueueEntry(entry.item.slug).status === confirmationQueueFilter;
+  renderConfirmationQueuePanel({
+    root: document.getElementById("confirmationQueue"),
+    statusFilter: document.getElementById("confirmationQueueStatusFilter"),
+    countLabel: document.getElementById("confirmationQueueCount"),
+    authRequired: authRequired,
+    confirmationQueueFilter: getConfirmationQueueFilter(),
+    confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    formatStatusLabel: formatStatusLabel,
+    formatFieldLabel: formatFieldLabel,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    copyText: copyText,
+    buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
+    setConfirmationActionStatus: setConfirmationActionStatus,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationChecklist: buildConfirmationChecklist,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    bindConfirmationResponseCapture: bindConfirmationResponseCapture,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
   });
-  const readyQueueRows = buildConfirmationApplyCsvRows(queue);
-
-  if (countLabel) {
-    countLabel.textContent =
-      filteredQueue.length +
-      " of " +
-      queue.length +
-      " profile" +
-      (queue.length === 1 ? "" : "s") +
-      (confirmationQueueFilter ? " in this status" : " in queue");
-  }
-
-  if (!queue.length) {
-    root.innerHTML =
-      '<div class="subtle">No published profiles currently need therapist confirmation.</div>';
-    return;
-  }
-
-  if (!filteredQueue.length) {
-    root.innerHTML =
-      '<div class="subtle">No profiles match the current confirmation status filter.</div>';
-    return;
-  }
-
-  root.innerHTML =
-    '<div class="queue-actions" style="margin-bottom:0.8rem">' +
-    (readyQueueRows.length
-      ? '<button class="btn-secondary" data-confirmation-queue-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-queue-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-queue-export="apply-checklist">Copy apply checklist</button>'
-      : "") +
-    '</div><div class="review-coach-status" id="confirmationQueueExportStatus"></div>' +
-    filteredQueue
-      .map(function (entry) {
-        const item = entry.item;
-        const agenda = entry.agenda;
-        const confirmationLink = buildConfirmationLink(item.slug);
-        const workflow = getConfirmationQueueEntry(item.slug);
-        const orderedUnknownFields = getPreferredFieldOrder(
-          agenda.unknown_fields || [],
-          preferredPrimaryField,
-        );
-        const primaryAskField = orderedUnknownFields[0] || "";
-        const addOnAskFields = orderedUnknownFields.slice(1);
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(item.name) +
-          '</h3><div class="subtle">' +
-          escapeHtml(formatStatusLabel(agenda.priority) + " priority") +
-          '</div><div class="subtle">' +
-          escapeHtml(agenda.summary) +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(agenda.priority)) +
-          ' priority</span><span class="tag">' +
-          escapeHtml(formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Needs:</strong> ' +
-          escapeHtml(agenda.unknown_fields.map(formatFieldLabel).join(", ")) +
-          "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              escapeHtml(formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              escapeHtml(addOnAskFields.map(formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          escapeHtml(orderedUnknownFields.map(formatFieldLabel).join(" -> ")) +
-          "</div>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationResponseCaptureHtml(item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? buildConfirmationApplyPreviewHtml(item, item.slug, primaryAskField, addOnAskFields)
-            : "") +
-          '<div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="confirmation-status-' +
-          escapeHtml(item.slug) +
-          '">Confirmation status</label><select class="queue-select" id="confirmation-status-' +
-          escapeHtml(item.slug) +
-          '" data-confirmation-status="' +
-          escapeHtml(item.slug) +
-          '">' +
-          CONFIRMATION_STATUS_OPTIONS.map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (workflow.status === option ? " selected" : "") +
-              ">" +
-              escapeHtml(formatStatusLabel(option)) +
-              "</option>"
-            );
-          }).join("") +
-          "</select></div>" +
-          (workflow.last_sent_at
-            ? '<div class="queue-summary"><strong>Last request copied:</strong> ' +
-              escapeHtml(formatDate(workflow.last_sent_at)) +
-              "</div>"
-            : "") +
-          '</div><div class="queue-shortlist">' +
-          (agenda.asks || [])
-            .map(function (ask) {
-              return '<div class="queue-shortlist-item">' + escapeHtml(ask) + "</div>";
-            })
-            .join("") +
-          '</div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
-          escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
-          escapeHtml(item.slug) +
-          '">Copy confirmation link</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
-            : "") +
-          '<button class="btn-secondary" data-confirmation-checklist="' +
-          escapeHtml(item.slug) +
-          '">Copy internal checklist</button><a class="btn-secondary btn-inline" href="' +
-          escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
-          encodeURIComponent(item.slug) +
-          '">Open profile</a></div><div class="review-coach-status" data-confirmation-status-id="' +
-          escapeHtml(item.slug) +
-          '"></div></article>'
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-confirmation-queue-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-confirmation-queue-export");
-      var text =
-        mode === "apply-csv"
-          ? buildConfirmationApplyCsv(queue)
-          : mode === "apply-summary"
-            ? buildConfirmationApplySummary(queue, "# Confirmation Queue Apply Summary")
-            : mode === "apply-checklist"
-              ? buildConfirmationApplyOperatorChecklist(
-                  queue,
-                  "# Confirmation Queue Apply Checklist",
-                )
-              : "";
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#confirmationQueueExportStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "apply-summary"
-            ? "Confirmation queue apply summary copied."
-            : mode === "apply-checklist"
-              ? "Confirmation queue apply checklist copied."
-              : "Confirmation queue apply CSV copied."
-          : mode === "apply-summary"
-            ? "Could not copy confirmation queue apply summary."
-            : mode === "apply-checklist"
-              ? "Could not copy confirmation queue apply checklist."
-              : "Could not copy confirmation queue apply CSV.";
-      }
-    });
-  });
-
-  [document.getElementById("confirmationSprint"), root].forEach(function (scope) {
-    if (!scope) {
-      return;
-    }
-
-    scope.querySelectorAll("[data-confirmation-copy]").forEach(function (button) {
-      button.addEventListener("click", async function () {
-        var slug = button.getAttribute("data-confirmation-copy");
-        var entry = queue.find(function (item) {
-          return item.item && item.item.slug === slug;
-        });
-
-        if (!entry) {
-          return;
-        }
-
-        var text = [
-          buildOrderedConfirmationRequestMessage(
-            entry.item,
-            entry.agenda.unknown_fields || [],
-            preferredPrimaryField,
-          ),
-          "",
-          "Confirmation form:",
-          buildConfirmationLink(slug),
-        ]
-          .filter(Boolean)
-          .join("\n");
-        var success = await copyText(text);
-        setConfirmationActionStatus(
-          scope,
-          slug,
-          success
-            ? "Therapist confirmation request copied."
-            : "Could not copy confirmation request.",
-        );
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-      });
-    });
-
-    scope.querySelectorAll("[data-confirmation-link]").forEach(function (button) {
-      button.addEventListener("click", async function () {
-        var slug = button.getAttribute("data-confirmation-link");
-        var success = await copyText(buildConfirmationLink(slug));
-        setConfirmationActionStatus(
-          scope,
-          slug,
-          success ? "Confirmation link copied." : "Could not copy confirmation link.",
-        );
-        if (success) {
-          updateConfirmationQueueEntry(slug, {
-            status: "sent",
-            last_sent_at: new Date().toISOString(),
-          });
-          renderStats();
-          renderImportBlockerSprint();
-          renderCaliforniaPriorityConfirmationWave();
-          renderConfirmationSprint();
-          renderConfirmationQueue();
-        }
-      });
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-checklist]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-checklist");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-
-      if (!entry) {
-        return;
-      }
-
-      var text = buildConfirmationChecklist(entry.item, entry.agenda, preferredPrimaryField);
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Internal checklist copied." : "Could not copy internal checklist.",
-      );
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-apply-brief]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-confirmation-apply-brief");
-      var entry = queue.find(function (item) {
-        return item.item && item.item.slug === slug;
-      });
-
-      if (!entry) {
-        return;
-      }
-
-      var text = buildConfirmationApplyBrief(
-        entry.item,
-        entry.agenda,
-        getConfirmationQueueEntry(slug),
-      );
-      var success = await copyText(text);
-      setConfirmationActionStatus(
-        root,
-        slug,
-        success ? "Apply brief copied." : "Could not copy apply brief.",
-      );
-    });
-  });
-
-  root.querySelectorAll("[data-confirmation-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      var slug = select.getAttribute("data-confirmation-status");
-      updateConfirmationQueueEntry(slug, {
-        status: select.value,
-      });
-      renderStats();
-      renderImportBlockerSprint();
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationSprint();
-      renderConfirmationQueue();
-    });
-  });
-
-  bindConfirmationResponseCapture(root);
 }
 
 function renderApplications() {
-  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
-  const root = document.getElementById("applicationsList");
-  const reviewGoalMeta = getApplicationReviewGoalMeta(applicationFilters.goal);
-  const filteredApplications = applications
-    .filter(function (item) {
-      const snapshot = getApplicationReviewSnapshot(item);
-      const haystack = [item.name, item.city, item.state, item.credentials, item.title, item.email]
-        .concat(item.specialties || [])
-        .join(" ")
-        .toLowerCase();
+  renderApplicationsPanel({
+    dataMode: dataMode,
+    remoteApplications: remoteApplications,
+    getApplications: getApplications,
+    applicationFilters: applicationFilters,
+    getApplicationReviewGoalMeta: reviewModels.getApplicationReviewGoalMeta,
+    getApplicationReviewSnapshot: reviewModels.getApplicationReviewSnapshot,
+    getGoalAdjustedApplicationPriorityScore: reviewModels.getGoalAdjustedApplicationPriorityScore,
+    authRequired: authRequired,
+    escapeHtml: escapeHtml,
+    getApplicationEmptyStateCopy: reviewModels.getApplicationEmptyStateCopy,
+    getApplicationFilterChips: reviewModels.getApplicationFilterChips,
+    getClaimFollowUpUrgency: getClaimFollowUpUrgency,
+    getAfterClaimReviewStall: getAfterClaimReviewStall,
+    formatPercent: formatPercent,
+    getClaimFunnelBottleneck: getClaimFunnelBottleneck,
+    getClaimActionQueue: getClaimActionQueue,
+    getClaimLaunchCandidates: getClaimLaunchCandidates,
+    getStalledAfterClaimReviews: getStalledAfterClaimReviews,
+    isGoalMatchedReviewCard: reviewModels.isGoalMatchedReviewCard,
+    getApplicationBatchReason: reviewModels.getApplicationBatchReason,
+    getTherapistMatchReadiness: getTherapistMatchReadiness,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistReviewCoaching: getTherapistReviewCoaching,
+    formatStatusLabel: formatStatusLabel,
+    getClaimFollowUpLabel: getClaimFollowUpLabel,
+    isConfirmationRefreshApplication: isConfirmationRefreshApplication,
+    buildImprovementRequest: buildImprovementRequest,
+    buildClaimReviewRequest: buildClaimReviewRequest,
+    buildClaimFollowUpMessage: buildClaimFollowUpMessage,
+    buildConfirmationLink: buildConfirmationLink,
+    getApplicationLinkedTherapist: reviewModels.getApplicationLinkedTherapist,
+    getApplicationLiveSyncSnapshot: reviewModels.getApplicationLiveSyncSnapshot,
+    renderApplicationDiffHtml: reviewModels.renderApplicationDiffHtml,
+    formatDate: formatDate,
+    formatFieldLabel: formatFieldLabel,
+    buildFieldReviewControls: buildFieldReviewControls,
+    buildRevisionHistoryHtml: buildRevisionHistoryHtml,
+    applicationFilters: applicationFilters,
+    buildRecommendedReviewBatchRequests: buildRecommendedReviewBatchRequests,
+    buildRecommendedReviewBatchPacket: buildRecommendedReviewBatchPacket,
+    buildClaimLaunchPriorityPacket: buildClaimLaunchPriorityPacket,
+    buildStalledAfterClaimReviewPacket: buildStalledAfterClaimReviewPacket,
+    buildOverdueClaimFollowUpPacket: buildOverdueClaimFollowUpPacket,
+    getReviewEventsForApplication: getReviewEventsForApplication,
+    renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+    renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    copyText: copyText,
+    spotlightSection: spotlightSection,
+    renderApplications: renderApplications,
+    renderAll: renderAll,
+    setCoachActionStatus: setCoachActionStatus,
+    appendImprovementRequestToNotes: appendImprovementRequestToNotes,
+    updateTherapistApplication: updateTherapistApplication,
+    approveTherapistApplication: approveTherapistApplication,
+    rejectTherapistApplicationRemote: rejectTherapistApplicationRemote,
+    requestApplicationChanges: requestApplicationChanges,
+    approveApplication: approveApplication,
+    publishApplication: publishApplication,
+    rejectApplication: rejectApplication,
+    updateApplicationReviewMetadata: updateApplicationReviewMetadata,
+    setApplyLiveFieldsStatus: setApplyLiveFieldsStatus,
+    applyTherapistApplicationFields: applyTherapistApplicationFields,
+    buildApplicationApplySummary: reviewModels.buildApplicationApplySummary,
+    applicationLiveApplySummaries: applicationLiveApplySummaries,
+    loadData: loadData,
+  });
+}
 
-      if (applicationFilters.q && !haystack.includes(applicationFilters.q.toLowerCase())) {
-        return false;
-      }
-
-      if (applicationFilters.status && item.status !== applicationFilters.status) {
-        return false;
-      }
-
-      if (applicationFilters.focus && snapshot.focus !== applicationFilters.focus) {
-        return false;
-      }
-
-      return true;
-    })
-    .sort(function (a, b) {
-      var scoreDelta =
-        getGoalAdjustedApplicationPriorityScore(b, applicationFilters.goal) -
-        getGoalAdjustedApplicationPriorityScore(a, applicationFilters.goal);
-      if (scoreDelta !== 0) {
-        return scoreDelta;
-      }
-      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-    });
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
+function buildCandidateDecisionActions(item) {
+  if (item.review_status === "published") {
+    return '<span class="status approved">published</span>';
   }
 
-  if (!applications.length) {
-    root.innerHTML =
-      '<div class="empty">No applications yet. Submit one through the signup page to test the workflow.</div>';
-    return;
+  if (item.review_status === "archived") {
+    return (
+      '<button class="btn-secondary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="needs_review">Reopen review</button>'
+    );
   }
 
-  if (!filteredApplications.length) {
-    root.innerHTML =
-      '<div class="empty">' +
-      escapeHtml(getApplicationEmptyStateCopy(applicationFilters.goal)) +
-      "</div>";
-    return;
+  var actions = [];
+  if (item.review_status !== "ready_to_publish") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="mark_ready">Queue for publish</button>',
+    );
   }
-
-  const summaryCounts = applications.reduce(
-    function (accumulator, item) {
-      const snapshot = getApplicationReviewSnapshot(item);
-      accumulator.pending += item.status === "pending" ? 1 : 0;
-      accumulator.reviewing += item.status === "reviewing" ? 1 : 0;
-      accumulator.publish_ready += snapshot.focus === "publish_ready" ? 1 : 0;
-      accumulator.needs_changes += snapshot.focus === "needs_changes" ? 1 : 0;
-      accumulator.confirmation_refresh += snapshot.focus === "confirmation_refresh" ? 1 : 0;
-      return accumulator;
-    },
-    {
-      pending: 0,
-      reviewing: 0,
-      publish_ready: 0,
-      needs_changes: 0,
-      confirmation_refresh: 0,
-    },
+  if (item.review_status !== "needs_confirmation") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="needs_confirmation">Send to confirmation</button>',
+    );
+  }
+  if (item.dedupe_status !== "rejected_duplicate") {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="reject_duplicate">Mark as duplicate</button>',
+    );
+  }
+  if (item.matched_therapist_id) {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="merge_to_therapist">Merge into therapist</button>',
+    );
+  }
+  if (item.matched_application_id) {
+    actions.push(
+      '<button class="btn-secondary" data-candidate-decision="' +
+        escapeHtml(item.id) +
+        '" data-candidate-next="merge_to_application">Merge into application</button>',
+    );
+  }
+  actions.push(
+    '<button class="btn-primary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish now</button>',
   );
-  const recommendedBatch = filteredApplications.slice(0, 3);
-  const topReviewTarget = recommendedBatch[0] || null;
-  const activeFilterChips = getApplicationFilterChips();
+  return actions.join("");
+}
 
-  root.innerHTML =
-    '<div class="review-priority-grid">' +
-    [
-      {
-        status: "pending",
-        focus: "",
-        label: "Pending",
-        value: summaryCounts.pending,
-        note: "Submissions still waiting for an explicit review decision.",
-      },
-      {
-        status: "reviewing",
-        focus: "active_review",
-        label: "Reviewing",
-        value: summaryCounts.reviewing,
-        note: "Applications already in motion and needing a next clear call.",
-      },
-      {
-        status: "",
-        focus: "publish_ready",
-        label: "Publish-ready",
-        value: summaryCounts.publish_ready,
-        note: "Strong candidates likely worth a final trust pass and then publish.",
-      },
-      {
-        status: "",
-        focus: "needs_changes",
-        label: "Needs fixes",
-        value: summaryCounts.needs_changes,
-        note: "Applications missing too many trust-critical basics to publish cleanly yet.",
-      },
-      {
-        status: "",
-        focus: "confirmation_refresh",
-        label: "Refresh updates",
-        value: summaryCounts.confirmation_refresh,
-        note: "Live-profile confirmation updates that should be handled as upkeep, not new supply.",
-      },
-    ]
-      .map(function (item) {
-        var isGoalMatch = isGoalMatchedReviewCard(applicationFilters.goal, item);
-        return (
-          '<button type="button" class="review-priority-card' +
-          (isGoalMatch ? " is-goal-match" : "") +
-          (applicationFilters.focus === item.focus &&
-          applicationFilters.status === (item.status || "")
-            ? " is-active"
-            : "") +
-          '" data-application-status-card="' +
-          escapeHtml(item.status || "") +
-          '" data-application-focus-card="' +
-          escapeHtml(item.focus) +
-          '"><div class="review-priority-value">' +
-          escapeHtml(item.value) +
-          '</div><div class="review-priority-label">' +
-          escapeHtml(item.label) +
-          '</div><div class="review-priority-note">' +
-          escapeHtml(item.note) +
-          '</div><div class="review-priority-meta"><span class="review-priority-chip' +
-          (isGoalMatch ? "" : " is-neutral") +
-          '">' +
-          escapeHtml(isGoalMatch ? "Best fit for this goal" : "Available lane") +
-          "</span></div>" +
-          "</button>"
-        );
-      })
-      .join("") +
-    '</div><div class="review-ops-bar"><div class="review-ops-title">Review Command Bar</div><div class="review-ops-copy">' +
-    escapeHtml(
-      topReviewTarget
-        ? "Start with " +
-            topReviewTarget.name +
-            ". " +
-            getApplicationReviewSnapshot(topReviewTarget).nextMove
-        : "No top review target is available for the current filters.",
-    ) +
-    '</div><div class="review-ops-meta"><span class="review-priority-chip">' +
-    escapeHtml(reviewGoalMeta.label) +
-    "</span>" +
-    (activeFilterChips.length
-      ? activeFilterChips
-          .map(function (chip) {
-            return '<span class="review-priority-chip is-neutral">' + escapeHtml(chip) + "</span>";
-          })
-          .join("")
-      : '<span class="review-priority-chip is-neutral">No extra filters</span>') +
-    '</div><div class="queue-actions" style="margin-top:0"><button class="btn-secondary" type="button" data-application-clear-filters>Clear filters</button>' +
-    (topReviewTarget
-      ? '<button class="btn-primary" type="button" data-application-jump="' +
-        escapeHtml(topReviewTarget.id) +
-        '">Open top review</button>'
-      : "") +
-    "</div></div>" +
-    (recommendedBatch.length
-      ? '<div class="queue-insights"><div class="queue-insights-title">' +
-        escapeHtml(reviewGoalMeta.batchTitle) +
-        '</div><div class="subtle" style="margin-bottom:0.7rem">' +
-        escapeHtml(reviewGoalMeta.batchIntro) +
-        '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-review-batch-export="' +
-        escapeHtml(reviewGoalMeta.primaryActionMode) +
-        '">' +
-        escapeHtml(reviewGoalMeta.primaryActionLabel) +
-        '</button><button class="btn-secondary" data-review-batch-export="packet">Copy review batch packet</button><button class="btn-secondary" data-review-batch-export="requests">Copy top improvement requests</button></div><div class="review-coach-status" id="reviewBatchExportStatus"></div><div class="queue-insights-grid">' +
-        recommendedBatch
-          .map(function (item) {
-            var snapshot = getApplicationReviewSnapshot(item);
-            var batchReason = getApplicationBatchReason(item, applicationFilters.goal);
-            return (
-              '<button type="button" class="queue-insight-card" data-application-jump="' +
-              escapeHtml(item.id) +
-              '"><div class="queue-insight-label"><strong>' +
-              escapeHtml(item.name) +
-              '</strong></div><div class="queue-insight-note">' +
-              escapeHtml(snapshot.label) +
-              '</div><div class="queue-insight-note">' +
-              escapeHtml(batchReason) +
-              '</div><div class="queue-insight-note">' +
-              escapeHtml(snapshot.nextMove) +
-              "</div></button>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "") +
-    filteredApplications
-      .map(function (item) {
-        const readiness = getTherapistMatchReadiness(item);
-        const freshness = getDataFreshnessSummary(item);
-        const coaching = getTherapistReviewCoaching(item);
-        const reviewSnapshot = getApplicationReviewSnapshot(item);
-        const isConfirmationRefresh = isConfirmationRefreshApplication(item);
-        const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
-          ? item.therapist_reported_fields
-          : [];
-        const therapistReportedDate = item.therapist_reported_confirmed_at
-          ? formatDate(item.therapist_reported_confirmed_at)
-          : "";
-        const editorialFollowUps = therapistReportedFields.filter(function (fieldName) {
-          return !item[fieldName] && item[fieldName] !== false;
-        });
-        const improvementRequest = buildImprovementRequest(item, coaching);
-        const revisionLink = new URL(
-          "signup.html?revise=" + encodeURIComponent(item.id),
-          window.location.href,
-        ).toString();
-        const confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
-        const fitTags = []
-          .concat(item.treatment_modalities || [])
-          .concat(item.client_populations || [])
-          .slice(0, 8)
-          .map(function (tag) {
-            return '<span class="tag">' + escapeHtml(tag) + "</span>";
-          })
-          .join("");
-
-        const actions =
-          item.status === "pending"
-            ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
-              item.id +
-              '">Mark Reviewing</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
-              item.id +
-              '" data-request="' +
-              escapeHtml(improvementRequest) +
-              '" data-link="' +
-              escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-              '">Request Changes</button><button class="btn-primary" data-action="publish" data-id="' +
-              item.id +
-              '">Publish</button><button class="btn-secondary" data-action="reject" data-id="' +
-              item.id +
-              '">Reject</button>'
-            : item.status === "reviewing"
-              ? '<button class="btn-primary" data-action="publish" data-id="' +
-                item.id +
-                '">Publish</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
-                item.id +
-                '" data-request="' +
-                escapeHtml(improvementRequest) +
-                '" data-link="' +
-                escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                '">Request Changes</button><button class="btn-secondary" data-action="pending" data-id="' +
-                item.id +
-                '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
-                item.id +
-                '">Reject</button>'
-              : item.status === "requested_changes"
-                ? '<span class="status requested_changes">requested changes</span><button class="btn-secondary" data-action="copy-revision-link" data-id="' +
-                  item.id +
-                  '" data-link="' +
-                  escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                  '">' +
-                  (isConfirmationRefresh ? "Copy confirmation link" : "Copy revision link") +
-                  '</button><button class="btn-secondary" data-action="pending" data-id="' +
-                  item.id +
-                  '">Move to Pending</button>'
-                : item.status === "approved"
-                  ? '<span class="status approved">approved</span>'
-                  : '<span class="status ' + item.status + '">' + item.status + "</span>";
-
-        return (
-          '<article class="application-card" data-application-card-id="' +
-          escapeHtml(item.id) +
-          '">' +
-          '<div class="application-head"><div><h3>' +
-          escapeHtml(item.name) +
-          '</h3><p class="subtle">' +
-          escapeHtml(item.credentials) +
-          (item.title ? " · " + escapeHtml(item.title) : "") +
-          " · " +
-          escapeHtml(item.city) +
-          ", " +
-          escapeHtml(item.state) +
-          '</p></div><div class="subtle">' +
-          formatDate(item.created_at) +
-          "</div></div>" +
-          '<div class="tag-row"><span class="tag">' +
-          escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
-          "</span>" +
-          (isConfirmationRefresh
-            ? '<span class="tag">Live profile confirmation update</span>'
-            : "") +
-          '<span class="tag">' +
-          escapeHtml(reviewSnapshot.label) +
-          "</span>" +
-          (item.bipolar_years_experience
-            ? '<span class="tag">' +
-              escapeHtml(item.bipolar_years_experience) +
-              " yrs bipolar care</span>"
-            : "") +
-          '<span class="tag">' +
-          escapeHtml(reviewSnapshot.photoStatusLabel) +
-          "</span>" +
-          (item.medication_management ? '<span class="tag">Medication management</span>' : "") +
-          '<span class="tag">' +
-          escapeHtml(readiness.label) +
-          " · " +
-          escapeHtml(readiness.score) +
-          "/100</span>" +
-          "</div>" +
-          (item.care_approach
-            ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
-              escapeHtml(item.care_approach) +
-              "</p>"
-            : "") +
-          '<div class="review-snapshot-box"><div class="review-snapshot-title">Recommended next move</div><div class="review-snapshot-copy">' +
-          escapeHtml(reviewSnapshot.nextMove) +
-          '</div><div class="review-snapshot-copy">' +
-          escapeHtml(reviewSnapshot.note) +
-          '</div><div class="review-snapshot-copy"><strong>Photo status:</strong> ' +
-          escapeHtml(reviewSnapshot.photoNextMove) +
-          "</div>" +
-          (reviewSnapshot.missingCriticalFields.length
-            ? '<div class="tag-row">' +
-              reviewSnapshot.missingCriticalFields
-                .map(function (field) {
-                  return '<span class="tag">' + escapeHtml(field) + "</span>";
-                })
-                .join("") +
-              "</div>"
-            : "") +
-          "</div>" +
-          '<p class="application-bio">' +
-          escapeHtml(item.bio) +
-          "</p>" +
-          '<div class="tag-row">' +
-          (item.specialties || [])
-            .map(function (specialty) {
-              return '<span class="tag">' + escapeHtml(specialty) + "</span>";
-            })
-            .join("") +
-          "</div>" +
-          (fitTags ? '<div class="tag-row">' + fitTags + "</div>" : "") +
-          '<div class="meta-grid">' +
-          "<div><strong>Email:</strong> " +
-          escapeHtml(item.email) +
-          "</div>" +
-          "<div><strong>Phone:</strong> " +
-          escapeHtml(item.phone || "Not provided") +
-          "</div>" +
-          "<div><strong>License:</strong> " +
-          escapeHtml(
-            [item.license_state, item.license_number].filter(Boolean).join(" · ") || "Not provided",
-          ) +
-          "</div>" +
-          "<div><strong>Photo source:</strong> " +
-          escapeHtml(reviewSnapshot.photoStatusLabel) +
-          "</div>" +
-          "<div><strong>Photo permission:</strong> " +
-          escapeHtml(item.photo_usage_permission_confirmed ? "Confirmed" : "Not confirmed") +
-          "</div>" +
-          "<div><strong>Wait time:</strong> " +
-          escapeHtml(item.estimated_wait_time || "Not provided") +
-          "</div>" +
-          "<div><strong>Insurance:</strong> " +
-          escapeHtml((item.insurance_accepted || []).join(", ") || "Not provided") +
-          "</div>" +
-          "<div><strong>Format:</strong> " +
-          [item.accepts_telehealth ? "Telehealth" : "", item.accepts_in_person ? "In-Person" : ""]
-            .filter(Boolean)
-            .join(" / ") +
-          "</div>" +
-          "<div><strong>Preferred contact:</strong> " +
-          escapeHtml(
-            item.preferred_contact_method
-              ? item.preferred_contact_method === "booking"
-                ? "Booking link"
-                : item.preferred_contact_method
-              : "Not provided",
-          ) +
-          "</div>" +
-          "<div><strong>CTA label:</strong> " +
-          escapeHtml(item.preferred_contact_label || "Not provided") +
-          "</div>" +
-          "<div><strong>Booking URL:</strong> " +
-          (item.booking_url
-            ? '<a href="' +
-              escapeHtml(item.booking_url) +
-              '" target="_blank" rel="noopener">Open link</a>'
-            : "Not provided") +
-          "</div>" +
-          "<div><strong>Contact guidance:</strong> " +
-          escapeHtml(item.contact_guidance || "Not provided") +
-          "</div>" +
-          "<div><strong>After outreach:</strong> " +
-          escapeHtml(item.first_step_expectation || "Not provided") +
-          "</div>" +
-          "<div><strong>Languages:</strong> " +
-          escapeHtml((item.languages || []).join(", ") || "English") +
-          "</div>" +
-          "<div><strong>Telehealth states:</strong> " +
-          escapeHtml((item.telehealth_states || []).join(", ") || "Not provided") +
-          "</div>" +
-          "<div><strong>Match readiness:</strong> " +
-          escapeHtml(readiness.label) +
-          " (" +
-          escapeHtml(readiness.score) +
-          "/100)</div>" +
-          "<div><strong>Profile completeness:</strong> " +
-          escapeHtml(readiness.completeness_score) +
-          "/100</div>" +
-          "</div>" +
-          '<div class="action-row">' +
-          actions +
-          "</div>" +
-          '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +
-          (isConfirmationRefresh
-            ? '<div class="notes-box"><label><strong>Confirmation refresh</strong></label><div class="subtle">This submission is tied to an existing live therapist profile and is meant to refresh high-value operational details without creating a brand-new listing.</div>' +
-              (item.published_therapist_id
-                ? '<div class="subtle">Linked live therapist ID: ' +
-                  escapeHtml(item.published_therapist_id) +
-                  "</div>"
-                : "") +
-              (confirmationLink
-                ? '<div class="subtle">Therapist update link: <a href="' +
-                  escapeHtml(confirmationLink) +
-                  '" target="_blank" rel="noopener">Open confirmation form</a></div>'
-                : "") +
-              "</div>"
-            : "") +
-          (therapistReportedFields.length
-            ? '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="tag-row">' +
-              therapistReportedFields
-                .map(function (fieldName) {
-                  return (
-                    '<span class="tag">' +
-                    escapeHtml(formatFieldLabel(fieldName)) +
-                    " · therapist confirmed</span>"
-                  );
-                })
-                .join("") +
-              '</div><div class="subtle">Last specialist confirmation: ' +
-              escapeHtml(therapistReportedDate || "Not provided") +
-              "</div>" +
-              (editorialFollowUps.length
-                ? '<div class="subtle">Still worth editorial follow-up: ' +
-                  escapeHtml(
-                    editorialFollowUps.map(formatFieldLabel).join(", ") || "None currently flagged",
-                  ) +
-                  "</div>"
-                : "")
-            : '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="subtle">No therapist-confirmed operational fields are marked yet.</div>') +
-          "</div>" +
-          '<div class="notes-box"><label><strong>Field-level review states</strong></label>' +
-          buildFieldReviewControls(item) +
-          '<div class="subtle">Use this to distinguish details that are still therapist-confirmed from details your team has independently verified.</div></div>' +
-          '<div class="notes-box"><label><strong>Freshness audit</strong></label><div class="subtle"><strong>' +
-          escapeHtml(freshness.label) +
-          ":</strong> " +
-          escapeHtml(freshness.note) +
-          "</div></div>" +
-          (readiness.strengths.length
-            ? '<div class="notes-box"><label><strong>Already strong for matching</strong></label><div class="tag-row">' +
-              readiness.strengths
-                .map(function (strength) {
-                  return '<span class="tag">' + escapeHtml(strength) + "</span>";
-                })
-                .join("") +
-              "</div></div>"
-            : "") +
-          (readiness.missing_items.length
-            ? '<div class="notes-box"><label><strong>Best next fixes for match quality</strong></label><div class="tag-row">' +
-              readiness.missing_items
-                .map(function (itemText) {
-                  return '<span class="tag">' + escapeHtml(itemText) + "</span>";
-                })
-                .join("") +
-              "</div></div>"
-            : "") +
-          (coaching.length
-            ? '<div class="notes-box review-coach-box"><label><strong>Reviewer coaching prompts</strong></label><div class="review-coach-list">' +
-              coaching
-                .map(function (itemText) {
-                  return '<div class="review-coach-item">' + escapeHtml(itemText) + "</div>";
-                })
-                .join("") +
-              '</div><div class="review-coach-actions"><button class="btn-secondary" data-action="copy-improvement-request" data-id="' +
-              item.id +
-              '" data-request="' +
-              escapeHtml(improvementRequest) +
-              '">Copy improvement request</button><button class="btn-secondary" data-action="append-improvement-request" data-id="' +
-              item.id +
-              '" data-request="' +
-              escapeHtml(improvementRequest) +
-              '">Add request to notes</button><span class="review-coach-status" data-coach-status-id="' +
-              item.id +
-              '">Ready to reuse</span></div>' +
-              "</div></div>"
-            : "") +
-          buildRevisionHistoryHtml(item) +
-          '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
-          item.id +
-          '" placeholder="Add review notes, follow-up items, or context for later...">' +
-          (item.notes || "") +
-          '</textarea><div class="notes-actions"><button class="btn-secondary" data-action="save-notes" data-id="' +
-          item.id +
-          '">Save Notes</button><span class="mini-status">' +
-          (item.notes ? "Notes saved" : "No notes yet") +
-          "</span></div></div></div></details>" +
-          "</article>"
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-application-focus-card]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var focus = button.getAttribute("data-application-focus-card") || "";
-      var status = button.getAttribute("data-application-status-card") || "";
-      var sameSelection =
-        applicationFilters.focus === focus && applicationFilters.status === status;
-      applicationFilters.focus = sameSelection ? "" : focus;
-      applicationFilters.status = sameSelection ? "" : status;
-      var focusFilter = document.getElementById("applicationFocusFilter");
-      if (focusFilter) {
-        focusFilter.value = applicationFilters.focus;
-      }
-      var statusFilter = document.getElementById("applicationStatusFilter");
-      if (statusFilter) {
-        statusFilter.value = applicationFilters.status;
-      }
-      renderApplications();
-    });
+function renderOpsInbox() {
+  renderOpsInboxPanel({
+    root: document.getElementById("opsInbox"),
+    authRequired: authRequired,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    licensureRefreshQueue: licensureRefreshQueue,
+    profileConversionFreshnessQueue: profileConversionFreshnessQueue,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
+    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+    getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
+    getCandidateOpsReason: reviewModels.getCandidateOpsReason,
+    buildCandidateDecisionActions: buildCandidateDecisionActions,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    renderFieldTrustChips: renderFieldTrustChips,
+    getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
+    buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
+    getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
+    assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
+    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+    formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    copyText: copyText,
+    updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
+    clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    renderOpsInbox: renderOpsInbox,
+    decideTherapistCandidate: decideTherapistCandidate,
+    decideTherapistOps: decideTherapistOps,
+    loadData: loadData,
   });
+}
 
-  root.querySelectorAll("[data-review-batch-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-review-batch-export");
-      var text =
-        mode === "requests"
-          ? buildRecommendedReviewBatchRequests(recommendedBatch, applicationFilters.goal)
-          : buildRecommendedReviewBatchPacket(recommendedBatch, applicationFilters.goal);
-      var success = text ? await copyText(text) : false;
-      var status = root.querySelector("#reviewBatchExportStatus");
-      if (status) {
-        status.textContent = success
-          ? mode === "requests"
-            ? "Top improvement requests copied."
-            : mode === reviewGoalMeta.primaryActionMode
-              ? reviewGoalMeta.primaryActionLabel + " copied."
-              : "Review batch packet copied."
-          : mode === "requests"
-            ? "Could not copy top improvement requests."
-            : mode === reviewGoalMeta.primaryActionMode
-              ? "Could not copy " + reviewGoalMeta.primaryActionLabel.toLowerCase() + "."
-              : "Could not copy review batch packet.";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-application-jump]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var id = button.getAttribute("data-application-jump");
-      var target = root.querySelector('[data-application-card-id="' + id + '"]');
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-        spotlightSection(target);
-      }
-    });
-  });
-
-  root.querySelector("[data-application-clear-filters]")?.addEventListener("click", function () {
-    applicationFilters.q = "";
-    applicationFilters.status = "";
-    applicationFilters.focus = "";
-    applicationFilters.goal = "balanced";
-    var searchInput = document.getElementById("applicationSearch");
-    if (searchInput) {
-      searchInput.value = "";
-    }
-    var statusFilter = document.getElementById("applicationStatusFilter");
-    if (statusFilter) {
-      statusFilter.value = "";
-    }
-    var focusFilter = document.getElementById("applicationFocusFilter");
-    if (focusFilter) {
-      focusFilter.value = "";
-    }
-    var goalFilter = document.getElementById("applicationReviewGoal");
-    if (goalFilter) {
-      goalFilter.value = "balanced";
-    }
-    renderApplications();
-  });
-
-  root.querySelectorAll("[data-action]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const id = button.getAttribute("data-id");
-      const action = button.getAttribute("data-action");
-      button.disabled = true;
-      try {
-        if (dataMode === "sanity") {
-          if (action === "copy-revision-link") {
-            const copied = await copyText(button.getAttribute("data-link") || "");
-            setCoachActionStatus(
-              root,
-              id,
-              copied ? "Revision link copied" : "Copy failed on this browser",
-            );
-            return;
-          }
-          if (action === "copy-improvement-request") {
-            const requestText = button.getAttribute("data-request") || "";
-            const copied = await copyText(requestText);
-            setCoachActionStatus(
-              root,
-              id,
-              copied ? "Improvement request copied" : "Copy failed on this browser",
-            );
-            return;
-          }
-          if (action === "append-improvement-request") {
-            const requestText = button.getAttribute("data-request") || "";
-            const appended = appendImprovementRequestToNotes(root, id, requestText);
-            setCoachActionStatus(
-              root,
-              id,
-              appended ? "Added to notes. Save notes when ready." : "Could not find notes field",
-            );
-            return;
-          }
-          if (action === "publish") await approveTherapistApplication(id);
-          if (action === "reject") await rejectTherapistApplicationRemote(id);
-          if (action === "reviewing") {
-            await updateTherapistApplication(id, { status: "reviewing" });
-          }
-          if (action === "requested_changes") {
-            await updateTherapistApplication(id, {
-              status: "requested_changes",
-              review_request_message: button.getAttribute("data-request") || "",
-              revision_history_entry: {
-                type: "requested_changes",
-                message: button.getAttribute("data-request") || "",
-              },
-            });
-          }
-          if (action === "pending") {
-            await updateTherapistApplication(id, { status: "pending" });
-          }
-          if (action === "save-notes") {
-            const field = root.querySelector('[data-notes-id="' + id + '"]');
-            await updateTherapistApplication(id, {
-              notes: field ? field.value : "",
-            });
-          }
-          await loadData();
-        } else {
-          if (action === "copy-revision-link") {
-            const copied = await copyText(button.getAttribute("data-link") || "");
-            setCoachActionStatus(
-              root,
-              id,
-              copied ? "Revision link copied" : "Copy failed on this browser",
-            );
-            return;
-          }
-          if (action === "copy-improvement-request") {
-            const requestText = button.getAttribute("data-request") || "";
-            const copied = await copyText(requestText);
-            setCoachActionStatus(
-              root,
-              id,
-              copied ? "Improvement request copied" : "Copy failed on this browser",
-            );
-            return;
-          }
-          if (action === "append-improvement-request") {
-            const requestText = button.getAttribute("data-request") || "";
-            const appended = appendImprovementRequestToNotes(root, id, requestText);
-            setCoachActionStatus(
-              root,
-              id,
-              appended ? "Added to notes. Save notes when ready." : "Could not find notes field",
-            );
-            return;
-          }
-          if (action === "requested_changes") {
-            requestApplicationChanges(id, button.getAttribute("data-request") || "");
-          }
-          if (action === "publish") publishApplication(id);
-          if (action === "reject") rejectApplication(id);
-          renderAll();
-        }
-      } finally {
-        button.disabled = false;
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-review-field]").forEach(function (select) {
-    select.addEventListener("change", async function () {
-      var id = select.getAttribute("data-id");
-      var field = select.getAttribute("data-review-field");
-      var value = select.value;
-      select.disabled = true;
-      try {
-        if (dataMode === "sanity") {
-          var target = remoteApplications.find(function (item) {
-            return item.id === id;
-          });
-          var nextStates = {
-            field_review_states: {
-              ...(target && target.field_review_states ? target.field_review_states : {}),
-              [field]: value,
-            },
-          };
-          await updateTherapistApplication(id, nextStates);
-          await loadData();
-        } else {
-          updateApplicationReviewMetadata(id, {
-            field_review_states: {
-              [field]: value,
-            },
-          });
-          renderAll();
-        }
-      } finally {
-        select.disabled = false;
-      }
-    });
+function renderCandidateQueue() {
+  renderCandidateQueuePanel({
+    root: document.getElementById("candidateQueue"),
+    countEl: document.getElementById("candidateQueueCount"),
+    authRequired: authRequired,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    filters: candidateFilters,
+    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+    getCandidateReviewChipLabel: reviewModels.getCandidateReviewChipLabel,
+    getCandidateDedupeChipLabel: reviewModels.getCandidateDedupeChipLabel,
+    getSourceReferenceMeta: getSourceReferenceMeta,
+    buildCandidateDecisionActions: buildCandidateDecisionActions,
+    getReviewEventsForCandidate: getReviewEventsForCandidate,
+    renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+    renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
+    decideTherapistCandidate: decideTherapistCandidate,
+    loadData: loadData,
   });
 }
 
 function renderConciergeQueue() {
-  const root = document.getElementById("conciergeQueue");
-  if (!root) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    return;
-  }
-
-  const requests = readConciergeRequests();
-  const outreachOutcomes = readOutreachOutcomes();
-  if (!requests.length) {
-    root.innerHTML =
-      '<div class="empty">No concierge requests captured yet. Once users ask for help in the match flow, they will appear here on this device.</div>';
-    return;
-  }
-
-  const filteredRequests = requests
-    .map(function (request, requestIndex) {
-      return {
-        request: request,
-        requestIndex: requestIndex,
-      };
-    })
-    .filter(function (entry) {
-      if (!conciergeFilters.status) {
-        return true;
-      }
-      if (conciergeFilters.status === "open") {
-        return entry.request.request_status !== "resolved";
-      }
-      return entry.request.request_status === conciergeFilters.status;
-    });
-  const countLabel = document.getElementById("conciergeQueueCount");
-  if (countLabel) {
-    countLabel.textContent =
-      filteredRequests.length === requests.length
-        ? String(requests.length) + " of " + String(requests.length) + " requests shown"
-        : String(filteredRequests.length) + " of " + String(requests.length) + " requests shown";
-  }
-
-  const patterns = analyzeConciergePatterns(requests);
-  const outcomeSummary = analyzeOutreachOutcomes(outreachOutcomes);
-  const journeySummary = analyzeOutreachJourneys(outreachOutcomes);
-  const timingSummary = analyzePivotTiming(outreachOutcomes);
-  const insightsHtml = patterns.length
-    ? '<div class="queue-insights"><div class="queue-insights-title">Stuck patterns we are seeing</div><div class="queue-insights-grid">' +
-      patterns
-        .slice(0, 5)
-        .map(function (pattern) {
-          return (
-            '<div class="queue-insight-card"><div class="queue-insight-value">' +
-            escapeHtml(pattern.count) +
-            '</div><div class="queue-insight-label">' +
-            escapeHtml(pattern.label) +
-            "</div></div>"
-          );
-        })
-        .join("") +
-      "</div></div>"
-    : "";
-  const outcomeHtml = outreachOutcomes.length
-    ? '<div class="queue-insights"><div class="queue-insights-title">Recommended outreach outcomes</div><div class="queue-insights-grid">' +
-      [
-        { label: "Reached out", count: outcomeSummary.reached_out },
-        { label: "Heard back", count: outcomeSummary.heard_back },
-        { label: "Booked consult", count: outcomeSummary.booked_consult },
-        { label: "Good fit call", count: outcomeSummary.good_fit_call },
-        { label: "Insurance mismatch", count: outcomeSummary.insurance_mismatch },
-        { label: "Hit a waitlist", count: outcomeSummary.waitlist },
-        { label: "No response yet", count: outcomeSummary.no_response },
-      ]
-        .map(function (item) {
-          return (
-            '<div class="queue-insight-card"><div class="queue-insight-value">' +
-            escapeHtml(item.count) +
-            '</div><div class="queue-insight-label">' +
-            escapeHtml(item.label) +
-            "</div></div>"
-          );
-        })
-        .join("") +
-      "</div></div>"
-    : "";
-  const journeyHtml =
-    journeySummary.fallback_after_no_response ||
-    journeySummary.fallback_after_waitlist ||
-    journeySummary.fallback_after_insurance_mismatch ||
-    journeySummary.second_choice_success
-      ? '<div class="queue-insights"><div class="queue-insights-title">Fallback journey patterns</div><div class="queue-insights-grid">' +
-        [
-          {
-            label: "Fallback after no response",
-            count: journeySummary.fallback_after_no_response,
-          },
-          {
-            label: "Fallback after waitlist",
-            count: journeySummary.fallback_after_waitlist,
-          },
-          {
-            label: "Fallback after insurance mismatch",
-            count: journeySummary.fallback_after_insurance_mismatch,
-          },
-          {
-            label: "Second-choice success",
-            count: journeySummary.second_choice_success,
-          },
-        ]
-          .filter(function (item) {
-            return item.count > 0;
-          })
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-value">' +
-              escapeHtml(item.count) +
-              '</div><div class="queue-insight-label">' +
-              escapeHtml(item.label) +
-              "</div></div>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "";
-  const timingHtml =
-    timingSummary.on_time_pivots || timingSummary.early_pivots || timingSummary.late_pivots
-      ? '<div class="queue-insights"><div class="queue-insights-title">Pivot timing patterns</div><div class="queue-insights-grid">' +
-        [
-          { label: "On-time pivots", count: timingSummary.on_time_pivots },
-          { label: "Early pivots", count: timingSummary.early_pivots },
-          { label: "Late pivots", count: timingSummary.late_pivots },
-        ]
-          .filter(function (item) {
-            return item.count > 0;
-          })
-          .map(function (item) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-value">' +
-              escapeHtml(item.count) +
-              '</div><div class="queue-insight-label">' +
-              escapeHtml(item.label) +
-              "</div></div>"
-            );
-          })
-          .join("") +
-        "</div></div>"
-      : "";
-
-  root.innerHTML =
-    insightsHtml +
-    outcomeHtml +
-    journeyHtml +
-    timingHtml +
-    (filteredRequests.length
-      ? ""
-      : '<div class="empty">No concierge requests match the current filter.</div>') +
-    filteredRequests
-      .slice(0, 12)
-      .map(function (entry, index) {
-        const request = entry.request;
-        const requestIndex = entry.requestIndex;
-        const shortlist = Array.isArray(request.shortlist) ? request.shortlist : [];
-        const note = String(request.request_note || "").trim();
-        const summary = String(request.request_summary || "No request summary captured.");
-        return (
-          '<article class="queue-card"><div class="queue-head"><div><h3>' +
-          escapeHtml(request.requester_name || "Unnamed concierge request") +
-          '</h3><div class="subtle">' +
-          formatDate(request.created_at) +
-          (request.follow_up_preference ? " · " + escapeHtml(request.follow_up_preference) : "") +
-          (request.help_topic ? " · " + escapeHtml(request.help_topic) : "") +
-          '</div></div><div class="queue-head-actions"><span class="tag">' +
-          escapeHtml(formatStatusLabel(request.request_status)) +
-          '</span><span class="tag">Request ' +
-          (index + 1) +
-          '</span></div></div><div class="queue-actions" style="margin-top:0.8rem"><label class="queue-select-label" for="request-status-' +
-          requestIndex +
-          '">Request status</label><select class="queue-select" id="request-status-' +
-          requestIndex +
-          '" data-request-status="' +
-          requestIndex +
-          '">' +
-          REQUEST_STATUS_OPTIONS.map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (request.request_status === option ? " selected" : "") +
-              ">" +
-              escapeHtml(formatStatusLabel(option)) +
-              "</option>"
-            );
-          }).join("") +
-          "</select></div>" +
-          '<div class="queue-summary"><strong>Request summary:</strong> ' +
-          escapeHtml(summary) +
-          "</div>" +
-          (note
-            ? '<div class="queue-summary"><strong>What feels uncertain:</strong> ' +
-              escapeHtml(note) +
-              "</div>"
-            : "") +
-          (shortlist.length
-            ? '<div class="queue-shortlist">' +
-              shortlist
-                .map(function (item, shortlistIndex) {
-                  return (
-                    '<div class="queue-shortlist-item"><strong>' +
-                    escapeHtml(item.name || "Unknown therapist") +
-                    "</strong>" +
-                    (item.priority ? " · " + escapeHtml(item.priority) : "") +
-                    (item.note
-                      ? '<div class="subtle" style="margin-top:0.25rem">Note: ' +
-                        escapeHtml(item.note) +
-                        "</div>"
-                      : "") +
-                    '<div class="subtle" style="margin-top:0.25rem">Best route: ' +
-                    escapeHtml(item.outreach || "Not listed") +
-                    '</div><div class="queue-item-controls"><label class="queue-select-label" for="shortlist-status-' +
-                    requestIndex +
-                    "-" +
-                    shortlistIndex +
-                    '">Therapist follow-up</label><select class="queue-select" id="shortlist-status-' +
-                    requestIndex +
-                    "-" +
-                    shortlistIndex +
-                    '" data-shortlist-status="' +
-                    requestIndex +
-                    ":" +
-                    shortlistIndex +
-                    '">' +
-                    THERAPIST_FOLLOW_UP_OPTIONS.map(function (option) {
-                      return (
-                        '<option value="' +
-                        escapeHtml(option) +
-                        '"' +
-                        (item.follow_up_status === option ? " selected" : "") +
-                        ">" +
-                        escapeHtml(formatStatusLabel(option)) +
-                        "</option>"
-                      );
-                    }).join("") +
-                    "</select></div></div>"
-                  );
-                })
-                .join("") +
-              "</div>"
-            : "") +
-          '<div class="queue-actions"><button class="btn-secondary" data-concierge-copy="' +
-          requestIndex +
-          '">Copy brief</button>' +
-          (request.share_link
-            ? '<a class="btn-secondary btn-inline" href="' +
-              escapeHtml(request.share_link) +
-              '" target="_blank" rel="noopener">Open match context</a>'
-            : "") +
-          "</div></article>"
-        );
-      })
-      .join("");
-
-  root.querySelectorAll("[data-concierge-copy]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const request = requests[Number(button.getAttribute("data-concierge-copy"))];
-      if (!request) {
-        return;
-      }
-
-      const brief = [
-        "BipolarTherapyHub concierge request",
-        "",
-        request.requester_name ? "Name: " + request.requester_name : "",
-        request.follow_up_preference ? "Preferred follow-up: " + request.follow_up_preference : "",
-        request.help_topic ? "Help topic: " + request.help_topic : "",
-        "Request summary: " + (request.request_summary || "No request summary captured."),
-        "",
-        "Shortlist:",
-        (request.shortlist || [])
-          .map(function (item, itemIndex) {
-            return (
-              itemIndex +
-              1 +
-              ". " +
-              (item.name || "Unknown therapist") +
-              (item.priority ? " — " + item.priority : "") +
-              (item.note ? " — Note: " + item.note : "") +
-              (item.outreach ? " — Best route: " + item.outreach : "")
-            );
-          })
-          .join("\n"),
-        "",
-        request.request_note ? "What feels uncertain:\n" + request.request_note : "",
-        request.share_link ? "Share link:\n" + request.share_link : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      try {
-        await navigator.clipboard.writeText(brief);
-        button.textContent = "Copied";
-      } catch (_error) {
-        button.textContent = "Copy failed";
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-request-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      updateConciergeRequestStatus(
-        Number(select.getAttribute("data-request-status")),
-        select.value,
-      );
-      renderAll();
-    });
-  });
-
-  root.querySelectorAll("[data-shortlist-status]").forEach(function (select) {
-    select.addEventListener("change", function () {
-      var parts = String(select.getAttribute("data-shortlist-status") || "").split(":");
-      updateConciergeShortlistStatus(Number(parts[0]), Number(parts[1]), select.value);
-      renderAll();
-    });
+  renderConciergeQueuePanel({
+    root: document.getElementById("conciergeQueue"),
+    countLabel: document.getElementById("conciergeQueueCount"),
+    authRequired: authRequired,
+    conciergeStatusFilter: conciergeFilters.status,
+    readConciergeRequests: readConciergeRequests,
+    readOutreachOutcomes: readOutreachOutcomes,
+    analyzeConciergePatterns: analyzeConciergePatterns,
+    analyzeOutreachOutcomes: analyzeOutreachOutcomes,
+    analyzeOutreachJourneys: analyzeOutreachJourneys,
+    analyzePivotTiming: analyzePivotTiming,
+    requestStatusOptions: REQUEST_STATUS_OPTIONS,
+    therapistFollowUpOptions: THERAPIST_FOLLOW_UP_OPTIONS,
+    escapeHtml: escapeHtml,
+    formatDate: formatDate,
+    formatStatusLabel: formatStatusLabel,
+    updateConciergeRequestStatus: updateConciergeRequestStatus,
+    updateConciergeShortlistStatus: updateConciergeShortlistStatus,
+    renderAll: renderAll,
   });
 }
 
@@ -7880,146 +5413,472 @@ function formatPortalRequestType(value) {
     });
 }
 
-function renderPortalRequestsQueue() {
-  const root = document.getElementById("portalRequestsQueue");
-  const countEl = document.getElementById("portalRequestCount");
-  if (!root || !countEl) {
-    return;
-  }
-
-  if (authRequired) {
-    root.innerHTML = "";
-    countEl.textContent = "";
-    return;
-  }
-
-  const requests = dataMode === "sanity" ? remotePortalRequests : [];
-  const filtered = requests.filter(function (item) {
-    if (portalRequestFilters.status && item.status !== portalRequestFilters.status) {
-      return false;
-    }
-    return true;
-  });
-
-  countEl.textContent =
-    filtered.length +
-    " of " +
-    requests.length +
-    " portal request" +
-    (requests.length === 1 ? "" : "s");
-
-  if (!requests.length) {
-    root.innerHTML =
-      '<div class="empty">No therapist portal requests yet. Claims, pause requests, and removal requests will appear here.</div>';
-    return;
-  }
-
-  if (!filtered.length) {
-    root.innerHTML = '<div class="empty">No portal requests match the current filter.</div>';
-    return;
-  }
-
-  root.innerHTML = filtered
-    .map(function (item) {
-      var canMarkInReview = item.status !== "in_review";
-      var canResolve = item.status !== "resolved";
-      return (
-        '<article class="queue-card"><div class="queue-head"><div><h3>' +
-        escapeHtml(item.therapist_name || item.therapist_slug) +
-        '</h3><div class="subtle">' +
-        escapeHtml(item.requester_name || "Unknown requester") +
-        (item.requester_email ? " · " + escapeHtml(item.requester_email) : "") +
-        '</div></div><div class="queue-head-actions"><span class="tag">' +
-        escapeHtml(formatPortalRequestType(item.request_type)) +
-        '</span><span class="tag">' +
-        escapeHtml(String(item.status || "open").replace(/_/g, " ")) +
-        "</span></div></div>" +
-        '<div class="queue-summary"><strong>Requested:</strong> ' +
-        escapeHtml(formatDate(item.requested_at)) +
-        "</div>" +
-        '<div class="queue-summary"><strong>Profile slug:</strong> ' +
-        escapeHtml(item.therapist_slug || "Unknown") +
-        "</div>" +
-        '<div class="queue-summary"><strong>License number:</strong> ' +
-        escapeHtml(item.license_number || "Not provided") +
-        "</div>" +
-        (item.reviewed_at
-          ? '<div class="queue-summary"><strong>Last reviewed:</strong> ' +
-            escapeHtml(formatDate(item.reviewed_at)) +
-            "</div>"
-          : "") +
-        '<div class="queue-summary"><strong>Message:</strong> ' +
-        escapeHtml(item.message || "No extra message provided.") +
-        '</div><div class="queue-actions">' +
-        (canMarkInReview
-          ? '<button class="btn-primary" data-portal-request-update="' +
-            escapeHtml(item.id) +
-            '" data-next-status="in_review">Mark in review</button>'
-          : "") +
-        (canResolve
-          ? '<button class="btn-secondary" data-portal-request-update="' +
-            escapeHtml(item.id) +
-            '" data-next-status="resolved">Resolve</button>'
-          : "") +
-        '<a class="btn-secondary" href="portal.html?slug=' +
-        encodeURIComponent(item.therapist_slug || "") +
-        '">Open portal</a><a class="btn-secondary" href="therapist.html?slug=' +
-        encodeURIComponent(item.therapist_slug || "") +
-        '">View profile</a></div><div class="review-coach-status" data-portal-request-status-id="' +
-        escapeHtml(item.id) +
-        '"></div></article>'
-      );
-    })
-    .join("");
-
-  root.querySelectorAll("[data-portal-request-update]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var requestId = button.getAttribute("data-portal-request-update");
-      var nextStatus = button.getAttribute("data-next-status");
-      if (!requestId || !nextStatus) {
-        return;
-      }
-
-      var priorLabel = button.textContent;
-      button.disabled = true;
-      button.textContent = nextStatus === "resolved" ? "Resolving..." : "Updating...";
-
-      try {
-        var updated = await updateTherapistPortalRequest(requestId, {
-          status: nextStatus,
-        });
-        remotePortalRequests = remotePortalRequests.map(function (item) {
-          return item.id === requestId ? updated : item;
-        });
-        renderStats();
-        renderPortalRequestsQueue();
-      } catch (_error) {
-        setPortalRequestActionStatus(
-          root,
-          requestId,
-          nextStatus === "resolved"
-            ? "Could not resolve this portal request."
-            : "Could not update this portal request.",
-        );
-        button.disabled = false;
-        button.textContent = priorLabel;
-      }
+function formatReviewEventType(value) {
+  return String(value || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
     });
+}
+
+function getReviewEventLane(item) {
+  const eventType = String((item && item.event_type) || "");
+  if (
+    eventType.startsWith("licensure_") ||
+    eventType === "therapist_review_completed" ||
+    eventType === "therapist_review_deferred"
+  ) {
+    return "ops";
+  }
+  if (item && item.application_id) {
+    return "application";
+  }
+  if (item && (item.candidate_id || item.candidate_document_id)) {
+    return "candidate";
+  }
+  if (item && item.therapist_id) {
+    return "therapist";
+  }
+  return "ops";
+}
+
+function getReviewEventLaneLabel(item) {
+  const lane = getReviewEventLane(item);
+  if (lane === "application") {
+    return "Application review";
+  }
+  if (lane === "candidate") {
+    return "Candidate queue";
+  }
+  if (lane === "therapist") {
+    return "Therapist record";
+  }
+  return "Ops workflow";
+}
+
+function getReviewActivityFilterLabel(value) {
+  if (value === "application") {
+    return "application events";
+  }
+  if (value === "candidate") {
+    return "candidate events";
+  }
+  if (value === "therapist") {
+    return "therapist events";
+  }
+  if (value === "ops") {
+    return "ops events";
+  }
+  return "events";
+}
+
+function getReviewEventActionLabel(item) {
+  const eventType = String((item && item.event_type) || "");
+  const actionMap = {
+    application_approved: "Approved application",
+    application_rejected: "Rejected application",
+    application_requested_changes: "Requested changes",
+    candidate_reviewed: "Reviewed candidate",
+    candidate_archived: "Archived candidate",
+    candidate_marked_duplicate: "Marked duplicate",
+    candidate_merged: "Merged candidate",
+    candidate_published: "Published candidate",
+    candidate_follow_up_updated: "Updated candidate follow-up",
+    application_follow_up_updated: "Updated application follow-up",
+    therapist_live_fields_applied: "Applied live updates",
+    therapist_review_completed: "Completed therapist review",
+    therapist_review_deferred: "Deferred therapist review",
+    licensure_refresh_deferred: "Deferred licensure refresh",
+  };
+  return actionMap[eventType] || formatReviewEventType(eventType) || "Review activity";
+}
+
+function getReviewEventTargetLabel(item) {
+  if (item && item.application_id) {
+    return "Application " + item.application_id;
+  }
+  if (item && item.candidate_document_id) {
+    return "Candidate " + item.candidate_document_id;
+  }
+  if (item && item.candidate_id) {
+    return "Candidate " + item.candidate_id;
+  }
+  if (item && item.therapist_id) {
+    return "Therapist " + item.therapist_id;
+  }
+  if (item && item.provider_id) {
+    return "Provider " + item.provider_id;
+  }
+  return "Review event";
+}
+
+function buildReviewEventSummary(item) {
+  const fragments = [];
+  if (item.actor_name) {
+    fragments.push("By: " + item.actor_name);
+  }
+  if (item.decision) {
+    fragments.push("Decision: " + item.decision);
+  }
+  if (item.review_status) {
+    fragments.push("Status: " + item.review_status.replace(/_/g, " "));
+  }
+  if (item.publish_recommendation) {
+    fragments.push("Recommendation: " + item.publish_recommendation.replace(/_/g, " "));
+  }
+  if (Array.isArray(item.changed_fields) && item.changed_fields.length) {
+    fragments.push("Changed: " + item.changed_fields.slice(0, 3).join(", "));
+  }
+  return fragments.join(" · ");
+}
+
+function getRecentReviewEvents(limit) {
+  return (Array.isArray(remoteReviewEvents) ? remoteReviewEvents : []).slice(0, limit || 12);
+}
+
+async function exportReviewActivity(format) {
+  if (authRequired || dataMode !== "sanity") {
+    return false;
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const suffix = reviewActivityFilter || "all";
+  const text = await exportReviewEvents(format, {
+    lane: reviewActivityFilter,
+    limit: 500,
+  });
+  return downloadText(
+    "review-activity-" + suffix + "-" + stamp + "." + (format === "csv" ? "csv" : "json"),
+    text,
+    format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8",
+  );
+}
+
+async function loadReviewActivityFeed(options) {
+  const config = options || {};
+  if (authRequired || dataMode !== "sanity") {
+    reviewActivityItems = [];
+    reviewActivityNextCursor = "";
+    reviewActivityLoading = false;
+    return;
+  }
+
+  reviewActivityLoading = true;
+  renderReviewActivity();
+
+  try {
+    const response = await fetchReviewEvents({
+      lane: reviewActivityFilter,
+      limit: config.limit || 12,
+      before: config.reset ? "" : reviewActivityNextCursor,
+    });
+    const items = response && Array.isArray(response.items) ? response.items : [];
+    reviewActivityItems = config.reset ? items : reviewActivityItems.concat(items);
+    reviewActivityNextCursor = response && response.next_cursor ? response.next_cursor : "";
+  } catch (_error) {
+    if (config.reset) {
+      reviewActivityItems = [];
+      reviewActivityNextCursor = "";
+    }
+  } finally {
+    reviewActivityLoading = false;
+    renderReviewActivity();
+  }
+}
+
+function getReviewEventsForApplication(application) {
+  const applicationId = application && application.id ? application.id : "";
+  const therapistId =
+    application && application.published_therapist_id ? application.published_therapist_id : "";
+  const providerId = application && application.provider_id ? application.provider_id : "";
+  return getRecentReviewEvents(50).filter(function (item) {
+    return (
+      (applicationId && item.application_id === applicationId) ||
+      (therapistId && item.therapist_id === therapistId) ||
+      (providerId && item.provider_id === providerId)
+    );
   });
 }
 
+function getReviewEventsForCandidate(candidate) {
+  const candidateId = candidate && candidate.id ? candidate.id : "";
+  const candidateDocumentId = candidateId;
+  const providerId = candidate && candidate.provider_id ? candidate.provider_id : "";
+  const therapistId =
+    candidate && candidate.published_therapist_id ? candidate.published_therapist_id : "";
+  return getRecentReviewEvents(50).filter(function (item) {
+    return (
+      (candidateId && item.candidate_id === candidateId) ||
+      (candidateDocumentId && item.candidate_document_id === candidateDocumentId) ||
+      (providerId && item.provider_id === providerId) ||
+      (therapistId && item.therapist_id === therapistId)
+    );
+  });
+}
+
+function renderReviewEventSnippetHtml(events, options) {
+  const items = Array.isArray(events) ? events.slice(0, 3) : [];
+  if (!items.length) {
+    return "";
+  }
+
+  return (
+    '<div class="queue-summary"><strong>Recent activity:</strong></div>' +
+    '<div style="display:grid;gap:0.45rem;margin:0.5rem 0 0.75rem">' +
+    items
+      .map(function (item) {
+        const summary = buildReviewEventSummary(item);
+        const showRationale = item.rationale && item.rationale !== item.notes;
+        return (
+          '<div class="mini-card" style="padding:0.6rem 0.75rem;border-radius:12px">' +
+          '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">' +
+          '<div style="min-width:0">' +
+          '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' +
+          '<div style="font-size:0.84rem;font-weight:700;color:var(--navy)">' +
+          options.escapeHtml(getReviewEventActionLabel(item)) +
+          "</div>" +
+          '<span class="tag" style="font-size:0.72rem;padding:0.12rem 0.45rem">' +
+          options.escapeHtml(getReviewEventLaneLabel(item)) +
+          "</span></div>" +
+          (summary
+            ? '<div style="margin-top:0.2rem;font-size:0.8rem;color:var(--slate)">' +
+              options.escapeHtml(summary) +
+              "</div>"
+            : "") +
+          (showRationale
+            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:var(--muted)">' +
+              options.escapeHtml(item.rationale) +
+              "</div>"
+            : "") +
+          "</div>" +
+          '<div class="subtle" style="white-space:nowrap;font-size:0.78rem">' +
+          options.escapeHtml(options.formatDate(item.created_at)) +
+          "</div>" +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function renderReviewEventTimelineHtml(events, options) {
+  const items = Array.isArray(events) ? events : [];
+  if (!items.length) {
+    return "";
+  }
+
+  return (
+    '<details class="review-details" style="margin-top:0.4rem"><summary class="review-details-summary">Full activity history (' +
+    options.escapeHtml(String(items.length)) +
+    ')</summary><div class="review-details-body" style="padding-top:0.85rem">' +
+    items
+      .map(function (item) {
+        const summary = buildReviewEventSummary(item);
+        const showRationale = item.rationale && item.rationale !== item.notes;
+        return (
+          '<div class="mini-card" style="padding:0.75rem 0.85rem;margin-bottom:0.65rem">' +
+          '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">' +
+          '<div style="min-width:0">' +
+          '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' +
+          '<div style="font-size:0.88rem;font-weight:700;color:var(--navy)">' +
+          options.escapeHtml(getReviewEventActionLabel(item)) +
+          '</div><span class="tag">' +
+          options.escapeHtml(getReviewEventLaneLabel(item)) +
+          "</span></div>" +
+          '<div class="subtle" style="margin-top:0.15rem">' +
+          options.escapeHtml(getReviewEventTargetLabel(item)) +
+          "</div>" +
+          (summary
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--slate)">' +
+              options.escapeHtml(summary) +
+              "</div>"
+            : "") +
+          (showRationale
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+              options.escapeHtml(item.rationale) +
+              "</div>"
+            : "") +
+          (item.notes
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+              options.escapeHtml(item.notes) +
+              "</div>"
+            : "") +
+          "</div>" +
+          '<div class="subtle" style="white-space:nowrap;font-size:0.78rem">' +
+          options.escapeHtml(options.formatDate(item.created_at)) +
+          "</div>" +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></details>"
+  );
+}
+
+function renderReviewActivity() {
+  const root = document.getElementById("reviewActivityFeed");
+  const countEl = document.getElementById("reviewActivityCount");
+  const filterEl = document.getElementById("reviewActivityFilter");
+  if (!root) {
+    return;
+  }
+
+  if (filterEl) {
+    filterEl.value = reviewActivityFilter;
+  }
+  renderReviewActivitySavedViews();
+  renderReviewActivitySavedViewMeta();
+
+  if (authRequired || dataMode !== "sanity") {
+    if (countEl) {
+      countEl.textContent = authRequired ? "Sign in to load review activity." : "Remote only";
+    }
+    root.innerHTML =
+      '<div class="empty">Recent review activity appears here when the review API is connected.</div>';
+    return;
+  }
+
+  const items = Array.isArray(reviewActivityItems) ? reviewActivityItems : [];
+  if (countEl) {
+    countEl.textContent = items.length
+      ? items.length +
+        " recent " +
+        getReviewActivityFilterLabel(reviewActivityFilter) +
+        (reviewActivityNextCursor ? " loaded so far" : "")
+      : reviewActivityLoading
+        ? "Loading review activity..."
+        : "No recent events";
+  }
+
+  if (!items.length) {
+    root.innerHTML =
+      '<div class="empty">' +
+      escapeHtml(
+        reviewActivityLoading
+          ? "Loading review activity..."
+          : reviewActivityFilter
+            ? "No review activity matches this filter yet."
+            : "No review events yet. Decisions, publishes, and ops actions will appear here.",
+      ) +
+      "</div>";
+    return;
+  }
+
+  root.innerHTML =
+    items
+      .map(function (item) {
+        const summary = buildReviewEventSummary(item);
+        const showRationale = item.rationale && item.rationale !== item.notes;
+        return (
+          '<div class="mini-card" style="padding:0.9rem 1rem;margin-bottom:0.75rem">' +
+          '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">' +
+          "<div>" +
+          '<div style="display:flex;flex-wrap:wrap;gap:0.45rem;align-items:center">' +
+          '<div style="font-weight:700;color:var(--navy)">' +
+          escapeHtml(getReviewEventActionLabel(item)) +
+          '</div><span class="tag">' +
+          escapeHtml(getReviewEventLaneLabel(item)) +
+          "</span></div>" +
+          '<div class="subtle" style="margin-top:0.15rem">' +
+          escapeHtml(getReviewEventTargetLabel(item)) +
+          "</div>" +
+          (summary
+            ? '<div style="margin-top:0.45rem;font-size:0.88rem;color:var(--slate)">' +
+              escapeHtml(summary) +
+              "</div>"
+            : "") +
+          (showRationale
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+              escapeHtml(item.rationale) +
+              "</div>"
+            : "") +
+          (item.notes
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+              escapeHtml(item.notes) +
+              "</div>"
+            : "") +
+          "</div>" +
+          '<div class="subtle" style="white-space:nowrap">' +
+          escapeHtml(formatDate(item.created_at)) +
+          "</div>" +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("") +
+    (reviewActivityNextCursor || reviewActivityLoading
+      ? '<div style="margin-top:0.9rem;display:flex;justify-content:center"><button class="btn-secondary" type="button" id="reviewActivityLoadMore"' +
+        (reviewActivityLoading ? " disabled" : "") +
+        ">" +
+        escapeHtml(reviewActivityLoading ? "Loading..." : "Load more activity") +
+        "</button></div>"
+      : "");
+}
+
+function renderPortalRequestsQueue() {
+  renderPortalRequestsQueuePanel({
+    authRequired: authRequired,
+    dataMode: dataMode,
+    remotePortalRequests: remotePortalRequests,
+    portalRequestFilters: portalRequestFilters,
+    escapeHtml: escapeHtml,
+    formatPortalRequestType: formatPortalRequestType,
+    formatDate: formatDate,
+    updateTherapistPortalRequest: updateTherapistPortalRequest,
+    setRemotePortalRequests: function (nextRequests) {
+      remotePortalRequests = nextRequests;
+    },
+    renderStats: renderStats,
+    renderPortalRequestsQueue: renderPortalRequestsQueue,
+    setPortalRequestActionStatus: setPortalRequestActionStatus,
+  });
+}
+
+function renderAdminSection(label, renderFn) {
+  if (typeof renderFn !== "function") {
+    return;
+  }
+  try {
+    renderFn();
+  } catch (error) {
+    console.error("Admin section failed to render:", label, error);
+  }
+}
+
 function renderAll() {
-  renderStats();
-  renderFunnelInsights();
-  renderListings();
-  renderRefreshQueue();
-  renderImportBlockerSprint();
-  renderCaliforniaPriorityConfirmationWave();
-  renderConfirmationSprint();
-  renderConfirmationQueue();
-  renderConciergeQueue();
-  renderPortalRequestsQueue();
-  renderApplications();
+  renderAdminSection("stats", renderStats);
+  if (!authRequired) {
+    var statsRoot = document.getElementById("adminStats");
+    if (statsRoot && !statsRoot.innerHTML.trim()) {
+      renderFallbackStats();
+    }
+  }
+  renderAdminSection("ingestion scorecard", renderIngestionScorecard);
+  renderAdminSection("ops inbox", renderOpsInbox);
+  renderAdminSection("coverage intelligence", renderCoverageIntelligence);
+  renderAdminSection("source performance", renderSourcePerformance);
+  renderAdminSection("funnel insights", renderFunnelInsights);
+  renderAdminSection("listings", renderListings);
+  renderAdminSection("refresh queue", renderRefreshQueue);
+  renderAdminSection("licensure queue", renderLicensureQueue);
+  renderAdminSection("licensure sprint", renderLicensureSprint);
+  renderAdminSection("deferred licensure queue", renderDeferredLicensureQueue);
+  renderAdminSection("licensure activity", renderLicensureActivity);
+  renderAdminSection("missing-details lane", renderImportBlockerSprint);
+  renderAdminSection(
+    "california priority confirmation wave",
+    renderCaliforniaPriorityConfirmationWave,
+  );
+  renderAdminSection("confirmation sprint", renderConfirmationSprint);
+  renderAdminSection("confirmation queue", renderConfirmationQueue);
+  renderAdminSection("concierge queue", renderConciergeQueue);
+  renderAdminSection("portal requests queue", renderPortalRequestsQueue);
+  renderAdminSection("review activity", renderReviewActivity);
+  renderAdminSection("needs action now", reviewerWorkspace.renderAttentionQueue);
+  renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
+  renderAdminSection("add new listings", renderCandidateQueue);
+  renderAdminSection("review applications", renderApplications);
 }
 
 function setAuthUiState() {
@@ -8042,9 +5901,9 @@ function setAuthUiState() {
 
   var confirmationQueueStatusFilter = document.getElementById("confirmationQueueStatusFilter");
   if (confirmationQueueStatusFilter) {
-    confirmationQueueStatusFilter.value = confirmationQueueFilter;
+    confirmationQueueStatusFilter.value = getConfirmationQueueFilter();
     confirmationQueueStatusFilter.onchange = function () {
-      confirmationQueueFilter = confirmationQueueStatusFilter.value;
+      setConfirmationQueueFilter(confirmationQueueStatusFilter.value);
       renderCaliforniaPriorityConfirmationWave();
       renderConfirmationQueue();
     };
@@ -8060,55 +5919,97 @@ function setAuthUiState() {
 }
 
 async function loadData() {
-  let reviewApiAvailable = false;
-
-  try {
-    await checkReviewApiHealth();
-    reviewApiAvailable = true;
-  } catch (_error) {
-    reviewApiAvailable = false;
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "loadData-start");
   }
+  const generatedArtifacts = await loadGeneratedAdminArtifacts();
+  applyAdminRuntimeState(generatedArtifacts);
+
+  const reviewApiAvailable = await checkAdminReviewApiAvailability(checkReviewApiHealth);
 
   if (reviewApiAvailable && !getAdminSessionToken()) {
-    dataMode = "sanity";
-    remoteApplications = [];
-    remotePortalRequests = [];
-    publishedTherapists = [];
-    authRequired = true;
+    applyAdminRuntimeState(
+      createRemoteAuthRequiredState({
+        ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
+        licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+        profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
+      }),
+    );
     setAuthUiState();
     renderAll();
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.setAttribute("data-admin-boot", "rendered-auth-required");
+    }
     return;
   }
 
   try {
-    const [applications, portalRequests, therapists] = await Promise.all([
-      fetchTherapistApplications(),
-      fetchTherapistPortalRequests(),
-      fetchPublicTherapists(),
-    ]);
-    remoteApplications = applications;
-    remotePortalRequests = Array.isArray(portalRequests) ? portalRequests : [];
-    publishedTherapists = therapists;
-    dataMode = "sanity";
-    authRequired = false;
+    const remoteSnapshot = await loadRemoteAdminSnapshot({
+      fetchTherapistApplications,
+      fetchTherapistCandidates,
+      fetchTherapistPortalRequests,
+      fetchReviewEvents,
+      fetchTherapistReviewers,
+      fetchAdminSession,
+      fetchPublicTherapists,
+    });
+    applyAdminRuntimeState(
+      createRemoteSignedInState({
+        remoteApplications: remoteSnapshot.applications,
+        remoteCandidates: remoteSnapshot.candidates,
+        remotePortalRequests: Array.isArray(remoteSnapshot.portalRequests)
+          ? remoteSnapshot.portalRequests
+          : [],
+        remoteReviewEvents: remoteSnapshot.reviewEvents,
+        remoteReviewerRoster: remoteSnapshot.reviewers,
+        reviewActivityItems: [],
+        reviewActivityNextCursor: "",
+        publishedTherapists: remoteSnapshot.therapists,
+        ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
+        licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+        deferredLicensureQueue: generatedArtifacts.deferredLicensureQueue,
+        licensureActivityFeed: generatedArtifacts.licensureActivityFeed,
+        profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
+      }),
+    );
+    if (
+      remoteSnapshot.session &&
+      remoteSnapshot.session.actorName &&
+      !reviewerWorkspace.getSavedPreference().reviewer
+    ) {
+      reviewerWorkspace.setPreferredReviewer(
+        remoteSnapshot.session.actorName,
+        remoteSnapshot.session.actorId || "",
+      );
+    }
+    await loadReviewActivityFeed({ reset: true, limit: 12 });
   } catch (_error) {
     if (reviewApiAvailable || getAdminSessionToken()) {
-      dataMode = "sanity";
-      remoteApplications = [];
-      remotePortalRequests = [];
-      publishedTherapists = [];
-      authRequired = true;
+      applyAdminRuntimeState(
+        createRemoteAuthRequiredState({
+          ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
+          licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+          profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
+        }),
+      );
     } else {
-      dataMode = "local";
-      remoteApplications = [];
-      remotePortalRequests = [];
-      publishedTherapists = [];
-      authRequired = false;
+      applyAdminRuntimeState(
+        createAdminRuntimeState({
+          ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
+          licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+          deferredLicensureQueue: generatedArtifacts.deferredLicensureQueue,
+          licensureActivityFeed: generatedArtifacts.licensureActivityFeed,
+          profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
+        }),
+      );
     }
   }
 
   setAuthUiState();
   renderAll();
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "rendered");
+  }
 }
 
 document.getElementById("resetDemo").addEventListener("click", function () {
@@ -8135,6 +6036,19 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
       username: username,
       password: value,
     });
+    if (username) {
+      reviewerWorkspace.setPreferredReviewer(username, result.actorId || username);
+      reviewerWorkspace.writeReviewerDirectory(
+        Array.from(new Set(reviewerWorkspace.getReviewerRoster().concat([username]))).sort(
+          function (a, b) {
+            return a.localeCompare(b);
+          },
+        ),
+      );
+      if (!reviewerWorkspaceUi.myQueueMode) {
+        reviewerWorkspace.setReviewerMyQueueMode(true);
+      }
+    }
     setAdminSessionToken(result.sessionToken);
     authRequired = false;
     error.style.display = "none";
@@ -8155,10 +6069,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
 
 document.getElementById("signOutAdmin").addEventListener("click", async function () {
   await signOutAdmin();
-  authRequired = false;
-  dataMode = "local";
-  remoteApplications = [];
-  publishedTherapists = [];
+  applyAdminRuntimeState(createAdminRuntimeState());
   setAuthUiState();
   renderAll();
 });
@@ -8217,8 +6128,214 @@ document.getElementById("portalRequestStatusFilter").addEventListener("change", 
   renderPortalRequestsQueue();
 });
 
+document.getElementById("reviewActivityFilter").addEventListener("change", async function (event) {
+  reviewActivityFilter = event.target.value || "";
+  reviewActivitySavedViewId = "";
+  writeReviewActivityView({
+    filter: reviewActivityFilter,
+  });
+  syncReviewActivityDeepLink();
+  await loadReviewActivityFeed({ reset: true, limit: 12 });
+});
+
+document
+  .getElementById("reviewActivitySavedView")
+  .addEventListener("change", async function (event) {
+    var selectedId = event.target.value || "";
+    if (!selectedId) {
+      return;
+    }
+    var nextView = readReviewActivitySavedViews().find(function (item) {
+      return item.id === selectedId;
+    });
+    if (!nextView) {
+      return;
+    }
+    reviewActivitySavedViewId = nextView.id || "";
+    reviewActivityFilter = nextView.filter || "";
+    writeReviewActivityView({
+      filter: reviewActivityFilter,
+    });
+    syncReviewActivityDeepLink();
+    await loadReviewActivityFeed({ reset: true, limit: 12 });
+  });
+
+document.getElementById("reviewActivitySaveView").addEventListener("click", function () {
+  var name = window.prompt("Name this review activity view:", "");
+  if (!name) {
+    return;
+  }
+  var trimmedName = name.trim();
+  if (!trimmedName) {
+    return;
+  }
+  var views = readReviewActivitySavedViews();
+  var nextId = "review-view-" + Date.now();
+  var nextViews = views
+    .filter(function (item) {
+      return item.name !== trimmedName;
+    })
+    .concat([
+      {
+        id: nextId,
+        name: trimmedName,
+        filter: reviewActivityFilter,
+        status: "open",
+        note: "",
+      },
+    ]);
+  writeReviewActivitySavedViews(nextViews);
+  reviewActivitySavedViewId = nextId;
+  renderReviewActivitySavedViews();
+  renderReviewActivitySavedViewMeta();
+});
+
+document.getElementById("reviewActivityCopyLink").addEventListener("click", async function () {
+  try {
+    await copyText(buildReviewActivityDeepLink());
+  } catch (_error) {
+    // Keep the panel usable even if copying fails.
+  }
+});
+
+document.getElementById("reviewActivityExportJson").addEventListener("click", async function () {
+  try {
+    await exportReviewActivity("json");
+  } catch (_error) {
+    // Keep the panel usable even if export fails.
+  }
+});
+
+document.getElementById("reviewActivityExportCsv").addEventListener("click", async function () {
+  try {
+    await exportReviewActivity("csv");
+  } catch (_error) {
+    // Keep the panel usable even if export fails.
+  }
+});
+
+document.getElementById("reviewActivityFeed").addEventListener("click", async function (event) {
+  var button = event.target.closest("#reviewActivityLoadMore");
+  if (!button || reviewActivityLoading || !reviewActivityNextCursor) {
+    return;
+  }
+  await loadReviewActivityFeed({ reset: false, limit: 12 });
+});
+
+document.getElementById("reviewActivitySavedViewMeta").addEventListener("click", function (event) {
+  var activeView = getActiveReviewActivitySavedView();
+  if (!activeView) {
+    return;
+  }
+
+  if (event.target.closest("#reviewActivityEditViewNote")) {
+    var nextNote = window.prompt("Reviewer note for this saved view:", activeView.note || "");
+    if (nextNote === null) {
+      return;
+    }
+    var updatedViews = readReviewActivitySavedViews().map(function (item) {
+      if (item.id !== activeView.id) {
+        return item;
+      }
+      return {
+        ...item,
+        note: String(nextNote || "").trim(),
+      };
+    });
+    writeReviewActivitySavedViews(updatedViews);
+    renderReviewActivitySavedViewMeta();
+    return;
+  }
+
+  if (event.target.closest("#reviewActivityToggleResolved")) {
+    var updatedViews = readReviewActivitySavedViews().map(function (item) {
+      if (item.id !== activeView.id) {
+        return item;
+      }
+      return {
+        ...item,
+        status: item.status === "resolved" ? "open" : "resolved",
+      };
+    });
+    writeReviewActivitySavedViews(updatedViews);
+    renderReviewActivitySavedViewMeta();
+    return;
+  }
+
+  if (event.target.closest("#reviewActivityDeleteView")) {
+    var shouldDelete = window.confirm("Delete this saved review activity view?");
+    if (!shouldDelete) {
+      return;
+    }
+    writeReviewActivitySavedViews(
+      readReviewActivitySavedViews().filter(function (item) {
+        return item.id !== activeView.id;
+      }),
+    );
+    reviewActivitySavedViewId = "";
+    renderReviewActivitySavedViews();
+    renderReviewActivitySavedViewMeta();
+  }
+});
+
+document.addEventListener("click", function (event) {
+  var primaryActionButton = event.target.closest("[data-workflow-primary-action]");
+  if (primaryActionButton) {
+    event.preventDefault();
+    handleWorkflowPrimaryActionClick(primaryActionButton);
+    return;
+  }
+  var button = event.target.closest("[data-clear-workflow-focus]");
+  if (!button) {
+    return;
+  }
+  event.preventDefault();
+  clearWorkflowFocusMode();
+  clearWorkflowHandoffs();
+  if (typeof window !== "undefined") {
+    var nextUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({}, "", nextUrl);
+  }
+});
+
+reviewerWorkspace.bindEventHandlers();
+
+document.getElementById("candidateSearch").addEventListener("input", function (event) {
+  candidateFilters.q = event.target.value.trim();
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateReviewStatusFilter").addEventListener("change", function (event) {
+  candidateFilters.review_status = event.target.value || "";
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateDedupeStatusFilter").addEventListener("change", function (event) {
+  candidateFilters.dedupe_status = event.target.value || "";
+  renderCandidateQueue();
+});
+
+document.getElementById("candidateReviewLaneFilter").addEventListener("change", function (event) {
+  candidateFilters.review_lane = event.target.value || "";
+  renderCandidateQueue();
+});
+
 if (getAdminSessionToken()) {
   authRequired = false;
 }
 
-loadData();
+if (typeof document !== "undefined" && document.documentElement) {
+  document.documentElement.setAttribute("data-admin-boot", "listeners-bound");
+}
+
+loadData().catch(function (error) {
+  console.error("Admin boot failed:", error);
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-admin-boot", "boot-failed");
+    document.documentElement.setAttribute(
+      "data-admin-boot-error",
+      String((error && error.message) || error || "unknown-error"),
+    );
+  }
+  renderFallbackStats();
+});
