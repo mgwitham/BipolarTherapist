@@ -74,10 +74,7 @@ export function buildMetrics(root) {
     licensureSprintLane: licensureSprint.laneKey,
     licensureSprintCount: licensureSprint.count,
     reverificationItems: readCsvRowCount(root, "data/import/generated-reverification-batch.csv"),
-    candidateReviewItems: readCsvRowCount(
-      root,
-      "data/import/generated-candidate-review-queue.csv",
-    ),
+    candidateReviewItems: readCsvRowCount(root, "data/import/generated-candidate-review-queue.csv"),
   };
 }
 
@@ -101,7 +98,8 @@ export function buildAlerts(metrics) {
     alerts.push({
       level: "info",
       label: "Licensure activity feed empty",
-      message: "No recent licensure actions were captured. This may be normal if the lane is new or idle.",
+      message:
+        "No recent licensure actions were captured. This may be normal if the lane is new or idle.",
     });
   }
   if (metrics.licensureSprintLane === "first_pass" && metrics.licensureSprintCount >= 3) {
@@ -129,14 +127,16 @@ export function buildAlerts(metrics) {
     alerts.push({
       level: "warn",
       label: "Source checks empty",
-      message: "No therapist source checks ran. Verify Sanity connectivity and live listing availability.",
+      message:
+        "No therapist source checks ran. Verify Sanity connectivity and live listing availability.",
     });
   }
   if (metrics.sourcingRecommendations === 0) {
     alerts.push({
       level: "info",
       label: "No sourcing recommendations",
-      message: "No new sourcing moves were generated. Coverage may be healthy or source inputs may be thin.",
+      message:
+        "No new sourcing moves were generated. Coverage may be healthy or source inputs may be thin.",
     });
   }
   return alerts;
@@ -177,13 +177,17 @@ function getMetricDelta(history, key, currentValue) {
 }
 
 export function buildTrendSignals(history, metrics) {
-  const keys = ["opsQueueItems", "licensureRefreshItems", "reverificationItems", "candidateReviewItems"];
+  const keys = [
+    "opsQueueItems",
+    "licensureRefreshItems",
+    "reverificationItems",
+    "candidateReviewItems",
+  ];
   return keys.reduce(function (accumulator, key) {
     const delta = getMetricDelta(history, key, metrics[key]);
     accumulator[key] = {
       delta,
-      direction:
-        delta == null ? "unknown" : delta === 0 ? "flat" : delta > 0 ? "up" : "down",
+      direction: delta == null ? "unknown" : delta === 0 ? "flat" : delta > 0 ? "up" : "down",
     };
     return accumulator;
   }, {});
@@ -296,7 +300,9 @@ export function buildMarkdown(summary) {
   } else {
     lines.push("## Next move");
     lines.push("");
-    lines.push("- Open the admin operations inbox and work the highest-priority publish, duplicate, confirmation, and refresh items.");
+    lines.push(
+      "- Open the admin operations inbox and work the highest-priority publish, duplicate, confirmation, and refresh items.",
+    );
     if (summary.metrics.licensureSprintCount) {
       lines.push(
         `- Licensure sprint: ${formatLicensureSprintLabel(summary.metrics.licensureSprintLane)} (${summary.metrics.licensureSprintCount} items).`,

@@ -24,7 +24,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -57,7 +59,9 @@ function parseArgs(argv) {
   const formatArg = argv.find((item) => item.startsWith("--format="));
   const outputArg = argv.find((item) => item.startsWith("--output="));
   const limit = limitArg ? Number(limitArg.split("=")[1]) : 200;
-  const format = String((formatArg && formatArg.split("=")[1]) || "json").trim().toLowerCase();
+  const format = String((formatArg && formatArg.split("=")[1]) || "json")
+    .trim()
+    .toLowerCase();
   const outputPath = outputArg ? String(outputArg.split("=")[1] || "").trim() : "";
   return {
     limit: Number.isFinite(limit) && limit > 0 ? limit : 200,

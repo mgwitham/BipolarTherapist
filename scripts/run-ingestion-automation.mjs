@@ -19,7 +19,12 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT_JSON = path.join(ROOT, "data", "import", "generated-ingestion-automation-status.json");
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-ingestion-automation-status.md");
-const HISTORY_JSON = path.join(ROOT, "data", "import", "generated-ingestion-automation-history.json");
+const HISTORY_JSON = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-ingestion-automation-history.json",
+);
 
 const steps = [
   {

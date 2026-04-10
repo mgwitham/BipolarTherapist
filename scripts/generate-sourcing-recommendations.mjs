@@ -136,8 +136,10 @@ function buildCoverageInsights(therapists) {
 
   return Array.from(byCity.values())
     .sort(function (a, b) {
-      const aScore = (a.psychiatry === 0 ? 2 : 0) + (a.telehealth === 0 ? 1 : 0) + (a.accepting === 0 ? 1 : 0);
-      const bScore = (b.psychiatry === 0 ? 2 : 0) + (b.telehealth === 0 ? 1 : 0) + (b.accepting === 0 ? 1 : 0);
+      const aScore =
+        (a.psychiatry === 0 ? 2 : 0) + (a.telehealth === 0 ? 1 : 0) + (a.accepting === 0 ? 1 : 0);
+      const bScore =
+        (b.psychiatry === 0 ? 2 : 0) + (b.telehealth === 0 ? 1 : 0) + (b.accepting === 0 ? 1 : 0);
       return bScore - aScore || a.total - b.total || a.city.localeCompare(b.city);
     })
     .filter(function (row) {
@@ -165,7 +167,10 @@ function buildSourcePerformanceInsights(candidates) {
     if (item.reviewStatus === "published") {
       entry.published += 1;
     }
-    if (item.reviewStatus === "needs_confirmation" || item.publishRecommendation === "needs_confirmation") {
+    if (
+      item.reviewStatus === "needs_confirmation" ||
+      item.publishRecommendation === "needs_confirmation"
+    ) {
       entry.needsConfirmation += 1;
     }
     if (item.dedupeStatus === "possible_duplicate" || item.dedupeStatus === "rejected_duplicate") {
@@ -206,7 +211,10 @@ function buildBestSourcingBets(coverageRows, sourceRows) {
           (gaps.includes("psychiatry") && key === "practice_website" ? 15 : 0) +
           (gaps.includes("telehealth") && key !== "directory_profile" ? 10 : 0);
         const score =
-          source.publishableRate - source.duplicateRate - Math.round(source.confirmationRate / 2) + gapBonus;
+          source.publishableRate -
+          source.duplicateRate -
+          Math.round(source.confirmationRate / 2) +
+          gapBonus;
         return {
           source,
           score,

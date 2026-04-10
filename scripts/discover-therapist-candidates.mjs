@@ -202,7 +202,9 @@ function inferPhone(text, html) {
   if (telMatch && telMatch[1]) {
     return normalizeWhitespace(telMatch[1]);
   }
-  const textMatch = String(text || "").match(/(?:\+?1[\s.-]?)?\(?([0-9]{3})\)?[\s.-]?([0-9]{3})[\s.-]?([0-9]{4})/);
+  const textMatch = String(text || "").match(
+    /(?:\+?1[\s.-]?)?\(?([0-9]{3})\)?[\s.-]?([0-9]{3})[\s.-]?([0-9]{4})/,
+  );
   return textMatch ? `${textMatch[1]}-${textMatch[2]}-${textMatch[3]}` : "";
 }
 
@@ -216,7 +218,9 @@ function inferEmail(text, html) {
 }
 
 function inferAddress(text, seed) {
-  const zipMatch = String(text || "").match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*([A-Z]{2})\s*(\d{5})\b/);
+  const zipMatch = String(text || "").match(
+    /\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*([A-Z]{2})\s*(\d{5})\b/,
+  );
   if (zipMatch) {
     return {
       city: zipMatch[1],
@@ -366,7 +370,10 @@ function buildCandidateRow(seed, html) {
     jsonLd,
     new Set(["Person", "Physician", "Psychologist", "Psychiatrist", "MedicalBusiness"]),
   );
-  const orgNode = findGraphNode(jsonLd, new Set(["Organization", "MedicalClinic", "LocalBusiness"]));
+  const orgNode = findGraphNode(
+    jsonLd,
+    new Set(["Organization", "MedicalClinic", "LocalBusiness"]),
+  );
 
   const title = pickMeta(html, [
     /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,

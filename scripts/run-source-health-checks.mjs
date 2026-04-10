@@ -147,9 +147,7 @@ function computeTherapistCompletenessScore(record) {
 }
 
 function getFieldReviewState(record, fieldName) {
-  return (
-    (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed"
-  );
+  return (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed";
 }
 
 function getFieldSourceKind(record, fieldName, reviewState) {
@@ -217,11 +215,7 @@ function getFieldVerifiedAt(record, fieldName, sourceKind) {
 
 function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
   let score =
-    reviewState === "editorially_verified"
-      ? 92
-      : reviewState === "needs_reconfirmation"
-        ? 44
-        : 76;
+    reviewState === "editorially_verified" ? 92 : reviewState === "needs_reconfirmation" ? 44 : 76;
 
   if (sourceKind === "blended") score += 3;
   else if (sourceKind === "degraded_source") score -= 16;
@@ -233,7 +227,9 @@ function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind)
   const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
     ? Math.max(
         0,
-        Math.floor((Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
+        Math.floor(
+          (Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000,
+        ),
       )
     : null;
 
@@ -430,7 +426,9 @@ function classifyHttpResult(sourceUrl, response) {
   if (response.status >= 200 && response.status < 300) {
     return {
       status:
-        finalUrl && finalUrl !== sourceUrl && new URL(finalUrl).toString() !== new URL(sourceUrl).toString()
+        finalUrl &&
+        finalUrl !== sourceUrl &&
+        new URL(finalUrl).toString() !== new URL(sourceUrl).toString()
           ? "redirected"
           : "healthy",
       statusCode: response.status,
@@ -551,11 +549,7 @@ function buildCsv(rows) {
   ];
   return [
     headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((header) => csvEscape(row[header]))
-        .join(","),
-    ),
+    ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(",")),
   ].join("\n");
 }
 
@@ -611,7 +605,10 @@ async function main() {
   });
 
   const therapists = await fetchTherapists(client);
-  const queue = (options.all ? therapists : therapists.filter(needsHealthCheck)).slice(0, options.limit);
+  const queue = (options.all ? therapists : therapists.filter(needsHealthCheck)).slice(
+    0,
+    options.limit,
+  );
   const rows = [];
 
   for (const therapist of queue) {
@@ -655,7 +652,8 @@ async function main() {
     };
 
     const eventType =
-      HEALTHY_STATUSES.has(result.status) && HEALTHY_STATUSES.has(therapist.sourceHealthStatus || "")
+      HEALTHY_STATUSES.has(result.status) &&
+      HEALTHY_STATUSES.has(therapist.sourceHealthStatus || "")
         ? "therapist_source_checked"
         : HEALTHY_STATUSES.has(result.status)
           ? "therapist_source_checked"

@@ -24,7 +24,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -95,17 +97,37 @@ function summarize(providerId, observations) {
   let newestObservedAt = "";
 
   observations.forEach(function (observation) {
-    bumpCounter(fieldCounts, observation.labels && observation.labels.fieldName ? observation.labels.fieldName : observation.fieldName);
-    bumpCounter(sourceTypeCounts, observation.labels && observation.labels.sourceType ? observation.labels.sourceType : observation.sourceType);
+    bumpCounter(
+      fieldCounts,
+      observation.labels && observation.labels.fieldName
+        ? observation.labels.fieldName
+        : observation.fieldName,
+    );
+    bumpCounter(
+      sourceTypeCounts,
+      observation.labels && observation.labels.sourceType
+        ? observation.labels.sourceType
+        : observation.sourceType,
+    );
     bumpCounter(
       verificationMethodCounts,
       observation.labels && observation.labels.verificationMethod
         ? observation.labels.verificationMethod
         : observation.verificationMethod,
     );
-    bumpCounter(currentStateCounts, observation.labels && observation.labels.currentState ? observation.labels.currentState : observation.isCurrent ? "Current" : "Historical");
+    bumpCounter(
+      currentStateCounts,
+      observation.labels && observation.labels.currentState
+        ? observation.labels.currentState
+        : observation.isCurrent
+          ? "Current"
+          : "Historical",
+    );
 
-    if (typeof observation.confidenceScore === "number" && Number.isFinite(observation.confidenceScore)) {
+    if (
+      typeof observation.confidenceScore === "number" &&
+      Number.isFinite(observation.confidenceScore)
+    ) {
       withConfidence += 1;
       totalConfidence += observation.confidenceScore;
     }
@@ -141,7 +163,8 @@ function summarize(providerId, observations) {
       verificationMethods: topEntries(verificationMethodCounts, 10),
       currentStates: topEntries(currentStateCounts, 10),
     },
-    notes: observations.length === 0 ? ["No provider observations found for this provider ID yet."] : [],
+    notes:
+      observations.length === 0 ? ["No provider observations found for this provider ID yet."] : [],
   };
 }
 

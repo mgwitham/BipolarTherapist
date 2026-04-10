@@ -7,7 +7,12 @@ import { buildProviderFieldObservationsFromSource } from "../shared/provider-fie
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
-const OUTPUT_JSON = path.join(ROOT, "data", "import", "generated-provider-field-observations-preview.json");
+const OUTPUT_JSON = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-provider-field-observations-preview.json",
+);
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -28,7 +33,9 @@ function readEnvFile(filePath) {
         return accumulator;
       }
 
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }

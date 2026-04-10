@@ -76,11 +76,17 @@ function printSummary(options) {
   console.log("");
   console.log("Recommended next move:");
   if (options.skipImport) {
-    console.log("- Review the generated candidate CSV, then run `npm run cms:import:candidates -- data/import/generated-discovered-therapist-candidates.csv`.");
+    console.log(
+      "- Review the generated candidate CSV, then run `npm run cms:import:candidates -- data/import/generated-discovered-therapist-candidates.csv`.",
+    );
   } else if (options.skipQueue) {
-    console.log("- Review imported candidates in Studio or run `npm run cms:generate:candidate-review-queue`.");
+    console.log(
+      "- Review imported candidates in Studio or run `npm run cms:generate:candidate-review-queue`.",
+    );
   } else {
-    console.log("- Open the admin Candidate Review Queue and work through publish / duplicate / confirmation decisions.");
+    console.log(
+      "- Open the admin Candidate Review Queue and work through publish / duplicate / confirmation decisions.",
+    );
   }
 }
 
@@ -100,9 +106,7 @@ function run() {
   }
 
   if (!options.skipQueue) {
-    runStep("Generate review queue", "node", [
-      "scripts/generate-candidate-review-queue.mjs",
-    ]);
+    runStep("Generate review queue", "node", ["scripts/generate-candidate-review-queue.mjs"]);
   }
 
   printSummary(options);

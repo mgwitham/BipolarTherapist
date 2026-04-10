@@ -27,7 +27,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -101,17 +103,37 @@ function summarize(requests, outcomes) {
     if (requestId) {
       outcomesByRequestId.set(requestId, (outcomesByRequestId.get(requestId) || 0) + 1);
     }
-    bumpCounter(outcomeCounts, outcome.labels && outcome.labels.outcome ? outcome.labels.outcome : outcome.outcome);
-    bumpCounter(routeTypeCounts, outcome.labels && outcome.labels.routeType ? outcome.labels.routeType : outcome.routeType);
+    bumpCounter(
+      outcomeCounts,
+      outcome.labels && outcome.labels.outcome ? outcome.labels.outcome : outcome.outcome,
+    );
+    bumpCounter(
+      routeTypeCounts,
+      outcome.labels && outcome.labels.routeType ? outcome.labels.routeType : outcome.routeType,
+    );
     bumpCounter(providerOutcomeCounts, outcome.providerId || outcome.therapistSlug || "");
   });
 
   requests.forEach(function (request) {
     bumpCounter(careStateCounts, request.careState);
-    bumpCounter(careFormatCounts, request.labels && request.labels.careFormat ? request.labels.careFormat : request.careFormat);
-    bumpCounter(careIntentCounts, request.labels && request.labels.careIntent ? request.labels.careIntent : request.careIntent);
-    bumpCounter(priorityModeCounts, request.labels && request.labels.priorityMode ? request.labels.priorityMode : request.priorityMode);
-    bumpCounter(urgencyCounts, request.labels && request.labels.urgency ? request.labels.urgency : request.urgency);
+    bumpCounter(
+      careFormatCounts,
+      request.labels && request.labels.careFormat ? request.labels.careFormat : request.careFormat,
+    );
+    bumpCounter(
+      careIntentCounts,
+      request.labels && request.labels.careIntent ? request.labels.careIntent : request.careIntent,
+    );
+    bumpCounter(
+      priorityModeCounts,
+      request.labels && request.labels.priorityMode
+        ? request.labels.priorityMode
+        : request.priorityMode,
+    );
+    bumpCounter(
+      urgencyCounts,
+      request.labels && request.labels.urgency ? request.labels.urgency : request.urgency,
+    );
   });
 
   const requestsWithOutcomes = requests.filter(function (request) {
@@ -211,8 +233,12 @@ async function main() {
     ),
   ]);
 
-  const requests = Array.isArray(rawRequests) ? rawRequests.map(annotateMatchRequestForDisplay) : [];
-  const outcomes = Array.isArray(rawOutcomes) ? rawOutcomes.map(annotateMatchOutcomeForDisplay) : [];
+  const requests = Array.isArray(rawRequests)
+    ? rawRequests.map(annotateMatchRequestForDisplay)
+    : [];
+  const outcomes = Array.isArray(rawOutcomes)
+    ? rawOutcomes.map(annotateMatchOutcomeForDisplay)
+    : [];
   const summary = summarize(requests, outcomes);
   const output = JSON.stringify(summary, null, 2);
 

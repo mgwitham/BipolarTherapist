@@ -23,7 +23,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -166,7 +168,8 @@ async function main() {
     readiness: {
       providerObservationLayerReady: providerCounts.size > 0,
       matchLearningLayerReady:
-        (Array.isArray(requests) ? requests.length : 0) > 0 || (Array.isArray(outcomes) ? outcomes.length : 0) > 0,
+        (Array.isArray(requests) ? requests.length : 0) > 0 ||
+        (Array.isArray(outcomes) ? outcomes.length : 0) > 0,
     },
     breakdowns: {
       providerObservationFields: topEntries(fieldCounts, 15),
@@ -179,8 +182,12 @@ async function main() {
     },
     notes: [
       providerCounts.size === 0 ? "No provider observations found in the current sample." : "",
-      (Array.isArray(requests) ? requests.length : 0) === 0 ? "No persisted match requests found in the current sample." : "",
-      (Array.isArray(outcomes) ? outcomes.length : 0) === 0 ? "No persisted match outcomes found in the current sample." : "",
+      (Array.isArray(requests) ? requests.length : 0) === 0
+        ? "No persisted match requests found in the current sample."
+        : "",
+      (Array.isArray(outcomes) ? outcomes.length : 0) === 0
+        ? "No persisted match outcomes found in the current sample."
+        : "",
     ].filter(Boolean),
   };
 

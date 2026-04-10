@@ -25,7 +25,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -185,23 +187,27 @@ async function main() {
       continue;
     }
 
-    const group =
-      groups.get(domain) ||
-      {
-        domain,
-        therapistCount: 0,
-        degradedCount: 0,
-        agingCount: 0,
-        healthyCount: 0,
-        priorities: [],
-        latestHealthCheck: "",
-        examples: [],
-      };
+    const group = groups.get(domain) || {
+      domain,
+      therapistCount: 0,
+      degradedCount: 0,
+      agingCount: 0,
+      healthyCount: 0,
+      priorities: [],
+      latestHealthCheck: "",
+      examples: [],
+    };
 
     group.therapistCount += 1;
-    if (therapist.sourceHealthStatus && !["healthy", "redirected"].includes(therapist.sourceHealthStatus)) {
+    if (
+      therapist.sourceHealthStatus &&
+      !["healthy", "redirected"].includes(therapist.sourceHealthStatus)
+    ) {
       group.degradedCount += 1;
-    } else if (therapist.verificationLane === "refresh_now" || therapist.verificationLane === "refresh_soon") {
+    } else if (
+      therapist.verificationLane === "refresh_now" ||
+      therapist.verificationLane === "refresh_soon"
+    ) {
       group.agingCount += 1;
     } else {
       group.healthyCount += 1;

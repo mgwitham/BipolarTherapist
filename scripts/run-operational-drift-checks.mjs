@@ -38,7 +38,9 @@ function readEnvFile(filePath) {
       if (separatorIndex === -1) {
         return accumulator;
       }
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -122,9 +124,7 @@ function toValidDate(value) {
 }
 
 function getFieldReviewState(record, fieldName) {
-  return (
-    (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed"
-  );
+  return (record.fieldReviewStates && record.fieldReviewStates[fieldName]) || "therapist_confirmed";
 }
 
 function getFieldSourceKind(record, fieldName, reviewState) {
@@ -161,8 +161,10 @@ function getFieldSourceKind(record, fieldName, reviewState) {
 function getFieldVerifiedAt(record, fieldName, sourceKind) {
   const sourceReviewedAt = toValidDate(record.sourceReviewedAt);
   const therapistConfirmedAt = toValidDate(record.therapistReportedConfirmedAt);
-  if (sourceKind === "editorial_source_review" && sourceReviewedAt) return sourceReviewedAt.toISOString();
-  if (sourceKind === "therapist_confirmed" && therapistConfirmedAt) return therapistConfirmedAt.toISOString();
+  if (sourceKind === "editorial_source_review" && sourceReviewedAt)
+    return sourceReviewedAt.toISOString();
+  if (sourceKind === "therapist_confirmed" && therapistConfirmedAt)
+    return therapistConfirmedAt.toISOString();
   if (sourceKind === "blended") {
     const dates = [sourceReviewedAt, therapistConfirmedAt].filter(Boolean);
     if (dates.length) {
@@ -181,11 +183,7 @@ function getFieldVerifiedAt(record, fieldName, sourceKind) {
 
 function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
   let score =
-    reviewState === "editorially_verified"
-      ? 92
-      : reviewState === "needs_reconfirmation"
-        ? 44
-        : 76;
+    reviewState === "editorially_verified" ? 92 : reviewState === "needs_reconfirmation" ? 44 : 76;
   if (sourceKind === "blended") score += 3;
   else if (sourceKind === "degraded_source") score -= 16;
   else if (sourceKind === "unknown") score -= 10;
@@ -196,7 +194,9 @@ function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind)
   const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
     ? Math.max(
         0,
-        Math.floor((Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
+        Math.floor(
+          (Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000,
+        ),
       )
     : null;
   if (sourceAgeDays !== null && sourceAgeDays >= 120) score -= 12;
@@ -377,7 +377,8 @@ function chooseFieldsForDrift(therapist) {
 function detectDrift(therapist) {
   const confirmationAgeDays = daysSince(therapist.therapistReportedConfirmedAt);
   const sourceHealthDegraded =
-    therapist.sourceHealthStatus && !["healthy", "redirected"].includes(therapist.sourceHealthStatus);
+    therapist.sourceHealthStatus &&
+    !["healthy", "redirected"].includes(therapist.sourceHealthStatus);
   const fields = chooseFieldsForDrift(therapist).filter((field) => {
     const current = therapist.fieldReviewStates && therapist.fieldReviewStates[field];
     return current !== "needs_reconfirmation";
@@ -455,7 +456,9 @@ async function main() {
   });
 
   const therapists = await fetchTherapists(client);
-  const queue = (options.all ? therapists : therapists.filter((therapist) => detectDrift(therapist).shouldFlag)).slice(0, options.limit);
+  const queue = (
+    options.all ? therapists : therapists.filter((therapist) => detectDrift(therapist).shouldFlag)
+  ).slice(0, options.limit);
   const rows = [];
 
   for (const therapist of queue) {

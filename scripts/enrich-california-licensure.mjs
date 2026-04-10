@@ -7,7 +7,12 @@ import { createClient } from "@sanity/client";
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const ADVANCED_URL = "https://search.dca.ca.gov/advanced";
-const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-california-licensure-enrichment.csv");
+const OUTPUT_CSV = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-california-licensure-enrichment.csv",
+);
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-california-licensure-enrichment.md");
 
 const TYPE_LABELS = {
@@ -235,8 +240,12 @@ function getTypeQuery(type) {
 }
 
 function isCaliforniaRecord(record) {
-  const licenseState = String(record.licenseState || "").trim().toUpperCase();
-  const state = String(record.state || "").trim().toUpperCase();
+  const licenseState = String(record.licenseState || "")
+    .trim()
+    .toUpperCase();
+  const state = String(record.state || "")
+    .trim()
+    .toUpperCase();
   const jurisdiction = String(
     (record.licensureVerification && record.licensureVerification.jurisdiction) || "",
   )
@@ -263,7 +272,10 @@ function shouldSkipRecord(record, force) {
 }
 
 function inferBoardConfig(record) {
-  const text = [record.credentials, record.title, record.name].filter(Boolean).join(" ").toLowerCase();
+  const text = [record.credentials, record.title, record.name]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   if (/\blmft\b|\bmft\b/.test(text)) {
     return { boardCode: "3", licenseType: "217", label: "lmft" };
@@ -357,10 +369,7 @@ function inferDirectProfileUrls(record) {
 }
 
 function extractElementHtmlById(html, id) {
-  const pattern = new RegExp(
-    `<([a-z0-9]+)[^>]*id=["']${id}["'][^>]*>([\\s\\S]*?)<\\/\\1>`,
-    "i",
-  );
+  const pattern = new RegExp(`<([a-z0-9]+)[^>]*id=["']${id}["'][^>]*>([\\s\\S]*?)<\\/\\1>`, "i");
   const match = String(html || "").match(pattern);
   return match ? match[2] : "";
 }
@@ -370,7 +379,9 @@ function extractElementTextById(html, id) {
   if (!inner) {
     return "";
   }
-  return stripTags(inner.replace(/<br\s*\/?>/gi, "\n")).replace(/^[A-Za-z /]+:\s*/, "").trim();
+  return stripTags(inner.replace(/<br\s*\/?>/gi, "\n"))
+    .replace(/^[A-Za-z /]+:\s*/, "")
+    .trim();
 }
 
 function extractAnchorHref(htmlFragment) {
@@ -390,7 +401,9 @@ function absoluteDcaUrl(value) {
 }
 
 function deriveStatusStanding(primaryStatus) {
-  const normalized = String(primaryStatus || "").trim().toLowerCase();
+  const normalized = String(primaryStatus || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) {
     return "unknown";
   }
@@ -436,7 +449,9 @@ function parseAddressParts(addressText) {
 }
 
 function parseDisciplineSummary(text) {
-  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  const normalized = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!normalized) {
     return "";
   }
@@ -555,7 +570,11 @@ function buildPatch(record, licensureVerification) {
     sourceUrl: record.sourceUrl || licensureVerification.profileUrl || "",
     supportingSourceUrls,
     sourceReviewedAt: record.sourceReviewedAt || licensureVerification.verifiedAt || "",
-    ...(record.website ? {} : licensureVerification.professionalUrl ? { website: licensureVerification.professionalUrl } : {}),
+    ...(record.website
+      ? {}
+      : licensureVerification.professionalUrl
+        ? { website: licensureVerification.professionalUrl }
+        : {}),
   };
 }
 
@@ -752,7 +771,9 @@ async function run() {
 
   const config = getConfig();
   if (!config.projectId || !config.dataset || !config.token) {
-    throw new Error("Missing Sanity project config or SANITY_API_TOKEN. Check .env and studio/.env.");
+    throw new Error(
+      "Missing Sanity project config or SANITY_API_TOKEN. Check .env and studio/.env.",
+    );
   }
 
   const client = createClient({

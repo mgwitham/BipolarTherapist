@@ -26,7 +26,9 @@ function readEnvFile(filePath) {
         return accumulator;
       }
 
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -67,7 +69,9 @@ function normalizeText(value) {
 }
 
 function normalizeLicense(value) {
-  return normalizeText(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function summarizeIdentity(doc) {
@@ -91,13 +95,7 @@ function summarizeIdentity(doc) {
 }
 
 function uniqueValues(items, key) {
-  return Array.from(
-    new Set(
-      items
-        .map((item) => normalizeText(item[key]))
-        .filter(Boolean),
-    ),
-  );
+  return Array.from(new Set(items.map((item) => normalizeText(item[key])).filter(Boolean)));
 }
 
 function buildSuspicionReasons(providerId, docs) {
@@ -156,20 +154,19 @@ function buildDiagnostics(records) {
     return accumulator;
   }, new Map());
 
-  const groups = Array.from(grouped.entries())
-    .map(([providerId, docs]) => {
-      const reasons = buildSuspicionReasons(providerId, docs);
-      return {
-        providerId,
-        reasons,
-        documentCount: docs.length,
-        documentTypes: uniqueValues(docs, "type"),
-        names: uniqueValues(docs, "name"),
-        cities: uniqueValues(docs, "city"),
-        normalizedLicenses: uniqueValues(docs, "normalizedLicense"),
-        docs,
-      };
-    });
+  const groups = Array.from(grouped.entries()).map(([providerId, docs]) => {
+    const reasons = buildSuspicionReasons(providerId, docs);
+    return {
+      providerId,
+      reasons,
+      documentCount: docs.length,
+      documentTypes: uniqueValues(docs, "type"),
+      names: uniqueValues(docs, "name"),
+      cities: uniqueValues(docs, "city"),
+      normalizedLicenses: uniqueValues(docs, "normalizedLicense"),
+      docs,
+    };
+  });
 
   const suspicious = groups
     .filter((item) => item.reasons.length > 0)
@@ -206,7 +203,9 @@ async function main() {
   fs.mkdirSync(path.dirname(OUTPUT_JSON), { recursive: true });
   fs.writeFileSync(OUTPUT_JSON, JSON.stringify(diagnostics, null, 2), "utf8");
 
-  console.log(`Analyzed ${records.length} records across ${diagnostics.totalProviderIds} provider IDs.`);
+  console.log(
+    `Analyzed ${records.length} records across ${diagnostics.totalProviderIds} provider IDs.`,
+  );
   console.log(`Flagged ${diagnostics.suspiciousProviderIds} suspicious provider IDs.`);
   console.log(`Saved diagnostics to ${OUTPUT_JSON}`);
 }

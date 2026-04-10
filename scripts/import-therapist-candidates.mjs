@@ -238,9 +238,15 @@ function addDays(isoString, days) {
 function computeCandidateReviewMeta(input) {
   const readiness = Number(input.readinessScore || 0) || 0;
   const extractionConfidence = Number(input.extractionConfidence || 0) || 0;
-  const reviewStatus = String(input.reviewStatus || "queued").trim().toLowerCase();
-  const dedupeStatus = String(input.dedupeStatus || "unreviewed").trim().toLowerCase();
-  const publishRecommendation = String(input.publishRecommendation || "").trim().toLowerCase();
+  const reviewStatus = String(input.reviewStatus || "queued")
+    .trim()
+    .toLowerCase();
+  const dedupeStatus = String(input.dedupeStatus || "unreviewed")
+    .trim()
+    .toLowerCase();
+  const publishRecommendation = String(input.publishRecommendation || "")
+    .trim()
+    .toLowerCase();
   const now = new Date().toISOString();
 
   if (reviewStatus === "published" || reviewStatus === "archived") {
@@ -326,13 +332,7 @@ function parseDedupeStatus(value, fallback) {
 function buildCandidateId(row, fallbackIndex) {
   return (
     row.candidateId ||
-    [
-      row.name,
-      row.city,
-      row.state,
-      row.licenseState || row.license_number || "",
-      fallbackIndex,
-    ]
+    [row.name, row.city, row.state, row.licenseState || row.license_number || "", fallbackIndex]
       .filter(Boolean)
       .map(slugify)
       .filter(Boolean)
@@ -343,7 +343,9 @@ function buildCandidateId(row, fallbackIndex) {
 function compareIdentity(candidateIdentity, record) {
   const reasons = [];
   const recordLicenseState = normalizeKeySegment(record.licenseState || record.license_state);
-  const recordLicenseNumber = normalizeLicenseSegment(record.licenseNumber || record.license_number);
+  const recordLicenseNumber = normalizeLicenseSegment(
+    record.licenseNumber || record.license_number,
+  );
   const recordProviderId = String(record.providerId || record.provider_id || "").trim();
   const recordWebsite = normalizeWebsite(record.website || record.bookingUrl || record.booking_url);
   const recordEmail = normalizeEmail(record.email);
@@ -474,7 +476,8 @@ function buildCandidateDocument(row, context, index) {
     slidingScale: parseBoolean(row.slidingScale, false),
     dedupeStatus: dedupeStatus,
     dedupeConfidence:
-      parseNumber(row.dedupeConfidence) || (hasDuplicate ? 0.9 : parseNumber(row.extractionConfidence)),
+      parseNumber(row.dedupeConfidence) ||
+      (hasDuplicate ? 0.9 : parseNumber(row.extractionConfidence)),
     matchedTherapistSlug: therapistMatch ? therapistMatch.slug || "" : "",
     matchedTherapistId: therapistMatch ? therapistMatch._id || "" : "",
     matchedApplicationId: applicationMatch ? applicationMatch._id || "" : "",

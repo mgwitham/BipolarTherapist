@@ -26,7 +26,9 @@ function readEnvFile(filePath) {
         return accumulator;
       }
 
-      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed.slice(separatorIndex + 1).trim();
+      accumulator[trimmed.slice(0, separatorIndex).trim()] = trimmed
+        .slice(separatorIndex + 1)
+        .trim();
       return accumulator;
     }, {});
 }
@@ -67,11 +69,7 @@ function parseArgs(argv) {
 function summarize(observations) {
   const annotated = observations.map(annotateProviderFieldObservationForDisplay);
   const fields = Array.from(
-    new Set(
-      annotated
-        .map((item) => String(item.fieldName || "").trim())
-        .filter(Boolean),
-    ),
+    new Set(annotated.map((item) => String(item.fieldName || "").trim()).filter(Boolean)),
   ).sort();
 
   return {
