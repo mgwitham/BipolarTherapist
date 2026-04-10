@@ -17,6 +17,9 @@ const ALLOWED_FIELDS = new Set([
   "insuranceAccepted",
   "yearsExperience",
   "telehealthStates",
+  "sessionFeeMin",
+  "sessionFeeMax",
+  "slidingScale",
 ]);
 
 const FIELD_TO_REVIEW_COLUMN = {
@@ -155,6 +158,10 @@ function normalizeFieldValue(field, value) {
 
   if (field === "insuranceAccepted" || field === "telehealthStates") {
     return splitPipeList(trimmed).join("|");
+  }
+
+  if (field === "slidingScale") {
+    return ["true", "1", "yes"].includes(trimmed.toLowerCase()) ? "true" : "false";
   }
 
   return trimmed;
