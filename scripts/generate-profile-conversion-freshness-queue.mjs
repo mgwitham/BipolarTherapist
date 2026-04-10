@@ -4,7 +4,12 @@ import process from "node:process";
 
 const ROOT = process.cwd();
 const THERAPISTS_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
-const SPRINT_CSV_PATH = path.join(ROOT, "data", "import", "generated-profile-conversion-sprint.csv");
+const SPRINT_CSV_PATH = path.join(
+  ROOT,
+  "data",
+  "import",
+  "generated-profile-conversion-sprint.csv",
+);
 const CSV_OUTPUT_PATH = path.join(
   ROOT,
   "data",
@@ -173,7 +178,9 @@ function getNextReviewDueAt(therapist) {
     return "";
   }
 
-  const nextDue = [sourceDue, confirmationDue].filter(Boolean).sort((left, right) => left - right)[0];
+  const nextDue = [sourceDue, confirmationDue]
+    .filter(Boolean)
+    .sort((left, right) => left - right)[0];
   if (!nextDue) {
     return "";
   }
@@ -262,9 +269,7 @@ function buildRows(sprintRows, therapistMap, limit) {
         conversionGapCount * 6 +
         (highImpact ? 18 : 0);
       const upcomingWatch =
-        freshness.reasons.length === 0 &&
-        freshness.nextReviewDueAt &&
-        freshness.dueInDays !== null;
+        freshness.reasons.length === 0 && freshness.nextReviewDueAt && freshness.dueInDays !== null;
 
       return {
         freshness_priority_rank: 0,
@@ -274,7 +279,11 @@ function buildRows(sprintRows, therapistMap, limit) {
         conversion_gap_count: conversionGapCount,
         decision_strength_label: row.decision_strength_label || "",
         high_impact_profile: highImpact ? "yes" : "no",
-        queue_status: freshness.reasons.length ? "active_risk" : upcomingWatch ? "upcoming_watch" : "",
+        queue_status: freshness.reasons.length
+          ? "active_risk"
+          : upcomingWatch
+            ? "upcoming_watch"
+            : "",
         expiring_soon: freshness.expiringSoon ? "yes" : "no",
         source_review_age_days: freshness.sourceAge ?? "",
         therapist_confirmation_age_days: freshness.confirmationAge ?? "",
@@ -304,7 +313,9 @@ function buildRows(sprintRows, therapistMap, limit) {
     .sort((left, right) => {
       const dueDiff =
         (left.next_review_due_at ? toTimestamp(left.next_review_due_at) : Number.MAX_SAFE_INTEGER) -
-        (right.next_review_due_at ? toTimestamp(right.next_review_due_at) : Number.MAX_SAFE_INTEGER);
+        (right.next_review_due_at
+          ? toTimestamp(right.next_review_due_at)
+          : Number.MAX_SAFE_INTEGER);
       if (dueDiff) {
         return dueDiff;
       }
@@ -317,9 +328,9 @@ function buildRows(sprintRows, therapistMap, limit) {
   const rows = activeRows.length ? activeRows : watchRows.slice(0, 8);
 
   return rows.map((row, index) => ({
-      ...row,
-      freshness_priority_rank: index + 1,
-    }));
+    ...row,
+    freshness_priority_rank: index + 1,
+  }));
 }
 
 function writeCsv(rows) {

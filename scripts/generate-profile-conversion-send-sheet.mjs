@@ -122,7 +122,12 @@ function buildMarkdown(rows, limit) {
     lines.push(`- Target: ${row.contact_target || "manual review"}`);
     lines.push(`- Prep: ${getChannelPrep(row.contact_channel)}`);
     lines.push(`- Primary ask: ${formatFieldLabel(row.primary_conversion_field)}`);
-    lines.push(`- Missing fields: ${String(row.conversion_fields || "").split("|").map(formatFieldLabel).join(", ")}`);
+    lines.push(
+      `- Missing fields: ${String(row.conversion_fields || "")
+        .split("|")
+        .map(formatFieldLabel)
+        .join(", ")}`,
+    );
     lines.push(`- Subject: ${row.subject || "N/A"}`);
     lines.push("- Working checklist:");
     lines.push("- [ ] Open target");
@@ -138,7 +143,9 @@ function buildMarkdown(rows, limit) {
 function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find((arg) => arg.startsWith("--limit="));
-  const limit = limitArg ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT) : DEFAULT_LIMIT;
+  const limit = limitArg
+    ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT)
+    : DEFAULT_LIMIT;
   const rows = mapRowsToObjects(parseCsv(fs.readFileSync(INPUT_PATH, "utf8")));
   fs.writeFileSync(OUTPUT_PATH, buildMarkdown(rows, limit), "utf8");
   console.log(`Profile conversion send sheet written to ${path.relative(ROOT, OUTPUT_PATH)}`);

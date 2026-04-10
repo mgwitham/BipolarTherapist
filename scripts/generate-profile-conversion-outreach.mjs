@@ -162,9 +162,14 @@ BipolarTherapyHub`;
 function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find((arg) => arg.startsWith("--limit="));
-  const limit = limitArg ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT) : DEFAULT_LIMIT;
+  const limit = limitArg
+    ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT)
+    : DEFAULT_LIMIT;
 
-  const sprintRows = mapRowsToObjects(parseCsv(fs.readFileSync(SPRINT_PATH, "utf8"))).slice(0, limit);
+  const sprintRows = mapRowsToObjects(parseCsv(fs.readFileSync(SPRINT_PATH, "utf8"))).slice(
+    0,
+    limit,
+  );
   const therapists = mapRowsToObjects(parseCsv(fs.readFileSync(THERAPISTS_PATH, "utf8")));
   const therapistMap = new Map(therapists.map((row) => [row.slug, row]));
 
@@ -180,7 +185,12 @@ function main() {
     "message",
   ];
   const csvLines = [csvHeaders.join(",")];
-  const mdLines = ["# Profile Conversion Outreach", "", `Top ${sprintRows.length} targeted asks.`, ""];
+  const mdLines = [
+    "# Profile Conversion Outreach",
+    "",
+    `Top ${sprintRows.length} targeted asks.`,
+    "",
+  ];
 
   sprintRows.forEach((row) => {
     const therapist = therapistMap.get(row.slug) || {};
@@ -217,7 +227,9 @@ function main() {
   fs.writeFileSync(MARKDOWN_OUTPUT_PATH, `${mdLines.join("\n")}\n`, "utf8");
 
   console.log(`Profile conversion outreach written to ${path.relative(ROOT, CSV_OUTPUT_PATH)}`);
-  console.log(`Profile conversion outreach brief written to ${path.relative(ROOT, MARKDOWN_OUTPUT_PATH)}`);
+  console.log(
+    `Profile conversion outreach brief written to ${path.relative(ROOT, MARKDOWN_OUTPUT_PATH)}`,
+  );
 }
 
 main();

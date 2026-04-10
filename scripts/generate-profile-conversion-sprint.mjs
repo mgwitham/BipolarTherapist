@@ -290,11 +290,7 @@ function buildCsv(rows) {
   const lines = [headers.join(",")];
 
   rows.forEach((row) => {
-    lines.push(
-      headers
-        .map((header) => csvEscape(row[header] || ""))
-        .join(","),
-    );
+    lines.push(headers.map((header) => csvEscape(row[header] || "")).join(","));
   });
 
   return `${lines.join("\n")}\n`;
@@ -327,7 +323,9 @@ function buildMarkdown(rows, limit) {
     lines.push(`## ${row.priority_rank}. ${row.name}`);
     lines.push("");
     lines.push(`- Conversion gap: ${row.decision_strength_label}`);
-    lines.push(`- Missing fields: ${splitList(row.conversion_fields).map(formatFieldLabel).join(", ")}`);
+    lines.push(
+      `- Missing fields: ${splitList(row.conversion_fields).map(formatFieldLabel).join(", ")}`,
+    );
     lines.push(`- Queue lane: ${row.queue_lane || "N/A"}`);
     lines.push(`- Best channel: ${row.contact_channel || "manual_review"}`);
     lines.push(`- Contact target: ${row.contact_target || "Needs manual review"}`);
@@ -342,7 +340,9 @@ function buildMarkdown(rows, limit) {
 function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find((arg) => arg.startsWith("--limit="));
-  const limit = limitArg ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT) : DEFAULT_LIMIT;
+  const limit = limitArg
+    ? Math.max(1, Number.parseInt(limitArg.slice(8), 10) || DEFAULT_LIMIT)
+    : DEFAULT_LIMIT;
 
   const therapists = mapRowsToObjects(parseCsv(fs.readFileSync(THERAPISTS_CSV_PATH, "utf8")));
   const queue = mapRowsToObjects(parseCsv(fs.readFileSync(WARNING_QUEUE_PATH, "utf8")));
@@ -358,7 +358,9 @@ function main() {
   console.log(`Profile conversion brief written to ${path.relative(ROOT, MARKDOWN_OUTPUT_PATH)}`);
   console.log(
     `Profiles queued: ${totalRows}` +
-      (topTheme ? ` | top shared gap: ${formatFieldLabel(topTheme.field)} (${topTheme.count})` : ""),
+      (topTheme
+        ? ` | top shared gap: ${formatFieldLabel(topTheme.field)} (${topTheme.count})`
+        : ""),
   );
 }
 
