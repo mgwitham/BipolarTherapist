@@ -1,3 +1,5 @@
+import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
+
 export const MATCH_INTAKE_QUESTIONS = [
   {
     id: "care_state",
@@ -161,13 +163,9 @@ function normalizeList(value) {
 }
 
 function getFieldReviewStates(therapist) {
-  var states = therapist && therapist.field_review_states ? therapist.field_review_states : {};
-  return {
-    estimated_wait_time: states.estimated_wait_time || "therapist_confirmed",
-    insurance_accepted: states.insurance_accepted || "therapist_confirmed",
-    telehealth_states: states.telehealth_states || "therapist_confirmed",
-    bipolar_years_experience: states.bipolar_years_experience || "therapist_confirmed",
-  };
+  return normalizeFieldReviewStates(therapist && therapist.field_review_states, {
+    keyStyle: "snake_case",
+  });
 }
 
 export function getEditoriallyVerifiedOperationalCount(therapist) {

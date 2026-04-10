@@ -1,6 +1,10 @@
+import { normalizePortableApplication } from "../shared/application-domain.mjs";
+
+const env = (import.meta && import.meta.env) || {};
+
 function getDefaultReviewApiBaseUrl() {
-  if (import.meta.env.VITE_REVIEW_API_URL) {
-    return import.meta.env.VITE_REVIEW_API_URL;
+  if (env.VITE_REVIEW_API_URL) {
+    return env.VITE_REVIEW_API_URL;
   }
 
   if (typeof window !== "undefined") {
@@ -15,54 +19,123 @@ function getDefaultReviewApiBaseUrl() {
 
 const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
+const adminActorIdKey = "bt_review_admin_actor_id_v1";
+const adminActorKey = "bt_review_admin_actor_v1";
 
 function sanitizeApplication(application) {
-  var fieldReviewStates = application.field_review_states || {};
+  return normalizePortableApplication(application || {});
+}
+
+function sanitizeCandidate(candidate) {
   return {
-    ...application,
-    photo_url: application.photo_url || "",
-    photo_source_type: application.photo_source_type || "",
-    photo_reviewed_at: application.photo_reviewed_at || "",
-    photo_usage_permission_confirmed: Boolean(application.photo_usage_permission_confirmed),
-    specialties: Array.isArray(application.specialties) ? application.specialties : [],
-    insurance_accepted: Array.isArray(application.insurance_accepted)
-      ? application.insurance_accepted
+    ...candidate,
+    supporting_source_urls: Array.isArray(candidate.supporting_source_urls)
+      ? candidate.supporting_source_urls
       : [],
-    therapist_reported_fields: Array.isArray(application.therapist_reported_fields)
-      ? application.therapist_reported_fields
+    specialties: Array.isArray(candidate.specialties) ? candidate.specialties : [],
+    treatment_modalities: Array.isArray(candidate.treatment_modalities)
+      ? candidate.treatment_modalities
       : [],
-    field_review_states: {
-      estimated_wait_time: fieldReviewStates.estimated_wait_time || "therapist_confirmed",
-      insurance_accepted: fieldReviewStates.insurance_accepted || "therapist_confirmed",
-      telehealth_states: fieldReviewStates.telehealth_states || "therapist_confirmed",
-      bipolar_years_experience: fieldReviewStates.bipolar_years_experience || "therapist_confirmed",
-    },
-    languages: Array.isArray(application.languages) ? application.languages : ["English"],
-    revision_history: Array.isArray(application.revision_history)
-      ? application.revision_history
+    client_populations: Array.isArray(candidate.client_populations)
+      ? candidate.client_populations
       : [],
-    review_request_message: application.review_request_message || "",
-    revision_count: Number(application.revision_count || 0) || 0,
+    insurance_accepted: Array.isArray(candidate.insurance_accepted)
+      ? candidate.insurance_accepted
+      : [],
+    languages: Array.isArray(candidate.languages) ? candidate.languages : [],
+    telehealth_states: Array.isArray(candidate.telehealth_states)
+      ? candidate.telehealth_states
+      : [],
+    review_history: Array.isArray(candidate.review_history) ? candidate.review_history : [],
+    review_follow_up:
+      candidate && candidate.review_follow_up && typeof candidate.review_follow_up === "object"
+        ? {
+            status: candidate.review_follow_up.status || "open",
+            note: candidate.review_follow_up.note || "",
+            assignee_id: candidate.review_follow_up.assignee_id || "",
+            assignee_name:
+              candidate.review_follow_up.assignee_name || candidate.review_follow_up.assignee || "",
+            assignee:
+              candidate.review_follow_up.assignee_name || candidate.review_follow_up.assignee || "",
+            due_at: candidate.review_follow_up.due_at || "",
+            updated_at: candidate.review_follow_up.updated_at || "",
+          }
+        : {
+            status: "open",
+            note: "",
+            assignee_id: "",
+            assignee_name: "",
+            assignee: "",
+            due_at: "",
+            updated_at: "",
+          },
+    review_lane: candidate.review_lane || "editorial_review",
+    review_priority:
+      typeof candidate.review_priority === "number" ? candidate.review_priority : null,
+    next_review_due_at: candidate.next_review_due_at || "",
+    last_reviewed_at: candidate.last_reviewed_at || "",
   };
 }
 
 async function request(path, options) {
-  const response = await fetch(`${reviewApiBaseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options && options.headers ? options.headers : {}),
-    },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options && options.headers ? options.headers : {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    const networkError = new Error(error && error.message ? error.message : "Request failed.");
+    networkError.isNetworkError = true;
+    throw networkError;
+  }
 
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(payload && payload.error ? payload.error : "Request failed.");
+    const requestError = new Error(payload && payload.error ? payload.error : "Request failed.");
+    requestError.status = response.status;
+    requestError.payload = payload;
+    throw requestError;
   }
 
   return payload;
+}
+
+async function requestText(path, options) {
+  let response;
+  try {
+    response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      headers: {
+        ...(options && options.headers ? options.headers : {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    const networkError = new Error(error && error.message ? error.message : "Request failed.");
+    networkError.isNetworkError = true;
+    throw networkError;
+  }
+
+  const text = await response.text();
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch (_error) {
+      payload = null;
+    }
+    const requestError = new Error(payload && payload.error ? payload.error : "Request failed.");
+    requestError.status = response.status;
+    requestError.payload = payload;
+    throw requestError;
+  }
+
+  return text;
 }
 
 function canUseSessionStorage() {
@@ -89,12 +162,36 @@ export function setAdminSessionToken(adminSessionToken) {
   window.sessionStorage.setItem(adminSessionKey, adminSessionToken);
 }
 
+export function getAdminActorName() {
+  if (!canUseSessionStorage()) {
+    return "";
+  }
+  return window.sessionStorage.getItem(adminActorKey) || "";
+}
+
+export function getAdminActorId() {
+  if (!canUseSessionStorage()) {
+    return "";
+  }
+  return window.sessionStorage.getItem(adminActorIdKey) || "";
+}
+
+export function setAdminActorIdentity(actor) {
+  if (!canUseSessionStorage()) {
+    return;
+  }
+  window.sessionStorage.setItem(adminActorIdKey, String((actor && actor.id) || "").trim());
+  window.sessionStorage.setItem(adminActorKey, String((actor && actor.name) || "").trim());
+}
+
 export function clearAdminSessionToken() {
   if (!canUseSessionStorage()) {
     return;
   }
 
   window.sessionStorage.removeItem(adminSessionKey);
+  window.sessionStorage.removeItem(adminActorIdKey);
+  window.sessionStorage.removeItem(adminActorKey);
 }
 
 function getAdminHeaders() {
@@ -107,10 +204,17 @@ function getAdminHeaders() {
 }
 
 export async function signInAdmin(credentials) {
-  return request("/auth/login", {
+  const payload = await request("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
+  if (payload && (payload.actorName || payload.actorId)) {
+    setAdminActorIdentity({
+      id: payload.actorId || "",
+      name: payload.actorName || "",
+    });
+  }
+  return payload;
 }
 
 export async function signOutAdmin() {
@@ -127,6 +231,20 @@ export async function signOutAdmin() {
   }
 }
 
+export async function fetchAdminSession() {
+  const payload = await request("/auth/session", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+  if (payload && (payload.actorName || payload.actorId)) {
+    setAdminActorIdentity({
+      id: payload.actorId || "",
+      name: payload.actorName || "",
+    });
+  }
+  return payload;
+}
+
 export async function submitTherapistApplication(application) {
   return sanitizeApplication(
     await request("/applications", {
@@ -140,6 +258,20 @@ export async function submitTherapistPortalRequest(requestPayload) {
   return request("/portal/requests", {
     method: "POST",
     body: JSON.stringify(requestPayload),
+  });
+}
+
+export async function submitMatchRequest(matchRequest) {
+  return request("/match/requests", {
+    method: "POST",
+    body: JSON.stringify(matchRequest),
+  });
+}
+
+export async function submitMatchOutcome(matchOutcome) {
+  return request("/match/outcomes", {
+    method: "POST",
+    body: JSON.stringify(matchOutcome),
   });
 }
 
@@ -204,6 +336,180 @@ export async function fetchTherapistApplications() {
   return payload.map(sanitizeApplication);
 }
 
+export async function fetchTherapistReviewers() {
+  return request("/reviewers", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function updateTherapistReviewers(reviewers) {
+  return request("/reviewers", {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ reviewers }),
+  });
+}
+
+export async function fetchTherapistCandidates() {
+  const payload = await request("/candidates", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+
+  return payload.map(sanitizeCandidate);
+}
+
+export async function fetchReviewEvents(options) {
+  const params = new URLSearchParams();
+  if (options && options.lane) {
+    params.set("lane", options.lane);
+  }
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (options && options.before) {
+    params.set("before", options.before);
+  }
+  return request(`/events${params.toString() ? `?${params.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportReviewEvents(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.lane) {
+    params.set("lane", options.lane);
+  }
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return requestText(`/events/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function fetchMatchRequests(options) {
+  const params = new URLSearchParams();
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/match/requests${params.toString() ? `?${params.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function fetchMatchOutcomes(options) {
+  const params = new URLSearchParams();
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/match/outcomes${params.toString() ? `?${params.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportMatchRequests(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/match/requests/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/match/requests/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportMatchOutcomes(format, options) {
+  const params = new URLSearchParams();
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/match/outcomes/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/match/outcomes/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function fetchProviderObservations(providerId, options) {
+  const params = new URLSearchParams();
+  params.set("providerId", String(providerId || "").trim());
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  return request(`/provider-observations?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function exportProviderObservations(providerId, format, options) {
+  const params = new URLSearchParams();
+  params.set("providerId", String(providerId || "").trim());
+  params.set("format", format === "csv" ? "csv" : "json");
+  if (options && options.limit) {
+    params.set("limit", String(options.limit));
+  }
+  if (format === "csv") {
+    return requestText(`/provider-observations/export?${params.toString()}`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  }
+  return request(`/provider-observations/export?${params.toString()}`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function decideTherapistCandidate(candidateId, decisionPayload) {
+  const payload = await request(`/candidates/${encodeURIComponent(candidateId)}/decision`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(decisionPayload),
+  });
+
+  return {
+    ...payload,
+    candidate: payload && payload.candidate ? sanitizeCandidate(payload.candidate) : null,
+  };
+}
+
+export async function decideTherapistOps(therapistId, decisionPayload) {
+  return request(`/therapists/${encodeURIComponent(therapistId)}/ops`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(decisionPayload),
+  });
+}
+
+export async function decideLicensureOps(licensureRecordId, decisionPayload) {
+  return request(`/licensure-records/${encodeURIComponent(licensureRecordId)}/ops`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(decisionPayload),
+  });
+}
+
 export async function approveTherapistApplication(applicationId) {
   return request(`/applications/${encodeURIComponent(applicationId)}/approve`, {
     method: "POST",
@@ -223,6 +529,24 @@ export async function updateTherapistApplication(applicationId, updates) {
     method: "PATCH",
     headers: getAdminHeaders(),
     body: JSON.stringify(updates),
+  });
+}
+
+export async function updateTherapistCandidate(candidateId, updates) {
+  return sanitizeCandidate(
+    await request(`/candidates/${encodeURIComponent(candidateId)}`, {
+      method: "PATCH",
+      headers: getAdminHeaders(),
+      body: JSON.stringify(updates),
+    }),
+  );
+}
+
+export async function applyTherapistApplicationFields(applicationId, fields) {
+  return request(`/applications/${encodeURIComponent(applicationId)}/apply-live-fields`, {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ fields: Array.isArray(fields) ? fields : [] }),
   });
 }
 

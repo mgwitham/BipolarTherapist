@@ -73,16 +73,40 @@
         font-size: 0.9rem;
       }
       .wrap {
-        max-width: 1100px;
+        max-width: 1440px;
         margin: 0 auto;
-        padding: 1.5rem;
+        padding: 1.25rem 1.5rem 3rem;
       }
       .hero {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1.25rem;
+        align-items: start;
+        margin-bottom: 1rem;
+        padding: 1.25rem 1.35rem;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at top right, rgba(42, 156, 179, 0.12), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        box-shadow: 0 18px 38px rgba(29, 58, 74, 0.06);
+      }
+      .hero-copy {
+        min-width: 0;
+      }
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 0.6rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
       }
       h1 {
         font-family: "Lora", serif;
@@ -91,6 +115,162 @@
       .subtle {
         color: var(--muted);
         font-size: 0.9rem;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .admin-quick-nav {
+        position: sticky;
+        top: 76px;
+        z-index: 30;
+        margin-bottom: 1.1rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.08);
+        border-radius: 18px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.68) 0%,
+          rgba(247, 251, 252, 0.56) 100%
+        );
+        backdrop-filter: blur(8px) saturate(115%);
+        -webkit-backdrop-filter: blur(8px) saturate(115%);
+        box-shadow: 0 6px 16px rgba(29, 58, 74, 0.035);
+      }
+      .admin-quick-nav-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .admin-quick-nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 0.7rem;
+      }
+      .admin-quick-nav-links a {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.52rem 0.8rem;
+        border-radius: 999px;
+        text-decoration: none;
+        color: var(--navy);
+        background: #f4f9fa;
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .admin-quick-nav-links a:hover {
+        border-color: rgba(26, 122, 143, 0.24);
+        color: var(--teal-dark);
+      }
+      .admin-stack {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .admin-region {
+        display: grid;
+        gap: 0.9rem;
+        min-width: 0;
+      }
+      .admin-region-shell {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 22px;
+        padding: 0.9rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        box-shadow: 0 14px 32px rgba(29, 58, 74, 0.04);
+        min-width: 0;
+        overflow: hidden;
+      }
+      .admin-region-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.65rem;
+      }
+      .admin-region-kicker {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .admin-region-title {
+        margin: 0.2rem 0 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .admin-region-copy {
+        margin-top: 0.25rem;
+        max-width: 62rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.55;
+      }
+      .admin-region-grid {
+        display: grid;
+        gap: 1rem;
+      }
+      .admin-region-grid.two-column {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+      .admin-collapsible-group {
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        overflow: hidden;
+      }
+      .admin-collapsible-group > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 0.95rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .admin-collapsible-group > summary::-webkit-details-marker {
+        display: none;
+      }
+      .admin-collapsible-meta {
+        display: grid;
+        gap: 0.16rem;
+      }
+      .admin-collapsible-kicker {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .admin-collapsible-title {
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .admin-collapsible-copy {
+        font-size: 0.82rem;
+        color: var(--slate);
+        line-height: 1.5;
+      }
+      .admin-collapsible-icon {
+        color: var(--muted);
+        font-weight: 800;
+        transition: transform 180ms ease;
+      }
+      .admin-collapsible-group[open] .admin-collapsible-icon {
+        transform: rotate(45deg);
+      }
+      .admin-collapsible-body {
+        padding: 0 1rem 1rem;
+        display: grid;
+        gap: 1rem;
       }
       .btn-primary,
       .btn-secondary {
@@ -126,12 +306,12 @@
       }
       .stats {
         display: grid;
-        gap: 1.15rem;
-        margin-bottom: 1.35rem;
+        gap: 1rem;
+        margin-bottom: 1.1rem;
       }
       .stats-group {
         display: grid;
-        gap: 0.65rem;
+        gap: 0.55rem;
       }
       .stats-group-title {
         font-size: 0.78rem;
@@ -143,7 +323,7 @@
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.9rem;
+        gap: 0.8rem;
       }
       .stats-grid.ops-grid {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -216,6 +396,20 @@
         color: var(--slate);
         line-height: 1.45;
       }
+      .stat-context-label {
+        margin-top: 0.65rem;
+        font-size: 0.66rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .stat-context-copy {
+        margin-top: 0.22rem;
+        font-size: 0.77rem;
+        color: var(--slate);
+        line-height: 1.45;
+      }
       .stat-card.is-passive .stat-meta {
         margin-top: 0.45rem;
         font-size: 0.77rem;
@@ -229,22 +423,139 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
+      .workflow-handoff {
+        margin: 0.85rem 0 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.25);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f7fcfd 0%, #eef8fa 100%);
+        padding: 0.9rem 0.95rem;
+        box-shadow: 0 10px 24px rgba(29, 58, 74, 0.05);
+      }
+      .workflow-handoff-kicker {
+        font-size: 0.67rem;
+        font-weight: 800;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .workflow-handoff-title {
+        margin-top: 0.24rem;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .workflow-handoff-row {
+        margin-top: 0.7rem;
+      }
+      .workflow-handoff-label {
+        font-size: 0.67rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .workflow-handoff-copy {
+        margin-top: 0.18rem;
+        font-size: 0.84rem;
+        color: var(--slate);
+        line-height: 1.5;
+      }
+      .workflow-handoff-actions {
+        margin-top: 0.8rem;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .workflow-handoff-compact {
+        padding: 0.65rem 0.8rem;
+        margin: 0 0 0.65rem;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fbfeff 0%, #f3fafc 100%);
+        box-shadow: 0 6px 14px rgba(29, 58, 74, 0.04);
+      }
+      .workflow-handoff-compact .workflow-handoff-title {
+        margin-top: 0.15rem;
+        font-size: 0.95rem;
+      }
+      .workflow-handoff-compact-copy {
+        margin-top: 0.3rem;
+        max-width: 52rem;
+        font-size: 0.82rem;
+      }
+      .workflow-handoff-compact .workflow-handoff-actions {
+        justify-content: flex-start;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.65rem;
+      }
+      .workflow-handoff-compact .btn-primary,
+      .workflow-handoff-compact .btn-secondary {
+        padding: 0.58rem 0.85rem;
+        font-size: 0.82rem;
+      }
+      .workflow-handoff-exit {
+        font-size: 0.78rem;
+      }
       .grid {
         display: grid;
-        grid-template-columns: 320px 1fr;
+        grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
         gap: 1.25rem;
         align-items: start;
       }
+      .grid > * {
+        min-width: 0;
+      }
+      .grid.workflow-focus-active {
+        grid-template-columns: 1fr;
+      }
+      .grid.workflow-focus-active > * {
+        display: none;
+      }
+      .grid.workflow-focus-active > .workflow-focus-owner {
+        display: block;
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+      .grid.workflow-focus-active > .workflow-focus-owner .workflow-section,
+      .grid.workflow-focus-active > .workflow-focus-owner .panel {
+        transition:
+          opacity 180ms ease,
+          filter 180ms ease;
+        opacity: 1;
+        filter: none;
+      }
+      .grid.workflow-focus-active > .workflow-focus-owner.workflow-section,
+      .grid.workflow-focus-active > .workflow-focus-owner.panel,
+      .grid.workflow-focus-active > .workflow-focus-owner .workflow-focus-target {
+        opacity: 1;
+        filter: none;
+      }
+      .grid.workflow-focus-active
+        > .workflow-focus-owner
+        .queue-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
+      .grid.workflow-focus-active
+        > .workflow-focus-owner
+        .application-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
+      .grid.workflow-focus-active
+        > .workflow-focus-owner
+        .mini-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]) {
+        opacity: 0.58;
+        filter: saturate(0.82);
+      }
       .sidebar-panel {
         position: sticky;
-        top: 84px;
+        top: 152px;
+        width: 100%;
+        min-width: 0;
       }
       .panel {
         padding: 1.2rem;
         background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
         box-shadow: 0 10px 28px rgba(29, 58, 74, 0.04);
+        min-width: 0;
+        overflow: hidden;
       }
       .panel.section-spotlight,
+      .workflow-section.section-spotlight,
       #refreshQueue.section-spotlight,
       #importBlockerSprint.section-spotlight,
       #californiaPriorityConfirmationWave.section-spotlight,
@@ -270,15 +581,70 @@
         align-items: center;
         margin-bottom: 0.75rem;
       }
+      .queue-badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.45rem 0;
+      }
+      .queue-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
       .mini-card a {
         color: var(--teal);
         text-decoration: none;
         font-weight: 600;
         font-size: 0.85rem;
       }
+      .mini-card a.btn-primary,
+      .mini-card a.btn-primary:visited {
+        color: #fff;
+      }
+      .mini-card a.btn-secondary,
+      .mini-card a.btn-secondary:visited {
+        color: var(--slate);
+      }
+      .mini-card > div:first-child {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
       .application-card {
         padding: 1.05rem 1.1rem;
         margin-bottom: 0.9rem;
+      }
+      .application-card.is-start-here,
+      .queue-card.is-start-here,
+      .mini-card.is-start-here {
+        border-color: rgba(26, 122, 143, 0.38);
+        background: linear-gradient(180deg, #ffffff 0%, #f4fbfd 100%);
+        box-shadow: 0 12px 28px rgba(26, 122, 143, 0.09);
+      }
+      .workflow-focus-target.queue-card,
+      .workflow-focus-target.application-card,
+      .workflow-focus-target.mini-card {
+        border-color: rgba(26, 122, 143, 0.65);
+        background: linear-gradient(180deg, #ffffff 0%, #eef9fc 100%);
+        box-shadow:
+          0 0 0 4px rgba(42, 156, 179, 0.18),
+          0 18px 36px rgba(26, 122, 143, 0.16);
+      }
+      .workflow-focus-target .start-here-chip {
+        background: rgba(26, 122, 143, 0.18);
+        color: #0c5868;
+      }
+      .workflow-focus-target .recommended-action-bar {
+        border-color: rgba(26, 122, 143, 0.32);
+        background: rgba(255, 255, 255, 0.94);
+      }
+      .workflow-focus-target * {
+        opacity: 1;
       }
       .queue-card {
         padding: 0.95rem 1rem;
@@ -286,6 +652,139 @@
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 16px;
+      }
+      .start-here-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 0.65rem;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .start-here-copy {
+        margin-top: 0.45rem;
+        color: var(--slate);
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+      .start-here-action {
+        margin-top: 0.45rem;
+        color: var(--navy);
+        font-size: 0.79rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+      .recommended-action-bar {
+        margin-top: 0.8rem;
+        padding: 0.72rem 0.78rem;
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.84);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+      .recommended-action-label {
+        font-size: 0.67rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .recommended-action-row {
+        margin-top: 0.5rem;
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .recommended-action-row .btn-primary,
+      .recommended-action-row a.btn-primary {
+        min-width: 220px;
+      }
+      .decision-guide {
+        margin-top: 0.8rem;
+        padding: 0.8rem 0.85rem;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .decision-guide-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .decision-guide-note {
+        margin-top: 0.5rem;
+        color: var(--navy);
+        font-size: 0.87rem;
+        line-height: 1.5;
+      }
+      .decision-guide-list {
+        margin-top: 0.55rem;
+        display: grid;
+        gap: 0.42rem;
+      }
+      .decision-guide-item {
+        padding: 0.58rem 0.7rem;
+        border-radius: 12px;
+        background: rgba(26, 122, 143, 0.07);
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.5;
+      }
+      .secondary-actions {
+        margin-top: 0.72rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(26, 122, 143, 0.12);
+      }
+      .queue-more-details {
+        margin-top: 0.9rem;
+        border-top: 1px solid var(--border);
+        padding-top: 0.8rem;
+      }
+      .queue-more-details summary {
+        cursor: pointer;
+        color: var(--teal-dark);
+        font-weight: 700;
+        list-style: none;
+      }
+      .queue-more-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .queue-more-details-body {
+        margin-top: 0.8rem;
+      }
+      .lane-intro-details {
+        margin-top: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fbfdfe;
+      }
+      .lane-intro-details summary {
+        cursor: pointer;
+        padding: 0.95rem 1rem;
+        color: var(--teal-dark);
+        font-weight: 700;
+        list-style: none;
+      }
+      .lane-intro-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .lane-intro-details .sop-note {
+        margin-top: 0;
+        border-top: 1px solid var(--border);
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 0 0 16px 16px;
+        box-shadow: none;
       }
       .queue-card h3 {
         margin: 0;
@@ -308,6 +807,32 @@
         color: var(--slate);
         font-size: 0.88rem;
         line-height: 1.6;
+      }
+      .queue-summary-grid {
+        margin-top: 0.8rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.55rem;
+      }
+      .queue-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fbfdfe;
+        padding: 0.72rem 0.8rem;
+      }
+      .queue-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .queue-kpi-value {
+        margin-top: 0.24rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.45;
       }
       .queue-shortlist {
         margin-top: 0.8rem;
@@ -334,6 +859,112 @@
         gap: 0.65rem;
         flex-wrap: wrap;
         margin-top: 0.9rem;
+      }
+      .ops-inbox {
+        display: grid;
+        gap: 1rem;
+      }
+      .ops-inbox-hero {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f6fbfc 100%);
+        padding: 1rem 1.05rem;
+      }
+      .ops-inbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.9rem;
+      }
+      .ops-kpi {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.82rem 0.9rem;
+        background: #fff;
+      }
+      .ops-kpi-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .ops-kpi-label {
+        margin-top: 0.2rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+      }
+      .ops-group {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: #fff;
+        padding: 0.95rem 1rem;
+      }
+      .ops-group-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 0.8rem;
+      }
+      .ops-group-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .ops-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .ops-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.9rem 0.95rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+      }
+      .ops-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: start;
+      }
+      .ops-card-title {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .ops-card-meta {
+        margin-top: 0.3rem;
+        font-size: 0.84rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .ops-card-body {
+        margin-top: 0.7rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.55rem;
+      }
+      .ops-card-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.65rem 0.7rem;
+      }
+      .ops-card-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ops-card-kpi-value {
+        margin-top: 0.2rem;
+        font-size: 0.84rem;
+        color: var(--navy);
+        line-height: 1.45;
+      }
+      .ops-card-actions {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.8rem;
       }
       .queue-insights {
         margin-bottom: 1rem;
@@ -518,6 +1149,193 @@
       .review-coach-status {
         font-size: 0.8rem;
         color: var(--muted);
+      }
+      .review-coach-status:not(:empty) {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.7rem;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        border-radius: 10px;
+        background: linear-gradient(180deg, #f8fcfd 0%, #eef8fa 100%);
+        color: var(--teal-dark);
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      .operator-guide-card {
+        border: 1px solid rgba(26, 122, 143, 0.22);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f4fbfd 100%);
+        display: grid;
+        gap: 0;
+      }
+      .operator-guide-main {
+        padding: 1rem 1.05rem 0.85rem;
+        display: grid;
+        gap: 0.75rem;
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        text-decoration: none;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .operator-guide-main:hover {
+        transform: translateY(-1px);
+        border-color: rgba(26, 122, 143, 0.38);
+        box-shadow: 0 10px 24px rgba(29, 58, 74, 0.08);
+      }
+      .operator-guide-main:focus-visible {
+        outline: 3px solid rgba(42, 156, 179, 0.2);
+        outline-offset: 2px;
+      }
+      .operator-guide-secondary {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        padding: 0 1.05rem 1rem;
+      }
+      .operator-guide-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: start;
+      }
+      .operator-guide-title {
+        margin: 0;
+        font-size: 0.98rem;
+        color: var(--navy);
+      }
+      .operator-guide-kicker {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .operator-guide-count {
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1;
+      }
+      .operator-guide-copy {
+        font-size: 0.84rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .operator-guide-block {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 0.78rem 0.82rem;
+      }
+      .operator-guide-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .operator-guide-list {
+        margin: 0.45rem 0 0;
+        padding-left: 1rem;
+        color: var(--slate);
+        font-size: 0.82rem;
+        line-height: 1.55;
+      }
+      .operator-guide-done {
+        font-size: 0.82rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .operator-guide-destination {
+        font-size: 0.82rem;
+        color: var(--navy);
+        line-height: 1.55;
+        font-weight: 700;
+      }
+      .operator-guide-action {
+        margin-top: 0.15rem;
+        font-size: 0.77rem;
+        font-weight: 800;
+        color: var(--teal-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .sop-note {
+        margin: 0.85rem 0 1rem;
+        padding: 0.85rem 0.95rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        display: grid;
+        gap: 0.65rem;
+      }
+      .sop-note-row {
+        display: grid;
+        gap: 0.18rem;
+      }
+      .sop-note-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .sop-note-copy {
+        font-size: 0.84rem;
+        color: var(--slate);
+        line-height: 1.55;
+      }
+      .playbook {
+        margin-top: 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .playbook summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 0.8rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--navy);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fcfd 100%);
+      }
+      .playbook summary::-webkit-details-marker {
+        display: none;
+      }
+      .playbook-body {
+        padding: 0 0.9rem 0.9rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+      .playbook-section {
+        display: grid;
+        gap: 0.22rem;
+      }
+      .playbook-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .playbook-copy {
+        font-size: 0.83rem;
+        color: var(--slate);
+        line-height: 1.55;
       }
       .field-review-grid {
         display: grid;
@@ -817,6 +1635,16 @@
         .grid {
           grid-template-columns: 1fr;
         }
+        .admin-region-grid.two-column {
+          grid-template-columns: 1fr;
+        }
+        .grid.workflow-focus-active > * {
+          display: block;
+        }
+        .grid.workflow-focus-active > .workflow-focus-owner .workflow-section,
+        .grid.workflow-focus-active > .workflow-focus-owner .panel {
+          opacity: 1;
+        }
         .sidebar-panel {
           position: static;
           top: auto;
@@ -830,7 +1658,13 @@
           padding-top: 0.2rem;
         }
         .hero {
-          flex-direction: column;
+          grid-template-columns: 1fr;
+        }
+        .hero-actions {
+          justify-content: flex-start;
+        }
+        .admin-quick-nav {
+          top: 64px;
         }
         .auth-form {
           flex-direction: column;
@@ -852,21 +1686,34 @@
 
     <div class="wrap">
       <div class="hero">
-        <div style="flex: 1">
+        <div class="hero-copy">
+          <div class="hero-eyebrow">Operator Control Center</div>
           <h1>Admin Review</h1>
           <p class="subtle">
-            Review therapist applications and publish them into the public directory.
+            Work supply, trust, operations, and requests from one calmer review surface.
           </p>
           <div class="cms-note">
-            Public applications can flow into Sanity now. This admin page is the review surface for
-            approving or rejecting them before they become live therapist listings.
+            The goal here is simple: know what needs attention now, move the right lane forward, and
+            avoid getting lost in a long page of equally loud panels.
           </div>
         </div>
-        <div style="display: flex; gap: 0.75rem">
+        <div class="hero-actions">
           <button class="btn-secondary btn-inline" id="signOutAdmin" style="display: none">
             Sign Out
           </button>
           <button class="btn-secondary btn-inline" id="resetDemo">Reset Demo Data</button>
+        </div>
+      </div>
+
+      <div class="admin-quick-nav">
+        <div class="admin-quick-nav-label">Jump To</div>
+        <div class="admin-quick-nav-links">
+          <a href="#opsControlRegion">Control Center</a>
+          <a href="#supplyReviewRegion">Supply Review</a>
+          <a href="#liveListingsRegion">Live Listings</a>
+          <a href="#confirmationRegion">Confirmation</a>
+          <a href="#requestsRegion">Requests</a>
+          <a href="#intelligenceRegion">Intelligence</a>
         </div>
       </div>
 
@@ -881,146 +1728,943 @@
         <div class="error-note" id="authError">Those admin credentials were not accepted.</div>
       </div>
 
-      <div id="adminApp">
-        <div class="stats" id="adminStats"></div>
+      <div id="adminApp" class="admin-stack">
+        <section class="admin-region admin-region-shell" id="opsControlRegion">
+          <div class="admin-region-header">
+            <div>
+              <div class="admin-region-kicker">Start Here</div>
+              <h2 class="admin-region-title">Operator launch pad</h2>
+              <div class="admin-region-copy">
+                Start with the work lane that changes the business most right now, then drop into
+                the detailed queue below.
+              </div>
+            </div>
+          </div>
+          <div class="stats" id="adminStats">
+            <div class="stats-group">
+              <div class="stats-group-title">Priority Lanes</div>
+              <div class="stats-grid ops-grid">
+                <a class="operator-guide-main" href="#candidateQueuePanel">
+                  <div class="operator-guide-head">
+                    <div>
+                      <div class="operator-guide-kicker">Add Supply</div>
+                      <h3 class="operator-guide-title">Add New Listings</h3>
+                    </div>
+                  </div>
+                  <div class="operator-guide-copy">
+                    Work newly discovered listings into the system so good supply does not sit
+                    unreviewed.
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">How To Work It</div>
+                    <ol class="operator-guide-list">
+                      <li>Open the new-listings lane and inspect the source profile.</li>
+                      <li>
+                        Decide whether the listing is publishable, needs confirmation, or is a
+                        duplicate.
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">Done Means</div>
+                    <div class="operator-guide-done">
+                      The listing is moved into the right next state.
+                    </div>
+                  </div>
+                  <div class="operator-guide-action">Open new-listings overview</div>
+                </a>
+                <a class="operator-guide-main" href="#applicationsPanel">
+                  <div class="operator-guide-head">
+                    <div>
+                      <div class="operator-guide-kicker">Review Supply</div>
+                      <h3 class="operator-guide-title">Review Applications</h3>
+                    </div>
+                  </div>
+                  <div class="operator-guide-copy">
+                    Review therapist-submitted applications so strong profiles can turn into live
+                    listings fast.
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">How To Work It</div>
+                    <ol class="operator-guide-list">
+                      <li>Open the applications lane and start with the strongest pending item.</li>
+                      <li>
+                        Approve, request changes, reject, or publish so the application leaves
+                        limbo.
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">Done Means</div>
+                    <div class="operator-guide-done">The application has a clear decision.</div>
+                  </div>
+                  <div class="operator-guide-action">Open applications overview</div>
+                </a>
+                <a class="operator-guide-main" href="#importBlockerSprintSection">
+                  <div class="operator-guide-head">
+                    <div>
+                      <div class="operator-guide-kicker">Verify Trust</div>
+                      <h3 class="operator-guide-title">Fix Missing Listing Details</h3>
+                    </div>
+                  </div>
+                  <div class="operator-guide-copy">
+                    Fix missing listing details so live profiles can become fully trusted and ready
+                    for use.
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">How To Work It</div>
+                    <ol class="operator-guide-list">
+                      <li>Open the missing-details lane and start with the top listing.</li>
+                      <li>
+                        Verify the first missing detail or move the listing into confirmation if
+                        needed.
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">Done Means</div>
+                    <div class="operator-guide-done">
+                      The listing is no longer blocked by its top missing detail.
+                    </div>
+                  </div>
+                  <div class="operator-guide-action">Open missing-details overview</div>
+                </a>
+                <a class="operator-guide-main" href="#refreshQueueSection">
+                  <div class="operator-guide-head">
+                    <div>
+                      <div class="operator-guide-kicker">Publish And Maintain</div>
+                      <h3 class="operator-guide-title">Review Listing Updates</h3>
+                    </div>
+                  </div>
+                  <div class="operator-guide-copy">
+                    Refresh aging or trust-risk listings so live profiles stay operationally current
+                    and trustworthy.
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">How To Work It</div>
+                    <ol class="operator-guide-list">
+                      <li>
+                        Open the listing-updates lane and start with the highest-risk listing.
+                      </li>
+                      <li>Review the stale or trust-risk fields and decide the next action.</li>
+                    </ol>
+                  </div>
+                  <div class="operator-guide-block">
+                    <div class="operator-guide-label">Done Means</div>
+                    <div class="operator-guide-done">
+                      The listing has a clear maintenance decision recorded.
+                    </div>
+                  </div>
+                  <div class="operator-guide-action">Open listing-updates overview</div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div class="grid">
-          <aside class="panel sidebar-panel">
-            <h2>Published Listings</h2>
-            <div id="publishedListings"></div>
-            <div style="margin-top: 1.2rem">
-              <h2>Refresh Queue</h2>
-              <p class="subtle" style="margin-top: 0">
-                Source-backed profiles that are starting to age or still need operational
-                re-confirmation.
-              </p>
-              <div id="refreshQueue"></div>
-            </div>
-            <div style="margin-top: 1.2rem">
-              <h2>Import Blocker Sprint</h2>
-              <p class="subtle" style="margin-top: 0">
-                The top strong-warning profiles still blocking the strict safe-import gate.
-              </p>
-              <div id="importBlockerSprint"></div>
-            </div>
-            <div style="margin-top: 1.2rem">
-              <h2>California Priority Wave</h2>
-              <p class="subtle" style="margin-top: 0">
-                The exact top California confirmation targets we should work first for live trust
-                and conversion quality.
-              </p>
-              <div id="californiaPriorityConfirmationWave"></div>
-            </div>
-            <div style="margin-top: 1.2rem">
-              <h2>Confirmation Sprint</h2>
-              <p class="subtle" style="margin-top: 0">
-                The top therapist-confirmation wave to work next, condensed into a smaller
-                send-ready packet.
-              </p>
-              <div id="confirmationSprint"></div>
-            </div>
-            <div style="margin-top: 1.2rem">
-              <h2>Confirmation Queue</h2>
-              <p class="subtle" style="margin-top: 0">
-                Live profiles that still need therapist-confirmed answers for high-value unknowns.
-              </p>
-              <div class="toolbar" style="margin-bottom: 0.8rem">
-                <select id="confirmationQueueStatusFilter">
-                  <option value="">All statuses</option>
-                  <option value="not_started">Not started</option>
-                  <option value="sent">Sent</option>
-                  <option value="waiting_on_therapist">Waiting on therapist</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="applied">Applied</option>
-                </select>
-                <div class="subtle" id="confirmationQueueCount"></div>
+          <aside class="admin-region sidebar-panel" id="liveListingsRegion">
+            <section class="admin-region-shell workflow-section" id="publishedListingsSection">
+              <div class="admin-region-header">
+                <div>
+                  <div class="admin-region-kicker">Live Listings</div>
+                  <h2 class="admin-region-title">Publish and maintain live supply</h2>
+                  <div class="admin-region-copy">
+                    Everything here is about public listings that already exist or are close to
+                    going live.
+                  </div>
+                </div>
               </div>
-              <div id="confirmationQueue"></div>
-            </div>
+              <h2>Promote Live Listings</h2>
+              <div class="sop-note">
+                <div class="sop-note-row">
+                  <div class="sop-note-label">Purpose</div>
+                  <div class="sop-note-copy">
+                    Decide which live listings should be spotlighted, kept standard, or sent for
+                    update work once they are already public.
+                  </div>
+                </div>
+                <div class="sop-note-row">
+                  <div class="sop-note-label">Use This When</div>
+                  <div class="sop-note-copy">
+                    You are deciding which listings should be featured, marked ready to feature,
+                    refreshed, or left alone.
+                  </div>
+                </div>
+                <div class="sop-note-row">
+                  <div class="sop-note-label">Done Means</div>
+                  <div class="sop-note-copy">
+                    The listing has the right visibility level and is not missing obvious trust or
+                    freshness work.
+                  </div>
+                </div>
+                <details class="playbook">
+                  <summary>Operator Playbook</summary>
+                  <div class="playbook-body">
+                    <div class="playbook-section">
+                      <div class="playbook-label">Good First Move</div>
+                      <div class="playbook-copy">
+                        Start with listings that are already close to ready-to-feature or are
+                        carrying a visible freshness risk. Avoid tinkering with stable listings that
+                        do not need a decision today.
+                      </div>
+                    </div>
+                    <div class="playbook-section">
+                      <div class="playbook-label">Strong Decision Example</div>
+                      <div class="playbook-copy">
+                        If a listing has strong profile depth, current trust signals, and no obvious
+                        blocker, promote it. If the profile is aging or missing important
+                        operational detail, send it into refresh or confirmation instead of
+                        featuring it.
+                      </div>
+                    </div>
+                    <div class="playbook-section">
+                      <div class="playbook-label">Avoid</div>
+                      <div class="playbook-copy">
+                        Do not feature or elevate a listing just because the profile sounds good.
+                        The operator standard is live trust, not intuition.
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+              <div id="publishedListings"></div>
+              <div class="workflow-section" id="refreshQueueSection" style="margin-top: 1.2rem">
+                <h2>Review Listing Updates</h2>
+                <p class="subtle" style="margin-top: 0">
+                  Source-backed profiles that are starting to age or still need operational
+                  re-confirmation.
+                </p>
+                <div class="sop-note">
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Purpose</div>
+                    <div class="sop-note-copy">
+                      Work live listings whose operational truth is aging or whose trust fields need
+                      attention.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Use This When</div>
+                    <div class="sop-note-copy">
+                      A listing is already public but should not stay untouched because freshness or
+                      trust quality is slipping.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Done Means</div>
+                    <div class="sop-note-copy">
+                      The listing has been refreshed, confirmed, or consciously deferred with a
+                      clear reason.
+                    </div>
+                  </div>
+                  <details class="playbook">
+                    <summary>Operator Playbook</summary>
+                    <div class="playbook-body">
+                      <div class="playbook-section">
+                        <div class="playbook-label">Good First Move</div>
+                        <div class="playbook-copy">
+                          Open the oldest or riskiest listing first, confirm what is stale, and
+                          decide whether you can refresh from a source, need therapist confirmation,
+                          or should defer with a reason.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Strong Decision Example</div>
+                        <div class="playbook-copy">
+                          If a website clearly shows updated insurance, telehealth, or availability,
+                          refresh the profile directly. If the source is unclear for a
+                          trust-critical field, move it into confirmation instead of guessing.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Avoid</div>
+                        <div class="playbook-copy">
+                          Do not leave a listing sitting in refresh just because you cannot finish
+                          it in one pass. Either update it, defer it, or push it to confirmation.
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div id="refreshQueue"></div>
+              </div>
+            </section>
+            <details class="admin-collapsible-group" open>
+              <summary>
+                <div class="admin-collapsible-meta">
+                  <div class="admin-collapsible-kicker">Reference Lane</div>
+                  <div class="admin-collapsible-title">Licensure maintenance</div>
+                  <div class="admin-collapsible-copy">
+                    Primary-source refresh work that supports trust, but usually should not distract
+                    from the main live-listing lanes.
+                  </div>
+                </div>
+                <div class="admin-collapsible-icon">+</div>
+              </summary>
+              <div class="admin-collapsible-body">
+                <div class="workflow-section">
+                  <h2>Licensure Refresh Queue</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Primary-source licensure cache work, including first-pass enrichment, failed
+                    refreshes, and upcoming expiration checks.
+                  </p>
+                  <div class="subtle" id="licensureQueueCount" style="margin-bottom: 0.8rem"></div>
+                  <div id="licensureQueue"></div>
+                </div>
+                <div class="workflow-section">
+                  <h2>Licensure Sprint</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    The tightest licensure work packet to improve primary-source coverage fastest.
+                  </p>
+                  <div id="licensureSprint"></div>
+                </div>
+                <div class="workflow-section">
+                  <h2>Deferred Licensure Queue</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Snoozed licensure work with the date it will return to the active queue.
+                  </p>
+                  <div
+                    class="subtle"
+                    id="deferredLicensureQueueCount"
+                    style="margin-bottom: 0.8rem"
+                  ></div>
+                  <div id="deferredLicensureQueue"></div>
+                </div>
+                <div class="workflow-section">
+                  <h2>Licensure Activity</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Recent primary-source refresh wins, failures, and deferral actions across the
+                    licensure lane.
+                  </p>
+                  <div
+                    class="subtle"
+                    id="licensureActivityCount"
+                    style="margin-bottom: 0.8rem"
+                  ></div>
+                  <div id="licensureActivity"></div>
+                </div>
+              </div>
+            </details>
+            <section class="admin-region-shell workflow-section" id="confirmationRegion">
+              <div class="admin-region-header">
+                <div>
+                  <div class="admin-region-kicker">Trust And Confirmation</div>
+                  <h2 class="admin-region-title">Resolve missing or aging profile detail</h2>
+                  <div class="admin-region-copy">
+                    These lanes exist to turn incomplete or uncertain profile data into trusted live
+                    information.
+                  </div>
+                </div>
+              </div>
+              <div
+                class="workflow-section"
+                id="importBlockerSprintSection"
+                style="margin-top: 1.2rem"
+              >
+                <h2>Fix Missing Listing Details</h2>
+                <p class="subtle" style="margin-top: 0">
+                  These listings still have missing details that need to be verified before the live
+                  profile can be fully trusted.
+                </p>
+                <div class="sop-note">
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Purpose</div>
+                    <div class="sop-note-copy">
+                      Fix the highest-value missing details that keep a listing from being fully
+                      trusted and ready for live use.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Use This When</div>
+                    <div class="sop-note-copy">
+                      A listing is missing trust-critical information like license, insurance, wait
+                      time, or bipolar experience.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Done Means</div>
+                    <div class="sop-note-copy">
+                      The missing detail is verified, moved into confirmation follow-up, or left
+                      with a clear next step recorded.
+                    </div>
+                  </div>
+                  <details class="playbook">
+                    <summary>Operator Playbook</summary>
+                    <div class="playbook-body">
+                      <div class="playbook-section">
+                        <div class="playbook-label">Good First Move</div>
+                        <div class="playbook-copy">
+                          Pick the listing with the fewest unresolved missing details and verify
+                          them one by one. This lane is about making listings trustworthy, not
+                          polishing every detail.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Strong Decision Example</div>
+                        <div class="playbook-copy">
+                          If you can verify license and operating details from a strong source, fix
+                          the missing detail. If the missing field requires therapist input, move it
+                          to confirmation with a note on exactly what still needs an answer.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Avoid</div>
+                        <div class="playbook-copy">
+                          Do not leave a missing detail unresolved without a next step. Every
+                          listing here should end in verified, moved to confirmation, or
+                          deliberately deferred.
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div id="importBlockerSprint"></div>
+              </div>
+              <div style="margin-top: 1.2rem">
+                <h2>California Priority Wave</h2>
+                <p class="subtle" style="margin-top: 0">
+                  The exact top California confirmation targets we should work first for live trust
+                  and conversion quality.
+                </p>
+                <div id="californiaPriorityConfirmationWave"></div>
+              </div>
+              <div
+                class="workflow-section"
+                id="confirmationSprintSection"
+                style="margin-top: 1.2rem"
+              >
+                <h2>Send Confirmation Requests</h2>
+                <p class="subtle" style="margin-top: 0">
+                  This is the next focused outreach packet for live listings that need therapist
+                  confirmation.
+                </p>
+                <div class="sop-note">
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Purpose</div>
+                    <div class="sop-note-copy">
+                      Work the next small batch of therapist confirmation outreach without scanning
+                      the entire queue.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Use This When</div>
+                    <div class="sop-note-copy">
+                      You want a focused outreach packet to send, follow up on, or advance toward
+                      confirmed status.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Done Means</div>
+                    <div class="sop-note-copy">
+                      Each sprint profile has moved from not started to sent, waiting, confirmed, or
+                      applied.
+                    </div>
+                  </div>
+                  <details class="playbook">
+                    <summary>Operator Playbook</summary>
+                    <div class="playbook-body">
+                      <div class="playbook-section">
+                        <div class="playbook-label">Good First Move</div>
+                        <div class="playbook-copy">
+                          Treat this as a small outbound packet. Work the batch top to bottom,
+                          update the state on each profile, and stop once every row has a clear next
+                          status.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Strong Decision Example</div>
+                        <div class="playbook-copy">
+                          If you have enough information to send outreach, send it and mark the
+                          profile as sent. If a reply already came back, capture the answers and
+                          advance it to confirmed or applied instead of re-sending.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Avoid</div>
+                        <div class="playbook-copy">
+                          Do not use the sprint like a passive reading list. Every profile in the
+                          batch should leave the session in a different and more useful state.
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div id="confirmationSprint"></div>
+              </div>
+              <div
+                class="workflow-section"
+                id="confirmationQueueSection"
+                style="margin-top: 1.2rem"
+              >
+                <h2>Confirm Listing Details</h2>
+                <p class="subtle" style="margin-top: 0">
+                  Live listings that still need therapist-confirmed details, reply follow-up, or
+                  applied updates.
+                </p>
+                <div class="sop-note">
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Purpose</div>
+                    <div class="sop-note-copy">
+                      Confirm missing listing details and carry each listing through reply, review,
+                      and applied updates.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Use This When</div>
+                    <div class="sop-note-copy">
+                      You need to track reply status, save therapist-confirmed values, or mark live
+                      updates as applied.
+                    </div>
+                  </div>
+                  <div class="sop-note-row">
+                    <div class="sop-note-label">Done Means</div>
+                    <div class="sop-note-copy">
+                      The listing is either waiting on therapist reply, fully confirmed, or already
+                      applied back into live data.
+                    </div>
+                  </div>
+                  <details class="playbook">
+                    <summary>Operator Playbook</summary>
+                    <div class="playbook-body">
+                      <div class="playbook-section">
+                        <div class="playbook-label">Good First Move</div>
+                        <div class="playbook-copy">
+                          Filter by status, then work one state at a time. Not-started rows need
+                          outreach, waiting rows need follow-up judgment, and confirmed rows need
+                          values applied back into the live profile.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Strong Decision Example</div>
+                        <div class="playbook-copy">
+                          If a therapist replied with specific answers, save the confirmed values
+                          and mark what was applied. If there is no response yet, keep the profile
+                          in a waiting state rather than pretending the data is settled.
+                        </div>
+                      </div>
+                      <div class="playbook-section">
+                        <div class="playbook-label">Avoid</div>
+                        <div class="playbook-copy">
+                          Do not mark confirmation work as done just because outreach was sent. The
+                          work is only complete when the status accurately reflects what happened
+                          next.
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div class="toolbar" style="margin-bottom: 0.8rem">
+                  <select id="confirmationQueueStatusFilter">
+                    <option value="">All statuses</option>
+                    <option value="not_started">Not started</option>
+                    <option value="sent">Sent</option>
+                    <option value="waiting_on_therapist">Waiting on therapist</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="applied">Applied</option>
+                  </select>
+                  <div class="subtle" id="confirmationQueueCount"></div>
+                </div>
+                <div id="confirmationQueue"></div>
+              </div>
+            </section>
           </aside>
 
-          <main>
-            <div class="panel" id="funnelAnalyticsPanel" style="margin-bottom: 1rem">
-              <h2>Funnel Analytics</h2>
-              <p class="subtle" style="margin-top: 0">
-                Local-only event tracking for the key moments in browse, match, shortlist, and
-                outreach.
-              </p>
-              <div id="funnelInsights"></div>
-            </div>
-            <div class="panel" id="conciergePanel" style="margin-bottom: 1rem">
-              <h2>Concierge Queue</h2>
-              <p class="subtle" style="margin-top: 0">
-                Local-only requests captured when a user wants help choosing or reaching out.
-              </p>
-              <div class="toolbar" style="margin-bottom: 0.8rem">
-                <select id="conciergeStatusFilter">
-                  <option value="">All request statuses</option>
-                  <option value="open">Open items</option>
-                  <option value="new">New</option>
-                  <option value="triaging">Triaging</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="waiting_on_user">Waiting on user</option>
-                  <option value="resolved">Resolved</option>
-                </select>
-                <div class="subtle" id="conciergeQueueCount"></div>
+          <main class="admin-region">
+            <section class="admin-region-shell" id="supplyReviewRegion">
+              <div class="admin-region-header">
+                <div>
+                  <div class="admin-region-kicker">Supply Review</div>
+                  <h2 class="admin-region-title">Add and review incoming supply</h2>
+                  <div class="admin-region-copy">
+                    New candidates and therapist-submitted applications live here. The job is to
+                    make clear publish, merge, confirmation, or rejection decisions quickly.
+                  </div>
+                </div>
               </div>
-              <div id="conciergeQueue"></div>
-            </div>
-            <div class="panel" id="portalRequestsPanel" style="margin-bottom: 1rem">
-              <h2>Therapist Portal Requests</h2>
-              <p class="subtle" style="margin-top: 0">
-                Claim-profile, pause-listing, removal, and profile-update requests from the
-                therapist portal.
-              </p>
-              <div class="toolbar" style="margin-bottom: 0.8rem">
-                <select id="portalRequestStatusFilter">
-                  <option value="">All request statuses</option>
-                  <option value="open">Open</option>
-                  <option value="in_review">In review</option>
-                  <option value="resolved">Resolved</option>
-                </select>
-                <div class="subtle" id="portalRequestCount"></div>
+              <div class="admin-region-grid">
+                <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
+                  <h2>Add New Listings</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    New therapist listings land here before they become live profiles. Review
+                    duplicates, trust readiness, and publishing decisions in one place.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <input
+                      type="search"
+                      id="candidateSearch"
+                      placeholder="Search new listings, cities, source types..."
+                    />
+                    <select id="candidateReviewStatusFilter">
+                      <option value="">All review statuses</option>
+                      <option value="queued">Queued</option>
+                      <option value="needs_review">Needs review</option>
+                      <option value="needs_confirmation">Needs confirmation</option>
+                      <option value="ready_to_publish">Ready to publish</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                    <select id="candidateDedupeStatusFilter">
+                      <option value="">All dedupe states</option>
+                      <option value="unreviewed">Unreviewed</option>
+                      <option value="unique">Unique</option>
+                      <option value="possible_duplicate">Possible duplicate</option>
+                      <option value="rejected_duplicate">Rejected duplicate</option>
+                      <option value="merged">Merged</option>
+                    </select>
+                    <select id="candidateReviewLaneFilter">
+                      <option value="">All ops lanes</option>
+                      <option value="publish_now">Publish now</option>
+                      <option value="editorial_review">Editorial review</option>
+                      <option value="needs_confirmation">Needs confirmation</option>
+                      <option value="resolve_duplicates">Resolve duplicates</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                    <div class="subtle" id="candidateQueueCount"></div>
+                  </div>
+                  <div id="candidateQueue"></div>
+                  <details class="lane-intro-details">
+                    <summary>How this lane works</summary>
+                    <div class="sop-note">
+                      <div class="sop-note-row">
+                        <div class="sop-note-label">Purpose</div>
+                        <div class="sop-note-copy">
+                          Turn newly sourced therapist leads into publishable listings, confirmation
+                          follow-up, duplicate merges, or a clean archive decision.
+                        </div>
+                      </div>
+                      <div class="sop-note-row">
+                        <div class="sop-note-label">Use This When</div>
+                        <div class="sop-note-copy">
+                          You are adding supply, checking whether a new listing is real and unique,
+                          or deciding whether it is ready to publish.
+                        </div>
+                      </div>
+                      <div class="sop-note-row">
+                        <div class="sop-note-label">Done Means</div>
+                        <div class="sop-note-copy">
+                          The new listing is published, sent to confirmation, merged as a duplicate,
+                          or archived with a clear reason.
+                        </div>
+                      </div>
+                      <details class="playbook">
+                        <summary>Operator Playbook</summary>
+                        <div class="playbook-body">
+                          <div class="playbook-section">
+                            <div class="playbook-label">Good First Move</div>
+                            <div class="playbook-copy">
+                              Check for duplicates first, then decide whether the new listing is
+                              strong enough to publish now, needs confirmation, or should be
+                              archived. This keeps low-quality supply from cluttering the system.
+                            </div>
+                          </div>
+                          <div class="playbook-section">
+                            <div class="playbook-label">Strong Decision Example</div>
+                            <div class="playbook-copy">
+                              If the new listing looks unique and has enough trustworthy detail,
+                              move it toward publish-ready. If it is promising but missing a crucial
+                              operational fact, send it to confirmation instead of forcing a publish
+                              decision.
+                            </div>
+                          </div>
+                          <div class="playbook-section">
+                            <div class="playbook-label">Avoid</div>
+                            <div class="playbook-copy">
+                              Do not keep marginal new listings around without a reason. Every
+                              listing should be published, sent to follow-up, merged, or removed
+                              from the queue.
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+                </div>
+                <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
+                  <h2>Review Applications</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Therapist-submitted applications appear here when they need a human review
+                    decision.
+                  </p>
+                  <div class="sop-note">
+                    <div class="sop-note-row">
+                      <div class="sop-note-label">Purpose</div>
+                      <div class="sop-note-copy">
+                        Review therapist-submitted applications and decide whether they should be
+                        approved, revised, rejected, or published.
+                      </div>
+                    </div>
+                    <div class="sop-note-row">
+                      <div class="sop-note-label">Use This When</div>
+                      <div class="sop-note-copy">
+                        A therapist has submitted or updated a profile and it still needs a human
+                        review decision.
+                      </div>
+                    </div>
+                    <div class="sop-note-row">
+                      <div class="sop-note-label">Done Means</div>
+                      <div class="sop-note-copy">
+                        The application leaves pending limbo with a clear state: approved, needs
+                        changes, rejected, or published.
+                      </div>
+                    </div>
+                    <details class="playbook">
+                      <summary>Operator Playbook</summary>
+                      <div class="playbook-body">
+                        <div class="playbook-section">
+                          <div class="playbook-label">Good First Move</div>
+                          <div class="playbook-copy">
+                            Review the application for trust, completeness, and publishability in
+                            that order. The job is to make a clean decision, not to keep
+                            applications sitting in indefinite review.
+                          </div>
+                        </div>
+                        <div class="playbook-section">
+                          <div class="playbook-label">Strong Decision Example</div>
+                          <div class="playbook-copy">
+                            If the therapist clearly meets quality and trust standards, approve or
+                            publish the application. If key details are weak but fixable, request
+                            changes with a concrete reason instead of rejecting it vaguely.
+                          </div>
+                        </div>
+                        <div class="playbook-section">
+                          <div class="playbook-label">Avoid</div>
+                          <div class="playbook-copy">
+                            Do not hold a decent application in reviewing status just because it is
+                            not perfect. Choose the next state and move it forward.
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                  <div class="toolbar">
+                    <input
+                      type="search"
+                      id="applicationSearch"
+                      placeholder="Search applicants, cities, specialties..."
+                    />
+                    <select id="applicationStatusFilter">
+                      <option value="">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="reviewing">Reviewing</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    <select id="applicationFocusFilter">
+                      <option value="">All review focus</option>
+                      <option value="claim_follow_up_due">Follow-up due now</option>
+                      <option value="stalled_after_claim_review">Stalled after-claim review</option>
+                      <option value="claimed_ready_for_profile">
+                        Approved claims awaiting full profile
+                      </option>
+                      <option value="claim_conversion">
+                        Full profiles submitted after claim approval
+                      </option>
+                      <option value="claim_flow">Claim submissions</option>
+                      <option value="full_profile_flow">Full-profile submissions</option>
+                      <option value="publish_ready">Publish-ready first</option>
+                      <option value="needs_changes">Needs fixes first</option>
+                      <option value="confirmation_refresh">Confirmation refreshes</option>
+                      <option value="active_review">Active review</option>
+                    </select>
+                    <select id="applicationReviewGoal">
+                      <option value="balanced">Balanced review</option>
+                      <option value="publish_now">Clear publish-ready work</option>
+                      <option value="fix_weak">Clean up weak applications</option>
+                      <option value="refresh_first">Handle refresh updates</option>
+                    </select>
+                    <button type="button" class="btn-secondary" id="applicationClearFilters">
+                      Clear filters
+                    </button>
+                  </div>
+                </div>
+                <div id="applicationsList"></div>
               </div>
-              <div id="portalRequestsQueue"></div>
-            </div>
-            <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
-              <h2>Applications</h2>
-              <p class="subtle" style="margin-top: 0">
-                Applications from the public signup flow appear here when the review API is running.
-              </p>
-              <div class="toolbar">
-                <input
-                  type="search"
-                  id="applicationSearch"
-                  placeholder="Search applicants, cities, specialties..."
-                />
-                <select id="applicationStatusFilter">
-                  <option value="">All statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="reviewing">Reviewing</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-                <select id="applicationFocusFilter">
-                  <option value="">All review focus</option>
-                  <option value="publish_ready">Publish-ready first</option>
-                  <option value="needs_changes">Needs fixes first</option>
-                  <option value="confirmation_refresh">Confirmation refreshes</option>
-                  <option value="active_review">Active review</option>
-                </select>
-                <select id="applicationReviewGoal">
-                  <option value="balanced">Balanced review</option>
-                  <option value="publish_now">Clear publish-ready work</option>
-                  <option value="fix_weak">Clean up weak applications</option>
-                  <option value="refresh_first">Handle refresh updates</option>
-                </select>
-                <button type="button" class="btn-secondary" id="applicationClearFilters">
-                  Clear filters
-                </button>
+            </section>
+            <section class="admin-region-shell" id="requestsRegion">
+              <div class="admin-region-header">
+                <div>
+                  <div class="admin-region-kicker">Requests And Team Operations</div>
+                  <h2 class="admin-region-title">Handle incoming work and human follow-up</h2>
+                  <div class="admin-region-copy">
+                    This region is where user requests, therapist requests, team workload, and live
+                    review activity stay visible without competing with the publish lanes.
+                  </div>
+                </div>
               </div>
-            </div>
-            <div id="applicationsList"></div>
+              <div class="admin-region-grid two-column">
+                <div class="panel" id="opsInboxPanel" style="margin-bottom: 1rem">
+                  <h2>Operations Inbox</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    One place to work the highest-value publish, merge, confirmation, and refresh
+                    actions next.
+                  </p>
+                  <div id="opsInbox"></div>
+                </div>
+                <div class="panel" id="reviewAttentionQueuePanel" style="margin-bottom: 1rem">
+                  <h2>Needs Action Now</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    The highest-priority work needing action now, based on overdue, stale, and
+                    unassigned items.
+                  </p>
+                  <div
+                    class="subtle"
+                    id="reviewAttentionQueueScope"
+                    style="margin-bottom: 0.7rem"
+                  ></div>
+                  <div id="reviewAttentionQueue"></div>
+                </div>
+                <div class="panel" id="reviewerWorkloadPanel" style="margin-bottom: 1rem">
+                  <h2>Assigned Work</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Shared ownership across applications and new listings, including overdue,
+                    blocked, and unassigned work.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <select id="reviewerWorkloadFilter">
+                      <option value="">All reviewers</option>
+                    </select>
+                    <button class="btn-secondary" type="button" id="reviewerMyQueueToggle">
+                      My work
+                    </button>
+                    <select id="reviewerWorkloadSlice">
+                      <option value="all">All work</option>
+                      <option value="overdue">Overdue only</option>
+                      <option value="today">Due today</option>
+                      <option value="this_week">Due this week</option>
+                      <option value="stale">Needs nudge</option>
+                      <option value="blocked">Blocked only</option>
+                      <option value="unassigned">Unassigned only</option>
+                    </select>
+                    <button class="btn-secondary" type="button" id="reviewerRosterAdd">
+                      Add Reviewer
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewerRosterRemove">
+                      Remove Reviewer
+                    </button>
+                  </div>
+                  <div id="reviewerWorkload"></div>
+                </div>
+                <div class="panel" id="conciergePanel" style="margin-bottom: 1rem">
+                  <h2>Concierge Queue</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Local-only requests captured when a user wants help choosing or reaching out.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <select id="conciergeStatusFilter">
+                      <option value="">All request statuses</option>
+                      <option value="open">Open items</option>
+                      <option value="new">New</option>
+                      <option value="triaging">Triaging</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="waiting_on_user">Waiting on user</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                    <div class="subtle" id="conciergeQueueCount"></div>
+                  </div>
+                  <div id="conciergeQueue"></div>
+                </div>
+                <div class="panel" id="portalRequestsPanel" style="margin-bottom: 1rem">
+                  <h2>Therapist Portal Requests</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Claim-profile, pause-listing, removal, and profile-update requests from the
+                    therapist portal.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <select id="portalRequestStatusFilter">
+                      <option value="">All request statuses</option>
+                      <option value="open">Open</option>
+                      <option value="in_review">In review</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                    <div class="subtle" id="portalRequestCount"></div>
+                  </div>
+                  <div id="portalRequestsQueue"></div>
+                </div>
+                <div
+                  class="panel"
+                  id="reviewActivityPanel"
+                  style="margin-bottom: 1rem; grid-column: 1 / -1"
+                >
+                  <h2>Review Activity</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Recent review decisions, publishes, merges, and ops actions from the review API.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <select id="reviewActivityFilter">
+                      <option value="">All activity</option>
+                      <option value="application">Applications</option>
+                      <option value="candidate">Candidates</option>
+                      <option value="therapist">Therapists</option>
+                      <option value="ops">Ops actions</option>
+                    </select>
+                    <select id="reviewActivitySavedView">
+                      <option value="">Saved views</option>
+                    </select>
+                    <button class="btn-secondary" type="button" id="reviewActivitySaveView">
+                      Save View
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityCopyLink">
+                      Copy Link
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityExportJson">
+                      Export JSON
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityExportCsv">
+                      Export CSV
+                    </button>
+                    <div class="subtle" id="reviewActivityCount"></div>
+                  </div>
+                  <div id="reviewActivitySavedViewMeta"></div>
+                  <div id="reviewActivityFeed"></div>
+                </div>
+              </div>
+            </section>
+            <section class="admin-region-shell" id="intelligenceRegion">
+              <div class="admin-region-header">
+                <div>
+                  <div class="admin-region-kicker">Intelligence</div>
+                  <h2 class="admin-region-title">See what is shaping supply and conversion</h2>
+                  <div class="admin-region-copy">
+                    These panels are the readout layer. They should support decisions, not dominate
+                    the first part of the page.
+                  </div>
+                </div>
+              </div>
+              <div class="admin-region-grid two-column">
+                <div class="panel" id="ingestionScorecardPanel" style="margin-bottom: 1rem">
+                  <h2>Ingestion Scorecard</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Business-level view of pipeline health, duplicate drag, freshness risk, and
+                    where ops attention will move the graph fastest.
+                  </p>
+                  <div id="ingestionScorecard"></div>
+                </div>
+                <div class="panel" id="coverageIntelligencePanel" style="margin-bottom: 1rem">
+                  <h2>Coverage Intelligence</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    See where the therapist graph is thin so sourcing goes after the highest-value
+                    gaps next.
+                  </p>
+                  <div id="coverageIntelligence"></div>
+                </div>
+                <div class="panel" id="sourcePerformancePanel" style="margin-bottom: 1rem">
+                  <h2>Source Performance</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    See which source types are producing publishable candidates and which are
+                    creating duplicate or confirmation-heavy noise.
+                  </p>
+                  <div id="sourcePerformance"></div>
+                </div>
+                <div class="panel" id="funnelAnalyticsPanel" style="margin-bottom: 1rem">
+                  <h2>Funnel Analytics</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Local-only event tracking for the key moments in browse, match, shortlist, and
+                    outreach.
+                  </p>
+                  <div id="funnelInsights"></div>
+                </div>
+              </div>
+            </section>
           </main>
         </div>
       </div>

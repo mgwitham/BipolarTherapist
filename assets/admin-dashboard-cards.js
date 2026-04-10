@@ -1,0 +1,357 @@
+export function createAdminDashboardCardBuilders(config) {
+  const options = config || {};
+  const escapeHtml =
+    options.escapeHtml ||
+    function (value) {
+      return String(value || "");
+    };
+  const getWorkItemTriageLabel = options.getWorkItemTriageLabel || function () {};
+  const buildWorkItemSummary = options.buildWorkItemSummary || function () {};
+  const getWorkItemLaneLabel = options.getWorkItemLaneLabel || function () {};
+  const getWorkItemTypeLabel = options.getWorkItemTypeLabel || function () {};
+
+  function buildPassiveStatCard(value, label, meta) {
+    return (
+      '<div class="stat-card is-passive"><div class="stat-value">' +
+      escapeHtml(value) +
+      '</div><div class="stat-label">' +
+      escapeHtml(label) +
+      "</div>" +
+      (meta ? '<div class="stat-meta">' + escapeHtml(meta) + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  function buildActionStatCard(value, label, targetId, options) {
+    var config = options || {};
+    var attrs = [
+      'type="button"',
+      'class="stat-card is-actionable"',
+      'data-admin-scroll-target="' + escapeHtml(targetId) + '"',
+      'style="text-align:left;cursor:pointer"',
+    ];
+    if (config.confirmationFilter !== undefined) {
+      attrs.push('data-admin-confirmation-filter="' + escapeHtml(config.confirmationFilter) + '"');
+    }
+    if (config.applicationStatus !== undefined) {
+      attrs.push('data-admin-application-status="' + escapeHtml(config.applicationStatus) + '"');
+    }
+    if (config.conciergeStatus !== undefined) {
+      attrs.push('data-admin-concierge-status="' + escapeHtml(config.conciergeStatus) + '"');
+    }
+    if (config.portalRequestStatus !== undefined) {
+      attrs.push(
+        'data-admin-portal-request-status="' + escapeHtml(config.portalRequestStatus) + '"',
+      );
+    }
+    if (config.focusSelector !== undefined) {
+      attrs.push('data-admin-focus-selector="' + escapeHtml(config.focusSelector) + '"');
+    }
+    if (config.focusTargetId !== undefined) {
+      attrs.push('data-admin-focus-target-id="' + escapeHtml(config.focusTargetId) + '"');
+    }
+
+    return (
+      "<button " +
+      attrs.join(" ") +
+      '><div class="stat-value">' +
+      escapeHtml(value) +
+      '</div><div class="stat-label">' +
+      escapeHtml(label) +
+      "</div>" +
+      (config.meta ? '<div class="stat-meta">' + escapeHtml(config.meta) + "</div>" : "") +
+      '<div class="stat-action-note">' +
+      escapeHtml(config.actionLabel || "Open workflow") +
+      "</div></button>"
+    );
+  }
+
+  function wrapStatsGroup(title, cards, extraClass) {
+    return (
+      '<div class="stats-group"><div class="stats-group-title">' +
+      escapeHtml(title) +
+      '</div><div class="stats-grid' +
+      (extraClass ? " " + escapeHtml(extraClass) : "") +
+      '">' +
+      cards.join("") +
+      "</div></div>"
+    );
+  }
+
+  function buildOperatorGuideCard(config) {
+    var item = config || {};
+    var primaryTargetId = item.targetId || item.focusTargetId || "";
+    var secondaryTargetId = item.focusTargetId ? item.targetId || "" : "";
+    var mainNeedsJs =
+      item.focusTargetId !== undefined ||
+      item.confirmationFilter !== undefined ||
+      item.applicationStatus !== undefined ||
+      item.conciergeStatus !== undefined ||
+      item.portalRequestStatus !== undefined ||
+      item.focusSelector !== undefined;
+    var primaryActionLabel =
+      item.focusTargetId && item.directActionLabel
+        ? item.directActionLabel
+        : item.actionLabel || "Open workflow";
+    var secondaryActionLabel =
+      item.focusTargetId && item.directActionLabel
+        ? item.actionLabel || ""
+        : item.directActionLabel || "";
+    var mainAttrs = ['class="operator-guide-main"'];
+    if (mainNeedsJs) {
+      mainAttrs.unshift('type="button"');
+      mainAttrs.push('data-admin-scroll-target="' + escapeHtml(primaryTargetId) + '"');
+    } else {
+      mainAttrs.push('href="#' + escapeHtml(primaryTargetId) + '"');
+    }
+    if (item.confirmationFilter !== undefined) {
+      mainAttrs.push(
+        'data-admin-confirmation-filter="' + escapeHtml(item.confirmationFilter) + '"',
+      );
+    }
+    if (item.applicationStatus !== undefined) {
+      mainAttrs.push('data-admin-application-status="' + escapeHtml(item.applicationStatus) + '"');
+    }
+    if (item.conciergeStatus !== undefined) {
+      mainAttrs.push('data-admin-concierge-status="' + escapeHtml(item.conciergeStatus) + '"');
+    }
+    if (item.portalRequestStatus !== undefined) {
+      mainAttrs.push(
+        'data-admin-portal-request-status="' + escapeHtml(item.portalRequestStatus) + '"',
+      );
+    }
+    if (item.focusSelector !== undefined) {
+      mainAttrs.push('data-admin-focus-selector="' + escapeHtml(item.focusSelector) + '"');
+    }
+    if (item.focusTargetId !== undefined) {
+      mainAttrs.push('data-admin-focus-target-id="' + escapeHtml(item.focusTargetId) + '"');
+    }
+    if (item.title !== undefined) {
+      mainAttrs.push('data-admin-workflow-title="' + escapeHtml(item.title) + '"');
+    }
+    if (Array.isArray(item.steps) && item.steps[0] !== undefined) {
+      mainAttrs.push('data-admin-workflow-first-step="' + escapeHtml(item.steps[0]) + '"');
+    }
+    if (Array.isArray(item.steps) && item.steps[1] !== undefined) {
+      mainAttrs.push('data-admin-workflow-next-step="' + escapeHtml(item.steps[1]) + '"');
+    }
+    if (item.done !== undefined) {
+      mainAttrs.push('data-admin-workflow-done="' + escapeHtml(item.done) + '"');
+    }
+    if (item.directActionLabel !== undefined) {
+      mainAttrs.push(
+        'data-admin-workflow-primary-action-label="' +
+          escapeHtml(item.directActionLabel || "") +
+          '"',
+      );
+    }
+    if (item.focusTargetId !== undefined) {
+      mainAttrs.push(
+        'data-admin-workflow-primary-target-id="' + escapeHtml(item.focusTargetId || "") + '"',
+      );
+    }
+    if (item.targetSummary !== undefined) {
+      mainAttrs.push('data-admin-workflow-destination="' + escapeHtml(item.targetSummary) + '"');
+    }
+    var directAttrs = ['class="btn-secondary btn-inline"'];
+    var mainTag = mainNeedsJs ? "button" : "a";
+
+    return (
+      '<div class="operator-guide-card"><' +
+      mainTag +
+      " " +
+      mainAttrs.join(" ") +
+      '><div class="operator-guide-head"><div><div class="operator-guide-kicker">' +
+      escapeHtml(item.kicker || "Operator lane") +
+      '</div><h3 class="operator-guide-title">' +
+      escapeHtml(item.title || "Workflow") +
+      '</h3></div><div class="operator-guide-count">' +
+      escapeHtml(item.countLabel || "") +
+      '</div></div><div class="operator-guide-copy">' +
+      escapeHtml(item.copy || "") +
+      '</div><div class="operator-guide-block"><div class="operator-guide-label">How To Work It</div><ol class="operator-guide-list">' +
+      (item.steps || [])
+        .map(function (step) {
+          return "<li>" + escapeHtml(step) + "</li>";
+        })
+        .join("") +
+      '</ol></div><div class="operator-guide-block"><div class="operator-guide-label">Done Means</div><div class="operator-guide-done">' +
+      escapeHtml(item.done || "") +
+      '</div></div><div class="operator-guide-block"><div class="operator-guide-label">Main Click Lands In</div><div class="operator-guide-destination">' +
+      escapeHtml(item.targetSummary || "First actionable item in this workflow") +
+      '</div></div><div class="operator-guide-action">' +
+      escapeHtml(primaryActionLabel) +
+      "</div></" +
+      mainTag +
+      ">" +
+      (secondaryActionLabel && secondaryTargetId
+        ? '<div class="operator-guide-secondary"><a href="#' +
+          escapeHtml(secondaryTargetId) +
+          '" ' +
+          directAttrs.join(" ") +
+          ">" +
+          escapeHtml(secondaryActionLabel) +
+          "</a></div>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function buildPriorityActionCard(action, index) {
+    var item = action || {};
+    var attrs = [
+      'type="button"',
+      'class="stat-card is-actionable"',
+      'data-admin-scroll-target="' + escapeHtml(item.targetId || "") + '"',
+      'style="text-align:left;cursor:pointer"',
+    ];
+    if (item.confirmationFilter !== undefined) {
+      attrs.push('data-admin-confirmation-filter="' + escapeHtml(item.confirmationFilter) + '"');
+    }
+    if (item.applicationStatus !== undefined) {
+      attrs.push('data-admin-application-status="' + escapeHtml(item.applicationStatus) + '"');
+    }
+    if (item.conciergeStatus !== undefined) {
+      attrs.push('data-admin-concierge-status="' + escapeHtml(item.conciergeStatus) + '"');
+    }
+    if (item.portalRequestStatus !== undefined) {
+      attrs.push('data-admin-portal-request-status="' + escapeHtml(item.portalRequestStatus) + '"');
+    }
+    if (item.focusSelector !== undefined) {
+      attrs.push('data-admin-focus-selector="' + escapeHtml(item.focusSelector) + '"');
+    }
+    if (item.focusTargetId !== undefined) {
+      attrs.push('data-admin-focus-target-id="' + escapeHtml(item.focusTargetId) + '"');
+    }
+    if (item.headline !== undefined) {
+      attrs.push('data-admin-workflow-title="' + escapeHtml(item.headline) + '"');
+    }
+    if (item.firstStep !== undefined) {
+      attrs.push('data-admin-workflow-first-step="' + escapeHtml(item.firstStep) + '"');
+    }
+    if (item.successState !== undefined) {
+      attrs.push('data-admin-workflow-done="' + escapeHtml(item.successState) + '"');
+    }
+
+    return (
+      "<button " +
+      attrs.join(" ") +
+      '><div class="stat-value">' +
+      escapeHtml(index + 1) +
+      '</div><div class="stat-label">' +
+      escapeHtml(item.headline || "Priority action") +
+      "</div>" +
+      (item.title
+        ? '<div class="stat-meta"><strong>' + escapeHtml(item.title) + "</strong></div>"
+        : "") +
+      (item.detail ? '<div class="stat-meta">' + escapeHtml(item.detail) + "</div>" : "") +
+      (item.whyNow
+        ? '<div class="stat-context-label">Why This Matters</div><div class="stat-context-copy">' +
+          escapeHtml(item.whyNow) +
+          "</div>"
+        : "") +
+      (item.successState
+        ? '<div class="stat-context-label">Good Outcome</div><div class="stat-context-copy">' +
+          escapeHtml(item.successState) +
+          "</div>"
+        : "") +
+      '<div class="stat-action-note">' +
+      escapeHtml(item.actionLabel || "Open workflow") +
+      "</div></button>"
+    );
+  }
+
+  function buildWorkQueueCard(config) {
+    var item = config || {};
+    var topItem = item.topItem || null;
+    var previewItems = Array.isArray(item.items) ? item.items.slice(0, 3) : [];
+
+    function buildPreviewActions(previewItem, index) {
+      return (
+        '<div class="queue-actions" style="margin-top:0.45rem">' +
+        '<button class="btn-secondary btn-inline" type="button" data-work-queue-item="' +
+        escapeHtml(item.bucket || "") +
+        '" data-work-queue-item-index="' +
+        escapeHtml(String(index)) +
+        '">Open</button>' +
+        '<button class="btn-secondary btn-inline" type="button" data-work-queue-claim="' +
+        escapeHtml(item.bucket || "") +
+        '" data-work-queue-item-index="' +
+        escapeHtml(String(index)) +
+        '">' +
+        escapeHtml(previewItem.assignee ? "Reassign" : "Claim") +
+        '</button><button class="btn-secondary btn-inline" type="button" data-work-queue-waiting="' +
+        escapeHtml(item.bucket || "") +
+        '" data-work-queue-item-index="' +
+        escapeHtml(String(index)) +
+        '">Mark waiting</button><button class="btn-secondary btn-inline" type="button" data-work-queue-done="' +
+        escapeHtml(item.bucket || "") +
+        '" data-work-queue-item-index="' +
+        escapeHtml(String(index)) +
+        '">Done</button></div>'
+      );
+    }
+
+    return (
+      '<div class="stat-card" style="text-align:left"><div class="stat-value">' +
+      escapeHtml(String(item.count || 0)) +
+      '</div><div class="stat-label">' +
+      escapeHtml(item.label || "Work") +
+      "</div>" +
+      (item.meta ? '<div class="stat-meta">' + escapeHtml(item.meta) + "</div>" : "") +
+      (topItem
+        ? '<div class="stat-context-label">Start With</div><div class="stat-context-copy">' +
+          escapeHtml(topItem.name) +
+          '</div><div class="mini-status" style="margin-top:0.35rem"><strong>' +
+          escapeHtml(getWorkItemTriageLabel(topItem) || "Next up") +
+          ":</strong> " +
+          escapeHtml(buildWorkItemSummary(topItem)) +
+          "</div>"
+        : '<div class="stat-context-copy">No items in this bucket right now.</div>') +
+      (previewItems.length
+        ? '<div class="stat-context-label">Top Tasks</div><div style="display:grid;gap:0.6rem;margin-top:0.45rem">' +
+          previewItems
+            .map(function (previewItem, index) {
+              return (
+                '<div class="mini-card" style="padding:0.7rem 0.8rem"><div style="font-weight:700;color:var(--navy)">' +
+                escapeHtml(previewItem.name) +
+                '</div><div class="subtle" style="margin-top:0.25rem">' +
+                escapeHtml(buildWorkItemSummary(previewItem)) +
+                '</div><div class="mini-status" style="margin-top:0.45rem"><strong>' +
+                escapeHtml(getWorkItemTriageLabel(previewItem) || "Next up") +
+                ":</strong> " +
+                escapeHtml(
+                  item.bucket === "done_recently"
+                    ? "Recently completed work item."
+                    : "Recommended next work item.",
+                ) +
+                '</div><div class="subtle" style="margin-top:0.35rem"><strong>Lives in:</strong> ' +
+                escapeHtml(
+                  getWorkItemLaneLabel(previewItem) ||
+                    getWorkItemTypeLabel(previewItem.entity_type),
+                ) +
+                "</div>" +
+                buildPreviewActions(previewItem, index) +
+                "</div>"
+              );
+            })
+            .join("") +
+          "</div>"
+        : "") +
+      '<div class="queue-actions" style="margin-top:0.75rem"><button class="btn-secondary btn-inline" type="button" data-work-queue-bucket="' +
+      escapeHtml(item.bucket || "") +
+      '">' +
+      escapeHtml(item.actionLabel || "Open first item") +
+      "</button></div></div>"
+    );
+  }
+
+  return {
+    buildActionStatCard,
+    buildOperatorGuideCard,
+    buildPassiveStatCard,
+    buildPriorityActionCard,
+    buildWorkQueueCard,
+    wrapStatsGroup,
+  };
+}
