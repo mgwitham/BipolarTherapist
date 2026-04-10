@@ -26,9 +26,118 @@ Changes here should be validated with `npm run cms:build`.
 ### Review API
 
 - Local and hosted review endpoints live in `server/` and `api/`
-- This layer handles admin login, review sessions, and therapist submission workflows
+- This layer handles admin login, review sessions, therapist submission workflows, candidate review, and operational review actions
+- `server/review-handler.mjs` is now the composition layer, not the canonical home for every rule
+- Route modules own endpoint clusters:
+  - `server/review-auth-portal-routes.mjs`
+  - `server/review-read-routes.mjs`
+  - `server/review-application-routes.mjs`
+  - `server/review-candidate-routes.mjs`
+  - `server/review-ops-routes.mjs`
+- Infrastructure modules own transport and delivery concerns:
+  - `server/review-config.mjs`
+  - `server/review-http-auth.mjs`
+  - `server/review-email.mjs`
+  - `server/review-application-support.mjs`
 
 Changes here should be reviewed with auth, session, and environment handling in mind.
+
+## Domain Layer
+
+Shared business rules now live in `shared/` instead of being duplicated across the public site and review API.
+
+- `shared/therapist-domain.mjs`: therapist identity, provider IDs, duplicate logic, field-review-state normalization
+- `shared/application-domain.mjs`: portable application shaping and portal-state derivation
+- `shared/therapist-trust-domain.mjs`: trust, freshness, completeness, and verification-priority logic
+- `shared/therapist-publishing-domain.mjs`: therapist/application document shaping and publish-event support
+- `shared/provider-field-observation-domain.mjs`: provider observation shaping, provenance IDs, and inspection-friendly formatting
+- `shared/match-persistence-domain.mjs`: match request/outcome normalization, persistence shaping, and display annotations
+
+The design goal is simple: product surfaces and server routes should consume shared domain rules, not re-invent them.
+
+## Data Substrate
+
+The repo now has a second-layer evidence and analytics substrate under the public listing model:
+
+- `providerFieldObservation`: field-level provider evidence with provenance, freshness, and source metadata
+- `matchRequest`: persisted guided-match intake state
+- `matchOutcome`: persisted outreach and match-result outcome state
+
+Design rules:
+
+- keep the public therapist document as the main read model for product surfaces
+- treat observations and match records as evidence and learning layers, not UI-only records
+- normalize stored analytics values for stability, then add human-readable labels at read time
+- prefer additive write paths over rewrites of the existing publish/import pipeline
+
+Operational access patterns:
+
+- local inspection scripts in `scripts/inspect-*.mjs`
+- local Sanity-backed export scripts in `scripts/export-*.mjs`
+- local summary scripts in `scripts/summarize-*.mjs`
+- authenticated review API reads and CSV export endpoints in `server/review-read-routes.mjs`
+
+Current authenticated review API coverage:
+
+- `GET /provider-observations`: provider-scoped observation reads
+- `GET /provider-observations/export`: provider-scoped JSON or CSV export
+- `GET /match/requests`: persisted match request reads
+- `GET /match/requests/export`: match request JSON or CSV export
+- `GET /match/outcomes`: persisted match outcome reads
+- `GET /match/outcomes/export`: match outcome JSON or CSV export
+
+## Server Testing
+
+Server behavior is protected at two levels:
+
+- shared-domain tests in `test/shared/`
+- route and handler workflow tests in `test/server/`
+
+`test/server/test-helpers.mjs` provides the in-memory request/client harness used by handler-level tests. Prefer extending that harness over rebuilding ad hoc server doubles in each test file.
+
+## Review Event Schema
+
+The review API now emits a durable audit stream through `GET /events`.
+
+Operational access patterns:
+
+- `GET /events`: filtered, paginated event reads for admin surfaces
+- `GET /events/export`: JSON or CSV export for audit and ops review
+
+Supported query parameters:
+
+- `lane`: `application`, `candidate`, `therapist`, or `ops`
+- `limit`: bounded page/export size
+- `before`: cursor for older event pages on `GET /events`
+- `format`: `json` or `csv` on `GET /events/export`
+
+Each review event is a `therapistPublishEvent` document normalized to this shape:
+
+- `id`
+- `created_at`
+- `event_type`
+- `provider_id`
+- `candidate_id`
+- `candidate_document_id`
+- `application_id`
+- `therapist_id`
+- `decision`
+- `review_status`
+- `publish_recommendation`
+- `actor_name`
+- `rationale`
+- `notes`
+- `changed_fields`
+
+Design rules:
+
+- `event_type` is the stable machine-facing taxonomy. Prefer adding a new explicit value over overloading an existing one.
+- `actor_name` comes from the signed admin session or legacy key auth path.
+- `rationale` is the operator's reason for the action and should be preserved even when `notes` are short or empty.
+- `notes` are optional freeform context and may overlap with rationale, but they are not the canonical reason field.
+- `changed_fields` should list the user-meaningful fields touched by the action, not every internal implementation detail.
+
+This stream powers the admin activity timeline and its JSON/CSV export. Treat it as an operational audit contract, not just UI garnish.
 
 ### Ingestion And Ops
 
