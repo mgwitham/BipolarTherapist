@@ -26,6 +26,30 @@ If you are making a code or content change, read the architecture doc first. If 
 
 This is a private working repository for both the product and its operating system. `main` should stay releasable.
 
+## Review API Shape
+
+The review API is no longer centered on one giant handler file.
+
+- [server/review-handler.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-handler.mjs): runtime composition and route dispatch
+- [server/review-auth-portal-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-auth-portal-routes.mjs): auth, session, and portal claim/request routes
+- [server/review-read-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-read-routes.mjs): admin list/read endpoints
+- [server/review-application-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-application-routes.mjs): application workflows
+- [server/review-candidate-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-candidate-routes.mjs): candidate decisions and publish flows
+- [server/review-ops-routes.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-ops-routes.mjs): therapist and licensure ops actions
+- [server/review-config.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-config.mjs), [server/review-http-auth.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-http-auth.mjs), [server/review-email.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-email.mjs), and [server/review-application-support.mjs](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/server/review-application-support.mjs): infrastructure and record-shaping support
+
+The shared business rules behind those routes now live in `shared/`, with tests in both `test/shared/` and `test/server/`.
+
+The admin review activity panel now uses the review API's filtered event contract and supports JSON/CSV export for audit work. The event schema and query model are documented in [docs/ARCHITECTURE.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/docs/ARCHITECTURE.md).
+
+The repo also now has a lightweight analytics and evidence substrate for:
+
+- provider field observations (`providerFieldObservation` documents)
+- match requests (`matchRequest` documents)
+- match outcomes (`matchOutcome` documents)
+
+Those documents are written by import and publish flows, can be inspected locally with scripts, and can be exported from either the authenticated review API or direct Sanity-backed local scripts.
+
 ## Project Structure
 
 - `index.html`: homepage
@@ -117,9 +141,10 @@ Current scope:
 
 - public therapist listings can come from Sanity
 - homepage featured therapists can come from Sanity
-- homepage featured therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and then synced with `node scripts/update-homepage-copy.mjs`
-- match-priority therapist slugs can be staged in [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) and are used as a light editorial prominence boost inside the public match flow
-- if you copy launch controls out of admin, paste them into [generated-launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-launch-profile-controls.json), then run `npm run cms:update:launch-controls` to safely update the repo source of truth
+- homepage featured therapists are delivered from the `homePage` document in Sanity
+- match-priority therapist slugs are delivered from the `siteSettings` document in Sanity and are used as a light editorial prominence boost inside the public match flow
+- [launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/launch-profile-controls.json) remains an ops-side staging input; run `node scripts/update-homepage-copy.mjs` to sync homepage featured slugs and match-priority slugs into Sanity
+- if you copy launch controls out of admin, paste them into [generated-launch-profile-controls.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-launch-profile-controls.json), then run `npm run cms:update:launch-controls` before syncing into Sanity
 - Sanity Studio manages therapist, homepage, site settings, and therapist application documents
 - the repo includes a future-ready therapist matching model
 - `match.html` provides a guided public-facing shortlist and outreach flow
@@ -215,6 +240,41 @@ For the current highest-leverage live California confirmation packet, use [CALIF
 For ready-to-send copy and simple execution tracking for that exact wave, use [CALIFORNIA_PRIORITY_CONFIRMATION_DRAFTS.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/CALIFORNIA_PRIORITY_CONFIRMATION_DRAFTS.md) and [california-priority-confirmation-tracker.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/california-priority-confirmation-tracker.csv).
 
 If you want the repeated top California ask isolated into its own file-based packet, run `npm run cms:generate:california-priority-shared-ask`. That writes [generated-california-priority-shared-ask.md](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.md) and [generated-california-priority-shared-ask.csv](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-california-priority-shared-ask.csv), which currently isolate the shared `bipolarYearsExperience` ask across the full California priority wave.
+
+For the new provider observation substrate, run `npm run cms:generate:provider-field-observations-preview` when you want a non-destructive preview of observation documents derived from current therapist, application, and candidate records. It writes [generated-provider-field-observations-preview.json](/Users/michaelwitham/Desktop/Bipolar%20Therapist%20Directory/data/import/generated-provider-field-observations-preview.json) without changing live records. Add `-- --write` only when you intentionally want to create or replace `providerFieldObservation` documents in Sanity.
+
+If you want to inspect the live observation substrate for a specific provider, run `npm run cms:inspect:provider-observations -- provider-ca-12345`. It prints the current observation records for that provider ID as JSON so you can sanity-check field coverage, source lineage, and freshness without opening Studio documents one by one.
+
+You can also export provider observations for one provider directly from Sanity:
+
+```sh
+npm run cms:export:provider-observations -- provider-ca-12345 --format=json --output=/tmp/provider-observations.json
+npm run cms:summarize:provider-observations -- provider-ca-12345 --output=/tmp/provider-observation-summary.json
+```
+
+The authenticated review API now supports provider observation reads and exports too:
+
+```sh
+GET /provider-observations?providerId=provider-ca-12345&limit=50
+GET /provider-observations/export?providerId=provider-ca-12345&format=csv&limit=200
+```
+
+For match analytics, the local Sanity-backed inspection and export tools are:
+
+```sh
+npm run cms:inspect:match-requests -- --limit=20
+npm run cms:inspect:match-outcomes -- --limit=20
+npm run cms:export:match-requests -- --format=csv --output=/tmp/match-requests.csv
+npm run cms:export:match-outcomes -- --format=json --output=/tmp/match-outcomes.json
+npm run cms:summarize:match-learning -- --output=/tmp/match-learning-summary.json
+```
+
+The authenticated review API also supports admin export endpoints for the same match analytics data:
+
+```sh
+GET /match/requests/export?format=csv&limit=200
+GET /match/outcomes/export?format=csv&limit=200
+```
 
 ## CMS Import
 
@@ -382,6 +442,10 @@ That command reads [california-priority-confirmation-responses.csv](/Users/micha
 
 Run the `check` command first to see exactly which profile fields would change before writing anything.
 If you want one command for the whole local safety loop, use `npm run cms:apply:confirmation-safe`.
+
+For the new match persistence layer, you can create one reversible Sanity smoke pair with
+`npm run cms:smoke:match-persistence` and remove it again with
+`npm run cms:smoke:match-persistence:cleanup`.
 
 ## Deployment
 

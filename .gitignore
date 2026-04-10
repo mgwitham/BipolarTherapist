@@ -12,4 +12,9 @@ coverage/
 playwright-report/
 test-results/
 data/import/*.csv
+data/import/generated-*.csv
+data/import/generated-*.md
+data/import/generated-*.json
 !data/import/therapists-template.csv
+!data/import/therapist-candidates-template.csv
+!data/import/therapist-source-seeds-template.csv
