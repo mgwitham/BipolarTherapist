@@ -19,7 +19,8 @@ export const therapistType = defineType({
       type: "string",
       group: "profile",
       readOnly: true,
-      description: "Canonical therapist identity key shared across candidates, applications, and live listings.",
+      description:
+        "Canonical therapist identity key shared across candidates, applications, and live listings.",
     }),
     defineField({
       name: "name",
@@ -454,7 +455,8 @@ export const therapistType = defineType({
       title: "Source health error",
       type: "string",
       group: "trust",
-      description: "Most recent network or transport error captured during automated source checks.",
+      description:
+        "Most recent network or transport error captured during automated source checks.",
     }),
     defineField({
       name: "sourceDriftSignals",
@@ -465,7 +467,8 @@ export const therapistType = defineType({
       options: {
         layout: "tags",
       },
-      description: "Detected drift indicators such as broken source URLs or missing freshness coverage.",
+      description:
+        "Detected drift indicators such as broken source URLs or missing freshness coverage.",
     }),
     defineField({
       name: "therapistReportedFields",
@@ -499,7 +502,8 @@ export const therapistType = defineType({
       title: "Next review due at",
       type: "datetime",
       group: "trust",
-      description: "When this profile should next be re-reviewed for freshness or operational accuracy.",
+      description:
+        "When this profile should next be re-reviewed for freshness or operational accuracy.",
     }),
     defineField({
       name: "verificationPriority",
@@ -531,7 +535,8 @@ export const therapistType = defineType({
       type: "number",
       group: "trust",
       validation: (rule) => rule.min(0).max(100),
-      description: "How complete the profile is across identity, contact, access, and trust fields.",
+      description:
+        "How complete the profile is across identity, contact, access, and trust fields.",
     }),
     defineField({
       name: "fieldReviewStates",
@@ -600,70 +605,74 @@ export const therapistType = defineType({
       title: "Field trust metadata",
       type: "object",
       group: "trust",
-      fields: ["estimatedWaitTime", "insuranceAccepted", "telehealthStates", "bipolarYearsExperience"].map(
-        (fieldName) =>
-          defineField({
-            name: fieldName,
-            title:
-              fieldName === "estimatedWaitTime"
-                ? "Estimated wait time"
-                : fieldName === "insuranceAccepted"
-                  ? "Insurance accepted"
-                  : fieldName === "telehealthStates"
-                    ? "Telehealth states"
-                    : "Bipolar-specific years of experience",
-            type: "object",
-            fields: [
-              defineField({
-                name: "reviewState",
-                title: "Review state",
-                type: "string",
-                options: {
-                  list: [
-                    { title: "Therapist-confirmed only", value: "therapist_confirmed" },
-                    { title: "Editorially verified", value: "editorially_verified" },
-                    { title: "Needs re-confirmation", value: "needs_reconfirmation" },
-                  ],
-                },
-              }),
-              defineField({
-                name: "confidenceScore",
-                title: "Confidence score",
-                type: "number",
-                validation: (rule) => rule.min(0).max(100),
-              }),
-              defineField({
-                name: "sourceKind",
-                title: "Source kind",
-                type: "string",
-                options: {
-                  list: [
-                    { title: "Editorial source review", value: "editorial_source_review" },
-                    { title: "Therapist confirmed", value: "therapist_confirmed" },
-                    { title: "Blended", value: "blended" },
-                    { title: "Degraded source", value: "degraded_source" },
-                    { title: "Unknown", value: "unknown" },
-                  ],
-                },
-              }),
-              defineField({
-                name: "verifiedAt",
-                title: "Verified at",
-                type: "datetime",
-              }),
-              defineField({
-                name: "staleAfterDays",
-                title: "Stale after days",
-                type: "number",
-                validation: (rule) => rule.min(1).max(3650),
-              }),
-              defineField({
-                name: "staleAfterAt",
-                title: "Stale after at",
-                type: "datetime",
-              }),
-            ],
-          }),
+      fields: [
+        "estimatedWaitTime",
+        "insuranceAccepted",
+        "telehealthStates",
+        "bipolarYearsExperience",
+      ].map((fieldName) =>
+        defineField({
+          name: fieldName,
+          title:
+            fieldName === "estimatedWaitTime"
+              ? "Estimated wait time"
+              : fieldName === "insuranceAccepted"
+                ? "Insurance accepted"
+                : fieldName === "telehealthStates"
+                  ? "Telehealth states"
+                  : "Bipolar-specific years of experience",
+          type: "object",
+          fields: [
+            defineField({
+              name: "reviewState",
+              title: "Review state",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+                  { title: "Editorially verified", value: "editorially_verified" },
+                  { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+                ],
+              },
+            }),
+            defineField({
+              name: "confidenceScore",
+              title: "Confidence score",
+              type: "number",
+              validation: (rule) => rule.min(0).max(100),
+            }),
+            defineField({
+              name: "sourceKind",
+              title: "Source kind",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Editorial source review", value: "editorial_source_review" },
+                  { title: "Therapist confirmed", value: "therapist_confirmed" },
+                  { title: "Blended", value: "blended" },
+                  { title: "Degraded source", value: "degraded_source" },
+                  { title: "Unknown", value: "unknown" },
+                ],
+              },
+            }),
+            defineField({
+              name: "verifiedAt",
+              title: "Verified at",
+              type: "datetime",
+            }),
+            defineField({
+              name: "staleAfterDays",
+              title: "Stale after days",
+              type: "number",
+              validation: (rule) => rule.min(1).max(3650),
+            }),
+            defineField({
+              name: "staleAfterAt",
+              title: "Stale after at",
+              type: "datetime",
+            }),
+          ],
+        }),
       ),
       description:
         "World-class field-level trust spine for high-value operational fields. Stores confidence, source, verification date, and stale-after timing for ranking and ops.",

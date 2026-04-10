@@ -38,7 +38,8 @@ export const therapistApplicationType = defineType({
       title: "Provider ID",
       type: "string",
       readOnly: true,
-      description: "Canonical therapist identity key used to unify candidates, applications, and live listings.",
+      description:
+        "Canonical therapist identity key used to unify candidates, applications, and live listings.",
     }),
     defineField({
       name: "name",

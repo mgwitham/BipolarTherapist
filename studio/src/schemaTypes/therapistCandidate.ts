@@ -32,7 +32,8 @@ export const therapistCandidateType = defineType({
       title: "Provider ID",
       type: "string",
       group: "identity",
-      description: "Canonical therapist identity key once the candidate resolves to a real provider entity.",
+      description:
+        "Canonical therapist identity key once the candidate resolves to a real provider entity.",
     }),
     defineField({
       name: "name",
@@ -396,7 +397,8 @@ export const therapistCandidateType = defineType({
       type: "number",
       group: "review",
       validation: (rule) => rule.min(0).max(100),
-      description: "Operational priority score for queue sorting. Higher numbers should be worked first.",
+      description:
+        "Operational priority score for queue sorting. Higher numbers should be worked first.",
     }),
     defineField({
       name: "nextReviewDueAt",

@@ -129,7 +129,8 @@ export const matchOutcomeType = defineType({
       type: "text",
       rows: 4,
       group: "meta",
-      description: "Stringified or summarized strategy context from the match flow at the time of outcome capture.",
+      description:
+        "Stringified or summarized strategy context from the match flow at the time of outcome capture.",
     }),
   ],
   preview: {
