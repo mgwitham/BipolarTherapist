@@ -5,11 +5,7 @@ import {
   buildProviderFieldObservationId,
   buildProviderFieldObservationsFromSource,
 } from "./provider-field-observation-domain.mjs";
-import {
-  buildProviderId,
-  mapFieldReviewStatesToSnakeCase,
-  slugify,
-} from "./therapist-domain.mjs";
+import { buildProviderId, mapFieldReviewStatesToSnakeCase, slugify } from "./therapist-domain.mjs";
 import {
   buildFieldTrustMeta,
   computeTherapistVerificationMeta,
@@ -119,7 +115,9 @@ export function buildTherapistDocument(application, existingId, helpers) {
     country: application.country || "US",
     licenseState: application.licenseState || "",
     licenseNumber: application.licenseNumber || "",
-    licensureVerification: helpers.normalizeLicensureVerification(application.licensureVerification),
+    licensureVerification: helpers.normalizeLicensureVerification(
+      application.licensureVerification,
+    ),
     specialties: helpers.splitList(application.specialties),
     treatmentModalities: helpers.splitList(application.treatmentModalities),
     clientPopulations: helpers.splitList(application.clientPopulations),
@@ -353,7 +351,11 @@ export function buildApplicationReviewEvent(application, updates) {
     candidateId: "",
     candidateDocumentId: "",
     applicationId: application._id,
-    therapistId: updates.therapistId || application.publishedTherapistId || application.targetTherapistId || "",
+    therapistId:
+      updates.therapistId ||
+      application.publishedTherapistId ||
+      application.targetTherapistId ||
+      "",
     decision: updates.decision || "",
     reviewStatus: updates.reviewStatus || "",
     publishRecommendation: updates.publishRecommendation || "",
@@ -387,7 +389,13 @@ export function buildTherapistOpsEvent(therapist, updates) {
   };
 }
 
-export function buildTherapistApplicationFieldPatch(application, therapist, selectedFields, nowIso, helpers) {
+export function buildTherapistApplicationFieldPatch(
+  application,
+  therapist,
+  selectedFields,
+  nowIso,
+  helpers,
+) {
   const allowed = new Set([
     "credentials",
     "title",
@@ -403,7 +411,9 @@ export function buildTherapistApplicationFieldPatch(application, therapist, sele
     "medication_management",
   ]);
   const fields = Array.isArray(selectedFields)
-    ? selectedFields.map((field) => String(field || "").trim()).filter((field) => allowed.has(field))
+    ? selectedFields
+        .map((field) => String(field || "").trim())
+        .filter((field) => allowed.has(field))
     : [];
 
   const patch = {};
@@ -453,7 +463,11 @@ export function buildTherapistApplicationFieldPatch(application, therapist, sele
       application.therapistReportedConfirmedAt || therapist.therapistReportedConfirmedAt || "",
     fieldReviewStates: therapist.fieldReviewStates || {},
     therapistReportedFields: Array.from(
-      new Set([].concat(therapist.therapistReportedFields || []).concat(application.therapistReportedFields || [])),
+      new Set(
+        []
+          .concat(therapist.therapistReportedFields || [])
+          .concat(application.therapistReportedFields || []),
+      ),
     ),
   };
   const verificationMeta = computeTherapistVerificationMeta(mergedDraft);

@@ -67,7 +67,10 @@ function parseSerializedValue(value) {
   if (text === "false") {
     return false;
   }
-  if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+  if (
+    (text.startsWith("[") && text.endsWith("]")) ||
+    (text.startsWith("{") && text.endsWith("}"))
+  ) {
     try {
       return JSON.parse(text);
     } catch (_error) {
@@ -82,7 +85,9 @@ function labelFor(value, labels) {
   if (!normalized) {
     return "";
   }
-  return labels[normalized] || normalized.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ");
+  return (
+    labels[normalized] || normalized.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ")
+  );
 }
 
 function hasMeaningfulValue(value) {
@@ -238,17 +243,23 @@ export function buildProviderFieldObservationsFromSource(source, options = {}) {
   const sourceDocumentId = normalizeText(options.sourceDocumentId) || normalizeText(doc._id);
   const sourceUrl =
     normalizeText(options.sourceUrl) ||
-    normalizeText(doc.sourceUrl || doc.source_url || doc.website || doc.bookingUrl || doc.booking_url);
+    normalizeText(
+      doc.sourceUrl || doc.source_url || doc.website || doc.bookingUrl || doc.booking_url,
+    );
   const providerId =
     normalizeText(options.providerId) ||
     normalizeText(doc.providerId || doc.provider_id) ||
     buildProviderId(doc);
   const observedAt =
     normalizeText(options.observedAt) ||
-    normalizeText(doc.sourceReviewedAt || doc.source_reviewed_at || doc._updatedAt || doc.updatedAt);
+    normalizeText(
+      doc.sourceReviewedAt || doc.source_reviewed_at || doc._updatedAt || doc.updatedAt,
+    );
   const verifiedAt =
     normalizeText(options.verifiedAt) ||
-    normalizeText(doc.therapistReportedConfirmedAt || doc.therapist_reported_confirmed_at || observedAt);
+    normalizeText(
+      doc.therapistReportedConfirmedAt || doc.therapist_reported_confirmed_at || observedAt,
+    );
 
   return fields
     .filter(function (fieldName) {

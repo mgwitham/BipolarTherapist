@@ -273,19 +273,30 @@ export function normalizePortableMatchRequest(input) {
       input.needsMedicationManagement || input.needs_medication_management,
       MEDICATION_OPTIONS,
     ),
-    insurance_preference: normalizeText(input.insurancePreference || input.insurance || input.insurance_preference),
+    insurance_preference: normalizeText(
+      input.insurancePreference || input.insurance || input.insurance_preference,
+    ),
     budget_max:
       typeof (input.budgetMax || input.budget_max) === "number"
         ? input.budgetMax || input.budget_max
         : Number(input.budgetMax || input.budget_max || 0) || null,
-    priority_mode: normalizeEnumValue(input.priorityMode || input.priority_mode, PRIORITY_MODE_OPTIONS),
+    priority_mode: normalizeEnumValue(
+      input.priorityMode || input.priority_mode,
+      PRIORITY_MODE_OPTIONS,
+    ),
     urgency: normalizeEnumValue(input.urgency, URGENCY_OPTIONS),
-    bipolar_focus: normalizeControlledList(input.bipolarFocus || input.bipolar_focus, BIPOLAR_FOCUS_OPTIONS),
+    bipolar_focus: normalizeControlledList(
+      input.bipolarFocus || input.bipolar_focus,
+      BIPOLAR_FOCUS_OPTIONS,
+    ),
     preferred_modalities: normalizeControlledList(
       input.preferredModalities || input.preferred_modalities,
       MODALITY_OPTIONS,
     ),
-    population_fit: normalizeControlledList(input.populationFit || input.population_fit, POPULATION_OPTIONS),
+    population_fit: normalizeControlledList(
+      input.populationFit || input.population_fit,
+      POPULATION_OPTIONS,
+    ),
     language_preferences: normalizeControlledList(
       input.languagePreferences || input.language_preferences,
       LANGUAGE_OPTIONS,
@@ -329,7 +340,9 @@ export function normalizePortableMatchOutcome(input) {
       (input.context && input.context.summary) || input.contextSummary || input.context_summary,
     ),
     strategy_snapshot: stringify(
-      (input.context && input.context.strategy) || input.strategySnapshot || input.strategy_snapshot,
+      (input.context && input.context.strategy) ||
+        input.strategySnapshot ||
+        input.strategy_snapshot,
     ),
   };
 }

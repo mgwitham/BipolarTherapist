@@ -81,7 +81,12 @@ function getFieldVerifiedAt(record, fieldName, sourceKind) {
   if (sourceKind === "blended") {
     const dates = [sourceReviewedAt, therapistConfirmedAt].filter(Boolean);
     if (dates.length) {
-      return new Date(Math.max.apply(null, dates.map((value) => value.getTime()))).toISOString();
+      return new Date(
+        Math.max.apply(
+          null,
+          dates.map((value) => value.getTime()),
+        ),
+      ).toISOString();
     }
   }
   if (therapistConfirmedAt && Array.isArray(record.therapistReportedFields)) {
@@ -100,11 +105,7 @@ function getFieldVerifiedAt(record, fieldName, sourceKind) {
 
 function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
   let score =
-    reviewState === "editorially_verified"
-      ? 92
-      : reviewState === "needs_reconfirmation"
-        ? 44
-        : 76;
+    reviewState === "editorially_verified" ? 92 : reviewState === "needs_reconfirmation" ? 44 : 76;
 
   if (sourceKind === "blended") {
     score += 3;
@@ -120,7 +121,9 @@ function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind)
   const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
     ? Math.max(
         0,
-        Math.floor((Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
+        Math.floor(
+          (Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000,
+        ),
       )
     : null;
 
@@ -186,7 +189,12 @@ export function computeTherapistVerificationMeta(record) {
     return value instanceof Date && !Number.isNaN(value.getTime());
   });
   const lastOperationalReviewAt = validDates.length
-    ? new Date(Math.max.apply(null, validDates.map((value) => value.getTime()))).toISOString()
+    ? new Date(
+        Math.max.apply(
+          null,
+          validDates.map((value) => value.getTime()),
+        ),
+      ).toISOString()
     : "";
   const needsReconfirmationFields = Object.entries(record.fieldReviewStates || {})
     .filter(function (entry) {
