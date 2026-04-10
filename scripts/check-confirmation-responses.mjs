@@ -17,9 +17,6 @@ const ALLOWED_FIELDS = [
   "insuranceAccepted",
   "yearsExperience",
   "telehealthStates",
-  "sessionFeeMin",
-  "sessionFeeMax",
-  "slidingScale",
 ];
 
 function parseArgs(argv) {
@@ -124,10 +121,6 @@ function normalizeFieldValue(field, value) {
 
   if (field === "insuranceAccepted" || field === "telehealthStates") {
     return splitPipeList(trimmed).join("|");
-  }
-
-  if (field === "slidingScale") {
-    return ["true", "1", "yes"].includes(trimmed.toLowerCase()) ? "true" : "false";
   }
 
   return trimmed;
