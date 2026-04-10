@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { createLicensureVerificationField } from "./licensureVerification";
 
 export const therapistType = defineType({
   name: "therapist",
@@ -12,6 +13,15 @@ export const therapistType = defineType({
     { name: "billing", title: "Billing" },
   ],
   fields: [
+    defineField({
+      name: "providerId",
+      title: "Provider ID",
+      type: "string",
+      group: "profile",
+      readOnly: true,
+      description:
+        "Canonical therapist identity key shared across candidates, applications, and live listings.",
+    }),
     defineField({
       name: "name",
       title: "Full name",
@@ -246,6 +256,7 @@ export const therapistType = defineType({
       type: "string",
       group: "trust",
     }),
+    createLicensureVerificationField("trust"),
     defineField({
       name: "careApproach",
       title: "How they help bipolar clients",
@@ -398,6 +409,68 @@ export const therapistType = defineType({
       description: "When this profile was last reviewed against public sources.",
     }),
     defineField({
+      name: "sourceHealthStatus",
+      title: "Source health status",
+      type: "string",
+      group: "trust",
+      options: {
+        list: [
+          { title: "Healthy", value: "healthy" },
+          { title: "Redirected", value: "redirected" },
+          { title: "Missing source", value: "missing_source" },
+          { title: "Not found", value: "not_found" },
+          { title: "Blocked", value: "blocked" },
+          { title: "Server error", value: "server_error" },
+          { title: "Network error", value: "network_error" },
+          { title: "Timeout", value: "timeout" },
+          { title: "Unknown", value: "unknown" },
+        ],
+      },
+      description: "Latest reachability state of the primary source URL.",
+    }),
+    defineField({
+      name: "sourceHealthCheckedAt",
+      title: "Source health checked at",
+      type: "datetime",
+      group: "trust",
+      description: "When the primary source URL was last checked automatically.",
+    }),
+    defineField({
+      name: "sourceHealthStatusCode",
+      title: "Source health status code",
+      type: "number",
+      group: "trust",
+      validation: (rule) => rule.min(0).max(999),
+      description: "Most recent HTTP status code observed during source health checks.",
+    }),
+    defineField({
+      name: "sourceHealthFinalUrl",
+      title: "Source health final URL",
+      type: "url",
+      group: "trust",
+      description: "Final URL reached after redirects during the latest source health check.",
+    }),
+    defineField({
+      name: "sourceHealthError",
+      title: "Source health error",
+      type: "string",
+      group: "trust",
+      description:
+        "Most recent network or transport error captured during automated source checks.",
+    }),
+    defineField({
+      name: "sourceDriftSignals",
+      title: "Source drift signals",
+      type: "array",
+      group: "trust",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+      description:
+        "Detected drift indicators such as broken source URLs or missing freshness coverage.",
+    }),
+    defineField({
       name: "therapistReportedFields",
       title: "Therapist-confirmed fields",
       type: "array",
@@ -415,6 +488,55 @@ export const therapistType = defineType({
       type: "datetime",
       group: "trust",
       description: "When the specialist last confirmed the therapist-reported operational details.",
+    }),
+    defineField({
+      name: "lastOperationalReviewAt",
+      title: "Last operational review at",
+      type: "datetime",
+      group: "trust",
+      description:
+        "Most recent trust or freshness checkpoint for this profile across source review or therapist confirmation.",
+    }),
+    defineField({
+      name: "nextReviewDueAt",
+      title: "Next review due at",
+      type: "datetime",
+      group: "trust",
+      description:
+        "When this profile should next be re-reviewed for freshness or operational accuracy.",
+    }),
+    defineField({
+      name: "verificationPriority",
+      title: "Verification priority",
+      type: "number",
+      group: "trust",
+      validation: (rule) => rule.min(0).max(100),
+      description: "Operational urgency for refresh work. Higher numbers should be reviewed first.",
+    }),
+    defineField({
+      name: "verificationLane",
+      title: "Verification lane",
+      type: "string",
+      group: "trust",
+      options: {
+        list: [
+          { title: "Fresh", value: "fresh" },
+          { title: "Refresh soon", value: "refresh_soon" },
+          { title: "Refresh now", value: "refresh_now" },
+          { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+          { title: "Needs verification", value: "needs_verification" },
+        ],
+      },
+      description: "Primary operational lane for ongoing trust and freshness work.",
+    }),
+    defineField({
+      name: "dataCompletenessScore",
+      title: "Data completeness score",
+      type: "number",
+      group: "trust",
+      validation: (rule) => rule.min(0).max(100),
+      description:
+        "How complete the profile is across identity, contact, access, and trust fields.",
     }),
     defineField({
       name: "fieldReviewStates",
@@ -477,6 +599,83 @@ export const therapistType = defineType({
       ],
       description:
         "Field-level trust state for hard-to-source operational details. Use this to distinguish therapist-confirmed details from editor-verified or stale details.",
+    }),
+    defineField({
+      name: "fieldTrustMeta",
+      title: "Field trust metadata",
+      type: "object",
+      group: "trust",
+      fields: [
+        "estimatedWaitTime",
+        "insuranceAccepted",
+        "telehealthStates",
+        "bipolarYearsExperience",
+      ].map((fieldName) =>
+        defineField({
+          name: fieldName,
+          title:
+            fieldName === "estimatedWaitTime"
+              ? "Estimated wait time"
+              : fieldName === "insuranceAccepted"
+                ? "Insurance accepted"
+                : fieldName === "telehealthStates"
+                  ? "Telehealth states"
+                  : "Bipolar-specific years of experience",
+          type: "object",
+          fields: [
+            defineField({
+              name: "reviewState",
+              title: "Review state",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Therapist-confirmed only", value: "therapist_confirmed" },
+                  { title: "Editorially verified", value: "editorially_verified" },
+                  { title: "Needs re-confirmation", value: "needs_reconfirmation" },
+                ],
+              },
+            }),
+            defineField({
+              name: "confidenceScore",
+              title: "Confidence score",
+              type: "number",
+              validation: (rule) => rule.min(0).max(100),
+            }),
+            defineField({
+              name: "sourceKind",
+              title: "Source kind",
+              type: "string",
+              options: {
+                list: [
+                  { title: "Editorial source review", value: "editorial_source_review" },
+                  { title: "Therapist confirmed", value: "therapist_confirmed" },
+                  { title: "Blended", value: "blended" },
+                  { title: "Degraded source", value: "degraded_source" },
+                  { title: "Unknown", value: "unknown" },
+                ],
+              },
+            }),
+            defineField({
+              name: "verifiedAt",
+              title: "Verified at",
+              type: "datetime",
+            }),
+            defineField({
+              name: "staleAfterDays",
+              title: "Stale after days",
+              type: "number",
+              validation: (rule) => rule.min(1).max(3650),
+            }),
+            defineField({
+              name: "staleAfterAt",
+              title: "Stale after at",
+              type: "datetime",
+            }),
+          ],
+        }),
+      ),
+      description:
+        "World-class field-level trust spine for high-value operational fields. Stores confidence, source, verification date, and stale-after timing for ranking and ops.",
     }),
     defineField({
       name: "sessionFeeMin",

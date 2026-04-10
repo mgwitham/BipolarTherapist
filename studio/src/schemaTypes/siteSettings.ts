@@ -1,4 +1,4 @@
-import { defineField, defineType } from "sanity";
+import { defineArrayMember, defineField, defineType } from "sanity";
 
 export const siteSettingsType = defineType({
   name: "siteSettings",
@@ -50,6 +50,66 @@ export const siteSettingsType = defineType({
       title: "Footer tagline",
       type: "string",
       initialValue: "Guided bipolar-specialist matching with trust, clarity, and follow-through",
+    }),
+    defineField({
+      name: "matchPrioritySlugs",
+      title: "Match priority slugs",
+      type: "array",
+      description:
+        "Therapist slugs that can receive a light editorial prominence boost in close match/directory rankings.",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+    }),
+    defineField({
+      name: "reviewerDirectory",
+      title: "Reviewer directory",
+      type: "array",
+      description: "Active reviewer names for shared admin workload ownership and My queue mode.",
+      of: [
+        defineArrayMember({
+          type: "object",
+          name: "reviewer",
+          fields: [
+            defineField({
+              name: "reviewerId",
+              title: "Reviewer ID",
+              type: "string",
+              description: "Stable ID used for assignment history and ownership continuity.",
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: "name",
+              title: "Display name",
+              type: "string",
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: "active",
+              title: "Active",
+              type: "boolean",
+              initialValue: true,
+            }),
+          ],
+          preview: {
+            select: {
+              title: "name",
+              reviewerId: "reviewerId",
+              active: "active",
+            },
+            prepare(selection) {
+              return {
+                title: selection.title || "Reviewer",
+                subtitle:
+                  (selection.reviewerId || "reviewer") +
+                  " · " +
+                  (selection.active === false ? "Inactive" : "Active"),
+              };
+            },
+          },
+        }),
+      ],
     }),
   ],
   preview: {
