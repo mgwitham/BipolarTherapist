@@ -92,10 +92,10 @@
   "license": "ISC",
   "devDependencies": {
     "@sanity/client": "^7.11.1",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "prettier": "^3.8.1",
-    "vite": "^8.0.3"
+    "prettier": "^3.8.2",
+    "vite": "^8.0.8"
   }
 }
