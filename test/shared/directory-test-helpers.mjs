@@ -7,7 +7,10 @@ import {
   compareTherapistsWithFilters,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
-import { buildCardViewModel, buildShortlistBarViewModel } from "../../assets/directory-view-model.js";
+import {
+  buildCardViewModel,
+  buildShortlistBarViewModel,
+} from "../../assets/directory-view-model.js";
 import { renderCardMarkup, renderShortlistBarMarkup } from "../../assets/directory-render.js";
 
 export function buildDirectoryTestTherapist(overrides) {
