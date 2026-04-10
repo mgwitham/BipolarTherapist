@@ -1,28 +1,39 @@
-import { createClient } from "@sanity/client";
+import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
-const projectId = import.meta.env.VITE_SANITY_PROJECT_ID;
-const dataset = import.meta.env.VITE_SANITY_DATASET;
-const apiVersion = import.meta.env.VITE_SANITY_API_VERSION || "2026-04-02";
-const useCdn = import.meta.env.VITE_SANITY_USE_CDN !== "false";
+const env = (import.meta && import.meta.env) || {};
+const projectId = env.VITE_SANITY_PROJECT_ID;
+const dataset = env.VITE_SANITY_DATASET;
+const apiVersion = env.VITE_SANITY_API_VERSION || "2026-04-02";
+const useCdn = env.VITE_SANITY_USE_CDN !== "false";
 
 export const cmsEnabled = Boolean(projectId && dataset);
-export const cmsStudioUrl = import.meta.env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
+export const cmsStudioUrl = env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
 
-const client = cmsEnabled
-  ? createClient({
-      projectId: projectId,
-      dataset: dataset,
-      apiVersion: apiVersion,
-      useCdn: useCdn,
-      perspective: "published",
-    })
-  : null;
+let clientPromise = null;
+let sanityClientModulePromise = null;
 
 const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
   error: null,
 };
+
+function normalizeSiteSettings(doc) {
+  if (!doc) {
+    return null;
+  }
+
+  return {
+    ...doc,
+    matchPrioritySlugs: Array.isArray(doc.matchPrioritySlugs)
+      ? doc.matchPrioritySlugs
+          .map(function (value) {
+            return String(value || "").trim();
+          })
+          .filter(Boolean)
+      : [],
+  };
+}
 
 const therapistProjection = `{
   _id,
@@ -86,13 +97,17 @@ const therapistProjection = `{
 }`;
 
 function normalizeTherapist(doc) {
+  const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
+    keyStyle: "camelCase",
+  });
+
   return {
     id: doc._id,
     name: doc.name || "",
     credentials: doc.credentials || "",
-    title: doc.title || "",
-    bio: doc.bio || "",
-    bio_preview: doc.bioPreview || doc.bio || "",
+    title: normalizeDisplayRole(doc.title || ""),
+    bio: normalizeDisplayRole(doc.bio || ""),
+    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio || ""),
     photo_url: doc.photo_url || null,
     photo_source_type: doc.photoSourceType || "",
     photo_reviewed_at: doc.photoReviewedAt || "",
@@ -136,20 +151,29 @@ function normalizeTherapist(doc) {
     source_url: doc.sourceUrl || "",
     supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
     source_reviewed_at: doc.sourceReviewedAt || "",
+    source_health_status: doc.sourceHealthStatus || "",
+    source_health_checked_at: doc.sourceHealthCheckedAt || "",
+    source_health_status_code:
+      typeof doc.sourceHealthStatusCode === "number" ? doc.sourceHealthStatusCode : null,
+    source_health_final_url: doc.sourceHealthFinalUrl || "",
+    source_health_error: doc.sourceHealthError || "",
+    source_drift_signals: Array.isArray(doc.sourceDriftSignals) ? doc.sourceDriftSignals : [],
     therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
       ? doc.therapistReportedFields
       : [],
     therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
     field_review_states: {
-      estimated_wait_time:
-        (doc.fieldReviewStates && doc.fieldReviewStates.estimatedWaitTime) || "therapist_confirmed",
-      insurance_accepted:
-        (doc.fieldReviewStates && doc.fieldReviewStates.insuranceAccepted) || "therapist_confirmed",
-      telehealth_states:
-        (doc.fieldReviewStates && doc.fieldReviewStates.telehealthStates) || "therapist_confirmed",
+      estimated_wait_time: fieldReviewStates.estimatedWaitTime,
+      insurance_accepted: fieldReviewStates.insuranceAccepted,
+      telehealth_states: fieldReviewStates.telehealthStates,
+      bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
+    },
+    field_trust_meta: {
+      estimated_wait_time: (doc.fieldTrustMeta && doc.fieldTrustMeta.estimatedWaitTime) || null,
+      insurance_accepted: (doc.fieldTrustMeta && doc.fieldTrustMeta.insuranceAccepted) || null,
+      telehealth_states: (doc.fieldTrustMeta && doc.fieldTrustMeta.telehealthStates) || null,
       bipolar_years_experience:
-        (doc.fieldReviewStates && doc.fieldReviewStates.bipolarYearsExperience) ||
-        "therapist_confirmed",
+        (doc.fieldTrustMeta && doc.fieldTrustMeta.bipolarYearsExperience) || null,
     },
     session_fee_min: doc.sessionFeeMin || null,
     session_fee_max: doc.sessionFeeMax || null,
@@ -191,10 +215,45 @@ export function getCmsState() {
 }
 
 async function fetchFromSanity(query, params) {
-  if (!client) {
+  if (!cmsEnabled) {
     throw new Error("Sanity client not configured");
   }
 
+  if (!sanityClientModulePromise) {
+    sanityClientModulePromise = import("@sanity/client")
+      .then(function (module) {
+        return module && typeof module.createClient === "function" ? module.createClient : null;
+      })
+      .catch(function (error) {
+        sanityClientModulePromise = null;
+        throw error;
+      });
+  }
+
+  if (!clientPromise) {
+    clientPromise = Promise.resolve()
+      .then(function () {
+        return sanityClientModulePromise;
+      })
+      .then(function (createClient) {
+        if (typeof createClient !== "function") {
+          throw new Error("Sanity client could not be loaded.");
+        }
+        return createClient({
+          projectId: projectId,
+          dataset: dataset,
+          apiVersion: apiVersion,
+          useCdn: useCdn,
+          perspective: "published",
+        });
+      })
+      .catch(function (error) {
+        clientPromise = null;
+        throw error;
+      });
+  }
+
+  const client = await clientPromise;
   return client.fetch(query, params || {});
 }
 
@@ -213,7 +272,7 @@ export async function fetchPublicTherapists() {
   } catch (error) {
     console.error("Failed to load therapists from Sanity.", error);
     setCmsState("error", error);
-    return [];
+    return getTherapists();
   }
 }
 
@@ -320,12 +379,15 @@ export async function fetchHomePageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline
+        footerTagline,
+        matchPrioritySlugs
       }
     }`);
 
     const doc = result && result.homePage ? result.homePage : null;
-    const siteSettings = result && result.siteSettings ? result.siteSettings : null;
+    const siteSettings = normalizeSiteSettings(
+      result && result.siteSettings ? result.siteSettings : null,
+    );
 
     const featuredTherapists =
       doc && Array.isArray(doc.featuredTherapists) && doc.featuredTherapists.length
@@ -406,7 +468,8 @@ export async function fetchDirectoryPageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline
+        footerTagline,
+        matchPrioritySlugs
       }
     }`);
 
@@ -414,7 +477,9 @@ export async function fetchDirectoryPageContent() {
     return {
       therapists: therapists,
       directoryPage: result && result.directoryPage ? result.directoryPage : null,
-      siteSettings: result && result.siteSettings ? result.siteSettings : null,
+      siteSettings: normalizeSiteSettings(
+        result && result.siteSettings ? result.siteSettings : null,
+      ),
     };
   } catch (error) {
     console.error("Failed to load directory page content from Sanity.", error);
@@ -424,5 +489,30 @@ export async function fetchDirectoryPageContent() {
       directoryPage: null,
       siteSettings: null,
     };
+  }
+}
+
+export async function fetchPublicSiteSettings() {
+  if (!cmsEnabled) {
+    setCmsState("seed", null);
+    return null;
+  }
+
+  try {
+    const doc = await fetchFromSanity(`*[_type == "siteSettings"][0]{
+      siteTitle,
+      supportEmail,
+      browseLabel,
+      therapistCtaLabel,
+      therapistCtaUrl,
+      footerTagline,
+      matchPrioritySlugs
+    }`);
+    setCmsState("sanity", null);
+    return normalizeSiteSettings(doc || null);
+  } catch (error) {
+    console.error("Failed to load site settings from Sanity.", error);
+    setCmsState("error", error);
+    return null;
   }
 }
