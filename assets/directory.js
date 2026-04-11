@@ -9,7 +9,6 @@ import {
   FILTER_BOOLEAN_KEYS,
   FILTER_VALUE_KEYS,
   countActiveFilters,
-  readFilterStateFromControls,
   syncFilterControlsFromState,
 } from "./directory-filters.js";
 import {
@@ -24,10 +23,8 @@ import {
   compareTherapistsWithFilters,
   getDirectoryStrategyAudience,
   getEditorialLaneCandidates,
-  getFreshnessRank,
   getMatchScore,
   matchesDirectoryFilters,
-  getResponsivenessRank,
 } from "./directory-logic.js";
 import {
   renderDirectoryDecisionPreviewMarkup,
@@ -139,6 +136,75 @@ import {
       ". That emphasis is guided by " +
       basis +
       " in similar browsing patterns, with a California-first launch focus.";
+  }
+
+  function renderDirectoryReturnJourney() {
+    var root = getElement("directoryReturnJourney");
+    if (!root) {
+      return;
+    }
+
+    if (!shortlist.length) {
+      root.innerHTML = "";
+      return;
+    }
+
+    var progress = getShortlistOutreachProgress();
+    var snapshot = buildDirectoryReturnSnapshot();
+    var snapshotCards = [
+      snapshot.lead
+        ? '<div class="public-trust-card"><div class="public-trust-card-label">Still looks strongest</div><div class="public-trust-card-title">' +
+          escapeHtml(getTherapistName(snapshot.lead.slug)) +
+          '</div><div class="public-trust-card-copy">This is still the best place to restart unless live outreach momentum or fresh friction clearly changes the order.</div></div>'
+        : "",
+      snapshot.live
+        ? '<div class="public-trust-card"><div class="public-trust-card-label">Already has momentum</div><div class="public-trust-card-title">' +
+          escapeHtml(getTherapistName(snapshot.live.slug)) +
+          '</div><div class="public-trust-card-copy">A reply or consult is already moving here, so compare this option against the backup using real follow-through instead of profile polish alone.</div></div>'
+        : "",
+      snapshot.stalled
+        ? '<div class="public-trust-card"><div class="public-trust-card-label">Probably demote or drop</div><div class="public-trust-card-title">' +
+          escapeHtml(getTherapistName(snapshot.stalled.slug)) +
+          '</div><div class="public-trust-card-copy">This path has already hit friction. Keep it only if new information clearly changes the case for it.</div></div>'
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
+    root.innerHTML =
+      '<div class="public-trust-card"><div class="public-trust-card-label">Welcome back</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        progress.hasProgress
+          ? "Your saved shortlist and outreach momentum are still here."
+          : "Your saved shortlist is still here and ready to reopen.",
+      ) +
+      '</div><div class="public-trust-card-copy">' +
+      escapeHtml(
+        progress.hasProgress
+          ? "Resume comparing the same saved therapists, review where outreach stands, and keep moving without rebuilding your context."
+          : "You can keep comparing the therapists you already saved, add notes, and return to the strongest options without starting over.",
+      ) +
+      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Saved progress</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        shortlist.length +
+          " therapist" +
+          (shortlist.length === 1 ? "" : "s") +
+          " saved on this browser",
+      ) +
+      '</div><div class="public-trust-card-copy">' +
+      escapeHtml(
+        progress.summary ||
+          "Your shortlist, notes, and labels stay available here so you can return later without losing your place.",
+      ) +
+      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Best next move</div><div class="public-trust-card-title">' +
+      escapeHtml(
+        progress.hasProgress ? "Resume the shortlist in motion" : "Open your saved shortlist",
+      ) +
+      '</div><div class="public-trust-card-copy"><a href="' +
+      escapeHtml(progress.hasProgress ? buildOutreachQueueUrl() : buildCompareUrl()) +
+      '" class="shortlist-compare-link">' +
+      escapeHtml(progress.hasProgress ? "Resume saved momentum" : "Open saved shortlist") +
+      "</a> so you can keep moving from the same decision context you already created.</div></div>" +
+      snapshotCards;
   }
 
   function renderDirectoryLaunchExplainer(results) {
@@ -279,6 +345,86 @@ import {
     };
   }
 
+  function getShortlistPriorityRank(value) {
+    var normalized = String(value || "").toLowerCase();
+    if (normalized === "best fit") {
+      return 3;
+    }
+    if (normalized === "best availability") {
+      return 2;
+    }
+    if (normalized === "best value") {
+      return 1;
+    }
+    return 0;
+  }
+
+  function buildDirectoryReturnSnapshot() {
+    var slugs = shortlist.map(function (item) {
+      return item.slug;
+    });
+    var latestBySlug = {};
+
+    readOutreachOutcomes()
+      .slice()
+      .sort(function (a, b) {
+        return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
+      })
+      .forEach(function (item) {
+        if (!item || !item.therapist_slug || !slugs.includes(item.therapist_slug)) {
+          return;
+        }
+        if (!latestBySlug[item.therapist_slug]) {
+          latestBySlug[item.therapist_slug] = item;
+        }
+      });
+
+    var ranked = shortlist
+      .map(function (item, index) {
+        return {
+          slug: item.slug,
+          rank: getShortlistPriorityRank(item.priority),
+          index: index,
+          latestOutcome: latestBySlug[item.slug] || null,
+        };
+      })
+      .sort(function (a, b) {
+        return b.rank - a.rank || a.index - b.index;
+      });
+
+    return {
+      lead:
+        ranked.find(function (item) {
+          return (
+            !item.latestOutcome ||
+            ["insurance_mismatch", "waitlist", "no_response"].indexOf(
+              String(item.latestOutcome.outcome || ""),
+            ) === -1
+          );
+        }) ||
+        ranked[0] ||
+        null,
+      live:
+        ranked.find(function (item) {
+          return (
+            item.latestOutcome &&
+            ["heard_back", "booked_consult", "good_fit_call"].indexOf(
+              String(item.latestOutcome.outcome || ""),
+            ) !== -1
+          );
+        }) || null,
+      stalled:
+        ranked.find(function (item) {
+          return (
+            item.latestOutcome &&
+            ["insurance_mismatch", "waitlist", "no_response"].indexOf(
+              String(item.latestOutcome.outcome || ""),
+            ) !== -1
+          );
+        }) || null,
+    };
+  }
+
   function getTherapistName(slug) {
     var therapist = therapists.find(function (item) {
       return item.slug === slug;
@@ -343,6 +489,14 @@ import {
     });
     writeShortlist(shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, 3));
     return true;
+  }
+
+  function removeShortlistEntry(slug) {
+    writeShortlist(
+      shortlist.filter(function (item) {
+        return item.slug !== slug;
+      }),
+    );
   }
 
   function updateShortlistPriority(slug, priority) {
@@ -948,6 +1102,7 @@ import {
         buildCompareUrl: buildCompareUrl,
         buildOutreachQueueUrl: buildOutreachQueueUrl,
         outreachProgress: getShortlistOutreachProgress(),
+        outreachOutcomes: readOutreachOutcomes(),
       }),
     });
 
@@ -970,6 +1125,21 @@ import {
           }),
           lead_slug: link.getAttribute("data-queue-lead-slug") || "",
         });
+      });
+    });
+
+    root.querySelectorAll("[data-shortlist-remove]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var slug = button.getAttribute("data-shortlist-remove");
+        if (!slug) {
+          return;
+        }
+        trackFunnelEvent("directory_shortlist_removed_from_compare", {
+          therapist_slug: slug,
+          shortlist_size_before: shortlist.length,
+        });
+        removeShortlistEntry(slug);
+        render();
       });
     });
   }
@@ -1022,6 +1192,7 @@ import {
       renderEditorialLanes([]);
       renderDirectoryLaunchExplainer([]);
       renderDirectoryAdaptiveExplainer();
+      renderDirectoryReturnJourney();
       renderPagination(0);
       renderShortlistBar();
       updateUrl();
@@ -1033,6 +1204,7 @@ import {
     renderEditorialLanes(results);
     renderDirectoryLaunchExplainer(results);
     renderDirectoryAdaptiveExplainer();
+    renderDirectoryReturnJourney();
     grid.innerHTML = pageItems.map(renderCard).join("");
     if (pendingMotionSlug) {
       var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');

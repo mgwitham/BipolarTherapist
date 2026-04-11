@@ -106,5 +106,8 @@ test("buildShortlistBarViewModel prepares shortlist comparison content", functio
   assert.equal(model.selected.length, 1);
   assert.equal(model.summary[0], "Jamie Rivera · Best fit");
   assert.ok(model.compareCards[0].meta.includes("Within 2 weeks"));
-  assert.equal(model.compareCards[0].note, "Best fit");
+  assert.equal(model.compareCards[0].note, "You marked this as best fit.");
+  assert.equal(model.compareCards[0].noteTitle, "Saved role");
+  assert.ok(model.compareCards[0].changedCopy.includes("Nothing live has changed yet"));
+  assert.equal(model.compareCards[0].pruneCta, "Still looks useful");
 });

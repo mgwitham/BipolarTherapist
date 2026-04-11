@@ -139,6 +139,7 @@ export function buildShortlistBarViewModel(options) {
   var buildCompareUrl = options.buildCompareUrl;
   var buildOutreachQueueUrl = options.buildOutreachQueueUrl;
   var outreachProgress = options.outreachProgress || null;
+  var outreachOutcomes = Array.isArray(options.outreachOutcomes) ? options.outreachOutcomes : [];
 
   var selected = shortlist
     .map(function (entry) {
@@ -184,6 +185,63 @@ export function buildShortlistBarViewModel(options) {
         : 3;
     }
     return 0;
+  }
+
+  function getLatestOutcomeForSlug(slug) {
+    return (
+      outreachOutcomes
+        .filter(function (item) {
+          return item && item.therapist_slug === slug;
+        })
+        .sort(function (a, b) {
+          return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
+        })[0] || null
+    );
+  }
+
+  function formatOutcomeLabel(outcome) {
+    var labels = {
+      reached_out: "Reached out",
+      heard_back: "Heard back",
+      booked_consult: "Booked consult",
+      good_fit_call: "Good fit call",
+      insurance_mismatch: "Insurance mismatch",
+      waitlist: "Waitlist",
+      no_response: "No response yet",
+    };
+    return labels[String(outcome || "")] || "";
+  }
+
+  function buildPruneGuidance(entry, latestOutcome, index) {
+    var priority = String(entry && entry.priority ? entry.priority : "").toLowerCase();
+    var outcome = latestOutcome ? String(latestOutcome.outcome || "") : "";
+
+    if (["insurance_mismatch", "waitlist", "no_response"].indexOf(outcome) !== -1) {
+      return {
+        title: "This is a strong drop candidate",
+        copy: "The newest live signal is weaker than the original save reason. Unless new information changes the picture, it is reasonable to remove this and protect focus.",
+        cta: "Remove from shortlist",
+      };
+    }
+    if (outcome === "heard_back" || outcome === "booked_consult" || outcome === "good_fit_call") {
+      return {
+        title: "Keep this in the active set",
+        copy: "Live momentum matters more than an older save note here. Keep it unless another option now looks clearly stronger on fit or logistics.",
+        cta: "Keep saved",
+      };
+    }
+    if (priority === "best fit" || priority === "best availability" || priority === "best value") {
+      return {
+        title: "Keep, but pressure-test the reason",
+        copy: "The save reason is still useful, but it should earn its spot against newer lead and backup signals.",
+        cta: index === 0 ? "Still looks useful" : "Keep as backup",
+      };
+    }
+    return {
+      title: "Safe to demote if it no longer feels sharp",
+      copy: "If this option no longer has a strong reason to stay, dropping it will make the shortlist easier to use.",
+      cta: "Remove if weaker",
+    };
   }
 
   function scoreTherapistForQueue(therapist, entry) {
@@ -268,6 +326,29 @@ export function buildShortlistBarViewModel(options) {
     compareCards: selected.map(function (therapist) {
       var entry = getEntryForTherapist(therapist.slug);
       var freshness = getFreshnessBadgeData(therapist);
+      var latestOutcome = getLatestOutcomeForSlug(therapist.slug);
+      var prune = buildPruneGuidance(
+        entry,
+        latestOutcome,
+        selected.length > 1 ? selected.indexOf(therapist) : 0,
+      );
+      var memoryTitle =
+        entry && entry.note
+          ? "Why you saved this"
+          : entry && entry.priority
+            ? "Saved role"
+            : "Why this was worth keeping";
+      var memoryCopy =
+        entry && entry.note
+          ? entry.note
+          : entry && entry.priority
+            ? "You marked this as " + entry.priority.toLowerCase() + "."
+            : buildCardFitSummary(filters, therapist);
+      var changedTitle = latestOutcome ? "What changed since then" : "What still needs proving";
+      var changedCopy = latestOutcome
+        ? formatOutcomeLabel(latestOutcome.outcome) +
+          " is now the newest signal here, so judge this option through live momentum and practical follow-through."
+        : "Nothing live has changed yet, so this still needs to prove itself on timing, fit, and next-step clarity.";
       return {
         therapist: therapist,
         meta: [
@@ -279,12 +360,13 @@ export function buildShortlistBarViewModel(options) {
           getFeeCopy(therapist),
           freshness ? freshness.label : "Freshness to confirm",
         ].join(" • "),
-        note:
-          entry && entry.note
-            ? entry.note
-            : entry && entry.priority
-              ? entry.priority
-              : buildCardFitSummary(filters, therapist),
+        note: memoryCopy,
+        noteTitle: memoryTitle,
+        changedTitle: changedTitle,
+        changedCopy: changedCopy,
+        pruneTitle: prune.title,
+        pruneCopy: prune.copy,
+        pruneCta: prune.cta,
       };
     }),
     summary: shortlist

@@ -34,6 +34,27 @@
         <li><a href="signup.html" class="nav-cta" id="navCtaLink">List Your Practice</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" aria-label="Mobile navigation">
+      <a href="index.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Start</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Reorient fast</span>
+      </a>
+      <a href="match.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Guided</span>
+        <span class="public-mobile-nav-title">Get matched</span>
+        <span class="public-mobile-nav-copy">Smaller shortlist</span>
+      </a>
+      <a
+        href="directory.html"
+        class="public-mobile-nav-link is-current nav-shortlist"
+        data-shortlist-link
+      >
+        <span class="public-mobile-nav-kicker">Saved</span>
+        <span class="public-mobile-nav-title">Browse and shortlist</span>
+        <span class="public-mobile-nav-copy">Resume <span data-shortlist-count>0</span> saved</span>
+      </a>
+    </div>
 
     <header class="dir-header">
       <h1 id="directoryHeroTitle">
@@ -41,7 +62,7 @@
       </h1>
       <p id="directoryHeroDescription">
         This directory is built to make bipolar-informed care easier to find, compare, and act on
-        without the noise of a general therapist marketplace.
+        without the noise, churn, and guesswork of a general therapist marketplace.
       </p>
     </header>
 
@@ -61,7 +82,8 @@
             <div class="filter-brief-kicker">Refine your shortlist</div>
             <div class="filter-brief-title">Narrow by fit, trust, and easier follow-through.</div>
             <div class="filter-brief-copy">
-              Use filters to move from a broad list to the therapists most worth contacting first.
+              Use filters to move from a broad list to the therapists most worth contacting first,
+              without forcing yourself to scan everything at once.
             </div>
             <div class="filter-preset-row">
               <button type="button" class="filter-preset-btn" data-filter-preset="trusted_fast">
@@ -217,13 +239,14 @@
           </div>
           <div class="results-explainer-copy">
             The goal is not to show the most listings. It is to help you narrow toward the options
-            that look most relevant and actionable first.
+            that feel most relevant, most credible, and easiest to act on first.
           </div>
           <div class="results-explainer-copy" id="directoryLaunchExplainer"></div>
           <div class="results-explainer-copy" id="directoryAdaptiveExplainer"></div>
           <div class="results-explainer-copy">
             The directory can help you compare structured fit and trust signals, but you should
-            still verify availability, insurance coverage, and personal fit directly.
+            still verify availability, insurance coverage, and personal fit directly in
+            conversation.
           </div>
           <div class="results-explainer-pills">
             <span class="results-explainer-pill">Editorial verification</span>
@@ -232,6 +255,35 @@
             <span class="results-explainer-pill">Clear first-contact path</span>
             <span class="results-explainer-pill">Practical fit signals</span>
           </div>
+          <div class="public-trust-system" aria-label="How trust works in the directory">
+            <div class="public-trust-card">
+              <div class="public-trust-card-label">What the directory checks</div>
+              <div class="public-trust-card-title">Fit, trust, and easier follow-through</div>
+              <div class="public-trust-card-copy">
+                Results are organized to surface bipolar-relevant fit, clearer trust cues, and
+                cleaner contact paths before you invest in a deep profile read.
+              </div>
+            </div>
+            <div class="public-trust-card">
+              <div class="public-trust-card-label">What trust means here</div>
+              <div class="public-trust-card-title">A more credible place to narrow first</div>
+              <div class="public-trust-card-copy">
+                Stronger directory trust signals mean a profile should be easier to judge quickly,
+                not that the platform can replace direct confirmation or personal fit.
+              </div>
+            </div>
+            <div class="public-trust-card">
+              <div class="public-trust-card-label">What you still verify</div>
+              <div class="public-trust-card-title">
+                Openings, coverage, and the real conversation fit
+              </div>
+              <div class="public-trust-card-copy">
+                Use the directory to narrow more intelligently first, then let outreach confirm the
+                details that matter most to a real decision.
+              </div>
+            </div>
+          </div>
+          <div class="public-trust-system" id="directoryReturnJourney" aria-live="polite"></div>
         </div>
         <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
         <div class="editorial-lanes" id="editorialLanes"></div>
