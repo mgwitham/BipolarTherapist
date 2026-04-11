@@ -59,42 +59,35 @@
     <header class="dir-header">
       <div class="dir-hero-shell">
         <div class="dir-hero-copy">
-          <div class="dir-hero-eyebrow">Browse With More Signal</div>
+          <div class="dir-hero-eyebrow">Directory Workspace</div>
           <h1 id="directoryHeroTitle">
             Browse therapists and psychiatrists with bipolar-related expertise
           </h1>
           <p id="directoryHeroDescription">
-            This directory is built to make bipolar-informed care easier to find, compare, and act
-            on without the noise, churn, and guesswork of a general therapist marketplace.
+            Browse the full directory in a simple order: filter first, compare second, save the
+            strongest options to your shortlist.
           </p>
 
-          <div class="dir-hero-decision-strip" aria-label="How the directory helps">
+          <div class="dir-hero-decision-strip" aria-label="How to use the directory">
             <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Narrow Faster</div>
-              <div class="dir-hero-decision-title">
-                Move from a broad list to a credible first cut
-              </div>
+              <div class="dir-hero-decision-label">Step 1</div>
+              <div class="dir-hero-decision-title">Set 1 to 3 filters</div>
               <div class="dir-hero-decision-copy">
-                Filters, fit signals, and trust cues are arranged to help you reduce noise without
-                losing context.
+                Start with location, specialty, or telehealth so the list becomes manageable fast.
               </div>
             </div>
             <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Compare Better</div>
-              <div class="dir-hero-decision-title">See why one option may be easier to act on</div>
+              <div class="dir-hero-decision-label">Step 2</div>
+              <div class="dir-hero-decision-title">Review the strongest matches</div>
               <div class="dir-hero-decision-copy">
-                Freshness, responsiveness, and practical fit show up alongside specialty details so
-                the tradeoffs are clearer.
+                Use sort and profile cards to compare fit, trust, and easier next steps.
               </div>
             </div>
             <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Keep Momentum</div>
-              <div class="dir-hero-decision-title">
-                Shortlist without rebuilding your decision work
-              </div>
+              <div class="dir-hero-decision-label">Step 3</div>
+              <div class="dir-hero-decision-title">Save maybes to your shortlist</div>
               <div class="dir-hero-decision-copy">
-                Save stronger options now and return later with the same shortlist, notes, and
-                outreach context.
+                Keep only the options worth revisiting so you do not lose your place.
               </div>
             </div>
           </div>
@@ -102,41 +95,61 @@
 
         <aside class="dir-hero-panel" aria-label="Directory overview">
           <div class="dir-hero-panel-card">
-            <div class="dir-hero-panel-kicker">Directory Path</div>
+            <div class="dir-hero-panel-kicker">Best Use Case</div>
             <div class="dir-hero-panel-title">
-              Use browse mode when you want control, not a quiz.
+              Use this page when you want to browse on your own.
             </div>
             <div class="dir-hero-panel-copy">
-              Start with a broader scan, tighten the filters once you see the shape of the options,
-              and only then move the strongest profiles into your shortlist.
+              If you want the site to narrow things for you, use matching. If you want full control,
+              stay here and work left to right: filters, results, shortlist.
             </div>
           </div>
 
           <div class="dir-hero-proof-grid">
             <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Best for</div>
-              <div class="dir-hero-proof-value">Self-directed comparison</div>
+              <div class="dir-hero-proof-label">Start with</div>
+              <div class="dir-hero-proof-value">Location or specialty</div>
             </div>
             <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Focus</div>
-              <div class="dir-hero-proof-value">Fit, trust, and easier follow-through</div>
+              <div class="dir-hero-proof-label">Then compare</div>
+              <div class="dir-hero-proof-value">Best match or freshest details</div>
             </div>
             <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Next move</div>
-              <div class="dir-hero-proof-value">Shortlist first, then reach out</div>
+              <div class="dir-hero-proof-label">Save</div>
+              <div class="dir-hero-proof-value">Only the profiles worth revisiting</div>
             </div>
           </div>
 
           <div class="dir-hero-actions">
-            <a href="#resultsGrid" class="dir-hero-primary-action">Start Browsing</a>
-            <a href="match.html" class="dir-hero-secondary-action">Prefer guided matching?</a>
+            <a href="#directoryFilters" class="dir-hero-primary-action">Start With Filters</a>
+            <a href="match.html" class="dir-hero-secondary-action">Use Guided Matching</a>
           </div>
         </aside>
       </div>
     </header>
 
+    <section class="directory-page-map" aria-label="Directory page map">
+      <div class="directory-page-map-shell">
+        <a href="#directoryFilters" class="directory-page-map-card">
+          <span class="directory-page-map-step">1</span>
+          <span class="directory-page-map-title">Choose filters</span>
+          <span class="directory-page-map-copy">Start on the left with a few narrowing moves.</span>
+        </a>
+        <a href="#directoryResults" class="directory-page-map-card">
+          <span class="directory-page-map-step">2</span>
+          <span class="directory-page-map-title">Review results</span>
+          <span class="directory-page-map-copy">Compare the strongest profiles and sort them.</span>
+        </a>
+        <a href="#directoryShortlistBar" class="directory-page-map-card">
+          <span class="directory-page-map-step">3</span>
+          <span class="directory-page-map-title">Build shortlist</span>
+          <span class="directory-page-map-copy">Save options you want to come back to.</span>
+        </a>
+      </div>
+    </section>
+
     <main class="layout">
-      <aside class="directory-sidebar-shell">
+      <aside class="directory-sidebar-shell" id="directoryFilters">
         <button
           type="button"
           class="mobile-filter-toggle"
@@ -144,15 +157,24 @@
           aria-controls="sidebar"
           aria-expanded="false"
         >
-          🔧 Filters <span id="filterCount"></span>
+          Step 1: Filters <span id="filterCount"></span>
         </button>
         <div class="sidebar" id="sidebar">
+          <div class="directory-section-heading">
+            <div class="directory-section-step">Step 1</div>
+            <h2 class="directory-section-title">Set filters first</h2>
+            <p class="directory-section-copy">
+              Pick a few filters to shrink the list before you start opening profiles.
+            </p>
+          </div>
           <div class="filter-brief">
-            <div class="filter-brief-kicker">Refine your shortlist</div>
-            <div class="filter-brief-title">Narrow by fit, trust, and easier follow-through.</div>
+            <div class="filter-brief-kicker">Quick start</div>
+            <div class="filter-brief-title">
+              Choose one preset if you are not sure where to begin.
+            </div>
             <div class="filter-brief-copy">
-              Use filters to move from a broad list to the therapists most worth contacting first,
-              without forcing yourself to scan everything at once.
+              These shortcuts give the page a clearer shape fast so you are not staring at an
+              overwhelming full directory.
             </div>
             <div class="filter-preset-row">
               <button type="button" class="filter-preset-btn" data-filter-preset="trusted_fast">
@@ -168,7 +190,7 @@
           </div>
 
           <div class="filter-active-panel">
-            <div class="filter-active-label">Active narrowing</div>
+            <div class="filter-active-label">Current focus</div>
             <div class="filter-active-copy" id="activeFilterSummary">
               No filters applied yet. Start with one strong narrowing move.
             </div>
@@ -284,8 +306,19 @@
         </div>
       </aside>
 
-      <section class="directory-results" aria-label="Therapist directory results">
+      <section
+        class="directory-results"
+        id="directoryResults"
+        aria-label="Therapist directory results"
+      >
         <div class="directory-results-shell">
+          <div class="directory-section-heading directory-section-heading-results">
+            <div class="directory-section-step">Step 2</div>
+            <h2 class="directory-section-title">Review the filtered results</h2>
+            <p class="directory-section-copy" id="directoryJourneySummary">
+              Once the list looks manageable, compare the strongest cards and save the maybes.
+            </p>
+          </div>
           <div class="results-header">
             <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
             <div class="results-tools">
@@ -302,14 +335,34 @@
             </div>
           </div>
           <div class="results-explainer">
-            <div class="results-explainer-title">How this directory helps you compare</div>
-            <div class="results-explainer-copy">
-              We prioritize profiles with clearer bipolar-relevant detail, practical trust signals,
-              and contact paths that are easier to understand before you reach out.
+            <div class="results-explainer-title">How to use this page</div>
+            <div class="results-explainer-grid">
+              <div class="results-explainer-card">
+                <div class="results-explainer-card-step">1</div>
+                <div class="results-explainer-card-title">Shrink the list first</div>
+                <div class="results-explainer-card-copy">
+                  Start with location, specialty, insurance, or telehealth before deep reading.
+                </div>
+              </div>
+              <div class="results-explainer-card">
+                <div class="results-explainer-card-step">2</div>
+                <div class="results-explainer-card-title">Use sort to answer one question</div>
+                <div class="results-explainer-card-copy">
+                  Best match is the default. Change sort only when you care more about freshness,
+                  experience, speed, or price.
+                </div>
+              </div>
+              <div class="results-explainer-card">
+                <div class="results-explainer-card-step">3</div>
+                <div class="results-explainer-card-title">Shortlist instead of reopening tabs</div>
+                <div class="results-explainer-card-copy">
+                  Save the options worth revisiting so the page keeps your place for you.
+                </div>
+              </div>
             </div>
             <div class="results-explainer-copy">
-              The goal is not to show the most listings. It is to help you narrow toward the options
-              that feel most relevant, most credible, and easiest to act on first.
+              The directory is designed to help you narrow first and contact second, not to make you
+              scan every profile.
             </div>
             <div class="results-explainer-copy" id="directoryLaunchExplainer"></div>
             <div class="results-explainer-copy" id="directoryAdaptiveExplainer"></div>

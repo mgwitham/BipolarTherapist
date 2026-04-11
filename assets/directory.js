@@ -922,6 +922,34 @@ import {
       .join("");
   }
 
+  function renderJourneySummary(resultsLength, activeFilterCount) {
+    var summary = getElement("directoryJourneySummary");
+    if (!summary) {
+      return;
+    }
+
+    if (!activeFilterCount) {
+      summary.textContent =
+        "Start on the left with location, specialty, or telehealth. Once the list shrinks, compare cards here and save the strongest options.";
+      return;
+    }
+
+    if (!resultsLength) {
+      summary.textContent =
+        "These filters are too narrow right now. Remove one or two filters, then review the refreshed results here.";
+      return;
+    }
+
+    if (resultsLength <= 12) {
+      summary.textContent =
+        "This list is now manageable. Compare the cards below, then shortlist the profiles you would actually revisit.";
+      return;
+    }
+
+    summary.textContent =
+      "You still have a broad set of options. Add one more filter or change the sort, then use this section to compare the strongest profiles first.";
+  }
+
   function applyFilterPreset(name) {
     var preset = FILTER_PRESETS[name];
     if (!preset) {
@@ -1456,6 +1484,7 @@ import {
       (results.length === 1 ? singularSuffix : resultsSuffix);
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
     renderActiveFilterSummary(results.length);
+    renderJourneySummary(results.length, activeFilterCount);
 
     if (!pageItems.length) {
       grid.innerHTML = renderEmptyStateMarkup(directoryPage);

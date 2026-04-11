@@ -220,6 +220,57 @@ nav {
   text-transform: uppercase;
 }
 
+.directory-page-map {
+  padding: 0 1.5rem;
+  margin-top: -1.2rem;
+  position: relative;
+  z-index: 5;
+}
+
+.directory-page-map-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.directory-page-map-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem 1.05rem;
+  border-radius: 20px;
+  text-decoration: none;
+  border: 1px solid rgba(26, 122, 143, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 251, 0.96));
+  box-shadow: 0 18px 32px rgba(14, 77, 95, 0.07);
+}
+
+.directory-page-map-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.1);
+  color: var(--teal-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.directory-page-map-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.directory-page-map-copy {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
 .dir-header h1,
 .hero h1 {
   font-family: "Lora", serif;
@@ -392,6 +443,38 @@ nav {
   max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+.directory-section-heading {
+  display: grid;
+  gap: 0.18rem;
+  margin-bottom: 0.9rem;
+}
+
+.directory-section-heading-results {
+  margin-bottom: 0.15rem;
+}
+
+.directory-section-step {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+}
+
+.directory-section-title {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.3;
+  color: var(--navy);
+}
+
+.directory-section-copy {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.58;
+  color: var(--slate);
 }
 
 .sidebar {
@@ -683,6 +766,48 @@ nav {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.45rem;
+}
+
+.results-explainer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.results-explainer-card {
+  padding: 0.9rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(26, 122, 143, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.results-explainer-card-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.1);
+  color: var(--teal-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-bottom: 0.45rem;
+}
+
+.results-explainer-card-title {
+  font-size: 0.84rem;
+  line-height: 1.4;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.results-explainer-card-copy {
+  margin-top: 0.24rem;
+  font-size: 0.79rem;
+  line-height: 1.55;
+  color: var(--slate);
 }
 
 .results-explainer-copy {
@@ -2689,6 +2814,11 @@ footer a {
     grid-template-columns: 1fr;
   }
 
+  .directory-page-map-shell,
+  .results-explainer-grid {
+    grid-template-columns: 1fr;
+  }
+
   .directory-decision-preview {
     grid-template-columns: 1fr;
   }
@@ -2823,6 +2953,7 @@ footer a {
   }
 
   .dir-header,
+  .directory-page-map,
   .hero,
   .layout,
   .profile-layout,
@@ -2845,6 +2976,10 @@ footer a {
   .dir-header {
     padding-top: 1.5rem;
     padding-bottom: 1.6rem;
+  }
+
+  .directory-page-map {
+    margin-top: -0.7rem;
   }
 
   .dir-hero-copy {
