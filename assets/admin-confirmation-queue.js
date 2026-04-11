@@ -152,6 +152,7 @@ export function renderConfirmationQueuePanel(options) {
           '<article class="queue-card' +
           (index === 0 ? " is-start-here" : "") +
           '"' +
+          (actionFlash ? ' data-has-action-flash="true"' : "") +
           (index === 0 ? ' id="confirmationQueueStartHere"' : "") +
           ">" +
           renderActionFirstIntro({

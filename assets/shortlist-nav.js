@@ -68,10 +68,12 @@ function updateShortlistNav() {
 
   document.querySelectorAll("[data-shortlist-link]").forEach(function (element) {
     element.href = buildShortlistHref(shortlist);
+    element.classList.toggle("is-filled", count > 0);
+    element.setAttribute("title", count ? "Saved progress ready to reopen" : "Open shortlist");
     element.setAttribute(
       "aria-label",
       count
-        ? "Open shortlist with " + count + " saved therapist" + (count > 1 ? "s" : "")
+        ? "Open saved progress with " + count + " saved therapist" + (count > 1 ? "s" : "")
         : "Open shortlist",
     );
   });

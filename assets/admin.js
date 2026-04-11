@@ -474,6 +474,139 @@ const focusAdminWorkflowTarget = workflowNavigator.focusAdminWorkflowTarget;
 const handleWorkflowPrimaryActionClick = workflowNavigator.handleWorkflowPrimaryActionClick;
 const scrollToElementWithOffset = workflowNavigator.scrollToElementWithOffset;
 const syncWorkflowFocusFromHash = workflowNavigator.syncWorkflowFocusFromHash;
+const ADMIN_REGION_IDS = [
+  "opsControlRegion",
+  "supplyReviewRegion",
+  "liveListingsRegion",
+  "confirmationRegion",
+  "requestsRegion",
+  "intelligenceRegion",
+];
+
+function setQuickNavActiveState(activeId) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.querySelectorAll("#adminQuickNav a[href^='#']").forEach(function (link) {
+    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    var isActive = Boolean(activeId) && targetId === activeId;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "true");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
+function setOperatorGuideActiveState(activeId) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.querySelectorAll(".operator-guide-main[href^='#']").forEach(function (link) {
+    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    var isActive = Boolean(activeId) && targetId === activeId;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "true");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
+function syncAdminQuickNavFromViewport() {
+  if (typeof document === "undefined" || authRequired) {
+    return;
+  }
+  var activeId = "";
+  var bestOffset = Number.POSITIVE_INFINITY;
+
+  ADMIN_REGION_IDS.forEach(function (sectionId) {
+    var section = document.getElementById(sectionId);
+    if (!section) {
+      return;
+    }
+    var rect = section.getBoundingClientRect();
+    var offset = Math.abs(rect.top - 128);
+    var isCandidate = rect.top <= 180 && rect.bottom > 160;
+    if (isCandidate && offset < bestOffset) {
+      bestOffset = offset;
+      activeId = sectionId;
+    }
+  });
+
+  if (!activeId) {
+    ADMIN_REGION_IDS.some(function (sectionId) {
+      var section = document.getElementById(sectionId);
+      if (!section) {
+        return false;
+      }
+      var rect = section.getBoundingClientRect();
+      if (rect.top > 0) {
+        activeId = sectionId;
+        return true;
+      }
+      return false;
+    });
+  }
+
+  if (!activeId) {
+    activeId = ADMIN_REGION_IDS[ADMIN_REGION_IDS.length - 1] || "";
+  }
+
+  setQuickNavActiveState(activeId);
+}
+
+function focusAdminAnchorTarget(targetId, options) {
+  if (typeof document === "undefined" || !targetId) {
+    return;
+  }
+  var target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+  if (options && options.useWorkflowMode) {
+    applyWorkflowFocusMode(target);
+    spotlightSection(target);
+  }
+  scrollToElementWithOffset(target, "start");
+  if (typeof window !== "undefined") {
+    var nextHash = "#" + targetId;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, "", nextHash);
+    }
+  }
+  setQuickNavActiveState(targetId);
+  setOperatorGuideActiveState(targetId);
+}
+
+function bindAdminNavigationInteractions() {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.querySelectorAll("#adminQuickNav a[href^='#']").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+      if (!targetId) {
+        return;
+      }
+      event.preventDefault();
+      focusAdminAnchorTarget(targetId);
+    });
+  });
+
+  document.querySelectorAll(".operator-guide-main[href^='#']").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+      if (!targetId) {
+        return;
+      }
+      event.preventDefault();
+      focusAdminAnchorTarget(targetId, { useWorkflowMode: true });
+    });
+  });
+}
 
 function readAdminWorkflowUrlParams() {
   if (typeof window === "undefined") {
@@ -526,10 +659,19 @@ if (typeof window !== "undefined") {
   if (window.history && "scrollRestoration" in window.history) {
     window.history.scrollRestoration = "manual";
   }
+  bindAdminNavigationInteractions();
+  window.addEventListener(
+    "scroll",
+    function () {
+      syncAdminQuickNavFromViewport();
+    },
+    { passive: true },
+  );
   window.addEventListener("hashchange", function () {
     syncWorkflowFocusFromHash();
     window.setTimeout(function () {
       syncAdminWorkflowUrlFocus();
+      syncAdminQuickNavFromViewport();
     }, 120);
   });
   window.setTimeout(function () {
@@ -537,9 +679,11 @@ if (typeof window !== "undefined") {
     syncWorkflowFocusFromHash();
     window.setTimeout(function () {
       syncAdminWorkflowUrlFocus();
+      syncAdminQuickNavFromViewport();
     }, 120);
     if (!window.location.hash && !readAdminWorkflowUrlParams().therapistSlug) {
       window.scrollTo({ top: 0, behavior: "auto" });
+      syncAdminQuickNavFromViewport();
     }
   }, 0);
 }
@@ -5888,17 +6032,34 @@ function renderAll() {
 function setAuthUiState() {
   const gate = document.getElementById("adminAuthGate");
   const app = document.getElementById("adminApp");
+  const quickNav = document.getElementById("adminQuickNav");
   const resetButton = document.getElementById("resetDemo");
   const signOutButton = document.getElementById("signOutAdmin");
   const authError = document.getElementById("authError");
+  const passwordField = document.getElementById("adminKey");
 
   if (authRequired) {
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.add("auth-locked");
+    }
     gate.style.display = "block";
     app.style.display = "none";
+    if (quickNav) {
+      quickNav.style.display = "none";
+    }
     resetButton.style.display = "none";
     signOutButton.style.display = "none";
     if (authError) {
       authError.style.display = "block";
+    }
+    if (passwordField) {
+      if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(function () {
+          passwordField.focus();
+        });
+      } else {
+        passwordField.focus();
+      }
     }
     return;
   }
@@ -5915,6 +6076,13 @@ function setAuthUiState() {
 
   gate.style.display = "none";
   app.style.display = "block";
+  if (typeof document !== "undefined" && document.body) {
+    document.body.classList.remove("auth-locked");
+  }
+  if (quickNav) {
+    quickNav.style.display = "";
+  }
+  syncAdminQuickNavFromViewport();
   resetButton.style.display = dataMode === "local" ? "inline-flex" : "none";
   signOutButton.style.display = dataMode === "sanity" ? "inline-flex" : "none";
   if (authError) {
@@ -6021,16 +6189,47 @@ document.getElementById("resetDemo").addEventListener("click", function () {
   renderAll();
 });
 
+const adminPasswordField = document.getElementById("adminKey");
+const adminPasswordToggle = document.getElementById("adminPasswordToggle");
+const adminUsernameField = document.getElementById("adminUsername");
+const adminAuthError = document.getElementById("authError");
+
+function clearAdminAuthError() {
+  if (adminAuthError) {
+    adminAuthError.style.display = "none";
+  }
+}
+
+if (adminPasswordToggle && adminPasswordField) {
+  adminPasswordToggle.addEventListener("click", function () {
+    const nextType = adminPasswordField.type === "password" ? "text" : "password";
+    adminPasswordField.type = nextType;
+    const isVisible = nextType === "text";
+    adminPasswordToggle.textContent = isVisible ? "Hide" : "Show";
+    adminPasswordToggle.setAttribute("aria-pressed", isVisible ? "true" : "false");
+    adminPasswordToggle.setAttribute("aria-label", isVisible ? "Hide password" : "Show password");
+    adminPasswordField.focus();
+  });
+}
+
+if (adminPasswordField) {
+  adminPasswordField.addEventListener("input", clearAdminAuthError);
+}
+
+if (adminUsernameField) {
+  adminUsernameField.addEventListener("input", clearAdminAuthError);
+}
+
 document.getElementById("adminAuthForm").addEventListener("submit", async function (event) {
   event.preventDefault();
-  const field = document.getElementById("adminKey");
-  const usernameField = document.getElementById("adminUsername");
-  const error = document.getElementById("authError");
+  const field = adminPasswordField;
+  const usernameField = adminUsernameField;
+  const error = adminAuthError;
   const value = field.value.trim();
   const username = usernameField.value.trim();
 
   if (!value) {
-    error.textContent = "Enter your admin password.";
+    error.textContent = "Enter your operator password.";
     error.style.display = "block";
     return;
   }
@@ -6059,14 +6258,14 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     await loadData();
 
     if (authRequired) {
-      error.textContent = "Those admin credentials were not accepted.";
+      error.textContent = "Those operator credentials were not accepted.";
       error.style.display = "block";
     } else {
       field.value = "";
     }
   } catch (_error) {
     authRequired = true;
-    error.textContent = "Those admin credentials were not accepted.";
+    error.textContent = "Those operator credentials were not accepted.";
     error.style.display = "block";
   }
 });

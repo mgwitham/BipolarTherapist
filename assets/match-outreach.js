@@ -1,3 +1,121 @@
+function buildJourneyState(latestOutcome, options) {
+  var settings = options || {};
+  if (!latestOutcome) {
+    return {
+      tone: "neutral",
+      label: "Ready to start",
+      title: "You have not logged an outreach yet.",
+      copy: "Start with the recommended route, then save what happened so the backup plan and shortlist can adapt around real momentum.",
+      nextMove: "Use the first contact route or copy the calm outreach draft.",
+      pivot:
+        "If you hear nothing back or hit a waitlist, the product will point you to the next provider.",
+    };
+  }
+
+  var outcome = String(latestOutcome.outcome || "");
+  var label = settings.formatOutcomeLabel ? settings.formatOutcomeLabel(outcome) : outcome;
+
+  if (outcome === "reached_out") {
+    return {
+      tone: "neutral",
+      label: label,
+      title: "You have started the conversation.",
+      copy: "Good. You now have momentum. Save the next change here so the shortlist can react instead of forcing you to remember what happened.",
+      nextMove: "Give this provider a reasonable reply window before widening the search.",
+      pivot: latestOutcome.recommended_wait_window
+        ? "Suggested wait window: " + latestOutcome.recommended_wait_window + "."
+        : "If timing starts to feel uncertain, move to your backup instead of restarting from scratch.",
+    };
+  }
+  if (outcome === "heard_back") {
+    return {
+      tone: "positive",
+      label: label,
+      title: "A live option is in motion.",
+      copy: "You have a real response now. Stay focused on fit, logistics, and whether this route is actually moving toward a consult.",
+      nextMove: "Clarify availability, format, cost, and next step while the thread is warm.",
+      pivot:
+        "Keep your backup in reserve, but do not split your attention unless this path stalls.",
+    };
+  }
+  if (outcome === "booked_consult" || outcome === "good_fit_call") {
+    return {
+      tone: "positive",
+      label: label,
+      title: "This path is converting well.",
+      copy: "You are past the hardest part. Use the shortlist as backup insurance, but the main job now is evaluating fit and follow-through, not opening more tabs.",
+      nextMove: "Prepare the key questions you want answered before deciding whether to continue.",
+      pivot:
+        "Only move to another provider if this consult reveals a trust, logistics, or care mismatch.",
+    };
+  }
+
+  if (outcome === "insurance_mismatch") {
+    return {
+      tone: "negative",
+      label: label,
+      title: "This path is likely blocked by cost or coverage.",
+      copy: "Do not spend more time hoping the economics will work if coverage is off. Keep momentum by moving to the backup that is more likely to fit your practical constraints.",
+      nextMove: "Pivot to your backup and confirm coverage or out-of-pocket cost early.",
+      pivot: "Use this result as a filter signal, not a dead end.",
+    };
+  }
+  if (outcome === "waitlist") {
+    return {
+      tone: "negative",
+      label: label,
+      title: "This path is blocked by timing.",
+      copy: "The shortlist did its job by showing you a strong option, but timing matters. Preserve momentum by moving to the next provider instead of waiting indefinitely.",
+      nextMove:
+        "Start the backup route now if your timing matters more than this particular provider.",
+      pivot: "You can always come back later if availability opens up.",
+    };
+  }
+  if (outcome === "no_response") {
+    return {
+      tone: "negative",
+      label: label,
+      title: "This path may be losing momentum.",
+      copy: "Silence is useful information. The best move is usually to protect momentum and open the next path rather than waiting too long on one provider.",
+      nextMove: "Move to your backup once the reply window feels spent.",
+      pivot:
+        "Save another update if they respond later, but do not let one non-response stall the whole search.",
+    };
+  }
+
+  return {
+    tone: "neutral",
+    label: label,
+    title: "Your outreach state has been saved.",
+    copy: "Keep updating what happens here so your shortlist continues to behave like a guided process.",
+    nextMove: "Choose the clearest next action and keep the backup ready if needed.",
+    pivot: "The more accurately you log outcomes, the better the shortlist can adapt.",
+  };
+}
+
+function renderJourneyState(latestOutcome, options) {
+  var state = buildJourneyState(latestOutcome, options);
+  return (
+    '<div class="first-contact-journey tone-' +
+    options.escapeHtml(state.tone) +
+    '"><div class="first-contact-journey-top"><div><div class="first-contact-journey-kicker">Journey status</div><div class="first-contact-journey-title">' +
+    options.escapeHtml(state.title) +
+    '</div></div><div class="first-contact-journey-state tone-' +
+    options.escapeHtml(state.tone) +
+    '">' +
+    options.escapeHtml(state.label) +
+    '</div></div><div class="first-contact-journey-copy">' +
+    options.escapeHtml(state.copy) +
+    '</div><div class="first-contact-journey-mobile-rail"><div class="first-contact-journey-mobile-label">Right now</div><div class="first-contact-journey-mobile-value">' +
+    options.escapeHtml(state.nextMove) +
+    '</div></div><div class="first-contact-journey-grid"><div class="first-contact-journey-card"><div class="first-contact-journey-label">Next best move</div><div class="first-contact-journey-value">' +
+    options.escapeHtml(state.nextMove) +
+    '</div></div><div class="first-contact-journey-card"><div class="first-contact-journey-label">Pivot guidance</div><div class="first-contact-journey-value">' +
+    options.escapeHtml(state.pivot) +
+    "</div></div></div></div>"
+  );
+}
+
 export function buildFirstContactRecommendation(profile, entries, options) {
   var settings = options || {};
   var picked = settings.pickRecommendedFirstContact(profile, entries);
@@ -243,7 +361,7 @@ export function renderFallbackRecommendation(profile, entries, options) {
       : "") +
     '<button type="button" class="btn-secondary" data-copy-fallback-draft="' +
     settings.escapeHtml(fallback.therapist.slug) +
-    '">Copy backup message</button></div></div></div></section></div></section></div></details>';
+    '">Copy calm backup message</button></div></div></div></section></div></section></div></details>';
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -316,6 +434,9 @@ export function renderFirstContactRecommendation(profile, entries, options) {
   var trackerSummaryCopy = latestOutcome
     ? "Your first outreach already has a saved outcome. Open this to update what happened or change course."
     : "Open this after you contact the first provider so the backup plan can adapt if needed.";
+  var contactPlan = settings.buildContactOrderPlan
+    ? settings.buildContactOrderPlan(profile, entries)
+    : null;
 
   root.innerHTML =
     '<details class="result-disclosure"' +
@@ -368,7 +489,9 @@ export function renderFirstContactRecommendation(profile, entries, options) {
       : "") +
     '<button type="button" class="btn-secondary" data-copy-entry-draft="' +
     settings.escapeHtml(recommendation.therapist.slug) +
-    '">Copy first message</button></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">What happened after outreach?</div><div class="first-contact-tracker-actions">' +
+    '">Copy calm first message</button></div><div class="first-contact-tracker">' +
+    renderJourneyState(latestOutcome, settings) +
+    '<div class="first-contact-tracker-title">What happened after outreach?</div><div class="first-contact-tracker-actions">' +
     settings.outreachOutcomeOptions
       .map(function (option) {
         return (
@@ -388,7 +511,15 @@ export function renderFirstContactRecommendation(profile, entries, options) {
         );
       })
       .join("") +
-    '</div><div class="first-contact-tracker-note">Save the outcome here so the backup plan and ranking logic can adapt.</div></div></div></div></section></div></details>';
+    '</div><div class="first-contact-tracker-note">' +
+    settings.escapeHtml(
+      contactPlan
+        ? "Suggested pivot window: " +
+            contactPlan.waitWindow +
+            ". Save each update here so the backup plan reacts at the right time."
+        : "Save the outcome here so the backup plan and ranking logic can adapt.",
+    ) +
+    "</div></div></div></div></section></div></details>";
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
@@ -491,6 +622,7 @@ export function renderOutreachPanel(entries, options) {
         var therapist = entry.therapist;
         var preferredRoute = settings.getPreferredOutreach(entry);
         var latestOutcome = settings.getLatestOutreachOutcome(therapist.slug);
+        var journeyState = buildJourneyState(latestOutcome, settings);
         var role = index === 0 ? "Contact first" : index === 1 ? "Contact second" : "Contact third";
         var script = settings
           .buildEntryOutreachDraft(entry, settings.profile)
@@ -515,6 +647,18 @@ export function renderOutreachPanel(entries, options) {
           settings.escapeHtml(preferredRoute ? preferredRoute.label : "View full profile") +
           '</div></div><div class="outreach-card-route outreach-card-script"><div class="outreach-note-label">What to say</div><div class="outreach-note-body outreach-script-preview">' +
           settings.escapeHtml(script) +
+          '</div></div></div><div class="first-contact-journey tone-' +
+          settings.escapeHtml(journeyState.tone) +
+          '"><div class="first-contact-journey-top"><div><div class="first-contact-journey-kicker">Current state</div><div class="first-contact-journey-title">' +
+          settings.escapeHtml(journeyState.title) +
+          '</div></div><div class="first-contact-journey-state tone-' +
+          settings.escapeHtml(journeyState.tone) +
+          '">' +
+          settings.escapeHtml(journeyState.label) +
+          '</div></div><div class="first-contact-journey-copy">' +
+          settings.escapeHtml(journeyState.nextMove) +
+          '</div><div class="outreach-mobile-state"><div class="outreach-mobile-state-label">If this stalls</div><div class="outreach-mobile-state-value">' +
+          settings.escapeHtml(journeyState.pivot) +
           '</div></div></div><div class="outreach-card-actions">' +
           (preferredRoute
             ? '<a class="btn-primary" href="' +
