@@ -34,6 +34,59 @@ export function buildCardViewModel(options) {
   var trustSnapshot = buildCardTrustSnapshot(therapist);
   var reviewedDetailsCopy = buildReviewedDetailsCopy(therapist);
   var operationalTrustCopy = getOperationalTrustSummary(therapist);
+  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
+
+  function shortenCopy(value, fallback, maxWords) {
+    var text = String(value || fallback || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) {
+      return "";
+    }
+
+    var firstSentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+    var words = firstSentence.split(" ").filter(Boolean);
+    if (words.length <= maxWords) {
+      return firstSentence;
+    }
+    return words.slice(0, maxWords).join(" ") + "...";
+  }
+
+  function buildCardSummary() {
+    return shortenCopy(
+      therapist.bio_preview || therapist.bio || buildLikelyFitCopy(therapist),
+      buildLikelyFitCopy(therapist),
+      22,
+    );
+  }
+
+  function buildActionSummary() {
+    if (therapist.first_step_expectation) {
+      return shortenCopy(
+        therapist.first_step_expectation,
+        "Open the profile to confirm the best next step.",
+        14,
+      );
+    }
+    if (contactRoute) {
+      return shortenCopy(contactRoute.detail, "Open the profile to confirm the best next step.", 8);
+    }
+    return "Open profile to confirm next step.";
+  }
+
+  function buildFreshnessSummary() {
+    if (freshnessBadge && freshnessBadge.label) {
+      return freshnessBadge.label;
+    }
+    return decisionReadyLabel;
+  }
+
+  function buildTrustSummary() {
+    if (reviewedCount) {
+      return reviewedCount + " verified detail" + (reviewedCount === 1 ? "" : "s");
+    }
+    return shortenCopy(trustSnapshot || operationalTrustCopy || reviewedDetailsCopy, "", 8);
+  }
 
   return {
     therapist: therapist,
@@ -45,6 +98,10 @@ export function buildCardViewModel(options) {
     decisionReadySummary: buildDecisionReadySummary(therapist),
     fitSummary: buildCardFitSummary(filters, therapist),
     likelyFitCopy: buildLikelyFitCopy(therapist),
+    cardSummary: buildCardSummary(),
+    actionSummary: buildActionSummary(),
+    freshnessSummary: buildFreshnessSummary(),
+    trustSummaryShort: buildTrustSummary(),
     contactRoute: contactRoute,
     reviewedDetailsCopy: reviewedDetailsCopy,
     operationalTrustCopy: operationalTrustCopy,
@@ -250,7 +307,7 @@ export function buildShortlistBarViewModel(options) {
     ) {
       return (
         label +
-        " is already live here, so this option can take a stronger slot faster than a cold backup."
+        " is already live here, so this option can take a stronger slot ahead of a cold backup."
       );
     }
     if (
@@ -294,7 +351,7 @@ export function buildShortlistBarViewModel(options) {
     if (latestOutcome.outcome === "heard_back") {
       return (
         label +
-        " is already live here, so this route can move faster than a saved option that still has no reply."
+        " is already live here, so this route may move more easily than a saved option that still has no reply."
       );
     }
     if (latestOutcome.outcome === "reached_out") {
@@ -1096,6 +1153,7 @@ export function buildDirectoryDecisionPreviewModel(options) {
   var freshnessBadge = getFreshnessBadgeData(therapist);
   var decisionReadyLabel = getDecisionReadyLabel(therapist);
   var readinessCopy = buildDecisionReadySummary(therapist);
+  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
   var opennessCopy = therapist.accepting_new_patients
     ? therapist.estimated_wait_time || "Accepting new patients"
     : "Current openings to confirm";
@@ -1111,22 +1169,101 @@ export function buildDirectoryDecisionPreviewModel(options) {
         ? "Sliding scale"
         : "Fees to confirm";
 
+  function shortenCopy(value, fallback, maxWords) {
+    var text = String(value || fallback || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) {
+      return "";
+    }
+
+    var firstSentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+    var words = firstSentence.split(" ").filter(Boolean);
+    if (words.length <= maxWords) {
+      return firstSentence;
+    }
+    return words.slice(0, maxWords).join(" ") + "...";
+  }
+
+  function buildLearnFastCopy() {
+    return "You can judge fit, trust, timing, and the best contact route without reading the full profile.";
+  }
+
+  function buildNextStepCopy() {
+    if (therapist.first_step_expectation) {
+      return shortenCopy(
+        therapist.first_step_expectation,
+        "Open the profile to see the clearest next step before you reach out.",
+        20,
+      );
+    }
+    if (contactRoute) {
+      return shortenCopy(
+        contactRoute.label + ". " + contactRoute.detail,
+        "Open the profile to see the clearest next step before you reach out.",
+        16,
+      );
+    }
+    return "Open the profile to see the clearest next step before you reach out.";
+  }
+
+  function buildWhyNowCopy() {
+    if (reviewedCount && freshnessBadge && freshnessBadge.tone !== "stale") {
+      return (
+        reviewedCount +
+        " operational detail" +
+        (reviewedCount === 1 ? " was" : "s were") +
+        " reconfirmed recently."
+      );
+    }
+    if (freshnessBadge && freshnessBadge.note) {
+      return shortenCopy(freshnessBadge.note, readinessCopy, 16);
+    }
+    return shortenCopy(readinessCopy, "Open the profile to confirm the strongest details.", 16);
+  }
+
+  function buildPreviewOpenReason() {
+    var fitReason = buildCardFitSummary(filters, therapist);
+    var likelyFit = buildLikelyFitCopy(therapist);
+    var hasUserSelectedFitReason =
+      Boolean(filters.specialty) ||
+      Boolean(filters.modality) ||
+      Boolean(filters.population) ||
+      Boolean(filters.insurance) ||
+      Boolean(filters.telehealth) ||
+      Boolean(filters.in_person) ||
+      Boolean(filters.accepting) ||
+      Boolean(filters.medication_management) ||
+      Boolean(filters.responsive_contact);
+
+    if (hasUserSelectedFitReason && fitReason) {
+      return fitReason
+        .replace(/^May fit because this clinician /, "")
+        .replace(
+          /^May be worth a closer look based on the current filters\./,
+          "Matches your current filters.",
+        )
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    return likelyFit
+      .replace(/^Likely best for /, "Best for ")
+      .replace(/^Likely /, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   return {
     therapist: therapist,
     shortlisted: isShortlisted(therapist.slug),
     handoffLabel: handoffPreference && handoffPreference.label ? handoffPreference.label : "",
     handoffNote: handoffPreference && handoffPreference.note ? handoffPreference.note : "",
-    openReason: buildCardFitSummary(filters, therapist) + " " + buildLikelyFitCopy(therapist),
+    openReason: buildPreviewOpenReason(),
     proofLine: buildCardStandoutCopy(therapist) + " " + buildCardReachabilityCopy(therapist),
-    learnFastCopy:
-      "You will be able to judge fit, trust, timing, and the smartest contact route without reading the whole profile.",
-    nextStepCopy: therapist.first_step_expectation
-      ? therapist.first_step_expectation
-      : contactRoute
-        ? contactRoute.detail
-        : "Open the profile to see the clearest next step before you reach out.",
-    whyNowCopy:
-      freshnessBadge && freshnessBadge.tone !== "stale" ? freshnessBadge.note : readinessCopy,
+    learnFastCopy: buildLearnFastCopy(),
+    nextStepCopy: buildNextStepCopy(),
+    whyNowCopy: buildWhyNowCopy(),
     quickStats: [
       {
         label: "Readiness",

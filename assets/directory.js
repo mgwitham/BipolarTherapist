@@ -61,7 +61,7 @@ import {
   var defaultFilters = {
     q: "",
     state: "CA",
-    city: "",
+    zip: "",
     specialty: "",
     modality: "",
     population: "",
@@ -109,36 +109,28 @@ import {
     if (!root) {
       return;
     }
-
-    var adaptiveSignals = summarizeAdaptiveSignals(
-      readFunnelEvents(),
-      [],
-      buildDirectoryStrategySegments(filters),
-    );
-    var basis =
-      adaptiveSignals.match_action_basis === "outcomes"
-        ? "what has worked best"
-        : "how people tend to move";
-    var audience = getDirectoryStrategyAudience(filters);
-    var emphasis =
-      filters.sortBy === "soonest_availability"
-        ? "leaning a little harder on speed and easier follow-through"
-        : filters.sortBy === "most_responsive"
-          ? "leaning a little harder on contact responsiveness"
-          : filters.sortBy === "most_experienced"
-            ? "leaning a little harder on bipolar-specific depth"
-            : filters.sortBy === "lowest_fee"
-              ? "leaning a little harder on fee visibility"
-              : "balancing reviewed details, fit, and decision-readiness";
-
+    if (filters.sortBy === "soonest_availability") {
+      root.textContent =
+        "Use this sort when availability matters most and you want options that may be easier to move forward with now.";
+      return;
+    }
+    if (filters.sortBy === "most_responsive") {
+      root.textContent =
+        "Use this sort when you want therapists with clearer signs of easier follow-through and reply paths.";
+      return;
+    }
+    if (filters.sortBy === "most_experienced") {
+      root.textContent =
+        "Use this sort when bipolar-specific depth matters more than convenience or cost.";
+      return;
+    }
+    if (filters.sortBy === "lowest_fee") {
+      root.textContent =
+        "Use this sort when affordability matters most and you want to compare lower-friction cost options first.";
+      return;
+    }
     root.textContent =
-      "For " +
-      audience +
-      ", the directory is currently " +
-      emphasis +
-      ". That emphasis is guided by " +
-      basis +
-      " in similar browsing patterns, with a California-first launch focus.";
+      "Best match is a good default when you want a balanced first pass across fit, logistics, and next-step clarity.";
   }
 
   function renderDirectoryReturnJourney() {
@@ -224,13 +216,13 @@ import {
 
     if (activeFilterCount > 1 || filters.sortBy !== "best_match") {
       root.textContent =
-        "Once you add stronger filters or change the sort, the directory leans much harder on your choices than on any launch-level curation.";
+        "With stronger filters or a custom sort, your own priorities now matter more than the default ordering.";
       return;
     }
 
     if (!visiblePriorityCount) {
       root.textContent =
-        "The strongest profiles here still rise on reviewed details, fit, and next-step clarity, even when no launch-priority profile is in view.";
+        "If none of these feel right, try one more filter or switch the sort to focus on experience, timing, or cost.";
       return;
     }
 
@@ -238,7 +230,7 @@ import {
       visiblePriorityCount +
       " profile" +
       (visiblePriorityCount === 1 ? " is" : "s are") +
-      " currently getting a light visibility boost because the profile looks especially strong on reviewed details, decision-readiness, and contact clarity. That boost only matters when options are already close.";
+      " worth a closer look near the top of the list if you want a simpler first pass.";
   }
 
   function escapeHtml(value) {
@@ -767,7 +759,6 @@ import {
       ["searchLabelText", "searchLabel"],
       ["locationPanelTitle", "locationPanelTitle"],
       ["stateLabelText", "stateLabel"],
-      ["cityLabelText", "cityLabel"],
       ["specialtyPanelTitle", "specialtyPanelTitle"],
       ["specialtyLabelText", "specialtyLabel"],
       ["insurancePanelTitle", "insurancePanelTitle"],
@@ -789,12 +780,16 @@ import {
     });
 
     var keywordInput = getElement("q");
-    var cityInput = getElement("city");
+    var zipInput = getElement("zip");
+    var zipLabel = getElement("cityLabelText");
     if (keywordInput && directoryPage.searchPlaceholder) {
       keywordInput.placeholder = directoryPage.searchPlaceholder;
     }
-    if (cityInput && directoryPage.cityPlaceholder) {
-      cityInput.placeholder = directoryPage.cityPlaceholder;
+    if (zipLabel) {
+      zipLabel.textContent = directoryPage.zipLabel || "Zip code";
+    }
+    if (zipInput) {
+      zipInput.placeholder = directoryPage.zipPlaceholder || "e.g. 90024";
     }
 
     var stateSelect = getElement("state");
@@ -847,8 +842,8 @@ import {
     if (filters.state) {
       chips.push(filters.state);
     }
-    if (filters.city) {
-      chips.push(filters.city);
+    if (filters.zip) {
+      chips.push(filters.zip);
     }
     if (filters.specialty) {
       chips.push(filters.specialty);
@@ -899,7 +894,7 @@ import {
     var active = summarizeActiveFilters();
     if (!active.length) {
       summary.textContent =
-        "No filters applied yet. Start with one strong narrowing move so the directory can behave more like a shortlist than a marketplace.";
+        "No filters yet. Start with one strong narrowing move to cut the list down.";
       chipsRoot.innerHTML = "";
       return;
     }
@@ -913,7 +908,7 @@ import {
       active.length +
       " signal" +
       (active.length === 1 ? "" : "s") +
-      ". This should improve fit clarity before you open profiles.";
+      ". Keep going if the list still feels too broad.";
     chipsRoot.innerHTML = active
       .slice(0, 8)
       .map(function (item) {
@@ -930,7 +925,7 @@ import {
 
     if (!activeFilterCount) {
       summary.textContent =
-        "Start on the left with location, specialty, or telehealth. Once the list shrinks, compare cards here and save the strongest options.";
+        "Start with location, specialty, insurance, or telehealth. Then compare the strongest options here.";
       return;
     }
 
@@ -942,12 +937,12 @@ import {
 
     if (resultsLength <= 12) {
       summary.textContent =
-        "This list is now manageable. Compare the cards below, then shortlist the profiles you would actually revisit.";
+        "This list is manageable now. Compare the cards below and save the therapists you may actually contact.";
       return;
     }
 
     summary.textContent =
-      "You still have a broad set of options. Add one more filter or change the sort, then use this section to compare the strongest profiles first.";
+      "You still have a broad set of options. Add one more filter or change the sort to make comparison easier.";
   }
 
   function applyFilterPreset(name) {
@@ -1147,7 +1142,7 @@ import {
 
     if (filters.sortBy !== "soonest_availability") {
       add(
-        "If you sort for speed instead",
+        "If you sort for availability instead",
         Object.assign({}, filters, { sortBy: "soonest_availability" }),
         function (topTherapist) {
           return topTherapist.name === (baseTop && baseTop.name)
@@ -1280,20 +1275,20 @@ import {
     }
     if (leader.source === "preview") {
       return {
-        label: "Best preview-led handoff",
-        note: "Preview opens are currently sending users into the strongest profiles most often, so this preview is taking the lead.",
+        label: "Best preview to open",
+        note: "Preview opens are leading right now, so this card stays focused on the strongest profile to open next.",
       };
     }
     if (leader.source === "card_primary") {
       return {
-        label: "Best action-led handoff",
-        note: "Direct action clicks are currently landing users in stronger profiles most often, so this preview is staying tightly action-focused.",
+        label: "Best action to open",
+        note: "Direct action clicks are leading right now, so this card stays tightly focused on the clearest next move.",
       };
     }
     if (leader.source === "card_profile") {
       return {
-        label: "Best profile-led handoff",
-        note: "Profile review opens are currently landing users in stronger profiles most often, so this preview is optimized to support deeper review.",
+        label: "Best profile to review",
+        note: "Profile review opens are leading right now, so this card is optimized for deeper review before outreach.",
       };
     }
     return {

@@ -53,7 +53,7 @@ export function renderEmptyStateMarkup(directoryPage) {
       (directoryPage && directoryPage.emptyStateDescription) ||
         "Try adjusting your filters or search terms.",
     ) +
-    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back faster than starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready shortlist before widening the search too broadly.</div></div></div></div>'
+    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back without starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready shortlist before widening the search too broadly.</div></div></div></div>'
   );
 }
 
@@ -66,25 +66,20 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
   return (
     '<section class="directory-decision-preview" data-preview-slug="' +
     escapeHtml(model.therapist.slug) +
-    '"><div class="directory-decision-preview-main"><div class="directory-decision-preview-kicker">' +
-    escapeHtml(model.handoffLabel || "Open this profile first") +
-    "</div>" +
-    (model.handoffNote
-      ? '<div class="directory-decision-preview-handoff-note">' +
-        escapeHtml(model.handoffNote) +
-        "</div>"
-      : "") +
-    '<div class="directory-decision-preview-title">' +
+    '"><div class="directory-decision-preview-main"><div class="directory-decision-preview-kicker">Recommended profile</div><div class="directory-decision-preview-title">' +
     escapeHtml(model.therapist.name) +
-    '</div><div class="directory-decision-preview-subtitle">' +
+    '</div><div class="directory-decision-preview-proof">📍 ' +
+    escapeHtml(model.therapist.city || "") +
+    (model.therapist.city && model.therapist.state ? ", " : "") +
+    escapeHtml(model.therapist.state || "") +
+    "</div>" +
+    '<div class="directory-decision-preview-subtitle">' +
     escapeHtml(model.openReason) +
-    '</div><div class="directory-decision-preview-proof">' +
-    escapeHtml(model.proofLine) +
-    '</div><div class="directory-decision-preview-grid"><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">What you will know fast</div><div class="directory-decision-preview-copy">' +
+    '</div><div class="directory-decision-preview-grid"><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Why this may fit</div><div class="directory-decision-preview-copy">' +
     escapeHtml(model.learnFastCopy) +
-    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Best next step if it fits</div><div class="directory-decision-preview-copy">' +
+    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Best next step</div><div class="directory-decision-preview-copy">' +
     escapeHtml(model.nextStepCopy) +
-    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Best reason to open now</div><div class="directory-decision-preview-copy">' +
+    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Why consider now</div><div class="directory-decision-preview-copy">' +
     escapeHtml(model.whyNowCopy) +
     '</div></div></div></div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
     model.quickStats
@@ -140,11 +135,6 @@ export function renderCardMarkup(options) {
       return '<span class="tag">' + escapeHtml(tag) + "</span>";
     })
     .join("");
-  var trustTags = model.trustTags
-    .map(function (tag) {
-      return '<span class="tag tele">' + escapeHtml(tag) + "</span>";
-    })
-    .join("");
   var mode = model.modes
     .map(function (item) {
       return (
@@ -171,11 +161,6 @@ export function renderCardMarkup(options) {
       '" class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
       '">See best next step</a>';
-  var contactDetail = model.contactRoute
-    ? '<div class="card-contact-detail">' +
-      escapeHtml(therapist.contact_guidance || model.contactRoute.detail) +
-      "</div>"
-    : "";
   var quickStats = model.quickStats
     .map(function (item) {
       return (
@@ -194,27 +179,15 @@ export function renderCardMarkup(options) {
       return '<span class="card-decision-pill">' + escapeHtml(item) + "</span>";
     })
     .join("");
-  var primaryDecisionTitle = model.contactRoute ? model.contactRoute.label : "Open profile first";
-  var primaryDecisionCopy =
-    model.contactRoute && model.contactRoute.detail
-      ? model.contactRoute.detail
-      : model.nextStepLine || model.likelyFitCopy;
-  var actionTiming = buildCardActionTiming(model);
+  var primaryDecisionTitle = model.contactRoute ? model.contactRoute.label : "Open profile";
 
   return (
     '<article class="t-card" data-card-slug="' +
     escapeHtml(therapist.slug) +
     '">' +
-    '<div class="card-hero-rail"><div class="card-hero-kicker">' +
-    escapeHtml(model.handoffLabel || "Best profile to open now") +
-    '</div><div class="card-hero-title">' +
-    escapeHtml(model.openReason || model.fitSummary) +
-    '</div><div class="card-hero-copy">' +
-    escapeHtml(model.proofLine || model.standoutCopy) +
-    "</div></div>" +
     '<div class="t-card-top"><div class="t-avatar">' +
     avatar +
-    '</div><div class="t-info"><div class="t-name">' +
+    '</div><div class="t-info"><div class="t-card-head"><div><div class="t-name">' +
     escapeHtml(therapist.name) +
     '</div><div class="t-creds">' +
     escapeHtml(therapist.credentials) +
@@ -223,67 +196,36 @@ export function renderCardMarkup(options) {
     escapeHtml(therapist.city) +
     ", " +
     escapeHtml(therapist.state) +
-    "</div></div></div>" +
+    '</div></div><a href="' +
+    escapeHtml(profileHref) +
+    '" class="card-inline-link" data-review-fit="' +
+    escapeHtml(therapist.slug) +
+    '">Open profile</a></div></div></div>' +
     '<div class="t-bio">' +
-    escapeHtml(therapist.bio_preview || therapist.bio || "") +
+    escapeHtml(model.cardSummary) +
     "</div>" +
-    (model.freshnessBadge
-      ? '<div class="card-freshness-banner tone-' +
-        escapeHtml(model.freshnessBadge.tone) +
-        '"><div class="card-freshness-label">Freshness</div><div class="card-freshness-value">' +
-        escapeHtml(model.freshnessBadge.label) +
-        '</div><div class="card-freshness-note">' +
-        escapeHtml(model.freshnessBadge.note) +
-        "</div></div>"
-      : "") +
     '<div class="t-fit-summary"><div class="card-fit-summary-label">Fast fit read</div>' +
     escapeHtml(model.fitSummary) +
-    '</div><div class="card-fit-note">' +
-    escapeHtml(model.likelyFitCopy) +
     "</div>" +
-    '<div class="card-primary-decision"><div class="card-primary-decision-label">Recommended move</div><div class="card-primary-decision-title">' +
-    escapeHtml(primaryDecisionTitle) +
-    '</div><div class="card-primary-decision-copy">' +
-    escapeHtml(primaryDecisionCopy) +
-    '</div><div class="card-primary-decision-timing"><div class="card-primary-decision-timing-title">' +
-    escapeHtml(actionTiming.title) +
-    '</div><div class="card-primary-decision-timing-copy">' +
-    escapeHtml(actionTiming.copy) +
-    "</div></div>" +
     '<div class="card-quick-stats">' +
     quickStats +
     "</div>" +
     (decisionRow ? '<div class="card-decision-row">' + decisionRow + "</div>" : "") +
-    '<div class="card-signal-card"><div class="card-signal-label">Why this stands out</div><div class="card-signal-copy">' +
+    '<div class="card-signal-card"><div class="card-signal-label">Why open</div><div class="card-signal-copy">' +
     escapeHtml(model.standoutCopy) +
-    '</div></div><div class="card-signal-card card-signal-card-soft"><div class="card-signal-label">Reachability</div><div class="card-signal-copy">' +
-    escapeHtml(model.reachabilityCopy) +
-    '</div></div><div class="card-signal-card card-signal-card-soft"><div class="card-signal-label">Decision readiness</div><div class="card-signal-copy">' +
-    escapeHtml(model.decisionReadySummary) +
-    '</div></div><div class="tags">' +
+    "</div></div>" +
+    '<div class="card-next-step"><div class="card-next-step-label">Next step</div><div class="card-next-step-copy">' +
+    escapeHtml(model.actionSummary) +
+    "</div></div>" +
+    '<div class="tags">' +
     tags +
-    trustTags +
     mode +
-    '</div><div class="card-contact-detail"><strong>Reviewed strength:</strong> ' +
-    escapeHtml(model.trustSnapshot) +
     "</div>" +
-    (model.operationalTrustCopy && model.operationalTrustCopy !== model.trustSnapshot
-      ? '<div class="card-contact-detail">' + escapeHtml(model.operationalTrustCopy) + "</div>"
-      : "") +
-    (model.reviewedDetailsCopy && model.reviewedDetailsCopy !== model.trustSnapshot
-      ? '<div class="card-contact-detail">' + escapeHtml(model.reviewedDetailsCopy) + "</div>"
-      : "") +
-    '<div class="card-mobile-handoff"><div class="card-mobile-handoff-label">Opening this profile keeps your place</div><div class="card-mobile-handoff-copy">' +
-    escapeHtml(
-      model.shortlisted
-        ? "Your shortlist, note, and backup comparison stay intact while you pressure-test fit, trust, and the safest contact route."
-        : "Open the full profile to pressure-test fit, trust, and first-contact guidance before you decide whether to save or reach out.",
-    ) +
-    "</div></div>" +
-    '<div class="card-next-step"><div class="card-next-step-label">What happens next</div><div class="card-next-step-copy">' +
-    escapeHtml(model.nextStepLine) +
-    "</div></div>" +
-    contactDetail +
+    '<div class="card-contact-detail"><strong>Freshness:</strong> ' +
+    escapeHtml(model.freshnessSummary) +
+    '</div><div class="card-contact-detail"><strong>Trust:</strong> ' +
+    escapeHtml(model.trustSummaryShort) +
+    "</div>" +
     '<div class="card-actions"><a href="' +
     escapeHtml(profileHref) +
     '" class="card-open-profile-btn" data-review-fit="' +
@@ -296,11 +238,7 @@ export function renderCardMarkup(options) {
     (model.shortlisted ? "Saved to shortlist" : "Save to shortlist") +
     "</button>" +
     primaryAction +
-    '<a href="' +
-    escapeHtml(profileHref) +
-    '" class="card-action-link" data-review-fit="' +
-    escapeHtml(therapist.slug) +
-    '">Open full profile without losing context</a></div>' +
+    "</div>" +
     (model.shortlisted
       ? '<div class="card-priority-row"><label class="card-priority-label" for="priority-' +
         escapeHtml(therapist.slug) +
@@ -352,7 +290,7 @@ export function renderShortlistBarMarkup(options) {
   var historyState = options.historyState || null;
   if (!model.shortlist.length) {
     return {
-      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave quick notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved shortlist stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
+      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave short notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved shortlist stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
     };
   }
 

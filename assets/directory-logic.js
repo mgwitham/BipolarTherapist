@@ -87,10 +87,7 @@ export function matchesDirectoryFilters(filterState, therapist) {
 
   if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
   if (filterState.state && therapist.state !== filterState.state) return false;
-  if (
-    filterState.city &&
-    String(therapist.city || "").toLowerCase() !== String(filterState.city).toLowerCase()
-  ) {
+  if (filterState.zip && String(therapist.zip || "") !== String(filterState.zip || "")) {
     return false;
   }
   if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty)) {
@@ -656,7 +653,7 @@ export function getMatchScore(filterState, therapist) {
   if (filterState.state && therapist.state === filterState.state) {
     score += 10;
   }
-  if (filterState.city && therapist.city.toLowerCase() === filterState.city.toLowerCase()) {
+  if (filterState.zip && String(therapist.zip || "") === String(filterState.zip || "")) {
     score += 14;
   }
   if (filterState.accepting && therapist.accepting_new_patients) {
