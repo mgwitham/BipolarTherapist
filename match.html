@@ -1637,6 +1637,7 @@
         box-shadow:
           0 12px 26px rgba(14, 77, 95, 0.06),
           inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        padding: 1.25rem 1.3rem 1.35rem;
       }
       .match-card.lead-card::before {
         content: "";
@@ -1865,6 +1866,10 @@
         background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
         text-align: left;
       }
+      .lead-card .match-snapshot-card:first-child {
+        background: linear-gradient(180deg, #f4fbfe 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.16);
+      }
       .match-snapshot-label {
         font-size: 0.7rem;
         font-weight: 700;
@@ -1922,9 +1927,17 @@
         width: 100%;
         text-align: left;
       }
+      .lead-card .match-card-action-block {
+        border-color: rgba(26, 122, 143, 0.18);
+        gap: 0.58rem;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.72),
+          0 12px 26px rgba(14, 77, 95, 0.06);
+      }
       .supporting-card .match-card-action-block {
         background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), #ffffff 100%);
         border-color: rgba(14, 77, 95, 0.08);
+        padding: 0.9rem;
       }
       .match-card-action-label {
         font-size: 0.74rem;
@@ -1939,6 +1952,9 @@
         line-height: 1.2;
         color: var(--navy);
       }
+      .lead-card .match-card-action-title {
+        font-size: 1.16rem;
+      }
       .match-card-action-copy {
         font-size: 0.84rem;
         line-height: 1.45;
@@ -1949,6 +1965,13 @@
         grid-template-columns: 1.2fr 1fr;
         gap: 0.65rem;
         margin-bottom: 0.8rem;
+      }
+      .supporting-card .match-card-decision-rail {
+        grid-template-columns: 1fr;
+        margin-bottom: 0.65rem;
+      }
+      .supporting-card .match-card-decision-panel:last-child {
+        display: none;
       }
       .match-card-decision-panel {
         padding: 0.8rem 0.84rem;
@@ -1985,6 +2008,9 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.55rem;
       }
+      .supporting-card .match-card-contact-grid {
+        grid-template-columns: 1fr;
+      }
       .match-card-contact-item {
         display: grid;
         gap: 0.18rem;
@@ -2014,6 +2040,10 @@
         line-height: 1.55;
         color: var(--slate);
       }
+      .lead-card .match-card-contact-note {
+        background: linear-gradient(180deg, rgba(26, 122, 143, 0.08), rgba(255, 255, 255, 0.94));
+        margin-top: 0.08rem;
+      }
       .match-card-contact-note strong {
         color: var(--navy);
       }
@@ -2039,6 +2069,7 @@
         box-shadow: none;
         border-color: rgba(14, 77, 95, 0.1);
         background: rgba(255, 255, 255, 0.92);
+        min-height: 46px;
       }
       .match-card-cta,
       .match-card-cta:link,
@@ -2124,6 +2155,10 @@
         color: var(--slate);
         max-width: 76ch;
       }
+      .match-summary-meta.is-strong {
+        color: var(--navy);
+        font-weight: 700;
+      }
       .match-summary-kicker {
         display: block;
         margin: 0 0 0.3rem;
@@ -2149,6 +2184,9 @@
         gap: 0.65rem;
         flex-wrap: wrap;
       }
+      .match-summary-actions .btn-primary {
+        box-shadow: 0 16px 30px rgba(26, 122, 143, 0.18);
+      }
       .match-summary-actions .btn-secondary {
         width: auto;
       }
@@ -2163,6 +2201,15 @@
         margin-top: 0.65rem;
         max-width: 76ch;
       }
+      .match-summary-request {
+        margin-top: 0.45rem;
+        padding-left: 0.85rem;
+        border-left: 3px solid rgba(26, 122, 143, 0.16);
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
+        max-width: 72ch;
+      }
       .match-summary-recommendation {
         margin-top: 0.85rem;
         padding: 1rem 1.05rem;
@@ -2170,6 +2217,8 @@
         background: linear-gradient(180deg, #f4fbfe 0%, #ffffff 100%);
         border: 1px solid rgba(26, 122, 143, 0.16);
         box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+        display: grid;
+        gap: 0.24rem;
       }
       .match-summary-recommendation-label {
         font-size: 0.68rem;
@@ -2240,14 +2289,14 @@
         color: var(--muted);
       }
       .match-summary-decision-title {
-        font-size: 0.98rem;
-        line-height: 1.28;
+        font-size: 0.94rem;
+        line-height: 1.32;
         font-weight: 800;
         color: var(--navy);
       }
       .match-summary-decision-copy {
         font-size: 0.82rem;
-        line-height: 1.6;
+        line-height: 1.55;
         color: var(--slate);
       }
       .match-summary-decision-note {
@@ -3060,6 +3109,9 @@
         }
         .match-summary-title {
           max-width: none;
+        }
+        .match-summary-request {
+          padding-left: 0.7rem;
         }
         .match-summary-actions .btn-secondary,
         .match-summary-actions .btn-primary {

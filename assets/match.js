@@ -1388,7 +1388,7 @@ function renderLeadMatchSnapshot(entry) {
   var timingLabel = getCompareTimingLabel(therapist) || "Timing not clearly listed yet";
   var snapshots = [
     {
-      label: "Why trust this recommendation",
+      label: "Why trust this",
       copy: getLeadMatchTrustSummary(entry),
     },
     {
@@ -1396,13 +1396,13 @@ function renderLeadMatchSnapshot(entry) {
       copy: freshness ? trustLabel + " • " + freshness.label : trustLabel,
     },
     {
-      label: "What happens next",
+      label: "What to expect",
       copy: timingLabel,
     },
   ];
 
   return (
-    '<div class="match-section"><h4>Why this is a strong first step</h4><div class="match-snapshot-grid">' +
+    '<div class="match-section"><h4>Why this recommendation is worth trusting</h4><div class="match-snapshot-grid">' +
     snapshots
       .map(function (item) {
         return (
@@ -4107,9 +4107,9 @@ function renderPrimaryMatchCards(entries, _profile) {
       ? "Showing 1 strongest match right now."
       : "Showing the top " + primaryEntries.length + " matches to start with.";
   var summaryIntro = starterResultsMode
-    ? "These are strong starting providers you can act on now, then narrow once you know what matters most."
+    ? "You already have real options. Start with the lead provider, keep one backup close, and refine only if you want a tighter fit first."
     : _profile
-      ? "Your homepage answers are already applied, so you can move straight into a focused shortlist."
+      ? "Your homepage answers are already applied, so you can move straight into the strongest place to start."
       : "These saved providers are organized into the clearest place to start first.";
   var summaryKicker = starterResultsMode
     ? "Your first matches are ready"
@@ -4139,7 +4139,7 @@ function renderPrimaryMatchCards(entries, _profile) {
       : "Your shortlist is ready to act on.";
   var leadNote =
     leadConfidence && leadConfidence.label
-      ? "Confidence signal: " + leadConfidence.label + "."
+      ? leadConfidence.label + " confidence based on fit, trust, and practical follow-through."
       : "Strongest place to begin right now.";
   var backupTitle = backupName
     ? "Keep " + backupName + " as your backup."
@@ -4148,8 +4148,8 @@ function renderPrimaryMatchCards(entries, _profile) {
     ? "Want a tighter fit before you reach out?"
     : "Want this list to feel even more certain?";
   var refineCopy = starterResultsMode
-    ? "Add ZIP code, insurance, format, or medication needs to trade a broad starter shortlist for a more tailored recommendation set."
-    : "Tighten by ZIP code, care type, insurance, or medication needs if you want the shortlist to feel even more curated before outreach.";
+    ? "Add ZIP code, insurance, format, or medication needs only if you want the shortlist to feel more tailored before outreach."
+    : "Tighten by ZIP code, care type, insurance, or medication needs only if you want more certainty before outreach.";
 
   root.className = "match-list";
   root.innerHTML =
@@ -4160,7 +4160,7 @@ function renderPrimaryMatchCards(entries, _profile) {
     "</h2>" +
     '<div class="match-summary-meta">' +
     escapeHtml(resultCountLabel) +
-    '</div><div class="match-summary-meta">' +
+    '</div><div class="match-summary-meta is-strong">' +
     escapeHtml(nextStepLabel) +
     '</div></div><div class="match-summary-actions">' +
     (leadAction
@@ -4175,22 +4175,22 @@ function renderPrimaryMatchCards(entries, _profile) {
         "</a>"
       : "") +
     '<button type="button" class="btn-secondary" id="refineSearchButton">' +
-    escapeHtml(starterResultsMode ? "Get a more specific match" : "Adjust this shortlist") +
+    escapeHtml(starterResultsMode ? "Tighten this match" : "Refine this shortlist") +
     '</button><a class="btn-secondary" href="' +
     escapeHtml(directoryBrowseUrl) +
-    '">Search the directory</a></div></div><div class="match-summary-recommendation"><div class="match-summary-recommendation-label">Best next step</div><div class="match-summary-recommendation-title">' +
+    '">Browse more providers</a></div></div><div class="match-summary-recommendation"><div class="match-summary-recommendation-label">Best next step</div><div class="match-summary-recommendation-title">' +
     escapeHtml(
       leadAction && leadAction.therapistName
         ? "Start with " + leadAction.therapistName + "."
         : "Start with the lead provider.",
     ) +
     '</div><div class="match-summary-recommendation-copy">' +
-    escapeHtml(leadExplanation) +
+    escapeHtml("Why this rose: " + leadExplanation) +
     '</div><div class="match-summary-recommendation-note">' +
     escapeHtml(leadNote) +
     '</div></div><div class="match-summary-text">' +
     escapeHtml(summaryIntro) +
-    " " +
+    '</div><div class="match-summary-request">' +
     escapeHtml(requestSummary) +
     '</div><div class="match-summary-decision-grid"><section class="match-summary-decision-card tone-primary"><div class="match-summary-decision-label">Why this rose</div><div class="match-summary-decision-title">' +
     escapeHtml(
@@ -4200,8 +4200,6 @@ function renderPrimaryMatchCards(entries, _profile) {
     ) +
     '</div><div class="match-summary-decision-copy">' +
     escapeHtml(leadExplanation) +
-    '</div><div class="match-summary-decision-note">' +
-    escapeHtml(leadNote) +
     '</div></section><section class="match-summary-decision-card tone-secondary"><div class="match-summary-decision-label">Backup plan</div><div class="match-summary-decision-title">' +
     escapeHtml(backupTitle) +
     '</div><div class="match-summary-decision-copy">' +
@@ -4216,7 +4214,7 @@ function renderPrimaryMatchCards(entries, _profile) {
     escapeHtml(refineTitle) +
     '</div><div class="match-summary-decision-copy">' +
     escapeHtml(refineCopy) +
-    '</div><div class="match-summary-decision-note">Refining usually improves confidence, not urgency.</div></section></div><div class="match-summary-applied"><div class="match-summary-applied-label">Applied answers</div>' +
+    '</div><div class="match-summary-decision-note">Refining improves fit confidence more than speed.</div></section></div><div class="match-summary-applied"><div class="match-summary-applied-label">Current filters</div>' +
     appliedPills
       .map(function (pill) {
         return '<span class="match-summary-pill">' + escapeHtml(pill) + "</span>";
@@ -4256,6 +4254,12 @@ function renderPrimaryMatchCards(entries, _profile) {
                   : "View full profile";
         var cardCtaClass =
           index === 0 ? "btn-primary match-card-cta" : "btn-secondary match-card-cta is-supporting";
+        var copyDraftButton =
+          index === 0
+            ? '<button type="button" class="btn-secondary match-card-copy-btn is-soft" data-copy-entry-draft="' +
+              escapeHtml(therapist.slug || "") +
+              '">Copy first outreach</button>'
+            : "";
         return (
           '<article class="match-card' +
           (index === 0 ? " lead-card" : "") +
@@ -4298,11 +4302,11 @@ function renderPrimaryMatchCards(entries, _profile) {
           '<div class="match-summary-pills">' +
           getShortlistSummary(entry) +
           '</div><div class="match-card-decision-rail"><div class="match-card-decision-panel"><div class="match-card-decision-label">' +
-          escapeHtml(index === 0 ? "Why this is actionable now" : "Why keep this close") +
+          escapeHtml(index === 0 ? "Why act here first" : "Why keep this close") +
           '</div><div class="match-card-decision-title">' +
           escapeHtml(
             index === 0
-              ? "This is the clearest first outreach move right now."
+              ? "This is the clearest first move right now."
               : "This is the strongest backup if your lead path slows down.",
           ) +
           '</div><div class="match-card-decision-copy">' +
@@ -4342,7 +4346,7 @@ function renderPrimaryMatchCards(entries, _profile) {
           escapeHtml(routeConfidence) +
           '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">When to act</div><div class="match-card-contact-value">' +
           escapeHtml(getMatchCardActionTiming(entry)) +
-          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">What to expect next</div><div class="match-card-contact-value">' +
+          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">What happens after this</div><div class="match-card-contact-value">' +
           escapeHtml(
             readiness && readiness.wait
               ? readiness.wait
@@ -4369,9 +4373,9 @@ function renderPrimaryMatchCards(entries, _profile) {
           (preferredRoute && preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
           ">" +
           escapeHtml(ctaLabel) +
-          '</a><button type="button" class="btn-secondary match-card-copy-btn is-soft" data-copy-entry-draft="' +
-          escapeHtml(therapist.slug || "") +
-          '">Copy calm first message</button></div></div></div>' +
+          "</a>" +
+          copyDraftButton +
+          "</div></div></div>" +
           "</article>"
         );
       })

@@ -969,6 +969,66 @@ nav {
   line-height: 1.5;
 }
 
+.shortlist-compare-note-label,
+.shortlist-compare-change-label {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.shortlist-compare-change {
+  font-size: 0.74rem;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+.shortlist-compare-prune {
+  padding: 0.72rem 0.78rem;
+  border-radius: 12px;
+  border: 1px solid rgba(194, 157, 76, 0.18);
+  background: rgba(255, 251, 243, 0.92);
+}
+
+.shortlist-compare-prune-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.shortlist-compare-prune-copy {
+  margin-top: 0.24rem;
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.shortlist-compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.shortlist-compare-drop {
+  border: 1px solid rgba(194, 157, 76, 0.24);
+  background: white;
+  color: var(--teal-dark);
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shortlist-compare-drop:hover,
+.shortlist-compare-drop:focus-visible {
+  border-color: rgba(26, 122, 143, 0.24);
+  color: var(--teal);
+  outline: none;
+}
+
 .shortlist-compare-guidance {
   padding: 0.72rem 0.78rem;
   border-radius: 12px;

@@ -379,15 +379,35 @@ export function renderShortlistBarMarkup(options) {
         escapeHtml(roleTitle) +
         '</div><div class="shortlist-compare-meta">' +
         escapeHtml(card.meta) +
+        '</div><div class="shortlist-compare-note-label">' +
+        escapeHtml(card.noteTitle || "Why you saved this") +
         '</div><div class="shortlist-compare-note">' +
         escapeHtml(card.note) +
-        '</div><div class="shortlist-compare-guidance">' +
-        escapeHtml(roleCopy) +
-        '</div><a href="' +
+        '</div><div class="shortlist-compare-change-label">' +
+        escapeHtml(card.changedTitle || "What changed since then") +
+        '</div><div class="shortlist-compare-change">' +
+        escapeHtml(
+          card.changedCopy || "Reopen this only if it still looks stronger than your backup.",
+        ) +
+        '</div><div class="shortlist-compare-prune"><div class="shortlist-compare-prune-title">' +
+        escapeHtml(card.pruneTitle || "Prune this if it no longer belongs") +
+        '</div><div class="shortlist-compare-prune-copy">' +
+        escapeHtml(
+          card.pruneCopy ||
+            "Drop this if the newer signal is clearly weaker than the old save reason.",
+        ) +
+        '</div></div><div class="shortlist-compare-actions">' +
+        '<a href="' +
         escapeHtml(buildTherapistProfileHref(card.therapist.slug, "shortlist_card")) +
         '" class="shortlist-compare-link">' +
         escapeHtml(index === 0 ? "Open lead profile" : "Open saved profile") +
-        "</a></div>"
+        '</a><button type="button" class="shortlist-compare-drop" data-shortlist-remove="' +
+        escapeHtml(card.therapist.slug) +
+        '">' +
+        escapeHtml(card.pruneCta || "Remove from shortlist") +
+        '</button></div><div class="shortlist-compare-guidance">' +
+        escapeHtml(roleCopy) +
+        "</div></div>"
       );
     })
     .join("");

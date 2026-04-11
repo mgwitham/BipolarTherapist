@@ -859,12 +859,99 @@ function readHomepageOutcomes() {
   }
 }
 
+function getHomepagePriorityRank(value) {
+  var normalized = String(value || "").toLowerCase();
+  if (normalized === "best fit") {
+    return 3;
+  }
+  if (normalized === "best availability") {
+    return 2;
+  }
+  if (normalized === "best value") {
+    return 1;
+  }
+  return 0;
+}
+
+function formatHomepageTherapistName(slug, latestOutcome) {
+  if (latestOutcome && latestOutcome.therapist_name) {
+    return latestOutcome.therapist_name;
+  }
+  return String(slug || "this therapist")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, function (char) {
+      return char.toUpperCase();
+    });
+}
+
+function buildHomepageReturnSnapshot(shortlist, outcomes) {
+  var latestBySlug = {};
+
+  (Array.isArray(outcomes) ? outcomes : [])
+    .slice()
+    .sort(function (a, b) {
+      return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
+    })
+    .forEach(function (item) {
+      if (!item || !item.therapist_slug || latestBySlug[item.therapist_slug]) {
+        return;
+      }
+      latestBySlug[item.therapist_slug] = item;
+    });
+
+  var ranked = (Array.isArray(shortlist) ? shortlist : [])
+    .map(function (item, index) {
+      return {
+        slug: item.slug,
+        rank: getHomepagePriorityRank(item.priority),
+        index: index,
+        latestOutcome: latestBySlug[item.slug] || null,
+      };
+    })
+    .sort(function (a, b) {
+      return b.rank - a.rank || a.index - b.index;
+    });
+
+  return {
+    lead:
+      ranked.find(function (item) {
+        return (
+          !item.latestOutcome ||
+          ["insurance_mismatch", "waitlist", "no_response"].indexOf(
+            String(item.latestOutcome.outcome || ""),
+          ) === -1
+        );
+      }) ||
+      ranked[0] ||
+      null,
+    live:
+      ranked.find(function (item) {
+        return (
+          item.latestOutcome &&
+          ["heard_back", "booked_consult", "good_fit_call"].indexOf(
+            String(item.latestOutcome.outcome || ""),
+          ) !== -1
+        );
+      }) || null,
+    stalled:
+      ranked.find(function (item) {
+        return (
+          item.latestOutcome &&
+          ["insurance_mismatch", "waitlist", "no_response"].indexOf(
+            String(item.latestOutcome.outcome || ""),
+          ) !== -1
+        );
+      }) || null,
+  };
+}
+
 function renderHomepageReturnJourney() {
   var panel = document.getElementById("homeReturnPanel");
   var title = document.getElementById("homeReturnTitle");
   var copy = document.getElementById("homeReturnCopy");
+  var meta = document.getElementById("homeReturnMeta");
   var actions = document.getElementById("homeReturnActions");
-  if (!panel || !title || !copy || !actions) {
+  if (!panel || !title || !copy || !meta || !actions) {
     return;
   }
 
@@ -873,6 +960,7 @@ function renderHomepageReturnJourney() {
     panel.classList.remove("is-visible");
     title.textContent = "";
     copy.textContent = "";
+    meta.innerHTML = "";
     actions.innerHTML = "";
     return;
   }
@@ -880,23 +968,53 @@ function renderHomepageReturnJourney() {
   var shortlistSlugs = shortlist.map(function (item) {
     return item.slug;
   });
-  var touchedCount = readHomepageOutcomes().filter(function (item) {
+  var outcomes = readHomepageOutcomes();
+  var touchedCount = outcomes.filter(function (item) {
     return item && shortlistSlugs.indexOf(item.therapist_slug) !== -1;
   }).length;
+  var snapshot = buildHomepageReturnSnapshot(shortlist, outcomes);
+  var leadName = snapshot.lead
+    ? formatHomepageTherapistName(snapshot.lead.slug, snapshot.lead.latestOutcome)
+    : "your lead option";
+  var liveName = snapshot.live
+    ? formatHomepageTherapistName(snapshot.live.slug, snapshot.live.latestOutcome)
+    : "";
+  var stalledName = snapshot.stalled
+    ? formatHomepageTherapistName(snapshot.stalled.slug, snapshot.stalled.latestOutcome)
+    : "";
 
   panel.classList.add("is-visible");
   title.textContent =
     touchedCount > 0
-      ? "Your saved shortlist is still here, and some outreach progress is already in motion."
+      ? "Your saved shortlist is still here, and the decision context is still intact."
       : "Your saved shortlist is still here and ready whenever you want to pick the search back up.";
   copy.textContent =
     touchedCount > 0
-      ? "Resume the shortlist to compare the same saved therapists, review where outreach stands, and decide your next move without rebuilding context."
+      ? "Resume from the same saved options, reopen the route with live momentum, and decide whether your lead still deserves the top spot."
       : "You can reopen the shortlist, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
+  meta.innerHTML = [
+    snapshot.lead
+      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Still looks strongest</div><div class="hero-return-chip-value">' +
+        escapeHtml(leadName) +
+        '</div><div class="hero-return-chip-copy">Start here first unless fresh friction or live outreach changes the order.</div></div>'
+      : "",
+    snapshot.live
+      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Already has momentum</div><div class="hero-return-chip-value">' +
+        escapeHtml(liveName) +
+        '</div><div class="hero-return-chip-copy">A reply or consult is already in motion here, so compare it against the backup using real follow-through, not just profile polish.</div></div>'
+      : "",
+    snapshot.stalled
+      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Probably demote or drop</div><div class="hero-return-chip-value">' +
+        escapeHtml(stalledName) +
+        '</div><div class="hero-return-chip-copy">This path already hit friction. Keep it only if new information clearly changes the picture.</div></div>'
+      : "",
+  ]
+    .filter(Boolean)
+    .join("");
   actions.innerHTML =
     '<a class="hero-return-link primary" href="match.html?shortlist=' +
     encodeURIComponent(shortlistSlugs.join(",")) +
-    '">Resume saved shortlist</a><a class="hero-return-link secondary" href="directory.html">Browse with saved progress</a>';
+    '">Resume saved shortlist</a><a class="hero-return-link secondary" href="directory.html">Reopen saved comparison</a>';
 }
 
 function validateHomeSearchInputs(elements) {

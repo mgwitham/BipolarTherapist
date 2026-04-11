@@ -425,6 +425,32 @@
         line-height: 1.6;
         margin-bottom: 0.78rem;
       }
+      .hero-bio-snippet {
+        display: grid;
+        gap: 0.32rem;
+        margin: 0.9rem 0 1rem;
+        padding: 0.9rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .hero-bio-label {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hero-bio-copy {
+        font-size: 0.92rem;
+        line-height: 1.62;
+        color: var(--ink-soft);
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
       .profile-entry-banner {
         display: grid;
         grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
@@ -493,7 +519,7 @@
       }
       .profile-summary-strip {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.75rem;
       }
       .summary-stat {
@@ -597,7 +623,7 @@
       }
       .trust-evidence-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 0.75rem;
       }
       .trust-evidence-card {
@@ -612,6 +638,7 @@
           rgba(246, 251, 252, 0.96) 100%
         );
         box-shadow: var(--shadow-card);
+        min-width: 0;
       }
       .trust-evidence-card.tone-fresh {
         background: linear-gradient(180deg, #f7fcf9 0%, #ffffff 100%);
@@ -646,11 +673,13 @@
         font-size: 0.8rem;
         line-height: 1.58;
         color: var(--slate);
+        overflow-wrap: anywhere;
       }
       .trust-evidence-proof {
         font-size: 0.76rem;
         font-weight: 700;
         color: var(--teal-dark);
+        overflow-wrap: anywhere;
       }
       .trust-section-grid {
         display: grid;
@@ -1449,6 +1478,13 @@
         font-weight: 800;
         color: var(--navy);
       }
+      .profile-decision-memory-subtitle {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
       .profile-decision-memory-copy,
       .profile-queue-status-copy,
       .profile-backup-copy,
@@ -1574,6 +1610,13 @@
         padding: 0;
         text-align: left;
         cursor: pointer;
+        margin-bottom: 0.95rem;
+      }
+      .profile-section-static-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
         margin-bottom: 0.95rem;
       }
       .profile-section-content.is-collapsed {

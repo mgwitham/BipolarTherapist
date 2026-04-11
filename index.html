@@ -680,6 +680,37 @@
         line-height: 1.58;
         color: var(--slate);
       }
+      .hero-return-meta {
+        display: grid;
+        gap: 0.55rem;
+        margin-top: 0.78rem;
+      }
+      .hero-return-chip {
+        display: grid;
+        gap: 0.14rem;
+        padding: 0.72rem 0.8rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .hero-return-chip-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hero-return-chip-value {
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--navy);
+        font-weight: 700;
+      }
+      .hero-return-chip-copy {
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--slate);
+      }
       .hero-return-actions {
         display: flex;
         flex-wrap: wrap;
@@ -1689,6 +1720,7 @@
               <div class="hero-return-label">Welcome back</div>
               <div class="hero-return-title" id="homeReturnTitle"></div>
               <div class="hero-return-copy" id="homeReturnCopy"></div>
+              <div class="hero-return-meta" id="homeReturnMeta"></div>
               <div class="hero-return-actions" id="homeReturnActions"></div>
             </div>
             <div class="tool-trust-row" aria-label="Trust signals">
