@@ -9,6 +9,138 @@ import {
   renderRecommendedActionBar,
 } from "./admin-action-first.js";
 
+function renderApplicationCommandStrip(config) {
+  if (!config) {
+    return "";
+  }
+  return (
+    '<div class="card-command-strip"><div class="card-command-kicker">Review command</div><div class="card-command-title">' +
+    config.escapeHtml(config.title || "Choose the next application decision") +
+    '</div><div class="card-command-copy">' +
+    config.escapeHtml(config.copy || "") +
+    '</div><div class="card-command-grid"><div class="card-command-cell"><div class="card-command-label">Lifecycle lane</div><div class="card-command-value">' +
+    config.escapeHtml(config.lane || "") +
+    '</div></div><div class="card-command-cell"><div class="card-command-label">Review goal</div><div class="card-command-value">' +
+    config.escapeHtml(config.goal || "") +
+    '</div></div><div class="card-command-cell"><div class="card-command-label">Success condition</div><div class="card-command-value">' +
+    config.escapeHtml(config.success || "") +
+    '</div></div></div><div class="card-command-callout"><strong>Business impact:</strong> ' +
+    config.escapeHtml(config.callout || "") +
+    "</div></div>"
+  );
+}
+
+function getApplicationStateMeta(config) {
+  if (!config) {
+    return {
+      tone: "ownership",
+      title: "Needs explicit review ownership",
+      copy: "This record should leave with a clearer state than it entered.",
+      badge: "Review pending",
+      chips: ["Decision required", "Operator judgment"],
+    };
+  }
+  if (config.isClaimFlow) {
+    if (config.isUrgent) {
+      return {
+        tone: "ownership",
+        title: "Warm claim at risk of cooling off",
+        copy: "This is not just a form review. It is a conversion opportunity that loses value if follow-up slows down.",
+        badge: "Follow-up risk",
+        chips: ["Claim conversion", "Needs owner now"],
+      };
+    }
+    return {
+      tone: "ownership",
+      title: "Claim flow needs decisive follow-through",
+      copy: "The main win is moving therapist intent into a fuller profile or a clear no, without leaving the claim in limbo.",
+      badge: "Claim workflow",
+      chips: ["Warm pipeline", "Ownership matters"],
+    };
+  }
+  if (config.isConfirmationRefresh) {
+    return {
+      tone: "trust",
+      title: "Live listing trust update",
+      copy: "This submission affects a live profile. Accuracy and clean application of updates matter more than speed alone.",
+      badge: "Live trust work",
+      chips: ["Protect live quality", "Maintenance lane"],
+    };
+  }
+  if (config.isPublishReady) {
+    return {
+      tone: "publish",
+      title: "Strong candidate for live inventory",
+      copy: "This application is close to becoming public supply. A clean review pass here is often the fastest path to trusted growth.",
+      badge: "Publish leverage",
+      chips: ["Near publish", "Growth-ready"],
+    };
+  }
+  return {
+    tone: "trust",
+    title: "Quality gate before publication",
+    copy: "This application is promising, but trust and completeness still determine whether it should move, loop for fixes, or stop.",
+    badge: "Review quality",
+    chips: ["Trust decision", "Quality control"],
+  };
+}
+
+function renderApplicationStateStrip(config) {
+  var meta = getApplicationStateMeta(config);
+  return (
+    '<div class="card-state-strip is-' +
+    config.escapeHtml(meta.tone) +
+    '"><div class="card-state-head"><div><div class="card-state-kicker">Application state</div><div class="card-state-title">' +
+    config.escapeHtml(meta.title) +
+    '</div><div class="card-state-copy">' +
+    config.escapeHtml(meta.copy) +
+    '</div></div><div class="card-state-badge">' +
+    config.escapeHtml(meta.badge) +
+    '</div></div><div class="card-state-meta">' +
+    meta.chips
+      .map(function (chip) {
+        return (
+          '<span class="tag is-' +
+          config.escapeHtml(meta.tone) +
+          '">' +
+          config.escapeHtml(chip) +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div></div>"
+  );
+}
+
+function renderApplicationActionClusters(config) {
+  if (!config) {
+    return "";
+  }
+  var primaryActionHtml = config.primaryActionHtml || "";
+  var secondaryActions = Array.isArray(config.secondaryActions) ? config.secondaryActions : [];
+  var contextActions = Array.isArray(config.contextActions) ? config.contextActions : [];
+  return (
+    '<div class="action-cluster-grid"><div class="action-cluster is-primary"><div class="action-cluster-label">Best move</div><div class="action-cluster-copy">' +
+    config.escapeHtml(config.primaryCopy || "Choose the clearest next state and move the record.") +
+    '</div><div class="action-cluster-actions">' +
+    primaryActionHtml +
+    '</div></div><div class="action-cluster is-secondary"><div class="action-cluster-label">Fallback moves</div><div class="action-cluster-copy">' +
+    config.escapeHtml(
+      config.secondaryCopy ||
+        "Use these options when the recommended path fails trust, fit, or readiness review.",
+    ) +
+    '</div><div class="action-cluster-actions">' +
+    secondaryActions.join("") +
+    '</div></div><div class="action-cluster is-context"><div class="action-cluster-label">Context</div><div class="action-cluster-copy">' +
+    config.escapeHtml(
+      config.contextCopy || "Keep communication and context tools close to the decision surface.",
+    ) +
+    '</div><div class="action-cluster-actions">' +
+    contextActions.join("") +
+    "</div></div></div>"
+  );
+}
+
 export function renderApplicationsPanel(options) {
   const applications =
     options.dataMode === "sanity" ? options.remoteApplications : options.getApplications();
@@ -621,75 +753,6 @@ export function renderApplicationsPanel(options) {
           })
           .join("");
 
-        const actions =
-          item.status === "pending"
-            ? '<button class="btn-secondary" data-action="reviewing" data-id="' +
-              item.id +
-              '">' +
-              (isClaimFlow ? "Start review now" : "Start review now") +
-              '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
-              item.id +
-              '" data-request="' +
-              options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
-              '" data-link="' +
-              options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-              '">' +
-              (isClaimFlow ? "Request fixes" : "Request fixes") +
-              '</button><button class="btn-primary" data-action="' +
-              (isClaimFlow ? "approve_claim" : "publish") +
-              '" data-id="' +
-              item.id +
-              '">' +
-              (isClaimFlow ? "Approve claim now" : "Publish now") +
-              '</button><button class="btn-secondary" data-action="reject" data-id="' +
-              item.id +
-              '">Reject</button>'
-            : item.status === "reviewing"
-              ? '<button class="btn-primary" data-action="' +
-                (isClaimFlow ? "approve_claim" : "publish") +
-                '" data-id="' +
-                item.id +
-                '">' +
-                (isClaimFlow ? "Approve claim now" : "Publish now") +
-                '</button><button class="btn-secondary" data-action="requested_changes" data-id="' +
-                item.id +
-                '" data-request="' +
-                options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
-                '" data-link="' +
-                options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                '">' +
-                (isClaimFlow ? "Request fixes" : "Request fixes") +
-                '</button><button class="btn-secondary" data-action="pending" data-id="' +
-                item.id +
-                '">Move to Pending</button><button class="btn-secondary" data-action="reject" data-id="' +
-                item.id +
-                '">Reject</button>'
-              : item.status === "requested_changes"
-                ? '<span class="status requested_changes">requested changes</span><button class="btn-secondary" data-action="copy-revision-link" data-id="' +
-                  item.id +
-                  '" data-link="' +
-                  options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                  '">' +
-                  (isConfirmationRefresh
-                    ? "Copy confirmation link"
-                    : isClaimFlow
-                      ? "Copy claim fix link"
-                      : "Copy fix request link") +
-                  '</button><button class="btn-secondary" data-action="pending" data-id="' +
-                  item.id +
-                  '">Move to Pending</button>'
-                : item.status === "approved"
-                  ? '<span class="status approved">' +
-                    options.escapeHtml(isClaimFlow ? "claim approved" : "approved") +
-                    "</span>" +
-                    (isClaimFlow
-                      ? '<button class="btn-secondary" data-action="copy-revision-link" data-id="' +
-                        item.id +
-                        '" data-link="' +
-                        options.escapeHtml(revisionLink) +
-                        '">Copy full-profile invite</button>'
-                      : "")
-                  : '<span class="status ' + item.status + '">' + item.status + "</span>";
         const primaryActionHtml =
           item.status === "pending" || item.status === "reviewing"
             ? '<button class="btn-primary" data-action="' +
@@ -700,8 +763,6 @@ export function renderApplicationsPanel(options) {
               (isClaimFlow ? "Approve claim now" : "Publish now") +
               "</button>"
             : "";
-        const secondaryActions =
-          index === 0 && primaryActionHtml ? actions.replace(primaryActionHtml, "") : actions;
         const actionFlash = getApplicationActionFlash(item.id);
         const firstActionWhy = isClaimFlow
           ? reviewSnapshot.note ||
@@ -726,6 +787,121 @@ export function renderApplicationsPanel(options) {
           rejectPath:
             "Reject when the submission is not trustworthy enough or is not a fit to keep moving.",
         };
+        const commandTitle = isClaimFlow
+          ? item.status === "approved"
+            ? "Keep this claim converting into a full profile"
+            : "Move this claim decisively, not slowly"
+          : isConfirmationRefresh
+            ? "Land this live-profile update with confidence"
+            : reviewSnapshot.focus === "publish_ready"
+              ? "This application is close to becoming live supply"
+              : "Turn this application into a clean decision";
+        const commandCopy = isClaimFlow
+          ? "Claims are intent signals. Treat them like warm growth opportunities: verify ownership, keep follow-up moving, and do not let approved claims cool off."
+          : isConfirmationRefresh
+            ? "This is upkeep on existing inventory. The win is preserving trust on live supply without creating review drag."
+            : "This therapist already did the work to submit. The best outcome is a clear next state that respects both quality and speed.";
+        const commandLane = isConfirmationRefresh
+          ? "Live profile refresh"
+          : item.submission_intent === "claim"
+            ? "Claim conversion"
+            : "Full profile review";
+        const commandGoal = reviewSnapshot.label || "Balanced review";
+        const commandSuccess = isClaimFlow
+          ? "Approved claims keep moving, weak claims get clear fixes, and nothing warm stalls in limbo."
+          : isConfirmationRefresh
+            ? "The update is applied, routed to fixes, or moved out of active review with a clear reason."
+            : "The application leaves this pass approved, published, fix-requested, or rejected with clarity.";
+        const commandCallout = isClaimFlow
+          ? claimFollowUpUrgency.tone === "urgent"
+            ? "This therapist is already at risk of cooling off. Fast, specific action here can protect a low-cost conversion opportunity."
+            : "Claim flow is an efficient supply lever because the therapist already raised a hand; slow review is usually the bigger risk than low intent."
+          : isConfirmationRefresh
+            ? "This work protects the credibility of live inventory. A quick, accurate maintenance decision preserves trust without over-investing operator time."
+            : reviewSnapshot.focus === "publish_ready"
+              ? "This is close to revenue-producing inventory. A decisive pass here is usually worth more than browsing lower-signal applications."
+              : "Application throughput shapes therapist trust in the product. Clear decisions compound; indecision creates quiet funnel loss.";
+        const stateStripHtml = renderApplicationStateStrip({
+          escapeHtml: options.escapeHtml,
+          isClaimFlow: isClaimFlow,
+          isConfirmationRefresh: isConfirmationRefresh,
+          isPublishReady: reviewSnapshot.focus === "publish_ready",
+          isUrgent: claimFollowUpUrgency.tone === "urgent" || afterClaimReviewStall.stalled,
+        });
+        const secondaryActionList = [];
+        if (
+          item.status === "pending" ||
+          item.status === "reviewing" ||
+          item.status === "requested_changes"
+        ) {
+          if (!(item.status === "pending" && !isClaimFlow && false)) {
+            if (item.status === "pending") {
+              secondaryActionList.push(
+                '<button class="btn-secondary" data-action="reviewing" data-id="' +
+                  item.id +
+                  '">Start review now</button>',
+              );
+            }
+            secondaryActionList.push(
+              '<button class="btn-secondary" data-action="requested_changes" data-id="' +
+                item.id +
+                '" data-request="' +
+                options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
+                '" data-link="' +
+                options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
+                '">' +
+                (isClaimFlow ? "Request fixes" : "Request fixes") +
+                "</button>",
+            );
+            if (item.status === "reviewing" || item.status === "requested_changes") {
+              secondaryActionList.push(
+                '<button class="btn-secondary" data-action="pending" data-id="' +
+                  item.id +
+                  '">Move to Pending</button>',
+              );
+            }
+            if (item.status !== "requested_changes") {
+              secondaryActionList.push(
+                '<button class="btn-secondary" data-action="reject" data-id="' +
+                  item.id +
+                  '">Reject</button>',
+              );
+            }
+          }
+        }
+        const contextActionList = [];
+        if (item.email) {
+          contextActionList.push(
+            '<a class="btn-secondary btn-inline" href="mailto:' +
+              options.escapeHtml(item.email) +
+              '">Email therapist</a>',
+          );
+        }
+        if (item.status === "requested_changes" || item.status === "approved") {
+          contextActionList.push(
+            '<button class="btn-secondary" data-action="copy-revision-link" data-id="' +
+              item.id +
+              '" data-link="' +
+              options.escapeHtml(
+                item.status === "approved" && isClaimFlow
+                  ? revisionLink
+                  : isConfirmationRefresh
+                    ? confirmationLink
+                    : revisionLink,
+              ) +
+              '">' +
+              options.escapeHtml(
+                item.status === "approved" && isClaimFlow
+                  ? "Copy full-profile invite"
+                  : isConfirmationRefresh
+                    ? "Copy confirmation link"
+                    : isClaimFlow
+                      ? "Copy claim fix link"
+                      : "Copy fix request link",
+              ) +
+              "</button>",
+          );
+        }
 
         return (
           '<article class="application-card' +
@@ -757,47 +933,64 @@ export function renderApplicationsPanel(options) {
           '</p></div><div class="subtle">' +
           options.formatDate(item.created_at) +
           "</div></div>" +
+          stateStripHtml +
           '<div class="tag-row"><span class="tag">' +
           options.escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
           "</span>" +
-          '<span class="tag">' +
+          '<span class="tag is-neutral">' +
           options.escapeHtml(
             item.submission_intent === "claim" ? "Profile claim" : "Full profile",
           ) +
           "</span>" +
           (isConfirmationRefresh
-            ? '<span class="tag">Live profile confirmation update</span>'
+            ? '<span class="tag is-trust">Live profile confirmation update</span>'
             : "") +
-          '<span class="tag">' +
+          '<span class="tag is-neutral">' +
           options.escapeHtml(portalStateLabel) +
           "</span>" +
-          '<span class="tag">' +
+          '<span class="tag ' +
+          options.escapeHtml(
+            reviewSnapshot.focus === "publish_ready"
+              ? "is-publish"
+              : isClaimFlow
+                ? "is-ownership"
+                : "is-trust",
+          ) +
+          '">' +
           options.escapeHtml(reviewSnapshot.label) +
           "</span>" +
           (item.bipolar_years_experience
-            ? '<span class="tag">' +
+            ? '<span class="tag is-neutral">' +
               options.escapeHtml(item.bipolar_years_experience) +
               " yrs bipolar care</span>"
             : "") +
-          '<span class="tag">' +
+          '<span class="tag is-neutral">' +
           options.escapeHtml(reviewSnapshot.photoStatusLabel) +
           "</span>" +
-          (item.medication_management ? '<span class="tag">Medication management</span>' : "") +
-          '<span class="tag">' +
+          (item.medication_management
+            ? '<span class="tag is-neutral">Medication management</span>'
+            : "") +
+          '<span class="tag ' +
+          options.escapeHtml(
+            reviewSnapshot.focus === "publish_ready" ? "is-publish" : "is-neutral",
+          ) +
+          '">' +
           options.escapeHtml(readiness.label) +
           " · " +
           options.escapeHtml(readiness.score) +
           "/100</span>" +
           (liveSyncSnapshot && liveSyncSnapshot.lastAppliedLabel
-            ? '<span class="tag">' +
+            ? '<span class="tag is-neutral">' +
               options.escapeHtml(liveSyncSnapshot.lastAppliedLabel) +
               "</span>"
             : "") +
           (liveSyncSnapshot
-            ? '<span class="tag">' + options.escapeHtml(liveSyncSnapshot.syncLabel) + "</span>"
+            ? '<span class="tag is-trust">' +
+              options.escapeHtml(liveSyncSnapshot.syncLabel) +
+              "</span>"
             : "") +
           (afterClaimReviewStall.stalled
-            ? '<span class="tag">' +
+            ? '<span class="tag is-ownership">' +
               options.escapeHtml("Review age · " + afterClaimReviewStall.ageDays + " days") +
               "</span>"
             : "") +
@@ -807,14 +1000,19 @@ export function renderApplicationsPanel(options) {
                 why: firstActionWhy,
                 doneWhen: firstActionDoneWhen,
                 primaryActionHtml: primaryActionHtml,
-                secondaryActionHtml: item.email
-                  ? '<a class="btn-secondary btn-inline" href="mailto:' +
-                    options.escapeHtml(item.email) +
-                    '">Email therapist</a>'
-                  : "",
+                secondaryActionHtml: "",
                 escapeHtml: options.escapeHtml,
               })
             : "") +
+          renderApplicationCommandStrip({
+            title: commandTitle,
+            copy: commandCopy,
+            lane: commandLane,
+            goal: commandGoal,
+            success: commandSuccess,
+            callout: commandCallout,
+            escapeHtml: options.escapeHtml,
+          }) +
           (index === 0
             ? renderDecisionGuide({
                 items: [
@@ -957,10 +1155,20 @@ export function renderApplicationsPanel(options) {
           options.escapeHtml(item.upgrade_eligible ? "Yes" : "Not yet") +
           "</div>" +
           "</div>" +
-          (index === 0 && primaryActionHtml
-            ? '<div class="action-row secondary-actions">'
-            : '<div class="action-row">') +
-          secondaryActions +
+          '<div class="action-row is-decision-cluster">' +
+          renderApplicationActionClusters({
+            primaryActionHtml:
+              primaryActionHtml ||
+              '<span class="status ' + item.status + '">' + item.status + "</span>",
+            primaryCopy: firstActionDoneWhen,
+            secondaryActions: secondaryActionList,
+            secondaryCopy:
+              "Use these when the primary path fails trust, fit, or timing review and you still need the card to leave with clarity.",
+            contextActions: contextActionList,
+            contextCopy:
+              "Communication tools stay nearby so you can keep momentum without leaving the review surface.",
+            escapeHtml: options.escapeHtml,
+          }) +
           "</div>" +
           (actionFlash && index !== 0
             ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"

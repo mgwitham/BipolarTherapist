@@ -333,6 +333,260 @@
         display: grid;
         gap: 1rem;
       }
+      .admin-workspace-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.72fr);
+        gap: 1rem;
+        align-items: start;
+      }
+      .admin-workspace-main {
+        min-width: 0;
+      }
+      .admin-workspace-inspector {
+        position: sticky;
+        top: 108px;
+      }
+      .inspector-panel {
+        overflow: hidden;
+      }
+      .inspector-panel h2 {
+        margin-bottom: 0.2rem;
+      }
+      .inspector-empty {
+        padding: 1rem 0;
+        color: var(--slate);
+        line-height: 1.6;
+      }
+      .inspector-kicker {
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .inspector-title {
+        margin-top: 0.24rem;
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .inspector-copy {
+        margin-top: 0.28rem;
+        color: var(--slate);
+        font-size: 0.86rem;
+        line-height: 1.58;
+      }
+      .inspector-meta {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-top: 0.72rem;
+      }
+      .inspector-section {
+        margin-top: 0.9rem;
+        padding-top: 0.88rem;
+        border-top: 1px solid rgba(15, 53, 87, 0.08);
+      }
+      .inspector-section-title {
+        font-size: 0.72rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 0.45rem;
+      }
+      .inspector-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.48rem;
+      }
+      .inspector-list li {
+        color: var(--slate);
+        font-size: 0.85rem;
+        line-height: 1.55;
+      }
+      .inspector-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+      }
+      .inspector-kpi {
+        border: 1px solid rgba(15, 53, 87, 0.08);
+        border-radius: 13px;
+        padding: 0.72rem 0.78rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .inspector-kpi-label {
+        font-size: 0.67rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .inspector-kpi-value {
+        margin-top: 0.22rem;
+        color: var(--navy);
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+      .inspector-actions {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.95rem;
+      }
+      .command-palette-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 7vh 1.25rem 1.25rem;
+        background: rgba(7, 24, 39, 0.52);
+        backdrop-filter: blur(10px);
+      }
+      .command-palette-shell.is-open {
+        display: flex;
+      }
+      .command-palette {
+        width: min(780px, 100%);
+        max-height: 80vh;
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 252, 0.98));
+        box-shadow: 0 30px 80px rgba(7, 24, 39, 0.3);
+      }
+      .command-palette-head {
+        padding: 1rem 1rem 0.9rem;
+        border-bottom: 1px solid rgba(15, 53, 87, 0.08);
+      }
+      .command-palette-kicker {
+        font-size: 0.67rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .command-palette-input {
+        width: 100%;
+        margin-top: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 53, 87, 0.12);
+        background: #fff;
+        color: var(--navy);
+        font: inherit;
+        font-size: 1rem;
+      }
+      .command-palette-meta {
+        margin-top: 0.55rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .command-palette-list {
+        padding: 0.65rem;
+        display: grid;
+        gap: 0.4rem;
+        max-height: calc(80vh - 124px);
+        overflow: auto;
+      }
+      .command-palette-section {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .command-palette-section-title {
+        padding: 0.35rem 0.45rem 0;
+        font-size: 0.69rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .command-palette-item {
+        width: 100%;
+        text-align: left;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        padding: 0.85rem 0.9rem;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        transition:
+          border-color 140ms ease,
+          background-color 140ms ease,
+          transform 140ms ease;
+      }
+      .command-palette-item:hover,
+      .command-palette-item.is-active {
+        border-color: rgba(26, 122, 143, 0.18);
+        background: rgba(255, 255, 255, 0.92);
+        transform: translateY(-1px);
+      }
+      .command-palette-item-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: flex-start;
+      }
+      .command-palette-item-title-row {
+        margin-top: 0.08rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .command-palette-item-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .command-palette-item-tags {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .command-palette-item-kicker {
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .command-palette-favorite {
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 999px;
+        background: rgba(244, 250, 252, 0.9);
+        color: var(--teal-dark);
+        font: inherit;
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.22rem 0.5rem;
+        cursor: pointer;
+      }
+      .command-palette-favorite.is-active {
+        background: rgba(26, 122, 143, 0.12);
+        border-color: rgba(26, 122, 143, 0.28);
+      }
+      .command-palette-item-copy {
+        margin-top: 0.25rem;
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.5;
+      }
+      .command-palette-empty {
+        padding: 1.2rem 1rem;
+        color: var(--slate);
+        line-height: 1.6;
+      }
       .admin-region-grid.two-column {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       }
@@ -450,6 +704,364 @@
       }
       .stats-grid.ops-grid {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .executive-deck {
+        display: grid;
+        gap: 0.95rem;
+        margin-bottom: 1rem;
+      }
+      .executive-deck-primary {
+        position: relative;
+        overflow: hidden;
+        padding: 1.2rem 1.25rem;
+        border-radius: 22px;
+        border: 1px solid rgba(20, 77, 97, 0.14);
+        background:
+          radial-gradient(circle at top right, rgba(47, 130, 152, 0.16), transparent 28%),
+          linear-gradient(135deg, #103b4e 0%, #1c5568 48%, #f4fbfd 160%);
+        box-shadow: 0 22px 48px rgba(16, 59, 78, 0.16);
+        color: #eef9fb;
+      }
+      .executive-deck-primary::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -35% auto;
+        width: 320px;
+        height: 320px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 68%);
+        pointer-events: none;
+      }
+      .executive-deck-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.95rem;
+      }
+      .executive-deck-panel {
+        min-width: 0;
+        padding: 1rem 1.05rem;
+        border-radius: 18px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 251, 252, 0.98));
+        box-shadow: 0 14px 30px rgba(29, 58, 74, 0.05);
+      }
+      .executive-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        width: fit-content;
+        padding: 0.34rem 0.62rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .executive-title {
+        margin: 0.5rem 0 0;
+        max-width: 48rem;
+        font-size: clamp(1.55rem, 2.2vw, 2.2rem);
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+      }
+      .executive-copy {
+        margin-top: 0.55rem;
+        max-width: 52rem;
+        color: rgba(238, 249, 251, 0.84);
+        font-size: 0.96rem;
+        line-height: 1.7;
+      }
+      .executive-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      .executive-metric {
+        padding: 0.85rem 0.9rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .executive-metric-value {
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+      .executive-metric-label {
+        margin-top: 0.24rem;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: rgba(238, 249, 251, 0.78);
+      }
+      .executive-metric-note {
+        margin-top: 0.35rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: rgba(238, 249, 251, 0.82);
+      }
+      .executive-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1rem;
+      }
+      .executive-deck-primary .btn-secondary {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.18);
+        color: #f4fbfd;
+      }
+      .intel-panel-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--navy);
+        letter-spacing: -0.02em;
+      }
+      .intel-panel-copy {
+        margin-top: 0.35rem;
+        color: #5f7a88;
+        font-size: 0.84rem;
+        line-height: 1.6;
+      }
+      .intel-stack {
+        display: grid;
+        gap: 0.7rem;
+        margin-top: 0.85rem;
+      }
+      .intel-brief {
+        padding: 0.82rem 0.9rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+      }
+      .intel-brief-label {
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #628192;
+      }
+      .intel-brief-value {
+        margin-top: 0.28rem;
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1.25;
+      }
+      .intel-brief-note {
+        margin-top: 0.32rem;
+        color: #5c7685;
+        font-size: 0.82rem;
+        line-height: 1.55;
+      }
+      .session-steps {
+        display: grid;
+        gap: 0.7rem;
+        margin-top: 0.9rem;
+      }
+      .session-step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        align-items: start;
+        padding: 0.8rem 0.85rem;
+        border-radius: 15px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+      }
+      .session-step-index {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(26, 122, 143, 0.14), rgba(42, 156, 179, 0.22));
+        color: var(--teal-dark);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+      .session-step-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .session-step-copy {
+        margin-top: 0.18rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .session-step-meta {
+        margin-top: 0.26rem;
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
+      .session-step-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.55rem;
+      }
+      .onboarding-list {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0.85rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .onboarding-item {
+        padding: 0.72rem 0.78rem;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+      }
+      .onboarding-item strong {
+        display: block;
+        color: var(--navy);
+        font-size: 0.86rem;
+      }
+      .onboarding-item span {
+        display: block;
+        margin-top: 0.18rem;
+        color: var(--slate);
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+      .workflow-guidance-card {
+        margin: 0.9rem 0 1rem;
+        padding: 1rem 1.05rem;
+        border: 1px solid rgba(15, 53, 87, 0.12);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(243, 248, 252, 0.98), rgba(255, 255, 255, 0.98)),
+          var(--white);
+        box-shadow: 0 18px 38px rgba(15, 53, 87, 0.08);
+      }
+      .workflow-guidance-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+      }
+      .workflow-guidance-kicker {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin-bottom: 0.28rem;
+      }
+      .workflow-guidance-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--navy);
+        margin: 0;
+      }
+      .workflow-guidance-copy {
+        margin-top: 0.35rem;
+        color: var(--slate);
+        font-size: 0.93rem;
+        max-width: 62ch;
+      }
+      .workflow-guidance-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.72rem;
+        border-radius: 999px;
+        background: rgba(33, 92, 158, 0.1);
+        color: var(--navy);
+        font-weight: 700;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      .workflow-guidance-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.95rem;
+      }
+      .workflow-guidance-metric {
+        padding: 0.8rem 0.85rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(15, 53, 87, 0.08);
+      }
+      .workflow-guidance-metric-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+        color: var(--muted);
+      }
+      .workflow-guidance-metric-value {
+        margin-top: 0.3rem;
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .workflow-guidance-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+        gap: 0.95rem;
+        margin-top: 0.95rem;
+      }
+      .workflow-guidance-section {
+        padding: 0.92rem 0.95rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(15, 53, 87, 0.08);
+      }
+      .workflow-guidance-section-title {
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--muted);
+        margin-bottom: 0.45rem;
+      }
+      .workflow-guidance-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .workflow-guidance-list li {
+        position: relative;
+        padding-left: 1rem;
+        color: var(--slate);
+        font-size: 0.92rem;
+      }
+      .workflow-guidance-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.5rem;
+        width: 0.44rem;
+        height: 0.44rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--gold), #f4d574);
+      }
+      .workflow-guidance-callout {
+        margin-top: 0.95rem;
+        padding: 0.92rem 0.95rem;
+        border-radius: 14px;
+        background: rgba(15, 53, 87, 0.04);
+        color: var(--slate);
+        font-size: 0.92rem;
+      }
+      .workflow-guidance-callout strong {
+        color: var(--navy);
       }
       .stat-card,
       .panel,
@@ -1003,6 +1615,73 @@
         color: var(--navy);
         line-height: 1.45;
       }
+      .card-command-strip {
+        margin-top: 0.78rem;
+        padding: 0.82rem 0.88rem;
+        border-radius: 16px;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        background:
+          linear-gradient(180deg, rgba(247, 251, 252, 0.98), rgba(255, 255, 255, 0.96)),
+          var(--white);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+      }
+      .card-command-kicker {
+        font-size: 0.67rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .card-command-title {
+        margin-top: 0.22rem;
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .card-command-copy {
+        margin-top: 0.28rem;
+        color: var(--slate);
+        font-size: 0.85rem;
+        line-height: 1.55;
+      }
+      .card-command-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.55rem;
+        margin-top: 0.72rem;
+      }
+      .card-command-cell {
+        padding: 0.72rem 0.76rem;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+      }
+      .card-command-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .card-command-value {
+        margin-top: 0.22rem;
+        color: var(--navy);
+        font-size: 0.86rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+      .card-command-callout {
+        margin-top: 0.7rem;
+        padding: 0.72rem 0.78rem;
+        border-radius: 13px;
+        background: rgba(15, 53, 87, 0.05);
+        color: var(--slate);
+        font-size: 0.83rem;
+        line-height: 1.55;
+      }
+      .card-command-callout strong {
+        color: var(--navy);
+      }
       .queue-shortlist {
         margin-top: 0.8rem;
         display: grid;
@@ -1233,6 +1912,70 @@
       .application-head h3 {
         margin: 0;
       }
+      .card-state-strip {
+        margin: 0.78rem 0 0.82rem;
+        padding: 0.78rem 0.88rem;
+        border-radius: 15px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(249, 252, 253, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .card-state-strip.is-publish {
+        border-color: rgba(58, 170, 122, 0.2);
+        background: linear-gradient(180deg, rgba(245, 252, 248, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .card-state-strip.is-trust {
+        border-color: rgba(214, 148, 43, 0.22);
+        background: linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .card-state-strip.is-ownership {
+        border-color: rgba(33, 92, 158, 0.2);
+        background: linear-gradient(180deg, rgba(244, 248, 253, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .card-state-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .card-state-kicker {
+        font-size: 0.67rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .card-state-title {
+        margin-top: 0.2rem;
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .card-state-copy {
+        margin-top: 0.24rem;
+        color: var(--slate);
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+      .card-state-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.34rem 0.58rem;
+        border-radius: 999px;
+        background: rgba(15, 53, 87, 0.07);
+        color: var(--navy);
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+      .card-state-meta {
+        display: flex;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        margin-top: 0.7rem;
+      }
       .application-bio {
         color: var(--slate);
         line-height: 1.6;
@@ -1251,6 +1994,22 @@
         background: var(--teal-faint);
         color: var(--teal-dark);
       }
+      .tag.is-publish {
+        background: rgba(58, 170, 122, 0.12);
+        color: #1f7a52;
+      }
+      .tag.is-trust {
+        background: rgba(214, 148, 43, 0.12);
+        color: #8a5a00;
+      }
+      .tag.is-ownership {
+        background: rgba(33, 92, 158, 0.12);
+        color: #1f4f87;
+      }
+      .tag.is-neutral {
+        background: rgba(15, 53, 87, 0.08);
+        color: var(--slate);
+      }
       .meta-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1264,6 +2023,53 @@
         gap: 0.75rem;
         align-items: center;
         flex-wrap: wrap;
+      }
+      .action-row.is-decision-cluster {
+        margin-top: 0.82rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(26, 122, 143, 0.12);
+      }
+      .action-cluster-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.65rem;
+        width: 100%;
+      }
+      .action-cluster {
+        padding: 0.78rem 0.82rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .action-cluster.is-primary {
+        border-color: rgba(58, 170, 122, 0.2);
+        background: linear-gradient(180deg, rgba(245, 252, 248, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .action-cluster.is-secondary {
+        border-color: rgba(214, 148, 43, 0.18);
+        background: linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(255, 255, 255, 0.96));
+      }
+      .action-cluster.is-context {
+        border-color: rgba(15, 53, 87, 0.1);
+      }
+      .action-cluster-label {
+        font-size: 0.67rem;
+        font-weight: 900;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .action-cluster-copy {
+        margin-top: 0.28rem;
+        color: var(--slate);
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+      .action-cluster-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.62rem;
       }
       .toolbar {
         display: flex;
@@ -1616,17 +2422,19 @@
       }
       .launch-mini-card {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 220px;
+        grid-template-columns: minmax(320px, 1fr) minmax(220px, 260px);
         gap: 0.9rem;
         align-items: start;
       }
       .launch-card-main {
         min-width: 0;
+        width: 100%;
       }
       .launch-card-controls {
         display: grid;
         gap: 0.55rem;
         align-content: start;
+        min-width: 220px;
         padding-left: 0.9rem;
         border-left: 1px solid var(--border);
       }
@@ -2073,6 +2881,19 @@
         display: none;
       }
       @media (max-width: 900px) {
+        .executive-deck-grid {
+          grid-template-columns: 1fr;
+        }
+        .admin-workspace-layout {
+          grid-template-columns: 1fr;
+        }
+        .admin-workspace-inspector {
+          position: static;
+          top: auto;
+        }
+        .workflow-guidance-grid {
+          grid-template-columns: 1fr;
+        }
         .grid {
           grid-template-columns: 1fr;
         }
@@ -2094,6 +2915,7 @@
           grid-template-columns: 1fr;
         }
         .launch-card-controls {
+          min-width: 0;
           padding-left: 0;
           border-left: none;
           padding-top: 0.2rem;
@@ -2276,6 +3098,14 @@
                 Start with the work lane that changes the business most right now, then drop into
                 the detailed queue below.
               </div>
+            </div>
+          </div>
+          <div class="executive-deck">
+            <div class="executive-deck-primary" id="executiveMandateBoard"></div>
+            <div class="executive-deck-grid">
+              <div class="executive-deck-panel" id="bestPathWorkflowBoard"></div>
+              <div class="executive-deck-panel" id="businessIntelligenceBoard"></div>
+              <div class="executive-deck-panel" id="firstRunGuideBoard"></div>
             </div>
           </div>
           <div class="stats" id="adminStats">
@@ -2819,203 +3649,225 @@
                   </div>
                 </div>
               </div>
-              <div class="admin-region-grid">
-                <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
-                  <h2>Add New Listings</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    New therapist listings land here before they become live profiles. Review
-                    duplicates, trust readiness, and publishing decisions in one place.
-                  </p>
-                  <div class="toolbar" style="margin-bottom: 0.8rem">
-                    <input
-                      type="search"
-                      id="candidateSearch"
-                      placeholder="Search new listings, cities, source types..."
-                    />
-                    <select id="candidateReviewStatusFilter">
-                      <option value="">All review statuses</option>
-                      <option value="queued">Queued</option>
-                      <option value="needs_review">Needs review</option>
-                      <option value="needs_confirmation">Needs confirmation</option>
-                      <option value="ready_to_publish">Ready to publish</option>
-                      <option value="published">Published</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                    <select id="candidateDedupeStatusFilter">
-                      <option value="">All dedupe states</option>
-                      <option value="unreviewed">Unreviewed</option>
-                      <option value="unique">Unique</option>
-                      <option value="possible_duplicate">Possible duplicate</option>
-                      <option value="rejected_duplicate">Rejected duplicate</option>
-                      <option value="merged">Merged</option>
-                    </select>
-                    <select id="candidateReviewLaneFilter">
-                      <option value="">All ops lanes</option>
-                      <option value="publish_now">Publish now</option>
-                      <option value="editorial_review">Editorial review</option>
-                      <option value="needs_confirmation">Needs confirmation</option>
-                      <option value="resolve_duplicates">Resolve duplicates</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                    <div class="subtle" id="candidateQueueCount"></div>
-                  </div>
-                  <div id="candidateQueue"></div>
-                  <details class="lane-intro-details">
-                    <summary>How this lane works</summary>
-                    <div class="sop-note">
-                      <div class="sop-note-row">
-                        <div class="sop-note-label">Purpose</div>
-                        <div class="sop-note-copy">
-                          Turn newly sourced therapist leads into publishable listings, confirmation
-                          follow-up, duplicate merges, or a clean archive decision.
-                        </div>
+              <div class="admin-workspace-layout">
+                <div class="admin-workspace-main">
+                  <div class="admin-region-grid">
+                    <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
+                      <h2>Add New Listings</h2>
+                      <p class="subtle" style="margin-top: 0">
+                        New therapist listings land here before they become live profiles. Review
+                        duplicates, trust readiness, and publishing decisions in one place.
+                      </p>
+                      <div id="candidateQueueGuidance"></div>
+                      <div class="toolbar" style="margin-bottom: 0.8rem">
+                        <input
+                          type="search"
+                          id="candidateSearch"
+                          placeholder="Search new listings, cities, source types..."
+                        />
+                        <select id="candidateReviewStatusFilter">
+                          <option value="">All review statuses</option>
+                          <option value="queued">Queued</option>
+                          <option value="needs_review">Needs review</option>
+                          <option value="needs_confirmation">Needs confirmation</option>
+                          <option value="ready_to_publish">Ready to publish</option>
+                          <option value="published">Published</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                        <select id="candidateDedupeStatusFilter">
+                          <option value="">All dedupe states</option>
+                          <option value="unreviewed">Unreviewed</option>
+                          <option value="unique">Unique</option>
+                          <option value="possible_duplicate">Possible duplicate</option>
+                          <option value="rejected_duplicate">Rejected duplicate</option>
+                          <option value="merged">Merged</option>
+                        </select>
+                        <select id="candidateReviewLaneFilter">
+                          <option value="">All ops lanes</option>
+                          <option value="publish_now">Publish now</option>
+                          <option value="editorial_review">Editorial review</option>
+                          <option value="needs_confirmation">Needs confirmation</option>
+                          <option value="resolve_duplicates">Resolve duplicates</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                        <div class="subtle" id="candidateQueueCount"></div>
                       </div>
-                      <div class="sop-note-row">
-                        <div class="sop-note-label">Use This When</div>
-                        <div class="sop-note-copy">
-                          You are adding supply, checking whether a new listing is real and unique,
-                          or deciding whether it is ready to publish.
-                        </div>
-                      </div>
-                      <div class="sop-note-row">
-                        <div class="sop-note-label">Done Means</div>
-                        <div class="sop-note-copy">
-                          The new listing is published, sent to confirmation, merged as a duplicate,
-                          or archived with a clear reason.
-                        </div>
-                      </div>
-                      <details class="playbook">
-                        <summary>Operator Playbook</summary>
-                        <div class="playbook-body">
-                          <div class="playbook-section">
-                            <div class="playbook-label">Good First Move</div>
-                            <div class="playbook-copy">
-                              Check for duplicates first, then decide whether the new listing is
-                              strong enough to publish now, needs confirmation, or should be
-                              archived. This keeps low-quality supply from cluttering the system.
+                      <div id="candidateQueue"></div>
+                      <details class="lane-intro-details">
+                        <summary>How this lane works</summary>
+                        <div class="sop-note">
+                          <div class="sop-note-row">
+                            <div class="sop-note-label">Purpose</div>
+                            <div class="sop-note-copy">
+                              Turn newly sourced therapist leads into publishable listings,
+                              confirmation follow-up, duplicate merges, or a clean archive decision.
                             </div>
                           </div>
-                          <div class="playbook-section">
-                            <div class="playbook-label">Strong Decision Example</div>
-                            <div class="playbook-copy">
-                              If the new listing looks unique and has enough trustworthy detail,
-                              move it toward publish-ready. If it is promising but missing a crucial
-                              operational fact, send it to confirmation instead of forcing a publish
-                              decision.
+                          <div class="sop-note-row">
+                            <div class="sop-note-label">Use This When</div>
+                            <div class="sop-note-copy">
+                              You are adding supply, checking whether a new listing is real and
+                              unique, or deciding whether it is ready to publish.
                             </div>
                           </div>
-                          <div class="playbook-section">
-                            <div class="playbook-label">Avoid</div>
-                            <div class="playbook-copy">
-                              Do not keep marginal new listings around without a reason. Every
-                              listing should be published, sent to follow-up, merged, or removed
-                              from the queue.
+                          <div class="sop-note-row">
+                            <div class="sop-note-label">Done Means</div>
+                            <div class="sop-note-copy">
+                              The new listing is published, sent to confirmation, merged as a
+                              duplicate, or archived with a clear reason.
                             </div>
                           </div>
+                          <details class="playbook">
+                            <summary>Operator Playbook</summary>
+                            <div class="playbook-body">
+                              <div class="playbook-section">
+                                <div class="playbook-label">Good First Move</div>
+                                <div class="playbook-copy">
+                                  Check for duplicates first, then decide whether the new listing is
+                                  strong enough to publish now, needs confirmation, or should be
+                                  archived. This keeps low-quality supply from cluttering the
+                                  system.
+                                </div>
+                              </div>
+                              <div class="playbook-section">
+                                <div class="playbook-label">Strong Decision Example</div>
+                                <div class="playbook-copy">
+                                  If the new listing looks unique and has enough trustworthy detail,
+                                  move it toward publish-ready. If it is promising but missing a
+                                  crucial operational fact, send it to confirmation instead of
+                                  forcing a publish decision.
+                                </div>
+                              </div>
+                              <div class="playbook-section">
+                                <div class="playbook-label">Avoid</div>
+                                <div class="playbook-copy">
+                                  Do not keep marginal new listings around without a reason. Every
+                                  listing should be published, sent to follow-up, merged, or removed
+                                  from the queue.
+                                </div>
+                              </div>
+                            </div>
+                          </details>
                         </div>
                       </details>
                     </div>
-                  </details>
-                </div>
-                <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
-                  <h2>Review Applications</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Therapist-submitted applications appear here when they need a human review
-                    decision.
-                  </p>
-                  <div class="sop-note">
-                    <div class="sop-note-row">
-                      <div class="sop-note-label">Purpose</div>
-                      <div class="sop-note-copy">
-                        Review therapist-submitted applications and decide whether they should be
-                        approved, revised, rejected, or published.
-                      </div>
-                    </div>
-                    <div class="sop-note-row">
-                      <div class="sop-note-label">Use This When</div>
-                      <div class="sop-note-copy">
-                        A therapist has submitted or updated a profile and it still needs a human
-                        review decision.
-                      </div>
-                    </div>
-                    <div class="sop-note-row">
-                      <div class="sop-note-label">Done Means</div>
-                      <div class="sop-note-copy">
-                        The application leaves pending limbo with a clear state: approved, needs
-                        changes, rejected, or published.
-                      </div>
-                    </div>
-                    <details class="playbook">
-                      <summary>Operator Playbook</summary>
-                      <div class="playbook-body">
-                        <div class="playbook-section">
-                          <div class="playbook-label">Good First Move</div>
-                          <div class="playbook-copy">
-                            Review the application for trust, completeness, and publishability in
-                            that order. The job is to make a clean decision, not to keep
-                            applications sitting in indefinite review.
+                    <div class="panel" id="applicationsPanel" style="margin-bottom: 1rem">
+                      <h2>Review Applications</h2>
+                      <p class="subtle" style="margin-top: 0">
+                        Therapist-submitted applications appear here when they need a human review
+                        decision.
+                      </p>
+                      <div id="applicationsGuidance"></div>
+                      <div class="sop-note">
+                        <div class="sop-note-row">
+                          <div class="sop-note-label">Purpose</div>
+                          <div class="sop-note-copy">
+                            Review therapist-submitted applications and decide whether they should
+                            be approved, revised, rejected, or published.
                           </div>
                         </div>
-                        <div class="playbook-section">
-                          <div class="playbook-label">Strong Decision Example</div>
-                          <div class="playbook-copy">
-                            If the therapist clearly meets quality and trust standards, approve or
-                            publish the application. If key details are weak but fixable, request
-                            changes with a concrete reason instead of rejecting it vaguely.
+                        <div class="sop-note-row">
+                          <div class="sop-note-label">Use This When</div>
+                          <div class="sop-note-copy">
+                            A therapist has submitted or updated a profile and it still needs a
+                            human review decision.
                           </div>
                         </div>
-                        <div class="playbook-section">
-                          <div class="playbook-label">Avoid</div>
-                          <div class="playbook-copy">
-                            Do not hold a decent application in reviewing status just because it is
-                            not perfect. Choose the next state and move it forward.
+                        <div class="sop-note-row">
+                          <div class="sop-note-label">Done Means</div>
+                          <div class="sop-note-copy">
+                            The application leaves pending limbo with a clear state: approved, needs
+                            changes, rejected, or published.
                           </div>
                         </div>
+                        <details class="playbook">
+                          <summary>Operator Playbook</summary>
+                          <div class="playbook-body">
+                            <div class="playbook-section">
+                              <div class="playbook-label">Good First Move</div>
+                              <div class="playbook-copy">
+                                Review the application for trust, completeness, and publishability
+                                in that order. The job is to make a clean decision, not to keep
+                                applications sitting in indefinite review.
+                              </div>
+                            </div>
+                            <div class="playbook-section">
+                              <div class="playbook-label">Strong Decision Example</div>
+                              <div class="playbook-copy">
+                                If the therapist clearly meets quality and trust standards, approve
+                                or publish the application. If key details are weak but fixable,
+                                request changes with a concrete reason instead of rejecting it
+                                vaguely.
+                              </div>
+                            </div>
+                            <div class="playbook-section">
+                              <div class="playbook-label">Avoid</div>
+                              <div class="playbook-copy">
+                                Do not hold a decent application in reviewing status just because it
+                                is not perfect. Choose the next state and move it forward.
+                              </div>
+                            </div>
+                          </div>
+                        </details>
                       </div>
-                    </details>
+                      <div class="toolbar">
+                        <input
+                          type="search"
+                          id="applicationSearch"
+                          placeholder="Search applicants, cities, specialties..."
+                        />
+                        <select id="applicationStatusFilter">
+                          <option value="">All statuses</option>
+                          <option value="pending">Pending</option>
+                          <option value="reviewing">Reviewing</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                        <select id="applicationFocusFilter">
+                          <option value="">All review focus</option>
+                          <option value="claim_follow_up_due">Follow-up due now</option>
+                          <option value="stalled_after_claim_review">
+                            Stalled after-claim review
+                          </option>
+                          <option value="claimed_ready_for_profile">
+                            Approved claims awaiting full profile
+                          </option>
+                          <option value="claim_conversion">
+                            Full profiles submitted after claim approval
+                          </option>
+                          <option value="claim_flow">Claim submissions</option>
+                          <option value="full_profile_flow">Full-profile submissions</option>
+                          <option value="publish_ready">Publish-ready first</option>
+                          <option value="needs_changes">Needs fixes first</option>
+                          <option value="confirmation_refresh">Confirmation refreshes</option>
+                          <option value="active_review">Active review</option>
+                        </select>
+                        <select id="applicationReviewGoal">
+                          <option value="balanced">Balanced review</option>
+                          <option value="publish_now">Clear publish-ready work</option>
+                          <option value="fix_weak">Clean up weak applications</option>
+                          <option value="refresh_first">Handle refresh updates</option>
+                        </select>
+                        <button type="button" class="btn-secondary" id="applicationClearFilters">
+                          Clear filters
+                        </button>
+                      </div>
+                    </div>
+                    <div id="applicationsList"></div>
                   </div>
-                  <div class="toolbar">
-                    <input
-                      type="search"
-                      id="applicationSearch"
-                      placeholder="Search applicants, cities, specialties..."
-                    />
-                    <select id="applicationStatusFilter">
-                      <option value="">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="reviewing">Reviewing</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                    <select id="applicationFocusFilter">
-                      <option value="">All review focus</option>
-                      <option value="claim_follow_up_due">Follow-up due now</option>
-                      <option value="stalled_after_claim_review">Stalled after-claim review</option>
-                      <option value="claimed_ready_for_profile">
-                        Approved claims awaiting full profile
-                      </option>
-                      <option value="claim_conversion">
-                        Full profiles submitted after claim approval
-                      </option>
-                      <option value="claim_flow">Claim submissions</option>
-                      <option value="full_profile_flow">Full-profile submissions</option>
-                      <option value="publish_ready">Publish-ready first</option>
-                      <option value="needs_changes">Needs fixes first</option>
-                      <option value="confirmation_refresh">Confirmation refreshes</option>
-                      <option value="active_review">Active review</option>
-                    </select>
-                    <select id="applicationReviewGoal">
-                      <option value="balanced">Balanced review</option>
-                      <option value="publish_now">Clear publish-ready work</option>
-                      <option value="fix_weak">Clean up weak applications</option>
-                      <option value="refresh_first">Handle refresh updates</option>
-                    </select>
-                    <button type="button" class="btn-secondary" id="applicationClearFilters">
-                      Clear filters
-                    </button>
-                  </div>
                 </div>
-                <div id="applicationsList"></div>
+                <aside class="admin-workspace-inspector">
+                  <div class="panel inspector-panel" id="adminRecordInspector">
+                    <h2>Active Record</h2>
+                    <p class="subtle" style="margin-top: 0">
+                      Keep the current supply decision visible while you scan the queue.
+                    </p>
+                    <div id="adminRecordInspectorContent" class="inspector-empty">
+                      Select a candidate or application card to keep its decision context pinned
+                      here.
+                    </div>
+                  </div>
+                </aside>
               </div>
             </section>
             <section class="admin-region-shell" id="requestsRegion">
@@ -3036,6 +3888,7 @@
                     One place to work the highest-value publish, merge, confirmation, and refresh
                     actions next.
                   </p>
+                  <div id="opsInboxGuidance"></div>
                   <div id="opsInbox"></div>
                 </div>
                 <div class="panel" id="reviewAttentionQueuePanel" style="margin-bottom: 1rem">
@@ -3044,6 +3897,7 @@
                     The highest-priority work needing action now, based on overdue, stale, and
                     unassigned items.
                   </p>
+                  <div id="reviewAttentionQueueGuidance"></div>
                   <div
                     class="subtle"
                     id="reviewAttentionQueueScope"
@@ -3057,6 +3911,7 @@
                     Shared ownership across applications and new listings, including overdue,
                     blocked, and unassigned work.
                   </p>
+                  <div id="reviewerWorkloadGuidance"></div>
                   <div class="toolbar" style="margin-bottom: 0.8rem">
                     <select id="reviewerWorkloadFilter">
                       <option value="">All reviewers</option>
@@ -3205,6 +4060,32 @@
             </section>
           </main>
         </div>
+      </div>
+    </div>
+
+    <div class="command-palette-shell" id="commandPaletteShell" aria-hidden="true">
+      <div
+        class="command-palette"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Admin command palette"
+      >
+        <div class="command-palette-head">
+          <div class="command-palette-kicker">Command Palette</div>
+          <input
+            class="command-palette-input"
+            id="commandPaletteInput"
+            type="search"
+            placeholder="Search lanes, records, reviewers, and next actions..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="command-palette-meta">
+            Press <strong>Enter</strong> to run, <strong>↑ ↓</strong> to move, and
+            <strong>Esc</strong> to close. Pin the commands you use most so they stay at the top.
+          </div>
+        </div>
+        <div class="command-palette-list" id="commandPaletteList"></div>
       </div>
     </div>
 
