@@ -859,6 +859,14 @@ function readHomepageOutcomes() {
   }
 }
 
+function readHomepageReshapeHistory() {
+  try {
+    return JSON.parse(window.localStorage.getItem("bth_shortlist_reshape_history_v1") || "null");
+  } catch (_error) {
+    return null;
+  }
+}
+
 function getHomepagePriorityRank(value) {
   var normalized = String(value || "").toLowerCase();
   if (normalized === "best fit") {
@@ -969,6 +977,7 @@ function renderHomepageReturnJourney() {
     return item.slug;
   });
   var outcomes = readHomepageOutcomes();
+  var reshapeHistory = readHomepageReshapeHistory();
   var touchedCount = outcomes.filter(function (item) {
     return item && shortlistSlugs.indexOf(item.therapist_slug) !== -1;
   }).length;
@@ -993,6 +1002,14 @@ function renderHomepageReturnJourney() {
       ? "Resume from the same saved options, reopen the route with live momentum, and decide whether your lead still deserves the top spot."
       : "You can reopen the shortlist, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
   meta.innerHTML = [
+    reshapeHistory && reshapeHistory.summary
+      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">' +
+        escapeHtml(reshapeHistory.title || "Last shortlist reshape") +
+        '</div><div class="hero-return-chip-value">Queue updated</div><div class="hero-return-chip-copy">' +
+        escapeHtml(reshapeHistory.summary) +
+        (reshapeHistory.meta ? " " + escapeHtml(reshapeHistory.meta) : "") +
+        "</div></div>"
+      : "",
     snapshot.lead
       ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Still looks strongest</div><div class="hero-return-chip-value">' +
         escapeHtml(leadName) +

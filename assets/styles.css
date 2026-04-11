@@ -927,6 +927,130 @@ nav {
   color: var(--slate);
 }
 
+.shortlist-reshaping-card {
+  background:
+    linear-gradient(180deg, rgba(248, 252, 253, 0.98), rgba(236, 245, 247, 0.95)),
+    rgba(255, 255, 255, 0.94);
+}
+
+.shortlist-reshaping-note {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--teal-dark);
+}
+
+.shortlist-reshaping-summary {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 248, 250, 0.94)),
+    rgba(255, 255, 255, 0.96);
+  padding: 0.95rem 1rem;
+  display: grid;
+  gap: 0.42rem;
+  box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+}
+
+.shortlist-reshaping-summary-copy {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.shortlist-reshaping-summary-list {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.shortlist-reshaping-summary-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.2rem;
+}
+
+.shortlist-reshaping-review {
+  display: grid;
+  gap: 0.48rem;
+  margin-top: 0.15rem;
+}
+
+.shortlist-reshaping-review-grid {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.shortlist-reshaping-review-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 18px minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.58rem 0.62rem;
+  border-radius: 12px;
+  background: rgba(247, 251, 252, 0.94);
+  border: 1px solid rgba(14, 77, 95, 0.08);
+}
+
+.shortlist-reshaping-review-row.is-changed {
+  background: rgba(240, 250, 244, 0.96);
+  border-color: rgba(34, 130, 76, 0.14);
+}
+
+.shortlist-reshaping-review-slot {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+}
+
+.shortlist-reshaping-review-before,
+.shortlist-reshaping-review-after,
+.shortlist-reshaping-review-arrow {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--navy);
+}
+
+.shortlist-reshaping-review-arrow {
+  text-align: center;
+  color: var(--teal-dark);
+}
+
+.shortlist-reshaping-summary-item {
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: var(--navy);
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  background: rgba(26, 122, 143, 0.06);
+  border: 1px solid rgba(14, 77, 95, 0.08);
+}
+
+.shortlist-reshaping-history {
+  margin-top: 0.35rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(14, 77, 95, 0.08);
+  background: rgba(247, 251, 252, 0.94);
+  display: grid;
+  gap: 0.22rem;
+}
+
+.shortlist-reshaping-history-copy,
+.shortlist-reshaping-history-meta {
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.shortlist-reshaping-history-copy {
+  color: var(--navy);
+}
+
+.shortlist-reshaping-history-meta {
+  color: var(--teal-dark);
+}
+
 .shortlist-compare-card {
   border: 1px solid rgba(26, 122, 143, 0.12);
   border-radius: 14px;
@@ -1004,6 +1128,105 @@ nav {
   color: var(--slate);
 }
 
+.shortlist-compare-replacement {
+  margin-top: 0.6rem;
+  padding: 0.78rem 0.82rem;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  background: linear-gradient(180deg, rgba(242, 248, 250, 0.94), rgba(255, 255, 255, 0.94));
+  display: grid;
+  gap: 0.24rem;
+}
+
+.shortlist-compare-replacement-label {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+}
+
+.shortlist-compare-replacement-name {
+  font-size: 0.79rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.shortlist-compare-replacement-meta,
+.shortlist-compare-replacement-copy,
+.shortlist-compare-replacement-next {
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.shortlist-compare-replacement-meta {
+  color: var(--teal-dark);
+}
+
+.shortlist-compare-replacement-copy {
+  color: var(--slate);
+}
+
+.shortlist-compare-replacement-edge {
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--navy);
+  padding: 0.52rem 0.58rem;
+  border-radius: 10px;
+  background: rgba(14, 77, 95, 0.06);
+  border: 1px solid rgba(14, 77, 95, 0.08);
+}
+
+.shortlist-replacement-confidence {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.56rem 0.62rem;
+  border-radius: 10px;
+  border: 1px solid rgba(26, 122, 143, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.shortlist-replacement-confidence.tone-strong {
+  border-color: rgba(34, 130, 76, 0.16);
+  background: rgba(240, 250, 244, 0.96);
+}
+
+.shortlist-replacement-confidence.tone-medium {
+  border-color: rgba(194, 157, 76, 0.18);
+  background: rgba(255, 250, 242, 0.96);
+}
+
+.shortlist-replacement-confidence.tone-soft {
+  border-color: rgba(14, 77, 95, 0.1);
+  background: rgba(247, 251, 252, 0.94);
+}
+
+.shortlist-replacement-confidence-label {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+}
+
+.shortlist-replacement-confidence-copy {
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.shortlist-compare-replacement-next {
+  color: var(--navy);
+}
+
+.shortlist-compare-replacement-actions {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
 .shortlist-compare-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1026,6 +1249,25 @@ nav {
 .shortlist-compare-drop:focus-visible {
   border-color: rgba(26, 122, 143, 0.24);
   color: var(--teal);
+  outline: none;
+}
+
+.shortlist-compare-replace {
+  border: 1px solid rgba(26, 122, 143, 0.18);
+  background: rgba(26, 122, 143, 0.08);
+  color: var(--teal-dark);
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shortlist-compare-replace:hover,
+.shortlist-compare-replace:focus-visible {
+  border-color: rgba(14, 77, 95, 0.24);
+  background: rgba(26, 122, 143, 0.14);
+  color: var(--navy);
   outline: none;
 }
 
@@ -1082,6 +1324,21 @@ nav {
   color: var(--teal);
   font-weight: 600;
   font-size: 0.8rem;
+}
+
+.shortlist-bar-undo {
+  border: 1px solid rgba(14, 77, 95, 0.12);
+  border-radius: 10px;
+  background: rgba(247, 251, 252, 0.96);
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+.shortlist-bar-undo:hover,
+.shortlist-bar-undo:focus-visible {
+  background: rgba(240, 248, 250, 0.98);
+  border-color: rgba(26, 122, 143, 0.18);
+  outline: none;
 }
 
 .card-action-primary {
