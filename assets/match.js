@@ -202,6 +202,166 @@ function syncMatchStartState() {
   });
 }
 
+function setMatchPreviewText(id, value) {
+  var node = document.getElementById(id);
+  if (node) {
+    node.textContent = value;
+  }
+}
+
+function countOptionalIntakeAnswers(profile) {
+  if (!profile) {
+    return 0;
+  }
+
+  var count = 0;
+  if (profile.insurance) count += 1;
+  if (profile.budget_max) count += 1;
+  if (profile.care_format) count += 1;
+  if (
+    profile.needs_medication_management &&
+    String(profile.needs_medication_management).trim() &&
+    String(profile.needs_medication_management).trim() !== "No preference"
+  ) {
+    count += 1;
+  }
+  if (
+    profile.priority_mode &&
+    String(profile.priority_mode).trim() &&
+    String(profile.priority_mode).trim() !== "Balanced"
+  ) {
+    count += 1;
+  }
+  count += (profile.bipolar_focus || []).length ? 1 : 0;
+  count += (profile.preferred_modalities || []).length ? 1 : 0;
+  count += (profile.population_fit || []).length ? 1 : 0;
+  return count;
+}
+
+function renderMatchIntakePreview(profile) {
+  var zipStatus = getZipMarketStatus(profile && profile.location_query);
+  var hasCareIntent = Boolean(profile && profile.care_intent);
+  var hasZip = Boolean(profile && profile.location_query);
+  var optionalCount = countOptionalIntakeAnswers(profile);
+  var nextRefinement =
+    profile && !profile.insurance
+      ? "Insurance or payment preference is usually the cleanest next tightening move."
+      : profile && !profile.care_format
+        ? "Care format is often the next easiest way to narrow without overcomplicating the search."
+        : profile && !profile.priority_mode
+          ? "Priority mode can sharpen whether the shortlist leans toward speed or specialization."
+          : "Your optional answers are already doing more of the narrowing work.";
+
+  if (!hasCareIntent && !hasZip) {
+    setMatchPreviewText("matchPreviewStateTitle", "Start with the two required answers.");
+    setMatchPreviewText(
+      "matchPreviewStateCopy",
+      "Care type and ZIP do most of the early narrowing before you add preferences.",
+    );
+    setMatchPreviewText("matchPreviewConfidenceTitle", "Give yourself a calmer first pass.");
+    setMatchPreviewText(
+      "matchPreviewConfidenceCopy",
+      "The first shortlist should reduce noise quickly, not demand every answer up front.",
+    );
+    setMatchPreviewText("matchPreviewNextTitle", "Optional preferences can wait.");
+    setMatchPreviewText(
+      "matchPreviewNextCopy",
+      "Insurance, format, and medication details can come after the first pass if you still want a tighter shortlist.",
+    );
+    return;
+  }
+
+  if (hasCareIntent && !hasZip) {
+    setMatchPreviewText("matchPreviewStateTitle", "The care lane is chosen.");
+    setMatchPreviewText(
+      "matchPreviewStateCopy",
+      "ZIP is what makes the shortlist feel local, usable, and worth comparing.",
+    );
+    setMatchPreviewText("matchPreviewConfidenceTitle", "You are still keeping this lightweight.");
+    setMatchPreviewText(
+      "matchPreviewConfidenceCopy",
+      "Once location is in place, the first match can narrow fit without trapping you in a long intake.",
+    );
+    setMatchPreviewText("matchPreviewNextTitle", "What can still wait.");
+    setMatchPreviewText("matchPreviewNextCopy", nextRefinement);
+    return;
+  }
+
+  if (!hasCareIntent && hasZip) {
+    setMatchPreviewText("matchPreviewStateTitle", "Location is ready.");
+    setMatchPreviewText(
+      "matchPreviewStateCopy",
+      zipStatus.place
+        ? "We can ground the shortlist around " +
+            zipStatus.place.label +
+            " once you choose whether to start with therapy or psychiatry."
+        : "The local context is there. One care choice will make the first shortlist feel far more intentional.",
+    );
+    setMatchPreviewText(
+      "matchPreviewConfidenceTitle",
+      "One answer should change the feel quickly.",
+    );
+    setMatchPreviewText(
+      "matchPreviewConfidenceCopy",
+      "Choosing the type of care usually does more to calm the search than adding lots of optional details.",
+    );
+    setMatchPreviewText("matchPreviewNextTitle", "What can still wait.");
+    setMatchPreviewText("matchPreviewNextCopy", nextRefinement);
+    return;
+  }
+
+  if (zipStatus.status === "out_of_state") {
+    setMatchPreviewText("matchPreviewStateTitle", "Outside the current match area.");
+    setMatchPreviewText(
+      "matchPreviewStateCopy",
+      "We are currently matching California ZIP codes, so the shortlist will feel strongest once location is in-range.",
+    );
+    setMatchPreviewText("matchPreviewConfidenceTitle", "Do not add more detail yet.");
+    setMatchPreviewText(
+      "matchPreviewConfidenceCopy",
+      "The smartest next move is correcting location first, not layering on more optional preferences.",
+    );
+    setMatchPreviewText("matchPreviewNextTitle", "What to save for later.");
+    setMatchPreviewText("matchPreviewNextCopy", nextRefinement);
+    return;
+  }
+
+  setMatchPreviewText("matchPreviewStateTitle", "Core match is ready.");
+  setMatchPreviewText(
+    "matchPreviewStateCopy",
+    zipStatus.place
+      ? "Starting with " +
+          profile.care_intent.toLowerCase() +
+          " in " +
+          zipStatus.place.label +
+          " should already feel more focused than broad browsing."
+      : "The two required answers are in place, so the first shortlist should feel more guided than generic.",
+  );
+  setMatchPreviewText(
+    "matchPreviewConfidenceTitle",
+    optionalCount
+      ? "This should feel more opinionated."
+      : "Start broad, then tighten only if needed.",
+  );
+  setMatchPreviewText(
+    "matchPreviewConfidenceCopy",
+    optionalCount
+      ? "You already have " +
+          optionalCount +
+          " optional signal" +
+          (optionalCount === 1 ? "" : "s") +
+          " shaping the shortlist, so the first pass should lean harder on fit."
+      : "Run the first match now if you want a calmer starting shortlist. Add optional details only if the first pass still feels too broad.",
+  );
+  setMatchPreviewText(
+    "matchPreviewNextTitle",
+    optionalCount
+      ? "Best next refinement if you still want more certainty."
+      : "What can still wait.",
+  );
+  setMatchPreviewText("matchPreviewNextCopy", nextRefinement);
+}
+
 function setMatchJourneyMode(mode) {
   return setMatchJourneyModeBase(mode, starterResultsMode);
 }
@@ -250,6 +410,7 @@ function hydrateForm(profile) {
     syncZipResolvedLabel: syncZipResolvedLabel,
   });
   syncMatchStartState();
+  renderMatchIntakePreview(readCurrentIntakeProfile());
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
 }
@@ -4004,7 +4165,37 @@ function renderPrimaryMatchCards(entries, _profile) {
           "</div>" +
           '<div class="match-summary-pills">' +
           getShortlistSummary(entry) +
-          "</div>" +
+          '</div><div class="match-card-decision-rail"><div class="match-card-decision-panel"><div class="match-card-decision-label">' +
+          escapeHtml(index === 0 ? "Start here" : "Backup if needed") +
+          '</div><div class="match-card-decision-title">' +
+          escapeHtml(
+            index === 0
+              ? "This is the clearest first outreach move right now."
+              : "Keep this ready if the lead path slows down or feels less certain.",
+          ) +
+          '</div><div class="match-card-decision-copy">' +
+          escapeHtml(
+            index === 0
+              ? explanation
+              : "You do not need to contact everyone. Keep this option close so you can pivot quickly if the first route stalls.",
+          ) +
+          '</div></div><div class="match-card-decision-panel"><div class="match-card-decision-label">If this stalls</div><div class="match-card-decision-title">' +
+          escapeHtml(
+            index === 0
+              ? primaryEntries[1] && primaryEntries[1].therapist
+                ? "Move to " + (primaryEntries[1].therapist.name || "your backup") + " next."
+                : "Pivot to your next strongest option."
+              : "Return to compare or refine instead of widening the search immediately.",
+          ) +
+          '</div><div class="match-card-decision-copy">' +
+          escapeHtml(
+            index === 0
+              ? primaryEntries[1] && primaryEntries[1].therapist
+                ? "Your backup is already identified, so you can keep momentum without reopening the whole search."
+                : "If this route feels weak after one focused attempt, use the shortlist and directory instead of waiting indefinitely."
+              : "This stays strongest as a backup path. If both options feel weak, refine the shortlist instead of scattering your outreach.",
+          ) +
+          "</div></div></div>" +
           '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="match-card-action-title">' +
           escapeHtml(ctaLabel) +
           '</div><div class="match-card-action-copy">' +
@@ -4284,6 +4475,7 @@ function resetForm() {
   form.reset();
   syncZipResolvedLabel("");
   syncMatchStartState();
+  renderMatchIntakePreview(readCurrentIntakeProfile());
   renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
   renderIntakeTradeoffPreview(readCurrentIntakeProfile());
   activeSecondPassMode = "balanced";
@@ -4312,6 +4504,7 @@ function refreshIntakeUiFromForm() {
 
   syncZipResolvedLabel(form.elements.location_query.value);
   syncMatchStartState();
+  renderMatchIntakePreview(profile);
   renderAdaptiveIntakeGuidance(profile);
   renderIntakeTradeoffPreview(profile);
 

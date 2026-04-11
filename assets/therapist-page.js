@@ -2004,6 +2004,7 @@ function renderProfile(t, therapistDirectory) {
     '" class="btn-website">Claim or manage profile</a>';
   var mobileDockActions =
     (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    '<button type="button" class="btn-website" data-profile-focus-script>Preview first message</button>' +
     '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to shortlist</button>';
 
   contactBtns =
@@ -2252,11 +2253,11 @@ function renderProfile(t, therapistDirectory) {
     '">' +
     escapeHtml(contactStrategy.replyWindowCopy) +
     "</div></div>" +
-    '<div class="next-step-item" data-profile-outreach-script><div class="next-step-label">' +
+    '<div class="next-step-item" data-profile-outreach-script tabindex="-1"><div class="next-step-label">' +
     escapeHtml(contactScriptLabel) +
-    '</div><div class="next-step-value">' +
+    '</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
     escapeHtml(outreachScript) +
-    "</div></div>" +
+    '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper"><strong>Use this as your low-friction starting point.</strong> Adjust the greeting or one detail if you want it to sound more like you, but you do not need to overwork the first reach-out.</div></div></div></div>' +
     (t.estimated_wait_time
       ? '<div class="next-step-item"><div class="next-step-label">Recent availability note</div><div class="next-step-value">' +
         escapeHtml(t.estimated_wait_time) +
@@ -2556,6 +2557,46 @@ function renderProfile(t, therapistDirectory) {
       trackFunnelEvent("profile_outreach_script_engaged", getContactAnalyticsMeta(t, "script"));
     });
   }
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-focus-script]"))
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var scriptCard = document.querySelector("[data-profile-outreach-script]");
+        if (!scriptCard) {
+          return;
+        }
+        scriptCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.setTimeout(function () {
+          scriptCard.focus({ preventScroll: true });
+        }, 220);
+        trackFunnelEvent("profile_outreach_script_focused", getContactAnalyticsMeta(t, "script"));
+      });
+    });
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-copy-script]"))
+    .forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var message = String(outreachScript || "").trim();
+        if (!message) {
+          return;
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(message);
+            button.textContent = "Copied first message";
+            window.setTimeout(function () {
+              button.textContent = "Copy first message";
+            }, 1800);
+          }
+        } catch (_error) {
+          button.textContent = "Copy manually below";
+          window.setTimeout(function () {
+            button.textContent = "Copy first message";
+          }, 1800);
+        }
+        trackFunnelEvent("profile_outreach_script_copied", getContactAnalyticsMeta(t, "script"));
+      });
+    });
   var contactQuestionsCard = document.querySelector("[data-profile-contact-questions]");
   if (contactQuestionsCard) {
     contactQuestionsCard.addEventListener("click", function () {

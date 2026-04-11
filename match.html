@@ -510,6 +510,39 @@
       .match-start-helper strong {
         color: var(--navy);
       }
+      .match-intake-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.82rem;
+      }
+      .match-intake-preview-card {
+        padding: 0.82rem 0.88rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        box-shadow: 0 10px 22px rgba(14, 77, 95, 0.04);
+      }
+      .match-intake-preview-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-intake-preview-title {
+        margin-top: 0.24rem;
+        font-size: 0.92rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--navy);
+      }
+      .match-intake-preview-copy {
+        margin-top: 0.22rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
       .match-launch-note {
         margin-top: -0.2rem;
         text-align: left;
@@ -922,6 +955,60 @@
         margin: 0;
         font-size: 0.96rem;
         line-height: 1.65;
+        color: var(--slate);
+      }
+      .match-empty-decision-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+      }
+      .match-empty-decision-card {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        text-align: left;
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        box-shadow: 0 10px 24px rgba(14, 77, 95, 0.05);
+      }
+      .match-empty-decision-card.tone-primary {
+        background: linear-gradient(
+          180deg,
+          rgba(227, 242, 246, 0.95) 0%,
+          rgba(255, 255, 255, 0.98) 100%
+        );
+      }
+      .match-empty-decision-card.tone-secondary {
+        background: linear-gradient(
+          180deg,
+          rgba(247, 250, 251, 0.98) 0%,
+          rgba(255, 255, 255, 0.98) 100%
+        );
+      }
+      .match-empty-decision-card.tone-refine {
+        background: linear-gradient(
+          180deg,
+          rgba(250, 247, 243, 0.98) 0%,
+          rgba(255, 255, 255, 0.98) 100%
+        );
+      }
+      .match-empty-decision-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-empty-decision-title {
+        margin-top: 0.28rem;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        color: var(--navy);
+        font-weight: 800;
+      }
+      .match-empty-decision-copy {
+        margin-top: 0.24rem;
+        font-size: 0.84rem;
+        line-height: 1.58;
         color: var(--slate);
       }
       .match-empty-actions {
@@ -1432,6 +1519,10 @@
         min-width: 132px;
         justify-content: center;
       }
+      .outreach-mobile-state,
+      .first-contact-journey-mobile-rail {
+        display: none;
+      }
       .match-card {
         border: 1px solid rgba(26, 122, 143, 0.12);
         border-radius: 26px;
@@ -1774,6 +1865,29 @@
       .match-card-action-copy {
         font-size: 0.84rem;
         line-height: 1.45;
+        color: var(--slate);
+      }
+      .match-card-decision-rail {
+        display: none;
+      }
+      .match-card-decision-label {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.24rem;
+      }
+      .match-card-decision-title {
+        font-size: 0.86rem;
+        line-height: 1.38;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-card-decision-copy {
+        margin-top: 0.24rem;
+        font-size: 0.79rem;
+        line-height: 1.55;
         color: var(--slate);
       }
       .match-card-contact-grid {
@@ -2774,6 +2888,9 @@
           flex-direction: column;
           align-items: flex-start;
         }
+        .match-empty-decision-grid {
+          grid-template-columns: 1fr;
+        }
         .match-card h3 {
           max-width: none;
           font-size: 1.4rem;
@@ -2816,6 +2933,20 @@
         .match-card-contact-grid {
           grid-template-columns: 1fr;
         }
+        .match-intake-preview-grid {
+          grid-template-columns: 1fr;
+        }
+        .match-card-decision-rail {
+          display: grid;
+          gap: 0.65rem;
+          margin-bottom: 0.75rem;
+        }
+        .match-card-decision-panel {
+          padding: 0.8rem 0.84rem;
+          border-radius: 16px;
+          border: 1px solid rgba(14, 77, 95, 0.1);
+          background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), rgba(240, 247, 249, 0.96));
+        }
         .match-options {
           grid-template-columns: 1fr;
         }
@@ -2851,6 +2982,31 @@
         }
         .outreach-compact-grid {
           grid-template-columns: 1fr;
+        }
+        .outreach-mobile-state,
+        .first-contact-journey-mobile-rail {
+          display: grid;
+          gap: 0.22rem;
+          margin-top: 0.7rem;
+          padding: 0.78rem 0.82rem;
+          border-radius: 14px;
+          border: 1px solid rgba(14, 77, 95, 0.1);
+          background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), rgba(240, 247, 249, 0.96));
+        }
+        .outreach-mobile-state-label,
+        .first-contact-journey-mobile-label {
+          font-size: 0.66rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+        .outreach-mobile-state-value,
+        .first-contact-journey-mobile-value {
+          font-size: 0.82rem;
+          line-height: 1.55;
+          font-weight: 700;
+          color: var(--navy);
         }
         .outreach-card-actions .btn-primary,
         .outreach-card-actions .btn-secondary {
@@ -2919,6 +3075,23 @@
         <li><a href="signup.html" class="nav-cta">For Therapists</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" aria-label="Mobile navigation">
+      <a href="index.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Start</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Reorient fast</span>
+      </a>
+      <a href="match.html" class="public-mobile-nav-link is-current">
+        <span class="public-mobile-nav-kicker">Guided</span>
+        <span class="public-mobile-nav-title">Get matched</span>
+        <span class="public-mobile-nav-copy">Lead and backup</span>
+      </a>
+      <a href="match.html" class="public-mobile-nav-link nav-shortlist" data-shortlist-link>
+        <span class="public-mobile-nav-kicker">Saved</span>
+        <span class="public-mobile-nav-title">Shortlist</span>
+        <span class="public-mobile-nav-copy">Resume <span data-shortlist-count>0</span> saved</span>
+      </a>
+    </div>
 
     <div
       id="matchResults"
@@ -3074,6 +3247,37 @@
                 <div class="match-start-helper" id="matchStartHelper">
                   <strong>Next:</strong> choose your care type and California ZIP code to begin
                   without overfilling the form.
+                </div>
+                <div class="match-intake-preview-grid" aria-label="Live intake guidance">
+                  <div class="match-intake-preview-card">
+                    <div class="match-intake-preview-label">Right now</div>
+                    <div class="match-intake-preview-title" id="matchPreviewStateTitle">
+                      Start with the two required answers.
+                    </div>
+                    <div class="match-intake-preview-copy" id="matchPreviewStateCopy">
+                      Care type and ZIP do most of the early narrowing before you add preferences.
+                    </div>
+                  </div>
+                  <div class="match-intake-preview-card">
+                    <div class="match-intake-preview-label">What the first pass should do</div>
+                    <div class="match-intake-preview-title" id="matchPreviewConfidenceTitle">
+                      Give you a calmer starting shortlist.
+                    </div>
+                    <div class="match-intake-preview-copy" id="matchPreviewConfidenceCopy">
+                      The first result should make the search feel lighter, not force every answer
+                      up front.
+                    </div>
+                  </div>
+                  <div class="match-intake-preview-card">
+                    <div class="match-intake-preview-label">What can wait</div>
+                    <div class="match-intake-preview-title" id="matchPreviewNextTitle">
+                      Optional preferences can come after the first pass.
+                    </div>
+                    <div class="match-intake-preview-copy" id="matchPreviewNextCopy">
+                      Insurance, format, and medication details help tighten later if the shortlist
+                      still feels too broad.
+                    </div>
+                  </div>
                 </div>
                 <div class="match-start-promise">
                   <div class="match-start-promise-label">What this should do for you</div>

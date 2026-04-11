@@ -130,6 +130,12 @@
         border-radius: 8px;
         font-weight: 600 !important;
       }
+      .public-mobile-nav {
+        display: none;
+      }
+      .public-mobile-nav-link {
+        text-decoration: none;
+      }
       .breadcrumb {
         padding: 0.75rem 1.5rem;
         background: rgba(255, 255, 255, 0.78);
@@ -1041,6 +1047,37 @@
         border-radius: 999px;
         background: var(--green);
       }
+      .contact-script-shell {
+        display: grid;
+        gap: 0.7rem;
+      }
+      .contact-script-preview {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.92));
+        font-size: 0.84rem;
+        line-height: 1.65;
+        color: var(--navy);
+        white-space: pre-wrap;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+      .contact-script-actions {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .contact-script-actions .btn-secondary,
+      .contact-script-actions .btn-contact {
+        width: 100%;
+      }
+      .contact-script-helper {
+        font-size: 0.78rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .contact-script-helper strong {
+        color: var(--navy);
+      }
       .next-step-question-list {
         display: grid;
         gap: 0.55rem;
@@ -1465,6 +1502,61 @@
         font-size: 0.78rem;
       }
       @media (max-width: 720px) {
+        .nav-links li:not(:last-child) {
+          display: none;
+        }
+        .public-mobile-nav {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.55rem;
+          position: sticky;
+          top: 64px;
+          z-index: 92;
+          padding: 0.8rem 1rem 0;
+          background: linear-gradient(
+            180deg,
+            rgba(247, 251, 252, 0.98) 72%,
+            rgba(247, 251, 252, 0)
+          );
+        }
+        .public-mobile-nav-link {
+          display: grid;
+          gap: 0.12rem;
+          min-height: 60px;
+          padding: 0.72rem 0.74rem;
+          border-radius: 18px;
+          border: 1px solid rgba(26, 122, 143, 0.12);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.96));
+          box-shadow: 0 12px 24px rgba(16, 67, 83, 0.08);
+          color: var(--slate);
+        }
+        .public-mobile-nav-link.is-current {
+          background: linear-gradient(180deg, rgba(14, 77, 95, 0.96), rgba(26, 122, 143, 0.94));
+          border-color: rgba(14, 77, 95, 0.2);
+          color: white;
+        }
+        .public-mobile-nav-link.is-current .public-mobile-nav-kicker,
+        .public-mobile-nav-link.is-current .public-mobile-nav-copy {
+          color: rgba(255, 255, 255, 0.78);
+        }
+        .public-mobile-nav-kicker {
+          font-size: 0.64rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+        .public-mobile-nav-title {
+          font-size: 0.82rem;
+          line-height: 1.25;
+          font-weight: 800;
+          color: inherit;
+        }
+        .public-mobile-nav-copy {
+          font-size: 0.72rem;
+          line-height: 1.4;
+          color: var(--slate);
+        }
         body {
           padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
         }
@@ -1556,6 +1648,9 @@
         .profile-mobile-dock-actions > * {
           width: 100%;
         }
+        .contact-script-preview {
+          font-size: 0.82rem;
+        }
       }
       @media (max-width: 480px) {
         .profile-identity {
@@ -1597,6 +1692,27 @@
         <li><a href="signup.html" class="nav-cta" id="navClaimLink">List Your Practice</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" aria-label="Mobile navigation">
+      <a href="index.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Start</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Reorient fast</span>
+      </a>
+      <a href="directory.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Browse</span>
+        <span class="public-mobile-nav-title">Directory</span>
+        <span class="public-mobile-nav-copy">Keep context</span>
+      </a>
+      <a
+        href="therapist.html"
+        class="public-mobile-nav-link is-current nav-shortlist"
+        data-shortlist-link
+      >
+        <span class="public-mobile-nav-kicker">Profile</span>
+        <span class="public-mobile-nav-title">Decision view</span>
+        <span class="public-mobile-nav-copy">Saved <span data-shortlist-count>0</span> ready</span>
+      </a>
+    </div>
 
     <div class="breadcrumb">
       <a href="index.html">Home</a> › <a href="directory.html">Directory</a> ›

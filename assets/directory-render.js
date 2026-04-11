@@ -18,14 +18,14 @@ function buildTherapistProfileHref(slug, source) {
 
 export function renderEmptyStateMarkup(directoryPage) {
   return (
-    '<div class="empty-state"><h3>' +
+    '<div class="empty-state"><div class="empty-state-kicker">No strong fit yet</div><h3>' +
     escapeHtml((directoryPage && directoryPage.emptyStateTitle) || "No therapists found") +
     "</h3><p>" +
     escapeHtml(
       (directoryPage && directoryPage.emptyStateDescription) ||
         "Try adjusting your filters or search terms.",
     ) +
-    "</p></div>"
+    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back faster than starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready shortlist before widening the search too broadly.</div></div></div></div>'
   );
 }
 
@@ -89,6 +89,10 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
 export function renderCardMarkup(options) {
   var model = options.model;
   var therapist = model.therapist;
+  var profileHref = buildTherapistProfileHref(
+    therapist.slug,
+    model.shortlisted ? "card_profile_saved" : "card_profile",
+  );
   var initials = therapist.name
     .split(" ")
     .map(function (part) {
@@ -236,11 +240,22 @@ export function renderCardMarkup(options) {
     (model.reviewedDetailsCopy && model.reviewedDetailsCopy !== model.trustSnapshot
       ? '<div class="card-contact-detail">' + escapeHtml(model.reviewedDetailsCopy) + "</div>"
       : "") +
+    '<div class="card-mobile-handoff"><div class="card-mobile-handoff-label">Opening this profile keeps your place</div><div class="card-mobile-handoff-copy">' +
+    escapeHtml(
+      model.shortlisted
+        ? "Your shortlist, note, and backup comparison stay intact while you pressure-test fit, trust, and the safest contact route."
+        : "Open the full profile to pressure-test fit, trust, and first-contact guidance before you decide whether to save or reach out.",
+    ) +
+    "</div></div>" +
     '<div class="card-next-step"><div class="card-next-step-label">What happens next</div><div class="card-next-step-copy">' +
     escapeHtml(model.nextStepLine) +
     "</div></div>" +
     contactDetail +
-    '<div class="card-actions"><button class="card-action-btn' +
+    '<div class="card-actions"><a href="' +
+    escapeHtml(profileHref) +
+    '" class="card-open-profile-btn" data-review-fit="' +
+    escapeHtml(therapist.slug) +
+    '">Open full profile</a><button class="card-action-btn' +
     (model.shortlisted ? " active" : "") +
     '" data-shortlist-slug="' +
     escapeHtml(therapist.slug) +
@@ -249,10 +264,10 @@ export function renderCardMarkup(options) {
     "</button>" +
     primaryAction +
     '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist.slug, "card_profile")) +
+    escapeHtml(profileHref) +
     '" class="card-action-link" data-review-fit="' +
     escapeHtml(therapist.slug) +
-    '">View profile</a></div>' +
+    '">Open full profile without losing context</a></div>' +
     (model.shortlisted
       ? '<div class="card-priority-row"><label class="card-priority-label" for="priority-' +
         escapeHtml(therapist.slug) +
@@ -307,9 +322,13 @@ export function renderShortlistBarMarkup(options) {
   }
 
   var compareRows = model.compareCards
-    .map(function (card) {
+    .map(function (card, index) {
       return (
-        '<div class="shortlist-compare-card"><div class="shortlist-compare-name">' +
+        '<div class="shortlist-compare-card"><div class="shortlist-compare-role">' +
+        escapeHtml(
+          index === 0 ? "Compare first" : index === 1 ? "Keep as backup" : "Saved option",
+        ) +
+        '</div><div class="shortlist-compare-name">' +
         escapeHtml(card.therapist.name) +
         '</div><div class="shortlist-compare-meta">' +
         escapeHtml(card.meta) +
@@ -317,7 +336,9 @@ export function renderShortlistBarMarkup(options) {
         escapeHtml(card.note) +
         '</div><a href="' +
         escapeHtml(buildTherapistProfileHref(card.therapist.slug, "shortlist_card")) +
-        '" class="shortlist-compare-link">Open profile</a></div>'
+        '" class="shortlist-compare-link">' +
+        escapeHtml(index === 0 ? "Open lead profile" : "Open saved profile") +
+        "</a></div>"
       );
     })
     .join("");
@@ -343,7 +364,9 @@ export function renderShortlistBarMarkup(options) {
             item.title === "Contact first" ? "shortlist_lead" : "shortlist_backup",
           ),
         ) +
-        '" class="shortlist-compare-link">Open profile</a></article>'
+        '" class="shortlist-compare-link">' +
+        escapeHtml(item.title === "Contact first" ? "Open lead profile" : "Open backup profile") +
+        "</a></article>"
       );
     })
     .join("");
@@ -375,8 +398,16 @@ export function renderShortlistBarMarkup(options) {
       '</a><a href="' +
       escapeHtml(model.compareUrl) +
       '" class="shortlist-bar-link">Compare details</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
-      (queueCards ? '<div class="shortlist-queue-grid">' + queueCards + "</div>" : "") +
-      (compareRows ? '<div class="shortlist-compare-grid">' + compareRows + "</div>" : ""),
+      (queueCards
+        ? '<div class="shortlist-queue-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Decision queue</div><div class="shortlist-section-title">Start with the lead, keep the backup close.</div></div><div class="shortlist-queue-grid">' +
+          queueCards +
+          "</div></div>"
+        : "") +
+      (compareRows
+        ? '<div class="shortlist-compare-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Saved comparison</div><div class="shortlist-section-title">Reopen the strongest saved options without rebuilding context.</div></div><div class="shortlist-compare-grid">' +
+          compareRows +
+          "</div></div>"
+        : ""),
   };
 }
 

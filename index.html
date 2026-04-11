@@ -549,6 +549,39 @@
       .search-helper strong {
         color: var(--navy);
       }
+      .search-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.85rem;
+      }
+      .search-preview-card {
+        padding: 0.82rem 0.88rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        box-shadow: 0 10px 22px rgba(14, 77, 95, 0.04);
+      }
+      .search-preview-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .search-preview-title {
+        margin-top: 0.24rem;
+        font-size: 0.92rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--navy);
+      }
+      .search-preview-copy {
+        margin-top: 0.22rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
       .search-launch-note {
         margin-top: -0.35rem;
         text-align: left;
@@ -746,6 +779,12 @@
       }
       .hero-link.secondary:hover {
         background: rgba(255, 255, 255, 0.18);
+      }
+      .public-mobile-nav {
+        display: none;
+      }
+      .public-mobile-nav-link {
+        text-decoration: none;
       }
       .ease-strip {
         padding: 1.2rem 1.5rem 0;
@@ -1285,6 +1324,9 @@
         .hero-handoff {
           grid-template-columns: 1fr;
         }
+        .search-preview-grid {
+          grid-template-columns: 1fr;
+        }
         .tool-trust-pill {
           min-width: 0;
           width: 100%;
@@ -1308,6 +1350,58 @@
         }
         .nav-links li:not(:last-child) {
           display: none;
+        }
+        .public-mobile-nav {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.55rem;
+          position: sticky;
+          top: 64px;
+          z-index: 90;
+          padding: 0.8rem 1rem 0;
+          background: linear-gradient(
+            180deg,
+            rgba(247, 251, 252, 0.98) 72%,
+            rgba(247, 251, 252, 0)
+          );
+        }
+        .public-mobile-nav-link {
+          display: grid;
+          gap: 0.12rem;
+          min-height: 60px;
+          padding: 0.72rem 0.74rem;
+          border-radius: 18px;
+          border: 1px solid rgba(26, 122, 143, 0.12);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.96));
+          box-shadow: 0 12px 24px rgba(10, 45, 56, 0.08);
+          color: var(--slate);
+        }
+        .public-mobile-nav-link.is-current {
+          background: linear-gradient(180deg, rgba(14, 77, 95, 0.96), rgba(26, 122, 143, 0.94));
+          border-color: rgba(14, 77, 95, 0.2);
+          color: white;
+        }
+        .public-mobile-nav-link.is-current .public-mobile-nav-kicker,
+        .public-mobile-nav-link.is-current .public-mobile-nav-copy {
+          color: rgba(255, 255, 255, 0.78);
+        }
+        .public-mobile-nav-kicker {
+          font-size: 0.64rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+        .public-mobile-nav-title {
+          font-size: 0.82rem;
+          line-height: 1.25;
+          font-weight: 800;
+          color: inherit;
+        }
+        .public-mobile-nav-copy {
+          font-size: 0.72rem;
+          line-height: 1.4;
+          color: var(--slate);
         }
         .hero-proof {
           grid-template-columns: 1fr;
@@ -1345,6 +1439,23 @@
         <li><a href="signup.html" class="nav-cta" id="navCtaLink">For Therapists</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" aria-label="Mobile navigation">
+      <a href="index.html" class="public-mobile-nav-link is-current">
+        <span class="public-mobile-nav-kicker">Start</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Choose your path</span>
+      </a>
+      <a href="match.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Guided</span>
+        <span class="public-mobile-nav-title">Get matched</span>
+        <span class="public-mobile-nav-copy">Smaller shortlist</span>
+      </a>
+      <a href="directory.html" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Browse</span>
+        <span class="public-mobile-nav-title">Directory</span>
+        <span class="public-mobile-nav-copy">Compare directly</span>
+      </a>
+    </div>
 
     <section class="hero" id="startMatch">
       <div class="hero-inner">
@@ -1515,6 +1626,27 @@
             <div class="search-helper" id="searchHelper">
               <strong>Next:</strong> answer a few quick questions and get to a calmer, more relevant
               shortlist.
+            </div>
+            <div class="search-preview-grid" aria-label="Live search guidance">
+              <div class="search-preview-card">
+                <div class="search-preview-label">Right now</div>
+                <div class="search-preview-title" id="homePreviewStateTitle">
+                  Start with two lightweight answers.
+                </div>
+                <div class="search-preview-copy" id="homePreviewStateCopy">
+                  Care type and ZIP are enough to move from generic browsing into a more focused
+                  first pass.
+                </div>
+              </div>
+              <div class="search-preview-card">
+                <div class="search-preview-label">What gets easier next</div>
+                <div class="search-preview-title" id="homePreviewMomentumTitle">
+                  You are not committing to a heavy process.
+                </div>
+                <div class="search-preview-copy" id="homePreviewMomentumCopy">
+                  The next step is meant to reduce guesswork, not trap you in a long intake.
+                </div>
+              </div>
             </div>
             <div class="hero-handoff" aria-label="What happens after you start">
               <div class="hero-handoff-card">

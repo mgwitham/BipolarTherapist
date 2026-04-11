@@ -106,7 +106,9 @@ function renderJourneyState(latestOutcome, options) {
     options.escapeHtml(state.label) +
     '</div></div><div class="first-contact-journey-copy">' +
     options.escapeHtml(state.copy) +
-    '</div><div class="first-contact-journey-grid"><div class="first-contact-journey-card"><div class="first-contact-journey-label">Next best move</div><div class="first-contact-journey-value">' +
+    '</div><div class="first-contact-journey-mobile-rail"><div class="first-contact-journey-mobile-label">Right now</div><div class="first-contact-journey-mobile-value">' +
+    options.escapeHtml(state.nextMove) +
+    '</div></div><div class="first-contact-journey-grid"><div class="first-contact-journey-card"><div class="first-contact-journey-label">Next best move</div><div class="first-contact-journey-value">' +
     options.escapeHtml(state.nextMove) +
     '</div></div><div class="first-contact-journey-card"><div class="first-contact-journey-label">Pivot guidance</div><div class="first-contact-journey-value">' +
     options.escapeHtml(state.pivot) +
@@ -655,7 +657,9 @@ export function renderOutreachPanel(entries, options) {
           settings.escapeHtml(journeyState.label) +
           '</div></div><div class="first-contact-journey-copy">' +
           settings.escapeHtml(journeyState.nextMove) +
-          '</div></div><div class="outreach-card-actions">' +
+          '</div><div class="outreach-mobile-state"><div class="outreach-mobile-state-label">If this stalls</div><div class="outreach-mobile-state-value">' +
+          settings.escapeHtml(journeyState.pivot) +
+          '</div></div></div><div class="outreach-card-actions">' +
           (preferredRoute
             ? '<a class="btn-primary" href="' +
               settings.escapeHtml(preferredRoute.href) +

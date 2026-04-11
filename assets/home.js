@@ -137,6 +137,8 @@ function syncHeroSearchState() {
     searchHelper.innerHTML = getHeroHelperCopy(interest, hasLocation);
   }
 
+  renderHomeSearchPreview(interest, String(locationInput.value || "").trim());
+
   if (isReady) {
     hideHeroValidationPopup();
   }
@@ -172,6 +174,109 @@ function getHeroHelperCopy(interest, hasLocation) {
   }
 
   return "<strong>Next:</strong> answer a few quick questions and review a smaller, more decision-ready shortlist built for bipolar care.";
+}
+
+function setHomePreviewText(id, value) {
+  var node = document.getElementById(id);
+  if (node) {
+    node.textContent = value;
+  }
+}
+
+function getHomeSupportLabel(interest) {
+  if (interest === "psychiatrist") {
+    return "psychiatry";
+  }
+  if (interest === "therapist") {
+    return "therapy";
+  }
+  return "care";
+}
+
+function renderHomeSearchPreview(interest, locationValue) {
+  var zipStatus = getZipMarketStatus(locationValue);
+  var supportLabel = getHomeSupportLabel(interest);
+
+  if (!interest && !locationValue) {
+    setHomePreviewText("homePreviewStateTitle", "Start with two lightweight answers.");
+    setHomePreviewText(
+      "homePreviewStateCopy",
+      "Care type and California ZIP are enough to move from generic browsing into a calmer first pass.",
+    );
+    setHomePreviewText("homePreviewMomentumTitle", "Nothing heavy happens next.");
+    setHomePreviewText(
+      "homePreviewMomentumCopy",
+      "You will answer a few focused questions before comparing profiles, not fill out a long intake.",
+    );
+    return;
+  }
+
+  if (interest && !locationValue) {
+    setHomePreviewText("homePreviewStateTitle", "Care direction is set.");
+    setHomePreviewText(
+      "homePreviewStateCopy",
+      "We know you want " +
+        supportLabel +
+        " first. ZIP is what makes the shortlist feel local and more useful.",
+    );
+    setHomePreviewText("homePreviewMomentumTitle", "You are still in low-friction mode.");
+    setHomePreviewText(
+      "homePreviewMomentumCopy",
+      "Once location is in place, the next step can narrow fit and trust signals without forcing a commitment.",
+    );
+    return;
+  }
+
+  if (!interest && locationValue) {
+    setHomePreviewText("homePreviewStateTitle", "Location is grounded.");
+    setHomePreviewText(
+      "homePreviewStateCopy",
+      zipStatus.place
+        ? "We can shape the next step around " +
+            zipStatus.place.label +
+            " once you choose whether to start with therapy or psychiatry."
+        : "Your ZIP is enough to carry forward. One care choice will make the shortlist feel much more intentional.",
+    );
+    setHomePreviewText("homePreviewMomentumTitle", "One answer should change the feel fast.");
+    setHomePreviewText(
+      "homePreviewMomentumCopy",
+      "Choosing therapy or psychiatry is usually what turns a broad local search into a more decision-ready shortlist.",
+    );
+    return;
+  }
+
+  if (zipStatus.status === "out_of_state") {
+    setHomePreviewText("homePreviewStateTitle", "Outside the current match area.");
+    setHomePreviewText(
+      "homePreviewStateCopy",
+      "We are currently matching California ZIP codes, so this search will feel strongest once the location is in-range.",
+    );
+    setHomePreviewText("homePreviewMomentumTitle", "You can still decide how to continue.");
+    setHomePreviewText(
+      "homePreviewMomentumCopy",
+      "If California is not the right location, browsing may still be the calmer next move while match coverage expands.",
+    );
+    return;
+  }
+
+  setHomePreviewText("homePreviewStateTitle", "Ready for a more relevant shortlist.");
+  setHomePreviewText(
+    "homePreviewStateCopy",
+    zipStatus.place
+      ? "Starting with " +
+          supportLabel +
+          " in " +
+          zipStatus.place.label +
+          " should give you a more focused first pass than broad directory browsing."
+      : "The core answers are in place, so the next step should feel more guided than generic browsing.",
+  );
+  setHomePreviewText("homePreviewMomentumTitle", "What gets easier next.");
+  setHomePreviewText(
+    "homePreviewMomentumCopy",
+    zipStatus.status === "unknown"
+      ? "We will carry this ZIP forward and tighten around fit, trust, and contact clarity on the next step."
+      : "The next step should reduce guesswork around fit, trust, and who to contact first without making you start over.",
+  );
 }
 
 function getHeroValidationMessages() {
