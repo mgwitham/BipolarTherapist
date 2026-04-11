@@ -942,6 +942,13 @@ nav {
   color: var(--navy);
 }
 
+.shortlist-compare-title {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  font-weight: 700;
+  color: var(--slate);
+}
+
 .shortlist-compare-role {
   font-size: 0.68rem;
   font-weight: 800;
@@ -960,6 +967,16 @@ nav {
   font-size: 0.74rem;
   color: var(--slate);
   line-height: 1.5;
+}
+
+.shortlist-compare-guidance {
+  padding: 0.72rem 0.78rem;
+  border-radius: 12px;
+  background: rgba(26, 122, 143, 0.06);
+  border: 1px solid rgba(14, 77, 95, 0.08);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--slate);
 }
 
 .shortlist-compare-link {
@@ -1317,6 +1334,27 @@ nav {
 .card-primary-decision-copy {
   margin-top: 0.26rem;
   font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.card-primary-decision-timing {
+  margin-top: 0.72rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid rgba(14, 77, 95, 0.08);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.card-primary-decision-timing-title {
+  font-size: 0.77rem;
+  line-height: 1.45;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.card-primary-decision-timing-copy {
+  font-size: 0.75rem;
   line-height: 1.55;
   color: var(--slate);
 }

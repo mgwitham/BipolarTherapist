@@ -364,19 +364,20 @@ function applyAdaptiveHomepageMode() {
   if (mode === "speed") {
     if (eyebrow) eyebrow.textContent = "Faster start for bipolar-informed care";
     if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong shortlist";
-    if (proofLabel1) proofLabel1.textContent = "Fastest path";
+    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)
-      proofValue1.textContent = "Start with a quick match and get to contact-ready options faster.";
-    if (proofLabel2) proofLabel2.textContent = "What rises";
+      proofValue1.textContent =
+        "A faster path to a shortlist that feels easier to contact without making the search heavier.";
+    if (proofLabel2) proofLabel2.textContent = "What we raise first";
     if (proofValue2)
       proofValue2.textContent =
-        "Clear availability, easier contact paths, and less guesswork up front.";
-    if (proofLabel3) proofLabel3.textContent = "Why this mode";
+        "Clearer availability cues, easier contact paths, and lower-friction first moves.";
+    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
     if (proofValue3)
       proofValue3.textContent =
-        "Similar users have been responding well to speed and follow-through cues.";
+        "Openings, insurance, and whether the therapist feels right once you actually connect.";
     if (trustPill1) trustPill1.textContent = "Built to reduce time-to-first-contact";
-    if (trustPill2) trustPill2.textContent = "Highlights easier follow-through paths";
+    if (trustPill2) trustPill2.textContent = "Still honest about what outreach must confirm";
     if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready shortlist faster.";
     if (handoffCopy1)
       handoffCopy1.textContent =
@@ -395,20 +396,20 @@ function applyAdaptiveHomepageMode() {
   if (mode === "specialization") {
     if (eyebrow) eyebrow.textContent = "Specialty-first bipolar care matching";
     if (toolTitle) toolTitle.textContent = "Start with the strongest bipolar-specific fit signals";
-    if (proofLabel1) proofLabel1.textContent = "What rises";
+    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)
       proofValue1.textContent =
-        "Deeper bipolar focus, stronger clinical-fit cues, and more relevant expertise.";
-    if (proofLabel2) proofLabel2.textContent = "Best for";
+        "Deeper bipolar focus, stronger clinical-fit cues, and more relevant specialty depth.";
+    if (proofLabel2) proofLabel2.textContent = "What we raise first";
     if (proofValue2)
       proofValue2.textContent =
-        "People who want the shortlist to lean harder on specialty relevance.";
-    if (proofLabel3) proofLabel3.textContent = "Current learning";
+        "Providers whose profiles suggest stronger bipolar-specific alignment before you spend time contacting broadly.";
+    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
     if (proofValue3)
       proofValue3.textContent =
-        "Recent journeys suggest specialization signals are doing more decision work.";
+        "Availability, cost path, and whether the actual conversation matches the profile signals.";
     if (trustPill1) trustPill1.textContent = "Leans harder on bipolar-specific depth";
-    if (trustPill2) trustPill2.textContent = "Built for fit before volume";
+    if (trustPill2) trustPill2.textContent = "Still honest about what profiles cannot prove alone";
     if (handoffTitle1) handoffTitle1.textContent = "You answer a few questions that sharpen fit.";
     if (handoffCopy1)
       handoffCopy1.textContent =
@@ -428,20 +429,20 @@ function applyAdaptiveHomepageMode() {
   if (mode === "contact") {
     if (eyebrow) eyebrow.textContent = "Clearer path to first outreach";
     if (toolTitle) toolTitle.textContent = "Start with the clearest path to first outreach";
-    if (proofLabel1) proofLabel1.textContent = "What happens next";
+    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)
       proofValue1.textContent =
-        "Start matching, then move into clearer outreach guidance and ready-to-use next steps.";
-    if (proofLabel2) proofLabel2.textContent = "What rises";
+        "A quicker move from shortlist to first message, with less hesitation about who to contact.";
+    if (proofLabel2) proofLabel2.textContent = "What we raise first";
     if (proofValue2)
       proofValue2.textContent =
-        "Providers with better contact clarity and stronger follow-through signals.";
-    if (proofLabel3) proofLabel3.textContent = "Current learning";
+        "Providers with better contact clarity, stronger follow-through cues, and more usable next steps.";
+    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
     if (proofValue3)
       proofValue3.textContent =
-        "Recent journeys suggest contact-readiness is helping people move sooner.";
+        "How quickly they reply, whether they fit your coverage, and whether the route still feels right after outreach.";
     if (trustPill1) trustPill1.textContent = "Built to reduce contact hesitation";
-    if (trustPill2) trustPill2.textContent = "Stronger next-step guidance near the match";
+    if (trustPill2) trustPill2.textContent = "Still grounded in what real outreach must confirm";
     if (handoffTitle1)
       handoffTitle1.textContent = "You move quickly into a clearer first outreach plan.";
     if (handoffCopy1)
@@ -460,16 +461,20 @@ function applyAdaptiveHomepageMode() {
 
   if (eyebrow) eyebrow.textContent = "Bipolar-focused therapist matching";
   if (toolTitle) toolTitle.textContent = "Start with a smaller, more relevant shortlist";
-  if (proofLabel1) proofLabel1.textContent = "How long it takes";
+  if (proofLabel1) proofLabel1.textContent = "First pass";
   if (proofValue1)
-    proofValue1.textContent = "About 2 minutes to begin and get to a more focused shortlist.";
-  if (proofLabel2) proofLabel2.textContent = "Designed for";
+    proofValue1.textContent =
+      "About 2 minutes to move from broad searching into a smaller, more decision-ready shortlist.";
+  if (proofLabel2) proofLabel2.textContent = "What it checks first";
   if (proofValue2)
-    proofValue2.textContent = "Therapy and psychiatry options shaped around bipolar care.";
-  if (proofLabel3) proofLabel3.textContent = "Currently available";
-  if (proofValue3) proofValue3.textContent = "Matching California ZIP codes right now.";
+    proofValue2.textContent =
+      "Bipolar-relevant fit, stronger profile trust signals, and a clearer first-contact path.";
+  if (proofLabel3) proofLabel3.textContent = "What you still confirm";
+  if (proofValue3)
+    proofValue3.textContent =
+      "Openings, insurance, cost path, and whether the therapist feels right in actual conversation.";
   if (trustPill1) trustPill1.textContent = "Built specifically for bipolar-related care search";
-  if (trustPill2) trustPill2.textContent = "No account required";
+  if (trustPill2) trustPill2.textContent = "You still confirm openings and fit directly";
   if (handoffTitle1) handoffTitle1.textContent = "You answer a few focused questions.";
   if (handoffCopy1)
     handoffCopy1.textContent =

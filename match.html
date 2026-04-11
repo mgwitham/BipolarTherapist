@@ -1263,6 +1263,12 @@
         color: var(--slate);
         line-height: 1.6;
       }
+      .compare-decision-role-title {
+        font-size: 0.88rem;
+        line-height: 1.45;
+        font-weight: 800;
+        color: var(--navy);
+      }
       .compare-freshness-banner {
         padding: 0.72rem 0.78rem;
         border-radius: 14px;
@@ -1318,6 +1324,64 @@
         background: rgba(26, 122, 143, 0.08);
         border: 1px solid rgba(26, 122, 143, 0.1);
         font-size: 0.8rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .compare-decision-plan {
+        padding: 0.78rem 0.84rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(248, 251, 252, 0.95);
+        font-size: 0.8rem;
+        line-height: 1.58;
+        color: var(--slate);
+      }
+      .compare-decision-plan-label {
+        margin-bottom: 0.3rem;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .compare-decision-plan-soft {
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .compare-decision-live-state {
+        display: grid;
+        gap: 0.22rem;
+        padding: 0.78rem 0.84rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(248, 251, 252, 0.95);
+      }
+      .compare-decision-live-state.tone-positive {
+        background: linear-gradient(180deg, #f3fbf7 0%, #ffffff 100%);
+        border-color: rgba(54, 131, 94, 0.18);
+      }
+      .compare-decision-live-state.tone-recent {
+        background: linear-gradient(180deg, #f6fbfd 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.16);
+      }
+      .compare-decision-live-state.tone-stale {
+        background: linear-gradient(180deg, #fffaf2 0%, #ffffff 100%);
+        border-color: rgba(194, 157, 76, 0.22);
+      }
+      .compare-decision-live-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .compare-decision-live-title {
+        font-size: 0.84rem;
+        font-weight: 800;
+        line-height: 1.4;
+        color: var(--navy);
+      }
+      .compare-decision-live-copy {
+        font-size: 0.79rem;
         line-height: 1.55;
         color: var(--slate);
       }
@@ -1564,6 +1628,15 @@
           0 24px 46px rgba(14, 77, 95, 0.11),
           inset 0 1px 0 rgba(255, 255, 255, 0.7);
         padding: 1.5rem 1.55rem 1.6rem;
+      }
+      .match-card.supporting-card {
+        min-height: 350px;
+        background:
+          radial-gradient(circle at top, rgba(26, 122, 143, 0.03), transparent 40%),
+          linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%);
+        box-shadow:
+          0 12px 26px rgba(14, 77, 95, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
       .match-card.lead-card::before {
         content: "";
@@ -1849,6 +1922,10 @@
         width: 100%;
         text-align: left;
       }
+      .supporting-card .match-card-action-block {
+        background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), #ffffff 100%);
+        border-color: rgba(14, 77, 95, 0.08);
+      }
       .match-card-action-label {
         font-size: 0.74rem;
         font-weight: 800;
@@ -1868,7 +1945,20 @@
         color: var(--slate);
       }
       .match-card-decision-rail {
-        display: none;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 0.65rem;
+        margin-bottom: 0.8rem;
+      }
+      .match-card-decision-panel {
+        padding: 0.8rem 0.84rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), rgba(240, 247, 249, 0.96));
+      }
+      .lead-card .match-card-decision-panel:first-child {
+        background: linear-gradient(180deg, #f4fbfe 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.16);
       }
       .match-card-decision-label {
         font-size: 0.66rem;
@@ -1927,6 +2017,10 @@
       .match-card-contact-note strong {
         color: var(--navy);
       }
+      .supporting-card .match-card-contact-note {
+        background: rgba(14, 77, 95, 0.04);
+        border-color: rgba(14, 77, 95, 0.08);
+      }
       .match-card-cta {
         min-height: 52px;
         width: 100%;
@@ -1940,6 +2034,11 @@
         justify-content: center;
         text-decoration: none;
         box-shadow: 0 14px 28px rgba(26, 122, 143, 0.16);
+      }
+      .match-card-cta.is-supporting {
+        box-shadow: none;
+        border-color: rgba(14, 77, 95, 0.1);
+        background: rgba(255, 255, 255, 0.92);
       }
       .match-card-cta,
       .match-card-cta:link,
@@ -2063,6 +2162,42 @@
         line-height: 1.6;
         margin-top: 0.65rem;
         max-width: 76ch;
+      }
+      .match-summary-recommendation {
+        margin-top: 0.85rem;
+        padding: 1rem 1.05rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #f4fbfe 0%, #ffffff 100%);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+      }
+      .match-summary-recommendation-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+      .match-summary-recommendation-title {
+        margin-top: 0.3rem;
+        font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+        line-height: 1.18;
+        font-weight: 800;
+        color: var(--navy);
+        max-width: 24ch;
+      }
+      .match-summary-recommendation-copy {
+        margin-top: 0.4rem;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: var(--slate);
+        max-width: 66ch;
+      }
+      .match-summary-recommendation-note {
+        margin-top: 0.45rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--teal-dark);
       }
       .match-summary-applied {
         display: flex;
@@ -2938,14 +3073,9 @@
         }
         .match-card-decision-rail {
           display: grid;
+          grid-template-columns: 1fr;
           gap: 0.65rem;
           margin-bottom: 0.75rem;
-        }
-        .match-card-decision-panel {
-          padding: 0.8rem 0.84rem;
-          border-radius: 16px;
-          border: 1px solid rgba(14, 77, 95, 0.1);
-          background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), rgba(240, 247, 249, 0.96));
         }
         .match-options {
           grid-template-columns: 1fr;
@@ -3138,22 +3268,26 @@
           </div>
         </div>
         <div class="match-trust-strip" aria-label="Trust highlights">
-          <span class="match-trust-pill">Built for bipolar-specific care</span>
-          <span class="match-trust-pill">Reviewed profile details where available</span>
-          <span class="match-trust-pill">Clear next-step guidance</span>
+          <span class="match-trust-pill">Built for bipolar-specific fit signals</span>
+          <span class="match-trust-pill">Reviewed profile detail where available</span>
+          <span class="match-trust-pill">Still honest about what outreach must confirm</span>
         </div>
         <div class="match-trust-system" aria-label="How trust works in matching">
           <div class="match-trust-card">
             <div class="match-trust-card-label">What the match emphasizes</div>
-            <div class="match-trust-card-title">Fit, trust, and practical next steps together</div>
+            <div class="match-trust-card-title">
+              Fit, profile trust, and a usable first-contact path together
+            </div>
             <div class="match-trust-card-copy">
-              The shortlist is designed to raise bipolar-relevant fit signals, trust cues, and the
-              clearest contact-ready paths at the same time.
+              The shortlist is designed to raise bipolar-relevant fit signals, reviewed profile
+              detail, and the clearest contact-ready paths at the same time.
             </div>
           </div>
           <div class="match-trust-card">
             <div class="match-trust-card-label">What trust means here</div>
-            <div class="match-trust-card-title">A more decision-ready shortlist</div>
+            <div class="match-trust-card-title">
+              A more decision-ready shortlist, not fake certainty
+            </div>
             <div class="match-trust-card-copy">
               Stronger trust signals mean a profile should be easier to judge quickly, not that it
               is guaranteed to be the right clinical or financial fit.
@@ -3161,10 +3295,12 @@
           </div>
           <div class="match-trust-card">
             <div class="match-trust-card-label">What you still verify</div>
-            <div class="match-trust-card-title">Openings, coverage, and fit in conversation</div>
+            <div class="match-trust-card-title">
+              Openings, coverage, and actual fit in conversation
+            </div>
             <div class="match-trust-card-copy">
-              Use the shortlist to focus faster, then let outreach confirm the final details that no
-              matching system should pretend to know for certain.
+              Use the shortlist to focus faster, then let outreach confirm the final details before
+              you commit time, energy, or emotional momentum to one route.
             </div>
           </div>
         </div>

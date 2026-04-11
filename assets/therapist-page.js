@@ -39,13 +39,29 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function renderTagList(items, className) {
-  return (items || [])
-    .filter(Boolean)
-    .map(function (item) {
-      return '<span class="' + className + '">' + escapeHtml(item) + "</span>";
-    })
-    .join("");
+function renderCompactTagList(items, className, limit, overflowLabel) {
+  var safeItems = (items || []).filter(Boolean);
+  var visibleItems = safeItems.slice(0, limit || safeItems.length);
+  var hiddenCount = Math.max(0, safeItems.length - visibleItems.length);
+
+  return (
+    visibleItems
+      .map(function (item) {
+        return '<span class="' + className + '">' + escapeHtml(item) + "</span>";
+      })
+      .join("") +
+    (hiddenCount
+      ? '<span class="' +
+        className +
+        " " +
+        className +
+        '-overflow">+' +
+        hiddenCount +
+        " more" +
+        (overflowLabel ? " " + escapeHtml(overflowLabel) : "") +
+        "</span>"
+      : "")
+  );
 }
 
 function renderList(items, className) {
@@ -227,11 +243,12 @@ function buildProfileEntryState(source, therapist, backupState) {
   };
 }
 
-function buildOutreachScript(therapist) {
+function buildOutreachScript(therapist, contactStrategy) {
+  var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
   var opener =
-    therapist.preferred_contact_method === "phone"
-      ? "Hi, I am looking for bipolar-focused support"
-      : "Hi, I am looking for bipolar-focused support and wanted to ask about fit";
+    route === "phone"
+      ? "Hi, I found your BipolarTherapyHub profile and I am looking for bipolar-focused support."
+      : "Hi, I found your BipolarTherapyHub profile and wanted to ask about fit for bipolar-focused support.";
   var formatCue =
     therapist.accepts_telehealth && therapist.accepts_in_person
       ? "I am open to either telehealth or in-person care."
@@ -243,15 +260,60 @@ function buildOutreachScript(therapist) {
   var medicationCue = therapist.medication_management
     ? "I may also want medication support or coordination."
     : "";
+  var insuranceCue =
+    therapist.insurance_accepted && therapist.insurance_accepted.length
+      ? "I would also love to confirm whether my insurance or cost path would likely line up before I go too far."
+      : "";
+  var questions = [
+    "Are you currently taking new clients?",
+    therapist.medication_management
+      ? "If it seems like a fit, how do you usually handle medication support or coordination?"
+      : "If it seems like a fit, what does the first step usually look like?",
+  ];
+
+  if (formatCue) {
+    questions.splice(
+      1,
+      0,
+      therapist.accepts_telehealth && therapist.accepts_in_person
+        ? "Would you recommend starting with telehealth or in-person care?"
+        : therapist.accepts_telehealth
+          ? "Are you currently offering telehealth openings?"
+          : "Are you currently offering in-person openings?",
+    );
+  }
+  if (insuranceCue) {
+    questions.splice(
+      questions.length - 1,
+      0,
+      "Is there anything important to know about insurance, fees, or out-of-pocket expectations before I schedule?",
+    );
+  }
+  if (route === "booking") {
+    questions[questions.length - 1] =
+      "If it seems like a fit, is the booking link the best place to start or is there a better first step?";
+  } else if (route === "email") {
+    questions[questions.length - 1] =
+      "If it seems like a fit, is email the best way to begin or is there a better first step?";
+  } else if (route === "phone") {
+    questions[questions.length - 1] =
+      "If it seems like a fit, is a phone call still the best way to begin or is there another step you prefer first?";
+  } else if (route === "website") {
+    questions[questions.length - 1] =
+      "If it seems like a fit, is the website inquiry form the best place to begin or is there a better first step?";
+  }
 
   return [
-    opener + ".",
+    opener,
     formatCue,
     medicationCue,
-    "Are you currently taking new clients, and what would the first step usually look like?",
+    insuranceCue,
+    "A couple of quick questions before I reach out further:",
+    "- " + questions.join("\n- "),
+    "Thank you.",
   ]
     .filter(Boolean)
-    .join(" ");
+    .join("\n");
 }
 
 function getFirstMeaningfulSentence(value) {
@@ -534,6 +596,249 @@ function getContactAnalyticsMeta(therapist, route) {
   };
 }
 
+function getContactTimingGuidance(contactStrategy) {
+  if (!contactStrategy) {
+    return {
+      title: "Review before deciding on contact.",
+      copy: "Use the full profile to decide whether this should become a lead route or stay in reserve.",
+    };
+  }
+
+  if (contactStrategy.confidenceTone === "outcomes") {
+    return {
+      title: "Strong enough to move toward outreach now.",
+      copy: "Past outcomes are doing real work here, so this profile looks more ready for first contact after a quick final review.",
+    };
+  }
+
+  if (contactStrategy.confidenceTone === "behavior") {
+    return {
+      title: "Open now, then decide on first contact.",
+      copy: "Observed route behavior suggests this is close to outreach-ready, but the full profile should still confirm whether it deserves the lead spot.",
+    };
+  }
+
+  return {
+    title: "Pressure-test fit first, then choose whether to contact.",
+    copy: "The route looks usable on profile details alone, but this still works best as a review-first decision before you spend energy reaching out.",
+  };
+}
+
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+}
+
+function getDecisionTone(score) {
+  if (score >= 80) {
+    return "strong";
+  }
+  if (score >= 60) {
+    return "steady";
+  }
+  return "watch";
+}
+
+function getDecisionLabel(score) {
+  if (score >= 80) {
+    return "Strong";
+  }
+  if (score >= 60) {
+    return "Solid";
+  }
+  return "Needs confirmation";
+}
+
+function buildProfileDecisionSystem(options) {
+  var therapist = options.therapist || {};
+  var readiness = options.readiness || { score: 0 };
+  var freshness = options.freshness || { status: "" };
+  var therapistReportedFields = Array.isArray(options.therapistReportedFields)
+    ? options.therapistReportedFields
+    : [];
+  var responsivenessSignal = options.responsivenessSignal || null;
+  var contactStrategy = options.contactStrategy || null;
+  var sourceReviewedDate = options.sourceReviewedDate || "";
+  var bipolarExperience = Number(therapist.bipolar_years_experience || 0);
+  var explicitBipolarFocus =
+    (therapist.specialties || []).includes("Bipolar I") ||
+    (therapist.specialties || []).includes("Bipolar II");
+  var hasFees = Boolean(
+    therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale,
+  );
+  var hasInsurance = Boolean(therapist.insurance_accepted && therapist.insurance_accepted.length);
+  var hasFormat = Boolean(therapist.accepts_telehealth || therapist.accepts_in_person);
+  var fitScore =
+    (explicitBipolarFocus ? 26 : therapist.specialties && therapist.specialties.length ? 14 : 0) +
+    (bipolarExperience >= 8 ? 34 : bipolarExperience >= 3 ? 24 : bipolarExperience ? 14 : 0) +
+    ((therapist.client_populations || []).length ? 12 : 0) +
+    ((therapist.treatment_modalities || []).length ? 10 : 0) +
+    (therapist.medication_management ? 16 : 0);
+  var trustScore =
+    (therapist.verification_status === "editorially_verified" ? 32 : 14) +
+    (sourceReviewedDate ? 18 : 0) +
+    (therapistReportedFields.length ? 18 : 0) +
+    (freshness.status === "fresh" ? 18 : freshness.status ? 10 : 4) +
+    (readiness.score >= 85 ? 14 : readiness.score >= 65 ? 8 : 2);
+  var accessScore =
+    (therapist.accepting_new_patients ? 24 : 10) +
+    (therapist.estimated_wait_time ? 18 : 4) +
+    (hasFormat ? 16 : 4) +
+    (hasInsurance ? 18 : 0) +
+    (hasFees ? 16 : 0) +
+    ((therapist.languages || []).length ? 8 : 0);
+  var actionScore =
+    (contactStrategy && contactStrategy.routeLabel ? 26 : 8) +
+    (contactStrategy && contactStrategy.confidenceTone === "outcomes"
+      ? 26
+      : contactStrategy && contactStrategy.confidenceTone === "behavior"
+        ? 18
+        : 10) +
+    (responsivenessSignal && responsivenessSignal.tone === "positive" ? 20 : 10) +
+    (therapist.preferred_contact_method ? 12 : 6) +
+    (therapist.phone || therapist.email || therapist.website || therapist.booking_url ? 16 : 0);
+
+  fitScore = clampScore(fitScore);
+  trustScore = clampScore(trustScore);
+  accessScore = clampScore(accessScore);
+  actionScore = clampScore(actionScore);
+
+  var overallScore = clampScore((fitScore + trustScore + accessScore + actionScore) / 4);
+  var stanceLabel =
+    overallScore >= 82
+      ? "Ready to contact"
+      : overallScore >= 68
+        ? "Strong shortlist candidate"
+        : overallScore >= 52
+          ? "Worth one focused message"
+          : "Keep as a backup path";
+  var stanceCopy =
+    overallScore >= 82
+      ? "The fit, trust, logistics, and contact signals are aligned well enough that this can be treated like a real lead instead of just another open tab."
+      : overallScore >= 68
+        ? "This profile is carrying enough signal to deserve shortlist attention, but you should still confirm one or two practical details before making it your only next move."
+        : overallScore >= 52
+          ? "The profile is usable, but the smartest move is a short message aimed at the biggest unknowns rather than a full commitment."
+          : "There may still be a fit here, but operational uncertainty is high enough that this works best as a reserve option unless the specialty match is unusually strong.";
+
+  var bestFor = [];
+  if (explicitBipolarFocus || bipolarExperience >= 3) {
+    bestFor.push("People who want clearly documented bipolar-spectrum experience up front.");
+  }
+  if (therapist.medication_management) {
+    bestFor.push(
+      "Anyone who may want medication support or psychiatry coordination in the same path.",
+    );
+  }
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    bestFor.push("People who want flexibility between telehealth and in-person care.");
+  } else if (therapist.accepts_telehealth) {
+    bestFor.push("People who prefer telehealth or broader location flexibility.");
+  } else if (therapist.accepts_in_person) {
+    bestFor.push("People who want an in-person care option.");
+  }
+  if ((therapist.client_populations || []).length) {
+    bestFor.push(
+      "People looking for support tailored to " +
+        String(therapist.client_populations[0] || "").toLowerCase() +
+        ".",
+    );
+  }
+  if (!bestFor.length) {
+    bestFor.push(
+      "People who are open to confirming fit directly rather than requiring every answer on-page first.",
+    );
+  }
+
+  var confirmFirst = [];
+  if (!therapist.accepting_new_patients || !therapist.estimated_wait_time) {
+    confirmFirst.push("Current opening timeline and whether they are actively taking new clients.");
+  }
+  if (!hasInsurance || !hasFees) {
+    confirmFirst.push(
+      "What your real cost path looks like, including insurance, superbills, or sliding scale.",
+    );
+  }
+  if (!therapistReportedFields.length && freshness.status !== "fresh") {
+    confirmFirst.push("How current the practical details still are before you rely on them.");
+  }
+  if (!confirmFirst.length) {
+    confirmFirst.push(
+      "Personal fit and chemistry, since the operational basics are already more visible than average.",
+    );
+  }
+
+  var managementTitle =
+    overallScore >= 82
+      ? "Treat this like a lead"
+      : overallScore >= 68
+        ? "Save and rank it"
+        : "Keep it organized";
+  var managementCopy =
+    overallScore >= 82
+      ? "Label it, leave one sentence about why it stands out, and move it into outreach instead of re-reviewing it later."
+      : overallScore >= 68
+        ? "Save it with a priority label so you can compare it against one backup without losing your reasoning."
+        : "Use the shortlist note to capture the one thing that keeps this profile alive, then compare it against stronger operational options.";
+
+  return {
+    overallScore: overallScore,
+    scoreLabel: getDecisionLabel(overallScore),
+    stanceLabel: stanceLabel,
+    stanceCopy: stanceCopy,
+    tone: getDecisionTone(overallScore),
+    dimensions: [
+      {
+        label: "Clinical fit",
+        score: fitScore,
+        tone: getDecisionTone(fitScore),
+        summary:
+          fitScore >= 80
+            ? "The specialty signal is strong enough to justify real attention."
+            : fitScore >= 60
+              ? "There is a credible fit story here, but it is not airtight."
+              : "The fit signal is still more implied than proven.",
+      },
+      {
+        label: "Trust signal",
+        score: trustScore,
+        tone: getDecisionTone(trustScore),
+        summary:
+          trustScore >= 80
+            ? "Verification and freshness reduce trust drag meaningfully."
+            : trustScore >= 60
+              ? "There is enough trust to proceed, with a little confirmation."
+              : "Trust is usable, but it still leans on your own validation work.",
+      },
+      {
+        label: "Access clarity",
+        score: accessScore,
+        tone: getDecisionTone(accessScore),
+        summary:
+          accessScore >= 80
+            ? "Timing, format, and cost are more visible than usual."
+            : accessScore >= 60
+              ? "Key logistics are partly visible, but not fully settled."
+              : "Too much of the real-world access path still needs confirmation.",
+      },
+      {
+        label: "Action readiness",
+        score: actionScore,
+        tone: getDecisionTone(actionScore),
+        summary:
+          actionScore >= 80
+            ? "There is a clean first move and a clear fallback if it stalls."
+            : actionScore >= 60
+              ? "You can act here without much confusion."
+              : "The page still needs a more deliberate outreach choice to avoid drift.",
+      },
+    ],
+    bestFor: bestFor.slice(0, 3),
+    confirmFirst: confirmFirst.slice(0, 3),
+    managementTitle: managementTitle,
+    managementCopy: managementCopy,
+  };
+}
+
 function trackDirectoryProfileOpenQuality(therapist, readiness, freshness) {
   if (!profileSource) {
     return;
@@ -761,6 +1066,54 @@ function buildProfileOutreachQueueState(slugValue) {
     ctaHref: queueUrl,
     actions: ["reached_out", "heard_back", "no_response"],
   };
+}
+
+function buildProfileFollowThroughItems(latestOutcome, backupState, bestNextStepCopy) {
+  var outcome = latestOutcome ? String(latestOutcome.outcome || "") : "";
+  var backupName =
+    backupState && backupState.therapist && backupState.therapist.name
+      ? backupState.therapist.name
+      : "your backup";
+
+  var replyCopy =
+    outcome === "heard_back"
+      ? "You have a live reply now. Use it to confirm fit, timing, and logistics before you treat this as the clear winner."
+      : outcome === "booked_consult" || outcome === "good_fit_call"
+        ? "A real path is now open here. Stay focused on whether this looks meaningfully better than your backup, not just active."
+        : "If they reply, use that moment to confirm whether this route is actually viable instead of sliding into a vague exchange.";
+  var consultCopy =
+    outcome === "booked_consult" || outcome === "good_fit_call"
+      ? "Go into the consult ready to judge clinical fit, practical fit, and whether the next step feels clear enough to continue."
+      : "If a consult gets booked, compare how concrete the next step feels here versus whether " +
+        backupName +
+        " still deserves to stay warm.";
+  var backupCopy = backupState
+    ? "Keep " +
+      backupName +
+      " warm until this route earns the lead. One good fallback protects momentum without scattering your attention."
+    : "If this route starts to convert, keep one other credible option saved so you are not rebuilding the search if timing slips.";
+
+  return [
+    {
+      label: "If they reply",
+      value: replyCopy,
+      helper:
+        "A strong reply should reduce uncertainty quickly. Look for direct answers on fit, timing, cost, and next step.",
+    },
+    {
+      label: "If a consult gets booked",
+      value: consultCopy,
+      helper:
+        bestNextStepCopy ||
+        "Use the consult to decide whether this deserves the lead spot, not just whether it sounds good in theory.",
+    },
+    {
+      label: "Keep your backup working for you",
+      value: backupCopy,
+      helper:
+        "The goal is calm momentum with insurance. Protect one good fallback instead of reopening the whole search every time a route slows down.",
+    },
+  ];
 }
 
 function getShortlistPriorityRank(value) {
@@ -1096,6 +1449,17 @@ function updateShortlistNote(slugValue, note) {
   );
 }
 
+function updateShortlistNoteMeta(currentValue) {
+  var noteMeta = document.getElementById("profileShortlistNoteMeta");
+  if (!noteMeta) {
+    return;
+  }
+  var length = String(currentValue || "").trim().length;
+  noteMeta.textContent = length
+    ? length + "/120 characters"
+    : "Keep this to one sharp reminder for future-you.";
+}
+
 function updateShortlistAction(slugValue) {
   var buttons = Array.prototype.slice.call(
     document.querySelectorAll("[data-shortlist-trigger='profile']"),
@@ -1136,6 +1500,7 @@ function updateShortlistAction(slugValue) {
     priorityWrap.style.display = shortlisted ? "block" : "none";
     prioritySelect.value = shortlistEntry ? shortlistEntry.priority : "";
     noteInput.value = shortlistEntry ? shortlistEntry.note : "";
+    updateShortlistNoteMeta(noteInput.value);
   }
 }
 
@@ -1216,6 +1581,7 @@ function renderProfile(t, therapistDirectory) {
   var backupState = buildProfileBackupState(t, therapistDirectory || []);
   var entryState = buildProfileEntryState(profileSource, t, backupState);
   var outreachQueueState = buildProfileOutreachQueueState(t.slug);
+  var latestOutreachOutcome = getLatestOutreachOutcomeForSlug(t.slug);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
   var readinessTitle =
     readiness.score >= 85
@@ -1437,7 +1803,7 @@ function renderProfile(t, therapistDirectory) {
     return "";
   }
   contactBtns +=
-    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton">Save to shortlist</button>';
+    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to shortlist</button>';
   contactBtns += buildPreferredContactButton();
   contactBtns +=
     '<a href="portal.html?slug=' +
@@ -1470,12 +1836,12 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
-  var specialties = renderTagList(t.specialties, "spec-tag");
-  var modalities = renderTagList(t.treatment_modalities, "spec-tag");
-  var populations = renderTagList(t.client_populations, "spec-tag");
+  var specialties = renderCompactTagList(t.specialties, "spec-tag", 4);
+  var modalities = renderCompactTagList(t.treatment_modalities, "spec-tag", 4);
+  var populations = renderCompactTagList(t.client_populations, "spec-tag", 4);
   var insTags = renderList(t.insurance_accepted, "ins-item");
-  var langPills = renderTagList(t.languages || ["English"], "lang-pill");
-  var telehealthStates = renderTagList(t.telehealth_states, "lang-pill");
+  var langPills = renderCompactTagList(t.languages || ["English"], "lang-pill", 3);
+  var telehealthStates = renderCompactTagList(t.telehealth_states, "lang-pill", 4);
   var therapistReportedCopy = therapistReportedFields.length
     ? "Some operational details here were confirmed directly by the specialist" +
       (therapistReportedDate ? " on " + therapistReportedDate : "") +
@@ -1629,13 +1995,24 @@ function renderProfile(t, therapistDirectory) {
   var bestNextStepCopy =
     firstStepExpectation ||
     "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
-  var outreachScript = buildOutreachScript(t);
   var contactStrategy = getContactStrategy(
     t,
     responsivenessSignal,
     routePerformance,
     routeOutcomePerformance,
   );
+  var outreachScript = buildOutreachScript(t, contactStrategy);
+  var shortlistCompareUrl = buildShortlistCompareUrl();
+  var outreachQueueUrl = buildOutreachQueueUrl(t.slug);
+  var decisionSystem = buildProfileDecisionSystem({
+    therapist: t,
+    readiness: readiness,
+    freshness: freshness,
+    therapistReportedFields: therapistReportedFields,
+    responsivenessSignal: responsivenessSignal,
+    contactStrategy: contactStrategy,
+    sourceReviewedDate: sourceReviewedDate,
+  });
   var contactScriptLabel =
     activeTherapistContactExperimentVariant === "action_plan"
       ? "Use this first message"
@@ -1778,6 +2155,65 @@ function renderProfile(t, therapistDirectory) {
     getFirstMeaningfulSentence(outreachScript) ||
     "Lead with one calm sentence about the kind of bipolar-focused help you want.";
   var contactQuestionPreview = contactQuestionItems.slice(0, 2).join(" ");
+  var consultConfirmItems = [];
+  var strongReplyItems = [];
+  var pivotFastItems = [];
+
+  consultConfirmItems.push(
+    t.accepting_new_patients || t.estimated_wait_time
+      ? "Whether the actual opening timeline still matches what is listed here."
+      : "Whether they have a realistic opening path for you right now.",
+  );
+  consultConfirmItems.push(
+    (t.insurance_accepted || []).length || t.session_fee_min || t.session_fee_max || t.sliding_scale
+      ? "What your real cost path would be after insurance, fee range, or superbill details are clarified."
+      : "What fees, insurance, or superbill details would apply in your situation.",
+  );
+  consultConfirmItems.push(
+    t.medication_management
+      ? "How therapy and medication support would actually be coordinated if you move forward."
+      : "Whether their bipolar-related experience and care style match what you want help with right now.",
+  );
+
+  strongReplyItems.push(
+    "They answer the fit question directly instead of sending only a generic intake response.",
+  );
+  strongReplyItems.push(
+    "They give a concrete next step, timeline, or availability window instead of leaving you guessing.",
+  );
+  strongReplyItems.push(
+    (t.insurance_accepted || []).length || t.session_fee_min || t.session_fee_max || t.sliding_scale
+      ? "They help clarify cost or insurance fit early instead of making you chase basic logistics."
+      : "They are clear about practical next steps even if some cost details still need follow-up.",
+  );
+
+  pivotFastItems.push(
+    "They cannot explain how they would support the kind of bipolar care you are looking for.",
+  );
+  pivotFastItems.push(
+    "They stay vague about timing, next steps, or whether they are truly taking new clients.",
+  );
+  pivotFastItems.push("The route creates more confusion than clarity after one real follow-up.");
+
+  var consultConfirmPreview = consultConfirmItems.slice(0, 2).join(" ");
+  var followThroughItems = buildProfileFollowThroughItems(
+    latestOutreachOutcome,
+    backupState,
+    bestNextStepCopy,
+  );
+  var followThroughHtml = followThroughItems
+    .map(function (item) {
+      return (
+        '<div class="next-step-item"><div class="next-step-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="next-step-value">' +
+        escapeHtml(item.value) +
+        '</div><div class="next-step-helper">' +
+        escapeHtml(item.helper) +
+        "</div></div>"
+      );
+    })
+    .join("");
   var contactPrepCardsHtml = [
     {
       label: "Lead with",
@@ -1793,6 +2229,14 @@ function renderProfile(t, therapistDirectory) {
       copy: escapeHtml(
         contactQuestionPreview ||
           "Ask one fit question and one timing question so you can rule this option in or out quickly.",
+      ),
+    },
+    {
+      label: "Use the first reply well",
+      title: "Confirm these before you commit",
+      copy: escapeHtml(
+        consultConfirmPreview ||
+          "Use the first reply to confirm fit, timing, and cost path before you treat this as your lead route.",
       ),
     },
     {
@@ -1816,6 +2260,14 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
+  var consultPrepHtml =
+    '<div class="next-step-item"><div class="next-step-label">Use the first reply to judge fit fast</div><div class="next-step-helper">A strong reply should lower uncertainty quickly. If it does not, keep your backup route warm instead of overinvesting here.</div><div class="next-step-question-list">' +
+    renderList(strongReplyItems.slice(0, 3), "contact-checklist-item") +
+    '</div></div><div class="next-step-item"><div class="next-step-label">Confirm before booking or committing</div><div class="next-step-question-list">' +
+    renderList(consultConfirmItems.slice(0, 3), "contact-checklist-item") +
+    '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
+    renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
+    "</div></div>";
   var fitSnapshotHtml = [
     readiness.score >= 85 ? "High-confidence profile" : readinessTitle,
     bipolarExperience ? bipolarExperience + " yrs bipolar care" : "",
@@ -1883,6 +2335,53 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
+  var contactTiming = getContactTimingGuidance(contactStrategy);
+  var decisionDashboardHtml =
+    '<div class="profile-decision-dashboard tone-' +
+    escapeHtml(decisionSystem.tone) +
+    '"><div class="profile-decision-dashboard-intro"><div class="profile-decision-dashboard-label">Decision system</div><div class="profile-decision-dashboard-score"><span class="profile-decision-dashboard-score-value">' +
+    escapeHtml(String(decisionSystem.overallScore)) +
+    '</span><span class="profile-decision-dashboard-score-max">/100</span></div><div class="profile-decision-dashboard-title">' +
+    escapeHtml(decisionSystem.stanceLabel) +
+    '</div><div class="profile-decision-dashboard-copy">' +
+    escapeHtml(decisionSystem.stanceCopy) +
+    '</div></div><div class="profile-signal-board">' +
+    decisionSystem.dimensions
+      .map(function (item) {
+        return (
+          '<div class="profile-signal-card tone-' +
+          escapeHtml(item.tone) +
+          '"><div class="profile-signal-card-top"><div class="profile-signal-label">' +
+          escapeHtml(item.label) +
+          '</div><div class="profile-signal-score">' +
+          escapeHtml(String(item.score)) +
+          '</div></div><div class="profile-signal-bar"><div class="profile-signal-bar-fill tone-' +
+          escapeHtml(item.tone) +
+          '" style="width:' +
+          escapeHtml(String(item.score)) +
+          '%"></div></div><div class="profile-signal-copy">' +
+          escapeHtml(item.summary) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div><div class="profile-insight-grid"><div class="profile-insight-card"><div class="profile-insight-label">Best for</div><div class="profile-insight-title">Where this profile has the clearest upside</div><div class="profile-insight-list">' +
+    decisionSystem.bestFor
+      .map(function (item) {
+        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
+      })
+      .join("") +
+    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Confirm first</div><div class="profile-insight-title">The fastest unknowns to clear</div><div class="profile-insight-list">' +
+    decisionSystem.confirmFirst
+      .map(function (item) {
+        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
+      })
+      .join("") +
+    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Management mode</div><div class="profile-insight-title">' +
+    escapeHtml(decisionSystem.managementTitle) +
+    '</div><div class="profile-insight-copy">' +
+    escapeHtml(decisionSystem.managementCopy) +
+    "</div></div></div></div>";
   var decisionProofHtml = [
     {
       label: "Recommended move",
@@ -1911,6 +2410,11 @@ function renderProfile(t, therapistDirectory) {
         bestNextStepCopy ||
         "The first contact should confirm current timing, cost path, and what happens after the first reply.",
     },
+    {
+      label: "When to act",
+      title: contactTiming.title,
+      copy: contactTiming.copy,
+    },
   ]
     .map(function (item) {
       return (
@@ -1924,19 +2428,85 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
+  var fitSectionLeadHtml =
+    '<div class="section-story-card"><div class="section-story-kicker">Bottom line</div><div class="section-story-title">' +
+    escapeHtml(fitHeadline) +
+    '</div><div class="section-story-copy">' +
+    escapeHtml(fitSubheadline) +
+    "</div></div>";
+  var trustSectionLeadHtml =
+    '<div class="section-story-card"><div class="section-story-kicker">Trust read</div><div class="section-story-title">' +
+    escapeHtml(
+      t.verification_status === "editorially_verified"
+        ? "This profile has stronger-than-average trust support."
+        : "This profile is usable, but some trust work still shifts to outreach.",
+    ) +
+    '</div><div class="section-story-copy">' +
+    escapeHtml(reviewedDetailsCopy) +
+    "</div></div>";
+  var logisticsSectionLeadHtml =
+    '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
+    escapeHtml(
+      t.accepting_new_patients || t.estimated_wait_time
+        ? "The access path is visible enough to act on."
+        : "This is still more of a logistics check than a ready-now option.",
+    ) +
+    '</div><div class="section-story-copy">' +
+    escapeHtml(reachabilityCopy) +
+    "</div></div>";
+  var logisticsSignalStripHtml = [
+    {
+      label: "Openings",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting now"
+        : "Confirm directly",
+    },
+    {
+      label: "Coverage",
+      value: (t.insurance_accepted || []).length
+        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
+        : "Ask directly",
+    },
+    {
+      label: "Format",
+      value:
+        t.accepts_telehealth && t.accepts_in_person
+          ? "Telehealth + in-person"
+          : t.accepts_telehealth
+            ? "Telehealth"
+            : t.accepts_in_person
+              ? "In-person"
+              : "Confirm directly",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="section-mini-stat"><div class="section-mini-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="section-mini-stat-value">' +
+        escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
   var sectionNavHtml =
     '<div class="profile-section-nav" id="profileSectionNav">' +
     '<a href="#section-fit" class="section-nav-link is-active" data-section-link="section-fit">Fit</a>' +
-    '<a href="#section-trust" class="section-nav-link" data-section-link="section-trust">Trust</a>' +
-    '<a href="#section-logistics" class="section-nav-link" data-section-link="section-logistics">Logistics</a>' +
-    '<a href="#section-contact" class="section-nav-link" data-section-link="section-contact">Contact</a>' +
-    '<a href="#section-bio" class="section-nav-link" data-section-link="section-bio">Deep dive</a>' +
+    '<a href="#section-trust" class="section-nav-link" data-section-link="section-trust">Evidence</a>' +
+    '<a href="#section-logistics" class="section-nav-link" data-section-link="section-logistics">Access</a>' +
+    '<a href="#section-contact" class="section-nav-link" data-section-link="section-contact">Outreach</a>' +
+    '<a href="#section-bio" class="section-nav-link" data-section-link="section-bio">Bio</a>' +
     "</div>";
   var decisionRailRows = [
     {
-      label: "Best next step",
+      label: "Best next move now",
       value: contactStrategy.routeLabel,
       tone: "green",
+    },
+    {
+      label: "Action timing",
+      value: contactTiming.title,
+      tone: contactStrategy.confidenceTone === "outcomes" ? "green" : "teal",
     },
     {
       label: "Availability",
@@ -2084,7 +2654,7 @@ function renderProfile(t, therapistDirectory) {
         fitSnapshotPanel +
         "</div>"
       : "") +
-    "</div>" +
+    "</div></div>" +
     '<div class="profile-entry-banner"><div class="profile-entry-banner-main"><div class="profile-entry-kicker">' +
     escapeHtml(entryState.kicker) +
     '</div><div class="profile-entry-title">' +
@@ -2104,26 +2674,9 @@ function renderProfile(t, therapistDirectory) {
       })
       .join("") +
     "</div></div>" +
-    '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    decisionDashboardHtml +
     '<div class="trust-evidence-grid">' +
     trustEvidenceHtml +
-    "</div>" +
-    '<div class="hero-support-grid">' +
-    '<div class="profile-uncertainty-state">' +
-    renderUncertaintyCard(uncertaintyState) +
-    "</div>" +
-    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
-    renderDecisionMemoryCard(decisionMemoryState) +
-    "</div>" +
-    '<div class="profile-queue-status" id="profileQueueStatus">' +
-    renderQueueStatusCard(outreachQueueState) +
-    "</div>" +
-    "</div>" +
-    '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Shortlist label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
-    SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
-      return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
-    }).join("") +
-    '</select><label for="profileShortlistNote" style="margin-top:0.7rem">Personal note</label><input id="profileShortlistNote" type="text" maxlength="120" placeholder="What stands out about this therapist?" /></div>' +
     "</div></div>" +
     '<div class="hero-verdict-card"><div class="hero-summary-label">Fast fit verdict</div><h2>' +
     escapeHtml(fitHeadline) +
@@ -2168,7 +2721,9 @@ function renderProfile(t, therapistDirectory) {
     sectionNavHtml +
     '<div class="profile-body">' +
     "<div>" +
-    '<section class="profile-section profile-section-collapsible" id="section-fit" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Fit</span><h2>Why this profile may fit</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="bio-text">' +
+    '<section class="profile-section profile-section-collapsible" id="section-fit" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Fit</span><h2>Why this profile may fit</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
+    fitSectionLeadHtml +
+    '<div class="bio-text section-body-copy">' +
     escapeHtml(fitSummaryCopy) +
     "</div>" +
     (quickFitHtml
@@ -2190,7 +2745,9 @@ function renderProfile(t, therapistDirectory) {
         "</div></div>"
       : "") +
     "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-trust" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Trust</span><h2>Why this looks credible</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="bio-text">' +
+    '<section class="profile-section profile-section-collapsible" id="section-trust" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Evidence</span><h2>Why this looks credible</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
+    trustSectionLeadHtml +
+    '<div class="bio-text section-body-copy">' +
     escapeHtml(reviewedDetailsCopy) +
     "</div>" +
     '<div class="trust-section-grid">' +
@@ -2226,7 +2783,11 @@ function renderProfile(t, therapistDirectory) {
         "</div>"
       : "") +
     "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-logistics" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Logistics</span><h2>Practical details before you contact</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
+    '<section class="profile-section profile-section-collapsible" id="section-logistics" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Access</span><h2>Practical details before you contact</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
+    logisticsSectionLeadHtml +
+    '<div class="section-mini-stat-grid">' +
+    logisticsSignalStripHtml +
+    "</div>" +
     (practicalDetailsHtml ? '<div class="decision-list">' + practicalDetailsHtml + "</div>" : "") +
     (insTags
       ? '<div class="profile-subsection"><div class="mini-section-label">Insurance accepted</div><div class="ins-list">' +
@@ -2237,7 +2798,7 @@ function renderProfile(t, therapistDirectory) {
     feesHtml +
     "</div>" +
     "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Contact</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
+    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
     '<div class="next-step-item is-emphasis"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
     escapeHtml(contactStrategy.routeLabel) +
     '</div><div class="next-step-helper">' +
@@ -2275,6 +2836,7 @@ function renderProfile(t, therapistDirectory) {
         contactQuestionHtml +
         "</div></div>"
       : "") +
+    consultPrepHtml +
     '<div class="next-step-item"><div class="next-step-label">Follow up if needed</div><div class="next-step-value">' +
     escapeHtml(contactStrategy.followUpCopy) +
     "</div></div>" +
@@ -2294,10 +2856,11 @@ function renderProfile(t, therapistDirectory) {
         renderQueueActionButtons(outreachQueueState) +
         "</div>"
       : "") +
+    followThroughHtml +
     '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Deep dive</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
+    '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Bio</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
     escapeHtml(
       t.bio ||
         "A longer bio is not available on this profile yet. Use the fit, trust, and contact sections above to decide whether this therapist is worth a first outreach.",
@@ -2311,6 +2874,33 @@ function renderProfile(t, therapistDirectory) {
     "</div></section>" +
     "</div>" +
     '<div class="profile-sidebar-stack">' +
+    '<div class="sidebar-panel decision-workspace-panel"><h3>Decision workspace</h3><div class="workspace-summary-card tone-' +
+    escapeHtml(decisionSystem.tone) +
+    '"><div class="workspace-summary-label">Current stance</div><div class="workspace-summary-title">' +
+    escapeHtml(decisionSystem.stanceLabel) +
+    '</div><div class="workspace-summary-copy">' +
+    escapeHtml(decisionSystem.managementCopy) +
+    '</div><div class="workspace-summary-score">' +
+    escapeHtml(String(decisionSystem.overallScore)) +
+    '/100 decision clarity</div></div><div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    (uncertaintyState
+      ? '<div class="profile-uncertainty-state">' +
+        renderUncertaintyCard(uncertaintyState) +
+        "</div>"
+      : "") +
+    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
+    renderDecisionMemoryCard(decisionMemoryState) +
+    '</div><div class="profile-queue-status" id="profileQueueStatus">' +
+    renderQueueStatusCard(outreachQueueState) +
+    '</div><div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Priority label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
+    SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
+      return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
+    }).join("") +
+    '</select><label for="profileShortlistNote">Why it stands out</label><textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="Capture the one thing future-you should remember."></textarea><div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">Keep this to one sharp reminder for future-you.</div></div><div class="workspace-link-grid"><a href="' +
+    escapeHtml(shortlistCompareUrl) +
+    '" class="workspace-link">Review shortlist</a><a href="' +
+    escapeHtml(outreachQueueUrl) +
+    '" class="workspace-link">Open outreach queue</a></div></div>' +
     '<div class="sidebar-panel decision-rail-panel"><h3>Decision rail</h3>' +
     '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
     escapeHtml(
@@ -2511,8 +3101,13 @@ function renderProfile(t, therapistDirectory) {
   }
   var noteInput = document.getElementById("profileShortlistNote");
   if (noteInput) {
+    noteInput.addEventListener("input", function () {
+      updateShortlistNote(t.slug, noteInput.value);
+      updateShortlistNoteMeta(noteInput.value);
+    });
     noteInput.addEventListener("change", function () {
       updateShortlistNote(t.slug, noteInput.value);
+      updateShortlistNoteMeta(noteInput.value);
       updateShortlistAction(t.slug);
       if (typeof window.refreshShortlistNav === "function") {
         window.refreshShortlistNav();

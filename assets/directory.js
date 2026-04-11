@@ -9,7 +9,6 @@ import {
   FILTER_BOOLEAN_KEYS,
   FILTER_VALUE_KEYS,
   countActiveFilters,
-  readFilterStateFromControls,
   syncFilterControlsFromState,
 } from "./directory-filters.js";
 import {
@@ -24,10 +23,8 @@ import {
   compareTherapistsWithFilters,
   getDirectoryStrategyAudience,
   getEditorialLaneCandidates,
-  getFreshnessRank,
   getMatchScore,
   matchesDirectoryFilters,
-  getResponsivenessRank,
 } from "./directory-logic.js";
 import {
   renderDirectoryDecisionPreviewMarkup,

@@ -1156,44 +1156,31 @@ function getSegmentAwareDraftAsk(profile, recommendation) {
   var evaluation = recommendation && recommendation.entry ? recommendation.entry.evaluation : null;
   var segments =
     evaluation && Array.isArray(evaluation.active_segments) ? evaluation.active_segments : [];
+  var questions = ["Are you currently accepting new clients for care like this?"];
 
   if ((profile && profile.insurance) || segments.includes("insurance:user")) {
-    return (
-      "Could you let me know whether you currently take " +
-      (profile && profile.insurance ? profile.insurance : "my insurance") +
-      ", what the likely out-of-pocket cost would be, and whether it makes sense to begin with " +
-      recommendation.route.toLowerCase() +
-      "?"
+    questions.push(
+      "Do you take " +
+        (profile && profile.insurance ? profile.insurance : "this insurance") +
+        ", or what should I expect for out-of-pocket cost?",
     );
-  }
-  if (
+  } else if (
     (profile && profile.care_intent === "Psychiatry") ||
     (profile && profile.needs_medication_management === "Yes") ||
     segments.some(function (segment) {
       return segment.indexOf("intent:psychiatry") === 0 || segment.indexOf("medication:yes") === 0;
     })
   ) {
-    return (
-      "Could you let me know whether you support medication management or psychiatry needs like mine, what next steps usually look like, and whether it makes sense to begin with " +
-      recommendation.route.toLowerCase() +
-      "?"
-    );
-  }
-  if (profile && profile.care_format) {
-    return (
-      "Could you let me know whether you currently have " +
-      profile.care_format.toLowerCase() +
-      " availability, what next steps look like, and whether it makes sense to begin with " +
-      recommendation.route.toLowerCase() +
-      "?"
-    );
+    questions.push("Do you support medication management or psychiatry needs like this?");
+  } else if (profile && profile.care_format) {
+    questions.push("Do you currently have " + profile.care_format.toLowerCase() + " availability?");
   }
 
-  return (
-    "Could you let me know about current availability, next steps, and whether it makes sense to begin with " +
-    recommendation.route.toLowerCase() +
-    "?"
+  questions.push(
+    "If it seems like a fit, is " + recommendation.route.toLowerCase() + " the best first step?",
   );
+
+  return "A couple of quick questions before I go too far:\n- " + questions.join("\n- ");
 }
 
 function buildEntryOutreachDraft(entry, profile) {
@@ -1208,38 +1195,42 @@ function buildEntryOutreachDraft(entry, profile) {
     ? entry.evaluation.reasons.filter(Boolean)
     : [];
   var fitSignal = reasons[0] || "";
+  var careIntent = profile && profile.care_intent ? String(profile.care_intent).trim() : "";
+  var careFormat = profile && profile.care_format ? String(profile.care_format).trim() : "";
+  var insurance = profile && profile.insurance ? String(profile.insurance).trim() : "";
+  var wantsMedication =
+    profile && (profile.needs_medication_management === "Yes" || careIntent === "Psychiatry");
+  var intent = careIntent
+    ? "I am looking for " + careIntent.toLowerCase() + "."
+    : "I am looking for bipolar-informed care.";
   var introLine =
     "Hi " +
     therapist.name +
-    ",\n\nI found your profile on BipolarTherapyHub because I am looking for bipolar-informed care and your practice stood out as a strong place to start.";
+    ",\n\nI found your profile on BipolarTherapyHub and wanted to reach out because your practice looks like a promising place to start.";
   var contextBits = [
-    profile && profile.care_intent
-      ? "I am primarily looking for " + profile.care_intent.toLowerCase() + "."
+    intent,
+    profile && profile.care_state ? "I am hoping to find care in " + profile.care_state + "." : "",
+    careFormat ? "My preferred format is " + careFormat.toLowerCase() + "." : "",
+    wantsMedication
+      ? "Medication support or coordination is part of what I am trying to confirm."
       : "",
-    profile && profile.care_state ? "I am seeking care in " + profile.care_state + "." : "",
-    profile && profile.care_format
-      ? "My preferred format is " + profile.care_format.toLowerCase() + "."
-      : "",
-    profile && profile.needs_medication_management === "Yes"
-      ? "Medication support is important for me."
-      : "",
-    profile && profile.insurance
-      ? "I would also like to confirm whether you take " + profile.insurance + "."
+    insurance
+      ? "Cost fit matters on my side, so I am also trying to confirm insurance or fee fit early."
       : "",
   ].filter(Boolean);
   var context = contextBits.join(" ");
   var whyNow = fitSignal
-    ? "What stood out to me was that " +
+    ? "One reason I paused on your profile is that it appears to " +
       fitSignal.charAt(0).toLowerCase() +
       fitSignal.slice(1) +
       "."
-    : "I am hoping to start with an option that feels both credible and practical to contact.";
+    : "I am trying to start with an option that looks both credible and realistic to contact.";
   var ask = getSegmentAwareDraftAsk(profile, {
     route: route,
     entry: entry,
   });
   var close =
-    "If it helps, I am mainly trying to understand whether it makes sense to start with your practice and what the best next step would be.\n\nThank you.";
+    "If it looks like a fit, I would really appreciate a quick note on the best next step.\n\nThank you,\nA BipolarTherapyHub visitor";
 
   return [introLine, context, whyNow, ask, close].filter(Boolean).join("\n\n");
 }
@@ -1251,13 +1242,20 @@ function buildEntryOutreachSubject(entry, profile) {
   }
 
   var intent = profile && profile.care_intent ? String(profile.care_intent).trim() : "";
+  var insurance = profile && profile.insurance ? String(profile.insurance).trim() : "";
   if (intent === "Psychiatry") {
-    return "Question about bipolar-informed psychiatry availability";
+    return insurance
+      ? "Quick question about bipolar-informed psychiatry and insurance fit"
+      : "Quick question about bipolar-informed psychiatry availability";
   }
   if (intent) {
-    return "Question about bipolar-informed " + intent.toLowerCase() + " availability";
+    return insurance
+      ? "Quick question about bipolar-informed " + intent.toLowerCase() + " and insurance fit"
+      : "Quick question about bipolar-informed " + intent.toLowerCase() + " availability";
   }
-  return "Question about bipolar-informed care availability";
+  return insurance
+    ? "Quick question about bipolar-informed care and insurance fit"
+    : "Quick question about bipolar-informed care availability";
 }
 
 function getShortlistSummary(entry) {
@@ -1312,34 +1310,48 @@ function getMatchCardActionCopy(entry) {
 function getMatchCardRouteConfidence(entry) {
   var readiness = getContactReadiness(entry);
   if (!readiness) {
-    return "Route not clearly listed yet";
+    return "Open profile before deciding on outreach";
   }
   if (readiness.tone === "high") {
-    return "Low-friction contact path";
+    return "Ready for first outreach";
   }
   if (readiness.tone === "medium") {
-    return "Direct contact route available";
+    return "Open first, then likely reach out";
   }
-  return "Review profile before outreach";
+  return "Save or review before outreach";
+}
+
+function getMatchCardActionTiming(entry) {
+  var readiness = getContactReadiness(entry);
+  if (!readiness) {
+    return "Best used as a review-first option until the full profile makes the route feel clearer.";
+  }
+  if (readiness.tone === "high") {
+    return "This looks strong enough to move toward first outreach after one quick profile review.";
+  }
+  if (readiness.tone === "medium") {
+    return "Open the profile first, then decide whether this should become the lead contact or stay as backup.";
+  }
+  return "Keep this as a comparison or backup route unless the profile materially strengthens the case for contact.";
 }
 
 function getMatchCardReachOutPromise(entry) {
   var readiness = getContactReadiness(entry);
   if (!readiness) {
-    return "You can start with the profile, confirm fit, and keep your shortlist intact if you are not ready to reach out yet.";
+    return "Start with the profile, confirm whether the basics fit, and keep your shortlist intact if you are not ready to reach out yet.";
   }
   if (readiness.wait) {
     return (
       "Go in expecting " +
       readiness.wait.toLowerCase() +
-      ". If timing feels off, keep your backup ready instead of widening the search immediately."
+      ". If timing feels off, move to your backup before widening the search."
     );
   }
   if (readiness.tone === "high") {
-    return "This looks like a lower-friction first contact. Use the outreach draft if you want a calmer, faster start.";
+    return "This looks like a lower-friction first contact. Use the outreach draft if you want a calmer, more confident first move.";
   }
   if (readiness.tone === "medium") {
-    return "This route should work well if you want a direct first step without committing to a call right away.";
+    return "This route should work well if you want a direct first step without committing to a call or full intake right away.";
   }
   return "Start by reviewing the profile details, then use your saved shortlist to decide whether to reach out or keep comparing.";
 }
@@ -1351,14 +1363,14 @@ function getLeadMatchTrustSummary(entry) {
   }
 
   if (therapist.verification_status === "editorially_verified") {
-    return "This profile has been editorially reviewed, so the public details are stronger than a generic listing.";
+    return "This profile has been editorially reviewed, so the public details are more trustworthy than a generic directory listing.";
   }
 
   if (therapist.bipolar_years_experience) {
     return (
       "This profile shows " +
       therapist.bipolar_years_experience +
-      " years of bipolar-related care experience, which gives you a clearer starting signal."
+      " years of bipolar-related care experience, which gives you a stronger signal before first outreach."
     );
   }
 
@@ -1376,21 +1388,21 @@ function renderLeadMatchSnapshot(entry) {
   var timingLabel = getCompareTimingLabel(therapist) || "Timing not clearly listed yet";
   var snapshots = [
     {
-      label: "Why trust this start",
+      label: "Why trust this recommendation",
       copy: getLeadMatchTrustSummary(entry),
     },
     {
-      label: "Trust signal",
+      label: "What supports it",
       copy: freshness ? trustLabel + " • " + freshness.label : trustLabel,
     },
     {
-      label: "Timing and momentum",
+      label: "What happens next",
       copy: timingLabel,
     },
   ];
 
   return (
-    '<div class="match-section"><h4>Why this is the best place to start</h4><div class="match-snapshot-grid">' +
+    '<div class="match-section"><h4>Why this is a strong first step</h4><div class="match-snapshot-grid">' +
     snapshots
       .map(function (item) {
         return (
@@ -1607,6 +1619,70 @@ function getCompareRoleReason(entry, profile, recommendation, role) {
     : getMatchCardExplanation(entry);
 }
 
+function getCompareLiveDecisionState(entry, role) {
+  var therapist = entry && entry.therapist ? entry.therapist : null;
+  var latestOutcome = therapist ? getLatestOutreachOutcome(therapist.slug) : null;
+  var outcome = latestOutcome ? String(latestOutcome.outcome || "") : "";
+
+  if (outcome === "booked_consult" || outcome === "good_fit_call") {
+    return {
+      tone: "positive",
+      label: "Live status",
+      title: "A real consult path is already open here.",
+      copy: "Judge this against your backup on fit clarity, timing realism, and whether the next step feels concrete enough to keep moving.",
+    };
+  }
+  if (outcome === "heard_back") {
+    return {
+      tone: "positive",
+      label: "Live status",
+      title: "This provider has already replied.",
+      copy: "Use the reply to compare real momentum, not just profile quality. A strong reply should make timing, cost, and next step clearer quickly.",
+    };
+  }
+  if (outcome === "reached_out") {
+    return {
+      tone: "recent",
+      label: "Live status",
+      title: "This route is already in motion.",
+      copy:
+        role === "Contact first"
+          ? "Give the lead route a fair reply window before scattering attention, but keep the backup ready if this thread stays vague."
+          : "Keep this warm as a backup path while you let the lead route prove itself.",
+    };
+  }
+  if (["insurance_mismatch", "waitlist", "no_response"].indexOf(outcome) !== -1) {
+    return {
+      tone: "stale",
+      label: "Live status",
+      title: "This path already hit friction.",
+      copy: "Treat this as comparison context, not as your lead route, unless new information clearly changes the picture.",
+    };
+  }
+
+  return null;
+}
+
+function getCompareDecisionFocus(role, liveState, backupName) {
+  if (liveState && liveState.title.indexOf("consult path") !== -1) {
+    return (
+      "Compare the quality of the consult path here against whether " +
+      backupName +
+      " still needs to stay warm."
+    );
+  }
+  if (liveState && liveState.title.indexOf("already replied") !== -1) {
+    return "Compare the actual reply quality here against whether your backup still looks cleaner on timing, cost, or next-step clarity.";
+  }
+  if (role === "Contact first") {
+    return "Choose this if it still looks strongest after one focused review or first contact.";
+  }
+  if (role === "Backup if stalled") {
+    return "Keep this ready if the lead route slows down or starts to feel weaker on timing, trust, or follow-through.";
+  }
+  return "Use this only if both the lead and backup lose strength after real comparison.";
+}
+
 function renderCompareDecisionCards(topEntries, profile) {
   var recommendation = buildFirstContactRecommendation(profile, topEntries);
   var recommendedSlug =
@@ -1620,12 +1696,34 @@ function renderCompareDecisionCards(topEntries, profile) {
         var readiness = getContactReadiness(entry);
         var freshness = getCompareFreshness(entry);
         var role = getCompareRole(entry, index, recommendedSlug);
+        var leadName =
+          topEntries[0] && topEntries[0].therapist ? topEntries[0].therapist.name : "your lead";
+        var backupName =
+          topEntries[1] && topEntries[1].therapist ? topEntries[1].therapist.name : "your backup";
         var trust = getCompareTrustLabel(entry) || "Trust details still partial";
         var timing = getCompareTimingLabel(therapist) || "Timing not listed";
         var cost = getCompareCostLabel(therapist) || "Fees not listed";
         var action = (readiness && readiness.route) || "Review profile first";
         var reason = getCompareRoleReason(entry, profile, recommendation, role);
+        var liveState = getCompareLiveDecisionState(entry, role);
         var note = String(entry?.evaluation?.shortlist_note || "").trim();
+        var roleTitle =
+          role === "Contact first"
+            ? "Start here if you want the clearest first route."
+            : role === "Backup if stalled"
+              ? "Keep this close if the lead loses momentum."
+              : "Only widen to this if the top two weaken.";
+        var rolePlan =
+          role === "Contact first"
+            ? "If this route feels weaker after review or first outreach, move to " +
+              backupName +
+              " next instead of reopening the whole search."
+            : role === "Backup if stalled"
+              ? "Do not lead with this unless " +
+                leadName +
+                " slows down, feels less trustworthy, or looks worse on timing after review."
+              : "This stays useful as an extra compare point, but it should not distract you from choosing between the lead and backup first.";
+        var decisionFocus = getCompareDecisionFocus(role, liveState, backupName);
 
         return (
           '<article class="compare-decision-card"><div class="compare-decision-top"><span class="compare-chip compare-chip-' +
@@ -1652,6 +1750,20 @@ function renderCompareDecisionCards(topEntries, profile) {
               escapeHtml(freshness.note) +
               "</div></div>"
             : "") +
+          '<div class="compare-decision-role-title">' +
+          escapeHtml(roleTitle) +
+          "</div>" +
+          (liveState
+            ? '<div class="compare-decision-live-state tone-' +
+              escapeHtml(liveState.tone) +
+              '"><div class="compare-decision-live-label">' +
+              escapeHtml(liveState.label) +
+              '</div><div class="compare-decision-live-title">' +
+              escapeHtml(liveState.title) +
+              '</div><div class="compare-decision-live-copy">' +
+              escapeHtml(liveState.copy) +
+              "</div></div>"
+            : "") +
           '<p class="compare-decision-copy">' +
           escapeHtml(reason) +
           '</p><div class="compare-decision-stats"><div class="compare-decision-stat"><span class="compare-decision-label">Trust</span><span class="compare-decision-value">' +
@@ -1663,6 +1775,13 @@ function renderCompareDecisionCards(topEntries, profile) {
           '</span></div><div class="compare-decision-stat"><span class="compare-decision-label">Next step</span><span class="compare-decision-value">' +
           escapeHtml(action) +
           "</span></div></div>" +
+          '<div class="compare-decision-plan">' +
+          '<div class="compare-decision-plan-label">How to judge this against your backup</div>' +
+          escapeHtml(decisionFocus) +
+          "</div>" +
+          '<div class="compare-decision-plan compare-decision-plan-soft">' +
+          escapeHtml(rolePlan) +
+          "</div>" +
           (note
             ? '<div class="compare-decision-note">Your note: ' + escapeHtml(note) + "</div>"
             : "") +
@@ -3988,9 +4107,9 @@ function renderPrimaryMatchCards(entries, _profile) {
       ? "Showing 1 strongest match right now."
       : "Showing the top " + primaryEntries.length + " matches to start with.";
   var summaryIntro = starterResultsMode
-    ? "These are strong starting providers to explore before you narrow by ZIP code, care type, insurance, or medication needs."
+    ? "These are strong starting providers you can act on now, then narrow once you know what matters most."
     : _profile
-      ? "Your homepage answers are already applied. Start with the first provider below, keep the second as backup, or browse the full directory if you want to explore more on your own."
+      ? "Your homepage answers are already applied, so you can move straight into a focused shortlist."
       : "These saved providers are organized into the clearest place to start first.";
   var summaryKicker = starterResultsMode
     ? "Your first matches are ready"
@@ -4059,35 +4178,45 @@ function renderPrimaryMatchCards(entries, _profile) {
     escapeHtml(starterResultsMode ? "Get a more specific match" : "Adjust this shortlist") +
     '</button><a class="btn-secondary" href="' +
     escapeHtml(directoryBrowseUrl) +
-    '">Search the directory</a></div></div><div class="match-summary-text">' +
+    '">Search the directory</a></div></div><div class="match-summary-recommendation"><div class="match-summary-recommendation-label">Best next step</div><div class="match-summary-recommendation-title">' +
+    escapeHtml(
+      leadAction && leadAction.therapistName
+        ? "Start with " + leadAction.therapistName + "."
+        : "Start with the lead provider.",
+    ) +
+    '</div><div class="match-summary-recommendation-copy">' +
+    escapeHtml(leadExplanation) +
+    '</div><div class="match-summary-recommendation-note">' +
+    escapeHtml(leadNote) +
+    '</div></div><div class="match-summary-text">' +
     escapeHtml(summaryIntro) +
     " " +
     escapeHtml(requestSummary) +
-    '</div><div class="match-summary-decision-grid"><section class="match-summary-decision-card tone-primary"><div class="match-summary-decision-label">Start here</div><div class="match-summary-decision-title">' +
+    '</div><div class="match-summary-decision-grid"><section class="match-summary-decision-card tone-primary"><div class="match-summary-decision-label">Why this rose</div><div class="match-summary-decision-title">' +
     escapeHtml(
       leadAction && leadAction.therapistName
-        ? "Open " + leadAction.therapistName + " first."
-        : "Open the lead provider first.",
+        ? leadAction.therapistName + " looks strongest right now."
+        : "This provider looks strongest right now.",
     ) +
     '</div><div class="match-summary-decision-copy">' +
     escapeHtml(leadExplanation) +
     '</div><div class="match-summary-decision-note">' +
     escapeHtml(leadNote) +
-    '</div></section><section class="match-summary-decision-card tone-secondary"><div class="match-summary-decision-label">Keep in reserve</div><div class="match-summary-decision-title">' +
+    '</div></section><section class="match-summary-decision-card tone-secondary"><div class="match-summary-decision-label">Backup plan</div><div class="match-summary-decision-title">' +
     escapeHtml(backupTitle) +
     '</div><div class="match-summary-decision-copy">' +
     escapeHtml(backupExplanation) +
     '</div><div class="match-summary-decision-note">' +
     escapeHtml(
       backupAction && backupAction.therapistName
-        ? "Backup move: open " + backupAction.therapistName + " if your first option stalls."
-        : "Backup move: keep the second provider handy before broadening your search.",
+        ? "If the first outreach stalls, move to " + backupAction.therapistName + "."
+        : "Keep the second provider handy before broadening your search.",
     ) +
-    '</div></section><section class="match-summary-decision-card tone-refine"><div class="match-summary-decision-label">If you want more certainty</div><div class="match-summary-decision-title">' +
+    '</div></section><section class="match-summary-decision-card tone-refine"><div class="match-summary-decision-label">Refine only if needed</div><div class="match-summary-decision-title">' +
     escapeHtml(refineTitle) +
     '</div><div class="match-summary-decision-copy">' +
     escapeHtml(refineCopy) +
-    '</div><div class="match-summary-decision-note">Refining now usually improves click quality and outreach confidence.</div></section></div><div class="match-summary-applied"><div class="match-summary-applied-label">Applied answers</div>' +
+    '</div><div class="match-summary-decision-note">Refining usually improves confidence, not urgency.</div></section></div><div class="match-summary-applied"><div class="match-summary-applied-label">Applied answers</div>' +
     appliedPills
       .map(function (pill) {
         return '<span class="match-summary-pill">' + escapeHtml(pill) + "</span>";
@@ -4125,9 +4254,12 @@ function renderPrimaryMatchCards(entries, _profile) {
                 : routeType === "website"
                   ? "Visit provider site"
                   : "View full profile";
+        var cardCtaClass =
+          index === 0 ? "btn-primary match-card-cta" : "btn-secondary match-card-cta is-supporting";
         return (
           '<article class="match-card' +
           (index === 0 ? " lead-card" : "") +
+          (index > 0 ? " supporting-card" : "") +
           '">' +
           '<div class="match-card-header">' +
           '<div class="match-card-badges"><div class="match-rank' +
@@ -4166,18 +4298,18 @@ function renderPrimaryMatchCards(entries, _profile) {
           '<div class="match-summary-pills">' +
           getShortlistSummary(entry) +
           '</div><div class="match-card-decision-rail"><div class="match-card-decision-panel"><div class="match-card-decision-label">' +
-          escapeHtml(index === 0 ? "Start here" : "Backup if needed") +
+          escapeHtml(index === 0 ? "Why this is actionable now" : "Why keep this close") +
           '</div><div class="match-card-decision-title">' +
           escapeHtml(
             index === 0
               ? "This is the clearest first outreach move right now."
-              : "Keep this ready if the lead path slows down or feels less certain.",
+              : "This is the strongest backup if your lead path slows down.",
           ) +
           '</div><div class="match-card-decision-copy">' +
           escapeHtml(
             index === 0
-              ? explanation
-              : "You do not need to contact everyone. Keep this option close so you can pivot quickly if the first route stalls.",
+              ? contactPromise
+              : "You do not need to contact everyone. Keep this option close so you can pivot quickly without reopening the entire search.",
           ) +
           '</div></div><div class="match-card-decision-panel"><div class="match-card-decision-label">If this stalls</div><div class="match-card-decision-title">' +
           escapeHtml(
@@ -4196,13 +4328,21 @@ function renderPrimaryMatchCards(entries, _profile) {
               : "This stays strongest as a backup path. If both options feel weak, refine the shortlist instead of scattering your outreach.",
           ) +
           "</div></div></div>" +
-          '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">Best next step</div><div class="match-card-action-title">' +
+          '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">' +
+          escapeHtml(index === 0 ? "Recommended first move" : "Backup move") +
+          '</div><div class="match-card-action-title">' +
           escapeHtml(ctaLabel) +
           '</div><div class="match-card-action-copy">' +
-          escapeHtml(actionCopy) +
+          escapeHtml(
+            index === 0
+              ? actionCopy
+              : "Keep this ready as your second move if the first provider is not the right fit or cannot move quickly.",
+          ) +
           '</div><div class="match-card-contact-grid"><div class="match-card-contact-item"><div class="match-card-contact-label">Route confidence</div><div class="match-card-contact-value">' +
           escapeHtml(routeConfidence) +
-          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">What to expect</div><div class="match-card-contact-value">' +
+          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">When to act</div><div class="match-card-contact-value">' +
+          escapeHtml(getMatchCardActionTiming(entry)) +
+          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">What to expect next</div><div class="match-card-contact-value">' +
           escapeHtml(
             readiness && readiness.wait
               ? readiness.wait
@@ -4219,7 +4359,9 @@ function renderPrimaryMatchCards(entries, _profile) {
               ? preferredRoute.href
               : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
           ) +
-          '" class="btn-primary match-card-cta" data-match-primary-cta="' +
+          '" class="' +
+          escapeHtml(cardCtaClass) +
+          '" data-match-primary-cta="' +
           escapeHtml(therapist.slug || "") +
           '" data-match-primary-route="' +
           escapeHtml(ctaLabel) +

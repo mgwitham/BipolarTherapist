@@ -16,6 +16,34 @@ function buildTherapistProfileHref(slug, source) {
   return "therapist.html?" + params.toString();
 }
 
+function buildCardActionTiming(model) {
+  if (model && model.contactRoute && model.shortlisted) {
+    return {
+      title: "Open now and decide on contact from the full profile.",
+      copy: "This route already looks usable enough to pressure-test immediately without losing your shortlist context.",
+    };
+  }
+
+  if (model && model.contactRoute) {
+    return {
+      title: "Open now, then decide whether to contact right away.",
+      copy: "The route looks clear enough that the full profile should help you decide between immediate outreach and saving as backup.",
+    };
+  }
+
+  if (model && model.shortlisted) {
+    return {
+      title: "Keep saved until the lead and backup lose strength.",
+      copy: "This looks promising, but it should stay in reserve until the stronger routes above it weaken.",
+    };
+  }
+
+  return {
+    title: "Open before outreach.",
+    copy: "This looks worth reviewing, but the fuller profile should decide whether it becomes a lead contact or a saved option.",
+  };
+}
+
 export function renderEmptyStateMarkup(directoryPage) {
   return (
     '<div class="empty-state"><div class="empty-state-kicker">No strong fit yet</div><h3>' +
@@ -171,6 +199,7 @@ export function renderCardMarkup(options) {
     model.contactRoute && model.contactRoute.detail
       ? model.contactRoute.detail
       : model.nextStepLine || model.likelyFitCopy;
+  var actionTiming = buildCardActionTiming(model);
 
   return (
     '<article class="t-card" data-card-slug="' +
@@ -216,6 +245,10 @@ export function renderCardMarkup(options) {
     escapeHtml(primaryDecisionTitle) +
     '</div><div class="card-primary-decision-copy">' +
     escapeHtml(primaryDecisionCopy) +
+    '</div><div class="card-primary-decision-timing"><div class="card-primary-decision-timing-title">' +
+    escapeHtml(actionTiming.title) +
+    '</div><div class="card-primary-decision-timing-copy">' +
+    escapeHtml(actionTiming.copy) +
     "</div></div>" +
     '<div class="card-quick-stats">' +
     quickStats +
@@ -323,17 +356,33 @@ export function renderShortlistBarMarkup(options) {
 
   var compareRows = model.compareCards
     .map(function (card, index) {
+      var roleLabel =
+        index === 0 ? "Compare first" : index === 1 ? "Keep as backup" : "Saved option";
+      var roleTitle =
+        index === 0
+          ? "Pressure-test this one first."
+          : index === 1
+            ? "Keep this ready if the lead slips."
+            : "Hold this only if the top two weaken.";
+      var roleCopy =
+        index === 0
+          ? "Open this profile when you want the clearest read on fit, trust, and whether you should reach out now."
+          : index === 1
+            ? "This is the safest backup if timing, cost, or fit uncertainty makes the lead feel weaker after review."
+            : "You do not need to act on every saved option. Keep this available only if your lead and backup both lose momentum.";
       return (
         '<div class="shortlist-compare-card"><div class="shortlist-compare-role">' +
-        escapeHtml(
-          index === 0 ? "Compare first" : index === 1 ? "Keep as backup" : "Saved option",
-        ) +
+        escapeHtml(roleLabel) +
         '</div><div class="shortlist-compare-name">' +
         escapeHtml(card.therapist.name) +
+        '</div><div class="shortlist-compare-title">' +
+        escapeHtml(roleTitle) +
         '</div><div class="shortlist-compare-meta">' +
         escapeHtml(card.meta) +
         '</div><div class="shortlist-compare-note">' +
         escapeHtml(card.note) +
+        '</div><div class="shortlist-compare-guidance">' +
+        escapeHtml(roleCopy) +
         '</div><a href="' +
         escapeHtml(buildTherapistProfileHref(card.therapist.slug, "shortlist_card")) +
         '" class="shortlist-compare-link">' +
@@ -384,6 +433,14 @@ export function renderShortlistBarMarkup(options) {
       escapeHtml(model.queueSummary || model.summary.join(" • ")) +
       "</span>" +
       '<span class="shortlist-bar-progress">This shortlist is saved on this browser, so you can compare now and come back without losing your place.</span>' +
+      (model.leadTherapist
+        ? '<span class="shortlist-bar-progress">Best sequence: open ' +
+          escapeHtml(model.leadTherapist.therapist.name) +
+          (model.backupTherapist
+            ? ", then keep " + escapeHtml(model.backupTherapist.therapist.name) + " as backup."
+            : " first.") +
+          "</span>"
+        : "") +
       (model.outreachQueueNote
         ? '<span class="shortlist-bar-progress">' + escapeHtml(model.outreachQueueNote) + "</span>"
         : "") +
