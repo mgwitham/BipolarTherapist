@@ -68,20 +68,6 @@ import {
   summarizeProfileQueueProgress,
   summarizePatientJourney,
 } from "./funnel-analytics.js";
-import { renderIngestionScorecardPanel } from "./admin-ingestion-scorecard.js";
-import { renderOpsInboxPanel } from "./admin-ops-inbox.js";
-import { renderCandidateQueuePanel } from "./admin-candidate-queue.js";
-import { renderApplicationsPanel } from "./admin-application-review.js";
-import { renderPortalRequestsQueuePanel } from "./admin-portal-requests.js";
-import { renderRefreshQueuePanel } from "./admin-refresh-queue.js";
-import { renderLicensureQueuePanel } from "./admin-licensure-queue.js";
-import { renderLicensureSprintPanel } from "./admin-licensure-sprint.js";
-import { renderDeferredLicensureQueuePanel } from "./admin-licensure-deferred-queue.js";
-import { renderLicensureActivityPanel } from "./admin-licensure-activity.js";
-import { renderImportBlockerSprintPanel } from "./admin-import-blocker-sprint.js";
-import { renderConfirmationSprintPanel } from "./admin-confirmation-sprint.js";
-import { renderConfirmationQueuePanel } from "./admin-confirmation-queue.js";
-import { renderConciergeQueuePanel } from "./admin-concierge-queue.js";
 import { createConfirmationWorkspace } from "./admin-confirmation-workspace.js";
 import { createListingsWorkspace } from "./admin-listings-workspace.js";
 import { getNextBestAdminActions } from "./admin-priority-actions.js";
@@ -100,11 +86,7 @@ import {
   createRemoteAuthRequiredState,
   createRemoteSignedInState,
 } from "./admin-state.js";
-import {
-  buildCoverageInsights,
-  renderCoverageIntelligencePanel,
-  renderSourcePerformancePanel,
-} from "./admin-sourcing-intelligence.js";
+import { buildCoverageInsights } from "./admin-sourcing-intelligence.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -164,10 +146,21 @@ let conciergeFilters = {
 let portalRequestFilters = {
   status: "",
 };
+let adminInspectorSelection = {
+  kind: "",
+  id: "",
+};
+let adminInspectorActionStatus = "";
+let commandPaletteOpen = false;
+let commandPaletteQuery = "";
+let commandPaletteActiveIndex = 0;
+const adminLazyModuleCache = new Map();
 const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const REVIEW_ACTIVITY_VIEW_KEY = "bth_review_activity_view_v1";
 const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
+const COMMAND_PALETTE_RECENTS_KEY = "bth_admin_command_palette_recents_v1";
+const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
 const REQUEST_STATUS_OPTIONS = ["new", "triaging", "in_progress", "waiting_on_user", "resolved"];
 const THERAPIST_FOLLOW_UP_OPTIONS = [
   "unreviewed",
@@ -562,6 +555,7 @@ function focusAdminAnchorTarget(targetId, options) {
   if (typeof document === "undefined" || !targetId) {
     return;
   }
+  prefetchAdminModulesForTarget(targetId);
   var target = document.getElementById(targetId);
   if (!target) {
     return;
@@ -586,8 +580,14 @@ function bindAdminNavigationInteractions() {
     return;
   }
   document.querySelectorAll("#adminQuickNav a[href^='#']").forEach(function (link) {
+    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    link.addEventListener("mouseenter", function () {
+      prefetchAdminModulesForTarget(targetId);
+    });
+    link.addEventListener("focus", function () {
+      prefetchAdminModulesForTarget(targetId);
+    });
     link.addEventListener("click", function (event) {
-      var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
       if (!targetId) {
         return;
       }
@@ -597,8 +597,14 @@ function bindAdminNavigationInteractions() {
   });
 
   document.querySelectorAll(".operator-guide-main[href^='#']").forEach(function (link) {
+    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    link.addEventListener("mouseenter", function () {
+      prefetchAdminModulesForTarget(targetId);
+    });
+    link.addEventListener("focus", function () {
+      prefetchAdminModulesForTarget(targetId);
+    });
     link.addEventListener("click", function (event) {
-      var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
       if (!targetId) {
         return;
       }
@@ -677,6 +683,15 @@ if (typeof window !== "undefined") {
   window.setTimeout(function () {
     applyAdminWorkflowUrlParams();
     syncWorkflowFocusFromHash();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(function () {
+        warmAdminLikelyNextModules();
+      });
+    } else {
+      window.setTimeout(function () {
+        warmAdminLikelyNextModules();
+      }, 1200);
+    }
     window.setTimeout(function () {
       syncAdminWorkflowUrlFocus();
       syncAdminQuickNavFromViewport();
@@ -686,6 +701,162 @@ if (typeof window !== "undefined") {
       syncAdminQuickNavFromViewport();
     }
   }, 0);
+
+  document.addEventListener("click", function (event) {
+    var candidateCard = event.target.closest("[data-candidate-card-id]");
+    if (candidateCard) {
+      setAdminInspectorSelection(
+        "candidate",
+        String(candidateCard.getAttribute("data-candidate-card-id") || ""),
+      );
+      renderAdminRecordInspector();
+    }
+
+    var applicationCard = event.target.closest("[data-application-card-id]");
+    if (applicationCard) {
+      setAdminInspectorSelection(
+        "application",
+        String(applicationCard.getAttribute("data-application-card-id") || ""),
+      );
+      renderAdminRecordInspector();
+    }
+
+    var inspectorFocusButton = event.target.closest("[data-inspector-focus-kind]");
+    if (inspectorFocusButton) {
+      var focusKind = String(inspectorFocusButton.getAttribute("data-inspector-focus-kind") || "");
+      var focusId = String(inspectorFocusButton.getAttribute("data-inspector-focus-id") || "");
+      var selector =
+        focusKind === "candidate"
+          ? '[data-candidate-card-id="' + focusId.replace(/"/g, '\\"') + '"]'
+          : '[data-application-card-id="' + focusId.replace(/"/g, '\\"') + '"]';
+      var target = document.querySelector(selector);
+      if (target) {
+        spotlightSection(target);
+        scrollToElementWithOffset(target, "start");
+      }
+    }
+
+    var inspectorNavButton = event.target.closest("[data-inspector-nav-direction]");
+    if (inspectorNavButton) {
+      var direction = String(inspectorNavButton.getAttribute("data-inspector-nav-direction") || "");
+      var sequenceMeta = getInspectorSequenceMeta();
+      var targetEntry = direction === "prev" ? sequenceMeta.previous : sequenceMeta.next;
+      if (targetEntry) {
+        setAdminInspectorSelection(targetEntry.kind, targetEntry.id);
+        renderAdminRecordInspector();
+        if (targetEntry.node) {
+          spotlightSection(targetEntry.node);
+          scrollToElementWithOffset(targetEntry.node, "start");
+        }
+      }
+    }
+
+    var inspectorActionButton = event.target.closest("[data-inspector-action]");
+    if (inspectorActionButton) {
+      var inspectorAction = String(
+        inspectorActionButton.getAttribute("data-inspector-action") || "",
+      );
+      var inspectorId = String(inspectorActionButton.getAttribute("data-inspector-id") || "");
+      if (!inspectorId || !inspectorAction) {
+        return;
+      }
+      inspectorActionButton.disabled = true;
+      Promise.resolve()
+        .then(function () {
+          return executeInspectorAction(inspectorAction, inspectorId);
+        })
+        .catch(function (error) {
+          console.error("Inspector action failed:", error);
+          adminInspectorActionStatus = "Inspector action failed. Try the full card controls.";
+          renderAdminRecordInspector();
+        })
+        .finally(function () {
+          inspectorActionButton.disabled = false;
+        });
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    var target = event.target;
+    var isTypingTarget =
+      target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable);
+    if ((event.metaKey || event.ctrlKey) && String(event.key || "").toLowerCase() === "k") {
+      event.preventDefault();
+      if (commandPaletteOpen) {
+        closeCommandPalette();
+      } else {
+        openCommandPalette();
+      }
+      return;
+    }
+    if (!commandPaletteOpen && !isTypingTarget && event.key === "/") {
+      event.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    if (!commandPaletteOpen) {
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCommandPalette();
+      return;
+    }
+    var commands = getFilteredCommandPaletteCommands();
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      commandPaletteActiveIndex = Math.min(commandPaletteActiveIndex + 1, commands.length - 1);
+      renderCommandPalette();
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      commandPaletteActiveIndex = Math.max(commandPaletteActiveIndex - 1, 0);
+      renderCommandPalette();
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runCommandPaletteSelection(commandPaletteActiveIndex);
+    }
+  });
+
+  document.addEventListener("input", function (event) {
+    if (event.target && event.target.id === "commandPaletteInput") {
+      commandPaletteQuery = String(event.target.value || "");
+      commandPaletteActiveIndex = 0;
+      renderCommandPalette();
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    if (event.target && event.target.id === "commandPaletteShell") {
+      closeCommandPalette();
+      return;
+    }
+    var paletteFavoriteButton = event.target.closest("[data-command-palette-favorite]");
+    if (paletteFavoriteButton) {
+      var favoriteIndex = Number(
+        paletteFavoriteButton.getAttribute("data-command-palette-favorite") || "0",
+      );
+      var favoriteCommand = getFilteredCommandPaletteCommands()[favoriteIndex];
+      if (favoriteCommand) {
+        toggleCommandPaletteFavorite(favoriteCommand.id || favoriteCommand.key || "");
+        renderCommandPalette();
+      }
+      return;
+    }
+    var paletteItem = event.target.closest("[data-command-palette-index]");
+    if (paletteItem) {
+      runCommandPaletteSelection(
+        Number(paletteItem.getAttribute("data-command-palette-index") || "0"),
+      );
+    }
+  });
 }
 
 function applyAdminRuntimeState(nextState) {
@@ -822,6 +993,64 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function loadAdminLazyModule(path) {
+  if (!adminLazyModuleCache.has(path)) {
+    adminLazyModuleCache.set(path, import(path));
+  }
+  return adminLazyModuleCache.get(path);
+}
+
+function getAdminPrefetchModulesForTarget(targetId) {
+  var map = {
+    supplyReviewRegion: ["./admin-candidate-queue.js", "./admin-application-review.js"],
+    candidateQueuePanel: ["./admin-candidate-queue.js"],
+    applicationsPanel: ["./admin-application-review.js"],
+    requestsRegion: [
+      "./admin-ops-inbox.js",
+      "./admin-concierge-queue.js",
+      "./admin-portal-requests.js",
+    ],
+    confirmationRegion: [
+      "./admin-import-blocker-sprint.js",
+      "./admin-confirmation-sprint.js",
+      "./admin-confirmation-queue.js",
+    ],
+    intelligenceRegion: ["./admin-sourcing-intelligence.js", "./admin-ingestion-scorecard.js"],
+    liveListingsRegion: ["./admin-refresh-queue.js"],
+  };
+  return map[targetId] || [];
+}
+
+function prefetchAdminModulesForTarget(targetId) {
+  getAdminPrefetchModulesForTarget(targetId).forEach(function (path) {
+    loadAdminLazyModule(path);
+  });
+}
+
+function warmAdminLikelyNextModules() {
+  [
+    "./admin-candidate-queue.js",
+    "./admin-application-review.js",
+    "./admin-ops-inbox.js",
+    "./admin-confirmation-queue.js",
+  ].forEach(function (path) {
+    loadAdminLazyModule(path);
+  });
+}
+
+function withLazyAdminModule(path, onReady, onError) {
+  loadAdminLazyModule(path)
+    .then(function (module) {
+      onReady(module || {});
+    })
+    .catch(function (error) {
+      console.error("Admin lazy module failed to load:", path, error);
+      if (typeof onError === "function") {
+        onError(error);
+      }
+    });
 }
 
 function readReviewActivityView() {
@@ -3711,6 +3940,1480 @@ function buildSegmentStrategySnapshots(events, outcomes) {
     });
 }
 
+function buildExecutiveMetricHtml(metric) {
+  return (
+    '<div class="executive-metric"><div class="executive-metric-value">' +
+    escapeHtml(String(metric.value || 0)) +
+    '</div><div class="executive-metric-label">' +
+    escapeHtml(metric.label || "") +
+    '</div><div class="executive-metric-note">' +
+    escapeHtml(metric.note || "") +
+    "</div></div>"
+  );
+}
+
+function buildExecutiveBriefHtml(item) {
+  return (
+    '<div class="intel-brief"><div class="intel-brief-label">' +
+    escapeHtml(item.label || "") +
+    '</div><div class="intel-brief-value">' +
+    escapeHtml(item.value || "") +
+    '</div><div class="intel-brief-note">' +
+    escapeHtml(item.note || "") +
+    "</div></div>"
+  );
+}
+
+function buildSessionStepHtml(step, index) {
+  return (
+    '<div class="session-step"><div class="session-step-index">' +
+    escapeHtml(String(index + 1)) +
+    '</div><div><div class="session-step-title">' +
+    escapeHtml(step.title || "") +
+    '</div><div class="session-step-copy">' +
+    escapeHtml(step.copy || "") +
+    '</div><div class="session-step-meta">' +
+    escapeHtml(step.meta || "") +
+    '</div><div class="session-step-actions"><button class="btn-secondary" type="button" data-admin-scroll-target="' +
+    escapeHtml(step.targetId || "") +
+    '" data-admin-workflow-title="' +
+    escapeHtml(step.title || "") +
+    '" data-admin-workflow-destination="' +
+    escapeHtml(step.destination || "") +
+    '" data-admin-workflow-first-step="' +
+    escapeHtml(step.firstStep || "") +
+    '" data-admin-workflow-next-step="' +
+    escapeHtml(step.nextStep || "") +
+    '" data-admin-workflow-done="' +
+    escapeHtml(step.done || "") +
+    '" data-admin-workflow-primary-action-label="' +
+    escapeHtml(step.actionLabel || "Open lane") +
+    '" data-admin-workflow-primary-target-id="' +
+    escapeHtml(step.targetId || "") +
+    '">' +
+    escapeHtml(step.actionLabel || "Open lane") +
+    "</button></div></div></div>"
+  );
+}
+
+function renderExecutiveCommandDeck(context) {
+  var mandateRoot = document.getElementById("executiveMandateBoard");
+  var workflowRoot = document.getElementById("bestPathWorkflowBoard");
+  var intelligenceRoot = document.getElementById("businessIntelligenceBoard");
+  var guideRoot = document.getElementById("firstRunGuideBoard");
+  if (!mandateRoot || !workflowRoot || !intelligenceRoot || !guideRoot) {
+    return;
+  }
+
+  if (authRequired) {
+    mandateRoot.innerHTML = "";
+    workflowRoot.innerHTML = "";
+    intelligenceRoot.innerHTML = "";
+    guideRoot.innerHTML = "";
+    return;
+  }
+
+  var urgentWorkCount =
+    (context.workQueueSnapshot && context.workQueueSnapshot.dueToday
+      ? context.workQueueSnapshot.dueToday.length
+      : 0) +
+    (context.workQueueSnapshot && context.workQueueSnapshot.unassigned
+      ? context.workQueueSnapshot.unassigned.length
+      : 0);
+  var inboundSupplyCount = context.pendingApplicationsCount + context.candidateReviewCount;
+  var trustDebtCount =
+    context.strictImportBlockerCount +
+    context.profilesNeedingConfirmation +
+    context.profilesNeedingRefresh;
+  var demandLoadCount =
+    context.funnelSummary.searches +
+    context.funnelSummary.help_requests +
+    context.openConciergeCount;
+
+  var mandate = {
+    kicker: "Executive Mandate",
+    title: "Turn today’s most leveraged operational bottleneck into movement.",
+    copy: "This admin should tell a first-time operator what matters right now, why it matters to the business, and which lane creates the highest-value movement next.",
+    targetId: "reviewAttentionQueuePanel",
+    actionLabel: "Open needs-action queue",
+    secondaryTargetId: "applicationsPanel",
+    secondaryActionLabel: "Open supply review",
+  };
+
+  if (urgentWorkCount >= Math.max(inboundSupplyCount, 3)) {
+    mandate.title = "Stabilize the active queue before adding more work into the system.";
+    mandate.copy =
+      "The fastest business win right now is clearing overdue, unassigned, and stale work so decisions stop getting trapped in operational limbo.";
+    mandate.targetId = "reviewAttentionQueuePanel";
+    mandate.actionLabel = "Triage urgent work";
+    mandate.secondaryTargetId = "reviewerWorkloadPanel";
+    mandate.secondaryActionLabel = "Open assigned work";
+  } else if (inboundSupplyCount >= Math.max(trustDebtCount, 4)) {
+    mandate.title = "Convert inbound supply into trusted live listings while momentum is there.";
+    mandate.copy =
+      "The business has enough incoming supply to create visible growth, but only if we make clear publish, approve, and merge decisions instead of letting submissions wait.";
+    mandate.targetId =
+      context.pendingApplicationsCount >= context.candidateReviewCount
+        ? "applicationsPanel"
+        : "candidateQueuePanel";
+    mandate.actionLabel =
+      context.pendingApplicationsCount >= context.candidateReviewCount
+        ? "Review pending applications"
+        : "Review new listings";
+    mandate.secondaryTargetId = "candidateQueuePanel";
+    mandate.secondaryActionLabel = "Open candidate lane";
+  } else if (trustDebtCount > 0) {
+    mandate.title = "Reduce trust debt on live supply so conversion quality stays defensible.";
+    mandate.copy =
+      "Right now the business risk is not lack of work. It is that live listings are aging or incomplete, which quietly weakens conversion quality and trust.";
+    mandate.targetId =
+      context.strictImportBlockerCount >= context.profilesNeedingRefresh
+        ? "importBlockerSprintSection"
+        : "refreshQueueSection";
+    mandate.actionLabel =
+      context.strictImportBlockerCount >= context.profilesNeedingRefresh
+        ? "Fix missing details"
+        : "Review listing updates";
+    mandate.secondaryTargetId = "confirmationQueueSection";
+    mandate.secondaryActionLabel = "Open confirmation work";
+  }
+
+  mandateRoot.innerHTML =
+    '<div class="executive-kicker">' +
+    escapeHtml(mandate.kicker) +
+    '</div><h3 class="executive-title">' +
+    escapeHtml(mandate.title) +
+    '</h3><div class="executive-copy">' +
+    escapeHtml(mandate.copy) +
+    '</div><div class="executive-metrics">' +
+    [
+      {
+        value: urgentWorkCount,
+        label: "Urgent work",
+        note: "Overdue, due-today, and ownerless work that can stall momentum fastest.",
+      },
+      {
+        value: inboundSupplyCount,
+        label: "Inbound supply",
+        note: "Applications and new listings waiting to become trusted public inventory.",
+      },
+      {
+        value: trustDebtCount,
+        label: "Trust debt",
+        note: "Live-listing refresh, confirmation, and missing-detail work still unresolved.",
+      },
+      {
+        value: demandLoadCount,
+        label: "Demand pressure",
+        note: "Search, help, and concierge signals showing how much human support the product needs.",
+      },
+    ]
+      .map(buildExecutiveMetricHtml)
+      .join("") +
+    '</div><div class="executive-actions"><button class="btn-secondary" type="button" data-admin-scroll-target="' +
+    escapeHtml(mandate.targetId) +
+    '">' +
+    escapeHtml(mandate.actionLabel) +
+    '</button><button class="btn-secondary" type="button" data-admin-scroll-target="' +
+    escapeHtml(mandate.secondaryTargetId) +
+    '">' +
+    escapeHtml(mandate.secondaryActionLabel) +
+    "</button></div>";
+
+  var sessionSteps = [
+    {
+      title: urgentWorkCount ? "Clear the immediate queue first" : "Start with the top guided lane",
+      copy: urgentWorkCount
+        ? "Handle work that is overdue, ownerless, or going stale so the rest of the session compounds instead of creating more drift."
+        : "Use the guided lane that has the strongest count and clearest business leverage right now.",
+      meta: urgentWorkCount
+        ? urgentWorkCount + " urgent work items are visible across the main lanes."
+        : "The queue is stable enough to start directly in the highest-value lane.",
+      targetId: "reviewAttentionQueuePanel",
+      destination: "Needs Action Now",
+      firstStep: "Open the top item and make the next state explicit.",
+      nextStep: "Either assign it, move it forward, or record why it is blocked.",
+      done: "The item is no longer sitting in a stale or ownerless state.",
+      actionLabel: "Open urgent queue",
+    },
+    {
+      title:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? "Convert therapist-submitted supply"
+          : "Convert sourced supply into inventory",
+      copy:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? "Applications are the faster supply unlock right now. Clear the best pending decisions before they decay."
+          : "New listing review is the fastest way to increase trusted inventory right now.",
+      meta:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? context.pendingApplicationsCount +
+            " pending applications are waiting on a human decision."
+          : context.candidateReviewCount +
+            " new listings are waiting for review, publish, or merge.",
+      targetId:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? "applicationsPanel"
+          : "candidateQueuePanel",
+      destination:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? "Review Applications"
+          : "Add New Listings",
+      firstStep: "Open the top card and check trust-critical completeness first.",
+      nextStep: "Make a publish, approval, merge, revision, or archive decision before moving on.",
+      done: "The record leaves limbo with a clear next state.",
+      actionLabel:
+        context.pendingApplicationsCount >= context.candidateReviewCount
+          ? "Open applications"
+          : "Open candidate lane",
+    },
+    {
+      title:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? "Reduce missing-detail trust debt"
+          : "Protect live-listing freshness",
+      copy:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? "Work the highest-value missing detail so live profiles become defensible and conversion-ready."
+          : "Review live-listing updates before aging trust signals start weakening conversion quality.",
+      meta:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? context.strictImportBlockerCount + " listings still have trust-critical missing fields."
+          : context.profilesNeedingRefresh +
+            " live listings need refresh or reconfirmation attention.",
+      targetId:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? "importBlockerSprintSection"
+          : "refreshQueueSection",
+      destination:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? "Fix Missing Listing Details"
+          : "Review Listing Updates",
+      firstStep: "Take the top listing and verify the single highest-leverage field first.",
+      nextStep: "If you cannot prove it, move it into confirmation instead of guessing.",
+      done: "The listing is more trustworthy than when the session started.",
+      actionLabel:
+        context.strictImportBlockerCount >= context.profilesNeedingRefresh
+          ? "Open trust debt lane"
+          : "Open update lane",
+    },
+  ];
+
+  workflowRoot.innerHTML =
+    '<h3 class="intel-panel-title">Best path for this session</h3><div class="intel-panel-copy">Follow this sequence if you want to leave the system in a measurably better business state, even if you only have one focused work block.</div><div class="session-steps">' +
+    sessionSteps
+      .map(function (step, index) {
+        return buildSessionStepHtml(step, index);
+      })
+      .join("") +
+    "</div>";
+
+  var growthConstraint =
+    trustDebtCount > inboundSupplyCount
+      ? {
+          label: "Growth constraint",
+          value: "Trust debt is outrunning new supply.",
+          note: "The directory is carrying enough missing or aging work that conversion quality may degrade faster than new supply improves it.",
+        }
+      : inboundSupplyCount > trustDebtCount
+        ? {
+            label: "Growth constraint",
+            value: "Decision throughput is now the main lever.",
+            note: "The business has enough inbound supply to grow, but only if applications and listings are pushed to clear next states quickly.",
+          }
+        : {
+            label: "Growth constraint",
+            value: "Supply and trust debt are roughly balanced.",
+            note: "The system needs both throughput and trust maintenance, so operator sequencing matters more than one heroic lane push.",
+          };
+  var conversionHealth =
+    context.heardBackCount + context.bookedConsultCount > context.openConciergeCount
+      ? {
+          label: "Conversion health",
+          value: "Follow-through signals are present.",
+          note: context.bookedConsultCount
+            ? context.bookedConsultCount +
+              " booked consult outcomes are already showing downstream traction."
+            : "Users are still moving through the funnel, which gives room to focus on supply and trust quality.",
+        }
+      : {
+          label: "Conversion health",
+          value: "Human guidance demand is high.",
+          note: "Concierge and help signals are outweighing strong downstream outcomes, which suggests UX clarity and trusted supply still need tightening.",
+        };
+  var serviceLoad = {
+    label: "Service load",
+    value:
+      context.openConciergeCount + context.openPortalRequestCount > 0
+        ? context.openConciergeCount +
+          " concierge + " +
+          context.openPortalRequestCount +
+          " portal requests open"
+        : "Inbound service load is stable.",
+    note:
+      context.openConciergeCount + context.openPortalRequestCount > 0
+        ? "If these queues rise without clear ownership, operator time gets pulled away from publish and trust work."
+        : "This is a good window to push core supply and trust workflows without service drag.",
+  };
+  var supplyReadiness = {
+    label: "Supply readiness",
+    value:
+      context.listingPromotionCount > 0
+        ? context.listingPromotionCount + " listings are close to promotion-ready."
+        : context.matchReadyCount + " profiles are match-ready today.",
+    note:
+      context.listingPromotionCount > 0
+        ? "There is visible upside in merchandising and promotion once trust/freshness standards are met."
+        : "The live inventory is usable, but the next big gain likely comes from new supply or trust cleanup rather than promotion.",
+  };
+
+  intelligenceRoot.innerHTML =
+    '<h3 class="intel-panel-title">Business intelligence</h3><div class="intel-panel-copy">This is the MBA layer: what is constraining growth, where human effort is leaking, and which operating move is most likely to change the business this week.</div><div class="intel-stack">' +
+    [growthConstraint, conversionHealth, serviceLoad, supplyReadiness]
+      .map(buildExecutiveBriefHtml)
+      .join("") +
+    "</div>";
+
+  guideRoot.innerHTML =
+    '<h3 class="intel-panel-title">Zero-knowledge operator guide</h3><div class="intel-panel-copy">A first-time operator should be able to land here and work without tribal knowledge. Use this mental model before diving into the detailed queues below.</div><ul class="onboarding-list"><li class="onboarding-item"><strong>1. Start with what is on fire.</strong><span>Open Needs Action Now first. That queue tells you what is overdue, stale, or ownerless, which is the fastest way to prevent operational drift.</span></li><li class="onboarding-item"><strong>2. Then convert supply.</strong><span>Use Add New Listings for sourced supply and Review Applications for therapist-submitted supply. The rule is simple: every record should leave with a clearer state than it arrived with.</span></li><li class="onboarding-item"><strong>3. Protect trust on live supply.</strong><span>Fix Missing Listing Details, Send Confirmation Requests, and Review Listing Updates are the quality-control lanes that keep public inventory credible.</span></li><li class="onboarding-item"><strong>4. Use Intelligence to understand why.</strong><span>The intelligence region is the readout layer. It should help you choose the next operating move, not distract you from making one.</span></li></ul><div class="executive-actions"><button class="btn-secondary" type="button" data-admin-scroll-target="' +
+    escapeHtml(mandate.targetId) +
+    '">' +
+    escapeHtml("Open the best first lane") +
+    "</button></div>";
+}
+
+function buildWorkflowGuidanceMetricHtml(metric) {
+  if (!metric) {
+    return "";
+  }
+  return (
+    '<div class="workflow-guidance-metric"><div class="workflow-guidance-metric-label">' +
+    escapeHtml(metric.label || "") +
+    '</div><div class="workflow-guidance-metric-value">' +
+    escapeHtml(metric.value || "0") +
+    "</div></div>"
+  );
+}
+
+function buildWorkflowGuidanceListHtml(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return "";
+  }
+  return (
+    '<ul class="workflow-guidance-list">' +
+    items
+      .filter(Boolean)
+      .map(function (item) {
+        return "<li>" + escapeHtml(item) + "</li>";
+      })
+      .join("") +
+    "</ul>"
+  );
+}
+
+function renderWorkflowLaneGuidance(rootId, config) {
+  var root = document.getElementById(rootId);
+  if (!root) {
+    return;
+  }
+  if (!config || !config.title) {
+    root.innerHTML = "";
+    return;
+  }
+  root.innerHTML =
+    '<div class="workflow-guidance-card"><div class="workflow-guidance-head"><div><div class="workflow-guidance-kicker">' +
+    escapeHtml(config.kicker || "Workflow guidance") +
+    '</div><h3 class="workflow-guidance-title">' +
+    escapeHtml(config.title) +
+    '</h3><div class="workflow-guidance-copy">' +
+    escapeHtml(config.copy || "") +
+    '</div></div><div class="workflow-guidance-badge">' +
+    escapeHtml(config.badge || "In focus") +
+    '</div></div><div class="workflow-guidance-metrics">' +
+    (Array.isArray(config.metrics)
+      ? config.metrics.map(buildWorkflowGuidanceMetricHtml).join("")
+      : "") +
+    '</div><div class="workflow-guidance-grid"><div class="workflow-guidance-section"><div class="workflow-guidance-section-title">Best next move</div>' +
+    buildWorkflowGuidanceListHtml(config.steps || []) +
+    '</div><div class="workflow-guidance-section"><div class="workflow-guidance-section-title">Success looks like</div>' +
+    buildWorkflowGuidanceListHtml(config.success || []) +
+    '</div></div><div class="workflow-guidance-callout"><strong>Business read:</strong> ' +
+    escapeHtml(config.callout || "") +
+    "</div></div>";
+}
+
+function renderAdminWorkflowGuidance(context) {
+  var snapshot = (context && context.workQueueSnapshot) || {};
+  var myTasks = Array.isArray(snapshot.myTasks) ? snapshot.myTasks : [];
+  var unassigned = Array.isArray(snapshot.unassigned) ? snapshot.unassigned : [];
+  var dueToday = Array.isArray(snapshot.dueToday) ? snapshot.dueToday : [];
+  var doneRecently = Array.isArray(snapshot.doneRecently) ? snapshot.doneRecently : [];
+  var candidateReviewCount = Number((context && context.candidateReviewCount) || 0);
+  var candidateReadyCount = Number((context && context.candidateReadyCount) || 0);
+  var candidateDuplicateCount = Number((context && context.candidateDuplicateCount) || 0);
+  var candidateConfirmationCount = Number((context && context.candidateConfirmationCount) || 0);
+  var pendingApplicationsCount = Number((context && context.pendingApplicationsCount) || 0);
+  var reviewingApplicationsCount = Number((context && context.reviewingApplicationsCount) || 0);
+  var claimFollowUpCount = Number((context && context.claimFollowUpCount) || 0);
+  var publishReadyApplicationsCount = Number(
+    (context && context.publishReadyApplicationsCount) || 0,
+  );
+  var openConciergeCount = Number((context && context.openConciergeCount) || 0);
+  var openPortalRequestCount = Number((context && context.openPortalRequestCount) || 0);
+  var profilesNeedingRefresh = Number((context && context.profilesNeedingRefresh) || 0);
+  var strictImportBlockerCount = Number((context && context.strictImportBlockerCount) || 0);
+  var preferredReviewer = snapshot.preferredReviewer || "your team";
+
+  renderWorkflowLaneGuidance("candidateQueueGuidance", {
+    kicker: "Supply conversion",
+    title:
+      candidateReviewCount > 0
+        ? "Convert fresh supply before it decays"
+        : "Supply lane is clear for now",
+    copy:
+      candidateReviewCount > 0
+        ? "Treat this lane like pipeline creation. Clear duplicate risk first, then push strong supply into publish or confirmation so promising listings do not age in review."
+        : "No unworked candidate supply is waiting right now. Use this lane for net-new sourcing bursts or spot-checks.",
+    badge:
+      candidateReadyCount > 0
+        ? candidateReadyCount + " ready to publish"
+        : candidateDuplicateCount > 0
+          ? candidateDuplicateCount + " duplicate decisions"
+          : "Lane stable",
+    metrics: [
+      { label: "In queue", value: String(candidateReviewCount) },
+      { label: "Publish now", value: String(candidateReadyCount) },
+      { label: "Duplicate risk", value: String(candidateDuplicateCount) },
+      { label: "Needs confirmation", value: String(candidateConfirmationCount) },
+    ],
+    steps: [
+      "Start with duplicate-risk cards so the system does not create parallel truth.",
+      "Move strong, unique listings into publish-ready or confirmation in the same sitting.",
+      "Do not leave candidates as ambiguous maybes. Every card should leave cleaner than it arrived.",
+    ],
+    success: [
+      "Unique high-signal listings move toward publish or confirmation quickly.",
+      "Weak or duplicate supply stops clogging the top of the funnel.",
+      "The queue reflects deliberate operating choices, not indecision.",
+    ],
+    callout:
+      candidateReviewCount > pendingApplicationsCount
+        ? "Sourced supply is outrunning therapist-submitted supply right now, so candidate triage is the faster path to inventory growth."
+        : "Candidate volume is under control, which means this lane should optimize quality and conversion rather than just speed.",
+  });
+
+  renderWorkflowLaneGuidance("applicationsGuidance", {
+    kicker: "Application decisions",
+    title:
+      pendingApplicationsCount > 0
+        ? "Turn therapist intent into live inventory fast"
+        : "Application review is under control",
+    copy:
+      pendingApplicationsCount > 0
+        ? "Applicants already raised their hand. The business win here is rapid, high-quality decisions that convert serious therapists into live profiles without endless limbo."
+        : "Pending application load is light right now. Use the lane to clean up reviewing items and polish the conversion experience.",
+    badge:
+      publishReadyApplicationsCount > 0
+        ? publishReadyApplicationsCount + " publish-ready"
+        : claimFollowUpCount > 0
+          ? claimFollowUpCount + " claim follow-ups"
+          : "Decision flow stable",
+    metrics: [
+      { label: "Pending", value: String(pendingApplicationsCount) },
+      { label: "Reviewing", value: String(reviewingApplicationsCount) },
+      { label: "Claim follow-up", value: String(claimFollowUpCount) },
+      { label: "Publish-ready", value: String(publishReadyApplicationsCount) },
+    ],
+    steps: [
+      "Review trust-critical details first, then completeness, then publishability.",
+      "If the application is good enough, move it. If it needs work, request specific fixes instead of holding it.",
+      "Use claim follow-up as revenue protection. Those records are already warm and should not drift.",
+    ],
+    success: [
+      "Strong applications leave with approval or publish momentum.",
+      "Fixable applications get actionable feedback rather than vague delay.",
+      "Pending count trends downward without lowering the bar.",
+    ],
+    callout:
+      claimFollowUpCount > 0
+        ? "Claim-related follow-up is sitting inside the queue, which is usually the cheapest conversion lift available."
+        : "Application flow health depends on decision speed. A clean queue compounds trust with therapists and keeps supply acquisition efficient.",
+  });
+
+  renderWorkflowLaneGuidance("opsInboxGuidance", {
+    kicker: "Cross-lane leverage",
+    title: "Use the inbox for the highest-value next move",
+    copy: "This panel should collapse the noise across publish, merge, refresh, and confirmation into the few actions that matter most right now.",
+    badge:
+      profilesNeedingRefresh + strictImportBlockerCount > 0
+        ? "Trust work active"
+        : "Inbox balanced",
+    metrics: [
+      { label: "Refresh risk", value: String(profilesNeedingRefresh) },
+      { label: "Missing details", value: String(strictImportBlockerCount) },
+      { label: "Concierge", value: String(openConciergeCount) },
+      { label: "Portal requests", value: String(openPortalRequestCount) },
+    ],
+    steps: [
+      "Use this lane when you need one high-value action instead of browsing every queue.",
+      "Prioritize the item that unlocks trust, publication, or team flow with the least extra work.",
+      "After completing the action, jump back here for the next operating move.",
+    ],
+    success: [
+      "The inbox consistently points to the highest-leverage task.",
+      "Reviewers spend less time hunting and more time deciding.",
+      "Cross-functional requests stay visible without hijacking supply lanes.",
+    ],
+    callout:
+      openPortalRequestCount + openConciergeCount > 0
+        ? "Human demand and therapist requests are both active, so this inbox is the bridge between growth work and service work."
+        : "When request pressure is low, the inbox should bias toward trust maintenance and supply conversion.",
+  });
+
+  renderWorkflowLaneGuidance("reviewAttentionQueueGuidance", {
+    kicker: "Triage board",
+    title:
+      dueToday.length + unassigned.length > 0
+        ? "Clear drift before it compounds"
+        : "Urgent work is contained",
+    copy: "This is the fastest lane for restoring control. It should answer what is on fire, who should touch it, and what must move today.",
+    badge:
+      dueToday.length > 0
+        ? dueToday.length + " due now"
+        : unassigned.length > 0
+          ? unassigned.length + " ownerless"
+          : "No immediate escalations",
+    metrics: [
+      { label: "My queue", value: String(myTasks.length) },
+      { label: "Due now", value: String(dueToday.length) },
+      { label: "Unassigned", value: String(unassigned.length) },
+      { label: "Recently done", value: String(doneRecently.length) },
+    ],
+    steps: [
+      "Work overdue or due-today items before starting fresh queue browsing.",
+      "Assign ownerless work immediately so it stops leaking accountability.",
+      "Use this lane to regain flow, then drop back into supply conversion work.",
+    ],
+    success: [
+      "Overdue work decreases session by session.",
+      "No critical record is sitting without an owner.",
+      "Review sessions start from the hottest items instead of intuition.",
+    ],
+    callout:
+      myTasks.length > 0
+        ? "A named owner exists for part of the work, which means the next gain comes from shrinking overdue and unassigned items."
+        : "If no personal queue is active, the risk is diffusion of responsibility rather than lack of work.",
+  });
+
+  renderWorkflowLaneGuidance("reviewerWorkloadGuidance", {
+    kicker: "Team management",
+    title: "Balance ownership like an operating system",
+    copy: "This panel should make capacity, blockage, and urgency visible enough that a new operator can tell who owns what without asking around.",
+    badge: preferredReviewer ? "Focused on " + preferredReviewer : "Shared team queue",
+    metrics: [
+      { label: "Owned by me", value: String(myTasks.length) },
+      { label: "Unassigned", value: String(unassigned.length) },
+      { label: "Due now", value: String(dueToday.length) },
+      { label: "Recently done", value: String(doneRecently.length) },
+    ],
+    steps: [
+      "Use My queue when operating solo, then switch to the full board when balancing team load.",
+      "Assign follow-up with clear owners and dates so the board reflects actual commitments.",
+      "Use blocked and overdue slices to surface managerial attention, not just work volume.",
+    ],
+    success: [
+      "Ownership is clear across candidates and applications.",
+      "Due dates create a real service cadence instead of vague intent.",
+      "The board supports daily standup, handoff, and intervention in one place.",
+    ],
+    callout:
+      unassigned.length > 0
+        ? "The main management drag right now is ownerless work. Assigning it is usually a faster win than adding more process."
+        : "With ownership mostly in place, the board becomes a throughput tool: remove blockers and clear due work before adding more queue.",
+  });
+}
+
+function renderInspectorKpi(label, value) {
+  return (
+    '<div class="inspector-kpi"><div class="inspector-kpi-label">' +
+    escapeHtml(label || "") +
+    '</div><div class="inspector-kpi-value">' +
+    escapeHtml(value || "Not set") +
+    "</div></div>"
+  );
+}
+
+function getSelectedInspectorRecord() {
+  if (!adminInspectorSelection.kind || !adminInspectorSelection.id) {
+    return null;
+  }
+  if (adminInspectorSelection.kind === "candidate") {
+    var candidateList = dataMode === "sanity" ? remoteCandidates : [];
+    var candidate = candidateList.find(function (item) {
+      return String(item.id) === String(adminInspectorSelection.id);
+    });
+    return candidate ? { kind: "candidate", item: candidate } : null;
+  }
+  if (adminInspectorSelection.kind === "application") {
+    var applicationList = dataMode === "sanity" ? remoteApplications : getApplications();
+    var application = applicationList.find(function (item) {
+      return String(item.id) === String(adminInspectorSelection.id);
+    });
+    return application ? { kind: "application", item: application } : null;
+  }
+  return null;
+}
+
+function getInspectorVisibleSequence() {
+  if (typeof document === "undefined") {
+    return [];
+  }
+  var entries = [];
+  document.querySelectorAll("#candidateQueue [data-candidate-card-id]").forEach(function (node) {
+    entries.push({
+      kind: "candidate",
+      id: String(node.getAttribute("data-candidate-card-id") || ""),
+      node: node,
+    });
+  });
+  document
+    .querySelectorAll("#applicationsList [data-application-card-id]")
+    .forEach(function (node) {
+      entries.push({
+        kind: "application",
+        id: String(node.getAttribute("data-application-card-id") || ""),
+        node: node,
+      });
+    });
+  return entries.filter(function (entry) {
+    return Boolean(entry.id);
+  });
+}
+
+function getInspectorSequenceMeta() {
+  var sequence = getInspectorVisibleSequence();
+  var currentIndex = sequence.findIndex(function (entry) {
+    return (
+      entry.kind === adminInspectorSelection.kind &&
+      String(entry.id) === String(adminInspectorSelection.id)
+    );
+  });
+  return {
+    sequence: sequence,
+    currentIndex: currentIndex,
+    previous: currentIndex > 0 ? sequence[currentIndex - 1] : null,
+    next:
+      currentIndex >= 0 && currentIndex < sequence.length - 1 ? sequence[currentIndex + 1] : null,
+    positionLabel:
+      currentIndex >= 0 && sequence.length
+        ? String(currentIndex + 1) + " of " + String(sequence.length) + " visible records"
+        : sequence.length
+          ? "Showing visible records"
+          : "No visible records",
+  };
+}
+
+function setAdminInspectorSelection(kind, id) {
+  adminInspectorSelection = {
+    kind: String(kind || ""),
+    id: String(id || ""),
+  };
+  adminInspectorActionStatus = "";
+}
+
+function ensureAdminInspectorSelection() {
+  var selected = getSelectedInspectorRecord();
+  if (selected) {
+    return selected;
+  }
+  var candidates = dataMode === "sanity" ? remoteCandidates : [];
+  var applications = dataMode === "sanity" ? remoteApplications : getApplications();
+  var firstCandidate = Array.isArray(candidates)
+    ? candidates.find(function (item) {
+        return item.review_status !== "published" && item.review_status !== "archived";
+      })
+    : null;
+  if (firstCandidate) {
+    adminInspectorSelection = { kind: "candidate", id: String(firstCandidate.id) };
+    return { kind: "candidate", item: firstCandidate };
+  }
+  if (Array.isArray(applications) && applications.length) {
+    adminInspectorSelection = { kind: "application", id: String(applications[0].id) };
+    return { kind: "application", item: applications[0] };
+  }
+  return null;
+}
+
+function renderInspectorActionStatusHtml() {
+  return adminInspectorActionStatus
+    ? '<div class="mini-status" style="margin-top:0.85rem"><strong>Inspector update:</strong> ' +
+        escapeHtml(adminInspectorActionStatus) +
+        "</div>"
+    : "";
+}
+
+async function executeInspectorAction(inspectorAction, inspectorId) {
+  if (!inspectorId || !inspectorAction) {
+    return;
+  }
+  if (inspectorAction.indexOf("candidate_") === 0) {
+    if (inspectorAction === "candidate_mark_ready") {
+      await decideTherapistCandidate(inspectorId, { decision: "mark_ready" });
+      adminInspectorActionStatus = "Candidate queued for publish review.";
+    } else if (inspectorAction === "candidate_confirmation") {
+      await decideTherapistCandidate(inspectorId, { decision: "needs_confirmation" });
+      adminInspectorActionStatus = "Candidate moved into confirmation.";
+    } else if (inspectorAction === "candidate_duplicate") {
+      await decideTherapistCandidate(inspectorId, { decision: "reject_duplicate" });
+      adminInspectorActionStatus = "Candidate marked as duplicate.";
+    } else if (inspectorAction === "candidate_publish") {
+      await decideTherapistCandidate(inspectorId, { decision: "publish" });
+      adminInspectorActionStatus = "Candidate published from the inspector.";
+    }
+    await loadData();
+    renderAll();
+    return;
+  }
+
+  var application = (dataMode === "sanity" ? remoteApplications : getApplications()).find(
+    function (item) {
+      return String(item.id) === inspectorId;
+    },
+  );
+  if (!application) {
+    adminInspectorActionStatus = "The selected application is no longer available.";
+    renderAdminRecordInspector();
+    return;
+  }
+  if (inspectorAction === "application_reviewing") {
+    if (dataMode === "sanity") {
+      await updateTherapistApplication(inspectorId, { status: "reviewing" });
+    } else {
+      updateApplicationReviewMetadata(inspectorId, { status: "reviewing" });
+    }
+    adminInspectorActionStatus = "Application moved into active review.";
+  } else if (inspectorAction === "application_approve") {
+    if (dataMode === "sanity") {
+      if (application.submission_intent === "claim") {
+        await updateTherapistApplication(inspectorId, { status: "approved" });
+      } else {
+        await approveTherapistApplication(inspectorId);
+      }
+    } else if (application.submission_intent === "claim") {
+      updateApplicationReviewMetadata(inspectorId, { status: "approved" });
+    } else {
+      approveApplication(inspectorId);
+    }
+    adminInspectorActionStatus =
+      application.submission_intent === "claim"
+        ? "Claim approved from the inspector."
+        : "Application approved for publish from the inspector.";
+  } else if (inspectorAction === "application_reject") {
+    if (dataMode === "sanity") {
+      await rejectTherapistApplicationRemote(inspectorId);
+    } else {
+      rejectApplication(inspectorId);
+    }
+    adminInspectorActionStatus = "Application rejected from the inspector.";
+  } else if (inspectorAction === "application_request_changes") {
+    var coaching = getTherapistReviewCoaching(application);
+    var requestText =
+      application.submission_intent === "claim"
+        ? buildClaimReviewRequest(application)
+        : buildImprovementRequest(application, coaching);
+    if (dataMode === "sanity") {
+      await updateTherapistApplication(inspectorId, {
+        status: "requested_changes",
+        review_request_message: requestText,
+        revision_history_entry: {
+          type: "requested_changes",
+          message: requestText,
+        },
+      });
+    } else {
+      updateApplicationReviewMetadata(inspectorId, {
+        status: "requested_changes",
+        review_request_message: requestText,
+      });
+    }
+    adminInspectorActionStatus = "Requested fixes from the inspector.";
+  }
+  await loadData();
+  renderAll();
+}
+
+function getCommandPaletteCommands() {
+  var preferredReviewer = reviewerWorkspace.getPreferredReviewer();
+  var reviewerRoster = reviewerWorkspace.getReviewerRoster().slice(0, 8);
+  var commands = [
+    {
+      id: "goto-control",
+      key: "goto-control",
+      title: "Open Control Center",
+      kicker: "Jump",
+      copy: "Return to the operator launch pad and executive command deck.",
+      priority: 12,
+      run: function () {
+        focusAdminAnchorTarget("opsControlRegion");
+      },
+    },
+    {
+      id: "goto-supply",
+      key: "goto-supply",
+      title: "Open Supply Review",
+      kicker: "Jump",
+      copy: "Go straight to candidate and application review.",
+      priority: 10,
+      run: function () {
+        focusAdminAnchorTarget("supplyReviewRegion", { useWorkflowMode: true });
+      },
+    },
+    {
+      id: "goto-confirmation",
+      key: "goto-confirmation",
+      title: "Open Confirmation",
+      kicker: "Jump",
+      copy: "Move into trust, confirmation, and missing-detail work.",
+      priority: 14,
+      run: function () {
+        focusAdminAnchorTarget("confirmationRegion");
+      },
+    },
+    {
+      id: "goto-requests",
+      key: "goto-requests",
+      title: "Open Requests",
+      kicker: "Jump",
+      copy: "See ops inbox, attention queue, workload, and portal requests.",
+      priority: 11,
+      run: function () {
+        focusAdminAnchorTarget("requestsRegion");
+      },
+    },
+    {
+      id: "goto-intelligence",
+      key: "goto-intelligence",
+      title: "Open Intelligence",
+      kicker: "Jump",
+      copy: "See sourcing, coverage, ingestion, and funnel intelligence.",
+      priority: 16,
+      run: function () {
+        focusAdminAnchorTarget("intelligenceRegion");
+      },
+    },
+    {
+      id: "shortcut-my-queue",
+      key: "shortcut-my-queue",
+      title: preferredReviewer ? "Open My Queue" : "Open Owned Work",
+      kicker: "Operator shortcut",
+      copy: preferredReviewer
+        ? "Focus the workload board on " + preferredReviewer + " plus any unassigned work."
+        : "Turn on personal queue mode so owned and unassigned work becomes the default view.",
+      priority: 1,
+      run: function () {
+        reviewerWorkspace.setReviewerMyQueueMode(true);
+        reviewerWorkspaceUi.workloadFilter = "";
+        renderAll();
+        focusAdminAnchorTarget("reviewerWorkloadPanel");
+      },
+    },
+    {
+      id: "shortcut-my-overdue",
+      key: "shortcut-my-overdue",
+      title: preferredReviewer ? "Show My Overdue Work" : "Show Overdue Work",
+      kicker: "Operator shortcut",
+      copy: preferredReviewer
+        ? "Pull up overdue follow-up assigned to " + preferredReviewer + " plus unassigned risk."
+        : "Filter the workload board to the overdue slice for faster triage.",
+      priority: 0,
+      run: function () {
+        if (preferredReviewer) {
+          reviewerWorkspace.setReviewerMyQueueMode(true);
+          reviewerWorkspaceUi.workloadFilter = "";
+        }
+        reviewerWorkspaceUi.workloadSlice = "overdue";
+        renderAll();
+        focusAdminAnchorTarget("reviewerWorkloadPanel");
+      },
+    },
+    {
+      id: "shortcut-blocked-work",
+      key: "shortcut-blocked-work",
+      title: "Show Blocked Work",
+      kicker: "Operator shortcut",
+      copy: "Surface work that needs managerial intervention instead of more queue browsing.",
+      priority: 2,
+      run: function () {
+        reviewerWorkspaceUi.workloadSlice = "blocked";
+        renderAll();
+        focusAdminAnchorTarget("reviewerWorkloadPanel");
+      },
+    },
+    {
+      id: "shortcut-unassigned-work",
+      key: "shortcut-unassigned-work",
+      title: "Show Unassigned Work",
+      kicker: "Operator shortcut",
+      copy: "Find tasks that are leaking accountability before they go stale.",
+      priority: 3,
+      run: function () {
+        reviewerWorkspace.setReviewerMyQueueMode(false);
+        reviewerWorkspaceUi.workloadFilter = "";
+        reviewerWorkspaceUi.workloadSlice = "unassigned";
+        renderAll();
+        focusAdminAnchorTarget("reviewerWorkloadPanel");
+      },
+    },
+  ];
+
+  reviewerRoster.forEach(function (reviewerName, index) {
+    commands.push({
+      id: "reviewer-" + reviewerName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      key: "reviewer-" + reviewerName,
+      title: "Open " + reviewerName + "'s Queue",
+      kicker: "Reviewer shortcut",
+      copy: "Focus the workload board on " + reviewerName + "'s owned work.",
+      priority: 4 + index,
+      run: function () {
+        reviewerWorkspace.setReviewerMyQueueMode(false);
+        reviewerWorkspaceUi.workloadFilter = reviewerName;
+        reviewerWorkspaceUi.workloadSlice = "all";
+        renderAll();
+        focusAdminAnchorTarget("reviewerWorkloadPanel");
+      },
+    });
+  });
+
+  var selected = getSelectedInspectorRecord();
+  if (selected && selected.item) {
+    commands.push({
+      id: "jump-active",
+      key: "jump-active",
+      title: "Jump To Active Record",
+      kicker: "Current record",
+      copy: "Scroll back to the pinned record in the queue.",
+      priority: 6,
+      run: function () {
+        var selector =
+          selected.kind === "candidate"
+            ? '[data-candidate-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]'
+            : '[data-application-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]';
+        var target = document.querySelector(selector);
+        if (target) {
+          spotlightSection(target);
+          scrollToElementWithOffset(target, "start");
+        }
+      },
+    });
+    if (selected.kind === "candidate") {
+      commands.push(
+        {
+          id: "active-candidate-publish",
+          key: "active-candidate-publish",
+          title: "Publish Active Candidate",
+          kicker: "Current record",
+          copy: "Run the publish decision for the pinned candidate.",
+          priority: 5,
+          run: function () {
+            return executeInspectorAction("candidate_publish", String(selected.item.id));
+          },
+        },
+        {
+          id: "active-candidate-confirm",
+          key: "active-candidate-confirm",
+          title: "Send Active Candidate To Confirmation",
+          kicker: "Current record",
+          copy: "Move the pinned candidate into confirmation work.",
+          priority: 7,
+          run: function () {
+            return executeInspectorAction("candidate_confirmation", String(selected.item.id));
+          },
+        },
+      );
+    } else {
+      commands.push(
+        {
+          id: "active-application-approve",
+          key: "active-application-approve",
+          title: "Approve Active Application",
+          kicker: "Current record",
+          copy: "Approve or publish the pinned application from the palette.",
+          priority: 5,
+          run: function () {
+            return executeInspectorAction("application_approve", String(selected.item.id));
+          },
+        },
+        {
+          id: "active-application-fixes",
+          key: "active-application-fixes",
+          title: "Request Fixes For Active Application",
+          kicker: "Current record",
+          copy: "Send the pinned application into requested changes.",
+          priority: 7,
+          run: function () {
+            return executeInspectorAction("application_request_changes", String(selected.item.id));
+          },
+        },
+      );
+    }
+  }
+
+  getInspectorVisibleSequence()
+    .slice(0, 16)
+    .forEach(function (entry, index) {
+      var label =
+        entry.kind === "candidate"
+          ? entry.node.querySelector("h3")?.textContent || "Candidate"
+          : entry.node.querySelector("h3")?.textContent || "Application";
+      commands.push({
+        id: "record-" + entry.kind + "-" + entry.id,
+        key: "record-" + entry.kind + "-" + entry.id,
+        title: label,
+        kicker: entry.kind === "candidate" ? "Visible candidate" : "Visible application",
+        copy: "Open and pin this record from the currently visible queue.",
+        priority: 20,
+        run: function () {
+          setAdminInspectorSelection(entry.kind, entry.id);
+          renderAdminRecordInspector();
+          if (entry.node) {
+            spotlightSection(entry.node);
+            scrollToElementWithOffset(entry.node, "start");
+          }
+        },
+        order: index,
+      });
+    });
+
+  return commands;
+}
+
+function getFilteredCommandPaletteCommands() {
+  var query = String(commandPaletteQuery || "")
+    .trim()
+    .toLowerCase();
+  var commands = rankCommandPaletteCommands(getCommandPaletteCommands(), query);
+  if (!query) {
+    return commands;
+  }
+  return commands.filter(function (command) {
+    var haystack = [command.title, command.kicker, command.copy].join(" ").toLowerCase();
+    return haystack.includes(query);
+  });
+}
+
+function readStoredCommandPaletteKeys(storageKey) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return [];
+    }
+    var stored = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+    return Array.isArray(stored)
+      ? stored
+          .map(function (value) {
+            return String(value || "").trim();
+          })
+          .filter(Boolean)
+      : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function writeStoredCommandPaletteKeys(storageKey, values) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(Array.isArray(values) ? values : []));
+  } catch (_error) {
+    // Ignore storage failures to keep the command surface usable.
+  }
+}
+
+function readCommandPaletteRecents() {
+  return readStoredCommandPaletteKeys(COMMAND_PALETTE_RECENTS_KEY);
+}
+
+function readCommandPaletteFavorites() {
+  return readStoredCommandPaletteKeys(COMMAND_PALETTE_FAVORITES_KEY);
+}
+
+function recordCommandPaletteRecent(commandId) {
+  var nextId = String(commandId || "").trim();
+  if (!nextId) {
+    return;
+  }
+  var nextValues = [nextId].concat(
+    readCommandPaletteRecents().filter(function (value) {
+      return value !== nextId;
+    }),
+  );
+  writeStoredCommandPaletteKeys(COMMAND_PALETTE_RECENTS_KEY, nextValues.slice(0, 8));
+}
+
+function toggleCommandPaletteFavorite(commandId) {
+  var nextId = String(commandId || "").trim();
+  if (!nextId) {
+    return;
+  }
+  var favorites = readCommandPaletteFavorites();
+  var nextValues = favorites.includes(nextId)
+    ? favorites.filter(function (value) {
+        return value !== nextId;
+      })
+    : [nextId].concat(favorites);
+  writeStoredCommandPaletteKeys(COMMAND_PALETTE_FAVORITES_KEY, nextValues.slice(0, 12));
+}
+
+function getCommandPaletteMemorySets() {
+  return {
+    favorites: new Set(readCommandPaletteFavorites()),
+    recents: new Set(readCommandPaletteRecents()),
+  };
+}
+
+function rankCommandPaletteCommands(commands) {
+  var memory = getCommandPaletteMemorySets();
+  return (Array.isArray(commands) ? commands.slice() : []).sort(function (left, right) {
+    var leftFavorite = memory.favorites.has(left.id) ? 1 : 0;
+    var rightFavorite = memory.favorites.has(right.id) ? 1 : 0;
+    if (leftFavorite !== rightFavorite) {
+      return rightFavorite - leftFavorite;
+    }
+    var leftRecent = memory.recents.has(left.id) ? 1 : 0;
+    var rightRecent = memory.recents.has(right.id) ? 1 : 0;
+    if (leftRecent !== rightRecent) {
+      return rightRecent - leftRecent;
+    }
+    var leftPriority = Number.isFinite(left.priority) ? left.priority : 100;
+    var rightPriority = Number.isFinite(right.priority) ? right.priority : 100;
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+    var leftOrder = Number.isFinite(left.order) ? left.order : 1000;
+    var rightOrder = Number.isFinite(right.order) ? right.order : 1000;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return String(left.title || "").localeCompare(String(right.title || ""));
+  });
+}
+
+function buildCommandPaletteSections(commands, query) {
+  var list = Array.isArray(commands) ? commands : [];
+  var memory = getCommandPaletteMemorySets();
+  if (query) {
+    return [{ label: "Matching commands", commands: list }];
+  }
+  var favoriteCommands = list.filter(function (command) {
+    return memory.favorites.has(command.id);
+  });
+  var recentCommands = list.filter(function (command) {
+    return !memory.favorites.has(command.id) && memory.recents.has(command.id);
+  });
+  var allOtherCommands = list.filter(function (command) {
+    return !memory.favorites.has(command.id) && !memory.recents.has(command.id);
+  });
+  return [
+    {
+      label: "Pinned favorites",
+      commands: favoriteCommands,
+    },
+    {
+      label: "Recent moves",
+      commands: recentCommands,
+    },
+    {
+      label: "All commands",
+      commands: allOtherCommands,
+    },
+  ].filter(function (section) {
+    return section.commands.length;
+  });
+}
+
+function renderCommandPalette() {
+  var shell = document.getElementById("commandPaletteShell");
+  var list = document.getElementById("commandPaletteList");
+  var input = document.getElementById("commandPaletteInput");
+  if (!shell || !list || !input) {
+    return;
+  }
+  shell.classList.toggle("is-open", commandPaletteOpen);
+  shell.setAttribute("aria-hidden", commandPaletteOpen ? "false" : "true");
+  if (!commandPaletteOpen) {
+    return;
+  }
+  input.value = commandPaletteQuery;
+  var query = String(commandPaletteQuery || "")
+    .trim()
+    .toLowerCase();
+  var commands = getFilteredCommandPaletteCommands();
+  if (commandPaletteActiveIndex >= commands.length) {
+    commandPaletteActiveIndex = Math.max(0, commands.length - 1);
+  }
+  var memory = getCommandPaletteMemorySets();
+  var flattenedIndex = 0;
+  list.innerHTML = commands.length
+    ? buildCommandPaletteSections(commands, query)
+        .map(function (section) {
+          var sectionHtml =
+            '<div class="command-palette-section"><div class="command-palette-section-title">' +
+            escapeHtml(section.label || "Commands") +
+            "</div>" +
+            section.commands
+              .map(function (command) {
+                var index = flattenedIndex;
+                flattenedIndex += 1;
+                var badges = [];
+                if (memory.favorites.has(command.id)) {
+                  badges.push('<span class="tag is-highlight">Pinned</span>');
+                }
+                if (memory.recents.has(command.id)) {
+                  badges.push('<span class="tag is-neutral">Recent</span>');
+                }
+                badges.push(
+                  '<span class="tag is-neutral">' +
+                    escapeHtml(index === commandPaletteActiveIndex ? "Selected" : "Ready") +
+                    "</span>",
+                );
+                return (
+                  '<button class="command-palette-item' +
+                  (index === commandPaletteActiveIndex ? " is-active" : "") +
+                  '" type="button" data-command-palette-index="' +
+                  index +
+                  '"><div class="command-palette-item-head"><div><div class="command-palette-item-kicker">' +
+                  escapeHtml(command.kicker || "Command") +
+                  '</div><div class="command-palette-item-title-row"><div class="command-palette-item-title">' +
+                  escapeHtml(command.title || "") +
+                  '</div><button class="command-palette-favorite' +
+                  (memory.favorites.has(command.id) ? " is-active" : "") +
+                  '" type="button" data-command-palette-favorite="' +
+                  index +
+                  '" aria-label="' +
+                  escapeHtml(
+                    memory.favorites.has(command.id)
+                      ? "Remove from pinned commands"
+                      : "Pin this command",
+                  ) +
+                  '">' +
+                  escapeHtml(memory.favorites.has(command.id) ? "Pinned" : "Pin") +
+                  '</button></div></div><div class="command-palette-item-tags">' +
+                  badges.join("") +
+                  '</div></div><div class="command-palette-item-copy">' +
+                  escapeHtml(command.copy || "") +
+                  "</div></button>"
+                );
+              })
+              .join("") +
+            "</div>";
+          return sectionHtml;
+        })
+        .join("")
+    : '<div class="command-palette-empty">No commands match that search yet. Try a lane name, record name, or action word like publish or confirm.</div>';
+  window.setTimeout(function () {
+    if (document.activeElement !== input) {
+      input.focus();
+      input.select();
+    }
+  }, 0);
+}
+
+function openCommandPalette() {
+  commandPaletteOpen = true;
+  commandPaletteQuery = "";
+  commandPaletteActiveIndex = 0;
+  renderCommandPalette();
+}
+
+function closeCommandPalette() {
+  commandPaletteOpen = false;
+  renderCommandPalette();
+}
+
+function runCommandPaletteSelection(index) {
+  var commands = getFilteredCommandPaletteCommands();
+  var command = commands[index];
+  if (!command || typeof command.run !== "function") {
+    return;
+  }
+  recordCommandPaletteRecent(command.id || command.key || "");
+  closeCommandPalette();
+  Promise.resolve(command.run()).catch(function (error) {
+    console.error("Command palette action failed:", error);
+  });
+}
+
+function renderAdminRecordInspector() {
+  var root = document.getElementById("adminRecordInspectorContent");
+  if (!root || authRequired) {
+    if (root) {
+      root.innerHTML = "";
+    }
+    return;
+  }
+  var selected = ensureAdminInspectorSelection();
+  if (!selected || !selected.item) {
+    root.innerHTML =
+      "Select a candidate or application card to keep its decision context pinned here.";
+    return;
+  }
+  if (selected.kind === "candidate") {
+    var candidate = selected.item;
+    var candidateSequence = getInspectorSequenceMeta();
+    var trustSummary = reviewModels.getCandidateTrustSummary(candidate);
+    var trustRecommendation = reviewModels.getCandidateTrustRecommendation(candidate, trustSummary);
+    var laneLabel = reviewModels.getCandidateReviewLaneLabel(candidate);
+    var sourceMeta = getSourceReferenceMeta(candidate);
+    root.innerHTML =
+      '<div class="inspector-kicker">Pinned candidate</div><div class="inspector-title">' +
+      escapeHtml(candidate.name || "Unnamed listing") +
+      '</div><div class="inspector-copy">' +
+      escapeHtml(
+        "Use this side panel to keep the current candidate decision in view while you compare nearby listings and filters.",
+      ) +
+      '</div><div class="inspector-meta"><span class="tag is-neutral">' +
+      escapeHtml(laneLabel || "Candidate queue") +
+      '</span><span class="tag is-neutral">' +
+      escapeHtml(String(candidate.review_status || "needs_review").replace(/_/g, " ")) +
+      '</span><span class="tag is-neutral">' +
+      escapeHtml(String(candidate.dedupe_status || "unreviewed").replace(/_/g, " ")) +
+      '</span><span class="tag is-neutral">' +
+      escapeHtml(candidateSequence.positionLabel) +
+      '</span></div><div class="inspector-section"><div class="inspector-section-title">Decision view</div><div class="inspector-grid">' +
+      renderInspectorKpi("Trust", trustSummary.headline) +
+      renderInspectorKpi(
+        "Priority",
+        candidate.review_priority == null
+          ? "Not scored"
+          : String(candidate.review_priority) + "/100",
+      ) +
+      renderInspectorKpi(
+        "Readiness",
+        candidate.readiness_score == null
+          ? "Not scored"
+          : String(candidate.readiness_score) + "/100",
+      ) +
+      renderInspectorKpi(
+        "Next review",
+        candidate.next_review_due_at ? formatDate(candidate.next_review_due_at) : "Now",
+      ) +
+      '</div></div><div class="inspector-section"><div class="inspector-section-title">Best next move</div><ul class="inspector-list"><li>' +
+      escapeHtml(trustRecommendation) +
+      "</li><li>" +
+      escapeHtml(
+        candidate.dedupe_status === "possible_duplicate"
+          ? "Resolve duplicate risk before publishing so the provider graph stays clean."
+          : "Move this listing into publish, confirmation, merge, or archive so it does not remain ambiguous.",
+      ) +
+      '</li></ul></div><div class="inspector-actions"><button class="btn-primary" type="button" data-inspector-focus-kind="candidate" data-inspector-focus-id="' +
+      escapeHtml(candidate.id) +
+      '">Jump to card</button>' +
+      '<button class="btn-secondary" type="button" data-inspector-action="candidate_mark_ready" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Queue for publish</button>' +
+      '<button class="btn-secondary" type="button" data-inspector-action="candidate_confirmation" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Send to confirmation</button>' +
+      '<button class="btn-secondary" type="button" data-inspector-action="candidate_duplicate" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Mark duplicate</button>' +
+      '<button class="btn-primary" type="button" data-inspector-action="candidate_publish" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Publish now</button>' +
+      '<button class="btn-secondary" type="button" data-inspector-nav-direction="prev"' +
+      (candidateSequence.previous ? "" : " disabled") +
+      ">Previous</button>" +
+      '<button class="btn-secondary" type="button" data-inspector-nav-direction="next"' +
+      (candidateSequence.next ? "" : " disabled") +
+      ">Next</button>" +
+      (sourceMeta && sourceMeta.href
+        ? '<a class="btn-secondary btn-inline" href="' +
+          escapeHtml(sourceMeta.href) +
+          '" target="_blank" rel="noopener">' +
+          escapeHtml(sourceMeta.shortLabel || "Open source") +
+          "</a>"
+        : "") +
+      "</div>" +
+      renderInspectorActionStatusHtml();
+    return;
+  }
+
+  var application = selected.item;
+  var applicationSequence = getInspectorSequenceMeta();
+  var snapshot = reviewModels.getApplicationReviewSnapshot(application);
+  var readiness = getTherapistMatchReadiness(application);
+  var urgency = getClaimFollowUpUrgency(application);
+  var isClaim = application.submission_intent === "claim";
+  root.innerHTML =
+    '<div class="inspector-kicker">Pinned application</div><div class="inspector-title">' +
+    escapeHtml(application.name || "Unnamed application") +
+    '</div><div class="inspector-copy">' +
+    escapeHtml(
+      "Keep the current application decision visible while you work the review queue or compare adjacent applications.",
+    ) +
+    '</div><div class="inspector-meta"><span class="tag is-neutral">' +
+    escapeHtml(isClaim ? "Profile claim" : "Full profile") +
+    '</span><span class="tag is-neutral">' +
+    escapeHtml(snapshot.label || "Balanced review") +
+    '</span><span class="tag is-neutral">' +
+    escapeHtml(String(application.status || "pending").replace(/_/g, " ")) +
+    '</span><span class="tag is-neutral">' +
+    escapeHtml(applicationSequence.positionLabel) +
+    '</span></div><div class="inspector-section"><div class="inspector-section-title">Decision view</div><div class="inspector-grid">' +
+    renderInspectorKpi("Readiness", readiness.label + " · " + readiness.score + "/100") +
+    renderInspectorKpi(
+      "Portal state",
+      application.portal_state_label || formatStatusLabel(application.status || "pending"),
+    ) +
+    renderInspectorKpi("Next move", snapshot.nextMove) +
+    renderInspectorKpi("Follow-up urgency", isClaim ? urgency.label : "Not claim-driven") +
+    '</div></div><div class="inspector-section"><div class="inspector-section-title">Best next move</div><ul class="inspector-list"><li>' +
+    escapeHtml(snapshot.note || snapshot.nextMove) +
+    "</li><li>" +
+    escapeHtml(
+      isClaim
+        ? "Keep the therapist moving toward a fuller profile or a clear no, without letting the claim cool off."
+        : "Choose the cleanest publish, fixes, or rejection path so the application leaves review with momentum.",
+    ) +
+    '</li></ul></div><div class="inspector-actions"><button class="btn-primary" type="button" data-inspector-focus-kind="application" data-inspector-focus-id="' +
+    escapeHtml(application.id) +
+    '">Jump to card</button>' +
+    (application.status === "pending" || application.status === "reviewing"
+      ? '<button class="btn-primary" type="button" data-inspector-action="application_approve" data-inspector-id="' +
+        escapeHtml(application.id) +
+        '">Approve / publish</button>'
+      : "") +
+    (application.status === "pending"
+      ? '<button class="btn-secondary" type="button" data-inspector-action="application_reviewing" data-inspector-id="' +
+        escapeHtml(application.id) +
+        '">Start review</button>'
+      : "") +
+    (application.status === "pending" || application.status === "reviewing"
+      ? '<button class="btn-secondary" type="button" data-inspector-action="application_request_changes" data-inspector-id="' +
+        escapeHtml(application.id) +
+        '">Request fixes</button>'
+      : "") +
+    (application.status === "pending" || application.status === "reviewing"
+      ? '<button class="btn-secondary" type="button" data-inspector-action="application_reject" data-inspector-id="' +
+        escapeHtml(application.id) +
+        '">Reject</button>'
+      : "") +
+    '<button class="btn-secondary" type="button" data-inspector-nav-direction="prev"' +
+    (applicationSequence.previous ? "" : " disabled") +
+    ">Previous</button>" +
+    '<button class="btn-secondary" type="button" data-inspector-nav-direction="next"' +
+    (applicationSequence.next ? "" : " disabled") +
+    ">Next</button>" +
+    (application.email
+      ? '<a class="btn-secondary btn-inline" href="mailto:' +
+        escapeHtml(application.email) +
+        '">Email therapist</a>'
+      : "") +
+    "</div>" +
+    renderInspectorActionStatusHtml();
+}
+
 function renderStats() {
   var statsRoot = document.getElementById("adminStats");
   if (!statsRoot) {
@@ -3718,6 +5421,8 @@ function renderStats() {
   }
   if (authRequired) {
     statsRoot.innerHTML = "";
+    renderExecutiveCommandDeck({});
+    renderAdminWorkflowGuidance({});
     return;
   }
   try {
@@ -3832,6 +5537,24 @@ function renderStats() {
     const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
     const candidateReviewCount = candidateQueueItems.filter(function (item) {
       return item.review_status !== "published" && item.review_status !== "archived";
+    }).length;
+    const candidateReadyCount = candidateQueueItems.filter(function (item) {
+      return item.review_status === "ready_to_publish";
+    }).length;
+    const candidateDuplicateCount = candidateQueueItems.filter(function (item) {
+      return item.dedupe_status === "possible_duplicate" || item.dedupe_status === "unreviewed";
+    }).length;
+    const candidateConfirmationCount = candidateQueueItems.filter(function (item) {
+      return item.review_status === "needs_confirmation";
+    }).length;
+    const reviewingApplicationsCount = applications.filter(function (item) {
+      return item.status === "reviewing";
+    }).length;
+    const claimFollowUpCount = applications.filter(function (item) {
+      return getClaimFollowUpUrgency(item).level === "due_now";
+    }).length;
+    const publishReadyApplicationsCount = applications.filter(function (item) {
+      return reviewModels.getApplicationReviewFocus(item) === "publish_ready";
     }).length;
     const readyToApplyCount = confirmationQueue.filter(function (entry) {
       var status = entry && entry.workflow ? entry.workflow.status : "not_started";
@@ -4209,6 +5932,37 @@ function renderStats() {
       buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
     ];
 
+    renderExecutiveCommandDeck({
+      candidateReviewCount: candidateReviewCount,
+      funnelSummary: funnelSummary,
+      heardBackCount: heardBackCount,
+      listingPromotionCount: listingPromotionCount,
+      matchReadyCount: matchReadyCount,
+      openConciergeCount: openConciergeCount,
+      openPortalRequestCount: openPortalRequestCount,
+      pendingApplicationsCount: pendingApplicationsCount,
+      profilesNeedingConfirmation: profilesNeedingConfirmation,
+      profilesNeedingRefresh: profilesNeedingRefresh,
+      strictImportBlockerCount: strictImportBlockerCount,
+      workQueueSnapshot: workQueueSnapshot,
+      bookedConsultCount: bookedConsultCount,
+    });
+    renderAdminWorkflowGuidance({
+      candidateConfirmationCount: candidateConfirmationCount,
+      candidateDuplicateCount: candidateDuplicateCount,
+      candidateReadyCount: candidateReadyCount,
+      candidateReviewCount: candidateReviewCount,
+      claimFollowUpCount: claimFollowUpCount,
+      openConciergeCount: openConciergeCount,
+      openPortalRequestCount: openPortalRequestCount,
+      pendingApplicationsCount: pendingApplicationsCount,
+      profilesNeedingRefresh: profilesNeedingRefresh,
+      publishReadyApplicationsCount: publishReadyApplicationsCount,
+      reviewingApplicationsCount: reviewingApplicationsCount,
+      strictImportBlockerCount: strictImportBlockerCount,
+      workQueueSnapshot: workQueueSnapshot,
+    });
+
     document.getElementById("adminStats").innerHTML =
       (getWorkQueueActionFlash()
         ? '<div class="mini-status" style="margin-bottom:1rem"><strong>Work Queue update:</strong> ' +
@@ -4425,16 +6179,18 @@ function inferCoverageRole(item) {
 }
 
 function renderCoverageIntelligence() {
-  renderCoverageIntelligencePanel({
-    root: document.getElementById("coverageIntelligence"),
-    authRequired: authRequired,
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    inferCoverageRole: inferCoverageRole,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    escapeHtml: escapeHtml,
-    csvEscape: csvEscape,
-    copyText: copyText,
-    downloadText: downloadText,
+  withLazyAdminModule("./admin-sourcing-intelligence.js", function (module) {
+    module.renderCoverageIntelligencePanel({
+      root: document.getElementById("coverageIntelligence"),
+      authRequired: authRequired,
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      inferCoverageRole: inferCoverageRole,
+      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+      escapeHtml: escapeHtml,
+      csvEscape: csvEscape,
+      copyText: copyText,
+      downloadText: downloadText,
+    });
   });
 }
 
@@ -4442,33 +6198,37 @@ function renderIngestionScorecard() {
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
-  renderIngestionScorecardPanel({
-    root: document.getElementById("ingestionScorecard"),
-    authRequired: authRequired,
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    candidates: dataMode === "sanity" ? remoteCandidates : [],
-    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-    ingestionAutomationHistory: ingestionAutomationHistory,
-    latestAutomationRun: latestAutomationRun,
-    licensureRefreshQueue: licensureRefreshQueue,
-    licensureActivityFeed: licensureActivityFeed,
-    buildCoverageInsights: buildCoverageInsights,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
+  withLazyAdminModule("./admin-ingestion-scorecard.js", function (module) {
+    module.renderIngestionScorecardPanel({
+      root: document.getElementById("ingestionScorecard"),
+      authRequired: authRequired,
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+      applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+      ingestionAutomationHistory: ingestionAutomationHistory,
+      latestAutomationRun: latestAutomationRun,
+      licensureRefreshQueue: licensureRefreshQueue,
+      licensureActivityFeed: licensureActivityFeed,
+      buildCoverageInsights: buildCoverageInsights,
+      getDataFreshnessSummary: getDataFreshnessSummary,
+      getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+      escapeHtml: escapeHtml,
+      formatDate: formatDate,
+    });
   });
 }
 
 function renderSourcePerformance() {
-  renderSourcePerformancePanel({
-    root: document.getElementById("sourcePerformance"),
-    authRequired: authRequired,
-    candidates: dataMode === "sanity" ? remoteCandidates : [],
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    inferCoverageRole: inferCoverageRole,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    escapeHtml: escapeHtml,
+  withLazyAdminModule("./admin-sourcing-intelligence.js", function (module) {
+    module.renderSourcePerformancePanel({
+      root: document.getElementById("sourcePerformance"),
+      authRequired: authRequired,
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      inferCoverageRole: inferCoverageRole,
+      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+      escapeHtml: escapeHtml,
+    });
   });
 }
 
@@ -5088,46 +6848,50 @@ function renderListings() {
 }
 
 function renderRefreshQueue() {
-  renderRefreshQueuePanel({
-    authRequired: authRequired,
-    dataMode: dataMode,
-    publishedTherapists: publishedTherapists,
-    getTherapists: getTherapists,
-    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getTherapistMatchReadiness: getTherapistMatchReadiness,
-    getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
-    getRouteHealthWarnings: getRouteHealthWarnings,
-    getRouteHealthActionItems: getRouteHealthActionItems,
-    queueRouteHealthFollowUp: queueRouteHealthFollowUp,
-    getSourceReferenceMeta: getSourceReferenceMeta,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    decideTherapistOps: decideTherapistOps,
-    loadData: loadData,
+  withLazyAdminModule("./admin-refresh-queue.js", function (module) {
+    module.renderRefreshQueuePanel({
+      authRequired: authRequired,
+      dataMode: dataMode,
+      publishedTherapists: publishedTherapists,
+      getTherapists: getTherapists,
+      getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+      getDataFreshnessSummary: getDataFreshnessSummary,
+      getTherapistMatchReadiness: getTherapistMatchReadiness,
+      getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
+      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+      getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+      getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+      getRouteHealthWarnings: getRouteHealthWarnings,
+      getRouteHealthActionItems: getRouteHealthActionItems,
+      queueRouteHealthFollowUp: queueRouteHealthFollowUp,
+      getSourceReferenceMeta: getSourceReferenceMeta,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      escapeHtml: escapeHtml,
+      formatDate: formatDate,
+      decideTherapistOps: decideTherapistOps,
+      loadData: loadData,
+    });
   });
 }
 
 function renderLicensureQueue() {
-  renderLicensureQueuePanel({
-    root: document.getElementById("licensureQueue"),
-    countEl: document.getElementById("licensureQueueCount"),
-    authRequired: authRequired,
-    rows: licensureRefreshQueue,
-    activityFeed: licensureActivityFeed,
-    activeFilter: licensureQueueFilter,
-    onFilterChange: function (nextFilter) {
-      licensureQueueFilter = nextFilter;
-      renderLicensureQueue();
-    },
-    decideLicensureOps: decideLicensureOps,
-    loadData: loadData,
-    escapeHtml: escapeHtml,
-    copyText: copyText,
+  withLazyAdminModule("./admin-licensure-queue.js", function (module) {
+    module.renderLicensureQueuePanel({
+      root: document.getElementById("licensureQueue"),
+      countEl: document.getElementById("licensureQueueCount"),
+      authRequired: authRequired,
+      rows: licensureRefreshQueue,
+      activityFeed: licensureActivityFeed,
+      activeFilter: licensureQueueFilter,
+      onFilterChange: function (nextFilter) {
+        licensureQueueFilter = nextFilter;
+        renderLicensureQueue();
+      },
+      decideLicensureOps: decideLicensureOps,
+      loadData: loadData,
+      escapeHtml: escapeHtml,
+      copyText: copyText,
+    });
   });
 }
 
@@ -5135,261 +6899,275 @@ function renderLicensureSprint() {
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
-  renderLicensureSprintPanel({
-    root: document.getElementById("licensureSprint"),
-    authRequired: authRequired,
-    rows: licensureRefreshQueue,
-    activityFeed: licensureActivityFeed,
-    latestAutomationRun: latestAutomationRun,
-    decideLicensureOps: decideLicensureOps,
-    loadData: loadData,
-    escapeHtml: escapeHtml,
-    copyText: copyText,
+  withLazyAdminModule("./admin-licensure-sprint.js", function (module) {
+    module.renderLicensureSprintPanel({
+      root: document.getElementById("licensureSprint"),
+      authRequired: authRequired,
+      rows: licensureRefreshQueue,
+      activityFeed: licensureActivityFeed,
+      latestAutomationRun: latestAutomationRun,
+      decideLicensureOps: decideLicensureOps,
+      loadData: loadData,
+      escapeHtml: escapeHtml,
+      copyText: copyText,
+    });
   });
 }
 
 function renderDeferredLicensureQueue() {
-  renderDeferredLicensureQueuePanel({
-    root: document.getElementById("deferredLicensureQueue"),
-    countEl: document.getElementById("deferredLicensureQueueCount"),
-    authRequired: authRequired,
-    rows: deferredLicensureQueue,
-    activityFeed: licensureActivityFeed,
-    decideLicensureOps: decideLicensureOps,
-    loadData: loadData,
-    escapeHtml: escapeHtml,
+  withLazyAdminModule("./admin-licensure-deferred-queue.js", function (module) {
+    module.renderDeferredLicensureQueuePanel({
+      root: document.getElementById("deferredLicensureQueue"),
+      countEl: document.getElementById("deferredLicensureQueueCount"),
+      authRequired: authRequired,
+      rows: deferredLicensureQueue,
+      activityFeed: licensureActivityFeed,
+      decideLicensureOps: decideLicensureOps,
+      loadData: loadData,
+      escapeHtml: escapeHtml,
+    });
   });
 }
 
 function renderLicensureActivity() {
-  renderLicensureActivityPanel({
-    root: document.getElementById("licensureActivity"),
-    countEl: document.getElementById("licensureActivityCount"),
-    authRequired: authRequired,
-    rows: licensureActivityFeed,
-    activeFilter: licensureActivityFilter,
-    onFilterChange: function (nextFilter) {
-      licensureActivityFilter = nextFilter;
-      renderLicensureActivity();
-    },
-    escapeHtml: escapeHtml,
+  withLazyAdminModule("./admin-licensure-activity.js", function (module) {
+    module.renderLicensureActivityPanel({
+      root: document.getElementById("licensureActivity"),
+      countEl: document.getElementById("licensureActivityCount"),
+      authRequired: authRequired,
+      rows: licensureActivityFeed,
+      activeFilter: licensureActivityFilter,
+      onFilterChange: function (nextFilter) {
+        licensureActivityFilter = nextFilter;
+        renderLicensureActivity();
+      },
+      escapeHtml: escapeHtml,
+    });
   });
 }
 
 function renderImportBlockerSprint() {
-  renderImportBlockerSprintPanel({
-    authRequired: authRequired,
-    getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
-    getImportBlockerSprintRows: getImportBlockerSprintRows,
-    getConfirmationSprintRows: getConfirmationSprintRows,
-    getOverlappingAskDetails: getOverlappingAskDetails,
-    escapeHtml: escapeHtml,
-    getImportBlockerSprintSummary: getImportBlockerSprintSummary,
-    getImportBlockerSprintBottleneck: getImportBlockerSprintBottleneck,
-    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
-    getImportBlockerSprintSharedAskDetails: getImportBlockerSprintSharedAskDetails,
-    getImportBlockerSprintWaveShape: getImportBlockerSprintWaveShape,
-    getImportBlockerSprintFieldPattern: getImportBlockerSprintFieldPattern,
-    getImportBlockerSprintSharedAsk: getImportBlockerSprintSharedAsk,
-    getImportBlockerSprintSharedAskStatus: getImportBlockerSprintSharedAskStatus,
-    getImportBlockerSprintSharedAskImpact: getImportBlockerSprintSharedAskImpact,
-    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
-    getImportBlockerRecommendationNote: getImportBlockerRecommendationNote,
-    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
-    getTopOutreachWaveRows: getTopOutreachWaveRows,
-    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
-    formatFieldLabel: formatFieldLabel,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getImportBlockerFieldBuckets: getImportBlockerFieldBuckets,
-    formatStatusLabel: formatStatusLabel,
-    getConfirmationTarget: getConfirmationTarget,
-    getConfirmationLastActionNote: getConfirmationLastActionNote,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    getImportBlockerLeverageNote: getImportBlockerLeverageNote,
-    buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
-    buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
-    buildConfirmationLink: buildConfirmationLink,
-    copyText: copyText,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    setConfirmationQueueFilter: function (value) {
-      setConfirmationQueueFilter(value);
-    },
-    buildImportBlockerPacket: buildImportBlockerPacket,
-    getImportBlockerSprintSharedAskText: getImportBlockerSprintSharedAskText,
-    buildImportBlockerSharedAskPacket: buildImportBlockerSharedAskPacket,
-    buildOverlappingAskPacket: buildOverlappingAskPacket,
-    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
-    buildImportBlockerSprintCsv: buildImportBlockerSprintCsv,
-    buildImportBlockerSprintMarkdown: buildImportBlockerSprintMarkdown,
+  withLazyAdminModule("./admin-import-blocker-sprint.js", function (module) {
+    module.renderImportBlockerSprintPanel({
+      authRequired: authRequired,
+      getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
+      getImportBlockerSprintRows: getImportBlockerSprintRows,
+      getConfirmationSprintRows: getConfirmationSprintRows,
+      getOverlappingAskDetails: getOverlappingAskDetails,
+      escapeHtml: escapeHtml,
+      getImportBlockerSprintSummary: getImportBlockerSprintSummary,
+      getImportBlockerSprintBottleneck: getImportBlockerSprintBottleneck,
+      getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+      getImportBlockerSprintSharedAskDetails: getImportBlockerSprintSharedAskDetails,
+      getImportBlockerSprintWaveShape: getImportBlockerSprintWaveShape,
+      getImportBlockerSprintFieldPattern: getImportBlockerSprintFieldPattern,
+      getImportBlockerSprintSharedAsk: getImportBlockerSprintSharedAsk,
+      getImportBlockerSprintSharedAskStatus: getImportBlockerSprintSharedAskStatus,
+      getImportBlockerSprintSharedAskImpact: getImportBlockerSprintSharedAskImpact,
+      getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+      getImportBlockerRecommendationNote: getImportBlockerRecommendationNote,
+      getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+      getTopOutreachWaveRows: getTopOutreachWaveRows,
+      getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+      formatFieldLabel: formatFieldLabel,
+      getConfirmationQueueEntry: getConfirmationQueueEntry,
+      getImportBlockerFieldBuckets: getImportBlockerFieldBuckets,
+      formatStatusLabel: formatStatusLabel,
+      getConfirmationTarget: getConfirmationTarget,
+      getConfirmationLastActionNote: getConfirmationLastActionNote,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      getImportBlockerLeverageNote: getImportBlockerLeverageNote,
+      buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
+      buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
+      buildConfirmationLink: buildConfirmationLink,
+      copyText: copyText,
+      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+      renderStats: renderStats,
+      renderImportBlockerSprint: renderImportBlockerSprint,
+      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+      renderConfirmationSprint: renderConfirmationSprint,
+      renderConfirmationQueue: renderConfirmationQueue,
+      setConfirmationQueueFilter: function (value) {
+        setConfirmationQueueFilter(value);
+      },
+      buildImportBlockerPacket: buildImportBlockerPacket,
+      getImportBlockerSprintSharedAskText: getImportBlockerSprintSharedAskText,
+      buildImportBlockerSharedAskPacket: buildImportBlockerSharedAskPacket,
+      buildOverlappingAskPacket: buildOverlappingAskPacket,
+      buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+      buildImportBlockerSprintCsv: buildImportBlockerSprintCsv,
+      buildImportBlockerSprintMarkdown: buildImportBlockerSprintMarkdown,
+    });
   });
 }
 
 function renderConfirmationSprint() {
-  renderConfirmationSprintPanel({
-    authRequired: authRequired,
-    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-    getConfirmationSprintRows: getConfirmationSprintRows,
-    getImportBlockerSprintRows: getImportBlockerSprintRows,
-    getOverlappingAskDetails: getOverlappingAskDetails,
-    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-    applyOverlapRecommendationContext: applyOverlapRecommendationContext,
-    getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
-    getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
-    escapeHtml: escapeHtml,
-    getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
-    getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
-    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
-    getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
-    getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
-    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
-    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
-    getTopOutreachWaveRows: getTopOutreachWaveRows,
-    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
-    formatFieldLabel: formatFieldLabel,
-    formatStatusLabel: formatStatusLabel,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-    buildConfirmationLink: buildConfirmationLink,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    getConfirmationResultLabel: getConfirmationResultLabel,
-    getConfirmationTarget: getConfirmationTarget,
-    getConfirmationLastActionNote: getConfirmationLastActionNote,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    buildConfirmationSprintCsv: buildConfirmationSprintCsv,
-    buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
-    copyText: copyText,
-    buildOverlappingAskPacket: buildOverlappingAskPacket,
-    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    setConfirmationQueueFilter: function (value) {
-      setConfirmationQueueFilter(value);
-    },
+  withLazyAdminModule("./admin-confirmation-sprint.js", function (module) {
+    module.renderConfirmationSprintPanel({
+      authRequired: authRequired,
+      getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+      getConfirmationSprintRows: getConfirmationSprintRows,
+      getImportBlockerSprintRows: getImportBlockerSprintRows,
+      getOverlappingAskDetails: getOverlappingAskDetails,
+      buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+      applyOverlapRecommendationContext: applyOverlapRecommendationContext,
+      getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
+      getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
+      escapeHtml: escapeHtml,
+      getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
+      getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
+      getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+      getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
+      getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
+      getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+      getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+      getTopOutreachWaveRows: getTopOutreachWaveRows,
+      getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+      formatFieldLabel: formatFieldLabel,
+      formatStatusLabel: formatStatusLabel,
+      getConfirmationQueueEntry: getConfirmationQueueEntry,
+      getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+      buildConfirmationLink: buildConfirmationLink,
+      getPreferredFieldOrder: getPreferredFieldOrder,
+      getConfirmationResultLabel: getConfirmationResultLabel,
+      getConfirmationTarget: getConfirmationTarget,
+      getConfirmationLastActionNote: getConfirmationLastActionNote,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+      buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+      buildConfirmationApplySummary: buildConfirmationApplySummary,
+      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+      buildConfirmationSprintCsv: buildConfirmationSprintCsv,
+      buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
+      copyText: copyText,
+      buildOverlappingAskPacket: buildOverlappingAskPacket,
+      buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+      renderStats: renderStats,
+      renderImportBlockerSprint: renderImportBlockerSprint,
+      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+      renderConfirmationSprint: renderConfirmationSprint,
+      renderConfirmationQueue: renderConfirmationQueue,
+      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+      setConfirmationQueueFilter: function (value) {
+        setConfirmationQueueFilter(value);
+      },
+    });
   });
 }
 
 function renderConfirmationQueue() {
-  renderConfirmationQueuePanel({
-    root: document.getElementById("confirmationQueue"),
-    statusFilter: document.getElementById("confirmationQueueStatusFilter"),
-    countLabel: document.getElementById("confirmationQueueCount"),
-    authRequired: authRequired,
-    confirmationQueueFilter: getConfirmationQueueFilter(),
-    confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
-    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-    getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-    buildConfirmationLink: buildConfirmationLink,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    formatStatusLabel: formatStatusLabel,
-    formatFieldLabel: formatFieldLabel,
-    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-    formatDate: formatDate,
-    escapeHtml: escapeHtml,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    copyText: copyText,
-    buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
-    setConfirmationActionStatus: setConfirmationActionStatus,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    buildConfirmationChecklist: buildConfirmationChecklist,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    bindConfirmationResponseCapture: bindConfirmationResponseCapture,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+  withLazyAdminModule("./admin-confirmation-queue.js", function (module) {
+    module.renderConfirmationQueuePanel({
+      root: document.getElementById("confirmationQueue"),
+      statusFilter: document.getElementById("confirmationQueueStatusFilter"),
+      countLabel: document.getElementById("confirmationQueueCount"),
+      authRequired: authRequired,
+      confirmationQueueFilter: getConfirmationQueueFilter(),
+      confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
+      getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+      getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
+      getConfirmationQueueEntry: getConfirmationQueueEntry,
+      buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+      buildConfirmationLink: buildConfirmationLink,
+      getPreferredFieldOrder: getPreferredFieldOrder,
+      formatStatusLabel: formatStatusLabel,
+      formatFieldLabel: formatFieldLabel,
+      buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+      buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+      formatDate: formatDate,
+      escapeHtml: escapeHtml,
+      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+      buildConfirmationApplySummary: buildConfirmationApplySummary,
+      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+      copyText: copyText,
+      buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
+      setConfirmationActionStatus: setConfirmationActionStatus,
+      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+      renderStats: renderStats,
+      renderImportBlockerSprint: renderImportBlockerSprint,
+      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+      renderConfirmationSprint: renderConfirmationSprint,
+      renderConfirmationQueue: renderConfirmationQueue,
+      buildConfirmationChecklist: buildConfirmationChecklist,
+      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+      bindConfirmationResponseCapture: bindConfirmationResponseCapture,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    });
   });
 }
 
 function renderApplications() {
-  renderApplicationsPanel({
-    dataMode: dataMode,
-    remoteApplications: remoteApplications,
-    getApplications: getApplications,
-    applicationFilters: applicationFilters,
-    getApplicationReviewGoalMeta: reviewModels.getApplicationReviewGoalMeta,
-    getApplicationReviewSnapshot: reviewModels.getApplicationReviewSnapshot,
-    getGoalAdjustedApplicationPriorityScore: reviewModels.getGoalAdjustedApplicationPriorityScore,
-    authRequired: authRequired,
-    escapeHtml: escapeHtml,
-    getApplicationEmptyStateCopy: reviewModels.getApplicationEmptyStateCopy,
-    getApplicationFilterChips: reviewModels.getApplicationFilterChips,
-    getClaimFollowUpUrgency: getClaimFollowUpUrgency,
-    getAfterClaimReviewStall: getAfterClaimReviewStall,
-    formatPercent: formatPercent,
-    getClaimFunnelBottleneck: getClaimFunnelBottleneck,
-    getClaimActionQueue: getClaimActionQueue,
-    getClaimLaunchCandidates: getClaimLaunchCandidates,
-    getStalledAfterClaimReviews: getStalledAfterClaimReviews,
-    isGoalMatchedReviewCard: reviewModels.isGoalMatchedReviewCard,
-    getApplicationBatchReason: reviewModels.getApplicationBatchReason,
-    getTherapistMatchReadiness: getTherapistMatchReadiness,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getTherapistReviewCoaching: getTherapistReviewCoaching,
-    formatStatusLabel: formatStatusLabel,
-    getClaimFollowUpLabel: getClaimFollowUpLabel,
-    isConfirmationRefreshApplication: isConfirmationRefreshApplication,
-    buildImprovementRequest: buildImprovementRequest,
-    buildClaimReviewRequest: buildClaimReviewRequest,
-    buildClaimFollowUpMessage: buildClaimFollowUpMessage,
-    buildConfirmationLink: buildConfirmationLink,
-    getApplicationLinkedTherapist: reviewModels.getApplicationLinkedTherapist,
-    getApplicationLiveSyncSnapshot: reviewModels.getApplicationLiveSyncSnapshot,
-    renderApplicationDiffHtml: reviewModels.renderApplicationDiffHtml,
-    formatDate: formatDate,
-    formatFieldLabel: formatFieldLabel,
-    buildFieldReviewControls: buildFieldReviewControls,
-    buildRevisionHistoryHtml: buildRevisionHistoryHtml,
-    applicationFilters: applicationFilters,
-    buildRecommendedReviewBatchRequests: buildRecommendedReviewBatchRequests,
-    buildRecommendedReviewBatchPacket: buildRecommendedReviewBatchPacket,
-    buildClaimLaunchPriorityPacket: buildClaimLaunchPriorityPacket,
-    buildStalledAfterClaimReviewPacket: buildStalledAfterClaimReviewPacket,
-    buildOverdueClaimFollowUpPacket: buildOverdueClaimFollowUpPacket,
-    getReviewEventsForApplication: getReviewEventsForApplication,
-    renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
-    renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    copyText: copyText,
-    spotlightSection: spotlightSection,
-    renderApplications: renderApplications,
-    renderAll: renderAll,
-    setCoachActionStatus: setCoachActionStatus,
-    appendImprovementRequestToNotes: appendImprovementRequestToNotes,
-    updateTherapistApplication: updateTherapistApplication,
-    approveTherapistApplication: approveTherapistApplication,
-    rejectTherapistApplicationRemote: rejectTherapistApplicationRemote,
-    requestApplicationChanges: requestApplicationChanges,
-    approveApplication: approveApplication,
-    publishApplication: publishApplication,
-    rejectApplication: rejectApplication,
-    updateApplicationReviewMetadata: updateApplicationReviewMetadata,
-    setApplyLiveFieldsStatus: setApplyLiveFieldsStatus,
-    applyTherapistApplicationFields: applyTherapistApplicationFields,
-    buildApplicationApplySummary: reviewModels.buildApplicationApplySummary,
-    applicationLiveApplySummaries: applicationLiveApplySummaries,
-    loadData: loadData,
+  withLazyAdminModule("./admin-application-review.js", function (module) {
+    module.renderApplicationsPanel({
+      dataMode: dataMode,
+      remoteApplications: remoteApplications,
+      getApplications: getApplications,
+      applicationFilters: applicationFilters,
+      getApplicationReviewGoalMeta: reviewModels.getApplicationReviewGoalMeta,
+      getApplicationReviewSnapshot: reviewModels.getApplicationReviewSnapshot,
+      getGoalAdjustedApplicationPriorityScore: reviewModels.getGoalAdjustedApplicationPriorityScore,
+      authRequired: authRequired,
+      escapeHtml: escapeHtml,
+      getApplicationEmptyStateCopy: reviewModels.getApplicationEmptyStateCopy,
+      getApplicationFilterChips: reviewModels.getApplicationFilterChips,
+      getClaimFollowUpUrgency: getClaimFollowUpUrgency,
+      getAfterClaimReviewStall: getAfterClaimReviewStall,
+      formatPercent: formatPercent,
+      getClaimFunnelBottleneck: getClaimFunnelBottleneck,
+      getClaimActionQueue: getClaimActionQueue,
+      getClaimLaunchCandidates: getClaimLaunchCandidates,
+      getStalledAfterClaimReviews: getStalledAfterClaimReviews,
+      isGoalMatchedReviewCard: reviewModels.isGoalMatchedReviewCard,
+      getApplicationBatchReason: reviewModels.getApplicationBatchReason,
+      getTherapistMatchReadiness: getTherapistMatchReadiness,
+      getDataFreshnessSummary: getDataFreshnessSummary,
+      getTherapistReviewCoaching: getTherapistReviewCoaching,
+      formatStatusLabel: formatStatusLabel,
+      getClaimFollowUpLabel: getClaimFollowUpLabel,
+      isConfirmationRefreshApplication: isConfirmationRefreshApplication,
+      buildImprovementRequest: buildImprovementRequest,
+      buildClaimReviewRequest: buildClaimReviewRequest,
+      buildClaimFollowUpMessage: buildClaimFollowUpMessage,
+      buildConfirmationLink: buildConfirmationLink,
+      getApplicationLinkedTherapist: reviewModels.getApplicationLinkedTherapist,
+      getApplicationLiveSyncSnapshot: reviewModels.getApplicationLiveSyncSnapshot,
+      renderApplicationDiffHtml: reviewModels.renderApplicationDiffHtml,
+      formatDate: formatDate,
+      formatFieldLabel: formatFieldLabel,
+      buildFieldReviewControls: buildFieldReviewControls,
+      buildRevisionHistoryHtml: buildRevisionHistoryHtml,
+      applicationFilters: applicationFilters,
+      buildRecommendedReviewBatchRequests: buildRecommendedReviewBatchRequests,
+      buildRecommendedReviewBatchPacket: buildRecommendedReviewBatchPacket,
+      buildClaimLaunchPriorityPacket: buildClaimLaunchPriorityPacket,
+      buildStalledAfterClaimReviewPacket: buildStalledAfterClaimReviewPacket,
+      buildOverdueClaimFollowUpPacket: buildOverdueClaimFollowUpPacket,
+      getReviewEventsForApplication: getReviewEventsForApplication,
+      renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+      renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      copyText: copyText,
+      spotlightSection: spotlightSection,
+      renderApplications: renderApplications,
+      renderAll: renderAll,
+      setCoachActionStatus: setCoachActionStatus,
+      appendImprovementRequestToNotes: appendImprovementRequestToNotes,
+      updateTherapistApplication: updateTherapistApplication,
+      approveTherapistApplication: approveTherapistApplication,
+      rejectTherapistApplicationRemote: rejectTherapistApplicationRemote,
+      requestApplicationChanges: requestApplicationChanges,
+      approveApplication: approveApplication,
+      publishApplication: publishApplication,
+      rejectApplication: rejectApplication,
+      updateApplicationReviewMetadata: updateApplicationReviewMetadata,
+      setApplyLiveFieldsStatus: setApplyLiveFieldsStatus,
+      applyTherapistApplicationFields: applyTherapistApplicationFields,
+      buildApplicationApplySummary: reviewModels.buildApplicationApplySummary,
+      applicationLiveApplySummaries: applicationLiveApplySummaries,
+      loadData: loadData,
+    });
   });
 }
 
@@ -5451,105 +7229,111 @@ function buildCandidateDecisionActions(item) {
 }
 
 function renderOpsInbox() {
-  renderOpsInboxPanel({
-    root: document.getElementById("opsInbox"),
-    authRequired: authRequired,
-    candidates: dataMode === "sanity" ? remoteCandidates : [],
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-    licensureRefreshQueue: licensureRefreshQueue,
-    profileConversionFreshnessQueue: profileConversionFreshnessQueue,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
-    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
-    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
-    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
-    getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
-    getCandidateOpsReason: reviewModels.getCandidateOpsReason,
-    buildCandidateDecisionActions: buildCandidateDecisionActions,
-    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
-    renderFieldTrustChips: renderFieldTrustChips,
-    getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
-    buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
-    getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
-    assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
-    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-    formatFieldLabel: formatFieldLabel,
-    formatStatusLabel: formatStatusLabel,
-    formatDate: formatDate,
-    escapeHtml: escapeHtml,
-    copyText: copyText,
-    updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
-    clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    renderOpsInbox: renderOpsInbox,
-    decideTherapistCandidate: decideTherapistCandidate,
-    decideTherapistOps: decideTherapistOps,
-    loadData: loadData,
+  withLazyAdminModule("./admin-ops-inbox.js", function (module) {
+    module.renderOpsInboxPanel({
+      root: document.getElementById("opsInbox"),
+      authRequired: authRequired,
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+      licensureRefreshQueue: licensureRefreshQueue,
+      profileConversionFreshnessQueue: profileConversionFreshnessQueue,
+      getDataFreshnessSummary: getDataFreshnessSummary,
+      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+      getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
+      getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+      getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+      getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+      getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
+      getCandidateOpsReason: reviewModels.getCandidateOpsReason,
+      buildCandidateDecisionActions: buildCandidateDecisionActions,
+      getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+      getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+      renderFieldTrustChips: renderFieldTrustChips,
+      getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
+      buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+      buildConfirmationApplySummary: buildConfirmationApplySummary,
+      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+      getPreferredFieldOrder: getPreferredFieldOrder,
+      getConfirmationQueueEntry: getConfirmationQueueEntry,
+      getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
+      getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
+      assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
+      getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+      formatFieldLabel: formatFieldLabel,
+      formatStatusLabel: formatStatusLabel,
+      formatDate: formatDate,
+      escapeHtml: escapeHtml,
+      copyText: copyText,
+      updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
+      clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
+      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+      renderStats: renderStats,
+      renderImportBlockerSprint: renderImportBlockerSprint,
+      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+      renderConfirmationSprint: renderConfirmationSprint,
+      renderConfirmationQueue: renderConfirmationQueue,
+      renderOpsInbox: renderOpsInbox,
+      decideTherapistCandidate: decideTherapistCandidate,
+      decideTherapistOps: decideTherapistOps,
+      loadData: loadData,
+    });
   });
 }
 
 function renderCandidateQueue() {
-  renderCandidateQueuePanel({
-    root: document.getElementById("candidateQueue"),
-    countEl: document.getElementById("candidateQueueCount"),
-    authRequired: authRequired,
-    candidates: dataMode === "sanity" ? remoteCandidates : [],
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-    filters: candidateFilters,
-    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
-    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
-    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
-    getCandidateReviewChipLabel: reviewModels.getCandidateReviewChipLabel,
-    getCandidateDedupeChipLabel: reviewModels.getCandidateDedupeChipLabel,
-    getSourceReferenceMeta: getSourceReferenceMeta,
-    buildCandidateDecisionActions: buildCandidateDecisionActions,
-    getReviewEventsForCandidate: getReviewEventsForCandidate,
-    renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
-    renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    decideTherapistCandidate: decideTherapistCandidate,
-    loadData: loadData,
+  withLazyAdminModule("./admin-candidate-queue.js", function (module) {
+    module.renderCandidateQueuePanel({
+      root: document.getElementById("candidateQueue"),
+      countEl: document.getElementById("candidateQueueCount"),
+      authRequired: authRequired,
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+      filters: candidateFilters,
+      getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+      getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+      getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+      getCandidateReviewChipLabel: reviewModels.getCandidateReviewChipLabel,
+      getCandidateDedupeChipLabel: reviewModels.getCandidateDedupeChipLabel,
+      getSourceReferenceMeta: getSourceReferenceMeta,
+      buildCandidateDecisionActions: buildCandidateDecisionActions,
+      getReviewEventsForCandidate: getReviewEventsForCandidate,
+      renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+      renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      escapeHtml: escapeHtml,
+      formatDate: formatDate,
+      decideTherapistCandidate: decideTherapistCandidate,
+      loadData: loadData,
+    });
   });
 }
 
 function renderConciergeQueue() {
-  renderConciergeQueuePanel({
-    root: document.getElementById("conciergeQueue"),
-    countLabel: document.getElementById("conciergeQueueCount"),
-    authRequired: authRequired,
-    conciergeStatusFilter: conciergeFilters.status,
-    readConciergeRequests: readConciergeRequests,
-    readOutreachOutcomes: readOutreachOutcomes,
-    analyzeConciergePatterns: analyzeConciergePatterns,
-    analyzeOutreachOutcomes: analyzeOutreachOutcomes,
-    analyzeOutreachJourneys: analyzeOutreachJourneys,
-    analyzePivotTiming: analyzePivotTiming,
-    requestStatusOptions: REQUEST_STATUS_OPTIONS,
-    therapistFollowUpOptions: THERAPIST_FOLLOW_UP_OPTIONS,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    formatStatusLabel: formatStatusLabel,
-    updateConciergeRequestStatus: updateConciergeRequestStatus,
-    updateConciergeShortlistStatus: updateConciergeShortlistStatus,
-    renderAll: renderAll,
+  withLazyAdminModule("./admin-concierge-queue.js", function (module) {
+    module.renderConciergeQueuePanel({
+      root: document.getElementById("conciergeQueue"),
+      countLabel: document.getElementById("conciergeQueueCount"),
+      authRequired: authRequired,
+      conciergeStatusFilter: conciergeFilters.status,
+      readConciergeRequests: readConciergeRequests,
+      readOutreachOutcomes: readOutreachOutcomes,
+      analyzeConciergePatterns: analyzeConciergePatterns,
+      analyzeOutreachOutcomes: analyzeOutreachOutcomes,
+      analyzeOutreachJourneys: analyzeOutreachJourneys,
+      analyzePivotTiming: analyzePivotTiming,
+      requestStatusOptions: REQUEST_STATUS_OPTIONS,
+      therapistFollowUpOptions: THERAPIST_FOLLOW_UP_OPTIONS,
+      escapeHtml: escapeHtml,
+      formatDate: formatDate,
+      formatStatusLabel: formatStatusLabel,
+      updateConciergeRequestStatus: updateConciergeRequestStatus,
+      updateConciergeShortlistStatus: updateConciergeShortlistStatus,
+      renderAll: renderAll,
+    });
   });
 }
 
@@ -5965,21 +7749,23 @@ function renderReviewActivity() {
 }
 
 function renderPortalRequestsQueue() {
-  renderPortalRequestsQueuePanel({
-    authRequired: authRequired,
-    dataMode: dataMode,
-    remotePortalRequests: remotePortalRequests,
-    portalRequestFilters: portalRequestFilters,
-    escapeHtml: escapeHtml,
-    formatPortalRequestType: formatPortalRequestType,
-    formatDate: formatDate,
-    updateTherapistPortalRequest: updateTherapistPortalRequest,
-    setRemotePortalRequests: function (nextRequests) {
-      remotePortalRequests = nextRequests;
-    },
-    renderStats: renderStats,
-    renderPortalRequestsQueue: renderPortalRequestsQueue,
-    setPortalRequestActionStatus: setPortalRequestActionStatus,
+  withLazyAdminModule("./admin-portal-requests.js", function (module) {
+    module.renderPortalRequestsQueuePanel({
+      authRequired: authRequired,
+      dataMode: dataMode,
+      remotePortalRequests: remotePortalRequests,
+      portalRequestFilters: portalRequestFilters,
+      escapeHtml: escapeHtml,
+      formatPortalRequestType: formatPortalRequestType,
+      formatDate: formatDate,
+      updateTherapistPortalRequest: updateTherapistPortalRequest,
+      setRemotePortalRequests: function (nextRequests) {
+        remotePortalRequests = nextRequests;
+      },
+      renderStats: renderStats,
+      renderPortalRequestsQueue: renderPortalRequestsQueue,
+      setPortalRequestActionStatus: setPortalRequestActionStatus,
+    });
   });
 }
 
@@ -6027,6 +7813,7 @@ function renderAll() {
   renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
   renderAdminSection("add new listings", renderCandidateQueue);
   renderAdminSection("review applications", renderApplications);
+  renderAdminSection("record inspector", renderAdminRecordInspector);
 }
 
 function setAuthUiState() {
