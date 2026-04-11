@@ -162,7 +162,10 @@
         background: transparent;
       }
       .match-builder.is-results-mode {
-        margin-top: 0.35rem;
+        margin-top: 0.15rem;
+      }
+      .match-builder.is-inline-results {
+        margin: 0.9rem 0 1.1rem;
       }
       .match-builder-header {
         margin-bottom: 1rem;
@@ -172,7 +175,7 @@
         font-size: 1.15rem;
       }
       .match-builder.is-results-mode .match-builder-header {
-        margin-bottom: 0.65rem;
+        display: none;
       }
       .match-builder-grid {
         display: grid;
@@ -195,10 +198,12 @@
         margin: 0 auto;
       }
       .match-builder.is-results-mode .match-tool-shell {
-        width: min(100%, 760px);
-        background: rgba(26, 122, 143, 0.04);
+        width: 100%;
+        background: transparent;
+        border: none;
         box-shadow: none;
-        padding: 0.7rem;
+        padding: 0;
+        margin: 0;
       }
       .match-tool-card {
         background: white;
@@ -269,14 +274,27 @@
         color: var(--slate);
       }
       .match-builder.is-results-mode .match-tool-card {
-        padding: 1rem 1rem 0.95rem;
-        box-shadow: 0 10px 24px rgba(10, 45, 56, 0.05);
+        padding: 0.72rem;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: linear-gradient(180deg, #f8fcfd 0%, #ffffff 100%);
+        box-shadow: 0 10px 22px rgba(10, 45, 56, 0.035);
+      }
+      .match-builder.is-inline-results .match-tool-card {
+        border-color: rgba(26, 122, 143, 0.16);
+        box-shadow: 0 12px 24px rgba(10, 45, 56, 0.045);
+      }
+      .match-builder.is-results-mode .match-pathframe {
+        gap: 0.5rem;
+      }
+      .match-builder.is-results-mode .match-pathframe-grid,
+      .match-builder.is-results-mode .match-intake-preview-grid {
+        display: none;
       }
       .match-builder.is-results-mode .match-search-box {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
         align-items: end;
-        gap: 0.75rem 1rem;
-        padding: 0.8rem 0.9rem;
+        gap: 0.65rem 0.95rem;
+        padding: 0.75rem 0.85rem;
       }
       .match-builder.is-results-mode .match-search-box .search-field {
         padding: 0.35rem 0;
@@ -300,14 +318,16 @@
         padding-inline: 1.1rem;
       }
       .match-builder.is-results-mode .match-launch-note {
-        grid-column: 1 / -1;
-        margin-top: -0.1rem;
+        display: none;
       }
       .match-builder.is-results-mode .match-refinements {
-        margin-top: 0.55rem;
+        margin-top: 0.7rem;
+        border-top: none;
+        padding-top: 0;
       }
       .match-builder.is-results-mode .match-refinements-title strong {
-        font-size: 0.88rem;
+        font-size: 1rem;
+        color: var(--navy);
       }
       .match-tool-kicker {
         display: inline-flex;
@@ -333,14 +353,294 @@
         text-align: center;
       }
       .match-builder.is-results-mode .match-tool-kicker {
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.18rem;
+        font-size: 0.68rem;
       }
       .match-builder.is-results-mode .match-tool-title {
-        font-size: clamp(1.05rem, 2vw, 1.2rem);
+        font-size: clamp(0.98rem, 1.6vw, 1.08rem);
+        line-height: 1.18;
       }
       .match-builder.is-results-mode .match-tool-copy {
-        margin: 0.4rem 0 0.55rem;
-        font-size: 0.88rem;
+        margin: 0.15rem 0 0.45rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        text-align: left;
+        max-width: 68ch;
+      }
+      .match-builder.is-results-mode .match-refinements {
+        border: 1px solid rgba(26, 122, 143, 0.11);
+        border-radius: 10px;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(26, 122, 143, 0.03),
+            rgba(26, 122, 143, 0.008) 34%,
+            transparent 62%
+          ),
+          linear-gradient(180deg, #fdfeff 0%, #ffffff 100%);
+        padding: 0.72rem 0.82rem 0.8rem;
+        box-shadow: 0 4px 12px rgba(10, 45, 56, 0.025);
+      }
+      .match-builder.is-results-mode .match-refinements summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 190px;
+        align-items: center;
+        min-height: 164px;
+        gap: 0.4rem 0.8rem;
+        padding-bottom: 0;
+        border-bottom: none;
+        pointer-events: auto;
+      }
+      .match-builder.is-results-mode .match-refinements-toggle {
+        display: none;
+      }
+      .match-builder.is-results-mode .match-refinements-title {
+        min-width: 0;
+        display: grid;
+        align-content: center;
+        gap: 0.42rem;
+      }
+      .match-refine-summary-copy {
+        display: grid;
+        gap: 0.18rem;
+      }
+      .match-builder.is-results-mode .match-refinement-grid {
+        padding-top: 0.8rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem 1rem;
+      }
+      .match-builder.is-results-mode .match-group[data-intake-field="bipolar_focus"],
+      .match-builder.is-results-mode .match-group[data-intake-field="preferred_modalities"],
+      .match-builder.is-results-mode .match-group[data-intake-field="population_fit"] {
+        grid-column: 1 / -1;
+      }
+      .match-builder.is-results-mode .match-refinement-actions {
+        padding-top: 0.8rem;
+      }
+      .match-refine-copy {
+        display: block;
+        color: var(--slate);
+        font-size: 0.8rem;
+        line-height: 1.35;
+        max-width: 44ch;
+      }
+      .match-refine-teaser-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.48rem;
+        max-width: 30rem;
+      }
+      .match-refine-teaser {
+        display: flex;
+        flex-direction: column;
+        gap: 0.18rem;
+        cursor: pointer;
+      }
+      .match-refine-teaser:focus-visible {
+        outline: 2px solid rgba(26, 122, 143, 0.5);
+        outline-offset: 4px;
+        border-radius: 12px;
+      }
+      .match-refine-teaser-label {
+        font-size: 0.54rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(85, 104, 118, 0.7);
+        padding-left: 0.1rem;
+      }
+      .match-refine-teaser-input {
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0.48rem 0.66rem;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 252, 253, 0.98));
+        color: rgba(85, 104, 118, 0.78);
+        font-size: 0.76rem;
+        line-height: 1.35;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 1px 1px rgba(10, 45, 56, 0.02);
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+      .match-refine-teaser-input strong {
+        color: rgba(85, 104, 118, 0.78);
+        font-weight: 600;
+      }
+      .match-refine-teaser-check {
+        display: flex;
+        align-items: center;
+        gap: 0.48rem;
+        min-height: 36px;
+        padding: 0.48rem 0.66rem;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 252, 253, 0.98));
+        color: rgba(85, 104, 118, 0.78);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 1px 1px rgba(10, 45, 56, 0.02);
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+      .match-refine-teaser:hover .match-refine-teaser-input,
+      .match-refine-teaser:hover .match-refine-teaser-check,
+      .match-refine-teaser:focus-visible .match-refine-teaser-input,
+      .match-refine-teaser:focus-visible .match-refine-teaser-check {
+        border-color: rgba(26, 122, 143, 0.28);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 8px 18px rgba(26, 122, 143, 0.08);
+        transform: translateY(-1px);
+      }
+      .match-refine-teaser-box {
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        border: 2px solid rgba(26, 122, 143, 0.34);
+        background: rgba(26, 122, 143, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+      .match-refine-teaser-box::after {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 2px;
+        background: var(--teal-dark);
+      }
+      .match-refine-teaser-check strong {
+        color: rgba(85, 104, 118, 0.78);
+        font-weight: 600;
+        font-size: 0.76rem;
+      }
+      .match-refinements-title strong {
+        display: block;
+        font-size: clamp(0.96rem, 1.4vw, 1.08rem);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        max-width: 28ch;
+      }
+      .match-refine-summary-action {
+        display: grid;
+        gap: 0;
+        align-content: center;
+        justify-items: stretch;
+        padding: 0;
+        align-self: stretch;
+        border-left: 1px solid rgba(14, 77, 95, 0.07);
+        padding-left: 0.8rem;
+      }
+      .match-refine-summary-action .btn-primary {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        font-size: 0.84rem;
+        font-weight: 800;
+        box-shadow: 0 8px 16px rgba(26, 122, 143, 0.14);
+      }
+      .match-refine-feature-intro {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .match-refine-feature-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+      }
+      .match-refine-feature-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 0.34rem 0.62rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .match-refine-feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+      }
+      .match-refine-submit-top {
+        width: auto;
+        min-width: 152px;
+        align-self: start;
+        padding-inline: 1.15rem;
+      }
+      .match-refine-feature-card {
+        padding: 0.82rem 0.85rem;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 77, 95, 0.1);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .match-refine-feature-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .match-refine-feature-title {
+        margin-top: 0.22rem;
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1.3;
+      }
+      .match-refine-feature-copy {
+        margin-top: 0.24rem;
+        font-size: 0.8rem;
+        line-height: 1.55;
+        color: var(--slate);
+      }
+      .match-refine-section {
+        display: grid;
+        gap: 0.8rem;
+        padding: 0.95rem;
+        border: 1px solid rgba(14, 77, 95, 0.09);
+        border-radius: 14px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(248, 251, 252, 0.92) 100%
+        );
+      }
+      .match-refine-section-header {
+        display: grid;
+        gap: 0.22rem;
+      }
+      .match-refine-section-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-refine-section-copy {
+        font-size: 0.81rem;
+        line-height: 1.5;
+        color: var(--slate);
+        max-width: 48ch;
+      }
+      .match-refine-section-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem 0.95rem;
       }
       .match-action-status {
         margin-top: 0.9rem;
@@ -355,12 +655,21 @@
         display: none;
       }
       .match-search-box {
-        background: #f7fbfc;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 0.9rem;
+        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+        border: 1px solid rgba(14, 77, 95, 0.09);
+        border-radius: 14px;
+        padding: 0.95rem;
         display: grid;
         gap: 0.9rem;
+        grid-column: 1 / -1;
+      }
+      .match-search-box::before {
+        content: "Core search";
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
       }
       .match-search-box .search-field {
         display: flex;
@@ -629,8 +938,8 @@
       }
       .match-group label,
       .match-section-label {
-        font-size: 0.76rem;
-        font-weight: 700;
+        font-size: 0.72rem;
+        font-weight: 800;
         color: var(--muted);
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -638,31 +947,33 @@
       .match-group input,
       .match-group select {
         width: 100%;
-        padding: 0.7rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
+        padding: 0.78rem 0.84rem;
+        border: 1px solid rgba(14, 77, 95, 0.14);
+        border-radius: 12px;
         font-size: 0.9rem;
         color: var(--navy);
         background: var(--white);
         font-family: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
       }
       .match-group input:focus,
       .match-group select:focus {
         border-color: var(--teal);
         outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 122, 143, 0.12);
       }
       .match-options {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-wrap: wrap;
         gap: 0.55rem;
       }
       .match-check {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.65rem 0.75rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
+        padding: 0.62rem 0.78rem;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        border-radius: 999px;
         color: var(--slate);
         font-size: 0.85rem;
         background: #fbfdfe;
@@ -829,18 +1140,17 @@
       }
       .match-refinement-actions {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         align-items: center;
         gap: 1rem;
         padding-top: 1rem;
+        grid-column: 1 / -1;
+        border-top: 1px solid rgba(14, 77, 95, 0.08);
       }
       .match-refinement-actions .btn-primary,
       .match-refinement-actions .btn-secondary {
         width: auto;
-      }
-      .match-refinement-actions .btn-primary {
-        padding: 0.82rem 1.25rem;
-        border-radius: 12px;
+        min-width: 220px;
       }
       .match-refinement-actions .btn-secondary {
         padding: 0.82rem 1.1rem;
@@ -1114,13 +1424,169 @@
       }
       .match-list {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 1.1rem;
         align-items: stretch;
       }
+      .match-summary-slider-shell,
       .match-summary-bar,
-      .match-card.lead-card {
+      .match-card-slider-shell {
         grid-column: 1 / -1;
+      }
+      .match-summary-slider-shell {
+        display: grid;
+        gap: 0.7rem;
+        position: relative;
+      }
+      .match-summary-slider-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+      }
+      .match-summary-slider-top .match-card-slider-nav {
+        display: none;
+      }
+      .match-summary-slider-track {
+        display: flex;
+        gap: 0.9rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 0.2rem;
+      }
+      .match-summary-slider-track::-webkit-scrollbar {
+        display: none;
+      }
+      .match-summary-slide {
+        flex: 0 0 100%;
+        min-width: 100%;
+        scroll-snap-align: start;
+      }
+      .match-summary-slide .match-summary-bar {
+        margin-bottom: 0;
+      }
+      .match-summary-slider-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        width: 54px;
+        height: 54px;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--navy);
+        box-shadow: 0 12px 24px rgba(14, 77, 95, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(14px);
+      }
+      .match-summary-slider-arrow:hover,
+      .match-summary-slider-arrow:focus-visible {
+        background: #ffffff;
+        color: var(--teal-dark);
+        outline: none;
+      }
+      .match-summary-slider-arrow:disabled {
+        opacity: 0.42;
+        cursor: default;
+      }
+      .match-summary-slider-arrow.is-prev {
+        left: -18px;
+      }
+      .match-summary-slider-arrow.is-next {
+        right: -18px;
+      }
+      .match-summary-slider-arrow-icon {
+        font-size: 1.35rem;
+        line-height: 1;
+        font-weight: 700;
+      }
+      .match-card-slider-shell {
+        display: grid;
+        gap: 0.7rem;
+      }
+      .match-card-slider-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+      }
+      .match-card-slider-title {
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-card-slider-copy {
+        margin-top: 0.18rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--slate);
+      }
+      .match-card-slider-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .match-card-slider-count {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .match-card-slider-nav {
+        display: flex;
+        gap: 0.45rem;
+      }
+      .match-card-slider-nav .btn-secondary {
+        width: auto;
+        min-width: 92px;
+        padding: 0.54rem 0.82rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+      }
+      .match-card-slider-track {
+        display: flex;
+        gap: 0.9rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 0.2rem;
+      }
+      .match-card-slider-track::-webkit-scrollbar {
+        display: none;
+      }
+      .match-card-slide {
+        flex: 0 0 100%;
+        min-width: 100%;
+        scroll-snap-align: start;
+      }
+      .match-card-slider-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.45rem;
+      }
+      .match-card-slider-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(14, 77, 95, 0.16);
+        padding: 0;
+        cursor: pointer;
+      }
+      .match-card-slider-dot.is-active {
+        background: var(--teal);
+        box-shadow: 0 0 0 4px rgba(26, 122, 143, 0.12);
       }
       .match-compare {
         margin-top: 1.1rem;
@@ -1179,6 +1645,21 @@
         display: flex;
         gap: 0.6rem;
         flex-wrap: wrap;
+      }
+      .compare-summary-history {
+        min-width: min(100%, 320px);
+        flex: 1 1 260px;
+        padding: 0.75rem 0.85rem;
+        border-radius: 14px;
+        border: 1px solid rgba(14, 77, 95, 0.08);
+        background: rgba(247, 251, 252, 0.94);
+        display: grid;
+        gap: 0.22rem;
+      }
+      .compare-summary-history-meta {
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--teal-dark);
       }
       .compare-summary-actions .btn-secondary,
       .compare-summary-actions .btn-primary {
@@ -2252,13 +2733,10 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
-        margin-top: 0.85rem;
+        margin-top: 0.72rem;
       }
       .match-summary-decision-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.8rem;
-        margin-top: 0.95rem;
+        display: none;
       }
       .match-summary-decision-card {
         display: grid;
@@ -3029,8 +3507,47 @@
         .match-pathframe-grid {
           grid-template-columns: 1fr;
         }
+        .match-refine-feature-grid,
+        .match-refine-section-grid {
+          grid-template-columns: 1fr;
+        }
+        .match-refine-feature-top {
+          flex-direction: column;
+        }
+        .match-refine-submit-top {
+          width: 100%;
+          min-width: 0;
+        }
+        .match-builder.is-results-mode .match-refinements summary {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .match-refine-summary-action {
+          width: 100%;
+          flex-basis: auto;
+        }
+        .match-refine-summary-action .btn-primary {
+          width: 100%;
+        }
+        .match-refine-teaser-grid {
+          grid-template-columns: 1fr;
+          max-width: none;
+        }
+        .match-refine-chip-row {
+          flex-wrap: wrap;
+          overflow: visible;
+        }
         .match-list {
           grid-template-columns: 1fr;
+        }
+        .match-card-slider-top {
+          align-items: flex-start;
+        }
+        .match-summary-slider-arrow.is-prev {
+          left: -10px;
+        }
+        .match-summary-slider-arrow.is-next {
+          right: -10px;
         }
         .match-snapshot-grid {
           grid-template-columns: 1fr;
@@ -3060,6 +3577,19 @@
         }
         .match-builder.is-results-mode .match-search-box {
           grid-template-columns: 1fr;
+        }
+        .match-summary-slider-arrow {
+          width: 46px;
+          height: 46px;
+          top: auto;
+          bottom: 18px;
+          transform: none;
+        }
+        .match-summary-slider-arrow.is-prev {
+          left: 12px;
+        }
+        .match-summary-slider-arrow.is-next {
+          right: 12px;
         }
         .match-builder.is-results-mode .match-search-btn {
           width: 100%;
@@ -3116,6 +3646,13 @@
         .match-summary-actions .btn-secondary,
         .match-summary-actions .btn-primary {
           width: 100%;
+        }
+        .match-card-slider-nav {
+          width: 100%;
+        }
+        .match-card-slider-nav .btn-secondary {
+          flex: 1 1 0;
+          min-width: 0;
         }
         .match-card-contact-grid {
           grid-template-columns: 1fr;
@@ -3362,325 +3899,320 @@
     <div class="match-layout">
       <section class="match-results">
         <div class="match-builder">
-          <div class="match-builder-header">
-            <h2>Start your match</h2>
-          </div>
           <form id="matchForm" class="match-form">
             <div class="match-tool-shell">
               <div class="match-tool-card">
-                <div class="match-pathframe">
-                  <div class="match-pathframe-header">
-                    <div class="match-pathframe-kicker">Start with the strongest default move</div>
-                    <div class="match-pathframe-title">Get to your first shortlist faster</div>
-                    <div class="match-pathframe-copy">
-                      You only need two answers to begin. The rest can wait until you want a more
-                      specific ranking, so the first step stays manageable.
-                    </div>
-                  </div>
-                  <div class="match-pathframe-grid" aria-label="Why this intake is low-friction">
-                    <div class="match-pathframe-card is-primary">
-                      <div class="match-pathframe-label">Required to begin</div>
-                      <div class="match-pathframe-card-title">Care type and ZIP code</div>
-                      <div class="match-pathframe-card-copy">
-                        That is enough to generate a useful first-pass shortlist without turning the
-                        opening step into a long intake.
-                      </div>
-                    </div>
-                    <div class="match-pathframe-card">
-                      <div class="match-pathframe-label">Optional later</div>
-                      <div class="match-pathframe-card-title">
-                        Insurance, format, budget, and preferences
-                      </div>
-                      <div class="match-pathframe-card-copy">
-                        Add these only when you want the shortlist to become tighter and more
-                        opinionated.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="match-search-box">
-                  <div class="search-field search-field--prompt" data-match-care-field>
-                    <label for="care_intent">Type of care</label>
-                    <select id="care_intent" name="care_intent" required>
-                      <option value="">What kind of care do you want first?</option>
-                      <option value="Therapy">Therapy</option>
-                      <option value="Psychiatry">Psychiatry</option>
-                    </select>
-                  </div>
-
-                  <div class="search-field search-field--zip" data-intake-field="location_query">
-                    <label for="location_query">Enter your ZIP code</label>
-                    <div class="match-zip-inline">
-                      <input
-                        id="location_query"
-                        name="location_query"
-                        type="text"
-                        placeholder="Enter your ZIP code"
-                        inputmode="numeric"
-                        required
-                      />
-                      <span
-                        class="match-zip-resolved"
-                        id="matchZipResolved"
-                        aria-live="polite"
-                      ></span>
-                    </div>
-                  </div>
-
-                  <div class="match-launch-note">Currently matching California ZIP codes.</div>
-                  <button type="submit" class="match-search-btn" id="matchSearchButton">
-                    See my matches
-                  </button>
-                </div>
-                <div class="match-start-helper" id="matchStartHelper">
-                  <strong>Next:</strong> choose your care type and California ZIP code to begin
-                  without overfilling the form.
-                </div>
-                <div class="match-intake-preview-grid" aria-label="Live intake guidance">
-                  <div class="match-intake-preview-card">
-                    <div class="match-intake-preview-label">Right now</div>
-                    <div class="match-intake-preview-title" id="matchPreviewStateTitle">
-                      Start with the two required answers.
-                    </div>
-                    <div class="match-intake-preview-copy" id="matchPreviewStateCopy">
-                      Care type and ZIP do most of the early narrowing before you add preferences.
-                    </div>
-                  </div>
-                  <div class="match-intake-preview-card">
-                    <div class="match-intake-preview-label">What the first pass should do</div>
-                    <div class="match-intake-preview-title" id="matchPreviewConfidenceTitle">
-                      Give you a calmer starting shortlist.
-                    </div>
-                    <div class="match-intake-preview-copy" id="matchPreviewConfidenceCopy">
-                      The first result should make the search feel lighter, not force every answer
-                      up front.
-                    </div>
-                  </div>
-                  <div class="match-intake-preview-card">
-                    <div class="match-intake-preview-label">What can wait</div>
-                    <div class="match-intake-preview-title" id="matchPreviewNextTitle">
-                      Optional preferences can come after the first pass.
-                    </div>
-                    <div class="match-intake-preview-copy" id="matchPreviewNextCopy">
-                      Insurance, format, and medication details help tighten later if the shortlist
-                      still feels too broad.
-                    </div>
-                  </div>
-                </div>
-                <div class="match-start-promise">
-                  <div class="match-start-promise-label">What this should do for you</div>
-                  <div class="match-start-promise-copy">
-                    The first shortlist should make the search feel lighter by giving you a smaller,
-                    more decision-ready place to start from.
-                  </div>
-                </div>
-                <div class="match-start-trust" aria-label="Match trust signals">
-                  <div class="match-start-pill">Only care type and ZIP are required</div>
-                  <div class="match-start-pill">Optional preferences can wait</div>
-                </div>
-                <div class="match-action-status" id="matchActionStatus" aria-live="polite">
-                  Run a match to review your top options.
-                </div>
                 <details class="match-refinements">
                   <summary>
-                    <span class="match-refinements-title">
-                      <strong>Want a more specific match?</strong>
-                    </span>
-                    <span class="match-refinements-toggle" aria-hidden="true"></span>
+                    <div class="match-refinements-title">
+                      <div class="match-refine-summary-copy">
+                        <strong>Refine this shortlist before you reach out</strong>
+                        <span class="match-refine-copy"
+                          >Use insurance, telehealth, budget, and fit details to tighten the
+                          ranking.</span
+                        >
+                      </div>
+                      <div class="match-refine-teaser-grid" aria-label="Advanced filter preview">
+                        <div
+                          class="match-refine-teaser"
+                          data-refine-teaser="insurance"
+                          data-refine-target="insurance"
+                          role="button"
+                          tabindex="0"
+                        >
+                          <span class="match-refine-teaser-label">Insurance</span>
+                          <span class="match-refine-teaser-input"
+                            ><strong>Aetna, Blue Shield, Medi-Cal</strong></span
+                          >
+                        </div>
+                        <div
+                          class="match-refine-teaser"
+                          data-refine-teaser="telehealth"
+                          data-refine-target="care_format"
+                          data-refine-value="Telehealth"
+                          role="button"
+                          tabindex="0"
+                        >
+                          <span class="match-refine-teaser-label">Telehealth</span>
+                          <span class="match-refine-teaser-check"
+                            ><span class="match-refine-teaser-box" aria-hidden="true"></span
+                            ><strong>Open to telehealth</strong></span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="match-refine-summary-action">
+                      <button type="button" class="btn-primary" id="openAdvancedFiltersButton">
+                        Refine my search
+                      </button>
+                    </div>
                   </summary>
                   <div class="match-refinement-grid">
-                    <div class="match-group" data-intake-field="insurance">
-                      <label for="insurance">Insurance or Payment Preference</label>
-                      <input
-                        id="insurance"
-                        name="insurance"
-                        type="text"
-                        placeholder="Aetna, Medicaid, Self-Pay"
-                      />
-                    </div>
+                    <div class="match-search-box">
+                      <div class="search-field search-field--prompt" data-match-care-field>
+                        <label for="care_intent">Type of care</label>
+                        <select id="care_intent" name="care_intent" required>
+                          <option value="">What kind of care do you want first?</option>
+                          <option value="Therapy">Therapy</option>
+                          <option value="Psychiatry">Psychiatry</option>
+                        </select>
+                      </div>
 
-                    <div class="match-group" data-intake-field="language_preferences">
-                      <label for="language_preferences">Language Preferences</label>
-                      <input
-                        id="language_preferences"
-                        name="language_preferences"
-                        type="text"
-                        placeholder="English, Spanish"
-                      />
-                    </div>
-
-                    <div class="match-group" data-intake-field="care_format">
-                      <label for="care_format">How do you want to meet?</label>
-                      <select id="care_format" name="care_format">
-                        <option>In-Person</option>
-                        <option>Telehealth</option>
-                      </select>
-                    </div>
-
-                    <div class="match-group" data-intake-field="needs_medication_management">
-                      <label for="needs_medication_management"
-                        >Do you need medication management?</label
+                      <div
+                        class="search-field search-field--zip"
+                        data-intake-field="location_query"
                       >
-                      <select id="needs_medication_management" name="needs_medication_management">
-                        <option>Open to either</option>
-                        <option>Yes</option>
-                        <option>No</option>
-                      </select>
-                    </div>
-
-                    <div class="match-group" data-intake-field="budget_max">
-                      <label for="budget_max">Budget Max Per Session</label>
-                      <input
-                        id="budget_max"
-                        name="budget_max"
-                        type="number"
-                        min="0"
-                        placeholder="150"
-                      />
-                    </div>
-
-                    <div class="match-group" data-intake-field="priority_mode">
-                      <label for="priority_mode">What matters most right now?</label>
-                      <select id="priority_mode" name="priority_mode">
-                        <option>Best overall fit</option>
-                        <option>Soonest availability</option>
-                        <option>Lowest cost</option>
-                        <option>Highest specialization</option>
-                      </select>
-                    </div>
-
-                    <div class="match-group" data-intake-field="bipolar_focus">
-                      <div class="match-section-label">Bipolar Focus</div>
-                      <div class="match-options">
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Bipolar I" /> Bipolar
-                          I</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Bipolar II" /> Bipolar
-                          II</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Cyclothymia" />
-                          Cyclothymia</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Rapid Cycling" />
-                          Rapid Cycling</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Mixed Episodes" />
-                          Mixed Episodes</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Psychosis" />
-                          Psychosis</label
-                        >
-                        <label class="match-check"
-                          ><input
-                            type="checkbox"
-                            name="bipolar_focus"
-                            value="Medication Management"
+                        <label for="location_query">Enter your ZIP code</label>
+                        <div class="match-zip-inline">
+                          <input
+                            id="location_query"
+                            name="location_query"
+                            type="text"
+                            placeholder="Enter your ZIP code"
+                            inputmode="numeric"
+                            required
                           />
-                          Medication Mgmt</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="bipolar_focus" value="Family Support" />
-                          Family Support</label
-                        >
+                          <span
+                            class="match-zip-resolved"
+                            id="matchZipResolved"
+                            aria-live="polite"
+                          ></span>
+                        </div>
                       </div>
+
+                      <div class="match-launch-note">Currently matching California ZIP codes.</div>
                     </div>
 
-                    <div class="match-group" data-intake-field="preferred_modalities">
-                      <div class="match-section-label">Preferred Modalities</div>
-                      <div class="match-options">
-                        <label class="match-check"
-                          ><input type="checkbox" name="preferred_modalities" value="CBT" />
-                          CBT</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="preferred_modalities" value="DBT" />
-                          DBT</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="preferred_modalities" value="IPSRT" />
-                          IPSRT</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="preferred_modalities" value="ACT" />
-                          ACT</label
-                        >
-                        <label class="match-check"
-                          ><input
-                            type="checkbox"
-                            name="preferred_modalities"
-                            value="Family therapy"
-                          />
-                          Family therapy</label
-                        >
-                        <label class="match-check"
-                          ><input
-                            type="checkbox"
-                            name="preferred_modalities"
-                            value="Mindfulness-based therapy"
-                          />
-                          Mindfulness</label
-                        >
-                        <label class="match-check"
-                          ><input
-                            type="checkbox"
-                            name="preferred_modalities"
-                            value="Psychoeducation"
-                          />
-                          Psychoeducation</label
-                        >
+                    <section class="match-refine-section">
+                      <div class="match-refine-section-header">
+                        <div class="match-refine-section-title">Practical fit</div>
+                        <div class="match-refine-section-copy">
+                          Set the real-world constraints that usually decide whether outreach feels
+                          worth it.
+                        </div>
                       </div>
-                    </div>
+                      <div class="match-refine-section-grid">
+                        <div class="match-group" data-intake-field="insurance">
+                          <label for="insurance">Insurance or Payment Preference</label>
+                          <input
+                            id="insurance"
+                            name="insurance"
+                            type="text"
+                            placeholder="Aetna, Medicaid, Self-Pay"
+                          />
+                        </div>
 
-                    <div class="match-group" data-intake-field="population_fit">
-                      <div class="match-section-label">Population Fit</div>
-                      <div class="match-options">
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Adults" />
-                          Adults</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Young adults" />
-                          Young adults</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Adolescents" />
-                          Adolescents</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Couples" />
-                          Couples</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Families" />
-                          Families</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="Professionals" />
-                          Professionals</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="College students" />
-                          College students</label
-                        >
-                        <label class="match-check"
-                          ><input type="checkbox" name="population_fit" value="LGBTQ+" />
-                          LGBTQ+</label
-                        >
+                        <div class="match-group" data-intake-field="language_preferences">
+                          <label for="language_preferences">Language Preferences</label>
+                          <input
+                            id="language_preferences"
+                            name="language_preferences"
+                            type="text"
+                            placeholder="English, Spanish"
+                          />
+                        </div>
+
+                        <div class="match-group" data-intake-field="budget_max">
+                          <label for="budget_max">Budget Max Per Session</label>
+                          <input
+                            id="budget_max"
+                            name="budget_max"
+                            type="number"
+                            min="0"
+                            placeholder="150"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    </section>
+
+                    <section class="match-refine-section">
+                      <div class="match-refine-section-header">
+                        <div class="match-refine-section-title">How care works</div>
+                        <div class="match-refine-section-copy">
+                          Narrow by format, medication support, and what matters most right now.
+                        </div>
+                      </div>
+                      <div class="match-refine-section-grid">
+                        <div class="match-group" data-intake-field="care_format">
+                          <label for="care_format">How do you want to meet?</label>
+                          <select id="care_format" name="care_format">
+                            <option>In-Person</option>
+                            <option>Telehealth</option>
+                          </select>
+                        </div>
+
+                        <div class="match-group" data-intake-field="needs_medication_management">
+                          <label for="needs_medication_management"
+                            >Do you need medication management?</label
+                          >
+                          <select
+                            id="needs_medication_management"
+                            name="needs_medication_management"
+                          >
+                            <option>Open to either</option>
+                            <option>Yes</option>
+                            <option>No</option>
+                          </select>
+                        </div>
+
+                        <div class="match-group" data-intake-field="priority_mode">
+                          <label for="priority_mode">What matters most right now?</label>
+                          <select id="priority_mode" name="priority_mode">
+                            <option>Best overall fit</option>
+                            <option>Soonest availability</option>
+                            <option>Lowest cost</option>
+                            <option>Highest specialization</option>
+                          </select>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="match-refine-section">
+                      <div class="match-refine-section-header">
+                        <div class="match-refine-section-title">Clinical fit</div>
+                        <div class="match-refine-section-copy">
+                          Go deeper on bipolar focus, therapy style, and population fit when you
+                          want a sharper shortlist.
+                        </div>
+                      </div>
+                      <div class="match-refinement-grid">
+                        <div class="match-group" data-intake-field="bipolar_focus">
+                          <div class="match-section-label">Bipolar Focus</div>
+                          <div class="match-options">
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Bipolar I" />
+                              Bipolar I</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Bipolar II" />
+                              Bipolar II</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Cyclothymia" />
+                              Cyclothymia</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Rapid Cycling" />
+                              Rapid Cycling</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Mixed Episodes" />
+                              Mixed Episodes</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Psychosis" />
+                              Psychosis</label
+                            >
+                            <label class="match-check"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Medication Management"
+                              />
+                              Medication Mgmt</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="bipolar_focus" value="Family Support" />
+                              Family Support</label
+                            >
+                          </div>
+                        </div>
+
+                        <div class="match-group" data-intake-field="preferred_modalities">
+                          <div class="match-section-label">Preferred Modalities</div>
+                          <div class="match-options">
+                            <label class="match-check"
+                              ><input type="checkbox" name="preferred_modalities" value="CBT" />
+                              CBT</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="preferred_modalities" value="DBT" />
+                              DBT</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="preferred_modalities" value="IPSRT" />
+                              IPSRT</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="preferred_modalities" value="ACT" />
+                              ACT</label
+                            >
+                            <label class="match-check"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="Family therapy"
+                              />
+                              Family therapy</label
+                            >
+                            <label class="match-check"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="Mindfulness-based therapy"
+                              />
+                              Mindfulness</label
+                            >
+                            <label class="match-check"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="Psychoeducation"
+                              />
+                              Psychoeducation</label
+                            >
+                          </div>
+                        </div>
+
+                        <div class="match-group" data-intake-field="population_fit">
+                          <div class="match-section-label">Population Fit</div>
+                          <div class="match-options">
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Adults" />
+                              Adults</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Young adults" />
+                              Young adults</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Adolescents" />
+                              Adolescents</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Couples" />
+                              Couples</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Families" />
+                              Families</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="Professionals" />
+                              Professionals</label
+                            >
+                            <label class="match-check"
+                              ><input
+                                type="checkbox"
+                                name="population_fit"
+                                value="College students"
+                              />
+                              College students</label
+                            >
+                            <label class="match-check"
+                              ><input type="checkbox" name="population_fit" value="LGBTQ+" />
+                              LGBTQ+</label
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </section>
                   </div>
                   <input type="hidden" id="urgency" name="urgency" value="ASAP" />
                   <div class="match-refinement-actions">
                     <button type="submit" class="btn-primary" id="refinementSubmitButton">
-                      See my top matches
+                      Update my matches
                     </button>
-                    <button type="button" class="btn-secondary" id="resetMatch">Reset</button>
                   </div>
                 </details>
               </div>

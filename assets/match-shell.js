@@ -2,28 +2,28 @@ var matchShellRefs = null;
 
 var MATCH_JOURNEY_COPY = {
   intake: {
-    builderTitle: "Start your match",
-    kicker: "Only two answers required to begin",
-    title: "Get to your first shortlist faster",
-    copy: "Pick the type of support you want and enter your ZIP code. We’ll start with the strongest shortlist we can build from there.",
-    searchButton: "See my matches",
-    refinementButton: "See my top matches",
+    builderTitle: "Refine your match",
+    kicker: "Start broad, then narrow fast",
+    title: "Use a few practical details to shape a better shortlist",
+    copy: "Your broad match starts on the homepage. This page helps you tighten the shortlist around how you want care to work.",
+    searchButton: "Refine my search",
+    refinementButton: "Update my matches",
   },
   starterResults: {
-    builderTitle: "Get a more specific match",
-    kicker: "These are strong starting providers",
-    title: "Add your details only if you want a tighter, more personalized fit",
-    copy: "Start with the providers below, or add your ZIP code, insurance, format, or medication needs to narrow the match further.",
-    searchButton: "Update shortlist",
-    refinementButton: "Update shortlist",
+    builderTitle: "Refine your match",
+    kicker: "Narrow the shortlist",
+    title: "Add the details that matter most and rerun the ranking here",
+    copy: "You already started on the homepage. Use these filters to make the current matches feel more specific, practical, and trustworthy.",
+    searchButton: "Refine my search",
+    refinementButton: "Update my matches",
   },
   personalizedResults: {
-    builderTitle: "Get a more specific match",
-    kicker: "Your homepage answers are already applied",
-    title: "Only adjust these answers if you want a tighter fit",
-    copy: "You already have a ranked starting point below. Change anything here only if you want to narrow, widen, or rerun the match.",
-    searchButton: "Update shortlist",
-    refinementButton: "Update shortlist",
+    builderTitle: "Refine your match",
+    kicker: "Tune this shortlist",
+    title: "Change the filters that will sharpen who rises to the top",
+    copy: "Use these controls to narrow the shortlist around cost, format, timing, and clinical fit without starting over.",
+    searchButton: "Refine my search",
+    refinementButton: "Update my matches",
   },
 };
 
@@ -32,13 +32,23 @@ export function getMatchShellRefs() {
     return matchShellRefs;
   }
 
+  var builder = document.querySelector(".match-builder");
+  var builderAnchor = null;
+  if (builder && builder.parentNode) {
+    builderAnchor = document.createElement("div");
+    builderAnchor.hidden = true;
+    builderAnchor.setAttribute("data-match-builder-anchor", "true");
+    builder.parentNode.insertBefore(builderAnchor, builder);
+  }
+
   matchShellRefs = {
-    builder: document.querySelector(".match-builder"),
+    builder: builder,
+    builderAnchor: builderAnchor,
     builderTitle: document.querySelector(".match-builder-header h2"),
     kicker: document.querySelector(".match-tool-kicker"),
     title: document.querySelector(".match-tool-title"),
     copy: document.querySelector(".match-tool-copy"),
-    searchButton: document.getElementById("matchSearchButton"),
+    searchButton: document.getElementById("openAdvancedFiltersButton"),
     refinementSubmitButton: document.getElementById("refinementSubmitButton"),
     refinements: document.querySelector(".match-refinements"),
     resultsRoot: document.getElementById("matchResults"),
@@ -55,6 +65,37 @@ export function getMatchShellRefs() {
   };
 
   return matchShellRefs;
+}
+
+export function placeBuilderInResults(resultsRoot) {
+  var refs = getMatchShellRefs();
+  if (!refs.builder || !resultsRoot) {
+    return;
+  }
+
+  refs.builder.classList.add("is-inline-results");
+  var summaryBar = resultsRoot.querySelector(".match-summary-slider-shell, .match-summary-bar");
+  if (summaryBar && summaryBar.nextSibling) {
+    resultsRoot.insertBefore(refs.builder, summaryBar.nextSibling);
+    return;
+  }
+
+  if (summaryBar) {
+    resultsRoot.appendChild(refs.builder);
+    return;
+  }
+
+  resultsRoot.insertBefore(refs.builder, resultsRoot.firstChild || null);
+}
+
+export function restoreBuilderPlacement() {
+  var refs = getMatchShellRefs();
+  if (!refs.builder || !refs.builderAnchor || !refs.builderAnchor.parentNode) {
+    return;
+  }
+
+  refs.builder.classList.remove("is-inline-results");
+  refs.builderAnchor.parentNode.insertBefore(refs.builder, refs.builderAnchor.nextSibling);
 }
 
 export function renderMatchLandingShell() {
@@ -125,8 +166,11 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
   if (refs.refinementSubmitButton) {
     refs.refinementSubmitButton.textContent = config.refinementButton;
   }
-  if (mode === "results" && refs.refinements) {
-    refs.refinements.open = false;
+  if (refs.refinements) {
+    refs.refinements.open = mode === "results";
+  }
+  if (mode !== "results") {
+    restoreBuilderPlacement();
   }
 }
 
