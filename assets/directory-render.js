@@ -348,6 +348,8 @@ export function renderCardMarkup(options) {
 
 export function renderShortlistBarMarkup(options) {
   var model = options.model;
+  var undoState = options.undoState || null;
+  var historyState = options.historyState || null;
   if (!model.shortlist.length) {
     return {
       html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave quick notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved shortlist stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
@@ -396,6 +398,46 @@ export function renderShortlistBarMarkup(options) {
           card.pruneCopy ||
             "Drop this if the newer signal is clearly weaker than the old save reason.",
         ) +
+        "</div>" +
+        (card.replacement
+          ? '<div class="shortlist-compare-replacement"><div class="shortlist-compare-replacement-label">' +
+            escapeHtml(card.replacement.roleLabel || "Best replacement if you drop this") +
+            '</div><div class="shortlist-compare-replacement-name">' +
+            escapeHtml(card.replacement.name) +
+            '</div><div class="shortlist-compare-replacement-meta">' +
+            escapeHtml(card.replacement.meta) +
+            '</div><div class="shortlist-compare-replacement-copy">' +
+            escapeHtml(card.replacement.reason) +
+            '</div><div class="shortlist-compare-replacement-edge">' +
+            escapeHtml(card.replacement.edgeCopy || "") +
+            '</div><div class="shortlist-replacement-confidence tone-' +
+            escapeHtml(
+              (card.replacement.confidence && card.replacement.confidence.tone) || "soft",
+            ) +
+            '"><div class="shortlist-replacement-confidence-label">' +
+            escapeHtml(
+              (card.replacement.confidence && card.replacement.confidence.label) ||
+                "Replacement confidence",
+            ) +
+            '</div><div class="shortlist-replacement-confidence-copy">' +
+            escapeHtml(
+              (card.replacement.confidence && card.replacement.confidence.copy) ||
+                "Review this replacement before you reshape the shortlist.",
+            ) +
+            '</div><div class="shortlist-compare-replacement-next">' +
+            escapeHtml(card.replacement.nextStep) +
+            '</div><div class="shortlist-compare-replacement-actions"><a href="' +
+            escapeHtml(buildTherapistProfileHref(card.replacement.slug, "shortlist_replacement")) +
+            '" class="shortlist-compare-link">' +
+            escapeHtml("Review replacement") +
+            '</a><button type="button" class="shortlist-compare-replace" data-shortlist-replace="' +
+            escapeHtml(card.therapist.slug) +
+            '" data-shortlist-replacement-slug="' +
+            escapeHtml(card.replacement.slug) +
+            '">' +
+            escapeHtml(card.replacement.cta || "Use this as replacement") +
+            "</button></div></div>"
+          : "") +
         '</div></div><div class="shortlist-compare-actions">' +
         '<a href="' +
         escapeHtml(buildTherapistProfileHref(card.therapist.slug, "shortlist_card")) +
@@ -440,6 +482,83 @@ export function renderShortlistBarMarkup(options) {
     })
     .join("");
 
+  var reshapingCards = (model.reshapingSuggestions || [])
+    .map(function (item) {
+      return (
+        '<article class="shortlist-queue-card shortlist-reshaping-card"><div class="shortlist-queue-kicker">' +
+        escapeHtml(item.title) +
+        '</div><div class="shortlist-queue-name">' +
+        escapeHtml(item.name) +
+        '</div><div class="shortlist-queue-meta">' +
+        escapeHtml(item.meta) +
+        '</div><div class="shortlist-queue-copy">' +
+        escapeHtml(item.reason) +
+        '</div><div class="shortlist-compare-replacement-edge">' +
+        escapeHtml(item.edgeCopy || "") +
+        '</div><div class="shortlist-replacement-confidence tone-' +
+        escapeHtml((item.confidence && item.confidence.tone) || "soft") +
+        '"><div class="shortlist-replacement-confidence-label">' +
+        escapeHtml((item.confidence && item.confidence.label) || "Replacement confidence") +
+        '</div><div class="shortlist-replacement-confidence-copy">' +
+        escapeHtml(
+          (item.confidence && item.confidence.copy) ||
+            "Review this replacement before you reshape the shortlist.",
+        ) +
+        '</div><div class="shortlist-queue-next-step">' +
+        escapeHtml(item.nextStep) +
+        '</div><div class="shortlist-reshaping-note">' +
+        escapeHtml(item.description) +
+        '</div><div class="shortlist-compare-actions"><a href="' +
+        escapeHtml(buildTherapistProfileHref(item.slug, "shortlist_reshaping")) +
+        '" class="shortlist-compare-link">Review candidate</a><button type="button" class="shortlist-compare-replace" data-shortlist-fill="' +
+        escapeHtml(item.slug) +
+        '">' +
+        escapeHtml(item.cta) +
+        "</button></div></article>"
+      );
+    })
+    .join("");
+  var reshapingSummary = model.reshapingSummary
+    ? '<div class="shortlist-reshaping-summary"><div class="shortlist-section-kicker">' +
+      escapeHtml(model.reshapingSummary.title) +
+      '</div><div class="shortlist-reshaping-summary-copy">' +
+      escapeHtml(model.reshapingSummary.intro) +
+      '</div><div class="shortlist-reshaping-summary-list">' +
+      (model.reshapingSummary.bullets || [])
+        .map(function (item) {
+          return '<div class="shortlist-reshaping-summary-item">' + escapeHtml(item) + "</div>";
+        })
+        .join("") +
+      "</div>" +
+      (model.reshapingPlan && model.reshapingPlan.changed
+        ? '<div class="shortlist-reshaping-review"><div class="shortlist-replacement-confidence-label">' +
+          escapeHtml(
+            (model.reshapingReview && model.reshapingReview.title) ||
+              "Review the reshape before applying it",
+          ) +
+          '</div><div class="shortlist-reshaping-review-grid">' +
+          ((model.reshapingReview && model.reshapingReview.rows) || [])
+            .map(function (row) {
+              return (
+                '<div class="shortlist-reshaping-review-row' +
+                (row.changed ? " is-changed" : "") +
+                '"><div class="shortlist-reshaping-review-slot">' +
+                escapeHtml(row.label) +
+                '</div><div class="shortlist-reshaping-review-before">' +
+                escapeHtml(row.beforeName) +
+                '</div><div class="shortlist-reshaping-review-arrow">→</div><div class="shortlist-reshaping-review-after">' +
+                escapeHtml(row.afterName) +
+                "</div></div>"
+              );
+            })
+            .join("") +
+          '</div><div class="shortlist-reshaping-summary-actions"><button type="button" class="shortlist-compare-replace" data-shortlist-apply-reshaping="' +
+          escapeHtml(encodeURIComponent(JSON.stringify(model.reshapingPlan.entries || []))) +
+          '">Apply recommended reshape</button></div></div>'
+        : "") +
+      "</div>"
+    : "";
+
   return {
     html:
       '<div class="shortlist-bar-copy"><strong>' +
@@ -464,6 +583,15 @@ export function renderShortlistBarMarkup(options) {
       (model.outreachQueueNote
         ? '<span class="shortlist-bar-progress">' + escapeHtml(model.outreachQueueNote) + "</span>"
         : "") +
+      (historyState && historyState.summary
+        ? '<div class="shortlist-reshaping-history"><div class="shortlist-section-kicker">' +
+          escapeHtml(historyState.title || "Last shortlist reshape") +
+          '</div><div class="shortlist-reshaping-history-copy">' +
+          escapeHtml(historyState.summary) +
+          '</div><div class="shortlist-reshaping-history-meta">' +
+          escapeHtml(historyState.meta || "") +
+          "</div></div>"
+        : "") +
       '</div><div class="shortlist-bar-actions"><a href="' +
       escapeHtml(model.outreachQueueUrl) +
       '" class="card-action-primary shortlist-bar-primary" data-start-outreach-queue="true"' +
@@ -474,10 +602,22 @@ export function renderShortlistBarMarkup(options) {
       escapeHtml(model.outreachQueueLabel || "Start outreach queue") +
       '</a><a href="' +
       escapeHtml(model.compareUrl) +
-      '" class="shortlist-bar-link">Compare details</a><button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
+      '" class="shortlist-bar-link">Compare details</a>' +
+      (undoState && undoState.canUndo
+        ? '<button type="button" class="shortlist-bar-link shortlist-bar-undo" id="undoDirectoryReshape">' +
+          escapeHtml(undoState.label || "Undo reshape") +
+          "</button>"
+        : "") +
+      '<button type="button" class="shortlist-bar-clear" id="clearDirectoryShortlist">Clear</button></div>' +
       (queueCards
         ? '<div class="shortlist-queue-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Decision queue</div><div class="shortlist-section-title">Start with the lead, keep the backup close.</div></div><div class="shortlist-queue-grid">' +
           queueCards +
+          "</div></div>"
+        : "") +
+      (reshapingCards
+        ? '<div class="shortlist-queue-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Reshape the shortlist</div><div class="shortlist-section-title">If a saved option weakens, these are the strongest candidates to take the open lead, backup, or reserve slot next.</div></div><div class="shortlist-queue-grid">' +
+          reshapingSummary +
+          reshapingCards +
           "</div></div>"
         : "") +
       (compareRows

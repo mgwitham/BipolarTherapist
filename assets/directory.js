@@ -42,6 +42,7 @@ import {
 (async function () {
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+  var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
   var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
@@ -78,6 +79,8 @@ import {
   var filters = { ...defaultFilters };
   var shortlist = readShortlist();
   var pendingMotionSlug = "";
+  var lastReshapeSnapshot = null;
+  var lastReshapeHistory = readReshapeHistory();
   var FILTER_PRESETS = {
     trusted_fast: {
       verification: "editorially_verified",
@@ -288,6 +291,132 @@ import {
     }
   }
 
+  function readReshapeHistory() {
+    try {
+      return JSON.parse(window.localStorage.getItem(SHORTLIST_RESHAPE_HISTORY_KEY) || "null");
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeReshapeHistory(value) {
+    lastReshapeHistory = value || null;
+    try {
+      if (!value) {
+        window.localStorage.removeItem(SHORTLIST_RESHAPE_HISTORY_KEY);
+        return;
+      }
+      window.localStorage.setItem(SHORTLIST_RESHAPE_HISTORY_KEY, JSON.stringify(value));
+    } catch (_error) {
+      return;
+    }
+  }
+
+  function formatOutcomeLabel(outcome) {
+    var labels = {
+      reached_out: "Reached out",
+      heard_back: "Heard back",
+      booked_consult: "Booked consult",
+      good_fit_call: "Good fit call",
+      insurance_mismatch: "Insurance mismatch",
+      waitlist: "Waitlist",
+      no_response: "No response yet",
+    };
+    return labels[String(outcome || "")] || "";
+  }
+
+  function getLatestOutcomeBySlug(slugs) {
+    var target = new Set((Array.isArray(slugs) ? slugs : []).filter(Boolean));
+    if (!target.size) {
+      return {};
+    }
+    return readOutreachOutcomes()
+      .slice()
+      .sort(function (a, b) {
+        return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
+      })
+      .reduce(function (map, item) {
+        if (!item || !item.therapist_slug || !target.has(item.therapist_slug)) {
+          return map;
+        }
+        if (!map[item.therapist_slug]) {
+          map[item.therapist_slug] = item;
+        }
+        return map;
+      }, {});
+  }
+
+  function buildReshapeHistoryPayload(beforeEntries, afterEntries) {
+    var beforeLead = beforeEntries[0] ? getTherapistName(beforeEntries[0].slug) : "open lead slot";
+    var afterLead = afterEntries[0] ? getTherapistName(afterEntries[0].slug) : "open lead slot";
+    var beforeBackup = beforeEntries[1] ? getTherapistName(beforeEntries[1].slug) : "no backup";
+    var afterBackup = afterEntries[1] ? getTherapistName(afterEntries[1].slug) : "no backup";
+    var changedCount = afterEntries.filter(function (item, index) {
+      var before = beforeEntries[index];
+      return !before || before.slug !== item.slug;
+    }).length;
+    var changedIn = afterEntries
+      .filter(function (item, index) {
+        var before = beforeEntries[index];
+        return item && (!before || before.slug !== item.slug);
+      })
+      .map(function (item) {
+        return item.slug;
+      });
+    var changedOut = beforeEntries
+      .filter(function (item, index) {
+        var after = afterEntries[index];
+        return item && (!after || after.slug !== item.slug);
+      })
+      .map(function (item) {
+        return item.slug;
+      });
+    var latestBySlug = getLatestOutcomeBySlug(changedIn.concat(changedOut));
+    var promotedSlug = changedIn[0] || "";
+    var demotedSlug = changedOut[0] || "";
+    var promotedOutcome = promotedSlug ? latestBySlug[promotedSlug] : null;
+    var demotedOutcome = demotedSlug ? latestBySlug[demotedSlug] : null;
+    var promotedLabel = promotedOutcome ? formatOutcomeLabel(promotedOutcome.outcome) : "";
+    var demotedLabel = demotedOutcome ? formatOutcomeLabel(demotedOutcome.outcome) : "";
+    var driver = "";
+
+    if (promotedLabel) {
+      driver =
+        "Driver: " +
+        promotedLabel +
+        " on " +
+        getTherapistName(promotedSlug) +
+        " made that route easier to prioritize.";
+    } else if (demotedLabel) {
+      driver =
+        "Driver: " +
+        demotedLabel +
+        " on " +
+        getTherapistName(demotedSlug) +
+        " weakened the older saved order.";
+    }
+
+    return {
+      title: "Last shortlist reshape",
+      summary:
+        "You moved the queue from " +
+        beforeLead +
+        " leading with " +
+        beforeBackup +
+        " as backup to " +
+        afterLead +
+        " leading with " +
+        afterBackup +
+        " as backup.",
+      meta:
+        (driver ? driver + " " : "") +
+        changedCount +
+        " slot" +
+        (changedCount === 1 ? "" : "s") +
+        " changed in the most recent reshaping pass.",
+    };
+  }
+
   function getShortlistOutreachProgress() {
     var slugs = shortlist.map(function (item) {
       return item.slug;
@@ -471,6 +600,8 @@ import {
   }
 
   function toggleShortlist(slug) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
     if (isShortlisted(slug)) {
       trackFunnelEvent("directory_shortlist_removed", {
         therapist_slug: slug,
@@ -492,6 +623,8 @@ import {
   }
 
   function removeShortlistEntry(slug) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
     writeShortlist(
       shortlist.filter(function (item) {
         return item.slug !== slug;
@@ -499,7 +632,69 @@ import {
     );
   }
 
+  function replaceShortlistEntry(slugToRemove, replacementSlug) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
+    var removedEntry = shortlist.find(function (item) {
+      return item.slug === slugToRemove;
+    });
+    var next = shortlist
+      .filter(function (item) {
+        return item.slug !== slugToRemove && item.slug !== replacementSlug;
+      })
+      .concat({
+        slug: replacementSlug,
+        priority: removedEntry ? String(removedEntry.priority || "") : "",
+        note: "",
+      })
+      .slice(0, 3);
+
+    writeShortlist(next);
+  }
+
+  function fillShortlistSlot(replacementSlug) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
+    if (!replacementSlug || isShortlisted(replacementSlug) || shortlist.length >= 3) {
+      return;
+    }
+    writeShortlist(shortlist.concat({ slug: replacementSlug, priority: "", note: "" }).slice(0, 3));
+  }
+
+  function applyReshapingPlan(entries) {
+    if (!Array.isArray(entries) || !entries.length) {
+      return;
+    }
+    var beforeEntries = normalizeShortlist(shortlist);
+    var nextEntries = entries
+      .filter(function (item) {
+        return item && item.slug;
+      })
+      .map(function (item) {
+        return {
+          slug: String(item.slug),
+          priority: String(item.priority || ""),
+          note: String(item.note || ""),
+        };
+      })
+      .slice(0, 3);
+    lastReshapeSnapshot = beforeEntries;
+    writeShortlist(nextEntries);
+    writeReshapeHistory(buildReshapeHistoryPayload(beforeEntries, nextEntries));
+  }
+
+  function undoReshapingPlan() {
+    if (!lastReshapeSnapshot || !lastReshapeSnapshot.length) {
+      return;
+    }
+    writeShortlist(normalizeShortlist(lastReshapeSnapshot));
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
+  }
+
   function updateShortlistPriority(slug, priority) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
     writeShortlist(
       shortlist.map(function (item) {
         if (item.slug !== slug) {
@@ -516,6 +711,8 @@ import {
   }
 
   function updateShortlistNote(slug, note) {
+    lastReshapeSnapshot = null;
+    writeReshapeHistory(null);
     writeShortlist(
       shortlist.map(function (item) {
         if (item.slug !== slug) {
@@ -1104,6 +1301,14 @@ import {
         outreachProgress: getShortlistOutreachProgress(),
         outreachOutcomes: readOutreachOutcomes(),
       }),
+      undoState:
+        lastReshapeSnapshot && lastReshapeSnapshot.length
+          ? {
+              canUndo: true,
+              label: "Undo last reshape",
+            }
+          : null,
+      historyState: lastReshapeHistory,
     });
 
     root.innerHTML = markup.html;
@@ -1142,6 +1347,72 @@ import {
         render();
       });
     });
+
+    root.querySelectorAll("[data-shortlist-replace]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var removedSlug = button.getAttribute("data-shortlist-replace");
+        var replacementSlug = button.getAttribute("data-shortlist-replacement-slug");
+        if (!removedSlug || !replacementSlug) {
+          return;
+        }
+        trackFunnelEvent("directory_shortlist_replaced_from_compare", {
+          removed_slug: removedSlug,
+          replacement_slug: replacementSlug,
+          shortlist_size_before: shortlist.length,
+        });
+        pendingMotionSlug = replacementSlug;
+        replaceShortlistEntry(removedSlug, replacementSlug);
+        render();
+      });
+    });
+
+    root.querySelectorAll("[data-shortlist-fill]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var replacementSlug = button.getAttribute("data-shortlist-fill");
+        if (!replacementSlug) {
+          return;
+        }
+        trackFunnelEvent("directory_shortlist_slot_filled", {
+          replacement_slug: replacementSlug,
+          shortlist_size_before: shortlist.length,
+        });
+        pendingMotionSlug = replacementSlug;
+        fillShortlistSlot(replacementSlug);
+        render();
+      });
+    });
+
+    root.querySelectorAll("[data-shortlist-apply-reshaping]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var payload = button.getAttribute("data-shortlist-apply-reshaping");
+        if (!payload) {
+          return;
+        }
+        try {
+          var entries = JSON.parse(decodeURIComponent(payload));
+          trackFunnelEvent("directory_shortlist_reshaping_applied", {
+            shortlist_size_before: shortlist.length,
+            shortlist_size_after: Array.isArray(entries) ? entries.length : shortlist.length,
+          });
+          pendingMotionSlug = Array.isArray(entries) && entries[0] ? entries[0].slug : "";
+          applyReshapingPlan(entries);
+          render();
+        } catch (_error) {
+          return;
+        }
+      });
+    });
+
+    var undoButton = getElement("undoDirectoryReshape");
+    if (undoButton) {
+      undoButton.addEventListener("click", function () {
+        trackFunnelEvent("directory_shortlist_reshaping_undone", {
+          shortlist_size_before: shortlist.length,
+        });
+        undoReshapingPlan();
+        render();
+      });
+    }
   }
 
   function renderPagination(total) {
