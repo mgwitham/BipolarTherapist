@@ -1,3 +1,5 @@
+import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 
 function canUseStorage() {
@@ -102,17 +104,15 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
 }
 
 export function getPublicResponsivenessSignal(therapist) {
-  if (!therapist || !therapist.slug) {
+  if (!therapist) {
     return null;
   }
 
-  var outcomes = readOutreachOutcomes().filter(function (item) {
-    return item && item.therapist_slug === therapist.slug;
-  });
-
-  if (!outcomes.length) {
-    return null;
-  }
+  var outcomes = therapist.slug
+    ? readOutreachOutcomes().filter(function (item) {
+        return item && item.therapist_slug === therapist.slug;
+      })
+    : [];
 
   var heardBack = outcomes.filter(function (item) {
     return item.outcome === "heard_back";
@@ -134,6 +134,20 @@ export function getPublicResponsivenessSignal(therapist) {
       label: "Response signal still limited",
       tone: "neutral",
       note: "Early outreach outcomes suggest follow-up may take more effort.",
+    };
+  }
+
+  var hasHealthyBooking = Boolean(therapist.booking_url && isBookingRouteHealthy(therapist));
+  var hasHealthyWebsite = Boolean(therapist.website && isWebsiteRouteHealthy(therapist));
+  var preferredContactMethod = String(therapist.preferred_contact_method || "")
+    .trim()
+    .toLowerCase();
+
+  if (hasHealthyBooking || (preferredContactMethod === "website" && hasHealthyWebsite)) {
+    return {
+      label: "Easy to contact",
+      tone: "positive",
+      note: "This profile shows a clear online intake path with a lower-friction next step.",
     };
   }
 

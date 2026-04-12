@@ -28,7 +28,7 @@ function buildCardActionTiming(model) {
   if (model && model.contactRoute && model.shortlisted) {
     return {
       title: "Open now and decide on contact from the full profile.",
-      copy: "This route already looks usable enough to pressure-test immediately without losing your shortlist context.",
+      copy: "This route already looks usable enough to pressure-test immediately without losing your list context.",
     };
   }
 
@@ -61,7 +61,7 @@ export function renderEmptyStateMarkup(directoryPage) {
       (directoryPage && directoryPage.emptyStateDescription) ||
         "Try adjusting your filters or search terms.",
     ) +
-    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back without starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready shortlist before widening the search too broadly.</div></div></div></div>'
+    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back without starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready list before widening the search too broadly.</div></div></div></div>'
   );
 }
 
@@ -75,7 +75,10 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
     '<section class="directory-decision-preview" data-preview-slug="' +
     escapeHtml(model.therapist.slug) +
     '"><div class="directory-decision-preview-main"><div class="directory-decision-preview-kicker">Recommended profile</div><div class="directory-decision-preview-title">' +
-    escapeHtml(model.therapist.name) +
+    escapeHtml(getTherapistDisplayName(model.therapist.name)) +
+    '</div><div class="directory-decision-preview-creds">' +
+    escapeHtml(model.therapist.credentials || "") +
+    (model.therapist.title ? " " + escapeHtml(model.therapist.title) : "") +
     '</div><div class="directory-decision-preview-proof">📍 ' +
     escapeHtml(model.therapist.city || "") +
     (model.therapist.city && model.therapist.state ? ", " : "") +
@@ -112,7 +115,7 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
     '" data-preview-shortlist="' +
     escapeHtml(model.therapist.slug) +
     '">' +
-    (model.shortlisted ? "Saved to shortlist" : "Save to shortlist") +
+    (model.shortlisted ? "Saved to list" : "Save to list") +
     "</button></div></div></section>"
   );
 }
@@ -138,22 +141,6 @@ export function renderCardMarkup(options) {
       escapeHtml(therapist.name) +
       '" />'
     : escapeHtml(initials);
-  var tags = model.tags
-    .map(function (tag) {
-      return '<span class="tag">' + escapeHtml(tag) + "</span>";
-    })
-    .join("");
-  var mode = model.modes
-    .map(function (item) {
-      return (
-        '<span class="tag ' +
-        (item === "In-Person" ? "inperson" : "tele") +
-        '">' +
-        escapeHtml(item) +
-        "</span>"
-      );
-    })
-    .join("");
   var primaryAction = model.contactRoute
     ? '<a href="' +
       escapeHtml(model.contactRoute.href) +
@@ -169,19 +156,6 @@ export function renderCardMarkup(options) {
       '" class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
       '">See best next step</a>';
-  var quickStats = model.quickStats
-    .map(function (item) {
-      return (
-        '<div class="card-quick-stat"><div class="card-quick-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="card-quick-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var headerStatus =
     '<div class="card-header-status"><div class="card-header-meta"><div class="card-header-availability ' +
     escapeHtml(model.acceptanceTone) +
@@ -194,12 +168,6 @@ export function renderCardMarkup(options) {
     '" class="card-inline-link" data-review-fit="' +
     escapeHtml(therapist.slug) +
     '">Open profile</a></div>';
-  var decisionRow = model.decisionPills
-    .map(function (item) {
-      return '<span class="card-decision-pill">' + escapeHtml(item) + "</span>";
-    })
-    .join("");
-  var primaryDecisionTitle = model.contactRoute ? model.contactRoute.label : "Open profile";
 
   return (
     '<article class="t-card" data-card-slug="' +
@@ -219,31 +187,6 @@ export function renderCardMarkup(options) {
     ", " +
     escapeHtml(therapist.state) +
     "</div></div></div>" +
-    '<div class="t-bio">' +
-    escapeHtml(model.cardSummary) +
-    "</div>" +
-    '<div class="t-fit-summary"><div class="card-fit-summary-label">Fast fit read</div>' +
-    escapeHtml(model.fitSummary) +
-    "</div>" +
-    '<div class="card-quick-stats">' +
-    quickStats +
-    "</div>" +
-    (decisionRow ? '<div class="card-decision-row">' + decisionRow + "</div>" : "") +
-    '<div class="card-signal-card"><div class="card-signal-label">Why open</div><div class="card-signal-copy">' +
-    escapeHtml(model.standoutCopy) +
-    "</div></div>" +
-    '<div class="card-next-step"><div class="card-next-step-label">Next step</div><div class="card-next-step-copy">' +
-    escapeHtml(model.actionSummary) +
-    "</div></div>" +
-    '<div class="tags">' +
-    tags +
-    mode +
-    "</div>" +
-    '<div class="card-contact-detail"><strong>Freshness:</strong> ' +
-    escapeHtml(model.freshnessSummary) +
-    '</div><div class="card-contact-detail"><strong>Trust:</strong> ' +
-    escapeHtml(model.trustSummaryShort) +
-    "</div>" +
     '<div class="card-actions"><a href="' +
     escapeHtml(profileHref) +
     '" class="card-open-profile-btn" data-review-fit="' +
@@ -253,7 +196,7 @@ export function renderCardMarkup(options) {
     '" data-shortlist-slug="' +
     escapeHtml(therapist.slug) +
     '" type="button">' +
-    (model.shortlisted ? "Saved to shortlist" : "Save to shortlist") +
+    (model.shortlisted ? "Saved to list" : "Save to list") +
     "</button>" +
     primaryAction +
     "</div>" +
@@ -292,13 +235,7 @@ export function renderCardMarkup(options) {
         ) +
         '" /></div>'
       : "") +
-    '<div class="t-footer"><span class="' +
-    escapeHtml(model.acceptanceTone) +
-    '">' +
-    escapeHtml(model.acceptance) +
-    '</span><span class="view-link">' +
-    escapeHtml(model.footerLabel) +
-    "</span></div></article>"
+    "</article>"
   );
 }
 
@@ -308,7 +245,7 @@ export function renderShortlistBarMarkup(options) {
   var historyState = options.historyState || null;
   if (!model.shortlist.length) {
     return {
-      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave short notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved shortlist stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
+      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave short notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved list stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
     };
   }
 
@@ -378,7 +315,7 @@ export function renderShortlistBarMarkup(options) {
             '</div><div class="shortlist-replacement-confidence-copy">' +
             escapeHtml(
               (card.replacement.confidence && card.replacement.confidence.copy) ||
-                "Review this replacement before you reshape the shortlist.",
+                "Review this replacement before you reshape the list.",
             ) +
             '</div><div class="shortlist-compare-replacement-next">' +
             escapeHtml(card.replacement.nextStep) +
@@ -402,7 +339,7 @@ export function renderShortlistBarMarkup(options) {
         '</a><button type="button" class="shortlist-compare-drop" data-shortlist-remove="' +
         escapeHtml(card.therapist.slug) +
         '">' +
-        escapeHtml(card.pruneCta || "Remove from shortlist") +
+        escapeHtml(card.pruneCta || "Remove from list") +
         '</button></div><div class="shortlist-compare-guidance">' +
         escapeHtml(roleCopy) +
         "</div></div>"
@@ -458,7 +395,7 @@ export function renderShortlistBarMarkup(options) {
         '</div><div class="shortlist-replacement-confidence-copy">' +
         escapeHtml(
           (item.confidence && item.confidence.copy) ||
-            "Review this replacement before you reshape the shortlist.",
+            "Review this replacement before you reshape the list.",
         ) +
         '</div><div class="shortlist-queue-next-step">' +
         escapeHtml(item.nextStep) +
@@ -527,7 +464,7 @@ export function renderShortlistBarMarkup(options) {
       "</strong><span>" +
       escapeHtml(model.queueSummary || model.summary.join(" • ")) +
       "</span>" +
-      '<span class="shortlist-bar-progress">This shortlist is saved on this browser, so you can compare now and come back without losing your place.</span>' +
+      '<span class="shortlist-bar-progress">This list is saved on this browser, so you can compare now and come back without losing your place.</span>' +
       (model.leadTherapist
         ? '<span class="shortlist-bar-progress">Best sequence: open ' +
           escapeHtml(model.leadTherapist.therapist.name) +
@@ -541,7 +478,7 @@ export function renderShortlistBarMarkup(options) {
         : "") +
       (historyState && historyState.summary
         ? '<div class="shortlist-reshaping-history"><div class="shortlist-section-kicker">' +
-          escapeHtml(historyState.title || "Last shortlist reshape") +
+          escapeHtml(historyState.title || "Last list reshape") +
           '</div><div class="shortlist-reshaping-history-copy">' +
           escapeHtml(historyState.summary) +
           '</div><div class="shortlist-reshaping-history-meta">' +
@@ -568,12 +505,6 @@ export function renderShortlistBarMarkup(options) {
       (queueCards
         ? '<div class="shortlist-queue-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Decision queue</div><div class="shortlist-section-title">Start with the lead, keep the backup close.</div></div><div class="shortlist-queue-grid">' +
           queueCards +
-          "</div></div>"
-        : "") +
-      (reshapingCards
-        ? '<div class="shortlist-queue-shell"><div class="shortlist-section-header"><div class="shortlist-section-kicker">Reshape the shortlist</div><div class="shortlist-section-title">If a saved option weakens, these are the strongest candidates to take the open lead, backup, or reserve slot next.</div></div><div class="shortlist-queue-grid">' +
-          reshapingSummary +
-          reshapingCards +
           "</div></div>"
         : "") +
       (compareRows

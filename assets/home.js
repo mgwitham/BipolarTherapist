@@ -165,15 +165,15 @@ function getHeroHelperCopy(interest, hasLocation) {
     return (
       "<strong>Next:</strong> add your California ZIP code to see a more trustworthy " +
       escapeHtml(interest === "psychiatrist" ? "psychiatry" : "therapy") +
-      " shortlist."
+      " list."
     );
   }
 
   if (!interest && hasLocation) {
-    return "<strong>Next:</strong> choose the kind of support you want so we can narrow toward the strongest first shortlist.";
+    return "<strong>Next:</strong> choose the kind of support you want so we can narrow toward the strongest first list.";
   }
 
-  return "<strong>Next:</strong> answer a few quick questions and review a smaller, more decision-ready shortlist built for bipolar care.";
+  return "<strong>Next:</strong> answer a few quick questions and review a smaller, more decision-ready list built for bipolar care.";
 }
 
 function setHomePreviewText(id, value) {
@@ -217,7 +217,7 @@ function renderHomeSearchPreview(interest, locationValue) {
       "homePreviewStateCopy",
       "We know you want " +
         supportLabel +
-        " first. ZIP is what makes the shortlist feel local and more useful.",
+        " first. ZIP is what makes the list feel local and more useful.",
     );
     setHomePreviewText("homePreviewMomentumTitle", "You are still in low-friction mode.");
     setHomePreviewText(
@@ -235,12 +235,12 @@ function renderHomeSearchPreview(interest, locationValue) {
         ? "We can shape the next step around " +
             zipStatus.place.label +
             " once you choose whether to start with therapy or psychiatry."
-        : "Your ZIP is enough to carry forward. One care choice will make the shortlist feel much more intentional.",
+        : "Your ZIP is enough to carry forward. One care choice will make the list feel much more intentional.",
     );
     setHomePreviewText("homePreviewMomentumTitle", "One answer should change the feel fast.");
     setHomePreviewText(
       "homePreviewMomentumCopy",
-      "Choosing therapy or psychiatry is usually what turns a broad local search into a more decision-ready shortlist.",
+      "Choosing therapy or psychiatry is usually what turns a broad local search into a more decision-ready list.",
     );
     return;
   }
@@ -259,7 +259,7 @@ function renderHomeSearchPreview(interest, locationValue) {
     return;
   }
 
-  setHomePreviewText("homePreviewStateTitle", "Ready for a more relevant shortlist.");
+  setHomePreviewText("homePreviewStateTitle", "Ready for a more relevant list.");
   setHomePreviewText(
     "homePreviewStateCopy",
     zipStatus.place
@@ -299,7 +299,7 @@ function getHeroValidationMessages() {
     messages.push(zipStatus.message + " We’re currently matching California ZIP codes.");
   } else if (zipStatus && zipStatus.status === "unknown") {
     messages.push(
-      "We can still start with this California ZIP and tighten the shortlist on the next step.",
+      "We can still start with this California ZIP and tighten the list on the next step.",
     );
   }
 
@@ -363,11 +363,11 @@ function applyAdaptiveHomepageMode() {
 
   if (mode === "speed") {
     if (eyebrow) eyebrow.textContent = "Faster start for bipolar-informed care";
-    if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong shortlist";
+    if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong list";
     if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)
       proofValue1.textContent =
-        "A faster path to a shortlist that feels easier to contact without making the search heavier.";
+        "A faster path to a list that feels easier to contact without making the search heavier.";
     if (proofLabel2) proofLabel2.textContent = "What we raise first";
     if (proofValue2)
       proofValue2.textContent =
@@ -378,7 +378,7 @@ function applyAdaptiveHomepageMode() {
         "Openings, insurance, and whether the therapist feels right once you actually connect.";
     if (trustPill1) trustPill1.textContent = "Built to reduce time-to-first-contact";
     if (trustPill2) trustPill2.textContent = "Still honest about what outreach must confirm";
-    if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready shortlist faster.";
+    if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready list faster.";
     if (handoffCopy1)
       handoffCopy1.textContent =
         "The next step is built to shorten the distance between starting and knowing who to contact first, without making the search feel heavier.";
@@ -413,12 +413,12 @@ function applyAdaptiveHomepageMode() {
     if (handoffTitle1) handoffTitle1.textContent = "You answer a few questions that sharpen fit.";
     if (handoffCopy1)
       handoffCopy1.textContent =
-        "The next step helps the shortlist lean harder on specialty relevance instead of broad similarity, so the comparison feels more grounded.";
+        "The next step helps the list lean harder on specialty relevance instead of broad similarity, so the comparison feels more grounded.";
     if (handoffTitle2)
       handoffTitle2.textContent = "This is for quality of fit, not just more results.";
     if (handoffCopy2)
       handoffCopy2.textContent =
-        "It is designed for people who want the shortlist to feel more clinically and practically aligned before they spend energy reaching out.";
+        "It is designed for people who want the list to feel more clinically and practically aligned before they spend energy reaching out.";
     if (handoffTitle3) handoffTitle3.textContent = "You are not locked into one path.";
     if (handoffCopy3)
       handoffCopy3.textContent =
@@ -432,7 +432,7 @@ function applyAdaptiveHomepageMode() {
     if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)
       proofValue1.textContent =
-        "A quicker move from shortlist to first message, with less hesitation about who to contact.";
+        "A quicker move from list to first message, with less hesitation about who to contact.";
     if (proofLabel2) proofLabel2.textContent = "What we raise first";
     if (proofValue2)
       proofValue2.textContent =
@@ -451,7 +451,7 @@ function applyAdaptiveHomepageMode() {
     if (handoffTitle2) handoffTitle2.textContent = "This path is built for lower hesitation.";
     if (handoffCopy2)
       handoffCopy2.textContent =
-        "It favors providers with clearer route and follow-through signals so the shortlist feels easier to use.";
+        "It favors providers with clearer route and follow-through signals so the list feels easier to use.";
     if (handoffTitle3) handoffTitle3.textContent = "You can still pause before outreach.";
     if (handoffCopy3)
       handoffCopy3.textContent =
@@ -460,11 +460,11 @@ function applyAdaptiveHomepageMode() {
   }
 
   if (eyebrow) eyebrow.textContent = "Bipolar-focused therapist matching";
-  if (toolTitle) toolTitle.textContent = "Start with a smaller, more relevant shortlist";
+  if (toolTitle) toolTitle.textContent = "Start with a smaller, more relevant list";
   if (proofLabel1) proofLabel1.textContent = "First pass";
   if (proofValue1)
     proofValue1.textContent =
-      "About 2 minutes to move from broad searching into a smaller, more decision-ready shortlist.";
+      "About 2 minutes to move from broad searching into a smaller, more decision-ready list.";
   if (proofLabel2) proofLabel2.textContent = "What it checks first";
   if (proofValue2)
     proofValue2.textContent =
@@ -478,7 +478,7 @@ function applyAdaptiveHomepageMode() {
   if (handoffTitle1) handoffTitle1.textContent = "You answer a few focused questions.";
   if (handoffCopy1)
     handoffCopy1.textContent =
-      "The match uses only a small amount of information up front so you can get to a useful shortlist quickly.";
+      "The match uses only a small amount of information up front so you can get to a useful list quickly.";
   if (handoffTitle2) handoffTitle2.textContent = "It is designed to reduce second-guessing.";
   if (handoffCopy2)
     handoffCopy2.textContent =
@@ -739,7 +739,7 @@ function defaultSectionsFromLegacy(homePage) {
       description:
         homePage && homePage.ctaDescription
           ? homePage.ctaDescription
-          : "Start with the guided match if you want a smaller, more relevant shortlist, or browse the directory if you prefer to explore first.",
+          : "Start with the guided match if you want a smaller, more relevant list, or browse the directory if you prefer to explore first.",
       primaryLabel:
         homePage && homePage.ctaPrimaryLabel ? homePage.ctaPrimaryLabel : "Start Your Match",
       primaryUrl: homePage && homePage.ctaPrimaryUrl ? homePage.ctaPrimaryUrl : "#startMatch",
@@ -995,16 +995,16 @@ function renderHomepageReturnJourney() {
   panel.classList.add("is-visible");
   title.textContent =
     touchedCount > 0
-      ? "Your saved shortlist is still here, and the decision context is still intact."
-      : "Your saved shortlist is still here and ready whenever you want to pick the search back up.";
+      ? "Your saved list is still here, and the decision context is still intact."
+      : "Your saved list is still here and ready whenever you want to pick the search back up.";
   copy.textContent =
     touchedCount > 0
       ? "Resume from the same saved options, reopen the route with live momentum, and decide whether your lead still deserves the top spot."
-      : "You can reopen the shortlist, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
+      : "You can reopen the list, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
   meta.innerHTML = [
     reshapeHistory && reshapeHistory.summary
       ? '<div class="hero-return-chip"><div class="hero-return-chip-label">' +
-        escapeHtml(reshapeHistory.title || "Last shortlist reshape") +
+        escapeHtml(reshapeHistory.title || "Last list reshape") +
         '</div><div class="hero-return-chip-value">Queue updated</div><div class="hero-return-chip-copy">' +
         escapeHtml(reshapeHistory.summary) +
         (reshapeHistory.meta ? " " + escapeHtml(reshapeHistory.meta) : "") +
@@ -1031,7 +1031,7 @@ function renderHomepageReturnJourney() {
   actions.innerHTML =
     '<a class="hero-return-link primary" href="match.html?shortlist=' +
     encodeURIComponent(shortlistSlugs.join(",")) +
-    '">Resume saved shortlist</a><a class="hero-return-link secondary" href="directory.html">Reopen saved comparison</a>';
+    '">Resume saved list</a><a class="hero-return-link secondary" href="directory.html">Reopen saved comparison</a>';
 }
 
 function validateHomeSearchInputs(elements) {

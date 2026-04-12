@@ -25,7 +25,7 @@
         <li><a href="match.html">Get Matched</a></li>
         <li>
           <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+            >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
           >
         </li>
         <li>
@@ -43,7 +43,7 @@
       <a href="match.html" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Guided</span>
         <span class="public-mobile-nav-title">Get matched</span>
-        <span class="public-mobile-nav-copy">Smaller shortlist</span>
+        <span class="public-mobile-nav-copy">Smaller list</span>
       </a>
       <a
         href="directory.html"
@@ -51,7 +51,7 @@
         data-shortlist-link
       >
         <span class="public-mobile-nav-kicker">Saved</span>
-        <span class="public-mobile-nav-title">Browse and shortlist</span>
+        <span class="public-mobile-nav-title">Browse and save</span>
         <span class="public-mobile-nav-copy">Resume <span data-shortlist-count>0</span> saved</span>
       </a>
     </div>
@@ -67,30 +67,6 @@
             Start with a few filters, compare the strongest options, and save the therapists you
             would actually consider contacting.
           </p>
-
-          <div class="dir-hero-decision-strip" aria-label="How to use the directory">
-            <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Step 1</div>
-              <div class="dir-hero-decision-title">Set 1 to 3 filters</div>
-              <div class="dir-hero-decision-copy">
-                Start with location, specialty, or telehealth so the list becomes manageable.
-              </div>
-            </div>
-            <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Step 2</div>
-              <div class="dir-hero-decision-title">Review the strongest matches</div>
-              <div class="dir-hero-decision-copy">
-                Look for the clearest fit, practical next step, and easier availability.
-              </div>
-            </div>
-            <div class="dir-hero-decision-card">
-              <div class="dir-hero-decision-label">Step 3</div>
-              <div class="dir-hero-decision-title">Save maybes to your shortlist</div>
-              <div class="dir-hero-decision-copy">
-                Keep only the options worth revisiting so you do not lose your place.
-              </div>
-            </div>
-          </div>
         </div>
 
         <aside class="dir-hero-panel" aria-label="Directory overview">
@@ -105,21 +81,6 @@
             </div>
           </div>
 
-          <div class="dir-hero-proof-grid">
-            <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Start with</div>
-              <div class="dir-hero-proof-value">Location or specialty</div>
-            </div>
-            <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Then compare</div>
-              <div class="dir-hero-proof-value">Fit, timing, and cost</div>
-            </div>
-            <div class="dir-hero-proof-card">
-              <div class="dir-hero-proof-label">Save</div>
-              <div class="dir-hero-proof-value">Only the profiles worth revisiting</div>
-            </div>
-          </div>
-
           <div class="dir-hero-actions">
             <a href="#directoryFilters" class="dir-hero-primary-action">Start With Filters</a>
             <a href="match.html" class="dir-hero-secondary-action">Use Guided Matching</a>
@@ -128,34 +89,9 @@
       </div>
     </header>
 
-    <section class="directory-page-map" aria-label="Directory page map">
-      <div class="directory-page-map-shell">
-        <a href="#directoryFilters" class="directory-page-map-card">
-          <span class="directory-page-map-step">1</span>
-          <span class="directory-page-map-title">Choose filters</span>
-          <span class="directory-page-map-copy">Start on the left with a few narrowing moves.</span>
-        </a>
-        <a href="#directoryResults" class="directory-page-map-card">
-          <span class="directory-page-map-step">2</span>
-          <span class="directory-page-map-title">Review results</span>
-          <span class="directory-page-map-copy">Compare the strongest profiles and sort them.</span>
-        </a>
-        <a href="#directoryShortlistBar" class="directory-page-map-card">
-          <span class="directory-page-map-step">3</span>
-          <span class="directory-page-map-title">Build shortlist</span>
-          <span class="directory-page-map-copy">Save options you want to come back to.</span>
-        </a>
-      </div>
-    </section>
-
     <main class="layout">
       <aside class="directory-sidebar-shell" id="directoryFilters">
         <div class="filter-workspace">
-          <div class="filter-workspace-header">
-            <div class="filter-workspace-kicker">Start Here</div>
-            <h2 class="filter-workspace-title">Narrow the list first</h2>
-            <p class="filter-workspace-copy">Pick the filters that matter most.</p>
-          </div>
           <button
             type="button"
             class="mobile-filter-toggle"
@@ -186,12 +122,6 @@
                 <label for="zip" id="cityLabelText">Zip code</label>
                 <input type="text" id="zip" inputmode="numeric" placeholder="e.g. 90024" />
               </div>
-              <div class="filter-group">
-                <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
-                <select id="insurance">
-                  <option value="">All Insurance</option>
-                </select>
-              </div>
               <div class="check-group">
                 <label class="check-label"
                   ><input type="checkbox" id="telehealth" />
@@ -205,6 +135,39 @@
                   ><input type="checkbox" id="accepting" />
                   <span id="acceptingLabelText">Accepting New Patients</span></label
                 >
+              </div>
+            </div>
+
+            <div class="filter-panel">
+              <h3>💳 <span id="insurancePanelTitle">Insurance</span></h3>
+              <div class="filter-group">
+                <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
+                <select id="insurance">
+                  <option value="">All Insurance</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-panel">
+              <h3>🧠 <span id="bipolarExperiencePanelTitle">Bipolar Experience</span></h3>
+              <div class="filter-group">
+                <label for="bipolar_experience">Experience Level</label>
+                <select id="bipolar_experience">
+                  <option value="">Any experience level</option>
+                  <option value="3">3+ years</option>
+                  <option value="5">5+ years</option>
+                  <option value="10">10+ years</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-panel">
+              <h3>👥 <span id="populationPanelTitle">Population Served</span></h3>
+              <div class="filter-group">
+                <label for="population">Population</label>
+                <select id="population">
+                  <option value="">All Populations</option>
+                </select>
               </div>
             </div>
 
@@ -224,29 +187,6 @@
                 <label for="modality">Treatment Modality</label>
                 <select id="modality">
                   <option value="">All Modalities</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label for="population">Population Served</label>
-                <select id="population">
-                  <option value="">All Populations</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label for="verification">Verification</label>
-                <select id="verification">
-                  <option value="">All Profiles</option>
-                  <option value="editorially_verified">Editorially Verified</option>
-                  <option value="under_review">Under Review</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label for="bipolar_experience">Bipolar Experience</label>
-                <select id="bipolar_experience">
-                  <option value="">Any experience level</option>
-                  <option value="3">3+ years</option>
-                  <option value="5">5+ years</option>
-                  <option value="10">10+ years</option>
                 </select>
               </div>
               <div class="check-group">
@@ -293,18 +233,16 @@
             <div class="results-tools">
               <label for="sortBy">Sort by</label>
               <select id="sortBy">
+                <option value="lowest_fee">Lowest fee</option>
                 <option value="best_match">Best match</option>
-                <option value="freshest_details">Freshest details</option>
                 <option value="most_experienced">Most bipolar experience</option>
                 <option value="soonest_availability">Soonest availability</option>
-                <option value="lowest_fee">Lowest fee</option>
                 <option value="most_responsive">Most responsive contact</option>
               </select>
             </div>
           </div>
           <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
           <div class="editorial-lanes" id="editorialLanes"></div>
-          <div class="directory-shortlist-bar" id="directoryShortlistBar"></div>
           <div class="therapist-grid" id="resultsGrid">
             <div class="loading">
               <div class="spinner"></div>

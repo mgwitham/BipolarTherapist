@@ -14,7 +14,7 @@ export function renderNoResultsStateSection(options) {
       return "";
     };
   var title = hasRefinements
-    ? "Your optional filters may be making the shortlist smaller than it needs to be."
+    ? "Your optional filters may be making the list smaller than it needs to be."
     : "We do not have a strong reviewed match for this exact setup yet.";
   var introCopy = hasRefinements
     ? "This usually means the core request is workable, but one or two optional preferences are narrowing the field too aggressively."
@@ -27,7 +27,7 @@ export function renderNoResultsStateSection(options) {
 
   root.className = "match-empty";
   root.innerHTML =
-    '<div class="match-empty-shell"><div class="match-empty-kicker">No strong shortlist yet</div><h2 class="match-empty-title">' +
+    '<div class="match-empty-shell"><div class="match-empty-kicker">No strong list yet</div><h2 class="match-empty-title">' +
     escapeHtml(title) +
     '</h2><p class="match-empty-copy">' +
     escapeHtml(introCopy) +
@@ -42,7 +42,7 @@ export function renderNoResultsStateSection(options) {
     '</div><div class="match-empty-decision-copy">' +
     escapeHtml(
       hasRefinements
-        ? "That preserves your core request while removing the narrowest constraints that may be blocking a usable shortlist."
+        ? "That preserves your core request while removing the narrowest constraints that may be blocking a usable list."
         : zipSuggestions.length
           ? "A nearby reviewed area usually preserves most of the same decision logic while giving the system more viable first-contact options."
           : "That is usually the cleanest way to open the field without losing the core intent of the search.",
@@ -61,7 +61,7 @@ export function renderNoResultsStateSection(options) {
     ) +
     '</div></section><section class="match-empty-decision-card tone-refine"><div class="match-empty-decision-label">What not to do yet</div><div class="match-empty-decision-title">Do not widen everything at once.</div><div class="match-empty-decision-copy">' +
     escapeHtml(
-      "The strongest recovery path is usually one deliberate change at a time so you can see which answer actually improves the shortlist.",
+      "The strongest recovery path is usually one deliberate change at a time so you can see which answer actually improves the list.",
     ) +
     '</div></section></div><div class="match-empty-actions">' +
     zipSuggestions

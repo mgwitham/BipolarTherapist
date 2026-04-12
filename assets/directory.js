@@ -65,7 +65,6 @@ import {
     specialty: "",
     modality: "",
     population: "",
-    verification: "",
     bipolar_experience: "",
     insurance: "",
     telehealth: false,
@@ -79,14 +78,21 @@ import {
   var filters = { ...defaultFilters };
   var shortlist = readShortlist();
   var pendingMotionSlug = "";
+  var liveFilterTimer = 0;
   var lastReshapeSnapshot = null;
   var lastReshapeHistory = readReshapeHistory();
+  var VALID_SORT_OPTIONS = new Set([
+    "best_match",
+    "most_experienced",
+    "soonest_availability",
+    "lowest_fee",
+    "most_responsive",
+  ]);
   var FILTER_PRESETS = {
     trusted_fast: {
-      verification: "editorially_verified",
       recently_confirmed: true,
       accepting: true,
-      sortBy: "freshest_details",
+      sortBy: "best_match",
     },
     responsive: {
       responsive_contact: true,
@@ -725,9 +731,6 @@ import {
     if (filters.population) {
       chips.push(filters.population);
     }
-    if (filters.verification === "editorially_verified") {
-      chips.push("Editorially verified");
-    }
     if (filters.bipolar_experience) {
       chips.push(filters.bipolar_experience + "+ yrs bipolar care");
     }
@@ -910,7 +913,10 @@ import {
     var params = new URLSearchParams(window.location.search);
     FILTER_VALUE_KEYS.forEach(function (key) {
       if (params.get(key)) {
-        filters[key] = params.get(key);
+        filters[key] =
+          key === "sortBy" && !VALID_SORT_OPTIONS.has(params.get(key))
+            ? defaultFilters.sortBy
+            : params.get(key);
         var input = getElement(key);
         if (input) {
           input.value = filters[key];
@@ -927,7 +933,9 @@ import {
 
     if (!params.get("sortBy")) {
       var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents());
-      filters.sortBy = adaptiveSignals.preferred_directory_sort || defaultFilters.sortBy;
+      filters.sortBy = VALID_SORT_OPTIONS.has(adaptiveSignals.preferred_directory_sort)
+        ? adaptiveSignals.preferred_directory_sort
+        : defaultFilters.sortBy;
       getElement("sortBy").value = filters.sortBy;
     }
   }
@@ -1062,28 +1070,13 @@ import {
     if (!filters.recently_confirmed) {
       add(
         "If you require recently confirmed details",
-        Object.assign({}, filters, { recently_confirmed: true, sortBy: "freshest_details" }),
+        Object.assign({}, filters, { recently_confirmed: true }),
         function (topTherapist, nextResults) {
           return (
             nextResults.length +
             " profiles would remain, and " +
             topTherapist.name +
             " would likely rise because the directory would narrow toward fresher confirmation signals."
-          );
-        },
-      );
-    }
-
-    if (!filters.verification) {
-      add(
-        "If you narrow to editorially verified profiles",
-        Object.assign({}, filters, { verification: "editorially_verified" }),
-        function (topTherapist, nextResults) {
-          return (
-            nextResults.length +
-            " verified profiles would remain, with " +
-            topTherapist.name +
-            " likely leading the field on trust and completeness."
           );
         },
       );
@@ -1467,6 +1460,23 @@ import {
     render();
   }
 
+  function applyFiltersLive() {
+    var nextState = applyDirectoryFiltersAction({
+      filters: filters,
+      getElement: getElement,
+    });
+    filters = nextState.filters;
+    currentPage = nextState.currentPage;
+    render();
+  }
+
+  function scheduleLiveFilters() {
+    window.clearTimeout(liveFilterTimer);
+    liveFilterTimer = window.setTimeout(function () {
+      applyFiltersLive();
+    }, 120);
+  }
+
   function resetFilters() {
     var nextState = resetDirectoryFiltersAction(defaultFilters);
     filters = nextState.filters;
@@ -1523,6 +1533,31 @@ import {
   if (resetFiltersButton) {
     resetFiltersButton.addEventListener("click", resetFilters);
   }
+
+  FILTER_VALUE_KEYS.filter(function (key) {
+    return key !== "sortBy";
+  }).forEach(function (key) {
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+
+    if (input.tagName === "INPUT") {
+      input.addEventListener("input", scheduleLiveFilters);
+      return;
+    }
+
+    input.addEventListener("change", applyFiltersLive);
+  });
+
+  FILTER_BOOLEAN_KEYS.forEach(function (key) {
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+
+    input.addEventListener("change", applyFiltersLive);
+  });
 
   var mobileFilterToggle = getElement("mobileFilterToggle");
   if (mobileFilterToggle) {

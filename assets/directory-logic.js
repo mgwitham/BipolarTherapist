@@ -69,6 +69,7 @@ export function getDirectoryStrategyAudience(filterState) {
 }
 
 export function matchesDirectoryFilters(filterState, therapist) {
+  var telehealthOverridesZip = Boolean(filterState.telehealth);
   var haystack = [
     therapist.name,
     therapist.title,
@@ -87,7 +88,11 @@ export function matchesDirectoryFilters(filterState, therapist) {
 
   if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
   if (filterState.state && therapist.state !== filterState.state) return false;
-  if (filterState.zip && String(therapist.zip || "") !== String(filterState.zip || "")) {
+  if (
+    filterState.zip &&
+    !telehealthOverridesZip &&
+    String(therapist.zip || "") !== String(filterState.zip || "")
+  ) {
     return false;
   }
   if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty)) {
@@ -594,7 +599,9 @@ export function getMatchScore(filterState, therapist) {
   var score = 0;
   var quality = getTherapistMerchandisingQuality(therapist);
   var responsivenessRank = getResponsivenessRank(therapist);
-  var query = filterState.q.trim().toLowerCase();
+  var query = String((filterState && filterState.q) || "")
+    .trim()
+    .toLowerCase();
 
   if (query) {
     if ((therapist.name || "").toLowerCase().includes(query)) {
@@ -749,6 +756,9 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "most_responsive") {
     return (
       getResponsivenessRank(b) - getResponsivenessRank(a) ||
+      (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
+      getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
+      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
       getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
       a.name.localeCompare(b.name)
     );
@@ -757,8 +767,10 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "most_experienced") {
     return (
       Number(b.bipolar_years_experience || 0) - Number(a.bipolar_years_experience || 0) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
+      getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
       Number(b.years_experience || 0) - Number(a.years_experience || 0) ||
+      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
   }
@@ -779,16 +791,6 @@ export function compareTherapistsWithFilters(filterState, a, b) {
     return (
       aFee - bFee ||
       getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
-      a.name.localeCompare(b.name)
-    );
-  }
-
-  if (filterState.sortBy === "freshest_details") {
-    return (
-      getFreshnessRank(b) - getFreshnessRank(a) ||
-      getDecisionReadyScore(b) - getDecisionReadyScore(a) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
-      getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
       a.name.localeCompare(b.name)
     );
   }
