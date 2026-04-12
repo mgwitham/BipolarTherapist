@@ -99,9 +99,7 @@
             <div class="directory-section-heading">
               <div class="directory-section-step">Step 1</div>
               <h2 class="directory-section-title">Set filters first</h2>
-              <p class="directory-section-copy">
-                Start with the filters that matter most to you so the results feel manageable.
-              </p>
+              <p class="directory-section-copy">Start with the filters that matter most.</p>
             </div>
 
             <div class="filter-panel">
@@ -116,7 +114,17 @@
                 <label for="zip" id="cityLabelText">Zip code</label>
                 <input type="text" id="zip" inputmode="numeric" placeholder="e.g. 90024" />
               </div>
+            </div>
+
+            <div class="filter-panel">
+              <h3>🩺 <span>Care Preference</span></h3>
               <div class="check-group">
+                <label class="check-label"
+                  ><input type="checkbox" id="therapist" /> <span>Therapist</span></label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="psychiatrist" /> <span>Psychiatrist</span></label
+                >
                 <label class="check-label"
                   ><input type="checkbox" id="telehealth" />
                   <span id="telehealthLabelText">Telehealth Available</span></label

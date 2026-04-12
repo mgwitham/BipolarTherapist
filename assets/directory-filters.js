@@ -11,6 +11,8 @@ export var FILTER_VALUE_KEYS = [
 ];
 
 export var FILTER_BOOLEAN_KEYS = [
+  "therapist",
+  "psychiatrist",
   "telehealth",
   "in_person",
   "accepting",

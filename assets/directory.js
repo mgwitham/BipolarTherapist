@@ -68,6 +68,8 @@ import {
     population: "",
     bipolar_experience: "",
     insurance: "",
+    therapist: false,
+    psychiatrist: false,
     telehealth: false,
     in_person: false,
     accepting: false,
@@ -754,6 +756,12 @@ import {
     if (filters.insurance) {
       chips.push({ key: "insurance", label: filters.insurance });
     }
+    if (filters.therapist) {
+      chips.push({ key: "therapist", label: "Therapist" });
+    }
+    if (filters.psychiatrist) {
+      chips.push({ key: "psychiatrist", label: "Psychiatrist" });
+    }
     if (filters.telehealth) {
       chips.push({ key: "telehealth", label: "Telehealth" });
     }
@@ -864,7 +872,7 @@ import {
     }
 
     summary.textContent =
-      "You still have a broad set of options. Add one more filter or change the sort to make comparison easier.";
+      "You still have plenty of options. Add another filter or update the sort to bring the best fits forward.";
   }
 
   function applyFilterPreset(name) {

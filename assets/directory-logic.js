@@ -85,6 +85,7 @@ export function matchesDirectoryFilters(filterState, therapist) {
     .concat(therapist.client_populations || [])
     .join(" ")
     .toLowerCase();
+  var isPsychiatrist = isPsychiatristProvider(therapist);
 
   if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
   if (filterState.state && therapist.state !== filterState.state) return false;
@@ -128,6 +129,8 @@ export function matchesDirectoryFilters(filterState, therapist) {
   ) {
     return false;
   }
+  if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
+  if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
   if (filterState.telehealth && !therapist.accepts_telehealth) return false;
   if (filterState.in_person && !therapist.accepts_in_person) return false;
   if (filterState.accepting && !therapist.accepting_new_patients) return false;
@@ -135,6 +138,22 @@ export function matchesDirectoryFilters(filterState, therapist) {
   if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
   if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
   return true;
+}
+
+export function isPsychiatristProvider(therapist) {
+  var title = String((therapist && therapist.title) || "").toLowerCase();
+  var credentials = String((therapist && therapist.credentials) || "").toLowerCase();
+
+  return (
+    title.includes("psychiatrist") ||
+    title.includes("psychiatry") ||
+    credentials.includes(" m.d.") ||
+    credentials.includes(" md") ||
+    credentials === "md" ||
+    credentials.includes(" d.o.") ||
+    credentials.includes(" do") ||
+    credentials === "do"
+  );
 }
 
 export function getPreferredContactRoute(therapist) {

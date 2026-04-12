@@ -201,10 +201,11 @@ nav {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(90, 182, 201, 0.22), transparent 28%),
-    linear-gradient(135deg, #0a4152 0%, #15687b 54%, #2a9cb3 100%);
-  padding: 3.15rem 1.5rem 2.8rem;
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 22%),
+    radial-gradient(circle at 82% 12%, rgba(110, 205, 223, 0.16), transparent 18%),
+    radial-gradient(circle at bottom right, rgba(90, 182, 201, 0.18), transparent 28%),
+    linear-gradient(135deg, #0b4354 0%, #145f72 52%, #248ea4 100%);
+  padding: 3.4rem 1.5rem 3rem;
   color: white;
 }
 
@@ -213,14 +214,15 @@ nav {
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 390px);
-  gap: 1.4rem;
-  align-items: start;
+  gap: 1.6rem;
+  align-items: stretch;
 }
 
 .dir-hero-copy {
   display: grid;
-  gap: 0.88rem;
-  max-width: 640px;
+  align-content: center;
+  gap: 1rem;
+  max-width: 680px;
 }
 
 .dir-header h1,
@@ -234,25 +236,28 @@ nav {
 
 .dir-header p,
 .hero p {
-  opacity: 0.92;
-  font-size: 0.96rem;
-  line-height: 1.68;
+  opacity: 0.94;
+  font-size: 0.98rem;
+  line-height: 1.72;
   margin: 0;
+  max-width: 58ch;
 }
 
 .dir-hero-panel {
   display: grid;
-  gap: 0.78rem;
+  align-content: center;
 }
 
 .dir-hero-panel-card {
-  padding: 1.1rem 1.1rem 1.15rem;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 247, 249, 0.94));
+  padding: 1.25rem 1.25rem 1.28rem;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(36, 142, 164, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(241, 248, 249, 0.95));
   color: var(--navy);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.26);
   box-shadow:
-    0 20px 44px rgba(10, 45, 56, 0.11),
+    0 24px 50px rgba(10, 45, 56, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
@@ -273,9 +278,9 @@ nav {
 }
 
 .dir-hero-panel-copy {
-  margin-top: 0.45rem;
-  font-size: 0.82rem;
-  line-height: 1.58;
+  margin-top: 0.5rem;
+  font-size: 0.83rem;
+  line-height: 1.62;
   color: var(--slate);
 }
 
@@ -294,15 +299,16 @@ nav {
 
 .filter-workspace {
   display: grid;
-  gap: 0.95rem;
-  padding: 0.98rem;
-  border-radius: 28px;
+  gap: 1rem;
+  padding: 1.05rem;
+  border-radius: 30px;
   border: 1px solid rgba(26, 122, 143, 0.14);
   background:
-    radial-gradient(circle at top left, rgba(26, 122, 143, 0.1), transparent 34%),
+    radial-gradient(circle at top left, rgba(26, 122, 143, 0.09), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(90, 182, 201, 0.06), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 250, 0.96));
   box-shadow:
-    0 22px 44px rgba(14, 77, 95, 0.085),
+    0 24px 48px rgba(14, 77, 95, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
@@ -341,7 +347,7 @@ nav {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .filter-brief,
@@ -428,14 +434,14 @@ nav {
   gap: 0.8rem;
   padding: 0.82rem 0.92rem;
   margin-bottom: 0.8rem;
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgba(26, 122, 143, 0.12);
   background:
-    radial-gradient(circle at top right, rgba(26, 122, 143, 0.08), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(90, 182, 201, 0.05), transparent 22%),
+    radial-gradient(circle at top right, rgba(26, 122, 143, 0.075), transparent 23%),
+    radial-gradient(circle at bottom left, rgba(90, 182, 201, 0.05), transparent 20%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(242, 249, 250, 0.97));
   box-shadow:
-    0 16px 32px rgba(14, 77, 95, 0.05),
+    0 18px 34px rgba(14, 77, 95, 0.052),
     inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
@@ -450,14 +456,14 @@ nav {
   grid-column: auto;
   align-self: center;
   margin: 0;
-  padding: 0.46rem 0.72rem;
+  padding: 0.48rem 0.78rem;
   border-radius: 999px;
   border: 1px solid rgba(26, 122, 143, 0.1);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 249, 0.92));
   box-shadow:
     0 6px 14px rgba(14, 77, 95, 0.035),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  font-size: 0.63rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -472,8 +478,8 @@ nav {
 
 .results-focus-banner-copy {
   margin: 0;
-  font-size: 0.96rem;
-  line-height: 1.08;
+  font-size: 1rem;
+  line-height: 1.1;
   color: var(--slate);
   white-space: nowrap;
   overflow: hidden;
@@ -489,11 +495,11 @@ nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.4rem;
+  gap: 0.42rem;
   align-items: center;
-  padding: 0.22rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.52);
+  padding: 0.24rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(26, 122, 143, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
@@ -502,12 +508,12 @@ nav {
   appearance: none;
   border: 0;
   background: transparent;
-  color: rgba(14, 77, 95, 0.56);
+  color: rgba(14, 77, 95, 0.52);
   border-radius: 0;
   min-height: auto;
   padding: 0;
   font-family: inherit;
-  font-size: 0.64rem;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   cursor: pointer;
@@ -532,8 +538,8 @@ nav {
   appearance: none;
   border-style: solid;
   border-width: 1px;
-  padding: 0.34rem 0.56rem;
-  font-size: 0.64rem;
+  padding: 0.36rem 0.58rem;
+  font-size: 0.66rem;
   line-height: 1.2;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 248, 250, 0.94));
   border-color: rgba(26, 122, 143, 0.12);
@@ -575,8 +581,8 @@ nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.08rem;
+  height: 1.08rem;
   border-radius: 999px;
   background: rgba(26, 122, 143, 0.1);
   color: rgba(14, 77, 95, 0.82);
@@ -596,18 +602,20 @@ nav {
 .signup-card {
   background: var(--white);
   border: 1px solid rgba(26, 122, 143, 0.1);
-  border-radius: 18px;
-  padding: 1.12rem;
-  box-shadow: 0 10px 22px rgba(14, 77, 95, 0.04);
+  border-radius: 20px;
+  padding: 1.16rem;
+  box-shadow: 0 12px 24px rgba(14, 77, 95, 0.045);
 }
 
 .filter-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 252, 0.96));
+  gap: 1.02rem;
+  background:
+    radial-gradient(circle at top right, rgba(36, 142, 164, 0.045), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(248, 251, 252, 0.965));
   box-shadow:
-    0 14px 28px rgba(14, 77, 95, 0.045),
+    0 16px 30px rgba(14, 77, 95, 0.045),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   transition:
     transform 0.18s ease,
@@ -633,8 +641,8 @@ nav {
 }
 
 .filter-panel h3 {
-  padding-bottom: 0.52rem;
-  border-bottom: 1px solid rgba(26, 122, 143, 0.1);
+  padding-bottom: 0.56rem;
+  border-bottom: 1px solid rgba(26, 122, 143, 0.085);
 }
 
 .filter-group {
@@ -657,12 +665,12 @@ nav {
 .filter-group input[type="email"],
 .filter-group textarea {
   width: 100%;
-  padding: 0.72rem 0.8rem;
-  border: 1px solid rgba(26, 122, 143, 0.12);
-  border-radius: 12px;
+  padding: 0.76rem 0.84rem;
+  border: 1px solid rgba(26, 122, 143, 0.11);
+  border-radius: 14px;
   font-size: 0.875rem;
   color: var(--navy);
-  background: rgba(255, 255, 255, 0.96);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 252, 0.98));
   font-family: inherit;
   outline: none;
   transition:
@@ -687,23 +695,35 @@ nav {
 .check-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.42rem;
 }
 
 .check-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.56rem;
   font-size: 0.82rem;
   color: var(--slate);
   cursor: pointer;
-  padding: 0.34rem 0.08rem;
+  padding: 0.42rem 0.45rem;
+  border-radius: 14px;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.check-label:hover {
+  background: rgba(26, 122, 143, 0.05);
+  color: var(--navy);
+  transform: translateX(1px);
 }
 
 .check-label input[type="checkbox"] {
   accent-color: var(--teal);
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
 }
 
 .btn-filter,
@@ -769,15 +789,16 @@ nav {
 
 .directory-results-shell {
   display: grid;
-  gap: 1rem;
-  padding: 1.05rem;
-  border-radius: 28px;
+  gap: 1.05rem;
+  padding: 1.1rem;
+  border-radius: 30px;
   border: 1px solid rgba(26, 122, 143, 0.12);
   background:
-    radial-gradient(circle at top right, rgba(26, 122, 143, 0.07), transparent 28%),
+    radial-gradient(circle at top right, rgba(26, 122, 143, 0.065), transparent 26%),
+    radial-gradient(circle at bottom left, rgba(90, 182, 201, 0.045), transparent 24%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 251, 0.96));
   box-shadow:
-    0 20px 42px rgba(14, 77, 95, 0.055),
+    0 22px 46px rgba(14, 77, 95, 0.058),
     inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
@@ -785,10 +806,10 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.45rem;
   gap: 1rem;
   flex-wrap: wrap;
-  padding: 0.1rem 0.08rem 0;
+  padding: 0.14rem 0.12rem 0;
 }
 
 .results-explainer {
@@ -1160,9 +1181,9 @@ nav {
 }
 
 .results-count {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--slate);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .results-count strong {
@@ -1173,11 +1194,13 @@ nav {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.24rem 0.28rem 0.24rem 0.64rem;
+  padding: 0.26rem 0.3rem 0.26rem 0.68rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(26, 122, 143, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 250, 251, 0.86));
+  border: 1px solid rgba(26, 122, 143, 0.11);
+  box-shadow:
+    0 10px 22px rgba(14, 77, 95, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .results-tools label {
@@ -1189,14 +1212,16 @@ nav {
 }
 
 .results-tools select {
-  padding: 0.54rem 0.72rem;
-  border: 1px solid rgba(26, 122, 143, 0.1);
+  padding: 0.56rem 0.76rem;
+  border: 1px solid rgba(26, 122, 143, 0.11);
   border-radius: 999px;
   font-size: 0.8rem;
   color: var(--navy);
-  background: var(--white);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 252, 0.98));
   font-family: inherit;
-  box-shadow: 0 4px 10px rgba(14, 77, 95, 0.04);
+  box-shadow:
+    0 6px 12px rgba(14, 77, 95, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .nav-shortlist {
