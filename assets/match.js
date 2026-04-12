@@ -113,8 +113,8 @@ var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
 var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
-var PRIMARY_SHORTLIST_LIMIT = 3;
-var SHORTLIST_QUEUE_LIMIT = 8;
+var PRIMARY_SHORTLIST_LIMIT = 6;
+var SHORTLIST_QUEUE_LIMIT = 12;
 var MATCH_PRIORITY_SLUGS = [];
 var US_STATE_MAP = {
   ALABAMA: "AL",
@@ -1132,7 +1132,7 @@ function buildJourneyId(profile, entries) {
     Date.now(),
     (profile && profile.care_state) || "directory",
     (entries || [])
-      .slice(0, 3)
+      .slice(0, PRIMARY_SHORTLIST_LIMIT)
       .map(function (entry) {
         return entry.therapist.slug;
       })
@@ -1163,7 +1163,7 @@ function readDirectoryShortlist() {
         };
       })
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, PRIMARY_SHORTLIST_LIMIT);
   } catch (_error) {
     return [];
   }
@@ -3666,7 +3666,7 @@ function buildFeedbackContext() {
     created_at: new Date().toISOString(),
     summary: latestProfile ? buildRequestSummary(latestProfile) : "",
     profile: latestProfile,
-    therapist_slugs: latestEntries.slice(0, 3).map(function (entry) {
+    therapist_slugs: latestEntries.slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (entry) {
       return entry.therapist.slug;
     }),
   };
@@ -4167,7 +4167,7 @@ function recordEntryOutreachOutcome(slug, outcome) {
       summary: latestProfile ? buildRequestSummary(latestProfile) : "Directory list comparison",
       profile: latestProfile,
       strategy: buildAdaptiveStrategySnapshot(latestProfile),
-      therapist_slugs: latestEntries.slice(0, 3).map(function (item) {
+      therapist_slugs: latestEntries.slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (item) {
         return item.therapist.slug;
       }),
     },

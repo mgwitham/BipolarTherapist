@@ -201,29 +201,7 @@ export function renderCardMarkup(options) {
     primaryAction +
     "</div>" +
     (model.shortlisted
-      ? '<div class="card-priority-row"><label class="card-priority-label" for="priority-' +
-        escapeHtml(therapist.slug) +
-        '">Priority</label><select class="card-priority-select" id="priority-' +
-        escapeHtml(therapist.slug) +
-        '" data-shortlist-priority="' +
-        escapeHtml(therapist.slug) +
-        '"><option value="">No label yet</option>' +
-        model.shortlistPriorityOptions
-          .map(function (option) {
-            return (
-              '<option value="' +
-              escapeHtml(option) +
-              '"' +
-              (model.shortlistEntry && model.shortlistEntry.priority === option
-                ? " selected"
-                : "") +
-              ">" +
-              escapeHtml(option) +
-              "</option>"
-            );
-          })
-          .join("") +
-        '</select></div><div class="card-note-row"><label class="card-priority-label" for="note-' +
+      ? '<div class="card-note-row"><label class="card-priority-label" for="note-' +
         escapeHtml(therapist.slug) +
         '">Note</label><input class="card-note-input" id="note-' +
         escapeHtml(therapist.slug) +
@@ -245,7 +223,7 @@ export function renderShortlistBarMarkup(options) {
   var historyState = options.historyState || null;
   if (!model.shortlist.length) {
     return {
-      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 3 therapists so you can compare, leave short notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved list stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
+      html: '<div class="shortlist-bar-copy"><strong>No saved progress yet.</strong><span>Save up to 6 therapists so you can compare, leave short notes, and come back without restarting your search.</span><span class="shortlist-bar-progress">Your saved list stays available on this browser for easy return.</span></div><a href="match.html" class="shortlist-bar-link">Start guided match</a>',
     };
   }
 

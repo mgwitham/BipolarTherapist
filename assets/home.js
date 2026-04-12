@@ -836,6 +836,7 @@ function syncHomeSearchHiddenFields(interest, elements) {
 }
 
 function readHomepageShortlist() {
+  var DIRECTORY_LIST_LIMIT = 6;
   try {
     return JSON.parse(window.localStorage.getItem("bth_directory_shortlist_v1") || "[]")
       .map(function (item) {
@@ -845,7 +846,7 @@ function readHomepageShortlist() {
         return item && item.slug ? item : null;
       })
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, DIRECTORY_LIST_LIMIT);
   } catch (_error) {
     return [];
   }

@@ -141,7 +141,7 @@ export function renderShortlistQueueSection(options) {
     function () {
       return "";
     };
-  var shortlistLimit = Number(settings.shortlistLimit || 3);
+  var shortlistLimit = Number(settings.shortlistLimit || 6);
 
   if (!queueEntries.length) {
     root.hidden = true;

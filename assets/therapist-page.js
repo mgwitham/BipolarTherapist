@@ -27,6 +27,7 @@ var slug = profileParams.get("slug");
 var profileSource = profileParams.get("source") || "";
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+var DIRECTORY_LIST_LIMIT = 6;
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
 
@@ -887,7 +888,7 @@ function normalizeShortlist(value) {
       };
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, DIRECTORY_LIST_LIMIT);
 }
 
 function writeShortlist(value) {
@@ -974,7 +975,7 @@ function recordProfileOutreachOutcome(therapist, outcome) {
       return item.slug;
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, DIRECTORY_LIST_LIMIT);
   var existing = readOutreachOutcomes();
   var now = new Date().toISOString();
   var entryIndex = shortlistSlugs.indexOf(therapist.slug);
@@ -1425,7 +1426,9 @@ function toggleShortlist(slugValue) {
     return false;
   }
 
-  var appended = shortlist.concat({ slug: slugValue, priority: "", note: "" }).slice(0, 3);
+  var appended = shortlist
+    .concat({ slug: slugValue, priority: "", note: "" })
+    .slice(0, DIRECTORY_LIST_LIMIT);
   writeShortlist(appended);
   return true;
 }
@@ -1494,7 +1497,7 @@ function updateShortlistAction(slugValue) {
   });
   status.textContent = shortlisted
     ? "Saved in your list on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
-    : "Save up to 3 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
+    : "Save up to 6 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
 
   if (decisionMemory) {
     var memoryState = buildProfileDecisionMemoryState(slugValue);

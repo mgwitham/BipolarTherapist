@@ -26,6 +26,8 @@ import {
   getMatchScore,
   matchesDirectoryFilters,
 } from "./directory-logic.js";
+
+var DIRECTORY_LIST_LIMIT = 6;
 import {
   renderDirectoryDecisionPreviewMarkup,
   renderCardMarkup,
@@ -43,7 +45,6 @@ import {
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
   var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
-  var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
   var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
@@ -450,15 +451,18 @@ import {
         };
       })
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, DIRECTORY_LIST_LIMIT);
   }
 
   function writeShortlist(value) {
-    shortlist = value;
+    shortlist = normalizeShortlist(value);
     try {
-      window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(value));
+      window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(shortlist));
     } catch (_error) {
       return;
+    }
+    if (typeof window.refreshShortlistNav === "function") {
+      window.refreshShortlistNav();
     }
   }
 
@@ -487,7 +491,9 @@ import {
       therapist_slug: slug,
       shortlist_size_before: shortlist.length,
     });
-    writeShortlist(shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, 3));
+    writeShortlist(
+      shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, DIRECTORY_LIST_LIMIT),
+    );
     return true;
   }
 
@@ -516,7 +522,7 @@ import {
         priority: removedEntry ? String(removedEntry.priority || "") : "",
         note: "",
       })
-      .slice(0, 3);
+      .slice(0, DIRECTORY_LIST_LIMIT);
 
     writeShortlist(next);
   }
@@ -524,10 +530,18 @@ import {
   function fillShortlistSlot(replacementSlug) {
     lastReshapeSnapshot = null;
     writeReshapeHistory(null);
-    if (!replacementSlug || isShortlisted(replacementSlug) || shortlist.length >= 3) {
+    if (
+      !replacementSlug ||
+      isShortlisted(replacementSlug) ||
+      shortlist.length >= DIRECTORY_LIST_LIMIT
+    ) {
       return;
     }
-    writeShortlist(shortlist.concat({ slug: replacementSlug, priority: "", note: "" }).slice(0, 3));
+    writeShortlist(
+      shortlist
+        .concat({ slug: replacementSlug, priority: "", note: "" })
+        .slice(0, DIRECTORY_LIST_LIMIT),
+    );
   }
 
   function applyReshapingPlan(entries) {
@@ -546,7 +560,7 @@ import {
           note: String(item.note || ""),
         };
       })
-      .slice(0, 3);
+      .slice(0, DIRECTORY_LIST_LIMIT);
     lastReshapeSnapshot = beforeEntries;
     writeShortlist(nextEntries);
     writeReshapeHistory(buildReshapeHistoryPayload(beforeEntries, nextEntries));
@@ -1155,7 +1169,6 @@ import {
         therapist: therapist,
         filters: filters,
         shortlist: shortlist,
-        shortlistPriorityOptions: SHORTLIST_PRIORITY_OPTIONS,
         isShortlisted: isShortlisted,
       }),
     });
@@ -1419,15 +1432,6 @@ import {
         });
       });
     }
-    grid.querySelectorAll("[data-shortlist-priority]").forEach(function (select) {
-      select.addEventListener("change", function () {
-        updateShortlistPriority(select.getAttribute("data-shortlist-priority"), select.value);
-        renderShortlistBar();
-        if (typeof window.refreshShortlistNav === "function") {
-          window.refreshShortlistNav();
-        }
-      });
-    });
     grid.querySelectorAll("[data-shortlist-note]").forEach(function (input) {
       input.addEventListener("change", function () {
         updateShortlistNote(input.getAttribute("data-shortlist-note"), input.value);
