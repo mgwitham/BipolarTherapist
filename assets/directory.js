@@ -72,6 +72,7 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   var resizeTimer = 0;
   var filteredResultsCacheKey = "";
   var filteredResultsCache = [];
+  var optionIndexes = buildOptionIndexes();
   var VALID_SORT_OPTIONS = new Set([
     "best_match",
     "most_experienced",
@@ -122,6 +123,42 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
 
       return compareTherapistsWithFilters(filterState, a, b);
     });
+  }
+
+  function incrementCount(map, key) {
+    if (!key) {
+      return;
+    }
+
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+
+  function buildOptionIndexes() {
+    var indexes = {
+      state: new Map(),
+      specialty: new Map(),
+      insurance: new Map(),
+      modality: new Map(),
+      population: new Map(),
+    };
+
+    therapists.forEach(function (therapist) {
+      incrementCount(indexes.state, therapist.state);
+      (therapist.specialties || []).forEach(function (value) {
+        incrementCount(indexes.specialty, value);
+      });
+      (therapist.insurance_accepted || []).forEach(function (value) {
+        incrementCount(indexes.insurance, value);
+      });
+      (therapist.treatment_modalities || []).forEach(function (value) {
+        incrementCount(indexes.modality, value);
+      });
+      (therapist.client_populations || []).forEach(function (value) {
+        incrementCount(indexes.population, value);
+      });
+    });
+
+    return indexes;
   }
 
   function readShortlist() {
@@ -437,16 +474,13 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   }
 
   function uniqueCounts(field, nested) {
-    var counts = new Map();
-    therapists.forEach(function (therapist) {
-      var values = nested ? therapist[field] || [] : [therapist[field]];
-      values.forEach(function (value) {
-        if (!value) {
-          return;
-        }
-        counts.set(value, (counts.get(value) || 0) + 1);
-      });
-    });
+    var counts =
+      field === "treatment_modalities"
+        ? optionIndexes.modality
+        : field === "client_populations"
+          ? optionIndexes.population
+          : new Map();
+
     return Array.from(counts.entries())
       .sort(function (a, b) {
         return String(a[0]).localeCompare(String(b[0]));
@@ -457,6 +491,12 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   }
 
   function getConfiguredItems(field, nested) {
+    var sourceMap =
+      field === "curatedStates"
+        ? optionIndexes.state
+        : field === "curatedSpecialties"
+          ? optionIndexes.specialty
+          : optionIndexes.insurance;
     var configured =
       directoryPage && Array.isArray(directoryPage[field]) ? directoryPage[field] : [];
     if (!configured.length) {
@@ -471,19 +511,9 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     }
 
     return configured.filter(Boolean).map(function (value) {
-      var count = therapists.filter(function (therapist) {
-        if (field === "curatedStates") {
-          return therapist.state === value;
-        }
-        if (field === "curatedSpecialties") {
-          return (therapist.specialties || []).includes(value);
-        }
-        return (therapist.insurance_accepted || []).includes(value);
-      }).length;
-
       return {
         value: value,
-        count: count,
+        count: sourceMap.get(value) || 0,
       };
     });
   }
