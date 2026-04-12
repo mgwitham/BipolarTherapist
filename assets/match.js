@@ -4815,7 +4815,6 @@ function renderDirectoryShortlist(slugs) {
   ) {
     outreachFocusSlug = queueFocusSlugFromUrl;
   }
-  persistEntriesToDirectoryShortlist(selected);
   window.history.replaceState({}, "", buildShortlistComparePath(selected));
   persistMatchRequest(null, selected);
   safeRenderResults(selected, null);
