@@ -22,7 +22,6 @@ import {
   buildDirectoryStrategySegments,
   compareTherapistsWithFilters,
   getDirectoryStrategyAudience,
-  getEditorialLaneCandidates,
   getMatchScore,
   matchesDirectoryFilters,
 } from "./directory-logic.js";
@@ -1006,47 +1005,6 @@ import {
     var next = query ? "directory.html?" + query : "directory.html";
     window.history.replaceState({}, "", next);
   }
-  function renderEditorialLanes(results) {
-    var root = getElement("editorialLanes");
-    if (!root) {
-      return;
-    }
-
-    var hasActiveFilters = countActiveFilters(filters) > 0;
-
-    if (hasActiveFilters || !results.length) {
-      root.innerHTML = "";
-      return;
-    }
-
-    root.innerHTML = getEditorialLaneCandidates(results)
-      .slice(0, 3)
-      .map(function (lane) {
-        var laneCue =
-          lane.title === "Fastest next step"
-            ? "This lane is especially useful when availability and a lower-friction next move matter most."
-            : lane.title === "Strongest psychiatry option"
-              ? "This lane is especially useful when medication support or psychiatry coordination may matter."
-              : "This lane is especially useful when you want a therapy-first option with stronger bipolar detail.";
-        return (
-          '<div class="editorial-lane"><div class="editorial-lane-title">' +
-          escapeHtml(lane.title) +
-          '</div><div class="editorial-lane-name">' +
-          escapeHtml(lane.therapist.name) +
-          '</div><div class="editorial-lane-copy">' +
-          escapeHtml(lane.copy) +
-          " " +
-          escapeHtml(buildCardFitSummary(filters, lane.therapist)) +
-          " " +
-          escapeHtml(laneCue) +
-          '</div><a class="editorial-lane-link" href="therapist.html?slug=' +
-          encodeURIComponent(lane.therapist.slug) +
-          '">View profile →</a></div>'
-        );
-      })
-      .join("");
-  }
-
   function getFilteredWithFilters(filterState) {
     return applyDirectoryPriorityProminence(
       therapists.filter(function (therapist) {
@@ -1386,7 +1344,6 @@ import {
     if (!pageItems.length) {
       grid.innerHTML = renderEmptyStateMarkup(directoryPage);
       renderDirectoryTradeoffPreview([]);
-      renderEditorialLanes([]);
       renderPagination(0);
       renderShortlistBar();
       updateUrl();
@@ -1395,7 +1352,6 @@ import {
 
     activePreviewSlug = renderState.activePreviewSlug;
     renderDirectoryTradeoffPreview(results);
-    renderEditorialLanes(results);
     grid.innerHTML = pageItems.map(renderCard).join("");
     if (pendingMotionSlug) {
       var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
@@ -1419,18 +1375,6 @@ import {
         toggleShortlist(slug);
         render();
       });
-    });
-    grid.querySelectorAll("[data-card-slug]").forEach(function (card) {
-      function activatePreview() {
-        var slug = card.getAttribute("data-card-slug") || "";
-        if (!slug || slug === activePreviewSlug) {
-          return;
-        }
-        activePreviewSlug = slug;
-        renderDirectoryTradeoffPreview(results);
-      }
-      card.addEventListener("mouseenter", activatePreview);
-      card.addEventListener("focusin", activatePreview);
     });
     grid.querySelectorAll("[data-primary-cta]").forEach(function (link) {
       link.addEventListener("click", function () {
