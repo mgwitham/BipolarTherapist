@@ -9,65 +9,6 @@ import {
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
-export function buildDirectoryStrategySegments(filterState) {
-  var segments = ["all"];
-
-  if (filterState.telehealth && !filterState.in_person) {
-    segments.push("format:telehealth");
-  } else if (filterState.in_person && !filterState.telehealth) {
-    segments.push("format:in_person");
-  }
-
-  if (filterState.medication_management) {
-    segments.push("intent:psychiatry");
-    segments.push("medication:yes");
-  }
-
-  if (filterState.insurance) {
-    segments.push("insurance:user");
-  }
-
-  if (filterState.accepting || filterState.sortBy === "soonest_availability") {
-    segments.push("urgency:within-2-weeks");
-  }
-
-  return segments;
-}
-
-export function getDirectoryStrategyAudience(filterState) {
-  var segments = buildDirectoryStrategySegments(filterState);
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("urgency:") === 0;
-    })
-  ) {
-    return "people browsing with timing in mind";
-  }
-
-  if (segments.includes("insurance:user")) {
-    return "people browsing with cost or insurance in mind";
-  }
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("intent:psychiatry") === 0 || segment.indexOf("medication:yes") === 0;
-    })
-  ) {
-    return "people browsing for psychiatry or medication support";
-  }
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("format:") === 0;
-    })
-  ) {
-    return "people browsing with a stronger care-format preference";
-  }
-
-  return "people browsing like this";
-}
-
 export function matchesDirectoryFilters(filterState, therapist) {
   var telehealthOverridesZip = Boolean(filterState.telehealth);
   var haystack = [
@@ -714,61 +655,6 @@ export function getMatchScore(filterState, therapist) {
   }
 
   return score;
-}
-
-export function getEditorialLaneCandidates(results) {
-  var list = Array.isArray(results) ? results.slice() : [];
-  var psychiatry = list
-    .filter(function (therapist) {
-      return (
-        therapist.medication_management ||
-        /psychiatrist|psychiatric|pmhnp|np|md/i.test(
-          String((therapist.title || "") + " " + (therapist.credentials || "")),
-        )
-      );
-    })
-    .sort(function (a, b) {
-      return getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score;
-    })[0];
-
-  var therapy = list
-    .filter(function (therapist) {
-      return !therapist.medication_management;
-    })
-    .sort(function (a, b) {
-      return getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score;
-    })[0];
-
-  var fastest = list
-    .filter(function (therapist) {
-      return therapist.accepting_new_patients;
-    })
-    .sort(function (a, b) {
-      return (
-        getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
-        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score
-      );
-    })[0];
-
-  return [
-    {
-      title: "Strongest psychiatry option",
-      therapist: psychiatry,
-      copy: "Best when medication support or psychiatry coordination may matter.",
-    },
-    {
-      title: "Strongest therapy option",
-      therapist: therapy,
-      copy: "Best when you want a high-quality therapy-first profile with strong bipolar detail.",
-    },
-    {
-      title: "Fastest next step",
-      therapist: fastest,
-      copy: "Best when speed, availability, and follow-through matter most right now.",
-    },
-  ].filter(function (lane) {
-    return Boolean(lane.therapist);
-  });
 }
 
 export function compareTherapistsWithFilters(filterState, a, b) {
