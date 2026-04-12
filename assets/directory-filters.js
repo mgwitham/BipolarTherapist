@@ -1,5 +1,4 @@
 export var FILTER_VALUE_KEYS = [
-  "q",
   "state",
   "zip",
   "specialty",

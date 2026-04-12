@@ -1,21 +1,7 @@
 import {
-  getEditoriallyVerifiedOperationalCount,
-  getOperationalTrustSummary,
-  getTherapistMerchandisingQuality,
-} from "./matching-model.js";
-import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import {
   buildCardFitSummary,
-  buildCardReachabilityCopy,
-  buildCardStandoutCopy,
-  buildCardTrustSnapshot,
-  buildDecisionReadySummary,
   buildLikelyFitCopy,
-  buildReviewedDetailsCopy,
-  getDecisionReadyLabel,
-  getFreshnessBadgeData,
   getPreferredContactRoute,
-  getPublicReadinessCopy,
 } from "./directory-logic.js";
 
 export function formatDirectoryFeeLabel(therapist, fallback) {
@@ -44,122 +30,19 @@ export function formatDirectoryFeeLabel(therapist, fallback) {
 
 export function buildCardViewModel(options) {
   var therapist = options.therapist;
-  var filters = options.filters;
   var shortlist = options.shortlist;
-  var shortlistPriorityOptions = options.shortlistPriorityOptions;
   var isShortlisted = options.isShortlisted;
   var shortlisted = isShortlisted(therapist.slug);
   var shortlistEntry = shortlist.find(function (item) {
     return item.slug === therapist.slug;
   });
-  var freshnessBadge = getFreshnessBadgeData(therapist);
-  var decisionReadyLabel = getDecisionReadyLabel(therapist);
   var contactRoute = getPreferredContactRoute(therapist);
-  var trustSnapshot = buildCardTrustSnapshot(therapist);
-  var reviewedDetailsCopy = buildReviewedDetailsCopy(therapist);
-  var operationalTrustCopy = getOperationalTrustSummary(therapist);
-  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
-
-  function shortenCopy(value, fallback, maxWords) {
-    var text = String(value || fallback || "")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!text) {
-      return "";
-    }
-
-    var firstSentence = text.split(/(?<=[.!?])\s+/)[0] || text;
-    var words = firstSentence.split(" ").filter(Boolean);
-    if (words.length <= maxWords) {
-      return firstSentence;
-    }
-    return words.slice(0, maxWords).join(" ") + "...";
-  }
-
-  function buildCardSummary() {
-    return shortenCopy(
-      therapist.bio_preview || therapist.bio || buildLikelyFitCopy(therapist),
-      buildLikelyFitCopy(therapist),
-      22,
-    );
-  }
-
-  function buildActionSummary() {
-    if (therapist.first_step_expectation) {
-      return shortenCopy(
-        therapist.first_step_expectation,
-        "Open the profile to confirm the best next step.",
-        14,
-      );
-    }
-    if (contactRoute) {
-      return shortenCopy(contactRoute.detail, "Open the profile to confirm the best next step.", 8);
-    }
-    return "Open profile to confirm next step.";
-  }
-
-  function buildFreshnessSummary() {
-    if (freshnessBadge && freshnessBadge.label) {
-      return freshnessBadge.label;
-    }
-    return decisionReadyLabel;
-  }
-
-  function buildTrustSummary() {
-    if (reviewedCount) {
-      return reviewedCount + " verified detail" + (reviewedCount === 1 ? "" : "s");
-    }
-    return shortenCopy(trustSnapshot || operationalTrustCopy || reviewedDetailsCopy, "", 8);
-  }
 
   return {
     therapist: therapist,
     shortlistEntry: shortlistEntry,
-    shortlistPriorityOptions: shortlistPriorityOptions,
     shortlisted: shortlisted,
-    freshnessBadge: freshnessBadge,
-    decisionReadyLabel: decisionReadyLabel,
-    decisionReadySummary: buildDecisionReadySummary(therapist),
-    fitSummary: buildCardFitSummary(filters, therapist),
-    likelyFitCopy: buildLikelyFitCopy(therapist),
-    cardSummary: buildCardSummary(),
-    actionSummary: buildActionSummary(),
-    freshnessSummary: buildFreshnessSummary(),
-    trustSummaryShort: buildTrustSummary(),
     contactRoute: contactRoute,
-    reviewedDetailsCopy: reviewedDetailsCopy,
-    operationalTrustCopy: operationalTrustCopy,
-    standoutCopy: buildCardStandoutCopy(therapist),
-    reachabilityCopy: buildCardReachabilityCopy(therapist),
-    trustSnapshot: trustSnapshot,
-    trustTags: [
-      getTherapistMerchandisingQuality(therapist).score >= 90
-        ? getTherapistMerchandisingQuality(therapist).label
-        : "",
-      therapist.verification_status === "editorially_verified" ? "Verified" : "",
-      freshnessBadge ? freshnessBadge.label : "",
-      getEditoriallyVerifiedOperationalCount(therapist)
-        ? getEditoriallyVerifiedOperationalCount(therapist) +
-          " key detail" +
-          (getEditoriallyVerifiedOperationalCount(therapist) > 1 ? "s" : "") +
-          " verified"
-        : "",
-      therapist.bipolar_years_experience
-        ? therapist.bipolar_years_experience + " yrs bipolar care"
-        : "",
-      getPublicReadinessCopy(therapist),
-      decisionReadyLabel,
-      (function () {
-        var signal = getPublicResponsivenessSignal(therapist);
-        return signal ? signal.label : "";
-      })(),
-      therapist.medication_management ? "Medication management" : "",
-    ].filter(Boolean),
-    tags: (therapist.specialties || []).slice(0, 3),
-    modes: [
-      therapist.accepts_telehealth ? "Telehealth" : "",
-      therapist.accepts_in_person ? "In-Person" : "",
-    ].filter(Boolean),
     acceptance: therapist.accepting_new_patients ? "Accepting patients" : "Check current openings",
     acceptanceTone: therapist.accepting_new_patients ? "accepting" : "accepting not-acc",
     feeSummary: formatDirectoryFeeLabel(therapist, "Fees to confirm"),
@@ -172,20 +55,6 @@ export function buildCardViewModel(options) {
         tone: therapist.bipolar_years_experience ? "green" : "teal",
       },
     ],
-    decisionPills: [
-      therapist.accepts_telehealth ? "Telehealth" : "",
-      therapist.accepts_in_person ? "In-person" : "",
-      therapist.medication_management ? "Medication support" : "",
-      therapist.insurance_accepted && therapist.insurance_accepted.length
-        ? therapist.insurance_accepted.slice(0, 1)[0]
-        : "",
-    ].filter(Boolean),
-    nextStepLine: therapist.first_step_expectation
-      ? therapist.first_step_expectation
-      : contactRoute
-        ? contactRoute.detail
-        : "Open the profile to confirm the best next step.",
-    footerLabel: contactRoute ? contactRoute.label : "Shortlist-ready",
   };
 }
 
