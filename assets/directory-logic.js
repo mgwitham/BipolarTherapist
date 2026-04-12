@@ -9,26 +9,28 @@ import {
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
+var responsivenessRankCache = new WeakMap();
+var freshnessBadgeCache = new WeakMap();
+var freshnessRankCache = new WeakMap();
+var decisionReadyScoreCache = new WeakMap();
+var merchandisingQualityCache = new WeakMap();
+
+function getCachedMerchandisingQuality(therapist) {
+  if (!therapist || typeof therapist !== "object") {
+    return getTherapistMerchandisingQuality(therapist);
+  }
+
+  if (!merchandisingQualityCache.has(therapist)) {
+    merchandisingQualityCache.set(therapist, getTherapistMerchandisingQuality(therapist));
+  }
+
+  return merchandisingQualityCache.get(therapist);
+}
+
 export function matchesDirectoryFilters(filterState, therapist) {
   var telehealthOverridesZip = Boolean(filterState.telehealth);
-  var haystack = [
-    therapist.name,
-    therapist.title,
-    therapist.city,
-    therapist.state,
-    therapist.practice_name,
-    therapist.bio_preview,
-    therapist.care_approach,
-  ]
-    .concat(therapist.specialties || [])
-    .concat(therapist.insurance_accepted || [])
-    .concat(therapist.treatment_modalities || [])
-    .concat(therapist.client_populations || [])
-    .join(" ")
-    .toLowerCase();
   var isPsychiatrist = isPsychiatristProvider(therapist);
 
-  if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
   if (filterState.state && therapist.state !== filterState.state) return false;
   if (
     filterState.zip &&
@@ -216,74 +218,105 @@ export function getPublicReadinessCopy(therapist) {
 }
 
 export function getResponsivenessRank(therapist) {
+  if (therapist && typeof therapist === "object" && responsivenessRankCache.has(therapist)) {
+    return responsivenessRankCache.get(therapist);
+  }
+
   var signal = getPublicResponsivenessSignal(therapist);
+  var rank = 0;
 
   if (!signal) {
-    return 0;
+    rank = 0;
+  } else if (signal.tone === "positive") {
+    rank = 2;
+  } else {
+    rank = 1;
   }
 
-  if (signal.tone === "positive") {
-    return 2;
+  if (therapist && typeof therapist === "object") {
+    responsivenessRankCache.set(therapist, rank);
   }
 
-  return 1;
+  return rank;
 }
 
 export function getFreshnessBadgeData(therapist) {
+  if (therapist && typeof therapist === "object" && freshnessBadgeCache.has(therapist)) {
+    return freshnessBadgeCache.get(therapist);
+  }
+
+  var badge = null;
   var recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
-    return {
+    badge = {
       label: recentApplied.short_label || recentApplied.label,
       note: recentApplied.note,
       tone: "fresh",
     };
+  } else {
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      badge = {
+        label: recentConfirmation.short_label || recentConfirmation.label,
+        note: recentConfirmation.note,
+        tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
+      };
+    } else {
+      var freshness = getDataFreshnessSummary(therapist);
+      badge = freshness
+        ? {
+            label: freshness.label,
+            note: freshness.note,
+            tone: freshness.status === "fresh" ? "fresh" : "stale",
+          }
+        : null;
+    }
   }
 
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  if (recentConfirmation) {
-    return {
-      label: recentConfirmation.short_label || recentConfirmation.label,
-      note: recentConfirmation.note,
-      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
-    };
+  if (therapist && typeof therapist === "object") {
+    freshnessBadgeCache.set(therapist, badge);
   }
 
-  var freshness = getDataFreshnessSummary(therapist);
-  return freshness
-    ? {
-        label: freshness.label,
-        note: freshness.note,
-        tone: freshness.status === "fresh" ? "fresh" : "stale",
-      }
-    : null;
+  return badge;
 }
 
 export function getFreshnessRank(therapist) {
+  if (therapist && typeof therapist === "object" && freshnessRankCache.has(therapist)) {
+    return freshnessRankCache.get(therapist);
+  }
+
+  var rank = 0;
   var recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
-    return 3;
+    rank = 3;
+  } else {
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      rank = recentConfirmation.tone === "fresh" ? 3 : 2;
+    } else {
+      var freshness = getDataFreshnessSummary(therapist);
+      if (!freshness) {
+        rank = 0;
+      } else if (freshness.status === "fresh") {
+        rank = 2;
+      } else if (freshness.status === "recent") {
+        rank = 1;
+      }
+    }
   }
 
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  if (recentConfirmation) {
-    return recentConfirmation.tone === "fresh" ? 3 : 2;
+  if (therapist && typeof therapist === "object") {
+    freshnessRankCache.set(therapist, rank);
   }
 
-  var freshness = getDataFreshnessSummary(therapist);
-  if (!freshness) {
-    return 0;
-  }
-  if (freshness.status === "fresh") {
-    return 2;
-  }
-  if (freshness.status === "recent") {
-    return 1;
-  }
-
-  return 0;
+  return rank;
 }
 
 export function getDecisionReadyScore(therapist) {
+  if (therapist && typeof therapist === "object" && decisionReadyScoreCache.has(therapist)) {
+    return decisionReadyScoreCache.get(therapist);
+  }
+
   var score = 0;
   var readiness = getTherapistMatchReadiness(therapist);
   var freshnessRank = getFreshnessRank(therapist);
@@ -317,6 +350,10 @@ export function getDecisionReadyScore(therapist) {
     score += 5;
   } else if (responsivenessRank === 1) {
     score += 2;
+  }
+
+  if (therapist && typeof therapist === "object") {
+    decisionReadyScoreCache.set(therapist, score);
   }
 
   return score;
@@ -557,44 +594,8 @@ export function buildCardFitSummary(filterState, therapist) {
 
 export function getMatchScore(filterState, therapist) {
   var score = 0;
-  var quality = getTherapistMerchandisingQuality(therapist);
+  var quality = getCachedMerchandisingQuality(therapist);
   var responsivenessRank = getResponsivenessRank(therapist);
-  var query = String((filterState && filterState.q) || "")
-    .trim()
-    .toLowerCase();
-
-  if (query) {
-    if ((therapist.name || "").toLowerCase().includes(query)) {
-      score += 30;
-    }
-    if ((therapist.practice_name || "").toLowerCase().includes(query)) {
-      score += 16;
-    }
-    if ((therapist.title || "").toLowerCase().includes(query)) {
-      score += 10;
-    }
-    if ((therapist.bio_preview || therapist.bio || "").toLowerCase().includes(query)) {
-      score += 14;
-    }
-    if ((therapist.care_approach || "").toLowerCase().includes(query)) {
-      score += 18;
-    }
-    (therapist.specialties || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 14;
-      }
-    });
-    (therapist.treatment_modalities || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 12;
-      }
-    });
-    (therapist.client_populations || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 10;
-      }
-    });
-  }
 
   if (filterState.specialty && (therapist.specialties || []).includes(filterState.specialty)) {
     score += 26;
@@ -663,7 +664,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
       getResponsivenessRank(b) - getResponsivenessRank(a) ||
       (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
       getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
       a.name.localeCompare(b.name)
     );
@@ -675,7 +676,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
       (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
       getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
       Number(b.years_experience || 0) - Number(a.years_experience || 0) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
   }
@@ -683,7 +684,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "soonest_availability") {
     return (
       getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
       a.name.localeCompare(b.name)
     );
@@ -695,7 +696,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
 
     return (
       aFee - bFee ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
   }
@@ -704,7 +705,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
     getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
     getDecisionReadyScore(b) - getDecisionReadyScore(a) ||
     getFreshnessRank(b) - getFreshnessRank(a) ||
-    getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+    getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
     a.name.localeCompare(b.name)
   );
 }

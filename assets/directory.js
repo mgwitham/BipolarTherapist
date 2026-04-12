@@ -48,7 +48,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   var pageSize = 12;
   var activePreviewSlug = "";
   var defaultFilters = {
-    q: "",
     state: "CA",
     zip: "",
     specialty: "",
@@ -70,6 +69,9 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   var shortlist = readShortlist();
   var pendingMotionSlug = "";
   var liveFilterTimer = 0;
+  var resizeTimer = 0;
+  var filteredResultsCacheKey = "";
+  var filteredResultsCache = [];
   var VALID_SORT_OPTIONS = new Set([
     "best_match",
     "most_experienced",
@@ -77,23 +79,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     "lowest_fee",
     "most_responsive",
   ]);
-  var FILTER_PRESETS = {
-    trusted_fast: {
-      recently_confirmed: true,
-      accepting: true,
-      sortBy: "best_match",
-    },
-    responsive: {
-      responsive_contact: true,
-      accepting: true,
-      sortBy: "most_responsive",
-    },
-    value: {
-      insurance: "",
-      telehealth: true,
-      sortBy: "lowest_fee",
-    },
-  };
 
   function getElement(id) {
     return document.getElementById(id);
@@ -106,6 +91,14 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function buildFilterCacheKey(filterState) {
+    return FILTER_VALUE_KEYS.concat(FILTER_BOOLEAN_KEYS)
+      .map(function (key) {
+        return key + ":" + String(filterState[key] || "");
+      })
+      .join("|");
   }
 
   function applyDirectoryPriorityProminence(list, filterState) {
@@ -231,15 +224,12 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     var mappings = [
       ["directoryHeroTitle", "heroTitle"],
       ["directoryHeroDescription", "heroDescription"],
-      ["searchPanelTitle", "searchPanelTitle"],
-      ["searchLabelText", "searchLabel"],
       ["locationPanelTitle", "locationPanelTitle"],
       ["stateLabelText", "stateLabel"],
       ["specialtyPanelTitle", "specialtyPanelTitle"],
       ["specialtyLabelText", "specialtyLabel"],
       ["insurancePanelTitle", "insurancePanelTitle"],
       ["insuranceLabelText", "insuranceLabel"],
-      ["optionsPanelTitle", "optionsPanelTitle"],
       ["telehealthLabelText", "telehealthLabel"],
       ["inPersonLabelText", "inPersonLabel"],
       ["acceptingLabelText", "acceptingLabel"],
@@ -255,12 +245,8 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
       }
     });
 
-    var keywordInput = getElement("q");
     var zipInput = getElement("zip");
     var zipLabel = getElement("cityLabelText");
-    if (keywordInput && directoryPage.searchPlaceholder) {
-      keywordInput.placeholder = directoryPage.searchPlaceholder;
-    }
     if (zipLabel) {
       zipLabel.textContent = directoryPage.zipLabel || "Zip code";
     }
@@ -312,9 +298,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
 
   function summarizeActiveFilters() {
     var chips = [];
-    if (filters.q) {
-      chips.push({ key: "q", label: 'Keyword: "' + filters.q + '"' });
-    }
     if (filters.state) {
       chips.push({ key: "state", label: filters.state });
     }
@@ -420,11 +403,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
         );
       })
       .join("");
-    chipsRoot.querySelectorAll("[data-remove-filter]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        removeActiveFilter(button.getAttribute("data-remove-filter"));
-      });
-    });
     if (clearButton) {
       clearButton.hidden = false;
     }
@@ -456,23 +434,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
 
     summary.textContent =
       "You still have plenty of options. Add another filter or update the sort to bring the best fits forward.";
-  }
-
-  function applyFilterPreset(name) {
-    var preset = FILTER_PRESETS[name];
-    if (!preset) {
-      return;
-    }
-
-    filters = Object.assign({}, filters, preset);
-    currentPage = 1;
-    syncFilterControlsFromState(filters, getElement);
-    trackFunnelEvent("directory_filter_preset_applied", {
-      preset_name: name,
-      active_filter_count: countActiveFilters(filters),
-      sort_by: filters.sortBy,
-    });
-    render();
   }
 
   function uniqueCounts(field, nested) {
@@ -590,12 +551,19 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     window.history.replaceState({}, "", next);
   }
   function getFilteredWithFilters(filterState) {
-    return applyDirectoryPriorityProminence(
+    var cacheKey = buildFilterCacheKey(filterState);
+    if (cacheKey === filteredResultsCacheKey) {
+      return filteredResultsCache;
+    }
+
+    filteredResultsCache = applyDirectoryPriorityProminence(
       therapists.filter(function (therapist) {
         return matchesDirectoryFilters(filterState, therapist);
       }),
       filterState,
     );
+    filteredResultsCacheKey = cacheKey;
+    return filteredResultsCache;
   }
 
   function getFiltered() {
@@ -641,20 +609,54 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     });
   }
 
+  function renderResultsGrid(pageItems) {
+    var grid = getElement("resultsGrid");
+    if (!grid) {
+      return;
+    }
+
+    if (!pageItems.length) {
+      grid.innerHTML = renderEmptyStateMarkup(directoryPage);
+      return;
+    }
+
+    grid.innerHTML = pageItems.map(renderCard).join("");
+  }
+
+  function pulsePendingCard() {
+    var grid = getElement("resultsGrid");
+    if (!grid || !pendingMotionSlug) {
+      return;
+    }
+
+    var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
+    if (activeCard) {
+      activeCard.classList.remove("motion-pulse");
+      void activeCard.offsetWidth;
+      activeCard.classList.add("motion-pulse");
+    }
+    pendingMotionSlug = "";
+  }
+
   function renderPagination(total) {
     var pages = Math.ceil(total / pageSize);
     var root = getElement("pagination");
     root.innerHTML = renderPaginationMarkup(currentPage, pages);
-    if (pages <= 1) {
-      return;
-    }
-    root.querySelectorAll("[data-page]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        currentPage = Number(button.getAttribute("data-page"));
-        render();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
+  }
+
+  function renderCurrentPageOnly(results) {
+    var renderState = buildDirectoryRenderState({
+      results: results,
+      currentPage: currentPage,
+      pageSize: pageSize,
+      filters: filters,
+      directoryPage: directoryPage,
+      activePreviewSlug: activePreviewSlug,
     });
+
+    renderResultsGrid(renderState.pageItems);
+    renderPagination(renderState.results.length);
+    pulsePendingCard();
   }
 
   function render() {
@@ -685,7 +687,7 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     renderJourneySummary(results.length, activeFilterCount);
 
     if (!pageItems.length) {
-      grid.innerHTML = renderEmptyStateMarkup(directoryPage);
+      renderResultsGrid([]);
       renderDirectoryTradeoffPreview([]);
       renderPagination(0);
       updateUrl();
@@ -694,72 +696,16 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
 
     activePreviewSlug = renderState.activePreviewSlug;
     renderDirectoryTradeoffPreview(results);
-    grid.innerHTML = pageItems.map(renderCard).join("");
-    if (pendingMotionSlug) {
-      var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
-      if (activeCard) {
-        activeCard.classList.remove("motion-pulse");
-        void activeCard.offsetWidth;
-        activeCard.classList.add("motion-pulse");
-      }
-      pendingMotionSlug = "";
-    }
-    grid.querySelectorAll("[data-shortlist-slug]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var slug = button.getAttribute("data-shortlist-slug");
-        pendingMotionSlug = slug;
-        toggleShortlist(slug);
-        render();
-      });
-    });
-    grid.querySelectorAll("[data-primary-cta]").forEach(function (link) {
-      link.addEventListener("click", function () {
-        trackFunnelEvent("directory_primary_cta_clicked", {
-          therapist_slug: link.getAttribute("data-primary-cta"),
-          sort_by: filters.sortBy,
-        });
-      });
-    });
-    grid.querySelectorAll("[data-review-fit]").forEach(function (link) {
-      link.addEventListener("click", function () {
-        trackFunnelEvent("directory_profile_review_clicked", {
-          therapist_slug: link.getAttribute("data-review-fit"),
-          sort_by: filters.sortBy,
-        });
-      });
-    });
-    var previewShortlistButton = rootQuery("[data-preview-shortlist]");
-    if (previewShortlistButton) {
-      previewShortlistButton.addEventListener("click", function () {
-        var slug = previewShortlistButton.getAttribute("data-preview-shortlist");
-        if (!slug) {
-          return;
-        }
-        pendingMotionSlug = slug;
-        toggleShortlist(slug);
-        render();
-      });
-    }
-    var previewOpenLink = rootQuery("[data-preview-open-profile]");
-    if (previewOpenLink) {
-      previewOpenLink.addEventListener("click", function () {
-        trackFunnelEvent("directory_preview_profile_opened", {
-          therapist_slug: previewOpenLink.getAttribute("data-preview-open-profile"),
-          sort_by: filters.sortBy,
-        });
-      });
-    }
-    grid.querySelectorAll("[data-shortlist-note]").forEach(function (input) {
-      input.addEventListener("change", function () {
-        updateShortlistNote(input.getAttribute("data-shortlist-note"), input.value);
-      });
-    });
+    renderResultsGrid(pageItems);
+    pulsePendingCard();
     renderPagination(results.length);
     updateUrl();
   }
 
-  function rootQuery(selector) {
-    return document.querySelector(selector);
+  function refreshShortlistViews() {
+    var results = getFiltered();
+    renderDirectoryTradeoffPreview(results);
+    renderCurrentPageOnly(results);
   }
 
   function applyFilters() {
@@ -836,6 +782,93 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     updateFilterToggleState();
   }
 
+  function scheduleViewportSync() {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(syncSidebarForViewport, 80);
+  }
+
+  function handleResultsGridClick(event) {
+    var shortlistButton = event.target.closest("[data-shortlist-slug]");
+    if (shortlistButton) {
+      var shortlistSlug = shortlistButton.getAttribute("data-shortlist-slug");
+      if (!shortlistSlug) {
+        return;
+      }
+      pendingMotionSlug = shortlistSlug;
+      toggleShortlist(shortlistSlug);
+      refreshShortlistViews();
+      return;
+    }
+
+    var primaryLink = event.target.closest("[data-primary-cta]");
+    if (primaryLink) {
+      trackFunnelEvent("directory_primary_cta_clicked", {
+        therapist_slug: primaryLink.getAttribute("data-primary-cta"),
+        sort_by: filters.sortBy,
+      });
+      return;
+    }
+
+    var reviewLink = event.target.closest("[data-review-fit]");
+    if (reviewLink) {
+      trackFunnelEvent("directory_profile_review_clicked", {
+        therapist_slug: reviewLink.getAttribute("data-review-fit"),
+        sort_by: filters.sortBy,
+      });
+    }
+  }
+
+  function handleResultsGridChange(event) {
+    var noteInput = event.target.closest("[data-shortlist-note]");
+    if (!noteInput) {
+      return;
+    }
+
+    updateShortlistNote(noteInput.getAttribute("data-shortlist-note"), noteInput.value);
+  }
+
+  function handlePaginationClick(event) {
+    var pageButton = event.target.closest("[data-page]");
+    if (!pageButton) {
+      return;
+    }
+
+    currentPage = Number(pageButton.getAttribute("data-page"));
+    renderCurrentPageOnly(getFiltered());
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleFocusBarClick(event) {
+    var removeButton = event.target.closest("[data-remove-filter]");
+    if (!removeButton) {
+      return;
+    }
+
+    removeActiveFilter(removeButton.getAttribute("data-remove-filter"));
+  }
+
+  function handlePreviewClick(event) {
+    var shortlistButton = event.target.closest("[data-preview-shortlist]");
+    if (shortlistButton) {
+      var previewSlug = shortlistButton.getAttribute("data-preview-shortlist");
+      if (!previewSlug) {
+        return;
+      }
+      pendingMotionSlug = previewSlug;
+      toggleShortlist(previewSlug);
+      refreshShortlistViews();
+      return;
+    }
+
+    var openLink = event.target.closest("[data-preview-open-profile]");
+    if (openLink) {
+      trackFunnelEvent("directory_preview_profile_opened", {
+        therapist_slug: openLink.getAttribute("data-preview-open-profile"),
+        sort_by: filters.sortBy,
+      });
+    }
+  }
+
   window.applyFilters = applyFilters;
   window.resetFilters = resetFilters;
   window.toggleFilters = toggleFilters;
@@ -852,6 +885,27 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
   var focusClearFiltersButton = getElement("focusClearFiltersButton");
   if (focusClearFiltersButton) {
     focusClearFiltersButton.addEventListener("click", resetFilters);
+  }
+
+  var activeFilterChips = getElement("activeFilterChips");
+  if (activeFilterChips) {
+    activeFilterChips.addEventListener("click", handleFocusBarClick);
+  }
+
+  var resultsGrid = getElement("resultsGrid");
+  if (resultsGrid) {
+    resultsGrid.addEventListener("click", handleResultsGridClick);
+    resultsGrid.addEventListener("change", handleResultsGridChange);
+  }
+
+  var pagination = getElement("pagination");
+  if (pagination) {
+    pagination.addEventListener("click", handlePaginationClick);
+  }
+
+  var tradeoffPreview = getElement("directoryTradeoffPreview");
+  if (tradeoffPreview) {
+    tradeoffPreview.addEventListener("click", handlePreviewClick);
   }
 
   FILTER_VALUE_KEYS.filter(function (key) {
@@ -884,12 +938,6 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     mobileFilterToggle.addEventListener("click", toggleFilters);
   }
 
-  document.querySelectorAll("[data-filter-preset]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      applyFilterPreset(button.getAttribute("data-filter-preset"));
-    });
-  });
-
   getElement("sortBy").addEventListener("change", function () {
     var nextState = changeDirectorySortAction({
       filters: filters,
@@ -903,7 +951,7 @@ import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./direct
     render();
   });
 
-  window.addEventListener("resize", syncSidebarForViewport);
+  window.addEventListener("resize", scheduleViewportSync);
 
   document.addEventListener("keydown", function (event) {
     if (

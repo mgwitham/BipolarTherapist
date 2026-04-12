@@ -109,7 +109,7 @@ export function renderCardMarkup(options) {
       escapeHtml(therapist.photo_url) +
       '" alt="' +
       escapeHtml(therapist.name) +
-      '" />'
+      '" loading="lazy" decoding="async" />'
     : escapeHtml(initials);
   var primaryAction = model.contactRoute
     ? '<a href="' +
