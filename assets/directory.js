@@ -728,53 +728,69 @@ import {
   function summarizeActiveFilters() {
     var chips = [];
     if (filters.q) {
-      chips.push('Keyword: "' + filters.q + '"');
+      chips.push({ key: "q", label: 'Keyword: "' + filters.q + '"' });
     }
     if (filters.state) {
-      chips.push(filters.state);
+      chips.push({ key: "state", label: filters.state });
     }
     if (filters.zip) {
-      chips.push(filters.zip);
+      chips.push({ key: "zip", label: filters.zip });
     }
     if (filters.specialty) {
-      chips.push(filters.specialty);
+      chips.push({ key: "specialty", label: filters.specialty });
     }
     if (filters.modality) {
-      chips.push(filters.modality);
+      chips.push({ key: "modality", label: filters.modality });
     }
     if (filters.population) {
-      chips.push(filters.population);
+      chips.push({ key: "population", label: filters.population });
     }
     if (filters.bipolar_experience) {
-      chips.push(filters.bipolar_experience + "+ yrs bipolar care");
+      chips.push({
+        key: "bipolar_experience",
+        label: filters.bipolar_experience + "+ yrs bipolar care",
+      });
     }
     if (filters.insurance) {
-      chips.push(filters.insurance);
+      chips.push({ key: "insurance", label: filters.insurance });
     }
     if (filters.telehealth) {
-      chips.push("Telehealth");
+      chips.push({ key: "telehealth", label: "Telehealth" });
     }
     if (filters.in_person) {
-      chips.push("In-person");
+      chips.push({ key: "in_person", label: "In-person" });
     }
     if (filters.accepting) {
-      chips.push("Accepting patients");
+      chips.push({ key: "accepting", label: "Accepting patients" });
     }
     if (filters.medication_management) {
-      chips.push("Medication management");
+      chips.push({ key: "medication_management", label: "Medication management" });
     }
     if (filters.responsive_contact) {
-      chips.push("Responsive contact");
+      chips.push({ key: "responsive_contact", label: "Responsive contact" });
     }
     if (filters.recently_confirmed) {
-      chips.push("Recently confirmed");
+      chips.push({ key: "recently_confirmed", label: "Recently confirmed" });
     }
     return chips;
+  }
+
+  function removeActiveFilter(filterKey) {
+    if (!filterKey || !(filterKey in filters)) {
+      return;
+    }
+    filters = Object.assign({}, filters, {
+      [filterKey]: typeof defaultFilters[filterKey] === "boolean" ? false : "",
+    });
+    currentPage = 1;
+    syncFilterControlsFromState(filters, getElement);
+    render();
   }
 
   function renderActiveFilterSummary(resultsLength) {
     var summary = getElement("activeFilterSummary");
     var chipsRoot = getElement("activeFilterChips");
+    var clearButton = getElement("focusClearFiltersButton");
     if (!summary || !chipsRoot) {
       return;
     }
@@ -783,6 +799,9 @@ import {
     if (!active.length) {
       summary.textContent = "No filters yet. Add one or two to narrow the list.";
       chipsRoot.innerHTML = "";
+      if (clearButton) {
+        clearButton.hidden = true;
+      }
       return;
     }
 
@@ -797,16 +816,26 @@ import {
       (active.length === 1 ? "" : "s") +
       " applied";
     chipsRoot.innerHTML = active
-      .slice(0, 4)
       .map(function (item) {
-        return '<span class="filter-chip">' + escapeHtml(item) + "</span>";
+        return (
+          '<button type="button" class="filter-chip filter-chip-removable" data-remove-filter="' +
+          escapeHtml(item.key) +
+          '" aria-label="Remove ' +
+          escapeHtml(item.label) +
+          ' filter" title="Click to remove this filter">' +
+          '<span class="filter-chip-text">' +
+          escapeHtml(item.label) +
+          '</span><span class="filter-chip-dismiss" aria-hidden="true">×</span></button>'
+        );
       })
       .join("");
-    if (active.length > 4) {
-      chipsRoot.innerHTML +=
-        '<span class="filter-chip filter-chip-more">+' +
-        escapeHtml(active.length - 4) +
-        " more</span>";
+    chipsRoot.querySelectorAll("[data-remove-filter]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        removeActiveFilter(button.getAttribute("data-remove-filter"));
+      });
+    });
+    if (clearButton) {
+      clearButton.hidden = false;
     }
   }
 
@@ -1536,6 +1565,10 @@ import {
   var resetFiltersButton = getElement("resetFiltersButton");
   if (resetFiltersButton) {
     resetFiltersButton.addEventListener("click", resetFilters);
+  }
+  var focusClearFiltersButton = getElement("focusClearFiltersButton");
+  if (focusClearFiltersButton) {
+    focusClearFiltersButton.addEventListener("click", resetFilters);
   }
 
   FILTER_VALUE_KEYS.filter(function (key) {
