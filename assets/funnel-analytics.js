@@ -3,13 +3,24 @@ var EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
 var EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
 var EXPERIMENT_PROMOTIONS_KEY = "bth_experiment_promotions_v1";
 var THERAPIST_CONTACT_ROUTE_MEMORY_KEY = "bth_therapist_contact_route_memory_v1";
+var funnelEventsCache = null;
+var experimentAssignmentsCache = null;
+var experimentExposuresCache = null;
+var experimentPromotionsCache = null;
+var therapistContactRouteMemoryCache = null;
 
 export function readFunnelEvents() {
-  try {
-    return JSON.parse(window.localStorage.getItem(FUNNEL_EVENTS_KEY) || "[]");
-  } catch (_error) {
-    return [];
+  if (Array.isArray(funnelEventsCache)) {
+    return funnelEventsCache.slice();
   }
+
+  try {
+    funnelEventsCache = JSON.parse(window.localStorage.getItem(FUNNEL_EVENTS_KEY) || "[]");
+  } catch (_error) {
+    funnelEventsCache = [];
+  }
+
+  return funnelEventsCache.slice();
 }
 
 export function trackFunnelEvent(type, payload) {
@@ -23,25 +34,38 @@ export function trackFunnelEvent(type, payload) {
     created_at: new Date().toISOString(),
     payload: payload || {},
   });
+  funnelEventsCache = events.slice(0, 250);
 
   try {
-    window.localStorage.setItem(FUNNEL_EVENTS_KEY, JSON.stringify(events.slice(0, 250)));
+    window.localStorage.setItem(FUNNEL_EVENTS_KEY, JSON.stringify(funnelEventsCache));
   } catch (_error) {
     return;
   }
 }
 
 function readTherapistContactRouteMemory() {
-  try {
-    return JSON.parse(window.localStorage.getItem(THERAPIST_CONTACT_ROUTE_MEMORY_KEY) || "{}");
-  } catch (_error) {
-    return {};
+  if (therapistContactRouteMemoryCache && typeof therapistContactRouteMemoryCache === "object") {
+    return Object.assign({}, therapistContactRouteMemoryCache);
   }
+
+  try {
+    therapistContactRouteMemoryCache = JSON.parse(
+      window.localStorage.getItem(THERAPIST_CONTACT_ROUTE_MEMORY_KEY) || "{}",
+    );
+  } catch (_error) {
+    therapistContactRouteMemoryCache = {};
+  }
+
+  return Object.assign({}, therapistContactRouteMemoryCache);
 }
 
 function writeTherapistContactRouteMemory(value) {
+  therapistContactRouteMemoryCache = Object.assign({}, value || {});
   try {
-    window.localStorage.setItem(THERAPIST_CONTACT_ROUTE_MEMORY_KEY, JSON.stringify(value || {}));
+    window.localStorage.setItem(
+      THERAPIST_CONTACT_ROUTE_MEMORY_KEY,
+      JSON.stringify(therapistContactRouteMemoryCache),
+    );
   } catch (_error) {
     return;
   }
@@ -81,48 +105,81 @@ export function readRememberedTherapistContactRoute(therapistSlug) {
 }
 
 function readExperimentAssignments() {
-  try {
-    return JSON.parse(window.localStorage.getItem(EXPERIMENT_ASSIGNMENTS_KEY) || "{}");
-  } catch (_error) {
-    return {};
+  if (experimentAssignmentsCache && typeof experimentAssignmentsCache === "object") {
+    return Object.assign({}, experimentAssignmentsCache);
   }
+
+  try {
+    experimentAssignmentsCache = JSON.parse(
+      window.localStorage.getItem(EXPERIMENT_ASSIGNMENTS_KEY) || "{}",
+    );
+  } catch (_error) {
+    experimentAssignmentsCache = {};
+  }
+
+  return Object.assign({}, experimentAssignmentsCache);
 }
 
 function writeExperimentAssignments(value) {
+  experimentAssignmentsCache = Object.assign({}, value || {});
   try {
-    window.localStorage.setItem(EXPERIMENT_ASSIGNMENTS_KEY, JSON.stringify(value || {}));
+    window.localStorage.setItem(
+      EXPERIMENT_ASSIGNMENTS_KEY,
+      JSON.stringify(experimentAssignmentsCache),
+    );
   } catch (_error) {
     return;
   }
 }
 
 function readExperimentExposures() {
-  try {
-    return JSON.parse(window.localStorage.getItem(EXPERIMENT_EXPOSURES_KEY) || "{}");
-  } catch (_error) {
-    return {};
+  if (experimentExposuresCache && typeof experimentExposuresCache === "object") {
+    return Object.assign({}, experimentExposuresCache);
   }
+
+  try {
+    experimentExposuresCache = JSON.parse(
+      window.localStorage.getItem(EXPERIMENT_EXPOSURES_KEY) || "{}",
+    );
+  } catch (_error) {
+    experimentExposuresCache = {};
+  }
+
+  return Object.assign({}, experimentExposuresCache);
 }
 
 function writeExperimentExposures(value) {
+  experimentExposuresCache = Object.assign({}, value || {});
   try {
-    window.localStorage.setItem(EXPERIMENT_EXPOSURES_KEY, JSON.stringify(value || {}));
+    window.localStorage.setItem(EXPERIMENT_EXPOSURES_KEY, JSON.stringify(experimentExposuresCache));
   } catch (_error) {
     return;
   }
 }
 
 function readExperimentPromotions() {
-  try {
-    return JSON.parse(window.localStorage.getItem(EXPERIMENT_PROMOTIONS_KEY) || "{}");
-  } catch (_error) {
-    return {};
+  if (experimentPromotionsCache && typeof experimentPromotionsCache === "object") {
+    return Object.assign({}, experimentPromotionsCache);
   }
+
+  try {
+    experimentPromotionsCache = JSON.parse(
+      window.localStorage.getItem(EXPERIMENT_PROMOTIONS_KEY) || "{}",
+    );
+  } catch (_error) {
+    experimentPromotionsCache = {};
+  }
+
+  return Object.assign({}, experimentPromotionsCache);
 }
 
 function writeExperimentPromotions(value) {
+  experimentPromotionsCache = Object.assign({}, value || {});
   try {
-    window.localStorage.setItem(EXPERIMENT_PROMOTIONS_KEY, JSON.stringify(value || {}));
+    window.localStorage.setItem(
+      EXPERIMENT_PROMOTIONS_KEY,
+      JSON.stringify(experimentPromotionsCache),
+    );
   } catch (_error) {
     return;
   }

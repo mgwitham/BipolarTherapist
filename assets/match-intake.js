@@ -108,10 +108,10 @@ export function getMatchStartHelperCopy(careIntent, hasZip, escapeHtml) {
   }
 
   if (!careIntent && hasZip) {
-    return "<strong>Next:</strong> choose therapy or psychiatry so we can narrow the shortlist.";
+    return "<strong>Next:</strong> choose therapy or psychiatry so we can narrow the list.";
   }
 
-  return "<strong>Next:</strong> review your first shortlist, then refine only if you need to.";
+  return "<strong>Next:</strong> review your first list, then refine only if you need to.";
 }
 
 export function syncMatchStartState(options) {
@@ -166,13 +166,11 @@ export function buildRequestSummary(profile, hasMeaningfulRefinements) {
 
   if (summary.length === 1 && profile.location_query && !hasRefinements) {
     return (
-      "Location: " +
-      profile.location_query +
-      " • Broad shortlist with optional refinements still open."
+      "Location: " + profile.location_query + " • Broad list with optional refinements still open."
     );
   }
 
-  return summary.length ? summary.join(" • ") : "Shortlist based on your current answers.";
+  return summary.length ? summary.join(" • ") : "List based on your current answers.";
 }
 
 export function buildAppliedAnswerPills(profile) {

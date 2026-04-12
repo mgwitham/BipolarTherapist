@@ -1,5 +1,6 @@
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var lastShortlistCount = null;
+var DIRECTORY_LIST_LIMIT = 6;
 
 function normalizeShortlist(value) {
   return (Array.isArray(value) ? value : [])
@@ -23,7 +24,7 @@ function normalizeShortlist(value) {
       };
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, DIRECTORY_LIST_LIMIT);
 }
 
 function readShortlist() {

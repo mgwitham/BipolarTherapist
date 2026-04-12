@@ -113,8 +113,8 @@ var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
 var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
-var PRIMARY_SHORTLIST_LIMIT = 3;
-var SHORTLIST_QUEUE_LIMIT = 8;
+var PRIMARY_SHORTLIST_LIMIT = 6;
+var SHORTLIST_QUEUE_LIMIT = 12;
 var MATCH_PRIORITY_SLUGS = [];
 var US_STATE_MAP = {
   ALABAMA: "AL",
@@ -259,7 +259,7 @@ function renderMatchIntakePreview(profile) {
       : profile && !profile.care_format
         ? "Care format is often the next easiest way to narrow without overcomplicating the search."
         : profile && !profile.priority_mode
-          ? "Priority mode can sharpen whether the shortlist leans toward speed or specialization."
+          ? "Priority mode can sharpen whether the list leans toward speed or specialization."
           : "Your optional answers are already doing more of the narrowing work.";
 
   if (!hasCareIntent && !hasZip) {
@@ -271,12 +271,12 @@ function renderMatchIntakePreview(profile) {
     setMatchPreviewText("matchPreviewConfidenceTitle", "Give yourself a calmer first pass.");
     setMatchPreviewText(
       "matchPreviewConfidenceCopy",
-      "The first shortlist should reduce noise quickly, not demand every answer up front.",
+      "The first list should reduce noise quickly, not demand every answer up front.",
     );
     setMatchPreviewText("matchPreviewNextTitle", "Optional preferences can wait.");
     setMatchPreviewText(
       "matchPreviewNextCopy",
-      "Insurance, format, and medication details can come after the first pass if you still want a tighter shortlist.",
+      "Insurance, format, and medication details can come after the first pass if you still want a tighter list.",
     );
     return;
   }
@@ -285,7 +285,7 @@ function renderMatchIntakePreview(profile) {
     setMatchPreviewText("matchPreviewStateTitle", "The care lane is chosen.");
     setMatchPreviewText(
       "matchPreviewStateCopy",
-      "ZIP is what makes the shortlist feel local, usable, and worth comparing.",
+      "ZIP is what makes the list feel local, usable, and worth comparing.",
     );
     setMatchPreviewText("matchPreviewConfidenceTitle", "You are still keeping this lightweight.");
     setMatchPreviewText(
@@ -302,10 +302,10 @@ function renderMatchIntakePreview(profile) {
     setMatchPreviewText(
       "matchPreviewStateCopy",
       zipStatus.place
-        ? "We can ground the shortlist around " +
+        ? "We can ground the list around " +
             zipStatus.place.label +
             " once you choose whether to start with therapy or psychiatry."
-        : "The local context is there. One care choice will make the first shortlist feel far more intentional.",
+        : "The local context is there. One care choice will make the first list feel far more intentional.",
     );
     setMatchPreviewText(
       "matchPreviewConfidenceTitle",
@@ -324,7 +324,7 @@ function renderMatchIntakePreview(profile) {
     setMatchPreviewText("matchPreviewStateTitle", "Outside the current match area.");
     setMatchPreviewText(
       "matchPreviewStateCopy",
-      "We are currently matching California ZIP codes, so the shortlist will feel strongest once location is in-range.",
+      "We are currently matching California ZIP codes, so the list will feel strongest once location is in-range.",
     );
     setMatchPreviewText("matchPreviewConfidenceTitle", "Do not add more detail yet.");
     setMatchPreviewText(
@@ -345,7 +345,7 @@ function renderMatchIntakePreview(profile) {
           " in " +
           zipStatus.place.label +
           " should already feel more focused than broad browsing."
-      : "The two required answers are in place, so the first shortlist should feel more guided than generic.",
+      : "The two required answers are in place, so the first list should feel more guided than generic.",
   );
   setMatchPreviewText(
     "matchPreviewConfidenceTitle",
@@ -360,8 +360,8 @@ function renderMatchIntakePreview(profile) {
           optionalCount +
           " optional signal" +
           (optionalCount === 1 ? "" : "s") +
-          " shaping the shortlist, so the first pass should lean harder on fit."
-      : "Run the first match now if you want a calmer starting shortlist. Add optional details only if the first pass still feels too broad.",
+          " shaping the list, so the first pass should lean harder on fit."
+      : "Run the first match now if you want a calmer starting list. Add optional details only if the first pass still feels too broad.",
   );
   setMatchPreviewText(
     "matchPreviewNextTitle",
@@ -658,7 +658,7 @@ function renderStarterResults() {
   safeRenderResults(starterEntries, null);
   setActionState(
     true,
-    "Showing a strong California starter shortlist. Add your ZIP code and care preferences to personalize it.",
+    "Showing a strong California starter list. Add your ZIP code and care preferences to personalize it.",
   );
   return true;
 }
@@ -1132,7 +1132,7 @@ function buildJourneyId(profile, entries) {
     Date.now(),
     (profile && profile.care_state) || "directory",
     (entries || [])
-      .slice(0, 3)
+      .slice(0, PRIMARY_SHORTLIST_LIMIT)
       .map(function (entry) {
         return entry.therapist.slug;
       })
@@ -1163,7 +1163,7 @@ function readDirectoryShortlist() {
         };
       })
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, PRIMARY_SHORTLIST_LIMIT);
   } catch (_error) {
     return [];
   }
@@ -1554,7 +1554,7 @@ function getMatchCardActionTiming(entry) {
 function getMatchCardReachOutPromise(entry) {
   var readiness = getContactReadiness(entry);
   if (!readiness) {
-    return "Start with the profile, confirm whether the basics fit, and keep your shortlist intact if you are not ready to reach out yet.";
+    return "Start with the profile, confirm whether the basics fit, and keep your list intact if you are not ready to reach out yet.";
   }
   if (readiness.wait) {
     return (
@@ -1569,13 +1569,13 @@ function getMatchCardReachOutPromise(entry) {
   if (readiness.tone === "medium") {
     return "This route should work well if you want a direct first step without committing to a call or full intake right away.";
   }
-  return "Start by reviewing the profile details, then use your saved shortlist to decide whether to reach out or keep comparing.";
+  return "Start by reviewing the profile details, then use your saved list to decide whether to reach out or keep comparing.";
 }
 
 function getLeadMatchTrustSummary(entry) {
   var therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) {
-    return "This provider rose because the fit and practical follow-through signals are stronger than the rest of the shortlist.";
+    return "This provider rose because the fit and practical follow-through signals are stronger than the rest of the list.";
   }
 
   if (therapist.verification_status === "editorially_verified") {
@@ -1590,7 +1590,7 @@ function getLeadMatchTrustSummary(entry) {
     );
   }
 
-  return "This provider rose because the fit, trust, and practical next-step signals are stronger than the rest of the shortlist.";
+  return "This provider rose because the fit, trust, and practical next-step signals are stronger than the rest of the list.";
 }
 
 function renderLeadMatchSnapshot(entry) {
@@ -2020,7 +2020,7 @@ function buildPartnerCompareSummary(entries, profile) {
     recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
   var lines = [];
 
-  lines.push("Therapist shortlist summary");
+  lines.push("Therapist list summary");
   lines.push("");
 
   if (recommendation && recommendation.therapist) {
@@ -2248,26 +2248,26 @@ function renderComparison(entries) {
       );
     })
     .join("");
-  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved shortlist";
+  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved list";
   var compareCopy = profile
     ? "Use fit, trust, timing, cost, and next step together so you can move on one therapist instead of stalling across three."
-    : "Your saved shortlist is now organized into a clearer first choice, backup, and side-by-side decision view.";
+    : "Your saved list is now organized into a clearer first choice, backup, and side-by-side decision view.";
   var persistedShortlist = persistEntriesToDirectoryShortlist(topEntries);
   var compareUrl = buildShortlistCompareUrl(topEntries);
   var savedCount = persistedShortlist.length;
   var reshapeHistory = readShortlistReshapeHistory();
 
   root.innerHTML =
-    '<details class="result-disclosure"><summary><div><div class="result-disclosure-title">Compare finalists in detail</div><div class="result-disclosure-copy">Open this if you want a side-by-side decision board for your top shortlist.</div></div><span class="result-disclosure-toggle" aria-hidden="true"></span></summary><div class="result-disclosure-body"><section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
+    '<details class="result-disclosure"><summary><div><div class="result-disclosure-title">Compare finalists in detail</div><div class="result-disclosure-copy">Open this if you want a side-by-side decision board for your top saved options.</div></div><span class="result-disclosure-toggle" aria-hidden="true"></span></summary><div class="result-disclosure-body"><section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
     escapeHtml(compareTitle) +
     '</div><div class="match-support-panel-copy">' +
     escapeHtml(compareCopy) +
-    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>Shortlist decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
-    (savedCount ? " across " + escapeHtml(String(savedCount)) + " shortlisted therapists." : ".") +
+    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>List decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
+    (savedCount ? " across " + escapeHtml(String(savedCount)) + " saved therapists." : ".") +
     "</div>" +
     (reshapeHistory && reshapeHistory.summary
       ? '<div class="compare-summary-history"><span class="compare-summary-kicker">' +
-        escapeHtml(reshapeHistory.title || "Last shortlist reshape") +
+        escapeHtml(reshapeHistory.title || "Last list reshape") +
         '</span><div class="compare-summary-text">' +
         escapeHtml(reshapeHistory.summary) +
         '</div><div class="compare-summary-history-meta">' +
@@ -2289,7 +2289,7 @@ function renderComparison(entries) {
     copyButton.addEventListener("click", async function () {
       try {
         await navigator.clipboard.writeText(compareUrl);
-        setActionState(true, "Copied the shortlist comparison link.");
+        setActionState(true, "Copied the list comparison link.");
       } catch (_error) {
         setActionState(true, "Unable to copy the comparison link automatically.");
       }
@@ -2301,9 +2301,9 @@ function renderComparison(entries) {
     summaryButton.addEventListener("click", async function () {
       try {
         await navigator.clipboard.writeText(buildPartnerCompareSummary(topEntries, profile));
-        setActionState(true, "Copied the shareable shortlist summary.");
+        setActionState(true, "Copied the shareable list summary.");
       } catch (_error) {
-        setActionState(true, "Unable to copy the shortlist summary automatically.");
+        setActionState(true, "Unable to copy the list summary automatically.");
       }
     });
   }
@@ -2338,7 +2338,7 @@ function buildAdaptiveIntakeGuidance(profile) {
     add(
       "insurance",
       "Insurance or budget may be worth adding",
-      "Cost and coverage are common friction points. Adding either one usually improves shortlist quality.",
+      "Cost and coverage are common friction points. Adding either one usually improves list quality.",
     );
   }
 
@@ -2357,7 +2357,7 @@ function buildAdaptiveIntakeGuidance(profile) {
     if (psychiatryPreference.strong > 0) {
       add(
         "care_intent",
-        "Care type may sharpen the shortlist",
+        "Care type may sharpen the list",
         "Similar users have seen stronger outcomes when they clarify whether they want therapy, psychiatry, or either.",
       );
     }
@@ -2373,7 +2373,7 @@ function buildAdaptiveIntakeGuidance(profile) {
     add(
       "priority_mode",
       "Say what matters most",
-      "If you already know you care most about speed, specialization, or cost, setting it here makes the shortlist feel much more intentional.",
+      "If you already know you care most about speed, specialization, or cost, setting it here makes the list feel much more intentional.",
     );
   }
 
@@ -2486,7 +2486,7 @@ function buildIntakeTradeoffPreviews(profile) {
         return changed
           ? nextTop +
               " would likely rise because the matcher would lean harder on wait time and low-friction outreach."
-          : "The shortlist would stay fairly similar, which suggests your current options are already relatively strong on speed.";
+          : "The list would stay fairly similar, which suggests your current options are already relatively strong on speed.";
       },
     );
   }
@@ -2500,7 +2500,7 @@ function buildIntakeTradeoffPreviews(profile) {
         return changed
           ? nextTop +
               " would likely rise because the matcher would weight bipolar-specific depth more heavily."
-          : "The shortlist would stay fairly stable, which suggests the current top options already look highly specialized.";
+          : "The list would stay fairly stable, which suggests the current top options already look highly specialized.";
       },
     );
   }
@@ -2517,7 +2517,7 @@ function buildIntakeTradeoffPreviews(profile) {
         return changed
           ? nextTop +
               " would likely rise because psychiatry and medication support would become hard constraints."
-          : "The shortlist would stay fairly similar, which suggests the current leaders already cover medication-related needs well.";
+          : "The list would stay fairly similar, which suggests the current leaders already cover medication-related needs well.";
       },
     );
   }
@@ -2534,7 +2534,7 @@ function renderIntakeTradeoffPreview(profile) {
   var scenarios = buildIntakeTradeoffPreviews(profile);
   root.classList.toggle("is-empty", !scenarios.length);
   root.innerHTML = scenarios.length
-    ? '<div class="intake-adaptive-header"><h3>How one answer could change the shortlist</h3><p>These are lightweight previews, so you can see the tradeoff between speed, fit, and specialization before you run the match.</p></div><div class="intake-tradeoff-list">' +
+    ? '<div class="intake-adaptive-header"><h3>How one answer could change the list</h3><p>These are lightweight previews, so you can see the tradeoff between speed, fit, and specialization before you run the match.</p></div><div class="intake-tradeoff-list">' +
       scenarios
         .map(function (item) {
           return (
@@ -3364,7 +3364,7 @@ function renderFeedbackInsights() {
     '</div><div class="insight-stat-label">Total signals</div></div>' +
     '<div class="insight-stat"><div class="insight-stat-value">' +
     helpfulRate +
-    '%</div><div class="insight-stat-label">Helpful shortlist rate</div></div>' +
+    '%</div><div class="insight-stat-label">Helpful list rate</div></div>' +
     '<div class="insight-stat"><div class="insight-stat-value">' +
     therapistFeedback.length +
     '</div><div class="insight-stat-label">Therapist-level votes</div></div>' +
@@ -3666,7 +3666,7 @@ function buildFeedbackContext() {
     created_at: new Date().toISOString(),
     summary: latestProfile ? buildRequestSummary(latestProfile) : "",
     profile: latestProfile,
-    therapist_slugs: latestEntries.slice(0, 3).map(function (entry) {
+    therapist_slugs: latestEntries.slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (entry) {
       return entry.therapist.slug;
     }),
   };
@@ -3701,9 +3701,7 @@ function recordShortlistFeedback(value) {
   });
   updateShortlistFeedbackUi(value);
   document.getElementById("feedbackStatus").textContent =
-    value === "positive"
-      ? "Saved: this shortlist felt useful."
-      : "Saved: this shortlist needs work.";
+    value === "positive" ? "Saved: this list felt useful." : "Saved: this list needs work.";
   latestEntries = rankEntriesForProfile(latestProfile);
   renderResults(latestEntries, latestProfile);
   renderFeedbackInsights();
@@ -4071,7 +4069,7 @@ function persistMatchRequest(profile, entries) {
     journey_id: currentJourneyId,
     source_surface: "match_flow",
     created_at: new Date().toISOString(),
-    request_summary: profile ? buildRequestSummary(profile) : "Directory shortlist comparison",
+    request_summary: profile ? buildRequestSummary(profile) : "Directory list comparison",
     care_state: profile && profile.care_state ? profile.care_state : "",
     care_format: profile && profile.care_format ? profile.care_format : "",
     care_intent: profile && profile.care_intent ? profile.care_intent : "",
@@ -4163,15 +4161,13 @@ function recordEntryOutreachOutcome(slug, outcome) {
     recommended_wait_window: contactPlan ? contactPlan.waitWindow : "",
     request_summary: latestProfile
       ? buildRequestSummary(latestProfile)
-      : "Directory shortlist comparison",
+      : "Directory list comparison",
     context: {
       created_at: new Date().toISOString(),
-      summary: latestProfile
-        ? buildRequestSummary(latestProfile)
-        : "Directory shortlist comparison",
+      summary: latestProfile ? buildRequestSummary(latestProfile) : "Directory list comparison",
       profile: latestProfile,
       strategy: buildAdaptiveStrategySnapshot(latestProfile),
-      therapist_slugs: latestEntries.slice(0, 3).map(function (item) {
+      therapist_slugs: latestEntries.slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (item) {
         return item.therapist.slug;
       }),
     },
@@ -4205,12 +4201,10 @@ function recordEntryOutreachOutcome(slug, outcome) {
     outcome: outcome,
     request_summary: latestProfile
       ? buildRequestSummary(latestProfile)
-      : "Directory shortlist comparison",
+      : "Directory list comparison",
     recorded_at: new Date().toISOString(),
     context: {
-      summary: latestProfile
-        ? buildRequestSummary(latestProfile)
-        : "Directory shortlist comparison",
+      summary: latestProfile ? buildRequestSummary(latestProfile) : "Directory list comparison",
       strategy: buildAdaptiveStrategySnapshot(latestProfile),
     },
   }).catch(function () {});
@@ -4330,19 +4324,17 @@ function renderPrimaryMatchCards(entries, _profile) {
     primaryEntries.length === 1
       ? "Showing 1 strongest match right now."
       : "Showing the top " + primaryEntries.length + " matches to start with.";
-  var summaryKicker = starterResultsMode
-    ? "Your first matches are ready"
-    : "Your shortlist is ready";
+  var summaryKicker = starterResultsMode ? "Your first matches are ready" : "Your list is ready";
   var directoryBrowseUrl = buildDirectoryBrowseUrl(_profile);
   var appliedPills = _profile
     ? buildAppliedAnswerPills(_profile)
-    : ["Therapy", "California", "Starter shortlist"];
+    : ["Therapy", "California", "Starter list"];
   var summarySlides = primaryEntries
     .map(function (entry, index) {
       var leadAction = buildPrimaryResultAction(entry);
       var requestSummary = _profile
         ? buildRequestSummary(_profile)
-        : "Shortlist based on your current answers.";
+        : "List based on your current answers.";
       var summaryIntro =
         index === 0
           ? starterResultsMode
@@ -4372,7 +4364,7 @@ function renderPrimaryMatchCards(entries, _profile) {
             escapeHtml(leadAction.therapistName) +
             "</span>" +
             (index === 0 ? " first." : ".")
-          : "Your shortlist is ready to act on.";
+          : "Your list is ready to act on.";
 
       return (
         '<div class="match-summary-slide"><article class="match-summary-bar">' +
@@ -4546,8 +4538,8 @@ function renderPrimaryMatchCards(entries, _profile) {
             index === 0
               ? primaryEntries[1] && primaryEntries[1].therapist
                 ? "Your backup is already identified, so you can keep momentum without reopening the whole search."
-                : "If this route feels weak after one focused attempt, use the shortlist and directory instead of waiting indefinitely."
-              : "This stays strongest as a backup path. If both options feel weak, refine the shortlist instead of scattering your outreach.",
+                : "If this route feels weak after one focused attempt, use the list and directory instead of waiting indefinitely."
+              : "This stays strongest as a backup path. If both options feel weak, refine the list instead of scattering your outreach.",
           ) +
           "</div></div></div>" +
           '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">' +
@@ -4688,10 +4680,7 @@ function safeRenderResults(entries, profile) {
   } catch (error) {
     console.error("Fell back to primary match cards after richer match rendering failed.", error);
     renderPrimaryMatchCards(entries, profile);
-    setActionState(
-      true,
-      "Your shortlist is ready. Some secondary sections did not finish rendering.",
-    );
+    setActionState(true, "Your list is ready. Some secondary sections did not finish rendering.");
   }
 }
 
@@ -4826,7 +4815,6 @@ function renderDirectoryShortlist(slugs) {
   ) {
     outreachFocusSlug = queueFocusSlugFromUrl;
   }
-  persistEntriesToDirectoryShortlist(selected);
   window.history.replaceState({}, "", buildShortlistComparePath(selected));
   persistMatchRequest(null, selected);
   safeRenderResults(selected, null);

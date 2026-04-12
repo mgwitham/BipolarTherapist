@@ -9,87 +9,33 @@ import {
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
-export function buildDirectoryStrategySegments(filterState) {
-  var segments = ["all"];
+var responsivenessRankCache = new WeakMap();
+var freshnessBadgeCache = new WeakMap();
+var freshnessRankCache = new WeakMap();
+var decisionReadyScoreCache = new WeakMap();
+var merchandisingQualityCache = new WeakMap();
 
-  if (filterState.telehealth && !filterState.in_person) {
-    segments.push("format:telehealth");
-  } else if (filterState.in_person && !filterState.telehealth) {
-    segments.push("format:in_person");
+function getCachedMerchandisingQuality(therapist) {
+  if (!therapist || typeof therapist !== "object") {
+    return getTherapistMerchandisingQuality(therapist);
   }
 
-  if (filterState.medication_management) {
-    segments.push("intent:psychiatry");
-    segments.push("medication:yes");
+  if (!merchandisingQualityCache.has(therapist)) {
+    merchandisingQualityCache.set(therapist, getTherapistMerchandisingQuality(therapist));
   }
 
-  if (filterState.insurance) {
-    segments.push("insurance:user");
-  }
-
-  if (filterState.accepting || filterState.sortBy === "soonest_availability") {
-    segments.push("urgency:within-2-weeks");
-  }
-
-  return segments;
-}
-
-export function getDirectoryStrategyAudience(filterState) {
-  var segments = buildDirectoryStrategySegments(filterState);
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("urgency:") === 0;
-    })
-  ) {
-    return "people browsing with timing in mind";
-  }
-
-  if (segments.includes("insurance:user")) {
-    return "people browsing with cost or insurance in mind";
-  }
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("intent:psychiatry") === 0 || segment.indexOf("medication:yes") === 0;
-    })
-  ) {
-    return "people browsing for psychiatry or medication support";
-  }
-
-  if (
-    segments.some(function (segment) {
-      return segment.indexOf("format:") === 0;
-    })
-  ) {
-    return "people browsing with a stronger care-format preference";
-  }
-
-  return "people browsing like this";
+  return merchandisingQualityCache.get(therapist);
 }
 
 export function matchesDirectoryFilters(filterState, therapist) {
-  var haystack = [
-    therapist.name,
-    therapist.title,
-    therapist.city,
-    therapist.state,
-    therapist.practice_name,
-    therapist.bio_preview,
-    therapist.care_approach,
-  ]
-    .concat(therapist.specialties || [])
-    .concat(therapist.insurance_accepted || [])
-    .concat(therapist.treatment_modalities || [])
-    .concat(therapist.client_populations || [])
-    .join(" ")
-    .toLowerCase();
+  var telehealthOverridesZip = Boolean(filterState.telehealth);
+  var isPsychiatrist = isPsychiatristProvider(therapist);
 
-  if (filterState.q && !haystack.includes(String(filterState.q).toLowerCase())) return false;
   if (filterState.state && therapist.state !== filterState.state) return false;
   if (
-    filterState.city &&
-    String(therapist.city || "").toLowerCase() !== String(filterState.city).toLowerCase()
+    filterState.zip &&
+    !telehealthOverridesZip &&
+    String(therapist.zip || "") !== String(filterState.zip || "")
   ) {
     return false;
   }
@@ -126,6 +72,8 @@ export function matchesDirectoryFilters(filterState, therapist) {
   ) {
     return false;
   }
+  if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
+  if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
   if (filterState.telehealth && !therapist.accepts_telehealth) return false;
   if (filterState.in_person && !therapist.accepts_in_person) return false;
   if (filterState.accepting && !therapist.accepting_new_patients) return false;
@@ -133,6 +81,22 @@ export function matchesDirectoryFilters(filterState, therapist) {
   if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
   if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
   return true;
+}
+
+export function isPsychiatristProvider(therapist) {
+  var title = String((therapist && therapist.title) || "").toLowerCase();
+  var credentials = String((therapist && therapist.credentials) || "").toLowerCase();
+
+  return (
+    title.includes("psychiatrist") ||
+    title.includes("psychiatry") ||
+    credentials.includes(" m.d.") ||
+    credentials.includes(" md") ||
+    credentials === "md" ||
+    credentials.includes(" d.o.") ||
+    credentials.includes(" do") ||
+    credentials === "do"
+  );
 }
 
 export function getPreferredContactRoute(therapist) {
@@ -254,74 +218,105 @@ export function getPublicReadinessCopy(therapist) {
 }
 
 export function getResponsivenessRank(therapist) {
+  if (therapist && typeof therapist === "object" && responsivenessRankCache.has(therapist)) {
+    return responsivenessRankCache.get(therapist);
+  }
+
   var signal = getPublicResponsivenessSignal(therapist);
+  var rank = 0;
 
   if (!signal) {
-    return 0;
+    rank = 0;
+  } else if (signal.tone === "positive") {
+    rank = 2;
+  } else {
+    rank = 1;
   }
 
-  if (signal.tone === "positive") {
-    return 2;
+  if (therapist && typeof therapist === "object") {
+    responsivenessRankCache.set(therapist, rank);
   }
 
-  return 1;
+  return rank;
 }
 
 export function getFreshnessBadgeData(therapist) {
+  if (therapist && typeof therapist === "object" && freshnessBadgeCache.has(therapist)) {
+    return freshnessBadgeCache.get(therapist);
+  }
+
+  var badge = null;
   var recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
-    return {
+    badge = {
       label: recentApplied.short_label || recentApplied.label,
       note: recentApplied.note,
       tone: "fresh",
     };
+  } else {
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      badge = {
+        label: recentConfirmation.short_label || recentConfirmation.label,
+        note: recentConfirmation.note,
+        tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
+      };
+    } else {
+      var freshness = getDataFreshnessSummary(therapist);
+      badge = freshness
+        ? {
+            label: freshness.label,
+            note: freshness.note,
+            tone: freshness.status === "fresh" ? "fresh" : "stale",
+          }
+        : null;
+    }
   }
 
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  if (recentConfirmation) {
-    return {
-      label: recentConfirmation.short_label || recentConfirmation.label,
-      note: recentConfirmation.note,
-      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
-    };
+  if (therapist && typeof therapist === "object") {
+    freshnessBadgeCache.set(therapist, badge);
   }
 
-  var freshness = getDataFreshnessSummary(therapist);
-  return freshness
-    ? {
-        label: freshness.label,
-        note: freshness.note,
-        tone: freshness.status === "fresh" ? "fresh" : "stale",
-      }
-    : null;
+  return badge;
 }
 
 export function getFreshnessRank(therapist) {
+  if (therapist && typeof therapist === "object" && freshnessRankCache.has(therapist)) {
+    return freshnessRankCache.get(therapist);
+  }
+
+  var rank = 0;
   var recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
-    return 3;
+    rank = 3;
+  } else {
+    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    if (recentConfirmation) {
+      rank = recentConfirmation.tone === "fresh" ? 3 : 2;
+    } else {
+      var freshness = getDataFreshnessSummary(therapist);
+      if (!freshness) {
+        rank = 0;
+      } else if (freshness.status === "fresh") {
+        rank = 2;
+      } else if (freshness.status === "recent") {
+        rank = 1;
+      }
+    }
   }
 
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  if (recentConfirmation) {
-    return recentConfirmation.tone === "fresh" ? 3 : 2;
+  if (therapist && typeof therapist === "object") {
+    freshnessRankCache.set(therapist, rank);
   }
 
-  var freshness = getDataFreshnessSummary(therapist);
-  if (!freshness) {
-    return 0;
-  }
-  if (freshness.status === "fresh") {
-    return 2;
-  }
-  if (freshness.status === "recent") {
-    return 1;
-  }
-
-  return 0;
+  return rank;
 }
 
 export function getDecisionReadyScore(therapist) {
+  if (therapist && typeof therapist === "object" && decisionReadyScoreCache.has(therapist)) {
+    return decisionReadyScoreCache.get(therapist);
+  }
+
   var score = 0;
   var readiness = getTherapistMatchReadiness(therapist);
   var freshnessRank = getFreshnessRank(therapist);
@@ -355,6 +350,10 @@ export function getDecisionReadyScore(therapist) {
     score += 5;
   } else if (responsivenessRank === 1) {
     score += 2;
+  }
+
+  if (therapist && typeof therapist === "object") {
+    decisionReadyScoreCache.set(therapist, score);
   }
 
   return score;
@@ -595,42 +594,8 @@ export function buildCardFitSummary(filterState, therapist) {
 
 export function getMatchScore(filterState, therapist) {
   var score = 0;
-  var quality = getTherapistMerchandisingQuality(therapist);
+  var quality = getCachedMerchandisingQuality(therapist);
   var responsivenessRank = getResponsivenessRank(therapist);
-  var query = filterState.q.trim().toLowerCase();
-
-  if (query) {
-    if ((therapist.name || "").toLowerCase().includes(query)) {
-      score += 30;
-    }
-    if ((therapist.practice_name || "").toLowerCase().includes(query)) {
-      score += 16;
-    }
-    if ((therapist.title || "").toLowerCase().includes(query)) {
-      score += 10;
-    }
-    if ((therapist.bio_preview || therapist.bio || "").toLowerCase().includes(query)) {
-      score += 14;
-    }
-    if ((therapist.care_approach || "").toLowerCase().includes(query)) {
-      score += 18;
-    }
-    (therapist.specialties || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 14;
-      }
-    });
-    (therapist.treatment_modalities || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 12;
-      }
-    });
-    (therapist.client_populations || []).forEach(function (value) {
-      if (String(value).toLowerCase().includes(query)) {
-        score += 10;
-      }
-    });
-  }
 
   if (filterState.specialty && (therapist.specialties || []).includes(filterState.specialty)) {
     score += 26;
@@ -656,7 +621,7 @@ export function getMatchScore(filterState, therapist) {
   if (filterState.state && therapist.state === filterState.state) {
     score += 10;
   }
-  if (filterState.city && therapist.city.toLowerCase() === filterState.city.toLowerCase()) {
+  if (filterState.zip && String(therapist.zip || "") === String(filterState.zip || "")) {
     score += 14;
   }
   if (filterState.accepting && therapist.accepting_new_patients) {
@@ -693,65 +658,13 @@ export function getMatchScore(filterState, therapist) {
   return score;
 }
 
-export function getEditorialLaneCandidates(results) {
-  var list = Array.isArray(results) ? results.slice() : [];
-  var psychiatry = list
-    .filter(function (therapist) {
-      return (
-        therapist.medication_management ||
-        /psychiatrist|psychiatric|pmhnp|np|md/i.test(
-          String((therapist.title || "") + " " + (therapist.credentials || "")),
-        )
-      );
-    })
-    .sort(function (a, b) {
-      return getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score;
-    })[0];
-
-  var therapy = list
-    .filter(function (therapist) {
-      return !therapist.medication_management;
-    })
-    .sort(function (a, b) {
-      return getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score;
-    })[0];
-
-  var fastest = list
-    .filter(function (therapist) {
-      return therapist.accepting_new_patients;
-    })
-    .sort(function (a, b) {
-      return (
-        getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
-        getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score
-      );
-    })[0];
-
-  return [
-    {
-      title: "Strongest psychiatry option",
-      therapist: psychiatry,
-      copy: "Best when medication support or psychiatry coordination may matter.",
-    },
-    {
-      title: "Strongest therapy option",
-      therapist: therapy,
-      copy: "Best when you want a high-quality therapy-first profile with strong bipolar detail.",
-    },
-    {
-      title: "Fastest next step",
-      therapist: fastest,
-      copy: "Best when speed, availability, and follow-through matter most right now.",
-    },
-  ].filter(function (lane) {
-    return Boolean(lane.therapist);
-  });
-}
-
 export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "most_responsive") {
     return (
       getResponsivenessRank(b) - getResponsivenessRank(a) ||
+      (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
+      getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
       a.name.localeCompare(b.name)
     );
@@ -760,8 +673,10 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "most_experienced") {
     return (
       Number(b.bipolar_years_experience || 0) - Number(a.bipolar_years_experience || 0) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
+      getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
       Number(b.years_experience || 0) - Number(a.years_experience || 0) ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
   }
@@ -769,7 +684,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "soonest_availability") {
     return (
       getWaitPriority(a.estimated_wait_time) - getWaitPriority(b.estimated_wait_time) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       (b.accepting_new_patients === true) - (a.accepting_new_patients === true) ||
       a.name.localeCompare(b.name)
     );
@@ -781,17 +696,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
 
     return (
       aFee - bFee ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
-      a.name.localeCompare(b.name)
-    );
-  }
-
-  if (filterState.sortBy === "freshest_details") {
-    return (
-      getFreshnessRank(b) - getFreshnessRank(a) ||
-      getDecisionReadyScore(b) - getDecisionReadyScore(a) ||
-      getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
-      getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
+      getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
       a.name.localeCompare(b.name)
     );
   }
@@ -800,7 +705,7 @@ export function compareTherapistsWithFilters(filterState, a, b) {
     getMatchScore(filterState, b) - getMatchScore(filterState, a) ||
     getDecisionReadyScore(b) - getDecisionReadyScore(a) ||
     getFreshnessRank(b) - getFreshnessRank(a) ||
-    getTherapistMerchandisingQuality(b).score - getTherapistMerchandisingQuality(a).score ||
+    getCachedMerchandisingQuality(b).score - getCachedMerchandisingQuality(a).score ||
     a.name.localeCompare(b.name)
   );
 }

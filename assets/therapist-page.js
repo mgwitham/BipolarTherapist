@@ -27,6 +27,7 @@ var slug = profileParams.get("slug");
 var profileSource = profileParams.get("source") || "";
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+var DIRECTORY_LIST_LIMIT = 6;
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
 
@@ -157,7 +158,7 @@ function buildProfileEntryState(source, therapist, backupState) {
         {
           label: "If it does not fit",
           value:
-            "Return to your shortlist or compare the backup path instead of restarting the whole search.",
+            "Return to your list or compare the backup path instead of restarting the whole search.",
         },
       ],
     };
@@ -185,7 +186,7 @@ function buildProfileEntryState(source, therapist, backupState) {
   if (value === "card_profile" || value === "card_primary") {
     return {
       kicker: "Directory handoff",
-      title: "You moved from a shortlist card into the full profile.",
+      title: "You moved from a saved card into the full profile.",
       copy: "This is the point where a promising listing becomes a real decision. The sections below are organized to help you validate the card’s promise quickly.",
       cards: [
         {
@@ -196,7 +197,7 @@ function buildProfileEntryState(source, therapist, backupState) {
         {
           label: "If the promise breaks",
           value:
-            "Use the shortlist and backup tools here to keep momentum instead of reopening the whole directory.",
+            "Use the list and backup tools here to keep momentum instead of reopening the whole directory.",
         },
       ],
     };
@@ -237,7 +238,7 @@ function buildProfileEntryState(source, therapist, backupState) {
         value:
           backupState && backupState.backup
             ? "Review the backup path before widening your search."
-            : "Return to your shortlist and keep the strongest backup in reserve.",
+            : "Return to your list and keep the strongest backup in reserve.",
       },
     ],
   };
@@ -483,7 +484,7 @@ function getContactStrategy(
         ? "If this stalls, send a short email with your fit question and availability question together."
         : therapist.website && websiteHealthy && route !== "website"
           ? "If this stalls, use the website contact form as a second route before moving on."
-          : "If this stalls after one follow-up, move on to your next shortlist option instead of waiting indefinitely.";
+          : "If this stalls after one follow-up, move on to your next saved option instead of waiting indefinitely.";
 
   var confidenceLabel = "Based on profile details";
   var confidenceNote =
@@ -707,7 +708,7 @@ function buildProfileDecisionSystem(options) {
     overallScore >= 82
       ? "Ready to contact"
       : overallScore >= 68
-        ? "Strong shortlist candidate"
+        ? "Strong list candidate"
         : overallScore >= 52
           ? "Worth one focused message"
           : "Keep as a backup path";
@@ -715,7 +716,7 @@ function buildProfileDecisionSystem(options) {
     overallScore >= 82
       ? "The fit, trust, logistics, and contact signals are aligned well enough that this can be treated like a real lead instead of just another open tab."
       : overallScore >= 68
-        ? "This profile is carrying enough signal to deserve shortlist attention, but you should still confirm one or two practical details before making it your only next move."
+        ? "This profile is carrying enough signal to deserve a spot on your list, but you should still confirm one or two practical details before making it your only next move."
         : overallScore >= 52
           ? "The profile is usable, but the smartest move is a short message aimed at the biggest unknowns rather than a full commitment."
           : "There may still be a fit here, but operational uncertainty is high enough that this works best as a reserve option unless the specialty match is unusually strong.";
@@ -778,7 +779,7 @@ function buildProfileDecisionSystem(options) {
       ? "Label it, leave one sentence about why it stands out, and move it into outreach instead of re-reviewing it later."
       : overallScore >= 68
         ? "Save it with a priority label so you can compare it against one backup without losing your reasoning."
-        : "Use the shortlist note to capture the one thing that keeps this profile alive, then compare it against stronger operational options.";
+        : "Use the list note to capture the one thing that keeps this profile alive, then compare it against stronger operational options.";
 
   return {
     overallScore: overallScore,
@@ -887,7 +888,7 @@ function normalizeShortlist(value) {
       };
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, DIRECTORY_LIST_LIMIT);
 }
 
 function writeShortlist(value) {
@@ -974,7 +975,7 @@ function recordProfileOutreachOutcome(therapist, outcome) {
       return item.slug;
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, DIRECTORY_LIST_LIMIT);
   var existing = readOutreachOutcomes();
   var now = new Date().toISOString();
   var entryIndex = shortlistSlugs.indexOf(therapist.slug);
@@ -1061,7 +1062,7 @@ function buildProfileOutreachQueueState(slugValue) {
     tone: "teal",
     label: "Outreach queue status",
     title: "Saved, but not contacted yet",
-    copy: "This therapist is already on your shortlist. Start the outreach queue when you want a clear contact-first plan and backup path.",
+    copy: "This therapist is already on your list. Start the outreach queue when you want a clear contact-first plan and backup path.",
     ctaLabel: "Start outreach queue",
     ctaHref: queueUrl,
     actions: ["reached_out", "heard_back", "no_response"],
@@ -1178,7 +1179,7 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
         mode: "needs_backup",
         title: "Strong option, but no backup yet",
         copy: "If you like this therapist, keep momentum by saving one more credible option. That makes it easier to move quickly if this path stalls.",
-        ctaLabel: "Compare shortlist",
+        ctaLabel: "Compare list",
         ctaHref: buildShortlistCompareUrl(),
       };
     }
@@ -1192,11 +1193,11 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
     copy:
       backup.shortlistEntry && backup.shortlistEntry.priority
         ? backup.therapist.name +
-          " is already on your shortlist as " +
+          " is already on your list as " +
           String(backup.shortlistEntry.priority || "").toLowerCase() +
           ". Keep this option close so you can move without restarting your search."
         : backup.therapist.name +
-          " is the clearest backup already on your shortlist if this first path slows down.",
+          " is the clearest backup already on your list if this first path slows down.",
     note: backupSignals && backupSignals.interpretation ? backupSignals.interpretation : "",
     ctaLabel:
       backupSignals && backupSignals.preferred_action === "open_backup"
@@ -1230,7 +1231,7 @@ function buildProfileDecisionMemoryState(slugValue) {
       : "You already saved this therapist",
     copy: shortlistEntry.note
       ? 'Your note: "' + String(shortlistEntry.note || "").trim() + '"'
-      : "Add a quick note or shortlist label so future-you can remember why this therapist stood out.",
+      : "Add a quick note or list label so future-you can remember why this therapist stood out.",
     changedCopy: changedCopy,
     tone: shortlistEntry.note || shortlistEntry.priority ? "fresh" : "teal",
     compareHref: buildShortlistCompareUrl(),
@@ -1318,11 +1319,11 @@ function renderDecisionMemoryCard(memoryState) {
     '</div><div class="profile-decision-memory-subtitle">What changed since you saved it</div><div class="profile-decision-memory-copy">' +
     escapeHtml(
       memoryState.changedCopy ||
-        "Reopen your shortlist if you want to compare this against your strongest backup.",
+        "Reopen your list if you want to compare this against your strongest backup.",
     ) +
     '</div><a href="' +
     escapeHtml(memoryState.compareHref) +
-    '" class="profile-decision-memory-link">Review shortlist</a></div>'
+    '" class="profile-decision-memory-link">Review list</a></div>'
   );
 }
 
@@ -1425,7 +1426,9 @@ function toggleShortlist(slugValue) {
     return false;
   }
 
-  var appended = shortlist.concat({ slug: slugValue, priority: "", note: "" }).slice(0, 3);
+  var appended = shortlist
+    .concat({ slug: slugValue, priority: "", note: "" })
+    .slice(0, DIRECTORY_LIST_LIMIT);
   writeShortlist(appended);
   return true;
 }
@@ -1489,12 +1492,12 @@ function updateShortlistAction(slugValue) {
   });
   var shortlisted = !!shortlistEntry;
   buttons.forEach(function (button) {
-    button.textContent = shortlisted ? "Saved to shortlist" : "Save to shortlist";
+    button.textContent = shortlisted ? "Saved to list" : "Save to list";
     button.classList.toggle("is-saved", shortlisted);
   });
   status.textContent = shortlisted
-    ? "Saved in your shortlist on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
-    : "Save up to 3 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
+    ? "Saved in your list on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
+    : "Save up to 6 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
 
   if (decisionMemory) {
     var memoryState = buildProfileDecisionMemoryState(slugValue);
@@ -1604,7 +1607,7 @@ function renderProfile(t, therapistDirectory) {
         : "Profile still being completed";
   var readinessCopy =
     readiness.score >= 85
-      ? "This profile includes the details people usually need to make a confident shortlist decision."
+      ? "This profile includes the details people usually need to make a confident save decision."
       : readiness.score >= 65
         ? "This profile covers most of the practical and clinical details people usually compare."
         : "This profile is still lighter than ideal, but there is enough here to judge basic fit and decide whether a first outreach is worth it.";
@@ -1631,7 +1634,7 @@ function renderProfile(t, therapistDirectory) {
     fitReasons.push("earlier outreach patterns suggest stronger follow-through");
   }
   var fitSummaryCopy = fitReasons.length
-    ? "This clinician may be worth shortlisting because " +
+    ? "This clinician may be worth saving because " +
       fitReasons.slice(0, 3).join(", ") +
       ". You should still confirm availability, insurance, and personal fit directly."
     : "Use this profile to make a first-pass decision on fit, access, and trust. The remaining unknowns are best handled with one focused outreach rather than more scrolling.";
@@ -1816,7 +1819,7 @@ function renderProfile(t, therapistDirectory) {
     return "";
   }
   contactBtns +=
-    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to shortlist</button>';
+    '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to list</button>';
   contactBtns += buildPreferredContactButton();
   contactBtns +=
     '<a href="portal.html?slug=' +
@@ -2491,7 +2494,7 @@ function renderProfile(t, therapistDirectory) {
     .join("");
 
   var secondaryButtons =
-    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to shortlist</button>';
+    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
   if (t.phone && t.preferred_contact_method !== "phone") {
     secondaryButtons +=
       '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
@@ -2519,7 +2522,7 @@ function renderProfile(t, therapistDirectory) {
   var mobileDockActions =
     (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
     '<button type="button" class="btn-website" data-profile-focus-script>Preview first message</button>' +
-    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to shortlist</button>';
+    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
 
   contactBtns =
     '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
@@ -2806,7 +2809,7 @@ function renderProfile(t, therapistDirectory) {
     }).join("") +
     '</select><label for="profileShortlistNote">Why it stands out</label><textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="Capture the one thing future-you should remember."></textarea><div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">Keep this to one sharp reminder for future-you.</div></div><div class="workspace-link-grid"><a href="' +
     escapeHtml(shortlistCompareUrl) +
-    '" class="workspace-link">Review shortlist</a><a href="' +
+    '" class="workspace-link">Review list</a><a href="' +
     escapeHtml(outreachQueueUrl) +
     '" class="workspace-link">Open outreach queue</a></div></div>' +
     '<div class="sidebar-panel decision-rail-panel"><h3>Decision rail</h3>' +

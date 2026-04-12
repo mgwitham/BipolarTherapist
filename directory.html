@@ -25,7 +25,7 @@
         <li><a href="match.html">Get Matched</a></li>
         <li>
           <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+            >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
           >
         </li>
         <li>
@@ -38,12 +38,12 @@
       <a href="index.html" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Start</span>
         <span class="public-mobile-nav-title">Homepage</span>
-        <span class="public-mobile-nav-copy">Reorient fast</span>
+        <span class="public-mobile-nav-copy">Reorient quickly</span>
       </a>
       <a href="match.html" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Guided</span>
         <span class="public-mobile-nav-title">Get matched</span>
-        <span class="public-mobile-nav-copy">Smaller shortlist</span>
+        <span class="public-mobile-nav-copy">Smaller list</span>
       </a>
       <a
         href="directory.html"
@@ -51,250 +51,220 @@
         data-shortlist-link
       >
         <span class="public-mobile-nav-kicker">Saved</span>
-        <span class="public-mobile-nav-title">Browse and shortlist</span>
+        <span class="public-mobile-nav-title">Browse and save</span>
         <span class="public-mobile-nav-copy">Resume <span data-shortlist-count>0</span> saved</span>
       </a>
     </div>
 
     <header class="dir-header">
-      <h1 id="directoryHeroTitle">
-        Browse therapists and psychiatrists with bipolar-related expertise
-      </h1>
-      <p id="directoryHeroDescription">
-        This directory is built to make bipolar-informed care easier to find, compare, and act on
-        without the noise, churn, and guesswork of a general therapist marketplace.
-      </p>
+      <div class="dir-hero-shell">
+        <div class="dir-hero-copy">
+          <h1 id="directoryHeroTitle">
+            Browse therapists and psychiatrists with bipolar-related expertise
+          </h1>
+          <p id="directoryHeroDescription">
+            Start with a few filters, compare the strongest options, and save the therapists you
+            would actually consider contacting.
+          </p>
+        </div>
+
+        <aside class="dir-hero-panel" aria-label="Directory overview">
+          <div class="dir-hero-panel-card">
+            <div class="dir-hero-panel-kicker">Best Use</div>
+            <div class="dir-hero-panel-title">
+              Use this page when you want to compare options yourself.
+            </div>
+            <div class="dir-hero-panel-copy">
+              Filter first, scan the strongest cards, and save only the therapists you may really
+              want to revisit.
+            </div>
+          </div>
+        </aside>
+      </div>
     </header>
 
     <main class="layout">
-      <aside class="directory-sidebar-shell">
-        <button
-          type="button"
-          class="mobile-filter-toggle"
-          id="mobileFilterToggle"
-          aria-controls="sidebar"
-          aria-expanded="false"
-        >
-          🔧 Filters <span id="filterCount"></span>
-        </button>
-        <div class="sidebar" id="sidebar">
-          <div class="filter-brief">
-            <div class="filter-brief-kicker">Refine your shortlist</div>
-            <div class="filter-brief-title">Narrow by fit, trust, and easier follow-through.</div>
-            <div class="filter-brief-copy">
-              Use filters to move from a broad list to the therapists most worth contacting first,
-              without forcing yourself to scan everything at once.
+      <aside class="directory-sidebar-shell" id="directoryFilters">
+        <div class="filter-workspace">
+          <button
+            type="button"
+            class="mobile-filter-toggle"
+            id="mobileFilterToggle"
+            aria-controls="sidebar"
+            aria-expanded="false"
+          >
+            Step 1: Filters <span id="filterCount"></span>
+          </button>
+          <div class="sidebar" id="sidebar">
+            <div class="directory-section-heading">
+              <div class="directory-section-step">Step 1</div>
+              <h2 class="directory-section-title">Set filters first</h2>
+              <p class="directory-section-copy">Start with the filters that matter most.</p>
             </div>
-            <div class="filter-preset-row">
-              <button type="button" class="filter-preset-btn" data-filter-preset="trusted_fast">
-                Trusted and ready
-              </button>
-              <button type="button" class="filter-preset-btn" data-filter-preset="responsive">
-                Easiest to reach
-              </button>
-              <button type="button" class="filter-preset-btn" data-filter-preset="value">
-                Lower-friction cost
-              </button>
-            </div>
-          </div>
 
-          <div class="filter-active-panel">
-            <div class="filter-active-label">Active narrowing</div>
-            <div class="filter-active-copy" id="activeFilterSummary">
-              No filters applied yet. Start with one strong narrowing move.
+            <div class="filter-panel">
+              <h3>📍 <span id="locationPanelTitle">Location</span></h3>
+              <div class="filter-group">
+                <label for="state" id="stateLabelText">State</label>
+                <select id="state">
+                  <option value="">All States</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="zip" id="cityLabelText">Zip code</label>
+                <input
+                  type="text"
+                  id="zip"
+                  inputmode="numeric"
+                  autocomplete="postal-code"
+                  placeholder="e.g. 90024"
+                />
+              </div>
             </div>
-            <div class="filter-active-chips" id="activeFilterChips"></div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>🔍 <span id="searchPanelTitle">Search</span></h3>
-            <div class="filter-group">
-              <label for="q" id="searchLabelText">Keywords</label>
-              <input type="text" id="q" placeholder="Name, specialty, approach..." />
+            <div class="filter-panel">
+              <h3>🩺 <span>Care Preference</span></h3>
+              <div class="check-group">
+                <label class="check-label"
+                  ><input type="checkbox" id="therapist" /> <span>Therapist</span></label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="psychiatrist" /> <span>Psychiatrist</span></label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="telehealth" />
+                  <span id="telehealthLabelText">Telehealth Available</span></label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="in_person" />
+                  <span id="inPersonLabelText">In-Person Available</span></label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="accepting" />
+                  <span id="acceptingLabelText">Accepting New Patients</span></label
+                >
+              </div>
             </div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>📍 <span id="locationPanelTitle">Location</span></h3>
-            <div class="filter-group">
-              <label for="state" id="stateLabelText">State</label>
-              <select id="state">
-                <option value="">All States</option>
-              </select>
+            <div class="filter-panel">
+              <h3>💳 <span id="insurancePanelTitle">Insurance</span></h3>
+              <div class="filter-group">
+                <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
+                <select id="insurance">
+                  <option value="">All Insurance</option>
+                </select>
+              </div>
             </div>
-            <div class="filter-group">
-              <label for="city" id="cityLabelText">City</label>
-              <input type="text" id="city" placeholder="e.g. Chicago" />
-            </div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>🎯 <span id="specialtyPanelTitle">Specialty</span></h3>
-            <div class="filter-group">
-              <label for="specialty" id="specialtyLabelText">Focus Area</label>
-              <select id="specialty">
-                <option value="">All Specialties</option>
-              </select>
+            <div class="filter-panel">
+              <h3>🧠 <span id="bipolarExperiencePanelTitle">Bipolar Experience</span></h3>
+              <div class="filter-group">
+                <label for="bipolar_experience">Experience Level</label>
+                <select id="bipolar_experience">
+                  <option value="">Any experience level</option>
+                  <option value="3">3+ years</option>
+                  <option value="5">5+ years</option>
+                  <option value="10">10+ years</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>🧭 Match Quality</h3>
-            <div class="filter-group">
-              <label for="modality">Treatment Modality</label>
-              <select id="modality">
-                <option value="">All Modalities</option>
-              </select>
+            <div class="filter-panel">
+              <h3>👥 <span id="populationPanelTitle">Population Served</span></h3>
+              <div class="filter-group">
+                <label for="population">Population</label>
+                <select id="population">
+                  <option value="">All Populations</option>
+                </select>
+              </div>
             </div>
-            <div class="filter-group">
-              <label for="population">Population Served</label>
-              <select id="population">
-                <option value="">All Populations</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label for="verification">Verification</label>
-              <select id="verification">
-                <option value="">All Profiles</option>
-                <option value="editorially_verified">Editorially Verified</option>
-                <option value="under_review">Under Review</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label for="bipolar_experience">Bipolar Experience</label>
-              <select id="bipolar_experience">
-                <option value="">Any experience level</option>
-                <option value="3">3+ years</option>
-                <option value="5">5+ years</option>
-                <option value="10">10+ years</option>
-              </select>
-            </div>
-            <div class="check-group">
-              <label class="check-label"
-                ><input type="checkbox" id="medication_management" /> Medication Management</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" id="responsive_contact" /> Responsive Contact Signal</label
-              >
-              <label class="check-label"
-                ><input type="checkbox" id="recently_confirmed" /> Recently Confirmed Details</label
-              >
-            </div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>💳 <span id="insurancePanelTitle">Insurance</span></h3>
-            <div class="filter-group">
-              <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
-              <select id="insurance">
-                <option value="">All Insurance</option>
-              </select>
+            <div class="filter-panel">
+              <h3>🎯 <span id="specialtyPanelTitle">Specialty</span></h3>
+              <div class="filter-group">
+                <label for="specialty" id="specialtyLabelText">Focus Area</label>
+                <select id="specialty">
+                  <option value="">All Specialties</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div class="filter-panel">
-            <h3>⚙️ <span id="optionsPanelTitle">Options</span></h3>
-            <div class="check-group">
-              <label class="check-label"
-                ><input type="checkbox" id="telehealth" />
-                <span id="telehealthLabelText">Telehealth Available</span></label
-              >
-              <label class="check-label"
-                ><input type="checkbox" id="in_person" />
-                <span id="inPersonLabelText">In-Person Available</span></label
-              >
-              <label class="check-label"
-                ><input type="checkbox" id="accepting" />
-                <span id="acceptingLabelText">Accepting New Patients</span></label
-              >
+            <div class="filter-panel">
+              <h3>🧭 Match Quality</h3>
+              <div class="filter-group">
+                <label for="modality">Treatment Modality</label>
+                <select id="modality">
+                  <option value="">All Modalities</option>
+                </select>
+              </div>
+              <div class="check-group">
+                <label class="check-label"
+                  ><input type="checkbox" id="medication_management" /> Medication Management</label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="responsive_contact" /> Easy to Contact</label
+                >
+                <label class="check-label"
+                  ><input type="checkbox" id="recently_confirmed" /> Profile Recently Updated</label
+                >
+              </div>
             </div>
-          </div>
 
-          <button type="button" class="btn-filter" id="applyFiltersButton">Apply Filters</button>
-          <button type="button" class="btn-reset" id="resetFiltersButton">Reset All</button>
+            <button type="button" class="btn-filter" id="applyFiltersButton">Apply Filters</button>
+            <button type="button" class="btn-reset" id="resetFiltersButton">Reset All</button>
+          </div>
         </div>
       </aside>
 
-      <section class="directory-results" aria-label="Therapist directory results">
-        <div class="results-header">
-          <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
-          <div class="results-tools">
-            <a href="match.html" class="btn-secondary results-match-link">Get matched</a>
-            <label for="sortBy">Sort by</label>
-            <select id="sortBy">
-              <option value="best_match">Best match</option>
-              <option value="freshest_details">Freshest details</option>
-              <option value="most_experienced">Most bipolar experience</option>
-              <option value="soonest_availability">Soonest availability</option>
-              <option value="lowest_fee">Lowest fee</option>
-              <option value="most_responsive">Most responsive contact</option>
-            </select>
+      <section
+        class="directory-results"
+        id="directoryResults"
+        aria-label="Therapist directory results"
+      >
+        <div class="directory-results-shell">
+          <div class="directory-section-heading directory-section-heading-results">
+            <div class="directory-section-step">Step 2</div>
+            <h2 class="directory-section-title">Review the filtered results</h2>
+            <p class="directory-section-copy" id="directoryJourneySummary">
+              Compare the strongest options, then save the therapists you want to revisit.
+            </p>
           </div>
-        </div>
-        <div class="results-explainer">
-          <div class="results-explainer-title">How this directory helps you compare</div>
-          <div class="results-explainer-copy">
-            We prioritize profiles with clearer bipolar-relevant detail, practical trust signals,
-            and contact paths that are easier to understand before you reach out.
-          </div>
-          <div class="results-explainer-copy">
-            The goal is not to show the most listings. It is to help you narrow toward the options
-            that feel most relevant, most credible, and easiest to act on first.
-          </div>
-          <div class="results-explainer-copy" id="directoryLaunchExplainer"></div>
-          <div class="results-explainer-copy" id="directoryAdaptiveExplainer"></div>
-          <div class="results-explainer-copy">
-            The directory can help you compare structured fit and trust signals, but you should
-            still verify availability, insurance coverage, and personal fit directly in
-            conversation.
-          </div>
-          <div class="results-explainer-pills">
-            <span class="results-explainer-pill">Editorial verification</span>
-            <span class="results-explainer-pill">Recent confirmation signals</span>
-            <span class="results-explainer-pill">Bipolar-relevant detail</span>
-            <span class="results-explainer-pill">Clear first-contact path</span>
-            <span class="results-explainer-pill">Practical fit signals</span>
-          </div>
-          <div class="public-trust-system" aria-label="How trust works in the directory">
-            <div class="public-trust-card">
-              <div class="public-trust-card-label">What the directory checks</div>
-              <div class="public-trust-card-title">Fit, trust, and easier follow-through</div>
-              <div class="public-trust-card-copy">
-                Results are organized to surface bipolar-relevant fit, clearer trust cues, and
-                cleaner contact paths before you invest in a deep profile read.
+          <div class="results-focus-banner">
+            <div class="results-focus-banner-pill-group">
+              <div class="results-focus-banner-label">Current focus</div>
+              <button type="button" class="results-focus-banner-clear" id="focusClearFiltersButton">
+                Clear filters
+              </button>
+            </div>
+            <div class="results-focus-banner-main">
+              <div class="results-focus-banner-copy" id="activeFilterSummary">
+                No filters applied yet. Start with one strong narrowing move.
               </div>
             </div>
-            <div class="public-trust-card">
-              <div class="public-trust-card-label">What trust means here</div>
-              <div class="public-trust-card-title">A more credible place to narrow first</div>
-              <div class="public-trust-card-copy">
-                Stronger directory trust signals mean a profile should be easier to judge quickly,
-                not that the platform can replace direct confirmation or personal fit.
-              </div>
-            </div>
-            <div class="public-trust-card">
-              <div class="public-trust-card-label">What you still verify</div>
-              <div class="public-trust-card-title">
-                Openings, coverage, and the real conversation fit
-              </div>
-              <div class="public-trust-card-copy">
-                Use the directory to narrow more intelligently first, then let outreach confirm the
-                details that matter most to a real decision.
-              </div>
+            <div class="results-focus-banner-chips" id="activeFilterChips"></div>
+          </div>
+          <div class="results-header">
+            <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
+            <div class="results-tools">
+              <label for="sortBy">Sort by</label>
+              <select id="sortBy">
+                <option value="lowest_fee">Lowest fee</option>
+                <option value="best_match">Best match</option>
+                <option value="most_experienced">Most bipolar experience</option>
+                <option value="soonest_availability">Soonest availability</option>
+                <option value="most_responsive">Most responsive contact</option>
+              </select>
             </div>
           </div>
-          <div class="public-trust-system" id="directoryReturnJourney" aria-live="polite"></div>
-        </div>
-        <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
-        <div class="editorial-lanes" id="editorialLanes"></div>
-        <div class="directory-shortlist-bar" id="directoryShortlistBar"></div>
-        <div class="therapist-grid" id="resultsGrid">
-          <div class="loading">
-            <div class="spinner"></div>
-            <p>Finding bipolar-informed options...</p>
+          <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
+          <div class="therapist-grid" id="resultsGrid">
+            <div class="loading">
+              <div class="spinner"></div>
+              <p>Finding bipolar-informed options...</p>
+            </div>
           </div>
+          <div class="pagination" id="pagination"></div>
         </div>
-        <div class="pagination" id="pagination"></div>
       </section>
     </main>
 

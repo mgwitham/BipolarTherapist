@@ -5,7 +5,7 @@ function buildJourneyState(latestOutcome, options) {
       tone: "neutral",
       label: "Ready to start",
       title: "You have not logged an outreach yet.",
-      copy: "Start with the recommended route, then save what happened so the backup plan and shortlist can adapt around real momentum.",
+      copy: "Start with the recommended route, then save what happened so the backup plan and list can adapt around real momentum.",
       nextMove: "Use the first contact route or copy the calm outreach draft.",
       pivot:
         "If you hear nothing back or hit a waitlist, the product will point you to the next provider.",
@@ -20,7 +20,7 @@ function buildJourneyState(latestOutcome, options) {
       tone: "neutral",
       label: label,
       title: "You have started the conversation.",
-      copy: "Good. You now have momentum. Save the next change here so the shortlist can react instead of forcing you to remember what happened.",
+      copy: "Good. You now have momentum. Save the next change here so the list can react instead of forcing you to remember what happened.",
       nextMove: "Give this provider a reasonable reply window before widening the search.",
       pivot: latestOutcome.recommended_wait_window
         ? "Suggested wait window: " + latestOutcome.recommended_wait_window + "."
@@ -43,7 +43,7 @@ function buildJourneyState(latestOutcome, options) {
       tone: "positive",
       label: label,
       title: "This path is converting well.",
-      copy: "You are past the hardest part. Use the shortlist as backup insurance, but the main job now is evaluating fit and follow-through, not opening more tabs.",
+      copy: "You are past the hardest part. Use the list as backup insurance, but the main job now is evaluating fit and follow-through, not opening more tabs.",
       nextMove: "Prepare the key questions you want answered before deciding whether to continue.",
       pivot:
         "Only move to another provider if this consult reveals a trust, logistics, or care mismatch.",
@@ -65,7 +65,7 @@ function buildJourneyState(latestOutcome, options) {
       tone: "negative",
       label: label,
       title: "This path is blocked by timing.",
-      copy: "The shortlist did its job by showing you a strong option, but timing matters. Preserve momentum by moving to the next provider instead of waiting indefinitely.",
+      copy: "The list did its job by showing you a strong option, but timing matters. Preserve momentum by moving to the next provider instead of waiting indefinitely.",
       nextMove:
         "Start the backup route now if your timing matters more than this particular provider.",
       pivot: "You can always come back later if availability opens up.",
@@ -87,9 +87,9 @@ function buildJourneyState(latestOutcome, options) {
     tone: "neutral",
     label: label,
     title: "Your outreach state has been saved.",
-    copy: "Keep updating what happens here so your shortlist continues to behave like a guided process.",
+    copy: "Keep updating what happens here so your list continues to behave like a guided process.",
     nextMove: "Choose the clearest next action and keep the backup ready if needed.",
-    pivot: "The more accurately you log outcomes, the better the shortlist can adapt.",
+    pivot: "The more accurately you log outcomes, the better the list can adapt.",
   };
 }
 
@@ -272,7 +272,7 @@ export function buildFallbackRecommendation(profile, entries, options) {
     rationale:
       "Because " +
       fallbackReason +
-      ", this looks like the strongest backup option based on fit, follow-through, and current shortlist position." +
+      ", this looks like the strongest backup option based on fit, follow-through, and current list position." +
       (fallbackPick && fallbackPick.learningWins
         ? " Similar fallback journeys have also produced " +
           fallbackPick.learningWins +

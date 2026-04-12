@@ -1,9 +1,8 @@
 import { fetchDirectoryPageContent } from "./cms.js";
 import {
   readFunnelEvents,
-  summarizeDirectoryProfileOpenQuality,
-  summarizeAdaptiveSignals,
   trackFunnelEvent,
+  summarizeAdaptiveSignals,
 } from "./funnel-analytics.js";
 import {
   FILTER_BOOLEAN_KEYS,
@@ -18,32 +17,22 @@ import {
   resetDirectoryFiltersAction,
 } from "./directory-controller.js";
 import {
-  buildCardFitSummary,
-  buildDirectoryStrategySegments,
   compareTherapistsWithFilters,
-  getDirectoryStrategyAudience,
-  getEditorialLaneCandidates,
   getMatchScore,
   matchesDirectoryFilters,
 } from "./directory-logic.js";
+
+var DIRECTORY_LIST_LIMIT = 6;
 import {
   renderDirectoryDecisionPreviewMarkup,
   renderCardMarkup,
   renderEmptyStateMarkup,
   renderPaginationMarkup,
-  renderShortlistBarMarkup,
 } from "./directory-render.js";
-import {
-  buildCardViewModel,
-  buildDirectoryDecisionPreviewModel,
-  buildShortlistBarViewModel,
-} from "./directory-view-model.js";
+import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./directory-view-model.js";
 
 (async function () {
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
-  var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-  var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
-  var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
   var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
@@ -59,15 +48,15 @@ import {
   var pageSize = 12;
   var activePreviewSlug = "";
   var defaultFilters = {
-    q: "",
     state: "CA",
-    city: "",
+    zip: "",
     specialty: "",
     modality: "",
     population: "",
-    verification: "",
     bipolar_experience: "",
     insurance: "",
+    therapist: false,
+    psychiatrist: false,
     telehealth: false,
     in_person: false,
     accepting: false,
@@ -79,166 +68,21 @@ import {
   var filters = { ...defaultFilters };
   var shortlist = readShortlist();
   var pendingMotionSlug = "";
-  var lastReshapeSnapshot = null;
-  var lastReshapeHistory = readReshapeHistory();
-  var FILTER_PRESETS = {
-    trusted_fast: {
-      verification: "editorially_verified",
-      recently_confirmed: true,
-      accepting: true,
-      sortBy: "freshest_details",
-    },
-    responsive: {
-      responsive_contact: true,
-      accepting: true,
-      sortBy: "most_responsive",
-    },
-    value: {
-      insurance: "",
-      telehealth: true,
-      sortBy: "lowest_fee",
-    },
-  };
+  var liveFilterTimer = 0;
+  var resizeTimer = 0;
+  var filteredResultsCacheKey = "";
+  var filteredResultsCache = [];
+  var optionIndexes = buildOptionIndexes();
+  var VALID_SORT_OPTIONS = new Set([
+    "best_match",
+    "most_experienced",
+    "soonest_availability",
+    "lowest_fee",
+    "most_responsive",
+  ]);
 
   function getElement(id) {
     return document.getElementById(id);
-  }
-
-  function renderDirectoryAdaptiveExplainer() {
-    var root = getElement("directoryAdaptiveExplainer");
-    if (!root) {
-      return;
-    }
-
-    var adaptiveSignals = summarizeAdaptiveSignals(
-      readFunnelEvents(),
-      [],
-      buildDirectoryStrategySegments(filters),
-    );
-    var basis =
-      adaptiveSignals.match_action_basis === "outcomes"
-        ? "what has worked best"
-        : "how people tend to move";
-    var audience = getDirectoryStrategyAudience(filters);
-    var emphasis =
-      filters.sortBy === "soonest_availability"
-        ? "leaning a little harder on speed and easier follow-through"
-        : filters.sortBy === "most_responsive"
-          ? "leaning a little harder on contact responsiveness"
-          : filters.sortBy === "most_experienced"
-            ? "leaning a little harder on bipolar-specific depth"
-            : filters.sortBy === "lowest_fee"
-              ? "leaning a little harder on fee visibility"
-              : "balancing reviewed details, fit, and decision-readiness";
-
-    root.textContent =
-      "For " +
-      audience +
-      ", the directory is currently " +
-      emphasis +
-      ". That emphasis is guided by " +
-      basis +
-      " in similar browsing patterns, with a California-first launch focus.";
-  }
-
-  function renderDirectoryReturnJourney() {
-    var root = getElement("directoryReturnJourney");
-    if (!root) {
-      return;
-    }
-
-    if (!shortlist.length) {
-      root.innerHTML = "";
-      return;
-    }
-
-    var progress = getShortlistOutreachProgress();
-    var snapshot = buildDirectoryReturnSnapshot();
-    var snapshotCards = [
-      snapshot.lead
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Still looks strongest</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.lead.slug)) +
-          '</div><div class="public-trust-card-copy">This is still the best place to restart unless live outreach momentum or fresh friction clearly changes the order.</div></div>'
-        : "",
-      snapshot.live
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Already has momentum</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.live.slug)) +
-          '</div><div class="public-trust-card-copy">A reply or consult is already moving here, so compare this option against the backup using real follow-through instead of profile polish alone.</div></div>'
-        : "",
-      snapshot.stalled
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Probably demote or drop</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.stalled.slug)) +
-          '</div><div class="public-trust-card-copy">This path has already hit friction. Keep it only if new information clearly changes the case for it.</div></div>'
-        : "",
-    ]
-      .filter(Boolean)
-      .join("");
-    root.innerHTML =
-      '<div class="public-trust-card"><div class="public-trust-card-label">Welcome back</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        progress.hasProgress
-          ? "Your saved shortlist and outreach momentum are still here."
-          : "Your saved shortlist is still here and ready to reopen.",
-      ) +
-      '</div><div class="public-trust-card-copy">' +
-      escapeHtml(
-        progress.hasProgress
-          ? "Resume comparing the same saved therapists, review where outreach stands, and keep moving without rebuilding your context."
-          : "You can keep comparing the therapists you already saved, add notes, and return to the strongest options without starting over.",
-      ) +
-      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Saved progress</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        shortlist.length +
-          " therapist" +
-          (shortlist.length === 1 ? "" : "s") +
-          " saved on this browser",
-      ) +
-      '</div><div class="public-trust-card-copy">' +
-      escapeHtml(
-        progress.summary ||
-          "Your shortlist, notes, and labels stay available here so you can return later without losing your place.",
-      ) +
-      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Best next move</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        progress.hasProgress ? "Resume the shortlist in motion" : "Open your saved shortlist",
-      ) +
-      '</div><div class="public-trust-card-copy"><a href="' +
-      escapeHtml(progress.hasProgress ? buildOutreachQueueUrl() : buildCompareUrl()) +
-      '" class="shortlist-compare-link">' +
-      escapeHtml(progress.hasProgress ? "Resume saved momentum" : "Open saved shortlist") +
-      "</a> so you can keep moving from the same decision context you already created.</div></div>" +
-      snapshotCards;
-  }
-
-  function renderDirectoryLaunchExplainer(results) {
-    var root = getElement("directoryLaunchExplainer");
-    if (!root) {
-      return;
-    }
-
-    var activeFilterCount = countActiveFilters(filters);
-    var prioritySet = new Set(matchPrioritySlugs);
-    var visiblePriorityCount = (results || []).filter(function (therapist) {
-      return prioritySet.has(therapist.slug);
-    }).length;
-
-    if (activeFilterCount > 1 || filters.sortBy !== "best_match") {
-      root.textContent =
-        "Once you add stronger filters or change the sort, the directory leans much harder on your choices than on any launch-level curation.";
-      return;
-    }
-
-    if (!visiblePriorityCount) {
-      root.textContent =
-        "The strongest profiles here still rise on reviewed details, fit, and next-step clarity, even when no launch-priority profile is in view.";
-      return;
-    }
-
-    root.textContent =
-      visiblePriorityCount +
-      " profile" +
-      (visiblePriorityCount === 1 ? " is" : "s are") +
-      " currently getting a light visibility boost because the profile looks especially strong on reviewed details, decision-readiness, and contact clarity. That boost only matters when options are already close.";
   }
 
   function escapeHtml(value) {
@@ -248,6 +92,14 @@ import {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function buildFilterCacheKey(filterState) {
+    return FILTER_VALUE_KEYS.concat(FILTER_BOOLEAN_KEYS)
+      .map(function (key) {
+        return key + ":" + String(filterState[key] || "");
+      })
+      .join("|");
   }
 
   function applyDirectoryPriorityProminence(list, filterState) {
@@ -273,6 +125,42 @@ import {
     });
   }
 
+  function incrementCount(map, key) {
+    if (!key) {
+      return;
+    }
+
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+
+  function buildOptionIndexes() {
+    var indexes = {
+      state: new Map(),
+      specialty: new Map(),
+      insurance: new Map(),
+      modality: new Map(),
+      population: new Map(),
+    };
+
+    therapists.forEach(function (therapist) {
+      incrementCount(indexes.state, therapist.state);
+      (therapist.specialties || []).forEach(function (value) {
+        incrementCount(indexes.specialty, value);
+      });
+      (therapist.insurance_accepted || []).forEach(function (value) {
+        incrementCount(indexes.insurance, value);
+      });
+      (therapist.treatment_modalities || []).forEach(function (value) {
+        incrementCount(indexes.modality, value);
+      });
+      (therapist.client_populations || []).forEach(function (value) {
+        incrementCount(indexes.population, value);
+      });
+    });
+
+    return indexes;
+  }
+
   function readShortlist() {
     try {
       return normalizeShortlist(
@@ -281,284 +169,6 @@ import {
     } catch (_error) {
       return [];
     }
-  }
-
-  function readOutreachOutcomes() {
-    try {
-      return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
-    } catch (_error) {
-      return [];
-    }
-  }
-
-  function readReshapeHistory() {
-    try {
-      return JSON.parse(window.localStorage.getItem(SHORTLIST_RESHAPE_HISTORY_KEY) || "null");
-    } catch (_error) {
-      return null;
-    }
-  }
-
-  function writeReshapeHistory(value) {
-    lastReshapeHistory = value || null;
-    try {
-      if (!value) {
-        window.localStorage.removeItem(SHORTLIST_RESHAPE_HISTORY_KEY);
-        return;
-      }
-      window.localStorage.setItem(SHORTLIST_RESHAPE_HISTORY_KEY, JSON.stringify(value));
-    } catch (_error) {
-      return;
-    }
-  }
-
-  function formatOutcomeLabel(outcome) {
-    var labels = {
-      reached_out: "Reached out",
-      heard_back: "Heard back",
-      booked_consult: "Booked consult",
-      good_fit_call: "Good fit call",
-      insurance_mismatch: "Insurance mismatch",
-      waitlist: "Waitlist",
-      no_response: "No response yet",
-    };
-    return labels[String(outcome || "")] || "";
-  }
-
-  function getLatestOutcomeBySlug(slugs) {
-    var target = new Set((Array.isArray(slugs) ? slugs : []).filter(Boolean));
-    if (!target.size) {
-      return {};
-    }
-    return readOutreachOutcomes()
-      .slice()
-      .sort(function (a, b) {
-        return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
-      })
-      .reduce(function (map, item) {
-        if (!item || !item.therapist_slug || !target.has(item.therapist_slug)) {
-          return map;
-        }
-        if (!map[item.therapist_slug]) {
-          map[item.therapist_slug] = item;
-        }
-        return map;
-      }, {});
-  }
-
-  function buildReshapeHistoryPayload(beforeEntries, afterEntries) {
-    var beforeLead = beforeEntries[0] ? getTherapistName(beforeEntries[0].slug) : "open lead slot";
-    var afterLead = afterEntries[0] ? getTherapistName(afterEntries[0].slug) : "open lead slot";
-    var beforeBackup = beforeEntries[1] ? getTherapistName(beforeEntries[1].slug) : "no backup";
-    var afterBackup = afterEntries[1] ? getTherapistName(afterEntries[1].slug) : "no backup";
-    var changedCount = afterEntries.filter(function (item, index) {
-      var before = beforeEntries[index];
-      return !before || before.slug !== item.slug;
-    }).length;
-    var changedIn = afterEntries
-      .filter(function (item, index) {
-        var before = beforeEntries[index];
-        return item && (!before || before.slug !== item.slug);
-      })
-      .map(function (item) {
-        return item.slug;
-      });
-    var changedOut = beforeEntries
-      .filter(function (item, index) {
-        var after = afterEntries[index];
-        return item && (!after || after.slug !== item.slug);
-      })
-      .map(function (item) {
-        return item.slug;
-      });
-    var latestBySlug = getLatestOutcomeBySlug(changedIn.concat(changedOut));
-    var promotedSlug = changedIn[0] || "";
-    var demotedSlug = changedOut[0] || "";
-    var promotedOutcome = promotedSlug ? latestBySlug[promotedSlug] : null;
-    var demotedOutcome = demotedSlug ? latestBySlug[demotedSlug] : null;
-    var promotedLabel = promotedOutcome ? formatOutcomeLabel(promotedOutcome.outcome) : "";
-    var demotedLabel = demotedOutcome ? formatOutcomeLabel(demotedOutcome.outcome) : "";
-    var driver = "";
-
-    if (promotedLabel) {
-      driver =
-        "Driver: " +
-        promotedLabel +
-        " on " +
-        getTherapistName(promotedSlug) +
-        " made that route easier to prioritize.";
-    } else if (demotedLabel) {
-      driver =
-        "Driver: " +
-        demotedLabel +
-        " on " +
-        getTherapistName(demotedSlug) +
-        " weakened the older saved order.";
-    }
-
-    return {
-      title: "Last shortlist reshape",
-      summary:
-        "You moved the queue from " +
-        beforeLead +
-        " leading with " +
-        beforeBackup +
-        " as backup to " +
-        afterLead +
-        " leading with " +
-        afterBackup +
-        " as backup.",
-      meta:
-        (driver ? driver + " " : "") +
-        changedCount +
-        " slot" +
-        (changedCount === 1 ? "" : "s") +
-        " changed in the most recent reshaping pass.",
-    };
-  }
-
-  function getShortlistOutreachProgress() {
-    var slugs = shortlist.map(function (item) {
-      return item.slug;
-    });
-    if (!slugs.length) {
-      return {
-        hasProgress: false,
-        summary: "",
-        nextSlug: "",
-      };
-    }
-
-    var latestBySlug = {};
-    readOutreachOutcomes().forEach(function (item) {
-      if (!item || !item.therapist_slug || !slugs.includes(item.therapist_slug)) {
-        return;
-      }
-      if (!latestBySlug[item.therapist_slug]) {
-        latestBySlug[item.therapist_slug] = item;
-      }
-    });
-
-    var touchedCount = Object.keys(latestBySlug).length;
-    var nextSlug = slugs.find(function (slug) {
-      var outcome = latestBySlug[slug];
-      return (
-        !outcome ||
-        ["no_response", "waitlist", "insurance_mismatch"].indexOf(String(outcome.outcome || "")) !==
-          -1
-      );
-    });
-    var completedCount = slugs.filter(function (slug) {
-      var outcome = latestBySlug[slug];
-      return (
-        outcome &&
-        ["heard_back", "booked_consult", "good_fit_call"].indexOf(String(outcome.outcome || "")) !==
-          -1
-      );
-    }).length;
-
-    return {
-      hasProgress: touchedCount > 0,
-      nextSlug: nextSlug || "",
-      summary:
-        touchedCount > 0
-          ? completedCount
-            ? completedCount +
-              " showing real follow-through so far. Resume the queue with " +
-              (nextSlug ? getTherapistName(nextSlug) : "your next strongest option") +
-              "."
-            : "You already started outreach here. Resume with " +
-              (nextSlug ? getTherapistName(nextSlug) : "your next strongest option") +
-              "."
-          : "",
-    };
-  }
-
-  function getShortlistPriorityRank(value) {
-    var normalized = String(value || "").toLowerCase();
-    if (normalized === "best fit") {
-      return 3;
-    }
-    if (normalized === "best availability") {
-      return 2;
-    }
-    if (normalized === "best value") {
-      return 1;
-    }
-    return 0;
-  }
-
-  function buildDirectoryReturnSnapshot() {
-    var slugs = shortlist.map(function (item) {
-      return item.slug;
-    });
-    var latestBySlug = {};
-
-    readOutreachOutcomes()
-      .slice()
-      .sort(function (a, b) {
-        return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
-      })
-      .forEach(function (item) {
-        if (!item || !item.therapist_slug || !slugs.includes(item.therapist_slug)) {
-          return;
-        }
-        if (!latestBySlug[item.therapist_slug]) {
-          latestBySlug[item.therapist_slug] = item;
-        }
-      });
-
-    var ranked = shortlist
-      .map(function (item, index) {
-        return {
-          slug: item.slug,
-          rank: getShortlistPriorityRank(item.priority),
-          index: index,
-          latestOutcome: latestBySlug[item.slug] || null,
-        };
-      })
-      .sort(function (a, b) {
-        return b.rank - a.rank || a.index - b.index;
-      });
-
-    return {
-      lead:
-        ranked.find(function (item) {
-          return (
-            !item.latestOutcome ||
-            ["insurance_mismatch", "waitlist", "no_response"].indexOf(
-              String(item.latestOutcome.outcome || ""),
-            ) === -1
-          );
-        }) ||
-        ranked[0] ||
-        null,
-      live:
-        ranked.find(function (item) {
-          return (
-            item.latestOutcome &&
-            ["heard_back", "booked_consult", "good_fit_call"].indexOf(
-              String(item.latestOutcome.outcome || ""),
-            ) !== -1
-          );
-        }) || null,
-      stalled:
-        ranked.find(function (item) {
-          return (
-            item.latestOutcome &&
-            ["insurance_mismatch", "waitlist", "no_response"].indexOf(
-              String(item.latestOutcome.outcome || ""),
-            ) !== -1
-          );
-        }) || null,
-    };
-  }
-
-  function getTherapistName(slug) {
-    var therapist = therapists.find(function (item) {
-      return item.slug === slug;
-    });
-    return therapist ? therapist.name : "your next therapist";
   }
 
   function normalizeShortlist(value) {
@@ -581,15 +191,18 @@ import {
         };
       })
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, DIRECTORY_LIST_LIMIT);
   }
 
   function writeShortlist(value) {
-    shortlist = value;
+    shortlist = normalizeShortlist(value);
     try {
-      window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(value));
+      window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(shortlist));
     } catch (_error) {
       return;
+    }
+    if (typeof window.refreshShortlistNav === "function") {
+      window.refreshShortlistNav();
     }
   }
 
@@ -600,8 +213,6 @@ import {
   }
 
   function toggleShortlist(slug) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
     if (isShortlisted(slug)) {
       trackFunnelEvent("directory_shortlist_removed", {
         therapist_slug: slug,
@@ -618,101 +229,13 @@ import {
       therapist_slug: slug,
       shortlist_size_before: shortlist.length,
     });
-    writeShortlist(shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, 3));
+    writeShortlist(
+      shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, DIRECTORY_LIST_LIMIT),
+    );
     return true;
   }
 
-  function removeShortlistEntry(slug) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
-    writeShortlist(
-      shortlist.filter(function (item) {
-        return item.slug !== slug;
-      }),
-    );
-  }
-
-  function replaceShortlistEntry(slugToRemove, replacementSlug) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
-    var removedEntry = shortlist.find(function (item) {
-      return item.slug === slugToRemove;
-    });
-    var next = shortlist
-      .filter(function (item) {
-        return item.slug !== slugToRemove && item.slug !== replacementSlug;
-      })
-      .concat({
-        slug: replacementSlug,
-        priority: removedEntry ? String(removedEntry.priority || "") : "",
-        note: "",
-      })
-      .slice(0, 3);
-
-    writeShortlist(next);
-  }
-
-  function fillShortlistSlot(replacementSlug) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
-    if (!replacementSlug || isShortlisted(replacementSlug) || shortlist.length >= 3) {
-      return;
-    }
-    writeShortlist(shortlist.concat({ slug: replacementSlug, priority: "", note: "" }).slice(0, 3));
-  }
-
-  function applyReshapingPlan(entries) {
-    if (!Array.isArray(entries) || !entries.length) {
-      return;
-    }
-    var beforeEntries = normalizeShortlist(shortlist);
-    var nextEntries = entries
-      .filter(function (item) {
-        return item && item.slug;
-      })
-      .map(function (item) {
-        return {
-          slug: String(item.slug),
-          priority: String(item.priority || ""),
-          note: String(item.note || ""),
-        };
-      })
-      .slice(0, 3);
-    lastReshapeSnapshot = beforeEntries;
-    writeShortlist(nextEntries);
-    writeReshapeHistory(buildReshapeHistoryPayload(beforeEntries, nextEntries));
-  }
-
-  function undoReshapingPlan() {
-    if (!lastReshapeSnapshot || !lastReshapeSnapshot.length) {
-      return;
-    }
-    writeShortlist(normalizeShortlist(lastReshapeSnapshot));
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
-  }
-
-  function updateShortlistPriority(slug, priority) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
-    writeShortlist(
-      shortlist.map(function (item) {
-        if (item.slug !== slug) {
-          return item;
-        }
-
-        return {
-          slug: item.slug,
-          priority: priority,
-          note: item.note || "",
-        };
-      }),
-    );
-  }
-
   function updateShortlistNote(slug, note) {
-    lastReshapeSnapshot = null;
-    writeReshapeHistory(null);
     writeShortlist(
       shortlist.map(function (item) {
         if (item.slug !== slug) {
@@ -730,31 +253,6 @@ import {
     );
   }
 
-  function buildCompareUrl() {
-    if (!shortlist.length) {
-      return "match.html";
-    }
-
-    return (
-      "match.html?shortlist=" +
-      encodeURIComponent(
-        shortlist
-          .map(function (item) {
-            return item.slug;
-          })
-          .join(","),
-      )
-    );
-  }
-
-  function buildOutreachQueueUrl() {
-    if (!shortlist.length) {
-      return "match.html";
-    }
-
-    return buildCompareUrl() + "&entry=directory_shortlist_queue";
-  }
-
   function applyDirectoryCopy() {
     if (!directoryPage) {
       return;
@@ -763,16 +261,12 @@ import {
     var mappings = [
       ["directoryHeroTitle", "heroTitle"],
       ["directoryHeroDescription", "heroDescription"],
-      ["searchPanelTitle", "searchPanelTitle"],
-      ["searchLabelText", "searchLabel"],
       ["locationPanelTitle", "locationPanelTitle"],
       ["stateLabelText", "stateLabel"],
-      ["cityLabelText", "cityLabel"],
       ["specialtyPanelTitle", "specialtyPanelTitle"],
       ["specialtyLabelText", "specialtyLabel"],
       ["insurancePanelTitle", "insurancePanelTitle"],
       ["insuranceLabelText", "insuranceLabel"],
-      ["optionsPanelTitle", "optionsPanelTitle"],
       ["telehealthLabelText", "telehealthLabel"],
       ["inPersonLabelText", "inPersonLabel"],
       ["acceptingLabelText", "acceptingLabel"],
@@ -788,13 +282,13 @@ import {
       }
     });
 
-    var keywordInput = getElement("q");
-    var cityInput = getElement("city");
-    if (keywordInput && directoryPage.searchPlaceholder) {
-      keywordInput.placeholder = directoryPage.searchPlaceholder;
+    var zipInput = getElement("zip");
+    var zipLabel = getElement("cityLabelText");
+    if (zipLabel) {
+      zipLabel.textContent = directoryPage.zipLabel || "Zip code";
     }
-    if (cityInput && directoryPage.cityPlaceholder) {
-      cityInput.placeholder = directoryPage.cityPlaceholder;
+    if (zipInput) {
+      zipInput.placeholder = directoryPage.zipPlaceholder || "e.g. 90024";
     }
 
     var stateSelect = getElement("state");
@@ -841,115 +335,152 @@ import {
 
   function summarizeActiveFilters() {
     var chips = [];
-    if (filters.q) {
-      chips.push('Keyword: "' + filters.q + '"');
-    }
     if (filters.state) {
-      chips.push(filters.state);
+      chips.push({ key: "state", label: filters.state });
     }
-    if (filters.city) {
-      chips.push(filters.city);
+    if (filters.zip) {
+      chips.push({ key: "zip", label: filters.zip });
     }
     if (filters.specialty) {
-      chips.push(filters.specialty);
+      chips.push({ key: "specialty", label: filters.specialty });
     }
     if (filters.modality) {
-      chips.push(filters.modality);
+      chips.push({ key: "modality", label: filters.modality });
     }
     if (filters.population) {
-      chips.push(filters.population);
-    }
-    if (filters.verification === "editorially_verified") {
-      chips.push("Editorially verified");
+      chips.push({ key: "population", label: filters.population });
     }
     if (filters.bipolar_experience) {
-      chips.push(filters.bipolar_experience + "+ yrs bipolar care");
+      chips.push({
+        key: "bipolar_experience",
+        label: filters.bipolar_experience + "+ yrs bipolar care",
+      });
     }
     if (filters.insurance) {
-      chips.push(filters.insurance);
+      chips.push({ key: "insurance", label: filters.insurance });
+    }
+    if (filters.therapist) {
+      chips.push({ key: "therapist", label: "Therapist" });
+    }
+    if (filters.psychiatrist) {
+      chips.push({ key: "psychiatrist", label: "Psychiatrist" });
     }
     if (filters.telehealth) {
-      chips.push("Telehealth");
+      chips.push({ key: "telehealth", label: "Telehealth" });
     }
     if (filters.in_person) {
-      chips.push("In-person");
+      chips.push({ key: "in_person", label: "In-person" });
     }
     if (filters.accepting) {
-      chips.push("Accepting patients");
+      chips.push({ key: "accepting", label: "Accepting patients" });
     }
     if (filters.medication_management) {
-      chips.push("Medication management");
+      chips.push({ key: "medication_management", label: "Medication management" });
     }
     if (filters.responsive_contact) {
-      chips.push("Responsive contact");
+      chips.push({ key: "responsive_contact", label: "Responsive contact" });
     }
     if (filters.recently_confirmed) {
-      chips.push("Recently confirmed");
+      chips.push({ key: "recently_confirmed", label: "Recently confirmed" });
     }
     return chips;
+  }
+
+  function removeActiveFilter(filterKey) {
+    if (!filterKey || !(filterKey in filters)) {
+      return;
+    }
+    filters = Object.assign({}, filters, {
+      [filterKey]: typeof defaultFilters[filterKey] === "boolean" ? false : "",
+    });
+    currentPage = 1;
+    syncFilterControlsFromState(filters, getElement);
+    render();
   }
 
   function renderActiveFilterSummary(resultsLength) {
     var summary = getElement("activeFilterSummary");
     var chipsRoot = getElement("activeFilterChips");
+    var clearButton = getElement("focusClearFiltersButton");
     if (!summary || !chipsRoot) {
       return;
     }
 
     var active = summarizeActiveFilters();
     if (!active.length) {
-      summary.textContent =
-        "No filters applied yet. Start with one strong narrowing move so the directory can behave more like a shortlist than a marketplace.";
+      summary.textContent = "No filters yet. Add one or two to narrow the list.";
       chipsRoot.innerHTML = "";
+      if (clearButton) {
+        clearButton.hidden = true;
+      }
+      return;
+    }
+
+    summary.innerHTML =
+      "<strong>" +
+      escapeHtml(resultsLength) +
+      "</strong> option" +
+      (resultsLength === 1 ? "" : "s") +
+      ' <span aria-hidden="true">•</span> <strong>' +
+      escapeHtml(active.length) +
+      "</strong> filter" +
+      (active.length === 1 ? "" : "s") +
+      " applied";
+    chipsRoot.innerHTML = active
+      .map(function (item) {
+        return (
+          '<button type="button" class="filter-chip filter-chip-removable" data-remove-filter="' +
+          escapeHtml(item.key) +
+          '" aria-label="Remove ' +
+          escapeHtml(item.label) +
+          ' filter" title="Click to remove this filter">' +
+          '<span class="filter-chip-text">' +
+          escapeHtml(item.label) +
+          '</span><span class="filter-chip-dismiss" aria-hidden="true">×</span></button>'
+        );
+      })
+      .join("");
+    if (clearButton) {
+      clearButton.hidden = false;
+    }
+  }
+
+  function renderJourneySummary(resultsLength, activeFilterCount) {
+    var summary = getElement("directoryJourneySummary");
+    if (!summary) {
+      return;
+    }
+
+    if (!activeFilterCount) {
+      summary.textContent =
+        "Start with location, specialty, insurance, or telehealth. Then compare the strongest options here.";
+      return;
+    }
+
+    if (!resultsLength) {
+      summary.textContent =
+        "These filters are too narrow right now. Remove one or two filters, then review the refreshed results here.";
+      return;
+    }
+
+    if (resultsLength <= 12) {
+      summary.textContent =
+        "This list is manageable now. Compare the cards below and save the therapists you may actually contact.";
       return;
     }
 
     summary.textContent =
-      "You are narrowing toward " +
-      resultsLength +
-      " option" +
-      (resultsLength === 1 ? "" : "s") +
-      " using " +
-      active.length +
-      " signal" +
-      (active.length === 1 ? "" : "s") +
-      ". This should improve fit clarity before you open profiles.";
-    chipsRoot.innerHTML = active
-      .slice(0, 8)
-      .map(function (item) {
-        return '<span class="filter-chip">' + escapeHtml(item) + "</span>";
-      })
-      .join("");
-  }
-
-  function applyFilterPreset(name) {
-    var preset = FILTER_PRESETS[name];
-    if (!preset) {
-      return;
-    }
-
-    filters = Object.assign({}, filters, preset);
-    currentPage = 1;
-    syncFilterControlsFromState(filters, getElement);
-    trackFunnelEvent("directory_filter_preset_applied", {
-      preset_name: name,
-      active_filter_count: countActiveFilters(filters),
-      sort_by: filters.sortBy,
-    });
-    render();
+      "You still have plenty of options. Add another filter or update the sort to bring the best fits forward.";
   }
 
   function uniqueCounts(field, nested) {
-    var counts = new Map();
-    therapists.forEach(function (therapist) {
-      var values = nested ? therapist[field] || [] : [therapist[field]];
-      values.forEach(function (value) {
-        if (!value) {
-          return;
-        }
-        counts.set(value, (counts.get(value) || 0) + 1);
-      });
-    });
+    var counts =
+      field === "treatment_modalities"
+        ? optionIndexes.modality
+        : field === "client_populations"
+          ? optionIndexes.population
+          : new Map();
+
     return Array.from(counts.entries())
       .sort(function (a, b) {
         return String(a[0]).localeCompare(String(b[0]));
@@ -960,6 +491,12 @@ import {
   }
 
   function getConfiguredItems(field, nested) {
+    var sourceMap =
+      field === "curatedStates"
+        ? optionIndexes.state
+        : field === "curatedSpecialties"
+          ? optionIndexes.specialty
+          : optionIndexes.insurance;
     var configured =
       directoryPage && Array.isArray(directoryPage[field]) ? directoryPage[field] : [];
     if (!configured.length) {
@@ -974,19 +511,9 @@ import {
     }
 
     return configured.filter(Boolean).map(function (value) {
-      var count = therapists.filter(function (therapist) {
-        if (field === "curatedStates") {
-          return therapist.state === value;
-        }
-        if (field === "curatedSpecialties") {
-          return (therapist.specialties || []).includes(value);
-        }
-        return (therapist.insurance_accepted || []).includes(value);
-      }).length;
-
       return {
         value: value,
-        count: count,
+        count: sourceMap.get(value) || 0,
       };
     });
   }
@@ -1011,7 +538,10 @@ import {
     var params = new URLSearchParams(window.location.search);
     FILTER_VALUE_KEYS.forEach(function (key) {
       if (params.get(key)) {
-        filters[key] = params.get(key);
+        filters[key] =
+          key === "sortBy" && !VALID_SORT_OPTIONS.has(params.get(key))
+            ? defaultFilters.sortBy
+            : params.get(key);
         var input = getElement(key);
         if (input) {
           input.value = filters[key];
@@ -1028,7 +558,9 @@ import {
 
     if (!params.get("sortBy")) {
       var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents());
-      filters.sortBy = adaptiveSignals.preferred_directory_sort || defaultFilters.sortBy;
+      filters.sortBy = VALID_SORT_OPTIONS.has(adaptiveSignals.preferred_directory_sort)
+        ? adaptiveSignals.preferred_directory_sort
+        : defaultFilters.sortBy;
       getElement("sortBy").value = filters.sortBy;
     }
   }
@@ -1048,149 +580,24 @@ import {
     var next = query ? "directory.html?" + query : "directory.html";
     window.history.replaceState({}, "", next);
   }
-  function renderEditorialLanes(results) {
-    var root = getElement("editorialLanes");
-    if (!root) {
-      return;
-    }
-
-    var hasActiveFilters = countActiveFilters(filters) > 0;
-
-    if (hasActiveFilters || !results.length) {
-      root.innerHTML = "";
-      return;
-    }
-
-    root.innerHTML = getEditorialLaneCandidates(results)
-      .slice(0, 3)
-      .map(function (lane) {
-        var laneCue =
-          lane.title === "Fastest next step"
-            ? "This lane is especially useful when availability and a lower-friction next move matter most."
-            : lane.title === "Strongest psychiatry option"
-              ? "This lane is especially useful when medication support or psychiatry coordination may matter."
-              : "This lane is especially useful when you want a therapy-first option with stronger bipolar detail.";
-        return (
-          '<div class="editorial-lane"><div class="editorial-lane-title">' +
-          escapeHtml(lane.title) +
-          '</div><div class="editorial-lane-name">' +
-          escapeHtml(lane.therapist.name) +
-          '</div><div class="editorial-lane-copy">' +
-          escapeHtml(lane.copy) +
-          " " +
-          escapeHtml(buildCardFitSummary(filters, lane.therapist)) +
-          " " +
-          escapeHtml(laneCue) +
-          '</div><a class="editorial-lane-link" href="therapist.html?slug=' +
-          encodeURIComponent(lane.therapist.slug) +
-          '">View profile →</a></div>'
-        );
-      })
-      .join("");
-  }
-
   function getFilteredWithFilters(filterState) {
-    return applyDirectoryPriorityProminence(
+    var cacheKey = buildFilterCacheKey(filterState);
+    if (cacheKey === filteredResultsCacheKey) {
+      return filteredResultsCache;
+    }
+
+    filteredResultsCache = applyDirectoryPriorityProminence(
       therapists.filter(function (therapist) {
         return matchesDirectoryFilters(filterState, therapist);
       }),
       filterState,
     );
+    filteredResultsCacheKey = cacheKey;
+    return filteredResultsCache;
   }
 
   function getFiltered() {
     return getFilteredWithFilters(filters);
-  }
-
-  function buildDirectoryTradeoffScenarios(results) {
-    var scenarios = [];
-    var baseTop = results[0] || null;
-
-    function add(label, nextFilters, builder) {
-      var nextResults = getFilteredWithFilters(nextFilters);
-      if (!nextResults.length) {
-        return;
-      }
-      scenarios.push({
-        label: label,
-        body: builder(nextResults[0], nextResults),
-      });
-    }
-
-    if (filters.sortBy !== "soonest_availability") {
-      add(
-        "If you sort for speed instead",
-        Object.assign({}, filters, { sortBy: "soonest_availability" }),
-        function (topTherapist) {
-          return topTherapist.name === (baseTop && baseTop.name)
-            ? "The top result would stay fairly stable, which suggests your current leaders already look relatively strong on availability."
-            : topTherapist.name +
-                " would likely rise because the directory would lean harder on wait time, accepting-new-patient status, and lower-friction next steps.";
-        },
-      );
-    }
-
-    if (!filters.medication_management) {
-      add(
-        "If you require medication support",
-        Object.assign({}, filters, { medication_management: true }),
-        function (topTherapist, nextResults) {
-          return (
-            nextResults.length +
-            " profiles would remain, led by " +
-            topTherapist.name +
-            ", because the field would narrow to therapists who offer medication management."
-          );
-        },
-      );
-    }
-
-    if (!filters.responsive_contact) {
-      add(
-        "If you prioritize responsive contact",
-        Object.assign({}, filters, { responsive_contact: true }),
-        function (topTherapist, nextResults) {
-          return (
-            nextResults.length +
-            " profiles would remain, and " +
-            topTherapist.name +
-            " would likely rise because the directory would filter for therapists with early reply signals."
-          );
-        },
-      );
-    }
-
-    if (!filters.recently_confirmed) {
-      add(
-        "If you require recently confirmed details",
-        Object.assign({}, filters, { recently_confirmed: true, sortBy: "freshest_details" }),
-        function (topTherapist, nextResults) {
-          return (
-            nextResults.length +
-            " profiles would remain, and " +
-            topTherapist.name +
-            " would likely rise because the directory would narrow toward fresher confirmation signals."
-          );
-        },
-      );
-    }
-
-    if (!filters.verification) {
-      add(
-        "If you narrow to editorially verified profiles",
-        Object.assign({}, filters, { verification: "editorially_verified" }),
-        function (topTherapist, nextResults) {
-          return (
-            nextResults.length +
-            " verified profiles would remain, with " +
-            topTherapist.name +
-            " likely leading the field on trust and completeness."
-          );
-        },
-      );
-    }
-
-    return scenarios.slice(0, 2);
   }
 
   function renderDirectoryTradeoffPreview(results) {
@@ -1200,9 +607,6 @@ import {
     }
 
     var list = Array.isArray(results) ? results : [];
-    var scenarios = buildDirectoryTradeoffScenarios(list);
-    var handoffQuality = summarizeDirectoryProfileOpenQuality(readFunnelEvents());
-    var handoffPreference = getDirectoryHandoffPreference(handoffQuality);
     var previewTherapist =
       list.find(function (item) {
         return item.slug === activePreviewSlug;
@@ -1216,62 +620,12 @@ import {
             filters: filters,
             shortlist: shortlist,
             isShortlisted: isShortlisted,
-            handoffPreference: handoffPreference,
           }),
         })
       : "";
 
-    root.classList.toggle("is-empty", !previewMarkup && !scenarios.length);
-    root.innerHTML =
-      previewMarkup +
-      (scenarios.length
-        ? '<div class="results-explainer-title">How a change would likely reshape the top results</div><div class="directory-tradeoff-grid">' +
-          scenarios
-            .map(function (item) {
-              return (
-                '<div class="directory-tradeoff-card"><strong>' +
-                escapeHtml(item.label) +
-                "</strong><span>" +
-                escapeHtml(item.body) +
-                "</span></div>"
-              );
-            })
-            .join("") +
-          "</div>"
-        : "");
-  }
-
-  function getDirectoryHandoffPreference(qualitySummary) {
-    var rows = qualitySummary && Array.isArray(qualitySummary.rows) ? qualitySummary.rows : [];
-    var leader = rows[0] || null;
-    if (!leader || leader.opens < 2) {
-      return {
-        label: "Open this profile first",
-        note: "This preview is designed to help you open the strongest profile with more confidence, not more browsing.",
-      };
-    }
-    if (leader.source === "preview") {
-      return {
-        label: "Best preview-led handoff",
-        note: "Preview opens are currently sending users into the strongest profiles most often, so this preview is taking the lead.",
-      };
-    }
-    if (leader.source === "card_primary") {
-      return {
-        label: "Best action-led handoff",
-        note: "Direct action clicks are currently landing users in stronger profiles most often, so this preview is staying tightly action-focused.",
-      };
-    }
-    if (leader.source === "card_profile") {
-      return {
-        label: "Best profile-led handoff",
-        note: "Profile review opens are currently landing users in stronger profiles most often, so this preview is optimized to support deeper review.",
-      };
-    }
-    return {
-      label: "Open this profile first",
-      note: qualitySummary && qualitySummary.interpretation ? qualitySummary.interpretation : "",
-    };
+    root.classList.toggle("is-empty", !previewMarkup);
+    root.innerHTML = previewMarkup;
   }
 
   function renderCard(therapist) {
@@ -1280,155 +634,59 @@ import {
         therapist: therapist,
         filters: filters,
         shortlist: shortlist,
-        shortlistPriorityOptions: SHORTLIST_PRIORITY_OPTIONS,
         isShortlisted: isShortlisted,
       }),
     });
   }
 
-  function renderShortlistBar() {
-    var root = getElement("directoryShortlistBar");
-    if (!root) {
+  function renderResultsGrid(pageItems) {
+    var grid = getElement("resultsGrid");
+    if (!grid) {
       return;
     }
-    var markup = renderShortlistBarMarkup({
-      model: buildShortlistBarViewModel({
-        shortlist: shortlist,
-        therapists: therapists,
-        filters: filters,
-        buildCompareUrl: buildCompareUrl,
-        buildOutreachQueueUrl: buildOutreachQueueUrl,
-        outreachProgress: getShortlistOutreachProgress(),
-        outreachOutcomes: readOutreachOutcomes(),
-      }),
-      undoState:
-        lastReshapeSnapshot && lastReshapeSnapshot.length
-          ? {
-              canUndo: true,
-              label: "Undo last reshape",
-            }
-          : null,
-      historyState: lastReshapeHistory,
-    });
 
-    root.innerHTML = markup.html;
-
-    var clearButton = getElement("clearDirectoryShortlist");
-    if (clearButton) {
-      clearButton.addEventListener("click", function () {
-        writeShortlist([]);
-        render();
-      });
+    if (!pageItems.length) {
+      grid.innerHTML = renderEmptyStateMarkup(directoryPage);
+      return;
     }
 
-    root.querySelectorAll("[data-start-outreach-queue]").forEach(function (link) {
-      link.addEventListener("click", function () {
-        trackFunnelEvent("directory_outreach_queue_started", {
-          shortlist_size: shortlist.length,
-          therapist_slugs: shortlist.map(function (item) {
-            return item.slug;
-          }),
-          lead_slug: link.getAttribute("data-queue-lead-slug") || "",
-        });
-      });
-    });
+    grid.innerHTML = pageItems.map(renderCard).join("");
+  }
 
-    root.querySelectorAll("[data-shortlist-remove]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var slug = button.getAttribute("data-shortlist-remove");
-        if (!slug) {
-          return;
-        }
-        trackFunnelEvent("directory_shortlist_removed_from_compare", {
-          therapist_slug: slug,
-          shortlist_size_before: shortlist.length,
-        });
-        removeShortlistEntry(slug);
-        render();
-      });
-    });
-
-    root.querySelectorAll("[data-shortlist-replace]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var removedSlug = button.getAttribute("data-shortlist-replace");
-        var replacementSlug = button.getAttribute("data-shortlist-replacement-slug");
-        if (!removedSlug || !replacementSlug) {
-          return;
-        }
-        trackFunnelEvent("directory_shortlist_replaced_from_compare", {
-          removed_slug: removedSlug,
-          replacement_slug: replacementSlug,
-          shortlist_size_before: shortlist.length,
-        });
-        pendingMotionSlug = replacementSlug;
-        replaceShortlistEntry(removedSlug, replacementSlug);
-        render();
-      });
-    });
-
-    root.querySelectorAll("[data-shortlist-fill]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var replacementSlug = button.getAttribute("data-shortlist-fill");
-        if (!replacementSlug) {
-          return;
-        }
-        trackFunnelEvent("directory_shortlist_slot_filled", {
-          replacement_slug: replacementSlug,
-          shortlist_size_before: shortlist.length,
-        });
-        pendingMotionSlug = replacementSlug;
-        fillShortlistSlot(replacementSlug);
-        render();
-      });
-    });
-
-    root.querySelectorAll("[data-shortlist-apply-reshaping]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var payload = button.getAttribute("data-shortlist-apply-reshaping");
-        if (!payload) {
-          return;
-        }
-        try {
-          var entries = JSON.parse(decodeURIComponent(payload));
-          trackFunnelEvent("directory_shortlist_reshaping_applied", {
-            shortlist_size_before: shortlist.length,
-            shortlist_size_after: Array.isArray(entries) ? entries.length : shortlist.length,
-          });
-          pendingMotionSlug = Array.isArray(entries) && entries[0] ? entries[0].slug : "";
-          applyReshapingPlan(entries);
-          render();
-        } catch (_error) {
-          return;
-        }
-      });
-    });
-
-    var undoButton = getElement("undoDirectoryReshape");
-    if (undoButton) {
-      undoButton.addEventListener("click", function () {
-        trackFunnelEvent("directory_shortlist_reshaping_undone", {
-          shortlist_size_before: shortlist.length,
-        });
-        undoReshapingPlan();
-        render();
-      });
+  function pulsePendingCard() {
+    var grid = getElement("resultsGrid");
+    if (!grid || !pendingMotionSlug) {
+      return;
     }
+
+    var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
+    if (activeCard) {
+      activeCard.classList.remove("motion-pulse");
+      void activeCard.offsetWidth;
+      activeCard.classList.add("motion-pulse");
+    }
+    pendingMotionSlug = "";
   }
 
   function renderPagination(total) {
     var pages = Math.ceil(total / pageSize);
     var root = getElement("pagination");
     root.innerHTML = renderPaginationMarkup(currentPage, pages);
-    if (pages <= 1) {
-      return;
-    }
-    root.querySelectorAll("[data-page]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        currentPage = Number(button.getAttribute("data-page"));
-        render();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
+  }
+
+  function renderCurrentPageOnly(results) {
+    var renderState = buildDirectoryRenderState({
+      results: results,
+      currentPage: currentPage,
+      pageSize: pageSize,
+      filters: filters,
+      directoryPage: directoryPage,
+      activePreviewSlug: activePreviewSlug,
     });
+
+    renderResultsGrid(renderState.pageItems);
+    renderPagination(renderState.results.length);
+    pulsePendingCard();
   }
 
   function render() {
@@ -1456,124 +714,28 @@ import {
       (results.length === 1 ? singularSuffix : resultsSuffix);
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
     renderActiveFilterSummary(results.length);
+    renderJourneySummary(results.length, activeFilterCount);
 
     if (!pageItems.length) {
-      grid.innerHTML = renderEmptyStateMarkup(directoryPage);
+      renderResultsGrid([]);
       renderDirectoryTradeoffPreview([]);
-      renderEditorialLanes([]);
-      renderDirectoryLaunchExplainer([]);
-      renderDirectoryAdaptiveExplainer();
-      renderDirectoryReturnJourney();
       renderPagination(0);
-      renderShortlistBar();
       updateUrl();
       return;
     }
 
     activePreviewSlug = renderState.activePreviewSlug;
     renderDirectoryTradeoffPreview(results);
-    renderEditorialLanes(results);
-    renderDirectoryLaunchExplainer(results);
-    renderDirectoryAdaptiveExplainer();
-    renderDirectoryReturnJourney();
-    grid.innerHTML = pageItems.map(renderCard).join("");
-    if (pendingMotionSlug) {
-      var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
-      if (activeCard) {
-        activeCard.classList.remove("motion-pulse");
-        void activeCard.offsetWidth;
-        activeCard.classList.add("motion-pulse");
-      }
-      var shortlistBar = getElement("directoryShortlistBar");
-      if (shortlistBar) {
-        shortlistBar.classList.remove("motion-enter");
-        void shortlistBar.offsetWidth;
-        shortlistBar.classList.add("motion-enter");
-      }
-      pendingMotionSlug = "";
-    }
-    grid.querySelectorAll("[data-shortlist-slug]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var slug = button.getAttribute("data-shortlist-slug");
-        pendingMotionSlug = slug;
-        toggleShortlist(slug);
-        render();
-      });
-    });
-    grid.querySelectorAll("[data-card-slug]").forEach(function (card) {
-      function activatePreview() {
-        var slug = card.getAttribute("data-card-slug") || "";
-        if (!slug || slug === activePreviewSlug) {
-          return;
-        }
-        activePreviewSlug = slug;
-        renderDirectoryTradeoffPreview(results);
-      }
-      card.addEventListener("mouseenter", activatePreview);
-      card.addEventListener("focusin", activatePreview);
-    });
-    grid.querySelectorAll("[data-primary-cta]").forEach(function (link) {
-      link.addEventListener("click", function () {
-        trackFunnelEvent("directory_primary_cta_clicked", {
-          therapist_slug: link.getAttribute("data-primary-cta"),
-          sort_by: filters.sortBy,
-        });
-      });
-    });
-    grid.querySelectorAll("[data-review-fit]").forEach(function (link) {
-      link.addEventListener("click", function () {
-        trackFunnelEvent("directory_profile_review_clicked", {
-          therapist_slug: link.getAttribute("data-review-fit"),
-          sort_by: filters.sortBy,
-        });
-      });
-    });
-    var previewShortlistButton = rootQuery("[data-preview-shortlist]");
-    if (previewShortlistButton) {
-      previewShortlistButton.addEventListener("click", function () {
-        var slug = previewShortlistButton.getAttribute("data-preview-shortlist");
-        if (!slug) {
-          return;
-        }
-        pendingMotionSlug = slug;
-        toggleShortlist(slug);
-        render();
-      });
-    }
-    var previewOpenLink = rootQuery("[data-preview-open-profile]");
-    if (previewOpenLink) {
-      previewOpenLink.addEventListener("click", function () {
-        trackFunnelEvent("directory_preview_profile_opened", {
-          therapist_slug: previewOpenLink.getAttribute("data-preview-open-profile"),
-          sort_by: filters.sortBy,
-        });
-      });
-    }
-    grid.querySelectorAll("[data-shortlist-priority]").forEach(function (select) {
-      select.addEventListener("change", function () {
-        updateShortlistPriority(select.getAttribute("data-shortlist-priority"), select.value);
-        renderShortlistBar();
-        if (typeof window.refreshShortlistNav === "function") {
-          window.refreshShortlistNav();
-        }
-      });
-    });
-    grid.querySelectorAll("[data-shortlist-note]").forEach(function (input) {
-      input.addEventListener("change", function () {
-        updateShortlistNote(input.getAttribute("data-shortlist-note"), input.value);
-        renderShortlistBar();
-        if (typeof window.refreshShortlistNav === "function") {
-          window.refreshShortlistNav();
-        }
-      });
-    });
+    renderResultsGrid(pageItems);
+    pulsePendingCard();
     renderPagination(results.length);
-    renderShortlistBar();
     updateUrl();
   }
 
-  function rootQuery(selector) {
-    return document.querySelector(selector);
+  function refreshShortlistViews() {
+    var results = getFiltered();
+    renderDirectoryTradeoffPreview(results);
+    renderCurrentPageOnly(results);
   }
 
   function applyFilters() {
@@ -1588,6 +750,23 @@ import {
       sort_by: filters.sortBy,
     });
     render();
+  }
+
+  function applyFiltersLive() {
+    var nextState = applyDirectoryFiltersAction({
+      filters: filters,
+      getElement: getElement,
+    });
+    filters = nextState.filters;
+    currentPage = nextState.currentPage;
+    render();
+  }
+
+  function scheduleLiveFilters() {
+    window.clearTimeout(liveFilterTimer);
+    liveFilterTimer = window.setTimeout(function () {
+      applyFiltersLive();
+    }, 120);
   }
 
   function resetFilters() {
@@ -1633,6 +812,93 @@ import {
     updateFilterToggleState();
   }
 
+  function scheduleViewportSync() {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(syncSidebarForViewport, 80);
+  }
+
+  function handleResultsGridClick(event) {
+    var shortlistButton = event.target.closest("[data-shortlist-slug]");
+    if (shortlistButton) {
+      var shortlistSlug = shortlistButton.getAttribute("data-shortlist-slug");
+      if (!shortlistSlug) {
+        return;
+      }
+      pendingMotionSlug = shortlistSlug;
+      toggleShortlist(shortlistSlug);
+      refreshShortlistViews();
+      return;
+    }
+
+    var primaryLink = event.target.closest("[data-primary-cta]");
+    if (primaryLink) {
+      trackFunnelEvent("directory_primary_cta_clicked", {
+        therapist_slug: primaryLink.getAttribute("data-primary-cta"),
+        sort_by: filters.sortBy,
+      });
+      return;
+    }
+
+    var reviewLink = event.target.closest("[data-review-fit]");
+    if (reviewLink) {
+      trackFunnelEvent("directory_profile_review_clicked", {
+        therapist_slug: reviewLink.getAttribute("data-review-fit"),
+        sort_by: filters.sortBy,
+      });
+    }
+  }
+
+  function handleResultsGridChange(event) {
+    var noteInput = event.target.closest("[data-shortlist-note]");
+    if (!noteInput) {
+      return;
+    }
+
+    updateShortlistNote(noteInput.getAttribute("data-shortlist-note"), noteInput.value);
+  }
+
+  function handlePaginationClick(event) {
+    var pageButton = event.target.closest("[data-page]");
+    if (!pageButton) {
+      return;
+    }
+
+    currentPage = Number(pageButton.getAttribute("data-page"));
+    renderCurrentPageOnly(getFiltered());
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleFocusBarClick(event) {
+    var removeButton = event.target.closest("[data-remove-filter]");
+    if (!removeButton) {
+      return;
+    }
+
+    removeActiveFilter(removeButton.getAttribute("data-remove-filter"));
+  }
+
+  function handlePreviewClick(event) {
+    var shortlistButton = event.target.closest("[data-preview-shortlist]");
+    if (shortlistButton) {
+      var previewSlug = shortlistButton.getAttribute("data-preview-shortlist");
+      if (!previewSlug) {
+        return;
+      }
+      pendingMotionSlug = previewSlug;
+      toggleShortlist(previewSlug);
+      refreshShortlistViews();
+      return;
+    }
+
+    var openLink = event.target.closest("[data-preview-open-profile]");
+    if (openLink) {
+      trackFunnelEvent("directory_preview_profile_opened", {
+        therapist_slug: openLink.getAttribute("data-preview-open-profile"),
+        sort_by: filters.sortBy,
+      });
+    }
+  }
+
   window.applyFilters = applyFilters;
   window.resetFilters = resetFilters;
   window.toggleFilters = toggleFilters;
@@ -1646,17 +912,61 @@ import {
   if (resetFiltersButton) {
     resetFiltersButton.addEventListener("click", resetFilters);
   }
+  var focusClearFiltersButton = getElement("focusClearFiltersButton");
+  if (focusClearFiltersButton) {
+    focusClearFiltersButton.addEventListener("click", resetFilters);
+  }
+
+  var activeFilterChips = getElement("activeFilterChips");
+  if (activeFilterChips) {
+    activeFilterChips.addEventListener("click", handleFocusBarClick);
+  }
+
+  var resultsGrid = getElement("resultsGrid");
+  if (resultsGrid) {
+    resultsGrid.addEventListener("click", handleResultsGridClick);
+    resultsGrid.addEventListener("change", handleResultsGridChange);
+  }
+
+  var pagination = getElement("pagination");
+  if (pagination) {
+    pagination.addEventListener("click", handlePaginationClick);
+  }
+
+  var tradeoffPreview = getElement("directoryTradeoffPreview");
+  if (tradeoffPreview) {
+    tradeoffPreview.addEventListener("click", handlePreviewClick);
+  }
+
+  FILTER_VALUE_KEYS.filter(function (key) {
+    return key !== "sortBy";
+  }).forEach(function (key) {
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+
+    if (input.tagName === "INPUT") {
+      input.addEventListener("input", scheduleLiveFilters);
+      return;
+    }
+
+    input.addEventListener("change", applyFiltersLive);
+  });
+
+  FILTER_BOOLEAN_KEYS.forEach(function (key) {
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+
+    input.addEventListener("change", applyFiltersLive);
+  });
 
   var mobileFilterToggle = getElement("mobileFilterToggle");
   if (mobileFilterToggle) {
     mobileFilterToggle.addEventListener("click", toggleFilters);
   }
-
-  document.querySelectorAll("[data-filter-preset]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      applyFilterPreset(button.getAttribute("data-filter-preset"));
-    });
-  });
 
   getElement("sortBy").addEventListener("change", function () {
     var nextState = changeDirectorySortAction({
@@ -1671,7 +981,7 @@ import {
     render();
   });
 
-  window.addEventListener("resize", syncSidebarForViewport);
+  window.addEventListener("resize", scheduleViewportSync);
 
   document.addEventListener("keydown", function (event) {
     if (

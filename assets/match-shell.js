@@ -4,14 +4,14 @@ var MATCH_JOURNEY_COPY = {
   intake: {
     builderTitle: "Refine your match",
     kicker: "Start broad, then narrow fast",
-    title: "Use a few practical details to shape a better shortlist",
-    copy: "Your broad match starts on the homepage. This page helps you tighten the shortlist around how you want care to work.",
+    title: "Use a few practical details to shape a better list",
+    copy: "Your broad match starts on the homepage. This page helps you tighten the list around how you want care to work.",
     searchButton: "Refine my search",
     refinementButton: "Update my matches",
   },
   starterResults: {
     builderTitle: "Refine your match",
-    kicker: "Narrow the shortlist",
+    kicker: "Narrow the list",
     title: "Add the details that matter most and rerun the ranking here",
     copy: "You already started on the homepage. Use these filters to make the current matches feel more specific, practical, and trustworthy.",
     searchButton: "Refine my search",
@@ -19,9 +19,9 @@ var MATCH_JOURNEY_COPY = {
   },
   personalizedResults: {
     builderTitle: "Refine your match",
-    kicker: "Tune this shortlist",
+    kicker: "Tune this list",
     title: "Change the filters that will sharpen who rises to the top",
-    copy: "Use these controls to narrow the shortlist around cost, format, timing, and clinical fit without starting over.",
+    copy: "Use these controls to narrow the list around cost, format, timing, and clinical fit without starting over.",
     searchButton: "Refine my search",
     refinementButton: "Update my matches",
   },
@@ -106,7 +106,7 @@ export function renderMatchLandingShell() {
 
   refs.resultsRoot.className = "match-results match-results-hero match-empty";
   refs.resultsRoot.innerHTML =
-    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer shortlist of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
+    '<div class="match-hero-copy"><div class="match-hero-kicker">Guided match intake</div><h1>Find bipolar-specialist care without sorting through dozens of generic profiles.</h1><p>Answer a few practical questions and we’ll turn your search into a smaller, clearer list of therapists or psychiatrists who may fit your needs.</p><div class="match-trust-strip" aria-label="Trust highlights"><span class="match-trust-pill">Built for bipolar-specific care</span><span class="match-trust-pill">Reviewed profile details where available</span><span class="match-trust-pill">Clear next-step guidance</span></div></div>';
 }
 
 export function clearRenderedMatchPanels() {

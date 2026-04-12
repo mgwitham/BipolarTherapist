@@ -96,6 +96,48 @@ const therapistProjection = `{
   "slug": slug.current
 }`;
 
+const directoryTherapistProjection = `{
+  _id,
+  name,
+  credentials,
+  title,
+  bio,
+  bioPreview,
+  "photo_url": photo.asset->url,
+  email,
+  phone,
+  website,
+  preferredContactMethod,
+  preferredContactLabel,
+  bookingUrl,
+  city,
+  state,
+  zip,
+  specialties,
+  treatmentModalities,
+  clientPopulations,
+  insuranceAccepted,
+  acceptsTelehealth,
+  acceptsInPerson,
+  acceptingNewPatients,
+  yearsExperience,
+  bipolarYearsExperience,
+  estimatedWaitTime,
+  careApproach,
+  medicationManagement,
+  verificationStatus,
+  sourceReviewedAt,
+  therapistReportedFields,
+  therapistReportedConfirmedAt,
+  fieldReviewStates,
+  sessionFeeMin,
+  sessionFeeMax,
+  slidingScale,
+  listingActive,
+  status,
+  "slug": slug.current
+}`;
+
 function normalizeTherapist(doc) {
   const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
     keyStyle: "camelCase",
@@ -179,6 +221,90 @@ function normalizeTherapist(doc) {
     session_fee_max: doc.sessionFeeMax || null,
     sliding_scale: Boolean(doc.slidingScale),
     listing_active: doc.listingActive !== false,
+    status: doc.status || "active",
+    slug: doc.slug || "",
+  };
+}
+
+function normalizeDirectoryTherapist(doc) {
+  const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
+    keyStyle: "camelCase",
+  });
+
+  return {
+    id: doc._id || doc.id,
+    name: doc.name || "",
+    credentials: doc.credentials || "",
+    title: normalizeDisplayRole(doc.title || ""),
+    bio: normalizeDisplayRole(doc.bio || ""),
+    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio_preview || doc.bio || ""),
+    photo_url: doc.photo_url || null,
+    email: doc.email || "",
+    phone: doc.phone || "",
+    website: doc.website || null,
+    preferred_contact_method: doc.preferredContactMethod || doc.preferred_contact_method || "",
+    preferred_contact_label: doc.preferredContactLabel || doc.preferred_contact_label || "",
+    booking_url: doc.bookingUrl || doc.booking_url || null,
+    city: doc.city || "",
+    state: doc.state || "",
+    zip: doc.zip || "",
+    specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
+    treatment_modalities: Array.isArray(doc.treatmentModalities)
+      ? doc.treatmentModalities
+      : Array.isArray(doc.treatment_modalities)
+        ? doc.treatment_modalities
+        : [],
+    client_populations: Array.isArray(doc.clientPopulations)
+      ? doc.clientPopulations
+      : Array.isArray(doc.client_populations)
+        ? doc.client_populations
+        : [],
+    insurance_accepted: Array.isArray(doc.insuranceAccepted)
+      ? doc.insuranceAccepted
+      : Array.isArray(doc.insurance_accepted)
+        ? doc.insurance_accepted
+        : [],
+    accepts_telehealth:
+      doc.acceptsTelehealth !== undefined
+        ? Boolean(doc.acceptsTelehealth)
+        : Boolean(doc.accepts_telehealth),
+    accepts_in_person:
+      doc.acceptsInPerson !== undefined
+        ? Boolean(doc.acceptsInPerson)
+        : Boolean(doc.accepts_in_person),
+    accepting_new_patients:
+      doc.acceptingNewPatients !== undefined
+        ? doc.acceptingNewPatients !== false
+        : doc.accepting_new_patients !== false,
+    years_experience: doc.yearsExperience || doc.years_experience || null,
+    bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
+    estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
+    care_approach: doc.careApproach || doc.care_approach || "",
+    medication_management:
+      doc.medicationManagement !== undefined
+        ? Boolean(doc.medicationManagement)
+        : Boolean(doc.medication_management),
+    verification_status: doc.verificationStatus || doc.verification_status || "",
+    source_reviewed_at: doc.sourceReviewedAt || doc.source_reviewed_at || "",
+    therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
+      ? doc.therapistReportedFields
+      : Array.isArray(doc.therapist_reported_fields)
+        ? doc.therapist_reported_fields
+        : [],
+    therapist_reported_confirmed_at:
+      doc.therapistReportedConfirmedAt || doc.therapist_reported_confirmed_at || "",
+    field_review_states: doc.field_review_states || {
+      estimated_wait_time: fieldReviewStates.estimatedWaitTime,
+      insurance_accepted: fieldReviewStates.insuranceAccepted,
+      telehealth_states: fieldReviewStates.telehealthStates,
+      bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
+    },
+    session_fee_min: doc.sessionFeeMin || doc.session_fee_min || null,
+    session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
+    sliding_scale:
+      doc.slidingScale !== undefined ? Boolean(doc.slidingScale) : Boolean(doc.sliding_scale),
+    listing_active:
+      doc.listingActive !== undefined ? doc.listingActive !== false : doc.listing_active !== false,
     status: doc.status || "active",
     slug: doc.slug || "",
   };
@@ -419,12 +545,12 @@ export async function fetchHomePageContent() {
 }
 
 export async function fetchDirectoryPageContent() {
-  const therapists = await fetchPublicTherapists();
+  const seededTherapists = getTherapists().map(normalizeDirectoryTherapist);
 
   if (!cmsEnabled) {
     setCmsState("seed", null);
     return {
-      therapists: therapists,
+      therapists: seededTherapists,
       directoryPage: null,
       siteSettings: null,
     };
@@ -432,6 +558,7 @@ export async function fetchDirectoryPageContent() {
 
   try {
     const result = await fetchFromSanity(`{
+      "therapists": *[_type == "therapist" && listingActive == true && status == "active"] | order(name asc) ${directoryTherapistProjection},
       "directoryPage": *[_type == "directoryPage"][0]{
         heroTitle,
         heroDescription,
@@ -475,7 +602,10 @@ export async function fetchDirectoryPageContent() {
 
     setCmsState("sanity", null);
     return {
-      therapists: therapists,
+      therapists:
+        result && Array.isArray(result.therapists)
+          ? result.therapists.map(normalizeDirectoryTherapist)
+          : seededTherapists,
       directoryPage: result && result.directoryPage ? result.directoryPage : null,
       siteSettings: normalizeSiteSettings(
         result && result.siteSettings ? result.siteSettings : null,
@@ -485,7 +615,7 @@ export async function fetchDirectoryPageContent() {
     console.error("Failed to load directory page content from Sanity.", error);
     setCmsState("error", error);
     return {
-      therapists: therapists,
+      therapists: seededTherapists,
       directoryPage: null,
       siteSettings: null,
     };

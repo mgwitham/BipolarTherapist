@@ -17,13 +17,7 @@ export function buildDirectoryRenderState(options) {
     resultsSuffix: resultsSuffix,
     singularSuffix: resultsSuffix === "specialists found" ? "specialist found" : resultsSuffix,
     activeFilterCount: countActiveFilters(filters),
-    activePreviewSlug: pageItems.find(function (item) {
-      return item.slug === activePreviewSlug;
-    })
-      ? activePreviewSlug
-      : pageItems[0]
-        ? pageItems[0].slug
-        : "",
+    activePreviewSlug: results[0] ? results[0].slug : "",
   };
 }
 

@@ -316,7 +316,7 @@ export function hasCostClarity(therapist) {
 
 export function pickRecommendedFirstContact(profile, entries, options) {
   var settings = options || {};
-  var shortlist = (entries || []).slice(0, settings.shortlistLimit || 3);
+  var shortlist = (entries || []).slice(0, settings.shortlistLimit || 6);
   if (!shortlist.length) {
     return null;
   }

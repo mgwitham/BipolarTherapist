@@ -1,17 +1,17 @@
 export var FILTER_VALUE_KEYS = [
-  "q",
   "state",
-  "city",
+  "zip",
   "specialty",
   "modality",
   "population",
-  "verification",
   "bipolar_experience",
   "insurance",
   "sortBy",
 ];
 
 export var FILTER_BOOLEAN_KEYS = [
+  "therapist",
+  "psychiatrist",
   "telehealth",
   "in_person",
   "accepting",
@@ -50,11 +50,19 @@ export function readFilterStateFromControls(baseFilterState, getElement) {
   var nextFilterState = Object.assign({}, baseFilterState);
 
   FILTER_VALUE_KEYS.forEach(function (key) {
-    nextFilterState[key] = getElement(key).value.trim();
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+    nextFilterState[key] = input.value.trim();
   });
 
   FILTER_BOOLEAN_KEYS.forEach(function (key) {
-    nextFilterState[key] = getElement(key).checked;
+    var input = getElement(key);
+    if (!input) {
+      return;
+    }
+    nextFilterState[key] = input.checked;
   });
 
   return nextFilterState;
