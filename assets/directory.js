@@ -104,135 +104,6 @@ import {
     return document.getElementById(id);
   }
 
-  function renderDirectoryAdaptiveExplainer() {
-    var root = getElement("directoryAdaptiveExplainer");
-    if (!root) {
-      return;
-    }
-    if (filters.sortBy === "soonest_availability") {
-      root.textContent =
-        "Use this sort when availability matters most and you want options that may be easier to move forward with now.";
-      return;
-    }
-    if (filters.sortBy === "most_responsive") {
-      root.textContent =
-        "Use this sort when you want therapists with clearer signs of easier follow-through and reply paths.";
-      return;
-    }
-    if (filters.sortBy === "most_experienced") {
-      root.textContent =
-        "Use this sort when bipolar-specific depth matters more than convenience or cost.";
-      return;
-    }
-    if (filters.sortBy === "lowest_fee") {
-      root.textContent =
-        "Use this sort when affordability matters most and you want to compare lower-friction cost options first.";
-      return;
-    }
-    root.textContent =
-      "Best match is a good default when you want a balanced first pass across fit, logistics, and next-step clarity.";
-  }
-
-  function renderDirectoryReturnJourney() {
-    var root = getElement("directoryReturnJourney");
-    if (!root) {
-      return;
-    }
-
-    if (!shortlist.length) {
-      root.innerHTML = "";
-      return;
-    }
-
-    var progress = getShortlistOutreachProgress();
-    var snapshot = buildDirectoryReturnSnapshot();
-    var snapshotCards = [
-      snapshot.lead
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Still looks strongest</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.lead.slug)) +
-          '</div><div class="public-trust-card-copy">This is still the best place to restart unless live outreach momentum or fresh friction clearly changes the order.</div></div>'
-        : "",
-      snapshot.live
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Already has momentum</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.live.slug)) +
-          '</div><div class="public-trust-card-copy">A reply or consult is already moving here, so compare this option against the backup using real follow-through instead of profile polish alone.</div></div>'
-        : "",
-      snapshot.stalled
-        ? '<div class="public-trust-card"><div class="public-trust-card-label">Probably demote or drop</div><div class="public-trust-card-title">' +
-          escapeHtml(getTherapistName(snapshot.stalled.slug)) +
-          '</div><div class="public-trust-card-copy">This path has already hit friction. Keep it only if new information clearly changes the case for it.</div></div>'
-        : "",
-    ]
-      .filter(Boolean)
-      .join("");
-    root.innerHTML =
-      '<div class="public-trust-card"><div class="public-trust-card-label">Welcome back</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        progress.hasProgress
-          ? "Your saved shortlist and outreach momentum are still here."
-          : "Your saved shortlist is still here and ready to reopen.",
-      ) +
-      '</div><div class="public-trust-card-copy">' +
-      escapeHtml(
-        progress.hasProgress
-          ? "Resume comparing the same saved therapists, review where outreach stands, and keep moving without rebuilding your context."
-          : "You can keep comparing the therapists you already saved, add notes, and return to the strongest options without starting over.",
-      ) +
-      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Saved progress</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        shortlist.length +
-          " therapist" +
-          (shortlist.length === 1 ? "" : "s") +
-          " saved on this browser",
-      ) +
-      '</div><div class="public-trust-card-copy">' +
-      escapeHtml(
-        progress.summary ||
-          "Your shortlist, notes, and labels stay available here so you can return later without losing your place.",
-      ) +
-      '</div></div><div class="public-trust-card"><div class="public-trust-card-label">Best next move</div><div class="public-trust-card-title">' +
-      escapeHtml(
-        progress.hasProgress ? "Resume the shortlist in motion" : "Open your saved shortlist",
-      ) +
-      '</div><div class="public-trust-card-copy"><a href="' +
-      escapeHtml(progress.hasProgress ? buildOutreachQueueUrl() : buildCompareUrl()) +
-      '" class="shortlist-compare-link">' +
-      escapeHtml(progress.hasProgress ? "Resume saved momentum" : "Open saved shortlist") +
-      "</a> so you can keep moving from the same decision context you already created.</div></div>" +
-      snapshotCards;
-  }
-
-  function renderDirectoryLaunchExplainer(results) {
-    var root = getElement("directoryLaunchExplainer");
-    if (!root) {
-      return;
-    }
-
-    var activeFilterCount = countActiveFilters(filters);
-    var prioritySet = new Set(matchPrioritySlugs);
-    var visiblePriorityCount = (results || []).filter(function (therapist) {
-      return prioritySet.has(therapist.slug);
-    }).length;
-
-    if (activeFilterCount > 1 || filters.sortBy !== "best_match") {
-      root.textContent =
-        "With stronger filters or a custom sort, your own priorities now matter more than the default ordering.";
-      return;
-    }
-
-    if (!visiblePriorityCount) {
-      root.textContent =
-        "If none of these feel right, try one more filter or switch the sort to focus on experience, timing, or cost.";
-      return;
-    }
-
-    root.textContent =
-      visiblePriorityCount +
-      " profile" +
-      (visiblePriorityCount === 1 ? " is" : "s are") +
-      " worth a closer look near the top of the list if you want a simpler first pass.";
-  }
-
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -893,28 +764,33 @@ import {
 
     var active = summarizeActiveFilters();
     if (!active.length) {
-      summary.textContent =
-        "No filters yet. Start with one strong narrowing move to cut the list down.";
+      summary.textContent = "No filters yet. Add one or two to narrow the list.";
       chipsRoot.innerHTML = "";
       return;
     }
 
-    summary.textContent =
-      "You are narrowing toward " +
-      resultsLength +
-      " option" +
+    summary.innerHTML =
+      "<strong>" +
+      escapeHtml(resultsLength) +
+      "</strong> option" +
       (resultsLength === 1 ? "" : "s") +
-      " using " +
-      active.length +
-      " signal" +
+      ' <span aria-hidden="true">•</span> <strong>' +
+      escapeHtml(active.length) +
+      "</strong> filter" +
       (active.length === 1 ? "" : "s") +
-      ". Keep going if the list still feels too broad.";
+      " applied";
     chipsRoot.innerHTML = active
-      .slice(0, 8)
+      .slice(0, 4)
       .map(function (item) {
         return '<span class="filter-chip">' + escapeHtml(item) + "</span>";
       })
       .join("");
+    if (active.length > 4) {
+      chipsRoot.innerHTML +=
+        '<span class="filter-chip filter-chip-more">+' +
+        escapeHtml(active.length - 4) +
+        " more</span>";
+    }
   }
 
   function renderJourneySummary(resultsLength, activeFilterCount) {
@@ -1223,7 +1099,6 @@ import {
     }
 
     var list = Array.isArray(results) ? results : [];
-    var scenarios = buildDirectoryTradeoffScenarios(list);
     var handoffQuality = summarizeDirectoryProfileOpenQuality(readFunnelEvents());
     var handoffPreference = getDirectoryHandoffPreference(handoffQuality);
     var previewTherapist =
@@ -1244,24 +1119,8 @@ import {
         })
       : "";
 
-    root.classList.toggle("is-empty", !previewMarkup && !scenarios.length);
-    root.innerHTML =
-      previewMarkup +
-      (scenarios.length
-        ? '<div class="results-explainer-title">How a change would likely reshape the top results</div><div class="directory-tradeoff-grid">' +
-          scenarios
-            .map(function (item) {
-              return (
-                '<div class="directory-tradeoff-card"><strong>' +
-                escapeHtml(item.label) +
-                "</strong><span>" +
-                escapeHtml(item.body) +
-                "</span></div>"
-              );
-            })
-            .join("") +
-          "</div>"
-        : "");
+    root.classList.toggle("is-empty", !previewMarkup);
+    root.innerHTML = previewMarkup;
   }
 
   function getDirectoryHandoffPreference(qualitySummary) {
@@ -1485,9 +1344,6 @@ import {
       grid.innerHTML = renderEmptyStateMarkup(directoryPage);
       renderDirectoryTradeoffPreview([]);
       renderEditorialLanes([]);
-      renderDirectoryLaunchExplainer([]);
-      renderDirectoryAdaptiveExplainer();
-      renderDirectoryReturnJourney();
       renderPagination(0);
       renderShortlistBar();
       updateUrl();
@@ -1497,9 +1353,6 @@ import {
     activePreviewSlug = renderState.activePreviewSlug;
     renderDirectoryTradeoffPreview(results);
     renderEditorialLanes(results);
-    renderDirectoryLaunchExplainer(results);
-    renderDirectoryAdaptiveExplainer();
-    renderDirectoryReturnJourney();
     grid.innerHTML = pageItems.map(renderCard).join("");
     if (pendingMotionSlug) {
       var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');

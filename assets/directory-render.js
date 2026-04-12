@@ -1,3 +1,5 @@
+import { formatDirectoryFeeLabel } from "./directory-view-model.js";
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -14,6 +16,12 @@ function buildTherapistProfileHref(slug, source) {
     params.set("source", String(source));
   }
   return "therapist.html?" + params.toString();
+}
+
+function getTherapistDisplayName(name) {
+  return String(name || "")
+    .split(",")[0]
+    .trim();
 }
 
 function buildCardActionTiming(model) {
@@ -75,19 +83,19 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
     "</div>" +
     '<div class="directory-decision-preview-subtitle">' +
     escapeHtml(model.openReason) +
-    '</div><div class="directory-decision-preview-grid"><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Why this may fit</div><div class="directory-decision-preview-copy">' +
-    escapeHtml(model.learnFastCopy) +
-    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Best next step</div><div class="directory-decision-preview-copy">' +
-    escapeHtml(model.nextStepCopy) +
-    '</div></div><div class="directory-decision-preview-card"><div class="directory-decision-preview-label">Why consider now</div><div class="directory-decision-preview-copy">' +
-    escapeHtml(model.whyNowCopy) +
-    '</div></div></div></div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
+    '</div></div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
     model.quickStats
       .map(function (item) {
         return (
-          '<div class="directory-decision-preview-stat"><div class="directory-decision-preview-stat-label">' +
-          escapeHtml(item.label) +
-          '</div><div class="directory-decision-preview-stat-value ' +
+          '<div class="directory-decision-preview-stat' +
+          (item.plain ? " is-plain-text" : item.label ? "" : " is-value-only") +
+          '">' +
+          (item.label
+            ? '<div class="directory-decision-preview-stat-label">' +
+              escapeHtml(item.label) +
+              "</div>"
+            : "") +
+          '<div class="directory-decision-preview-stat-value ' +
           escapeHtml(item.tone || "") +
           '">' +
           escapeHtml(item.value) +
@@ -174,6 +182,18 @@ export function renderCardMarkup(options) {
       );
     })
     .join("");
+  var headerStatus =
+    '<div class="card-header-status"><div class="card-header-meta"><div class="card-header-availability ' +
+    escapeHtml(model.acceptanceTone) +
+    '"><span class="card-header-availability-text">' +
+    escapeHtml(model.acceptance) +
+    '</span></div><div class="card-header-fee">' +
+    escapeHtml(model.feeSummary) +
+    '</div></div><a href="' +
+    escapeHtml(profileHref) +
+    '" class="card-inline-link" data-review-fit="' +
+    escapeHtml(therapist.slug) +
+    '">Open profile</a></div>';
   var decisionRow = model.decisionPills
     .map(function (item) {
       return '<span class="card-decision-pill">' + escapeHtml(item) + "</span>";
@@ -185,22 +205,20 @@ export function renderCardMarkup(options) {
     '<article class="t-card" data-card-slug="' +
     escapeHtml(therapist.slug) +
     '">' +
-    '<div class="t-card-top"><div class="t-avatar">' +
+    '<div class="t-card-top"><div class="t-card-head"><div class="t-avatar">' +
     avatar +
-    '</div><div class="t-info"><div class="t-card-head"><div><div class="t-name">' +
-    escapeHtml(therapist.name) +
+    "</div>" +
+    headerStatus +
+    '</div><div class="t-info"><div class="t-name">' +
+    escapeHtml(getTherapistDisplayName(therapist.name)) +
     '</div><div class="t-creds">' +
     escapeHtml(therapist.credentials) +
-    (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
+    (therapist.title ? " " + escapeHtml(therapist.title) : "") +
     '</div><div class="t-loc">📍 ' +
     escapeHtml(therapist.city) +
     ", " +
     escapeHtml(therapist.state) +
-    '</div></div><a href="' +
-    escapeHtml(profileHref) +
-    '" class="card-inline-link" data-review-fit="' +
-    escapeHtml(therapist.slug) +
-    '">Open profile</a></div></div></div>' +
+    "</div></div></div>" +
     '<div class="t-bio">' +
     escapeHtml(model.cardSummary) +
     "</div>" +
@@ -573,16 +591,7 @@ function buildCardMeta(therapist) {
       : "Bipolar depth to confirm",
     therapist.estimated_wait_time ||
       (therapist.accepting_new_patients ? "Accepting" : "Timing to confirm"),
-    therapist.session_fee_min || therapist.session_fee_max
-      ? "$" +
-        String(therapist.session_fee_min || therapist.session_fee_max) +
-        (therapist.session_fee_max &&
-        String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
-          ? "-$" + String(therapist.session_fee_max)
-          : "")
-      : therapist.sliding_scale
-        ? "Sliding scale"
-        : "Fee details pending",
+    formatDirectoryFeeLabel(therapist, "Fee details pending"),
   ].join(" • ");
 }
 

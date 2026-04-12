@@ -173,13 +173,6 @@
                 Start with the filters that matter most to you so the results feel manageable.
               </p>
             </div>
-            <div class="filter-active-panel">
-              <div class="filter-active-label">Current focus</div>
-              <div class="filter-active-copy" id="activeFilterSummary">
-                No filters applied yet. Start with one strong narrowing move.
-              </div>
-              <div class="filter-active-chips" id="activeFilterChips"></div>
-            </div>
 
             <div class="filter-panel">
               <h3>📍 <span id="locationPanelTitle">Location</span></h3>
@@ -288,10 +281,16 @@
               Compare the strongest options, then save the therapists you want to revisit.
             </p>
           </div>
+          <div class="results-focus-banner">
+            <div class="results-focus-banner-label">Current focus</div>
+            <div class="results-focus-banner-copy" id="activeFilterSummary">
+              No filters applied yet. Start with one strong narrowing move.
+            </div>
+            <div class="results-focus-banner-chips" id="activeFilterChips"></div>
+          </div>
           <div class="results-header">
             <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
             <div class="results-tools">
-              <a href="match.html" class="btn-secondary results-match-link">Get matched</a>
               <label for="sortBy">Sort by</label>
               <select id="sortBy">
                 <option value="best_match">Best match</option>
@@ -302,43 +301,6 @@
                 <option value="most_responsive">Most responsive contact</option>
               </select>
             </div>
-          </div>
-          <div class="results-explainer">
-            <div class="results-explainer-title">How to narrow well</div>
-            <div class="results-explainer-grid">
-              <div class="results-explainer-card">
-                <div class="results-explainer-card-step">1</div>
-                <div class="results-explainer-card-title">Start with your non-negotiables</div>
-                <div class="results-explainer-card-copy">
-                  Use location, specialty, insurance, or telehealth to cut the list down.
-                </div>
-              </div>
-              <div class="results-explainer-card">
-                <div class="results-explainer-card-step">2</div>
-                <div class="results-explainer-card-title">Compare what matters most</div>
-                <div class="results-explainer-card-copy">
-                  Use sort when you want to focus on experience, availability, freshness, or lower
-                  cost.
-                </div>
-              </div>
-              <div class="results-explainer-card">
-                <div class="results-explainer-card-step">3</div>
-                <div class="results-explainer-card-title">Save only real contenders</div>
-                <div class="results-explainer-card-copy">
-                  Keep the shortlist small so it stays useful when you come back later.
-                </div>
-              </div>
-            </div>
-            <div class="results-explainer-copy">
-              The goal is to help you find a smaller set of therapists worth real consideration.
-            </div>
-            <div class="results-explainer-copy" id="directoryLaunchExplainer"></div>
-            <div class="results-explainer-copy" id="directoryAdaptiveExplainer"></div>
-            <div class="results-explainer-copy">
-              Once you have a short list, open the profiles that look strongest on fit, logistics,
-              and next-step clarity.
-            </div>
-            <div class="public-trust-system" id="directoryReturnJourney" aria-live="polite"></div>
           </div>
           <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
           <div class="editorial-lanes" id="editorialLanes"></div>

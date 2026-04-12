@@ -18,6 +18,30 @@ import {
   getPublicReadinessCopy,
 } from "./directory-logic.js";
 
+export function formatDirectoryFeeLabel(therapist, fallback) {
+  if (!therapist) {
+    return fallback || "Fees to confirm";
+  }
+
+  var minFee = therapist.session_fee_min || therapist.session_fee_max;
+  var maxFee = therapist.session_fee_max;
+
+  if (minFee) {
+    return (
+      "$" +
+      String(minFee) +
+      (maxFee && String(maxFee) !== String(minFee) ? "-$" + String(maxFee) : "") +
+      "/Session"
+    );
+  }
+
+  if (therapist.sliding_scale) {
+    return "Sliding scale";
+  }
+
+  return fallback || "Fees to confirm";
+}
+
 export function buildCardViewModel(options) {
   var therapist = options.therapist;
   var filters = options.filters;
@@ -138,6 +162,7 @@ export function buildCardViewModel(options) {
     ].filter(Boolean),
     acceptance: therapist.accepting_new_patients ? "Accepting patients" : "Check current openings",
     acceptanceTone: therapist.accepting_new_patients ? "accepting" : "accepting not-acc",
+    feeSummary: formatDirectoryFeeLabel(therapist, "Fees to confirm"),
     quickStats: [
       {
         label: "Fit",
@@ -145,31 +170,6 @@ export function buildCardViewModel(options) {
           ? therapist.bipolar_years_experience + " yrs bipolar care"
           : "Check bipolar depth",
         tone: therapist.bipolar_years_experience ? "green" : "teal",
-      },
-      {
-        label: "Timing",
-        value:
-          therapist.estimated_wait_time ||
-          (therapist.accepting_new_patients ? "Accepting" : "Confirm"),
-        tone: therapist.estimated_wait_time || therapist.accepting_new_patients ? "green" : "",
-      },
-      {
-        label: "Fees",
-        value:
-          therapist.session_fee_min || therapist.session_fee_max
-            ? "$" +
-              String(therapist.session_fee_min || therapist.session_fee_max) +
-              (therapist.session_fee_max &&
-              String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
-                ? "-$" + String(therapist.session_fee_max)
-                : "")
-            : therapist.sliding_scale
-              ? "Sliding scale"
-              : "Ask directly",
-        tone:
-          therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
-            ? "teal"
-            : "",
       },
     ],
     decisionPills: [
@@ -216,16 +216,7 @@ export function buildShortlistBarViewModel(options) {
   }
 
   function getFeeCopy(therapist) {
-    return therapist.session_fee_min || therapist.session_fee_max
-      ? "$" +
-          String(therapist.session_fee_min || therapist.session_fee_max) +
-          (therapist.session_fee_max &&
-          String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
-            ? "-$" + String(therapist.session_fee_max)
-            : "")
-      : therapist.sliding_scale
-        ? "Sliding scale"
-        : "Fee details pending";
+    return formatDirectoryFeeLabel(therapist, "Fee details pending");
   }
 
   function getPriorityBoost(entry, therapist) {
@@ -1157,17 +1148,7 @@ export function buildDirectoryDecisionPreviewModel(options) {
   var opennessCopy = therapist.accepting_new_patients
     ? therapist.estimated_wait_time || "Accepting new patients"
     : "Current openings to confirm";
-  var feeCopy =
-    therapist.session_fee_min || therapist.session_fee_max
-      ? "$" +
-        String(therapist.session_fee_min || therapist.session_fee_max) +
-        (therapist.session_fee_max &&
-        String(therapist.session_fee_max) !== String(therapist.session_fee_min || "")
-          ? "-$" + String(therapist.session_fee_max)
-          : "")
-      : therapist.sliding_scale
-        ? "Sliding scale"
-        : "Fees to confirm";
+  var feeCopy = formatDirectoryFeeLabel(therapist, "Fees to confirm");
 
   function shortenCopy(value, fallback, maxWords) {
     var text = String(value || fallback || "")
@@ -1266,19 +1247,15 @@ export function buildDirectoryDecisionPreviewModel(options) {
     whyNowCopy: buildWhyNowCopy(),
     quickStats: [
       {
-        label: "Readiness",
-        value: decisionReadyLabel,
-        tone:
-          therapist.accepting_new_patients || therapist.bipolar_years_experience ? "green" : "teal",
-      },
-      {
-        label: "Timing",
+        label: "",
         value: opennessCopy,
+        plain: true,
         tone: therapist.accepting_new_patients || therapist.estimated_wait_time ? "green" : "",
       },
       {
-        label: "Fees",
+        label: "",
         value: feeCopy,
+        plain: true,
         tone:
           therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
             ? "teal"
