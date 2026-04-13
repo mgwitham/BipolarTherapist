@@ -130,6 +130,7 @@ let deferredLicensureQueue = [];
 let licensureActivityFeed = [];
 let profileConversionFreshnessQueue = [];
 let authRequired = false;
+let authErrorVisible = false;
 let licensureQueueFilter = "";
 let licensureActivityFilter = "";
 let reviewActivityFilter = "";
@@ -616,12 +617,14 @@ function bindAdminNavigationInteractions() {
 
 function readAdminWorkflowUrlParams() {
   if (typeof window === "undefined") {
-    return { owner: "", therapistSlug: "" };
+    return { owner: "", therapistSlug: "", ticketKind: "", ticketId: "" };
   }
   var params = new URLSearchParams(window.location.search || "");
   return {
     owner: String(params.get("owner") || "").trim(),
     therapistSlug: String(params.get("therapistSlug") || "").trim(),
+    ticketKind: String(params.get("ticketKind") || "").trim(),
+    ticketId: String(params.get("ticketId") || "").trim(),
   };
 }
 
@@ -634,7 +637,34 @@ function applyAdminWorkflowUrlParams() {
     reviewerWorkspaceUi.workloadFilter = params.owner;
     reviewerWorkspaceUi.myQueueMode = false;
   }
+  if (
+    params.ticketId &&
+    (params.ticketKind === "candidate" || params.ticketKind === "application")
+  ) {
+    adminInspectorSelection = {
+      kind: params.ticketKind,
+      id: params.ticketId,
+    };
+  }
   adminWorkflowUrlParamsApplied = true;
+}
+
+function syncAdminInspectorUrl() {
+  if (typeof window === "undefined" || !window.history || !window.location) {
+    return;
+  }
+  var params = new URLSearchParams(window.location.search || "");
+  if (adminInspectorSelection.kind && adminInspectorSelection.id) {
+    params.set("ticketKind", adminInspectorSelection.kind);
+    params.set("ticketId", adminInspectorSelection.id);
+  } else {
+    params.delete("ticketKind");
+    params.delete("ticketId");
+  }
+  var query = params.toString();
+  var nextUrl =
+    window.location.pathname + (query ? "?" + query : "") + (window.location.hash || "");
+  window.history.replaceState({}, "", nextUrl);
 }
 
 function syncAdminWorkflowUrlFocus() {
@@ -4007,6 +4037,7 @@ function renderExecutiveCommandDeck(context) {
 
   if (authRequired) {
     mandateRoot.innerHTML = "";
+    mandateRoot.hidden = true;
     workflowRoot.innerHTML = "";
     intelligenceRoot.innerHTML = "";
     guideRoot.innerHTML = "";
@@ -4119,6 +4150,7 @@ function renderExecutiveCommandDeck(context) {
     '">' +
     escapeHtml(mandate.secondaryActionLabel) +
     "</button></div>";
+  mandateRoot.hidden = false;
 
   var sessionSteps = [
     {
@@ -4619,6 +4651,7 @@ function setAdminInspectorSelection(kind, id) {
     id: String(id || ""),
   };
   adminInspectorActionStatus = "";
+  syncAdminInspectorUrl();
 }
 
 function ensureAdminInspectorSelection() {
@@ -4635,10 +4668,12 @@ function ensureAdminInspectorSelection() {
     : null;
   if (firstCandidate) {
     adminInspectorSelection = { kind: "candidate", id: String(firstCandidate.id) };
+    syncAdminInspectorUrl();
     return { kind: "candidate", item: firstCandidate };
   }
   if (Array.isArray(applications) && applications.length) {
     adminInspectorSelection = { kind: "application", id: String(applications[0].id) };
+    syncAdminInspectorUrl();
     return { kind: "application", item: applications[0] };
   }
   return null;
@@ -4749,12 +4784,12 @@ function getCommandPaletteCommands() {
     {
       id: "goto-control",
       key: "goto-control",
-      title: "Open Control Center",
+      title: "Open Workflow Inbox",
       kicker: "Jump",
-      copy: "Return to the operator launch pad and executive command deck.",
+      copy: "Jump back to the main ticket inbox and profile workspace.",
       priority: 12,
       run: function () {
-        focusAdminAnchorTarget("opsControlRegion");
+        focusAdminAnchorTarget("supplyReviewRegion", { useWorkflowMode: true });
       },
     },
     {
@@ -5254,8 +5289,7 @@ function renderAdminRecordInspector() {
   }
   var selected = ensureAdminInspectorSelection();
   if (!selected || !selected.item) {
-    root.innerHTML =
-      "Select a candidate or application card to keep its decision context pinned here.";
+    root.innerHTML = "Select a listing or application ticket to load its profile workspace here.";
     return;
   }
   if (selected.kind === "candidate") {
@@ -5266,11 +5300,11 @@ function renderAdminRecordInspector() {
     var laneLabel = reviewModels.getCandidateReviewLaneLabel(candidate);
     var sourceMeta = getSourceReferenceMeta(candidate);
     root.innerHTML =
-      '<div class="inspector-kicker">Pinned candidate</div><div class="inspector-title">' +
+      '<div class="inspector-kicker">Listing ticket workspace</div><div class="inspector-title">' +
       escapeHtml(candidate.name || "Unnamed listing") +
       '</div><div class="inspector-copy">' +
       escapeHtml(
-        "Use this side panel to keep the current candidate decision in view while you compare nearby listings and filters.",
+        "This control panel stays focused on the selected listing ticket so you can review the profile, make a decision, and move it to the right next state.",
       ) +
       '</div><div class="inspector-meta"><span class="tag is-neutral">' +
       escapeHtml(laneLabel || "Candidate queue") +
@@ -5346,11 +5380,11 @@ function renderAdminRecordInspector() {
   var urgency = getClaimFollowUpUrgency(application);
   var isClaim = application.submission_intent === "claim";
   root.innerHTML =
-    '<div class="inspector-kicker">Pinned application</div><div class="inspector-title">' +
+    '<div class="inspector-kicker">Application ticket workspace</div><div class="inspector-title">' +
     escapeHtml(application.name || "Unnamed application") +
     '</div><div class="inspector-copy">' +
     escapeHtml(
-      "Keep the current application decision visible while you work the review queue or compare adjacent applications.",
+      "This control panel stays focused on the selected application ticket so you can review the profile, make a clean decision, and manage follow-up without leaving the workspace.",
     ) +
     '</div><div class="inspector-meta"><span class="tag is-neutral">' +
     escapeHtml(isClaim ? "Profile claim" : "Full profile") +
@@ -7823,7 +7857,7 @@ function setAuthUiState() {
   const resetButton = document.getElementById("resetDemo");
   const signOutButton = document.getElementById("signOutAdmin");
   const authError = document.getElementById("authError");
-  const passwordField = document.getElementById("adminKey");
+  const usernameField = document.getElementById("adminUsername");
 
   if (authRequired) {
     if (typeof document !== "undefined" && document.body) {
@@ -7837,15 +7871,15 @@ function setAuthUiState() {
     resetButton.style.display = "none";
     signOutButton.style.display = "none";
     if (authError) {
-      authError.style.display = "block";
+      authError.style.display = authErrorVisible ? "block" : "none";
     }
-    if (passwordField) {
+    if (usernameField) {
       if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
         window.requestAnimationFrame(function () {
-          passwordField.focus();
+          usernameField.focus();
         });
       } else {
-        passwordField.focus();
+        usernameField.focus();
       }
     }
     return;
@@ -7875,6 +7909,7 @@ function setAuthUiState() {
   if (authError) {
     authError.style.display = "none";
   }
+  authErrorVisible = false;
 }
 
 async function loadData() {
@@ -7985,6 +8020,7 @@ function clearAdminAuthError() {
   if (adminAuthError) {
     adminAuthError.style.display = "none";
   }
+  authErrorVisible = false;
 }
 
 if (adminPasswordToggle && adminPasswordField) {
@@ -8018,6 +8054,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
   if (!value) {
     error.textContent = "Enter your operator password.";
     error.style.display = "block";
+    authErrorVisible = true;
     return;
   }
 
@@ -8042,11 +8079,13 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     setAdminSessionToken(result.sessionToken);
     authRequired = false;
     error.style.display = "none";
+    authErrorVisible = false;
     await loadData();
 
     if (authRequired) {
       error.textContent = "Those operator credentials were not accepted.";
       error.style.display = "block";
+      authErrorVisible = true;
     } else {
       field.value = "";
     }
@@ -8054,6 +8093,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     authRequired = true;
     error.textContent = "Those operator credentials were not accepted.";
     error.style.display = "block";
+    authErrorVisible = true;
   }
 });
 
