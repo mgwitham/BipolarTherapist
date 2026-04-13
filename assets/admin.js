@@ -8104,6 +8104,11 @@ document.getElementById("signOutAdmin").addEventListener("click", async function
   renderAll();
 });
 
+document.getElementById("navLogout").addEventListener("click", async function () {
+  await signOutAdmin();
+  window.location.href = "admin.html";
+});
+
 document.getElementById("applicationSearch").addEventListener("input", function (event) {
   applicationFilters.q = event.target.value.trim();
   renderApplications();
