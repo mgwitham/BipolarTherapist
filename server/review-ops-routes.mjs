@@ -13,6 +13,75 @@ export async function handleOpsRoutes(context) {
     sendJson,
   } = deps;
 
+  const therapistPatchMatch = routePath.match(/^\/therapists\/([^/]+)$/);
+  if (request.method === "PATCH" && therapistPatchMatch) {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const therapistId = decodeURIComponent(therapistPatchMatch[1]);
+    const therapist = await client.getDocument(therapistId);
+    if (!therapist || therapist._type !== "therapist") {
+      sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+      return true;
+    }
+    const body = await parseBody(request);
+    const patchFields = {};
+    const stringFields = [
+      "name",
+      "credentials",
+      "title",
+      "practiceName",
+      "city",
+      "state",
+      "zip",
+      "licenseState",
+      "licenseNumber",
+      "email",
+      "phone",
+      "website",
+      "bookingUrl",
+      "careApproach",
+      "estimatedWaitTime",
+    ];
+    stringFields.forEach(function (f) {
+      if (typeof body[f] === "string") patchFields[f] = body[f];
+    });
+    const arrayFields = [
+      "specialties",
+      "treatmentModalities",
+      "clientPopulations",
+      "insuranceAccepted",
+      "languages",
+      "telehealthStates",
+    ];
+    arrayFields.forEach(function (f) {
+      if (Array.isArray(body[f])) patchFields[f] = body[f];
+    });
+    const boolFields = [
+      "acceptsTelehealth",
+      "acceptsInPerson",
+      "acceptingNewPatients",
+      "slidingScale",
+      "medicationManagement",
+    ];
+    boolFields.forEach(function (f) {
+      if (typeof body[f] === "boolean") patchFields[f] = body[f];
+    });
+    if (Object.keys(patchFields).length === 0) {
+      sendJson(response, 400, { error: "No valid fields to update." }, origin, config);
+      return true;
+    }
+    const transaction = client.transaction();
+    transaction.patch(therapistId, function (patch) {
+      return patch.set(patchFields);
+    });
+    await transaction.commit({ visibility: "sync" });
+    const updated = await client.getDocument(therapistId);
+    sendJson(response, 200, { ok: true, therapist: updated }, origin, config);
+    return true;
+  }
+
   const therapistOpsMatch = routePath.match(/^\/therapists\/([^/]+)\/ops$/);
   if (request.method === "POST" && therapistOpsMatch) {
     if (!isAuthorized(request, config)) {

@@ -86,7 +86,11 @@ import {
   createRemoteSignedInState,
 } from "./admin-state.js";
 import { buildCoverageInsights } from "./admin-sourcing-intelligence.js";
-import { bindCandidateEditDrawer, openCandidateEditDrawer } from "./admin-candidate-edit.js";
+import {
+  bindCandidateEditDrawer,
+  openCandidateEditDrawer,
+  openTherapistEditDrawer,
+} from "./admin-candidate-edit.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -8333,6 +8337,16 @@ document.addEventListener("click", function (event) {
     return String(c.id || c._id) === String(candidateId);
   });
   if (candidate) openCandidateEditDrawer(candidate, loadData);
+});
+
+document.addEventListener("click", function (event) {
+  var editBtn = event.target.closest("[data-edit-therapist-id]");
+  if (!editBtn) return;
+  var therapistId = editBtn.dataset.editTherapistId;
+  var therapist = (publishedTherapists || []).find(function (t) {
+    return String(t.id || t._id) === String(therapistId);
+  });
+  if (therapist) openTherapistEditDrawer(therapist, loadData);
 });
 
 document.getElementById("candidateSearch").addEventListener("input", function (event) {

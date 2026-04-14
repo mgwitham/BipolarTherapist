@@ -2370,7 +2370,9 @@ export function renderOpsInboxPanel(options) {
           options.escapeHtml(item.source_url) +
           '" target="_blank" rel="noopener">Open source</a>'
         : "") +
-      '</div><div class="review-coach-status" data-candidate-status-id="' +
+      '<button class="btn-secondary btn-inline" data-edit-candidate-id="' +
+      options.escapeHtml(item.id) +
+      '">Edit profile</button></div><div class="review-coach-status" data-candidate-status-id="' +
       options.escapeHtml(item.id) +
       '"></div></article>'
     );
@@ -2420,7 +2422,9 @@ export function renderOpsInboxPanel(options) {
       options.escapeHtml(item.id || item._id || "") +
       '" data-therapist-next="snooze_7d">Defer 7 days</button><a class="btn-secondary" href="therapist.html?slug=' +
       encodeURIComponent(item.slug) +
-      '">Open profile</a></div><div class="review-coach-status" data-therapist-status-id="' +
+      '">Open profile</a><button class="btn-secondary btn-inline" data-edit-therapist-id="' +
+      options.escapeHtml(item.id || item._id || "") +
+      '">Edit profile</button></div><div class="review-coach-status" data-therapist-status-id="' +
       options.escapeHtml(item.id || item._id || "") +
       '"></div></article>'
     );
