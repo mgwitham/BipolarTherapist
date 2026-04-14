@@ -6,7 +6,6 @@ import {
   requestApplicationChanges,
   publishApplication,
   rejectApplication,
-  resetDemoData,
   updateApplicationReviewMetadata,
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
@@ -7854,8 +7853,6 @@ function setAuthUiState() {
   const gate = document.getElementById("adminAuthGate");
   const app = document.getElementById("adminApp");
   const quickNav = document.getElementById("adminQuickNav");
-  const resetButton = document.getElementById("resetDemo");
-  const signOutButton = document.getElementById("signOutAdmin");
   const authError = document.getElementById("authError");
   const usernameField = document.getElementById("adminUsername");
 
@@ -7868,8 +7865,8 @@ function setAuthUiState() {
     if (quickNav) {
       quickNav.style.display = "none";
     }
-    resetButton.style.display = "none";
-    signOutButton.style.display = "none";
+    const navLogout = document.getElementById("navLogout");
+    if (navLogout) navLogout.style.display = "none";
     if (authError) {
       authError.style.display = authErrorVisible ? "block" : "none";
     }
@@ -7904,8 +7901,8 @@ function setAuthUiState() {
     quickNav.style.display = "";
   }
   syncAdminQuickNavFromViewport();
-  resetButton.style.display = dataMode === "local" ? "inline-flex" : "none";
-  signOutButton.style.display = dataMode === "sanity" ? "inline-flex" : "none";
+  const navLogout = document.getElementById("navLogout");
+  if (navLogout) navLogout.style.display = "inline-block";
   if (authError) {
     authError.style.display = "none";
   }
@@ -8006,11 +8003,6 @@ async function loadData() {
   }
 }
 
-document.getElementById("resetDemo").addEventListener("click", function () {
-  resetDemoData();
-  renderAll();
-});
-
 const adminPasswordField = document.getElementById("adminKey");
 const adminPasswordToggle = document.getElementById("adminPasswordToggle");
 const adminUsernameField = document.getElementById("adminUsername");
@@ -8095,13 +8087,6 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     error.style.display = "block";
     authErrorVisible = true;
   }
-});
-
-document.getElementById("signOutAdmin").addEventListener("click", async function () {
-  await signOutAdmin();
-  applyAdminRuntimeState(createAdminRuntimeState());
-  setAuthUiState();
-  renderAll();
 });
 
 document.getElementById("navLogout").addEventListener("click", async function () {
