@@ -1202,7 +1202,7 @@ function renderReviewActivitySavedViewMeta() {
       ? '<div style="margin-top:0.7rem;font-size:0.88rem;color:var(--slate)">' +
         escapeHtml(activeView.note) +
         "</div>"
-      : '<div style="margin-top:0.7rem;font-size:0.84rem;color:var(--muted)">No reviewer note yet.</div>') +
+      : '<div style="margin-top:0.7rem;font-size:0.84rem;color:#333">No reviewer note yet.</div>') +
     '<div class="queue-actions" style="margin-top:0.8rem">' +
     '<button class="btn-secondary" type="button" id="reviewActivityEditViewNote">Edit note</button>' +
     '<button class="btn-secondary" type="button" id="reviewActivityToggleResolved">' +
@@ -7610,7 +7610,7 @@ function renderReviewEventSnippetHtml(events, options) {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:#333">' +
               options.escapeHtml(item.rationale) +
               "</div>"
             : "") +
@@ -7660,12 +7660,12 @@ function renderReviewEventTimelineHtml(events, options) {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:#333">' +
               options.escapeHtml(item.rationale) +
               "</div>"
             : "") +
           (item.notes
-            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:#333">' +
               options.escapeHtml(item.notes) +
               "</div>"
             : "") +
@@ -7754,12 +7754,12 @@ function renderReviewActivity() {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:#333">' +
               escapeHtml(item.rationale) +
               "</div>"
             : "") +
           (item.notes
-            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:#333">' +
               escapeHtml(item.notes) +
               "</div>"
             : "") +

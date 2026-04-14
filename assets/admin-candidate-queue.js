@@ -402,6 +402,34 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     mergeWorkbench +
     mergePreview;
 
+  // Fallback actions (exclude the primary)
+  var fallbackBtns = [];
+  if (
+    startHereGuidance.primaryAction !== "mark_ready" &&
+    item.review_status !== "ready_to_publish"
+  ) {
+    fallbackBtns.push(buildCandidateButton(item.id, "mark_ready", "Queue for publish", false));
+  }
+  if (
+    startHereGuidance.primaryAction !== "needs_confirmation" &&
+    item.review_status !== "needs_confirmation"
+  ) {
+    fallbackBtns.push(
+      buildCandidateButton(item.id, "needs_confirmation", "Send to confirmation", false),
+    );
+  }
+  if (
+    startHereGuidance.primaryAction !== "reject_duplicate" &&
+    item.dedupe_status !== "rejected_duplicate"
+  ) {
+    fallbackBtns.push(
+      buildCandidateButton(item.id, "reject_duplicate", "Mark as duplicate", false),
+    );
+  }
+  if (startHereGuidance.primaryAction !== "publish") {
+    fallbackBtns.push(buildCandidateButton(item.id, "publish", "Publish now", false));
+  }
+
   return (
     '<article class="queue-card' +
     (index === 0 ? " is-start-here" : "") +
@@ -412,96 +440,59 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +
     ">" +
-    renderActionFirstIntro({
-      active: index === 0,
-      title:
-        "Review this listing first. It is the top current supply decision in the filtered view.",
-      action: "Do this now: " + startHereGuidance.whyNow,
-      escapeHtml: options.escapeHtml,
-    }) +
-    '<div class="queue-head"><div><h3>' +
+    // Header: name + status tags
+    '<div class="queue-head"><div><h3 style="display:flex;align-items:baseline;gap:0.55rem;flex-wrap:wrap">' +
     options.escapeHtml(item.name || "Unnamed listing") +
-    '</h3><div class="subtle">' +
+    (item.readiness_score != null
+      ? '<span style="font-size:0.75rem;font-weight:700;padding:0.18rem 0.5rem;border-radius:999px;white-space:nowrap;background:' +
+        (item.readiness_score >= 81
+          ? "rgba(22,163,74,0.12);color:#16a34a"
+          : item.readiness_score >= 61
+            ? "rgba(217,119,6,0.12);color:#d97706"
+            : "rgba(220,38,38,0.11);color:#dc2626") +
+        '">Readiness: ' +
+        options.escapeHtml(String(item.readiness_score)) +
+        "/100</span>"
+      : "") +
+    "</h3>" +
+    '<div class="subtle">' +
     options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
     '</div></div><div class="queue-head-actions"><span class="tag">' +
     options.escapeHtml(options.getCandidateReviewChipLabel(item.review_status)) +
     '</span><span class="tag">' +
     options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
+    // Listing state (trust / publish / ownership tone)
     renderCandidateStateStrip(item, startHereGuidance, options) +
-    (index === 0
-      ? renderRecommendedActionBar({
-          why: startHereGuidance.whyNow,
-          doneWhen: startHereGuidance.doneWhen,
-          primaryActionHtml:
-            '<button class="btn-primary" data-candidate-decision="' +
-            options.escapeHtml(item.id) +
-            '" data-candidate-next="' +
-            options.escapeHtml(startHereGuidance.primaryAction) +
-            '">' +
-            options.escapeHtml(startHereGuidance.primaryLabel) +
-            "</button>",
-          secondaryActionHtml: sourceReference.href
-            ? '<a class="btn-secondary btn-inline" href="' +
-              options.escapeHtml(sourceReference.href) +
-              '" target="_blank" rel="noopener">' +
-              options.escapeHtml(sourceReference.label) +
-              "</a>"
-            : "",
-          escapeHtml: options.escapeHtml,
-        })
+    // Recommended next step sentence
+    '<div class="queue-summary" style="margin-top:0.6rem">' +
+    options.escapeHtml(startHereGuidance.whyNow) +
+    "</div>" +
+    // Action buttons
+    '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
+    '<button class="btn-primary" data-candidate-decision="' +
+    options.escapeHtml(item.id) +
+    '" data-candidate-next="' +
+    options.escapeHtml(startHereGuidance.primaryAction) +
+    '">' +
+    options.escapeHtml(startHereGuidance.primaryLabel) +
+    "</button>" +
+    fallbackBtns.join("") +
+    (sourceReference.href
+      ? '<a class="btn-secondary btn-inline" href="' +
+        options.escapeHtml(sourceReference.href) +
+        '" target="_blank" rel="noopener">Open source</a>'
       : "") +
-    renderCandidateCommandStrip(
-      item,
-      startHereGuidance,
-      trustSummary,
-      trustRecommendation,
-      options,
-    ) +
-    '<div class="queue-summary-grid">' +
-    '<div class="queue-kpi"><div class="queue-kpi-label">Recommendation</div><div class="queue-kpi-value">' +
-    options.escapeHtml(recommendation) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Ops lane</div><div class="queue-kpi-value">' +
-    options.escapeHtml(String(item.review_lane || "editorial_review").replace(/_/g, " ")) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Priority</div><div class="queue-kpi-value">' +
-    options.escapeHtml(
-      item.review_priority == null ? "Not scored" : String(item.review_priority) + "/100",
-    ) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Next review due</div><div class="queue-kpi-value">' +
-    options.escapeHtml(
-      item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now",
-    ) +
-    "</div></div></div>" +
-    '<div class="queue-summary"><strong>Readiness:</strong> ' +
-    options.escapeHtml(
-      item.readiness_score == null ? "Not scored" : item.readiness_score + "/100",
-    ) +
     "</div>" +
-    '<div class="queue-summary"><strong>Trust:</strong> ' +
-    options.escapeHtml(trustSummary.headline) +
-    "</div>" +
-    '<div class="queue-summary"><strong>Next trust move:</strong> ' +
-    options.escapeHtml(trustRecommendation) +
-    "</div>" +
-    (sourceTrail
-      ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
-        options.escapeHtml(sourceTrail) +
-        "</div>"
-      : "") +
-    renderCandidateDecisionGuide(item, startHereGuidance, options.escapeHtml) +
-    '<div class="queue-actions is-decision-cluster">' +
-    renderCandidateActionClusters(item, startHereGuidance, sourceReference, options) +
-    '</div><div class="review-coach-status" data-candidate-status-id="' +
+    // Status feedback
+    '<div class="review-coach-status" data-candidate-status-id="' +
     options.escapeHtml(item.id) +
     '">' +
     options.escapeHtml(actionFlash) +
     "</div>" +
-    options.renderReviewEntityTaskHtml("candidate", item.id, {
-      escapeHtml: options.escapeHtml,
-      formatDate: options.formatDate,
-    }) +
+    // Collapsed details
     (expandedDetails
-      ? '<details class="queue-more-details"><summary>See full listing details</summary><div class="queue-more-details-body">' +
+      ? '<details class="queue-more-details"><summary>See full details</summary><div class="queue-more-details-body">' +
         expandedDetails +
         "</div></details>"
       : "") +
