@@ -3241,19 +3241,6 @@
                   ></div>
                   <div id="deferredLicensureQueue"></div>
                 </div>
-                <div class="workflow-section">
-                  <h2>Licensure Activity</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Recent primary-source refresh wins, failures, and deferral actions across the
-                    licensure lane.
-                  </p>
-                  <div
-                    class="subtle"
-                    id="licensureActivityCount"
-                    style="margin-bottom: 0.8rem"
-                  ></div>
-                  <div id="licensureActivity"></div>
-                </div>
               </div>
             </details>
             <section class="admin-region-shell workflow-section" id="confirmationRegion">
@@ -3741,43 +3728,6 @@
                   </div>
                   <div id="portalRequestsQueue"></div>
                 </div>
-                <div
-                  class="panel"
-                  id="reviewActivityPanel"
-                  style="margin-bottom: 1rem; grid-column: 1 / -1"
-                >
-                  <h2>Review Activity</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Recent review decisions, publishes, merges, and ops actions from the review API.
-                  </p>
-                  <div class="toolbar" style="margin-bottom: 0.8rem">
-                    <select id="reviewActivityFilter">
-                      <option value="">All activity</option>
-                      <option value="application">Applications</option>
-                      <option value="candidate">Candidates</option>
-                      <option value="therapist">Therapists</option>
-                      <option value="ops">Ops actions</option>
-                    </select>
-                    <select id="reviewActivitySavedView">
-                      <option value="">Saved views</option>
-                    </select>
-                    <button class="btn-secondary" type="button" id="reviewActivitySaveView">
-                      Save View
-                    </button>
-                    <button class="btn-secondary" type="button" id="reviewActivityCopyLink">
-                      Copy Link
-                    </button>
-                    <button class="btn-secondary" type="button" id="reviewActivityExportJson">
-                      Export JSON
-                    </button>
-                    <button class="btn-secondary" type="button" id="reviewActivityExportCsv">
-                      Export CSV
-                    </button>
-                    <div class="subtle" id="reviewActivityCount"></div>
-                  </div>
-                  <div id="reviewActivitySavedViewMeta"></div>
-                  <div id="reviewActivityFeed"></div>
-                </div>
               </div>
             </section>
             <section class="admin-region-shell" id="intelligenceRegion">
@@ -3826,6 +3776,69 @@
                 </div>
               </div>
             </section>
+            <details
+              class="admin-collapsible-group"
+              style="margin-top: 1.5rem; margin-bottom: 1.5rem"
+            >
+              <summary>
+                <div class="admin-collapsible-meta">
+                  <div class="admin-collapsible-kicker">Activity Log</div>
+                  <div class="admin-collapsible-title">Review &amp; Licensure Activity</div>
+                  <div class="admin-collapsible-copy">
+                    Recent review decisions, publishes, ops actions, and licensure refresh results.
+                  </div>
+                </div>
+                <div class="admin-collapsible-icon">+</div>
+              </summary>
+              <div class="admin-collapsible-body">
+                <div class="panel" id="reviewActivityPanel" style="margin-bottom: 0">
+                  <h2>Review Activity</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Recent review decisions, publishes, merges, and ops actions from the review API.
+                  </p>
+                  <div class="toolbar" style="margin-bottom: 0.8rem">
+                    <select id="reviewActivityFilter">
+                      <option value="">All activity</option>
+                      <option value="application">Applications</option>
+                      <option value="candidate">Candidates</option>
+                      <option value="therapist">Therapists</option>
+                      <option value="ops">Ops actions</option>
+                    </select>
+                    <select id="reviewActivitySavedView">
+                      <option value="">Saved views</option>
+                    </select>
+                    <button class="btn-secondary" type="button" id="reviewActivitySaveView">
+                      Save View
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityCopyLink">
+                      Copy Link
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityExportJson">
+                      Export JSON
+                    </button>
+                    <button class="btn-secondary" type="button" id="reviewActivityExportCsv">
+                      Export CSV
+                    </button>
+                    <div class="subtle" id="reviewActivityCount"></div>
+                  </div>
+                  <div id="reviewActivitySavedViewMeta"></div>
+                  <div id="reviewActivityFeed"></div>
+                </div>
+                <div class="panel" style="margin-bottom: 0">
+                  <h2>Licensure Activity</h2>
+                  <p class="subtle" style="margin-top: 0">
+                    Recent primary-source refresh wins, failures, and deferral actions across the
+                    licensure lane.
+                  </p>
+                  <div
+                    class="subtle"
+                    id="licensureActivityCount"
+                    style="margin-bottom: 0.8rem"
+                  ></div>
+                  <div id="licensureActivity"></div>
+                </div>
+              </div>
+            </details>
           </main>
         </div>
       </div>
