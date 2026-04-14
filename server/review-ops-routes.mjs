@@ -28,23 +28,42 @@ export async function handleOpsRoutes(context) {
     const body = await parseBody(request);
     const patchFields = {};
     const stringFields = [
-      "name", "credentials", "title", "practiceName", "city", "state", "zip",
-      "licenseState", "licenseNumber", "email", "phone", "website", "bookingUrl",
-      "careApproach", "estimatedWaitTime",
+      "name",
+      "credentials",
+      "title",
+      "practiceName",
+      "city",
+      "state",
+      "zip",
+      "licenseState",
+      "licenseNumber",
+      "email",
+      "phone",
+      "website",
+      "bookingUrl",
+      "careApproach",
+      "estimatedWaitTime",
     ];
     stringFields.forEach(function (f) {
       if (typeof body[f] === "string") patchFields[f] = body[f];
     });
     const arrayFields = [
-      "specialties", "treatmentModalities", "clientPopulations",
-      "insuranceAccepted", "languages", "telehealthStates",
+      "specialties",
+      "treatmentModalities",
+      "clientPopulations",
+      "insuranceAccepted",
+      "languages",
+      "telehealthStates",
     ];
     arrayFields.forEach(function (f) {
       if (Array.isArray(body[f])) patchFields[f] = body[f];
     });
     const boolFields = [
-      "acceptsTelehealth", "acceptsInPerson", "acceptingNewPatients",
-      "slidingScale", "medicationManagement",
+      "acceptsTelehealth",
+      "acceptsInPerson",
+      "acceptingNewPatients",
+      "slidingScale",
+      "medicationManagement",
     ];
     boolFields.forEach(function (f) {
       if (typeof body[f] === "boolean") patchFields[f] = body[f];
