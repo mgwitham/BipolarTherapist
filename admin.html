@@ -1755,109 +1755,135 @@
       }
       .ops-inbox {
         display: grid;
-        gap: 1rem;
+        gap: 0.75rem;
       }
       .ops-inbox-hero {
         border: 1px solid var(--border);
-        border-radius: 18px;
-        background: linear-gradient(180deg, #ffffff 0%, #f6fbfc 100%);
-        padding: 1rem 1.05rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f0f7fa 0%, #e8f4f8 100%);
+        padding: 0.85rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
       }
-      .ops-inbox-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-        gap: 0.75rem;
-        margin-top: 0.9rem;
+      .ops-inbox-headline {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--navy);
       }
-      .ops-kpi {
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 0.82rem 0.9rem;
-        background: #fff;
+      .ops-inbox-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
       }
-      .ops-kpi-value {
-        font-size: 1.3rem;
+      .ops-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--teal-dark);
+        background: rgba(26, 122, 143, 0.1);
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        border-radius: 20px;
+        padding: 0.22rem 0.6rem;
+        gap: 0.3rem;
+      }
+      .ops-pill-count {
+        font-size: 0.8rem;
         font-weight: 800;
         color: var(--navy);
       }
-      .ops-kpi-label {
-        margin-top: 0.2rem;
-        font-size: 0.8rem;
-        color: #333;
-      }
       .ops-group {
         border: 1px solid var(--border);
-        border-radius: 18px;
+        border-radius: 16px;
         background: #fff;
-        padding: 0.95rem 1rem;
+        padding: 0.85rem 0.9rem;
       }
       .ops-group-head {
         display: flex;
         justify-content: space-between;
         gap: 1rem;
-        align-items: end;
-        margin-bottom: 0.8rem;
+        align-items: center;
+        margin-bottom: 0.65rem;
       }
       .ops-group-title {
         margin: 0;
-        font-size: 1rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .ops-group-count {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--slate);
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 20px;
+        padding: 0.1rem 0.5rem;
+        margin-left: 0.35rem;
       }
       .ops-list {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.5rem;
       }
       .ops-card {
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 0.9rem 0.95rem;
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        border-radius: 12px;
+        padding: 0.75rem 0.85rem;
+        background: #fff;
       }
       .ops-card-head {
         display: flex;
         justify-content: space-between;
-        gap: 0.8rem;
-        align-items: start;
+        gap: 0.75rem;
+        align-items: flex-start;
       }
       .ops-card-title {
         margin: 0;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--navy);
       }
       .ops-card-meta {
-        margin-top: 0.3rem;
-        font-size: 0.84rem;
-        color: #333;
-        line-height: 1.5;
-      }
-      .ops-card-body {
-        margin-top: 0.7rem;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 0.55rem;
-      }
-      .ops-card-kpi {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: #fff;
-        padding: 0.65rem 0.7rem;
-      }
-      .ops-card-kpi-label {
-        font-size: 0.68rem;
-        font-weight: 800;
-        color: #333;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-      .ops-card-kpi-value {
         margin-top: 0.2rem;
-        font-size: 0.84rem;
+        font-size: 0.8rem;
+        color: var(--slate);
+        line-height: 1.4;
+      }
+      .ops-card-aside {
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .ops-card-score {
+        font-size: 0.88rem;
+        font-weight: 800;
         color: var(--navy);
-        line-height: 1.45;
+      }
+      .ops-card-due {
+        font-size: 0.74rem;
+        color: var(--slate);
+        margin-top: 0.1rem;
       }
       .ops-card-actions {
         display: flex;
-        gap: 0.55rem;
+        gap: 0.45rem;
         flex-wrap: wrap;
-        margin-top: 0.8rem;
+        margin-top: 0.65rem;
+      }
+      .ops-card-details summary {
+        font-size: 0.78rem;
+        color: var(--slate);
+        cursor: pointer;
+        user-select: none;
+        margin-top: 0.5rem;
+        display: inline-block;
+      }
+      .ops-card-details summary:hover {
+        color: var(--teal-dark);
+      }
+      .ops-card-details[open] summary {
+        margin-bottom: 0.5rem;
       }
       .queue-insights {
         margin-bottom: 1rem;
@@ -3001,9 +3027,7 @@
       <div class="admin-quick-nav" id="adminQuickNav" style="display: none">
         <div class="admin-quick-nav-label">Jump To</div>
         <div class="admin-quick-nav-links">
-          <a href="#supplyReviewRegion">New listings</a>
-          <a href="#liveListingsRegion">Live Listings</a>
-          <a href="#confirmationRegion">Confirmation</a>
+          <a href="#supplyReviewRegion">New scraped listings</a>
           <a href="#requestsRegion">Requests</a>
           <a href="#intelligenceRegion">Intelligence</a>
         </div>
@@ -3460,7 +3484,7 @@
             <section class="admin-region-shell" id="supplyReviewRegion">
               <div class="admin-region-header">
                 <div>
-                  <h2 class="admin-region-title">New listings</h2>
+                  <h2 class="admin-region-title">New scraped listings</h2>
                   <div class="admin-region-copy">
                     Review each listing and take an action. The most urgent item is always at the
                     top.

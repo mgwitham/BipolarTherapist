@@ -431,7 +431,7 @@ function buildFeeFollowUpRequest(item) {
   return [
     "Quick fee confirmation for " + (item.name || "this profile"),
     "",
-    "We’re updating the practical decision details on your BipolarTherapyHub profile and want to make sure the fee information is still accurate.",
+    "We're updating the practical decision details on your BipolarTherapyHub profile and want to make sure the fee information is still accurate.",
     "",
     "Could you confirm:",
     "- your current session fee or fee range",
@@ -2335,9 +2335,6 @@ export function renderOpsInboxPanel(options) {
 
   function renderCandidateOpsCard(item) {
     const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
-    const match =
-      item.matched_therapist_slug || item.matched_application_id || "No linked duplicate yet";
-    const evidence = options.getCandidateOpsEvidence(item);
     const trustSummary = options.getCandidateTrustSummary(item);
     const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
     const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
@@ -2346,56 +2343,45 @@ export function renderOpsInboxPanel(options) {
       applications: applications,
       escapeHtml: options.escapeHtml,
     });
+    const watchCount = trustSummary.watchFields.length;
+    const hasMatch = item.matched_therapist_slug || item.matched_application_id;
+    const scoreLabel = item.review_priority == null ? "" : item.review_priority + "/100";
+    const dueLabel = item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now";
+    const reason = options.getCandidateOpsReason(item);
 
     return (
-      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      '<article class="ops-card">' +
+      '<div class="ops-card-head">' +
+      '<div style="min-width:0">' +
+      '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">' +
+      '<h3 class="ops-card-title">' +
       options.escapeHtml(item.name || "Unnamed candidate") +
-      '</h3><div class="ops-card-meta">' +
-      options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
-      '</div></div><span class="tag">' +
+      "</h3>" +
+      '<span class="tag" style="font-size:0.72rem">' +
       options.escapeHtml(options.getCandidateReviewLaneLabel(item.review_lane)) +
-      '</span></div><div class="ops-card-body">' +
-      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(
-        item.review_priority == null ? "Not scored" : item.review_priority + "/100",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(
-        item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Recommendation</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.publish_recommendation || "Review") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(
-        trustSummary.watchFields.length
-          ? String(trustSummary.watchFields.length) + " signals"
-          : "Stable",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Existing match</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(match) +
-      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
-      options.escapeHtml(options.getCandidateOpsReason(item)) +
+      "</span>" +
       "</div>" +
-      (evidence
-        ? '<div class="subtle" style="margin-top:0.35rem">' +
-          options.escapeHtml(evidence) +
+      '<div class="ops-card-meta">' +
+      options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
+      "</div>" +
+      "</div>" +
+      '<div class="ops-card-aside">' +
+      (scoreLabel
+        ? '<div class="ops-card-score">' + options.escapeHtml(scoreLabel) + "</div>"
+        : "") +
+      '<div class="ops-card-due">' +
+      options.escapeHtml(dueLabel) +
+      "</div>" +
+      "</div>" +
+      "</div>" +
+      (reason
+        ? '<div style="margin-top:0.4rem;font-size:0.8rem;color:var(--slate)">' +
+          options.escapeHtml(reason) +
           "</div>"
         : "") +
-      '<div class="subtle" style="margin-top:0.35rem">' +
-      options.escapeHtml(trustRecommendation) +
-      "</div>" +
-      renderCandidatePublishPacket(publishPacket, {
-        escapeHtml: options.escapeHtml,
-      }) +
-      renderCandidateTrustChips(trustSummary, 3, {
-        escapeHtml: options.escapeHtml,
-      }) +
-      renderCandidateMergeWorkbench(item, {
-        therapists: therapists,
-        applications: applications,
-        escapeHtml: options.escapeHtml,
-      }) +
-      mergePreview +
+      (watchCount > 0
+        ? renderCandidateTrustChips(trustSummary, 3, { escapeHtml: options.escapeHtml })
+        : "") +
       '<div class="ops-card-actions">' +
       options.buildCandidateDecisionActions(item) +
       (item.source_url
@@ -2403,9 +2389,25 @@ export function renderOpsInboxPanel(options) {
           options.escapeHtml(item.source_url) +
           '" target="_blank" rel="noopener">Open source</a>'
         : "") +
-      '</div><div class="review-coach-status" data-candidate-status-id="' +
+      "</div>" +
+      '<details class="ops-card-details">' +
+      "<summary>Details</summary>" +
+      "<div>" +
+      '<div class="subtle" style="margin-bottom:0.4rem">' +
+      options.escapeHtml(trustRecommendation) +
+      "</div>" +
+      renderCandidatePublishPacket(publishPacket, { escapeHtml: options.escapeHtml }) +
+      renderCandidateMergeWorkbench(item, {
+        therapists: therapists,
+        applications: applications,
+        escapeHtml: options.escapeHtml,
+      }) +
+      mergePreview +
+      "</div></details>" +
+      '<div class="review-coach-status" data-candidate-status-id="' +
       options.escapeHtml(item.id) +
-      '"></div></article>'
+      '"></div>' +
+      "</article>"
     );
   }
 
@@ -2414,67 +2416,56 @@ export function renderOpsInboxPanel(options) {
     const freshness = entry.freshness;
     const trustSummary = options.getTherapistFieldTrustSummary(item);
     const nextMove = options.getTherapistTrustRecommendation(item, freshness, trustSummary);
-    const evidence = [
-      item.source_health_status ? "Source " + item.source_health_status : "",
-      freshness.source_review_age_days != null
-        ? "Source age " + freshness.source_review_age_days + "d"
-        : "",
-      item.source_health_checked_at
-        ? "Health checked " + options.formatDate(item.source_health_checked_at)
-        : "",
-      freshness.therapist_confirmation_age_days != null
-        ? "Therapist confirmation age " + freshness.therapist_confirmation_age_days + "d"
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
+    const scoreLabel =
+      item.verificationPriority == null ? "" : String(item.verificationPriority) + "/100";
+    const dueLabel = item.nextReviewDueAt ? options.formatDate(item.nextReviewDueAt) : "Now";
+    const reason = getTherapistOpsReason(freshness, item, options);
+    const watchCount = trustSummary.watchFields.length;
+    const tid = options.escapeHtml(item.id || item._id || "");
 
     return (
-      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      '<article class="ops-card">' +
+      '<div class="ops-card-head">' +
+      '<div style="min-width:0">' +
+      '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">' +
+      '<h3 class="ops-card-title">' +
       options.escapeHtml(item.name) +
-      '</h3><div class="ops-card-meta">' +
-      options.escapeHtml(
-        [item.credentials, [item.city, item.state, item.zip].filter(Boolean).join(", ")]
-          .filter(Boolean)
-          .join(" · "),
-      ) +
-      '</div></div><span class="tag">' +
+      "</h3>" +
+      '<span class="tag" style="font-size:0.72rem">' +
       options.escapeHtml(options.getVerificationLaneLabel(item.verificationLane)) +
-      '</span></div><div class="ops-card-body">' +
-      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(
-        item.verificationPriority == null
-          ? "Not scored"
-          : String(item.verificationPriority) + "/100",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.nextReviewDueAt ? options.formatDate(item.nextReviewDueAt) : "Now") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(freshness.label) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Trust watch</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(
-        trustSummary.watchFields.length
-          ? String(trustSummary.watchFields.length) + " fields"
-          : "Stable",
-      ) +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(nextMove) +
-      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
-      options.escapeHtml(getTherapistOpsReason(freshness, item, options)) +
+      "</span>" +
       "</div>" +
-      (evidence
-        ? '<div class="subtle" style="margin-top:0.35rem">' +
-          options.escapeHtml(evidence) +
+      '<div class="ops-card-meta">' +
+      options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
+      "</div>" +
+      "</div>" +
+      '<div class="ops-card-aside">' +
+      (scoreLabel
+        ? '<div class="ops-card-score">' + options.escapeHtml(scoreLabel) + "</div>"
+        : "") +
+      '<div class="ops-card-due">' +
+      options.escapeHtml(dueLabel) +
+      "</div>" +
+      "</div>" +
+      "</div>" +
+      (reason
+        ? '<div style="margin-top:0.4rem;font-size:0.8rem;color:var(--slate)">' +
+          options.escapeHtml(reason) +
           "</div>"
         : "") +
-      options.renderFieldTrustChips(trustSummary, 4) +
-      '<div class="ops-card-actions"><button class="btn-primary" data-therapist-ops="' +
-      options.escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
-      options.escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="snooze_7d">Defer 7 days</button><button class="btn-secondary" data-therapist-ops="' +
-      options.escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="snooze_30d">Defer 30 days</button><a class="btn-secondary" href="therapist.html?slug=' +
+      (watchCount > 0 ? options.renderFieldTrustChips(trustSummary, 3) : "") +
+      '<div class="ops-card-actions">' +
+      '<button class="btn-primary" data-therapist-ops="' +
+      tid +
+      '" data-therapist-next="mark_reviewed">Mark reviewed</button>' +
+      '<button class="btn-secondary" data-therapist-ops="' +
+      tid +
+      '" data-therapist-next="snooze_7d">Defer 7d</button>' +
+      '<button class="btn-secondary" data-therapist-ops="' +
+      tid +
+      '" data-therapist-next="snooze_30d">Defer 30d</button>' +
+      '<a class="btn-secondary" href="therapist.html?slug=' +
       encodeURIComponent(item.slug) +
       '">Open profile</a>' +
       (item.sourceUrl
@@ -2482,46 +2473,64 @@ export function renderOpsInboxPanel(options) {
           options.escapeHtml(item.sourceUrl) +
           '" target="_blank" rel="noopener">Open source</a>'
         : "") +
-      '</div><div class="review-coach-status" data-therapist-status-id="' +
-      options.escapeHtml(item.id || item._id || "") +
-      '"></div></article>'
+      "</div>" +
+      '<details class="ops-card-details"><summary>Details</summary>' +
+      '<div><div class="subtle">' +
+      options.escapeHtml(nextMove) +
+      "</div>" +
+      (freshness.label
+        ? '<div class="subtle" style="margin-top:0.2rem">Freshness: ' +
+          options.escapeHtml(freshness.label) +
+          "</div>"
+        : "") +
+      "</div></details>" +
+      '<div class="review-coach-status" data-therapist-status-id="' +
+      tid +
+      '"></div>' +
+      "</article>"
     );
   }
 
   function renderLicensureOpsCard(item) {
-    const evidence = [
-      item.license_number ? "License " + item.license_number : "",
-      item.expiration_date ? "Expires " + item.expiration_date : "",
-      item.licensure_verified_at
-        ? "Verified " + options.formatDate(item.licensure_verified_at)
-        : "",
+    const meta = [
+      item.credentials,
+      item.location,
+      item.license_number ? "Lic " + item.license_number : "",
+      item.expiration_date ? "Exp " + item.expiration_date : "",
     ]
       .filter(Boolean)
       .join(" · ");
 
     return (
-      '<article class="ops-card"><div class="ops-card-head"><div><h3 class="ops-card-title">' +
+      '<article class="ops-card">' +
+      '<div class="ops-card-head">' +
+      '<div style="min-width:0">' +
+      '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">' +
+      '<h3 class="ops-card-title">' +
       options.escapeHtml(item.name || "Unnamed therapist") +
-      '</h3><div class="ops-card-meta">' +
-      options.escapeHtml([item.credentials, item.location].filter(Boolean).join(" · ")) +
-      '</div></div><span class="tag">' +
+      "</h3>" +
+      '<span class="tag" style="font-size:0.72rem">' +
       options.escapeHtml(getLicensureLaneLabel(item)) +
-      '</span></div><div class="ops-card-body">' +
-      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Status</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.refresh_status || "missing") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Reason</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.queue_reason || "refresh_due") +
-      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.next_move || "Refresh licensure") +
-      '</div></div></div><div class="subtle" style="margin-top:0.85rem">' +
-      options.escapeHtml(item.reason || "Primary-source licensure refresh needed.") +
+      "</span>" +
       "</div>" +
-      (evidence
-        ? '<div class="subtle" style="margin-top:0.35rem">' +
-          options.escapeHtml(evidence) +
+      '<div class="ops-card-meta">' +
+      options.escapeHtml(meta) +
+      "</div>" +
+      "</div>" +
+      "</div>" +
+      (item.reason
+        ? '<div style="margin-top:0.4rem;font-size:0.8rem;color:var(--slate)">' +
+          options.escapeHtml(item.reason) +
           "</div>"
         : "") +
       '<div class="ops-card-actions">' +
+      '<button class="btn-primary" data-licensure-inbox-copy="' +
+      options.escapeHtml(item.therapist_id || "") +
+      '">' +
+      options.escapeHtml(
+        item.queue_reason === "missing_cache" ? "Copy first-pass command" : "Copy refresh command",
+      ) +
+      "</button>" +
       (item.official_profile_url
         ? '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(item.official_profile_url) +
@@ -2532,13 +2541,8 @@ export function renderOpsInboxPanel(options) {
           options.escapeHtml(item.profile_link) +
           '">Open profile</a>'
         : "") +
-      '<button class="btn-primary" data-licensure-inbox-copy="' +
-      options.escapeHtml(item.therapist_id || "") +
-      '">' +
-      options.escapeHtml(
-        item.queue_reason === "missing_cache" ? "Copy first-pass command" : "Copy refresh command",
-      ) +
-      "</button></div></article>"
+      "</div>" +
+      "</article>"
     );
   }
 
@@ -2794,44 +2798,55 @@ export function renderOpsInboxPanel(options) {
     );
   }
 
-  function renderGroup(title, note, rowsHtml, actionsHtml) {
+  function renderGroup(title, _note, rowsHtml, actionsHtml) {
     return (
-      '<section class="ops-group"><div class="ops-group-head"><div><h3 class="ops-group-title">' +
+      '<section class="ops-group"><div class="ops-group-head">' +
+      '<h3 class="ops-group-title">' +
       options.escapeHtml(title) +
-      '</h3><div class="subtle">' +
-      options.escapeHtml(note) +
-      "</div></div>" +
-      (actionsHtml ? '<div class="ops-card-actions">' + actionsHtml + "</div>" : "") +
+      "</h3>" +
+      (actionsHtml
+        ? '<div style="display:flex;gap:0.4rem;flex-wrap:wrap">' + actionsHtml + "</div>"
+        : "") +
       '</div><div class="ops-list">' +
       rowsHtml +
       "</div></section>"
     );
   }
 
+  const heroPills = [
+    { value: publishNow.length, label: "Publish now" },
+    { value: duplicateQueue.length, label: "Duplicates" },
+    { value: confirmationQueue.length, label: "Confirmation" },
+    { value: refreshQueue.length, label: "Refresh" },
+    { value: licensureQueue.length, label: "Licensure" },
+  ]
+    .filter(function (item) {
+      return item.value > 0;
+    })
+    .map(function (item) {
+      return (
+        '<span class="ops-pill"><span class="ops-pill-count">' +
+        options.escapeHtml(String(item.value)) +
+        "</span>" +
+        options.escapeHtml(item.label) +
+        "</span>"
+      );
+    })
+    .join("");
+
   root.innerHTML =
-    '<div class="ops-inbox"><div class="ops-inbox-hero"><strong>Today’s work</strong><div class="subtle" style="margin-top:0.35rem">Start with the highest-priority publish, duplicate, confirmation, and refresh items. This is the shortest path to a healthier therapist graph.</div><div class="ops-inbox-grid">' +
-    [
-      { value: publishNow.length, label: "Publish now" },
-      { value: duplicateQueue.length, label: "Resolve duplicates" },
-      { value: confirmationQueue.length, label: "Needs confirmation" },
-      { value: refreshQueue.length, label: "Refresh live profiles" },
-      { value: conversionFreshnessQueue.length, label: "Conversion watch" },
-      { value: readyToImportQueue.length, label: "Ready to import" },
-      { value: importWaveMetrics.waitingConfirmed, label: "Waiting to apply" },
-      { value: importWaveMetrics.movedThisWeek, label: "Moved this week" },
-      { value: licensureQueue.length, label: "Licensure work" },
-    ]
-      .map(function (item) {
-        return (
-          '<div class="ops-kpi"><div class="ops-kpi-value">' +
-          options.escapeHtml(item.value) +
-          '</div><div class="ops-kpi-label">' +
-          options.escapeHtml(item.label) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    '</div></div><div class="review-coach-status" id="opsInboxExportStatus"></div>' +
+    '<div class="ops-inbox">' +
+    '<div class="ops-inbox-hero">' +
+    '<div class="ops-inbox-headline">' +
+    options.escapeHtml(String(totalActions)) +
+    " item" +
+    (totalActions === 1 ? "" : "s") +
+    " need attention</div>" +
+    '<div class="ops-inbox-pills">' +
+    heroPills +
+    "</div>" +
+    "</div>" +
+    '<div class="review-coach-status" id="opsInboxExportStatus"></div>' +
     buildWeeklyOpsDigest(
       {
         conversionFreshnessQueue: conversionFreshnessQueue,

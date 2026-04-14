@@ -86,6 +86,11 @@ import {
   createRemoteSignedInState,
 } from "./admin-state.js";
 import { buildCoverageInsights } from "./admin-sourcing-intelligence.js";
+import {
+  bindCandidateEditDrawer,
+  openCandidateEditDrawer,
+  openTherapistEditDrawer,
+} from "./admin-candidate-edit.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -7587,37 +7592,28 @@ function renderReviewEventSnippetHtml(events, options) {
   }
 
   return (
-    '<div class="queue-summary"><strong>Recent activity:</strong></div>' +
-    '<div style="display:grid;gap:0.45rem;margin:0.5rem 0 0.75rem">' +
+    '<div class="queue-summary" style="margin-bottom:0.35rem"><strong>Recent activity</strong></div>' +
+    '<div style="margin-bottom:0.75rem">' +
     items
       .map(function (item) {
         const summary = buildReviewEventSummary(item);
-        const showRationale = item.rationale && item.rationale !== item.notes;
         return (
-          '<div class="mini-card" style="padding:0.6rem 0.75rem;border-radius:12px">' +
-          '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">' +
+          '<div style="display:flex;justify-content:space-between;gap:0.75rem;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(0,0,0,0.06)">' +
           '<div style="min-width:0">' +
-          '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' +
-          '<div style="font-size:0.84rem;font-weight:700;color:var(--navy)">' +
+          '<span style="font-weight:600;color:var(--navy)">' +
           options.escapeHtml(getReviewEventActionLabel(item)) +
-          "</div>" +
-          '<span class="tag" style="font-size:0.72rem;padding:0.12rem 0.45rem">' +
+          "</span>" +
+          '<span class="tag" style="margin-left:0.4rem;font-size:0.7rem;padding:0.1rem 0.4rem">' +
           options.escapeHtml(getReviewEventLaneLabel(item)) +
-          "</span></div>" +
+          "</span>" +
           (summary
-            ? '<div style="margin-top:0.2rem;font-size:0.8rem;color:var(--slate)">' +
+            ? '<div style="color:var(--slate);margin-top:0.1rem">' +
               options.escapeHtml(summary) +
               "</div>"
             : "") +
-          (showRationale
-            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:#333">' +
-              options.escapeHtml(item.rationale) +
-              "</div>"
-            : "") +
           "</div>" +
-          '<div class="subtle" style="white-space:nowrap;font-size:0.78rem">' +
+          '<div class="subtle" style="white-space:nowrap;font-size:0.76rem;padding-top:0.1rem">' +
           options.escapeHtml(options.formatDate(item.created_at)) +
-          "</div>" +
           "</div>" +
           "</div>"
         );
@@ -8138,10 +8134,13 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
   renderApplications();
 });
 
-document.getElementById("conciergeStatusFilter").addEventListener("change", function (event) {
-  conciergeFilters.status = event.target.value || "";
-  renderConciergeQueue();
-});
+var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
+if (conciergeStatusFilterEl) {
+  conciergeStatusFilterEl.addEventListener("change", function (event) {
+    conciergeFilters.status = event.target.value || "";
+    renderConciergeQueue();
+  });
+}
 
 document.getElementById("portalRequestStatusFilter").addEventListener("change", function (event) {
   portalRequestFilters.status = event.target.value || "";
@@ -8319,6 +8318,27 @@ document.addEventListener("click", function (event) {
 });
 
 reviewerWorkspace.bindEventHandlers();
+bindCandidateEditDrawer();
+
+document.addEventListener("click", function (event) {
+  var editBtn = event.target.closest("[data-edit-candidate-id]");
+  if (!editBtn) return;
+  var candidateId = editBtn.dataset.editCandidateId;
+  var candidate = (remoteCandidates || []).find(function (c) {
+    return String(c.id || c._id) === String(candidateId);
+  });
+  if (candidate) openCandidateEditDrawer(candidate, loadData);
+});
+
+document.addEventListener("click", function (event) {
+  var editBtn = event.target.closest("[data-edit-therapist-id]");
+  if (!editBtn) return;
+  var therapistId = editBtn.dataset.editTherapistId;
+  var therapist = (publishedTherapists || []).find(function (t) {
+    return String(t.id || t._id) === String(therapistId);
+  });
+  if (therapist) openTherapistEditDrawer(therapist, loadData);
+});
 
 document.getElementById("candidateSearch").addEventListener("input", function (event) {
   candidateFilters.q = event.target.value.trim();
