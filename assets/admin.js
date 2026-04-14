@@ -86,6 +86,7 @@ import {
   createRemoteSignedInState,
 } from "./admin-state.js";
 import { buildCoverageInsights } from "./admin-sourcing-intelligence.js";
+import { bindCandidateEditDrawer, openCandidateEditDrawer } from "./admin-candidate-edit.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -1202,7 +1203,7 @@ function renderReviewActivitySavedViewMeta() {
       ? '<div style="margin-top:0.7rem;font-size:0.88rem;color:var(--slate)">' +
         escapeHtml(activeView.note) +
         "</div>"
-      : '<div style="margin-top:0.7rem;font-size:0.84rem;color:var(--muted)">No reviewer note yet.</div>') +
+      : '<div style="margin-top:0.7rem;font-size:0.84rem;color:#333">No reviewer note yet.</div>') +
     '<div class="queue-actions" style="margin-top:0.8rem">' +
     '<button class="btn-secondary" type="button" id="reviewActivityEditViewNote">Edit note</button>' +
     '<button class="btn-secondary" type="button" id="reviewActivityToggleResolved">' +
@@ -7610,7 +7611,7 @@ function renderReviewEventSnippetHtml(events, options) {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:#333">' +
               options.escapeHtml(item.rationale) +
               "</div>"
             : "") +
@@ -7660,12 +7661,12 @@ function renderReviewEventTimelineHtml(events, options) {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:#333">' +
               options.escapeHtml(item.rationale) +
               "</div>"
             : "") +
           (item.notes
-            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.35rem;font-size:0.82rem;color:#333">' +
               options.escapeHtml(item.notes) +
               "</div>"
             : "") +
@@ -7754,12 +7755,12 @@ function renderReviewActivity() {
               "</div>"
             : "") +
           (showRationale
-            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:#333">' +
               escapeHtml(item.rationale) +
               "</div>"
             : "") +
           (item.notes
-            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:var(--muted)">' +
+            ? '<div style="margin-top:0.45rem;font-size:0.84rem;color:#333">' +
               escapeHtml(item.notes) +
               "</div>"
             : "") +
@@ -8138,10 +8139,13 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
   renderApplications();
 });
 
-document.getElementById("conciergeStatusFilter").addEventListener("change", function (event) {
-  conciergeFilters.status = event.target.value || "";
-  renderConciergeQueue();
-});
+var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
+if (conciergeStatusFilterEl) {
+  conciergeStatusFilterEl.addEventListener("change", function (event) {
+    conciergeFilters.status = event.target.value || "";
+    renderConciergeQueue();
+  });
+}
 
 document.getElementById("portalRequestStatusFilter").addEventListener("change", function (event) {
   portalRequestFilters.status = event.target.value || "";
@@ -8319,6 +8323,17 @@ document.addEventListener("click", function (event) {
 });
 
 reviewerWorkspace.bindEventHandlers();
+bindCandidateEditDrawer();
+
+document.addEventListener("click", function (event) {
+  var editBtn = event.target.closest("[data-edit-candidate-id]");
+  if (!editBtn) return;
+  var candidateId = editBtn.dataset.editCandidateId;
+  var candidate = (remoteCandidates || []).find(function (c) {
+    return String(c.id || c._id) === String(candidateId);
+  });
+  if (candidate) openCandidateEditDrawer(candidate, loadData);
+});
 
 document.getElementById("candidateSearch").addEventListener("input", function (event) {
   candidateFilters.q = event.target.value.trim();
