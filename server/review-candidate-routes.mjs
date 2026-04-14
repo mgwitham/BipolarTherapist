@@ -36,6 +36,65 @@ export async function handleCandidateRoutes(context) {
 
     const body = await parseBody(request);
     const allowedUpdates = {};
+
+    // Profile fields
+    const stringFields = [
+      ["name", "name"],
+      ["credentials", "credentials"],
+      ["title", "title"],
+      ["practice_name", "practiceName"],
+      ["city", "city"],
+      ["state", "state"],
+      ["zip", "zip"],
+      ["license_state", "licenseState"],
+      ["license_number", "licenseNumber"],
+      ["email", "email"],
+      ["phone", "phone"],
+      ["website", "website"],
+      ["booking_url", "bookingUrl"],
+      ["care_approach", "careApproach"],
+      ["estimated_wait_time", "estimatedWaitTime"],
+    ];
+    for (const [bodyKey, sanityKey] of stringFields) {
+      if (typeof body[bodyKey] === "string") {
+        allowedUpdates[sanityKey] = body[bodyKey].trim();
+      }
+    }
+
+    const arrayFields = [
+      ["specialties", "specialties"],
+      ["treatment_modalities", "treatmentModalities"],
+      ["client_populations", "clientPopulations"],
+      ["insurance_accepted", "insuranceAccepted"],
+      ["languages", "languages"],
+      ["telehealth_states", "telehealthStates"],
+    ];
+    for (const [bodyKey, sanityKey] of arrayFields) {
+      if (Array.isArray(body[bodyKey])) {
+        allowedUpdates[sanityKey] = body[bodyKey].map(String).filter(Boolean);
+      }
+    }
+
+    const boolFields = [
+      ["accepts_telehealth", "acceptsTelehealth"],
+      ["accepts_in_person", "acceptsInPerson"],
+      ["accepting_new_patients", "acceptingNewPatients"],
+      ["sliding_scale", "slidingScale"],
+      ["medication_management", "medicationManagement"],
+    ];
+    for (const [bodyKey, sanityKey] of boolFields) {
+      if (typeof body[bodyKey] === "boolean") {
+        allowedUpdates[sanityKey] = body[bodyKey];
+      }
+    }
+
+    if (typeof body.session_fee_min === "number") {
+      allowedUpdates.sessionFeeMin = body.session_fee_min;
+    }
+    if (typeof body.session_fee_max === "number") {
+      allowedUpdates.sessionFeeMax = body.session_fee_max;
+    }
+
     if (typeof body.notes === "string") {
       allowedUpdates.notes = body.notes.trim();
     }

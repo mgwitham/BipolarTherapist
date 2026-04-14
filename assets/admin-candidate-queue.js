@@ -5,11 +5,7 @@ import {
   renderCandidatePublishPacket,
   renderCandidateTrustChips,
 } from "./admin-candidate-review.js";
-import {
-  renderActionFirstIntro,
-  renderDecisionGuide,
-  renderRecommendedActionBar,
-} from "./admin-action-first.js";
+
 import { createActionFlashStore } from "./admin-action-flash.js";
 
 const candidateActionFlash = createActionFlashStore();
@@ -40,19 +36,19 @@ function getRecentCandidateActionFlashes(candidates, limit) {
 function getCandidateDecisionOutcome(decision) {
   switch (decision) {
     case "publish":
-      return "Published and removed from Add New Listings.";
+      return "Published.";
     case "needs_confirmation":
-      return "Moved to Confirm Listing Details.";
+      return "Sent to confirmation.";
     case "reject_duplicate":
-      return "Marked as duplicate and removed from the active new-listings lane.";
+      return "Marked as duplicate.";
     case "merge":
-      return "Merged with the existing record.";
+      return "Merged.";
     case "archive":
-      return "Archived and removed from the active new-listings lane.";
+      return "Archived.";
     case "mark_ready":
-      return "Marked ready for publish review.";
+      return "Queued for publish.";
     default:
-      return "Updated with a clearer next step.";
+      return "Done.";
   }
 }
 
@@ -112,139 +108,6 @@ function getCandidateStartHereGuidance(item) {
   };
 }
 
-function renderCandidateDecisionGuide(item, guidance, escapeHtml) {
-  const nextMove =
-    guidance && guidance.primaryLabel ? guidance.primaryLabel : "Choose the next listing action";
-  const publishLine =
-    guidance && guidance.primaryAction === "publish"
-      ? "Publish now: this is the fastest trusted win."
-      : "Publish now: use this only if the listing is ready to go live.";
-  const confirmationLine =
-    guidance && guidance.primaryAction === "needs_confirmation"
-      ? "Send to confirmation now: this listing needs therapist-confirmed details before publish."
-      : "Send to confirmation now: use this when one important detail still needs therapist confirmation.";
-  const duplicateLine =
-    item && item.dedupe_status === "possible_duplicate"
-      ? "Resolve duplicate now: clear the duplicate risk before moving forward."
-      : "Resolve duplicate now: use this when the listing appears to match an existing profile.";
-
-  return renderDecisionGuide({
-    items: [
-      { label: "Recommended next move", value: nextMove },
-      { label: "Publish now", value: publishLine.replace(/^Publish now:\s*/, "") },
-      {
-        label: "Send to confirmation now",
-        value: confirmationLine.replace(/^Send to confirmation now:\s*/, ""),
-      },
-      {
-        label: "Resolve duplicate now",
-        value: duplicateLine.replace(/^Resolve duplicate now:\s*/, ""),
-      },
-    ],
-    escapeHtml: escapeHtml,
-  });
-}
-
-function renderCandidateCommandStrip(item, guidance, trustSummary, trustRecommendation, options) {
-  const laneLabel = String(item.review_lane || "editorial_review").replace(/_/g, " ");
-  const businessImpact =
-    guidance && guidance.primaryAction === "publish"
-      ? "This card can turn directly into live inventory if you confirm the source trail and ship the decision."
-      : guidance && guidance.primaryAction === "needs_confirmation"
-        ? "This card is close to usable supply, but one trust gap still stands between review and a confident publish."
-        : guidance && guidance.primaryAction === "reject_duplicate"
-          ? "This card affects data integrity more than volume. Resolving duplicate risk protects the whole directory."
-          : "This card is a pipeline-management decision: move it forward or remove ambiguity before new supply piles on top.";
-
-  return (
-    '<div class="card-command-strip"><div class="card-command-kicker">Operator command</div><div class="card-command-title">' +
-    options.escapeHtml(guidance.primaryLabel || "Choose the next listing action") +
-    '</div><div class="card-command-copy">' +
-    options.escapeHtml(guidance.whyNow || "Move this listing into a clearer next state.") +
-    '</div><div class="card-command-grid"><div class="card-command-cell"><div class="card-command-label">Primary lane</div><div class="card-command-value">' +
-    options.escapeHtml(laneLabel) +
-    '</div></div><div class="card-command-cell"><div class="card-command-label">Trust posture</div><div class="card-command-value">' +
-    options.escapeHtml(trustSummary.headline || "Needs review") +
-    '</div></div><div class="card-command-cell"><div class="card-command-label">Done looks like</div><div class="card-command-value">' +
-    options.escapeHtml(guidance.doneWhen || "The listing leaves with a clear next state.") +
-    '</div></div></div><div class="card-command-callout"><strong>Business impact:</strong> ' +
-    options.escapeHtml(businessImpact) +
-    " " +
-    options.escapeHtml(trustRecommendation || "") +
-    "</div></div>"
-  );
-}
-
-function getCandidateStateMeta(item, guidance) {
-  if (guidance && guidance.primaryAction === "publish") {
-    return {
-      tone: "publish",
-      title: "Ready to become live supply",
-      copy: "This listing is close enough to trusted inventory that the main question is whether to publish now or record a reason not to.",
-      badge: "Publish leverage",
-      chips: ["Safe publish path", "High-conversion supply"],
-    };
-  }
-  if (
-    (guidance && guidance.primaryAction === "needs_confirmation") ||
-    item.review_status === "needs_confirmation"
-  ) {
-    return {
-      tone: "trust",
-      title: "Trust work is the gating factor",
-      copy: "The main risk is publishing too early. One missing detail is blocking a confident directory decision.",
-      badge: "Needs trust pass",
-      chips: ["Confirmation first", "Protect listing quality"],
-    };
-  }
-  if (
-    (guidance && guidance.primaryAction === "reject_duplicate") ||
-    item.dedupe_status === "possible_duplicate"
-  ) {
-    return {
-      tone: "ownership",
-      title: "Resolve identity before adding volume",
-      copy: "The highest-value move is clearing duplicate ambiguity so this source does not pollute the provider graph.",
-      badge: "Identity risk",
-      chips: ["Duplicate risk", "System integrity"],
-    };
-  }
-  return {
-    tone: "ownership",
-    title: "Needs operator judgment",
-    copy: "This listing should not sit as an undecided maybe. Push it toward publish, confirmation, merge, or archive.",
-    badge: "Decision required",
-    chips: ["Pipeline management", "Move it forward"],
-  };
-}
-
-function renderCandidateStateStrip(item, guidance, options) {
-  var meta = getCandidateStateMeta(item, guidance);
-  return (
-    '<div class="card-state-strip is-' +
-    options.escapeHtml(meta.tone) +
-    '"><div class="card-state-head"><div><div class="card-state-kicker">Listing state</div><div class="card-state-title">' +
-    options.escapeHtml(meta.title) +
-    '</div><div class="card-state-copy">' +
-    options.escapeHtml(meta.copy) +
-    '</div></div><div class="card-state-badge">' +
-    options.escapeHtml(meta.badge) +
-    '</div></div><div class="card-state-meta">' +
-    (meta.chips || [])
-      .map(function (chip) {
-        return (
-          '<span class="tag is-' +
-          options.escapeHtml(meta.tone) +
-          '">' +
-          options.escapeHtml(chip) +
-          "</span>"
-        );
-      })
-      .join("") +
-    "</div></div>"
-  );
-}
-
 function buildCandidateButton(itemId, action, label, isPrimary) {
   return (
     '<button class="' +
@@ -259,85 +122,11 @@ function buildCandidateButton(itemId, action, label, isPrimary) {
   );
 }
 
-function renderCandidateActionClusters(item, guidance, sourceReference, options) {
-  var itemId = options.escapeHtml(item.id);
-  var primaryHtml = buildCandidateButton(
-    itemId,
-    options.escapeHtml(guidance.primaryAction || "mark_ready"),
-    options.escapeHtml(guidance.primaryLabel || "Choose next move"),
-    true,
-  );
-  var fallbackActions = [];
-  if (guidance.primaryAction !== "mark_ready" && item.review_status !== "ready_to_publish") {
-    fallbackActions.push(buildCandidateButton(itemId, "mark_ready", "Queue for publish", false));
-  }
-  if (
-    guidance.primaryAction !== "needs_confirmation" &&
-    item.review_status !== "needs_confirmation"
-  ) {
-    fallbackActions.push(
-      buildCandidateButton(itemId, "needs_confirmation", "Send to confirmation", false),
-    );
-  }
-  if (
-    guidance.primaryAction !== "reject_duplicate" &&
-    item.dedupe_status !== "rejected_duplicate"
-  ) {
-    fallbackActions.push(
-      buildCandidateButton(itemId, "reject_duplicate", "Mark as duplicate", false),
-    );
-  }
-  if (guidance.primaryAction !== "publish") {
-    fallbackActions.push(buildCandidateButton(itemId, "publish", "Publish now", false));
-  }
-  if (item.matched_therapist_id) {
-    fallbackActions.push(
-      buildCandidateButton(itemId, "merge_to_therapist", "Merge into therapist", false),
-    );
-  }
-  if (item.matched_application_id) {
-    fallbackActions.push(
-      buildCandidateButton(itemId, "merge_to_application", "Merge into application", false),
-    );
-  }
-  var contextActions = [];
-  if (sourceReference && sourceReference.href) {
-    contextActions.push(
-      '<a class="btn-secondary btn-inline" href="' +
-        options.escapeHtml(sourceReference.href) +
-        '" target="_blank" rel="noopener">' +
-        options.escapeHtml(sourceReference.shortLabel || sourceReference.label || "Open source") +
-        "</a>",
-    );
-  }
-  if (item.published_therapist_id) {
-    contextActions.push(
-      '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
-        encodeURIComponent(item.matched_therapist_slug || "") +
-        '">View profile</a>',
-    );
-  }
-  return (
-    '<div class="action-cluster-grid"><div class="action-cluster is-primary"><div class="action-cluster-label">Best move</div><div class="action-cluster-copy">' +
-    options.escapeHtml(
-      guidance.doneWhen || "Choose the clearest next state and move the listing.",
-    ) +
-    '</div><div class="action-cluster-actions">' +
-    primaryHtml +
-    '</div></div><div class="action-cluster is-secondary"><div class="action-cluster-label">Fallback moves</div><div class="action-cluster-copy">Use these when the recommended path does not survive source and trust review.</div><div class="action-cluster-actions">' +
-    fallbackActions.join("") +
-    '</div></div><div class="action-cluster is-context"><div class="action-cluster-label">Context</div><div class="action-cluster-copy">Open source evidence or the linked profile without leaving the decision flow.</div><div class="action-cluster-actions">' +
-    contextActions.join("") +
-    "</div></div></div>"
-  );
-}
-
 function renderCandidateCardHtml(item, index, options, therapists, applications) {
   const location = [item.city, item.state, item.zip]
     .filter(Boolean)
     .join(", ")
     .replace(/, (?=\d{5}$)/, " ");
-  const sourceTrail = [item.source_type, item.source_url].filter(Boolean).join(" · ");
   const sourceReference = options.getSourceReferenceMeta
     ? options.getSourceReferenceMeta(item)
     : {
@@ -346,7 +135,6 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
         shortLabel: item.source_url ? "Open source" : "No source page",
       };
   const trustSummary = options.getCandidateTrustSummary(item);
-  const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
   const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
   const reviewEvents = options.getReviewEventsForCandidate(item);
   const startHereGuidance = getCandidateStartHereGuidance(item);
@@ -361,14 +149,6 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
-  const recommendation =
-    item.publish_recommendation === "ready"
-      ? "Strong publish listing."
-      : item.publish_recommendation === "needs_confirmation"
-        ? "Worth keeping, but needs confirmation."
-        : item.publish_recommendation === "reject"
-          ? "Do not publish without resolving duplication."
-          : "Needs a review decision.";
   const expandedDetails =
     renderCandidatePublishPacket(publishPacket, {
       escapeHtml: options.escapeHtml,
@@ -402,6 +182,34 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     mergeWorkbench +
     mergePreview;
 
+  // Fallback actions (exclude the primary)
+  var fallbackBtns = [];
+  if (
+    startHereGuidance.primaryAction !== "mark_ready" &&
+    item.review_status !== "ready_to_publish"
+  ) {
+    fallbackBtns.push(buildCandidateButton(item.id, "mark_ready", "Queue for publish", false));
+  }
+  if (
+    startHereGuidance.primaryAction !== "needs_confirmation" &&
+    item.review_status !== "needs_confirmation"
+  ) {
+    fallbackBtns.push(
+      buildCandidateButton(item.id, "needs_confirmation", "Send to confirmation", false),
+    );
+  }
+  if (
+    startHereGuidance.primaryAction !== "reject_duplicate" &&
+    item.dedupe_status !== "rejected_duplicate"
+  ) {
+    fallbackBtns.push(
+      buildCandidateButton(item.id, "reject_duplicate", "Mark as duplicate", false),
+    );
+  }
+  if (startHereGuidance.primaryAction !== "publish") {
+    fallbackBtns.push(buildCandidateButton(item.id, "publish", "Publish now", false));
+  }
+
   return (
     '<article class="queue-card' +
     (index === 0 ? " is-start-here" : "") +
@@ -412,96 +220,60 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +
     ">" +
-    renderActionFirstIntro({
-      active: index === 0,
-      title:
-        "Review this listing first. It is the top current supply decision in the filtered view.",
-      action: "Do this now: " + startHereGuidance.whyNow,
-      escapeHtml: options.escapeHtml,
-    }) +
-    '<div class="queue-head"><div><h3>' +
+    // Header: name + status tags
+    '<div class="queue-head"><div><h3 style="display:flex;align-items:baseline;gap:0.55rem;flex-wrap:wrap">' +
     options.escapeHtml(item.name || "Unnamed listing") +
-    '</h3><div class="subtle">' +
+    (item.readiness_score != null
+      ? '<span style="font-size:0.75rem;font-weight:700;padding:0.18rem 0.5rem;border-radius:999px;white-space:nowrap;background:' +
+        (item.readiness_score >= 81
+          ? "rgba(22,163,74,0.12);color:#16a34a"
+          : item.readiness_score >= 61
+            ? "rgba(217,119,6,0.12);color:#d97706"
+            : "rgba(220,38,38,0.11);color:#dc2626") +
+        '">Readiness: ' +
+        options.escapeHtml(String(item.readiness_score)) +
+        "/100</span>"
+      : "") +
+    "</h3>" +
+    '<div class="subtle">' +
     options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
     '</div></div><div class="queue-head-actions"><span class="tag">' +
     options.escapeHtml(options.getCandidateReviewChipLabel(item.review_status)) +
     '</span><span class="tag">' +
     options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
-    renderCandidateStateStrip(item, startHereGuidance, options) +
-    (index === 0
-      ? renderRecommendedActionBar({
-          why: startHereGuidance.whyNow,
-          doneWhen: startHereGuidance.doneWhen,
-          primaryActionHtml:
-            '<button class="btn-primary" data-candidate-decision="' +
-            options.escapeHtml(item.id) +
-            '" data-candidate-next="' +
-            options.escapeHtml(startHereGuidance.primaryAction) +
-            '">' +
-            options.escapeHtml(startHereGuidance.primaryLabel) +
-            "</button>",
-          secondaryActionHtml: sourceReference.href
-            ? '<a class="btn-secondary btn-inline" href="' +
-              options.escapeHtml(sourceReference.href) +
-              '" target="_blank" rel="noopener">' +
-              options.escapeHtml(sourceReference.label) +
-              "</a>"
-            : "",
-          escapeHtml: options.escapeHtml,
-        })
+    // Recommended next step sentence
+    '<div class="queue-summary" style="margin-top:0.6rem">' +
+    options.escapeHtml(startHereGuidance.whyNow) +
+    "</div>" +
+    // Action buttons
+    '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
+    '<button class="btn-primary" data-candidate-decision="' +
+    options.escapeHtml(item.id) +
+    '" data-candidate-next="' +
+    options.escapeHtml(startHereGuidance.primaryAction) +
+    '">' +
+    options.escapeHtml(startHereGuidance.primaryLabel) +
+    "</button>" +
+    fallbackBtns.join("") +
+    (sourceReference.href
+      ? '<a class="btn-secondary btn-inline" href="' +
+        options.escapeHtml(sourceReference.href) +
+        '" target="_blank" rel="noopener">Open source</a>'
       : "") +
-    renderCandidateCommandStrip(
-      item,
-      startHereGuidance,
-      trustSummary,
-      trustRecommendation,
-      options,
-    ) +
-    '<div class="queue-summary-grid">' +
-    '<div class="queue-kpi"><div class="queue-kpi-label">Recommendation</div><div class="queue-kpi-value">' +
-    options.escapeHtml(recommendation) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Ops lane</div><div class="queue-kpi-value">' +
-    options.escapeHtml(String(item.review_lane || "editorial_review").replace(/_/g, " ")) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Priority</div><div class="queue-kpi-value">' +
-    options.escapeHtml(
-      item.review_priority == null ? "Not scored" : String(item.review_priority) + "/100",
-    ) +
-    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Next review due</div><div class="queue-kpi-value">' +
-    options.escapeHtml(
-      item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now",
-    ) +
-    "</div></div></div>" +
-    '<div class="queue-summary"><strong>Readiness:</strong> ' +
-    options.escapeHtml(
-      item.readiness_score == null ? "Not scored" : item.readiness_score + "/100",
-    ) +
+    '<button class="btn-secondary btn-inline" data-edit-candidate-id="' +
+    options.escapeHtml(item.id) +
+    '">Edit profile</button>' +
     "</div>" +
-    '<div class="queue-summary"><strong>Trust:</strong> ' +
-    options.escapeHtml(trustSummary.headline) +
-    "</div>" +
-    '<div class="queue-summary"><strong>Next trust move:</strong> ' +
-    options.escapeHtml(trustRecommendation) +
-    "</div>" +
-    (sourceTrail
-      ? '<div class="queue-summary"><strong>Source trail:</strong> ' +
-        options.escapeHtml(sourceTrail) +
-        "</div>"
-      : "") +
-    renderCandidateDecisionGuide(item, startHereGuidance, options.escapeHtml) +
-    '<div class="queue-actions is-decision-cluster">' +
-    renderCandidateActionClusters(item, startHereGuidance, sourceReference, options) +
-    '</div><div class="review-coach-status" data-candidate-status-id="' +
+    // Status feedback
+    '<div class="review-coach-status" data-candidate-status-id="' +
     options.escapeHtml(item.id) +
     '">' +
     options.escapeHtml(actionFlash) +
     "</div>" +
-    options.renderReviewEntityTaskHtml("candidate", item.id, {
-      escapeHtml: options.escapeHtml,
-      formatDate: options.formatDate,
-    }) +
+    // Collapsed details
     (expandedDetails
-      ? '<details class="queue-more-details"><summary>See full listing details</summary><div class="queue-more-details-body">' +
+      ? '<details class="queue-more-details"><summary>See full details</summary><div class="queue-more-details-body">' +
         expandedDetails +
         "</div></details>"
       : "") +

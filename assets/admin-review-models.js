@@ -865,10 +865,10 @@ export function createAdminReviewModels(dependencies) {
     var uniqueBlockers = Array.from(new Set(blockers));
     return {
       decision: uniqueBlockers.length
-        ? "Hold publish"
+        ? "Not yet — issues need resolving"
         : uniqueWatch.length
-          ? "Close, but verify"
-          : "Publish ready",
+          ? "Almost — a few things to check"
+          : "Yes — ready to publish",
       strong: uniqueStrong,
       watch: uniqueWatch,
       blockers: uniqueBlockers,
