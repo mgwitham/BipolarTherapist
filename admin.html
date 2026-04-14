@@ -20,7 +20,7 @@
         --slate: #333;
         --muted: #222;
         --border: #d4e4e9;
-        --bg: #f7fbfc;
+        --bg: #dce8ec;
         --white: #ffffff;
         --green: #3aaa7a;
         --red: #c2410c;
@@ -1429,9 +1429,10 @@
         position: relative;
         padding: 0.95rem 1rem;
         margin-bottom: 0.85rem;
-        background: var(--white);
-        border: 1px solid var(--border);
+        background: #ffffff;
+        border: 1px solid #b8cdd4;
         border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(29, 58, 74, 0.08);
         transition:
           transform 180ms ease,
           border-color 180ms ease,
@@ -1960,20 +1961,20 @@
         margin: 0.78rem 0 0.82rem;
         padding: 0.78rem 0.88rem;
         border-radius: 15px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: linear-gradient(180deg, rgba(249, 252, 253, 0.98), rgba(255, 255, 255, 0.96));
+        border: 1px solid #b8cdd4;
+        background: #eef4f6;
       }
       .card-state-strip.is-publish {
-        border-color: rgba(58, 170, 122, 0.2);
-        background: linear-gradient(180deg, rgba(245, 252, 248, 0.98), rgba(255, 255, 255, 0.96));
+        border-color: #82c9a0;
+        background: #e2f5ec;
       }
       .card-state-strip.is-trust {
-        border-color: rgba(214, 148, 43, 0.22);
-        background: linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(255, 255, 255, 0.96));
+        border-color: #d4a84e;
+        background: #fdf0cc;
       }
       .card-state-strip.is-ownership {
-        border-color: rgba(33, 92, 158, 0.2);
-        background: linear-gradient(180deg, rgba(244, 248, 253, 0.98), rgba(255, 255, 255, 0.96));
+        border-color: #7a9acc;
+        background: #dce8f8;
       }
       .card-state-head {
         display: flex;
@@ -2006,8 +2007,8 @@
         align-items: center;
         padding: 0.34rem 0.58rem;
         border-radius: 999px;
-        background: rgba(15, 53, 87, 0.1);
-        color: var(--navy);
+        background: #c4d8de;
+        color: #1d3a4a;
         font-size: 0.68rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2015,16 +2016,16 @@
         white-space: nowrap;
       }
       .card-state-strip.is-trust .card-state-badge {
-        background: rgba(214, 148, 43, 0.45);
-        color: #5c3b00;
+        background: #e8c060;
+        color: #4a2800;
       }
       .card-state-strip.is-publish .card-state-badge {
-        background: rgba(58, 170, 122, 0.38);
-        color: #14502f;
+        background: #68c898;
+        color: #0a3820;
       }
       .card-state-strip.is-ownership .card-state-badge {
-        background: rgba(33, 92, 158, 0.35);
-        color: #122d5c;
+        background: #88aad8;
+        color: #0c2248;
       }
       .card-state-meta {
         display: flex;
@@ -2047,24 +2048,24 @@
         font-weight: 600;
         padding: 0.25rem 0.6rem;
         border-radius: 999px;
-        background: rgba(26, 122, 143, 0.18);
-        color: var(--teal-dark);
+        background: #b8d8e2;
+        color: #0e3d4a;
       }
       .tag.is-publish {
-        background: rgba(58, 170, 122, 0.2);
-        color: #1a6a46;
+        background: #8ed8b4;
+        color: #0a3820;
       }
       .tag.is-trust {
-        background: rgba(214, 148, 43, 0.22);
-        color: #7a5000;
+        background: #eaca72;
+        color: #4a2800;
       }
       .tag.is-ownership {
-        background: rgba(33, 92, 158, 0.12);
-        color: #1f4f87;
+        background: #8eb0e2;
+        color: #0c2248;
       }
       .tag.is-neutral {
-        background: rgba(15, 53, 87, 0.08);
-        color: #333;
+        background: #c4d4da;
+        color: #2a3a44;
       }
       .meta-grid {
         display: grid;
