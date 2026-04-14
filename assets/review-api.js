@@ -542,6 +542,14 @@ export async function updateTherapistCandidate(candidateId, updates) {
   );
 }
 
+export async function updateTherapist(therapistId, updates) {
+  return request(`/therapists/${encodeURIComponent(therapistId)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(updates),
+  });
+}
+
 export async function applyTherapistApplicationFields(applicationId, fields) {
   return request(`/applications/${encodeURIComponent(applicationId)}/apply-live-fields`, {
     method: "POST",
