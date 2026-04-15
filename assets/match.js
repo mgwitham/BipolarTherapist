@@ -4678,14 +4678,12 @@ function renderResults(entries, profile) {
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
-  renderFirstContactRecommendation(profile, primaryEntries);
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   renderShortlistQueue(entries);
   if (refs.feedbackBar) {
     refs.feedbackBar.hidden = false;
   }
-  renderOutreachPanel(entries);
   renderComparison(entries);
 }
 
