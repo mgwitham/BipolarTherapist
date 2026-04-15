@@ -161,13 +161,25 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
   refs.copy.textContent = config.copy;
 
   if (refs.searchButton) {
-    refs.searchButton.textContent = config.searchButton;
+    // Only update text if the element is a simple text node (not the new refine-more-btn)
+    if (!refs.searchButton.querySelector(".refine-chevron")) {
+      refs.searchButton.textContent = config.searchButton;
+    }
   }
   if (refs.refinementSubmitButton) {
     refs.refinementSubmitButton.textContent = config.refinementButton;
   }
   if (refs.refinements) {
-    refs.refinements.open = mode === "results";
+    // In intake mode, close the advanced panel. In results mode, leave it as-is
+    // so the user controls it via "More filters" — don't auto-open.
+    if (mode !== "results") {
+      refs.refinements.open = false;
+      var moreBtn = document.getElementById("openAdvancedFiltersButton");
+      if (moreBtn) {
+        moreBtn.setAttribute("aria-expanded", "false");
+        moreBtn.classList.remove("is-expanded");
+      }
+    }
   }
   if (mode !== "results") {
     restoreBuilderPlacement();
