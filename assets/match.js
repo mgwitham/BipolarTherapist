@@ -1798,24 +1798,12 @@ function getCompareFreshness(entry) {
     : null;
 }
 
-function getCompareRole(entry, index, recommendedSlug) {
-  var priority = String(entry?.evaluation?.shortlist_priority || "").toLowerCase();
-  var slug = entry?.therapist?.slug || "";
-
-  if (recommendedSlug && slug === recommendedSlug) {
-    return "Contact first";
-  }
-  if (priority === "top pick") {
-    return "Contact first";
-  }
-  if (priority === "backup") {
-    return "Backup if stalled";
-  }
+function getCompareRole(entry, index) {
   if (index === 0) {
-    return "Strong contender";
+    return "Contact first";
   }
   if (index === 1) {
-    return "Backup if stalled";
+    return "Strong contender";
   }
   return "Compare if needed";
 }
@@ -1937,7 +1925,7 @@ function renderCompareDecisionCards(topEntries, profile) {
         var therapist = entry.therapist;
         var readiness = getContactReadiness(entry);
         var freshness = getCompareFreshness(entry);
-        var role = getCompareRole(entry, index, recommendedSlug);
+        var role = getCompareRole(entry, index);
         var leadName =
           topEntries[0] && topEntries[0].therapist ? topEntries[0].therapist.name : "your lead";
         var backupName =
@@ -2061,7 +2049,7 @@ function buildPartnerCompareSummary(entries, profile) {
 
   topEntries.forEach(function (entry, index) {
     var therapist = entry.therapist;
-    var role = getCompareRole(entry, index, recommendedSlug);
+    var role = getCompareRole(entry, index);
     var reason = getCompareRoleReason(entry, profile, recommendation, role);
     var timing = getCompareTimingLabel(therapist) || "timing not listed";
     var cost = getCompareCostLabel(therapist) || "fees not listed";
@@ -2126,10 +2114,7 @@ function renderComparison(entries) {
         var index = topEntries.findIndex(function (entry) {
           return entry && entry.therapist && entry.therapist.slug === therapist.slug;
         });
-        var recommendation = buildFirstContactRecommendation(profile, topEntries);
-        var recommendedSlug =
-          recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
-        return getCompareRole(topEntries[index], index, recommendedSlug);
+        return getCompareRole(topEntries[index], index);
       },
     },
     {
