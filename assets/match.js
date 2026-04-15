@@ -4554,8 +4554,8 @@ function renderPrimaryMatchCards(entries, _profile) {
     '<div class="results-panel">' +
     renderLeadResultCard(leadEntry, backupName) +
     (supportingEntries.length
-      ? '<div class="result-supporting-list">' +
-        '<div class="result-supporting-header">Other strong matches</div>' +
+      ? '<div class="result-supporting-header">Other strong matches</div>' +
+        '<div class="result-supporting-list">' +
         supportingEntries
           .map(function (entry, i) {
             return renderSupportingResultCard(entry, i + 2);
