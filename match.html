@@ -4229,6 +4229,30 @@
         .match-trust-system {
           grid-template-columns: 1fr;
         }
+
+        /* Swipeable supporting cards on mobile */
+        .result-supporting-list {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          gap: 0;
+          grid-template-columns: none;
+          border-radius: 14px;
+          scrollbar-width: none;
+        }
+        .result-supporting-list::-webkit-scrollbar {
+          display: none;
+        }
+        .result-supporting-list .result-card {
+          flex: 0 0 85%;
+          scroll-snap-align: center;
+          border-right: 1px solid #e4edf1;
+          border-radius: 0;
+        }
+        .result-supporting-list .result-card:last-child {
+          border-right: none;
+        }
       }
 
       /* ═══════════════════════════════════════════════════════
