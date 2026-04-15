@@ -1724,13 +1724,13 @@ function getCompareCostLabel(therapist) {
   var min = therapist.session_fee_min;
   var max = therapist.session_fee_max;
   if (min && max && min !== max) {
-    return "$" + min + "–$" + max + " per session";
+    return "$" + min + "–$" + max;
   }
   if (min) {
-    return "$" + min + " per session";
+    return "$" + min;
   }
   if (max) {
-    return "Up to $" + max + " per session";
+    return "Up to $" + max;
   }
   if (therapist.sliding_scale) {
     return "Sliding scale available";
