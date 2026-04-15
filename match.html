@@ -2296,6 +2296,8 @@
         color: var(--slate);
         line-height: 1.5;
         background: rgba(255, 255, 255, 0.94);
+        text-align: center;
+        vertical-align: middle;
       }
       .compare-cell-end-col {
         border-right: none;
@@ -2309,9 +2311,17 @@
         color: var(--navy);
         font-size: 0.8rem;
         letter-spacing: 0.01em;
+        text-align: left;
+        vertical-align: middle;
       }
       .compare-cell-header {
         background: linear-gradient(180deg, #f7fbfc 0%, #f1f8fa 100%);
+        text-align: center;
+        vertical-align: middle;
+      }
+      /* Keep the top-left "Compare" header label left-aligned */
+      .compare-cell-label.compare-cell-header {
+        text-align: left;
       }
       .compare-name {
         font-weight: 800;
