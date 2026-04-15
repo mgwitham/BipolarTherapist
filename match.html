@@ -4287,11 +4287,11 @@
         gap: 0.65rem;
       }
       .refine-adv-title {
-        font-size: 0.64rem;
-        font-weight: 800;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        color: rgba(85, 104, 118, 0.55);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--slate);
       }
       .refine-adv-grid {
         display: grid;
@@ -4329,11 +4329,11 @@
         gap: 0.9rem;
       }
       .refine-chips-lbl {
-        font-size: 0.69rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: rgba(85, 104, 118, 0.65);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        color: rgba(85, 104, 118, 0.8);
         display: block;
         margin-bottom: 0.3rem;
       }
@@ -4387,6 +4387,206 @@
         outline-offset: 2px;
       }
 
+      /* Override uppercase inside the advanced panel */
+      .refine-advanced-panel .refine-field-lbl,
+      .refine-advanced-panel label {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      /* Pill / chip spans — always sentence case */
+      .refine-chip span,
+      .refine-chip,
+      .refine-med-opt span,
+      .refine-med-opt,
+      .refine-priority-card,
+      .refine-seg-opt span {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      /* Section header with optional hint */
+      .refine-adv-header {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .refine-adv-hint {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: rgba(85, 104, 118, 0.55);
+        font-style: italic;
+      }
+
+      /* Priority tiles */
+      .refine-priority-opts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+      }
+      .refine-priority-opt {
+        cursor: pointer;
+      }
+      .refine-priority-opt input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-priority-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0.45rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: rgba(14, 77, 95, 0.04);
+        border: 1px solid rgba(14, 77, 95, 0.13);
+        border-radius: 8px;
+        line-height: 1.3;
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+        min-height: 2.4rem;
+        user-select: none;
+        cursor: pointer;
+      }
+      .refine-priority-opt:hover .refine-priority-card {
+        background: rgba(26, 122, 143, 0.07);
+        border-color: rgba(26, 122, 143, 0.25);
+        color: #1a7a8f;
+      }
+      .refine-priority-opt input[type="radio"]:checked + .refine-priority-card {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+        font-weight: 600;
+      }
+      .refine-priority-opt:focus-within .refine-priority-card {
+        outline: 2px solid rgba(26, 122, 143, 0.38);
+        outline-offset: 2px;
+      }
+
+      /* Cost & access 2-col row */
+      .refine-cost-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+        align-items: start;
+      }
+      .refine-cost-row .refine-field-lbl {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.75);
+        display: block;
+        margin-bottom: 0.2rem;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .refine-cost-row .match-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Medication management radio pills */
+      .refine-med-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.8);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      .refine-med-opts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+      }
+      .refine-med-opt {
+        cursor: pointer;
+      }
+      .refine-med-opt input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-med-opt span {
+        display: inline-block;
+        padding: 0.27rem 0.72rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: rgba(14, 77, 95, 0.04);
+        border: 1px solid rgba(14, 77, 95, 0.13);
+        border-radius: 20px;
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+        user-select: none;
+        line-height: 1.4;
+      }
+      .refine-med-opt:hover span {
+        background: rgba(26, 122, 143, 0.09);
+        border-color: rgba(26, 122, 143, 0.28);
+        color: #1a7a8f;
+      }
+      .refine-med-opt input[type="radio"]:checked + span {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+        font-weight: 600;
+      }
+      .refine-med-opt:focus-within span {
+        outline: 2px solid rgba(26, 122, 143, 0.38);
+        outline-offset: 2px;
+      }
+
+      /* Change search section — visually secondary */
+      .refine-adv-section--search {
+        padding-top: 1.1rem;
+        border-top: 1px dashed rgba(14, 77, 95, 0.18);
+        opacity: 0.85;
+      }
+      .refine-search-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+        align-items: start;
+      }
+      .refine-search-row .refine-field-lbl,
+      .refine-search-row label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.75);
+        display: block;
+        text-transform: none;
+        letter-spacing: 0;
+        margin-bottom: 0.2rem;
+      }
+      .refine-search-row select,
+      .refine-search-row input[type="text"] {
+        width: 100%;
+        font-size: 0.85rem;
+        padding: 0.3rem 0.45rem;
+        border: 1px solid rgba(14, 77, 95, 0.18);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--slate);
+        font-family: inherit;
+      }
+      .refine-search-row select:focus,
+      .refine-search-row input[type="text"]:focus {
+        outline: 2px solid rgba(26, 122, 143, 0.35);
+        outline-offset: 1px;
+        border-color: rgba(26, 122, 143, 0.4);
+      }
+
       /* Submit button */
       .refine-update-btn {
         flex-shrink: 0;
@@ -4435,6 +4635,15 @@
         }
         .refine-adv-grid {
           grid-template-columns: 1fr 1fr;
+        }
+        .refine-priority-opts {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .refine-cost-row {
+          grid-template-columns: 1fr;
+        }
+        .refine-search-row {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -4636,94 +4845,109 @@
                   <summary aria-hidden="true"></summary>
 
                   <div class="refine-advanced-panel">
-                    <!-- Search params -->
+                    <!-- 1. What matters most — leads because it has the biggest impact -->
                     <div class="refine-adv-section">
-                      <div class="refine-adv-title">Search</div>
-                      <div class="refine-adv-grid">
-                        <div class="match-group" data-intake-field="care_intent">
-                          <label for="care_intent">Type of care</label>
-                          <select id="care_intent" name="care_intent" required>
-                            <option value="">Any type</option>
-                            <option value="Therapy">Therapy</option>
-                            <option value="Psychiatry">Psychiatry</option>
-                          </select>
-                        </div>
-                        <div class="match-group" data-intake-field="location_query">
-                          <label for="location_query">ZIP code</label>
-                          <div class="match-zip-inline">
-                            <input
-                              id="location_query"
-                              name="location_query"
-                              type="text"
-                              placeholder="Enter ZIP code"
-                              inputmode="numeric"
-                              required
-                            />
-                            <span
-                              class="match-zip-resolved"
-                              id="matchZipResolved"
-                              aria-live="polite"
-                            ></span>
-                          </div>
-                          <div class="match-launch-note">
-                            Currently matching California ZIP codes.
-                          </div>
-                        </div>
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">What matters most to you?</span>
+                      </div>
+                      <div
+                        class="refine-priority-opts"
+                        role="radiogroup"
+                        aria-label="Ranking priority"
+                      >
+                        <label class="refine-priority-opt">
+                          <input
+                            type="radio"
+                            name="priority_mode"
+                            value="Best overall fit"
+                            checked
+                          />
+                          <span class="refine-priority-card">Best overall fit</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Soonest availability" />
+                          <span class="refine-priority-card">Soonest available</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Lowest cost" />
+                          <span class="refine-priority-card">Lowest cost</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Highest specialization" />
+                          <span class="refine-priority-card">Most specialized</span>
+                        </label>
                       </div>
                     </div>
 
-                    <!-- Practical fit -->
+                    <!-- 2. Cost & access -->
                     <div class="refine-adv-section">
-                      <div class="refine-adv-title">Practical fit</div>
-                      <div class="refine-adv-grid">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Cost & access</span>
+                      </div>
+                      <div class="refine-cost-row">
                         <div class="match-group" data-intake-field="budget_max">
-                          <label for="budget_max">Max per session ($)</label>
+                          <label class="refine-field-lbl" for="budget_max"
+                            >Max per session ($)</label
+                          >
                           <input
                             id="budget_max"
                             name="budget_max"
                             type="number"
                             min="0"
-                            placeholder="150"
+                            class="refine-input"
+                            placeholder="e.g. 150"
                           />
                         </div>
                         <div class="match-group" data-intake-field="language_preferences">
-                          <label for="language_preferences">Language</label>
+                          <label class="refine-field-lbl" for="language_preferences"
+                            >Language preference</label
+                          >
                           <input
                             id="language_preferences"
                             name="language_preferences"
                             type="text"
+                            class="refine-input"
                             placeholder="English, Spanish…"
                           />
                         </div>
-                        <div class="match-group" data-intake-field="needs_medication_management">
-                          <label for="needs_medication_management">Medication mgmt</label>
-                          <select
-                            id="needs_medication_management"
-                            name="needs_medication_management"
-                          >
-                            <option>Open to either</option>
-                            <option>Yes</option>
-                            <option>No</option>
-                          </select>
-                        </div>
-                        <div class="match-group" data-intake-field="priority_mode">
-                          <label for="priority_mode">Priority</label>
-                          <select id="priority_mode" name="priority_mode">
-                            <option>Best overall fit</option>
-                            <option>Soonest availability</option>
-                            <option>Lowest cost</option>
-                            <option>Highest specialization</option>
-                          </select>
+                      </div>
+                      <div class="match-group" data-intake-field="needs_medication_management">
+                        <label class="refine-field-lbl">Do you need medication management?</label>
+                        <div
+                          class="refine-med-opts"
+                          role="radiogroup"
+                          aria-label="Medication management"
+                        >
+                          <label class="refine-med-opt">
+                            <input
+                              type="radio"
+                              name="needs_medication_management"
+                              value="Open to either"
+                              checked
+                            />
+                            <span>Open to either</span>
+                          </label>
+                          <label class="refine-med-opt">
+                            <input type="radio" name="needs_medication_management" value="Yes" />
+                            <span>Yes, needed</span>
+                          </label>
+                          <label class="refine-med-opt">
+                            <input type="radio" name="needs_medication_management" value="No" />
+                            <span>Not needed</span>
+                          </label>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Clinical fit -->
+                    <!-- 3. Clinical focus — optional, for users who know what they want -->
                     <div class="refine-adv-section">
-                      <div class="refine-adv-title">Clinical fit</div>
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Clinical focus</span>
+                        <span class="refine-adv-hint">Optional — skip if you're not sure</span>
+                      </div>
                       <div class="refine-chips-group">
                         <div class="match-group" data-intake-field="bipolar_focus">
-                          <span class="refine-chips-lbl">Bipolar focus</span>
+                          <span class="refine-chips-lbl">Specific diagnosis or focus</span>
                           <div class="refine-chips">
                             <label class="refine-chip"
                               ><input type="checkbox" name="bipolar_focus" value="Bipolar I" /><span
@@ -4775,12 +4999,12 @@
                                 type="checkbox"
                                 name="bipolar_focus"
                                 value="Family Support"
-                              /><span>Family Support</span></label
+                              /><span>Family support</span></label
                             >
                           </div>
                         </div>
                         <div class="match-group" data-intake-field="preferred_modalities">
-                          <span class="refine-chips-lbl">Modalities</span>
+                          <span class="refine-chips-lbl">Therapy style</span>
                           <div class="refine-chips">
                             <label class="refine-chip"
                               ><input
@@ -4834,7 +5058,7 @@
                           </div>
                         </div>
                         <div class="match-group" data-intake-field="population_fit">
-                          <span class="refine-chips-lbl">For</span>
+                          <span class="refine-chips-lbl">Who is this for?</span>
                           <div class="refine-chips">
                             <label class="refine-chip"
                               ><input type="checkbox" name="population_fit" value="Adults" /><span
@@ -4884,6 +5108,42 @@
                                 >LGBTQ+</span
                               ></label
                             >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 4. Update search — secondary, at the bottom -->
+                    <div class="refine-adv-section refine-adv-section--search">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Change your search</span>
+                        <span class="refine-adv-hint">Update care type or location</span>
+                      </div>
+                      <div class="refine-search-row">
+                        <div class="match-group" data-intake-field="care_intent">
+                          <label class="refine-field-lbl" for="care_intent">Type of care</label>
+                          <select id="care_intent" name="care_intent" required>
+                            <option value="">Any type</option>
+                            <option value="Therapy">Therapy</option>
+                            <option value="Psychiatry">Psychiatry</option>
+                          </select>
+                        </div>
+                        <div class="match-group" data-intake-field="location_query">
+                          <label class="refine-field-lbl" for="location_query">ZIP code</label>
+                          <div class="match-zip-inline">
+                            <input
+                              id="location_query"
+                              name="location_query"
+                              type="text"
+                              placeholder="ZIP code"
+                              inputmode="numeric"
+                              required
+                            />
+                            <span
+                              class="match-zip-resolved"
+                              id="matchZipResolved"
+                              aria-live="polite"
+                            ></span>
                           </div>
                         </div>
                       </div>
