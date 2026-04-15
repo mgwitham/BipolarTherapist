@@ -4419,56 +4419,74 @@
         color: #fff;
       }
 
-      /* Footer row: more-filters + submit */
+      /* Footer row: customize CTA + update */
       .refine-foot {
         display: flex;
-        align-items: center;
-        gap: 0.65rem;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding-top: 0.25rem;
       }
       .refine-more-btn {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 0.35rem;
-        background: none;
-        border: none;
-        padding: 0.3rem 0;
-        font-size: 0.83rem;
+        justify-content: center;
+        gap: 0.55rem;
+        width: 100%;
+        background: linear-gradient(135deg, rgba(26, 122, 143, 0.06), rgba(26, 122, 143, 0.12));
+        border: 1.5px solid rgba(26, 122, 143, 0.22);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.92rem;
         font-weight: 600;
         color: #1a7a8f;
         cursor: pointer;
         font-family: inherit;
-        transition: opacity 0.15s;
-        flex: 1 1 0;
-        text-align: left;
+        transition:
+          background 0.18s,
+          border-color 0.18s,
+          transform 0.1s,
+          box-shadow 0.18s;
+        text-align: center;
         min-width: 0;
       }
       .refine-more-btn:hover {
-        opacity: 0.72;
+        background: linear-gradient(135deg, rgba(26, 122, 143, 0.1), rgba(26, 122, 143, 0.18));
+        border-color: rgba(26, 122, 143, 0.35);
+        box-shadow: 0 2px 12px rgba(26, 122, 143, 0.1);
+      }
+      .refine-more-btn:active {
+        transform: scale(0.98);
+      }
+      .refine-more-btn .refine-filter-icon {
+        flex-shrink: 0;
       }
       .refine-filter-count {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 18px;
-        height: 18px;
-        padding: 0 5px;
-        font-size: 0.64rem;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        font-size: 0.68rem;
         font-weight: 700;
         background: #1a7a8f;
         color: #fff;
-        border-radius: 9px;
+        border-radius: 10px;
         line-height: 1;
       }
       .refine-filter-count[hidden] {
         display: none;
       }
       .refine-chevron {
-        transition: transform 0.2s ease;
+        transition: transform 0.25s ease;
         flex-shrink: 0;
       }
       .refine-more-btn.is-expanded .refine-chevron {
         transform: rotate(180deg);
+      }
+      .refine-update-row {
+        display: flex;
+        justify-content: flex-end;
       }
 
       /* details element: suppress native styles */
@@ -4811,15 +4829,15 @@
         border-color: rgba(26, 122, 143, 0.4);
       }
 
-      /* Submit button */
+      /* Submit button (inline, secondary) */
       .refine-update-btn {
         flex-shrink: 0;
         background: #1a7a8f;
         color: #fff;
         border: none;
         border-radius: 10px;
-        padding: 0.5rem 1.2rem;
-        font-size: 0.87rem;
+        padding: 0.45rem 1.1rem;
+        font-size: 0.82rem;
         font-weight: 600;
         cursor: pointer;
         transition:
@@ -4834,6 +4852,35 @@
       }
       .refine-update-btn:active {
         transform: scale(0.97);
+      }
+
+      /* Refine search button at bottom of advanced panel */
+      .refine-bottom-submit {
+        width: 100%;
+        background: #1a7a8f;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 0.85rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        transition:
+          background 0.14s,
+          transform 0.1s,
+          box-shadow 0.18s;
+        white-space: nowrap;
+        line-height: 1.35;
+        margin-top: 0.5rem;
+        letter-spacing: 0.01em;
+      }
+      .refine-bottom-submit:hover {
+        background: #166a7d;
+        box-shadow: 0 4px 16px rgba(26, 122, 143, 0.2);
+      }
+      .refine-bottom-submit:active {
+        transform: scale(0.98);
       }
 
       @media (max-width: 540px) {
@@ -4868,6 +4915,78 @@
         }
         .refine-search-row {
           grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Results-first layout ──────────────────────── */
+
+      /* Hide hero when results are showing */
+      .match-results-hero:not(.match-empty) .match-hero-copy,
+      .match-results-hero:not(.match-empty) .match-decision-strip,
+      .match-results-hero:not(.match-empty) .match-trust-pills,
+      .match-results-hero:not(.match-empty) .match-trust-system {
+        display: none;
+      }
+
+      /* Refine section toggle */
+      .match-refine-section {
+        margin: 1.2rem 0;
+        border: 1.5px solid rgba(26, 122, 143, 0.15);
+        border-radius: 14px;
+        background: linear-gradient(165deg, #fff 0%, rgba(26, 122, 143, 0.02) 100%);
+        overflow: hidden;
+        box-shadow: 0 1px 6px rgba(26, 122, 143, 0.06);
+      }
+      .match-refine-section > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--text);
+        user-select: none;
+      }
+      .match-refine-section > summary::-webkit-details-marker {
+        display: none;
+      }
+      .match-refine-section > summary .refine-chevron {
+        transition: transform 0.2s ease;
+      }
+      .match-refine-section[open] > summary .refine-chevron {
+        transform: rotate(180deg);
+      }
+      .match-refine-section > .match-builder {
+        padding: 0 1.25rem 1.25rem;
+      }
+
+      /* When refine section is inside details, remove card chrome from inner tool */
+      .match-refine-section .match-tool-shell {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .match-refine-section .match-tool-card {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      @media (max-width: 640px) {
+        .match-refine-section {
+          margin: 0.75rem 0;
+          border-radius: 10px;
+        }
+        .match-refine-section > summary {
+          padding: 0.85rem 1rem;
+          font-size: 0.95rem;
+        }
+        .match-refine-section > .match-builder {
+          padding: 0 1rem 1rem;
         }
       }
     </style>
@@ -5035,42 +5154,7 @@
                 </div>
                 <div class="refine-primary-divider"></div>
 
-                <!-- Quick filters: insurance + format -->
-                <div class="refine-quick">
-                  <div class="refine-field" data-intake-field="insurance">
-                    <label class="refine-field-lbl" for="insurance">Insurance</label>
-                    <input
-                      id="insurance"
-                      name="insurance"
-                      type="text"
-                      class="refine-input"
-                      placeholder="e.g. Aetna, Medi-Cal, self-pay"
-                    />
-                  </div>
-                  <div class="refine-field refine-field--format">
-                    <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
-                    <div
-                      class="refine-format-seg"
-                      role="radiogroup"
-                      aria-labelledby="refineFormatLabel"
-                    >
-                      <label class="refine-seg-opt">
-                        <input type="radio" name="care_format" value="" checked />
-                        <span>Any</span>
-                      </label>
-                      <label class="refine-seg-opt">
-                        <input type="radio" name="care_format" value="Telehealth" />
-                        <span>Telehealth</span>
-                      </label>
-                      <label class="refine-seg-opt">
-                        <input type="radio" name="care_format" value="In-Person" />
-                        <span>In-person</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Footer row: more-filters + submit (always visible, same line) -->
+                <!-- Footer: customize CTA + update -->
                 <div class="refine-foot">
                   <button
                     type="button"
@@ -5079,7 +5163,22 @@
                     aria-expanded="false"
                     aria-controls="refineAdvancedDetails"
                   >
-                    More filters
+                    <svg
+                      class="refine-filter-icon"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4 6h16M7 12h10M10 18h4"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    Customize your search
                     <span class="refine-filter-count" id="refineFilterCount" hidden></span>
                     <svg
                       class="refine-chevron"
@@ -5098,9 +5197,6 @@
                       />
                     </svg>
                   </button>
-                  <button type="submit" id="refinementSubmitButton" class="refine-update-btn">
-                    Update results
-                  </button>
                 </div>
 
                 <!-- Advanced panel (expands below the foot row) -->
@@ -5108,6 +5204,43 @@
                   <summary aria-hidden="true"></summary>
 
                   <div class="refine-advanced-panel">
+                    <!-- Insurance + format -->
+                    <div class="refine-adv-section">
+                      <div class="refine-quick">
+                        <div class="refine-field" data-intake-field="insurance">
+                          <label class="refine-field-lbl" for="insurance">Insurance</label>
+                          <input
+                            id="insurance"
+                            name="insurance"
+                            type="text"
+                            class="refine-input"
+                            placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                          />
+                        </div>
+                        <div class="refine-field refine-field--format">
+                          <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
+                          <div
+                            class="refine-format-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineFormatLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="" checked />
+                              <span>Any</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="Telehealth" />
+                              <span>Telehealth</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="In-Person" />
+                              <span>In-person</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <!-- 1. What matters most — leads because it has the biggest impact -->
                     <div class="refine-adv-section">
                       <div class="refine-adv-header">
@@ -5411,6 +5544,7 @@
                         </div>
                       </div>
                     </div>
+                    <button type="submit" class="refine-bottom-submit">Refine search</button>
                   </div>
                 </details>
 

@@ -4529,6 +4529,10 @@ function renderResults(entries, profile) {
       hasRefinements,
     );
     clearRenderedMatchPanels();
+    var refineSectionEmpty = document.getElementById("matchRefineSection");
+    if (refineSectionEmpty) {
+      refineSectionEmpty.setAttribute("open", "");
+    }
     return;
   }
 
@@ -4546,6 +4550,20 @@ function renderResults(entries, profile) {
     refs.feedbackBar.hidden = false;
   }
   renderComparison(entries);
+
+  // Collapse refine section when real results are showing (not starter mode)
+  var refineSection = document.getElementById("matchRefineSection");
+  if (refineSection && !starterResultsMode) {
+    refineSection.removeAttribute("open");
+  } else if (refineSection && starterResultsMode) {
+    refineSection.setAttribute("open", "");
+  }
+
+  // Hide hero content
+  var heroRoot = document.getElementById("matchResults");
+  if (heroRoot) {
+    heroRoot.classList.remove("match-empty");
+  }
 }
 
 function handleSubmit(event) {

@@ -74,24 +74,48 @@ export function placeBuilderInResults(resultsRoot) {
   }
 
   refs.builder.classList.add("is-inline-results");
-  var summaryBar = resultsRoot.querySelector(".match-summary-slider-shell, .match-summary-bar");
-  if (summaryBar && summaryBar.nextSibling) {
-    resultsRoot.insertBefore(refs.builder, summaryBar.nextSibling);
-    return;
+
+  // Create collapsible refine wrapper
+  var refineWrapper = document.getElementById("matchRefineSection");
+  if (!refineWrapper) {
+    refineWrapper = document.createElement("details");
+    refineWrapper.className = "match-refine-section";
+    refineWrapper.id = "matchRefineSection";
+    refineWrapper.innerHTML =
+      '<summary class="match-refine-toggle">' +
+      '<span class="match-refine-toggle-text">Refine your results</span>' +
+      '<svg class="refine-chevron" width="11" height="7" viewBox="0 0 11 7" fill="none" aria-hidden="true">' +
+      '<path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      "</svg></summary>";
   }
 
-  if (summaryBar) {
-    resultsRoot.appendChild(refs.builder);
-    return;
-  }
+  // Place refine wrapper (with builder inside) after the results panel
+  resultsRoot.appendChild(refineWrapper);
+  refineWrapper.appendChild(refs.builder);
 
-  resultsRoot.insertBefore(refs.builder, resultsRoot.firstChild || null);
+  // Move result containers above the refine section
+  if (refs.firstContact) {
+    resultsRoot.insertBefore(refs.firstContact, refineWrapper);
+  }
+  if (refs.fallbackContact) {
+    resultsRoot.insertBefore(refs.fallbackContact, refineWrapper);
+  }
+  if (refs.queue) {
+    resultsRoot.insertBefore(refs.queue, refineWrapper);
+  }
 }
 
 export function restoreBuilderPlacement() {
   var refs = getMatchShellRefs();
   if (!refs.builder || !refs.builderAnchor || !refs.builderAnchor.parentNode) {
     return;
+  }
+
+  // Unwrap from refine section if wrapped
+  var refineWrapper = document.getElementById("matchRefineSection");
+  if (refineWrapper && refineWrapper.contains(refs.builder)) {
+    refineWrapper.parentNode.insertBefore(refs.builder, refineWrapper);
+    refineWrapper.parentNode.removeChild(refineWrapper);
   }
 
   refs.builder.classList.remove("is-inline-results");
