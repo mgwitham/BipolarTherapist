@@ -1676,15 +1676,13 @@ function renderCompareValue(value, kind) {
       return value.length
         ? value
             .map(function (item) {
-              return (
-                '<span class="compare-chip compare-chip-neutral">' + escapeHtml(item) + "</span>"
-              );
+              return '<div class="compare-format-item">' + escapeHtml(item) + "</div>";
             })
             .join("")
         : '<span class="compare-sub">Not listed</span>';
     }
     return value
-      ? '<span class="compare-chip compare-chip-neutral">' + escapeHtml(String(value)) + "</span>"
+      ? '<div class="compare-format-item">' + escapeHtml(String(value)) + "</div>"
       : '<span class="compare-sub">Not listed</span>';
   }
   if (kind === "boolean") {
