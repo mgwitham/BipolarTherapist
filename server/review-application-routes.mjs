@@ -60,6 +60,10 @@ export async function handleApplicationRoutes(context) {
     } catch (error) {
       console.error("Failed to send new-submission email.", error);
     }
+    // Async DCA license verification — don't block the response
+    runDcaVerification(client, config, created, body).catch(function (err) {
+      console.error("DCA license verification failed for " + created._id, err);
+    });
     sendJson(response, 201, normalizeApplication(created), origin, config);
     return true;
   }
@@ -412,4 +416,29 @@ export async function handleApplicationRoutes(context) {
   }
 
   return false;
+}
+
+async function runDcaVerification(client, config, application, body) {
+  var { verifyLicense, resolveLicenseTypeCode } = await import("./dca-license-client.mjs");
+  var licenseType = body.license_type || "";
+  var licenseNumber = body.license_number || application.licenseNumber || "";
+  var typeCode = resolveLicenseTypeCode(licenseType);
+  if (!typeCode || !licenseNumber) return;
+
+  var result = await verifyLicense(config, typeCode, licenseNumber);
+  if (!result.verified) {
+    console.log("DCA verification not confirmed for " + application._id + ": " + result.error);
+    return;
+  }
+
+  await client
+    .patch(application._id)
+    .set({ licensureVerification: result.licensureVerification })
+    .commit();
+  console.log(
+    "DCA license verified for " +
+      application._id +
+      ": " +
+      result.licensureVerification.primaryStatus,
+  );
 }

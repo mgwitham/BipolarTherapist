@@ -96,6 +96,15 @@ var OUTREACH_OUTCOME_OPTIONS = [
   { value: "no_response", label: "No response", tone: "negative" },
 ];
 
+function isLicenseVerified(therapist) {
+  var lv = therapist && therapist.licensureVerification;
+  return (
+    lv &&
+    lv.sourceSystem === "california_dca_search" &&
+    (lv.primaryStatus === "active" || lv.statusStanding === "good_standing")
+  );
+}
+
 function getActiveExperimentContext() {
   return {
     homepage_messaging: getExperimentVariant("homepage_messaging", ["control", "adaptive"]),
@@ -4297,6 +4306,9 @@ function renderLeadResultCard(entry, backupName) {
   var acceptingSignal = therapist.accepting_new_patients
     ? '<span class="result-signal is-green">Accepting patients</span>'
     : "";
+  var licenseVerifiedSignal = isLicenseVerified(therapist)
+    ? '<span class="result-signal is-verified">License verified</span>'
+    : "";
   var contactNote = "";
 
   return (
@@ -4309,6 +4321,7 @@ function renderLeadResultCard(entry, backupName) {
     '<div class="result-badges">' +
     '<span class="result-badge result-badge--lead">Best match</span>' +
     (acceptingSignal || "") +
+    (licenseVerifiedSignal || "") +
     "</div>" +
     '<h3 class="result-name">' +
     escapeHtml(therapist.name || "") +
@@ -4389,6 +4402,9 @@ function renderSupportingResultCard(entry, rank) {
     "</div>" +
     (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
+    (isLicenseVerified(therapist)
+      ? '<span class="result-signal is-verified result-signal--sm">License verified</span>'
+      : "") +
     "</div>" +
     "</div>" +
     (explanation

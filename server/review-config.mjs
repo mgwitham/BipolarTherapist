@@ -112,6 +112,8 @@ export function getReviewApiConfig() {
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
+    dcaAppId: process.env.DCA_APP_ID || rootEnv.DCA_APP_ID || "",
+    dcaAppKey: process.env.DCA_APP_KEY || rootEnv.DCA_APP_KEY || "",
   };
 
   config.sessionSecret =
