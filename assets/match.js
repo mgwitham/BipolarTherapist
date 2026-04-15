@@ -2273,7 +2273,6 @@ function renderComparison(entries) {
     '<p class="match-compare-feature-copy">Cost, insurance, format, and experience across all your matches — so you can pick one and reach out.</p>' +
     "</div>" +
     '<section class="match-compare">' +
-    renderCompareDecisionCards(topEntries, profile) +
     '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
     escapeHtml(String(topEntries.length)) +
     ', minmax(0, 1fr));">' +
