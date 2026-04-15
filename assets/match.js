@@ -1404,8 +1404,17 @@ function buildEntryOutreachDraft(entry, profile) {
     return "";
   }
 
-  var outreach = getPreferredOutreach(entry);
-  var route = outreach ? outreach.label : "Review profile";
+  var routeType = getPreferredRouteType(entry);
+  var route =
+    routeType === "booking"
+      ? "Book a consultation"
+      : routeType === "phone"
+        ? "Call"
+        : routeType === "email"
+          ? "Email"
+          : routeType === "website"
+            ? "Visit the website"
+            : "Review profile";
   var therapist = entry.therapist;
   var reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
