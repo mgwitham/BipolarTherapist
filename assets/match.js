@@ -2119,7 +2119,7 @@ function renderComparison(entries) {
 
   var rows = [
     {
-      label: "Decision role",
+      label: "Who to contact first",
       kind: "order",
       alwaysShow: true,
       getValue: function (therapist) {
@@ -2133,7 +2133,7 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Best next step",
+      label: "How to reach out",
       alwaysShow: true,
       getValue: function (therapist) {
         var entry = topEntries.find(function (item) {
@@ -2144,53 +2144,10 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Timing",
+      label: "Session cost",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareTimingLabel(therapist);
-      },
-    },
-    {
-      label: "Trust signal",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getCompareTrustLabel(entry);
-      },
-    },
-    {
-      label: "Languages",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return therapist.languages || [];
-      },
-    },
-    {
-      label: "Medication support",
-      kind: "boolean",
-      getValue: function (therapist) {
-        return therapist.medication_management;
-      },
-    },
-    {
-      label: "Bipolar experience",
-      getValue: function (therapist) {
-        return therapist.bipolar_years_experience
-          ? therapist.bipolar_years_experience + " years"
-          : "";
-      },
-    },
-    {
-      label: "Format",
-      kind: "format",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return [
-          therapist.accepts_telehealth ? "Telehealth" : "",
-          therapist.accepts_in_person ? "In-person" : "",
-        ].filter(Boolean);
+        return getCompareCostLabel(therapist);
       },
     },
     {
@@ -2202,14 +2159,48 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Cost",
+      label: "Telehealth / In-person",
+      kind: "format",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareCostLabel(therapist);
+        return [
+          therapist.accepts_telehealth ? "Telehealth" : "",
+          therapist.accepts_in_person ? "In-person" : "",
+        ].filter(Boolean);
       },
     },
     {
-      label: "Why they stand out",
+      label: "Availability",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return getCompareTimingLabel(therapist);
+      },
+    },
+    {
+      label: "Bipolar experience",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.bipolar_years_experience
+          ? therapist.bipolar_years_experience + " years"
+          : "";
+      },
+    },
+    {
+      label: "Prescribes medication",
+      kind: "boolean",
+      getValue: function (therapist) {
+        return therapist.medication_management;
+      },
+    },
+    {
+      label: "Languages",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.languages || [];
+      },
+    },
+    {
+      label: "What makes them different",
       alwaysShow: true,
       getValue: function (therapist) {
         var entry = topEntries.find(function (item) {
@@ -2274,65 +2265,21 @@ function renderComparison(entries) {
       );
     })
     .join("");
-  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved list";
-  var compareCopy = profile
-    ? "Use fit, trust, timing, cost, and next step together so you can move on one therapist instead of stalling across three."
-    : "Your saved list is now organized into a clearer first choice, backup, and side-by-side decision view.";
-  var persistedShortlist = persistEntriesToDirectoryShortlist(topEntries);
-  var compareUrl = buildShortlistCompareUrl(topEntries);
-  var savedCount = persistedShortlist.length;
-  var reshapeHistory = readShortlistReshapeHistory();
-
   root.innerHTML =
-    '<details class="result-disclosure"><summary><div><div class="result-disclosure-title">Compare finalists in detail</div><div class="result-disclosure-copy">Open this if you want a side-by-side decision board for your top saved options.</div></div><span class="result-disclosure-toggle" aria-hidden="true"></span></summary><div class="result-disclosure-body"><section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
-    escapeHtml(compareTitle) +
-    '</div><div class="match-support-panel-copy">' +
-    escapeHtml(compareCopy) +
-    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>List decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
-    (savedCount ? " across " + escapeHtml(String(savedCount)) + " saved therapists." : ".") +
+    '<div class="match-compare-feature">' +
+    '<div class="match-compare-feature-head">' +
+    '<span class="match-compare-kicker">Side-by-side</span>' +
+    '<h3 class="match-compare-feature-title">Compare your matches</h3>' +
+    '<p class="match-compare-feature-copy">Cost, insurance, format, and experience across all your matches — so you can pick one and reach out.</p>' +
     "</div>" +
-    (reshapeHistory && reshapeHistory.summary
-      ? '<div class="compare-summary-history"><span class="compare-summary-kicker">' +
-        escapeHtml(reshapeHistory.title || "Last list reshape") +
-        '</span><div class="compare-summary-text">' +
-        escapeHtml(reshapeHistory.summary) +
-        '</div><div class="compare-summary-history-meta">' +
-        escapeHtml(reshapeHistory.meta || "") +
-        "</div></div>"
-      : "") +
-    '<div class="compare-summary-actions"><button type="button" class="btn-secondary" data-copy-compare-link>Copy compare link</button><a class="btn-secondary" href="directory.html">Back to directory</a></div></div>' +
-    renderPartnerCompareSummary(topEntries, profile) +
+    '<section class="match-compare">' +
     renderCompareDecisionCards(topEntries, profile) +
     '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
     escapeHtml(String(topEntries.length)) +
     ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
-    "</div></section></div></section></div></details>";
-
-  var copyButton = root.querySelector("[data-copy-compare-link]");
-  if (copyButton) {
-    copyButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(compareUrl);
-        setActionState(true, "Copied the list comparison link.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the comparison link automatically.");
-      }
-    });
-  }
-
-  var summaryButton = root.querySelector("[data-copy-partner-summary]");
-  if (summaryButton) {
-    summaryButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(buildPartnerCompareSummary(topEntries, profile));
-        setActionState(true, "Copied the shareable list summary.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the list summary automatically.");
-      }
-    });
-  }
+    "</div></section></div>";
 
   triggerMotion(root, "motion-enter");
 }
