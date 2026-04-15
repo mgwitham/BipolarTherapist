@@ -244,77 +244,107 @@ function buildProfileEntryState(source, therapist, backupState) {
   };
 }
 
+function buildCallScript(therapist) {
+  var formatLine = "";
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    formatLine = "Either telehealth or in-person would work for me.";
+  } else if (therapist.accepts_telehealth) {
+    formatLine = "I'm hoping for telehealth if that's available.";
+  } else if (therapist.accepts_in_person) {
+    formatLine = "I'm hoping for in-person care if that's available.";
+  }
+  var medicationLine = therapist.medication_management
+    ? "Medication support or coordination may also be part of the picture."
+    : "";
+  var insuranceLine =
+    therapist.insurance_accepted && therapist.insurance_accepted.length
+      ? "I'd also love to confirm insurance or fee details before going further."
+      : "I'd also love to briefly confirm fees or payment options.";
+
+  var liveOpener =
+    "Hi, my name is [your name]. I found your profile on BipolarTherapyHub and I'm looking for a therapist who works with bipolar disorder. Are you currently taking new clients?";
+
+  var liveContextParts = [formatLine, medicationLine, insuranceLine].filter(Boolean);
+  var liveContext = liveContextParts.length ? "If they are: " + liveContextParts.join(" ") : "";
+
+  var voicemail =
+    "Hi, my name is [your name] and my number is [your number]. I found your profile on BipolarTherapyHub and I'm looking for a therapist experienced with bipolar disorder. Please give me a call back when you have a moment. Thank you so much.";
+
+  return {
+    liveOpener: liveOpener,
+    liveContext: liveContext,
+    voicemail: voicemail,
+  };
+}
+
 function buildOutreachScript(therapist, contactStrategy) {
   var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
-  var opener =
-    route === "phone"
-      ? "Hi, I found your BipolarTherapyHub profile and I am looking for bipolar-focused support."
-      : "Hi, I found your BipolarTherapyHub profile and wanted to ask about fit for bipolar-focused support.";
-  var formatCue =
-    therapist.accepts_telehealth && therapist.accepts_in_person
-      ? "I am open to either telehealth or in-person care."
-      : therapist.accepts_telehealth
-        ? "I would be hoping for telehealth."
-        : therapist.accepts_in_person
-          ? "I would be hoping for in-person care."
-          : "";
-  var medicationCue = therapist.medication_management
-    ? "I may also want medication support or coordination."
+
+  var greeting = "Hi,";
+
+  var intro =
+    "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
+
+  var contextParts = [];
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    contextParts.push("I'm open to either telehealth or in-person care");
+  } else if (therapist.accepts_telehealth) {
+    contextParts.push("I'm hoping for telehealth");
+  } else if (therapist.accepts_in_person) {
+    contextParts.push("I'm hoping for in-person care");
+  }
+  if (therapist.medication_management) {
+    contextParts.push("medication support or coordination may also be part of the picture");
+  }
+  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
+    contextParts.push("and I'd love to confirm insurance or cost details before going further");
+  }
+  var contextLine = contextParts.length
+    ? contextParts.join(", ").replace(/, and /g, " and ") + "."
     : "";
-  var insuranceCue =
-    therapist.insurance_accepted && therapist.insurance_accepted.length
-      ? "I would also love to confirm whether my insurance or cost path would likely line up before I go too far."
-      : "";
-  var questions = [
-    "Are you currently taking new clients?",
-    therapist.medication_management
-      ? "If it seems like a fit, how do you usually handle medication support or coordination?"
-      : "If it seems like a fit, what does the first step usually look like?",
-  ];
+  if (contextLine) {
+    contextLine = contextLine.charAt(0).toUpperCase() + contextLine.slice(1);
+  }
 
-  if (formatCue) {
-    questions.splice(
-      1,
-      0,
-      therapist.accepts_telehealth && therapist.accepts_in_person
-        ? "Would you recommend starting with telehealth or in-person care?"
-        : therapist.accepts_telehealth
-          ? "Are you currently offering telehealth openings?"
-          : "Are you currently offering in-person openings?",
+  var questions = ["Are you currently taking new clients?"];
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    questions.push("Would you recommend starting with telehealth or in-person care?");
+  } else if (therapist.accepts_telehealth) {
+    questions.push("Are you offering telehealth openings right now?");
+  } else if (therapist.accepts_in_person) {
+    questions.push("Are you offering in-person openings right now?");
+  }
+  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
+    questions.push(
+      "Anything I should know about insurance, fees, or out-of-pocket costs before scheduling?",
     );
   }
-  if (insuranceCue) {
-    questions.splice(
-      questions.length - 1,
-      0,
-      "Is there anything important to know about insurance, fees, or out-of-pocket expectations before I schedule?",
-    );
-  }
+  var closingQuestion;
   if (route === "booking") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is the booking link the best place to start or is there a better first step?";
+    closingQuestion = "If it seems like a fit, is the booking link the best place to start?";
   } else if (route === "email") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is email the best way to begin or is there a better first step?";
+    closingQuestion = "If it seems like a fit, is email the best way to begin?";
   } else if (route === "phone") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is a phone call still the best way to begin or is there another step you prefer first?";
+    closingQuestion = "If it seems like a fit, is a phone call still the best way to begin?";
   } else if (route === "website") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is the website inquiry form the best place to begin or is there a better first step?";
+    closingQuestion =
+      "If it seems like a fit, is the website inquiry form the best place to start?";
+  } else {
+    closingQuestion = "If it seems like a fit, what's the best first step?";
   }
+  questions.push(closingQuestion);
 
-  return [
-    opener,
-    formatCue,
-    medicationCue,
-    insuranceCue,
-    "A couple of quick questions before I reach out further:",
-    "- " + questions.join("\n- "),
-    "Thank you.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  var questionsBlock =
+    "A few quick questions:\n\n" +
+    questions
+      .map(function (q) {
+        return "• " + q;
+      })
+      .join("\n\n");
+
+  var closing = "Thanks so much,";
+
+  return [greeting, intro, contextLine, questionsBlock, closing].filter(Boolean).join("\n\n");
 }
 
 function getFirstMeaningfulSentence(value) {
@@ -1633,11 +1663,6 @@ function renderProfile(t, therapistDirectory) {
   if (responsivenessSignal && responsivenessSignal.tone === "positive") {
     fitReasons.push("earlier outreach patterns suggest stronger follow-through");
   }
-  var fitSummaryCopy = fitReasons.length
-    ? "This clinician may be worth saving because " +
-      fitReasons.slice(0, 3).join(", ") +
-      ". You should still confirm availability, insurance, and personal fit directly."
-    : "Use this profile to make a first-pass decision on fit, access, and trust. The remaining unknowns are best handled with one focused outreach rather than more scrolling.";
   var likelyFitAudience = [];
   if (t.medication_management) {
     likelyFitAudience.push("people who may need psychiatry or medication support");
@@ -1765,8 +1790,6 @@ function renderProfile(t, therapistDirectory) {
   var practicalDetailsItems = [];
   var contactChecklistItems = [];
   var contactQuestionItems = [];
-  var fitHeadline = "";
-  var fitSubheadline = "";
   var bookingHealthy = isBookingRouteHealthy(t);
   var websiteHealthy = isWebsiteRouteHealthy(t);
   var contactRouteLabel =
@@ -1852,9 +1875,6 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
-  var specialties = renderCompactTagList(t.specialties, "spec-tag", 4);
-  var modalities = renderCompactTagList(t.treatment_modalities, "spec-tag", 4);
-  var populations = renderCompactTagList(t.client_populations, "spec-tag", 4);
   var insTags = renderList(t.insurance_accepted, "ins-item");
   var langPills = renderCompactTagList(t.languages || ["English"], "lang-pill", 3);
   var telehealthStates = renderCompactTagList(t.telehealth_states, "lang-pill", 4);
@@ -1877,76 +1897,6 @@ function renderProfile(t, therapistDirectory) {
         : "") +
       "."
     : "";
-  var trustEvidenceCards = [
-    {
-      tone:
-        freshnessSignal && freshnessSignal.tone === "fresh"
-          ? "fresh"
-          : freshnessSignal && freshnessSignal.tone === "recent"
-            ? "source"
-            : "foundation",
-      label: "Freshness",
-      title: freshnessSignal ? freshnessSignal.label : "Freshness still needs confirmation",
-      copy:
-        (freshnessSignal && freshnessSignal.note) ||
-        "Treat timing and public details as worth confirming directly before you commit.",
-      proof: freshness && freshness.status === "fresh" ? "Lower trust drag" : "Worth a quick check",
-    },
-    {
-      tone: sourceReviewedDate ? "source" : "foundation",
-      label: "Source review",
-      title: sourceReviewedDate
-        ? "Reviewed against public sources"
-        : "Source review is still lighter here",
-      copy:
-        sourceReviewCopy ||
-        "A stronger source-review trail would make this profile easier to trust at a glance.",
-      proof: sourceHost ? "Primary source: " + sourceHost : "Public-source trail lighter",
-    },
-    {
-      tone: therapistReportedFields.length ? "confirmed" : "foundation",
-      label: "Therapist-confirmed details",
-      title: therapistReportedFields.length
-        ? "Operational details confirmed directly"
-        : "Direct therapist confirmation is limited",
-      copy:
-        therapistReportedCopy ||
-        "Direct confirmation from the therapist would strengthen the confidence you can place in logistics and access details here.",
-      proof: therapistReportedDate
-        ? "Confirmed on " + therapistReportedDate
-        : "Direct confirmation missing",
-    },
-    {
-      tone: "foundation",
-      label: "Trust foundation",
-      title:
-        t.verification_status === "editorially_verified"
-          ? "Editorial trust foundation is in place"
-          : "Usable trust foundation, but not the strongest tier",
-      copy:
-        operationalTrustSummary ||
-        reviewedDetailsCopy ||
-        "This profile has enough to support a first-pass trust decision, but not enough to remove all direct confirmation work.",
-      proof: readinessTitle,
-    },
-  ];
-  var trustEvidenceHtml = trustEvidenceCards
-    .map(function (item) {
-      return (
-        '<div class="trust-evidence-card tone-' +
-        escapeHtml(item.tone) +
-        '"><div class="trust-evidence-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="trust-evidence-title">' +
-        escapeHtml(item.title) +
-        '</div><div class="trust-evidence-copy">' +
-        escapeHtml(item.copy) +
-        '</div><div class="trust-evidence-proof">' +
-        escapeHtml(item.proof) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var trustSectionCards = [
     {
       label: "Reviewed details",
@@ -2148,14 +2098,6 @@ function renderProfile(t, therapistDirectory) {
   }
   contactQuestionItems.push("What usually happens after the first message or consult?");
 
-  fitHeadline = quickFitItems.length
-    ? "This looks like a strong first-pass therapy option."
-    : "This profile could still be worth a message, but it needs a little more confirmation first.";
-  fitSubheadline = quickFitItems.length
-    ? "You should be able to decide quickly whether to contact now, save for later, or keep comparing."
-    : "Use the strongest trust and logistics signals here to decide whether this is a smart outreach now or a profile to keep in reserve.";
-
-  var quickFitHtml = renderList(quickFitItems.slice(0, 3), "decision-list-item");
   var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
   var practicalDetailsHtml = renderList(practicalDetailsItems.slice(0, 4), "decision-list-item");
   var contactQuestionHtml = renderList(contactQuestionItems.slice(0, 4), "contact-checklist-item");
@@ -2276,6 +2218,17 @@ function renderProfile(t, therapistDirectory) {
     '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
     renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
     "</div></div>";
+  var insuranceList = Array.isArray(t.insurance_accepted) ? t.insurance_accepted : [];
+  var insuranceSummary = insuranceList.length
+    ? insuranceList.length <= 2
+      ? joinNaturalList(insuranceList)
+      : insuranceList.slice(0, 2).join(", ") + " +" + (insuranceList.length - 2) + " more"
+    : "Contact to confirm";
+  var languageList = Array.isArray(t.languages) && t.languages.length ? t.languages : ["English"];
+  var languageSummary =
+    languageList.length <= 2
+      ? joinNaturalList(languageList)
+      : languageList.slice(0, 2).join(", ") + " +" + (languageList.length - 2) + " more";
   var summaryStats = [
     {
       label: "Openings",
@@ -2297,16 +2250,63 @@ function renderProfile(t, therapistDirectory) {
       tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
     },
     {
-      label: "Cost path",
+      label: "Session fee",
       value:
-        t.session_fee_min || t.session_fee_max || t.sliding_scale
-          ? t.session_fee_min && t.session_fee_max
-            ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+        t.session_fee_min && t.session_fee_max
+          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+          : t.session_fee_min
+            ? "From $" + t.session_fee_min
             : t.sliding_scale
               ? "Sliding scale"
-              : "Fee info listed"
-          : "Fees to confirm",
+              : "Fees to confirm",
       tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
+    },
+    {
+      label: "Insurance",
+      value: insuranceSummary,
+      tone: insuranceList.length ? "teal" : "",
+    },
+    {
+      label: "Languages",
+      value: languageSummary,
+      tone: "",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="summary-stat"><div class="summary-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="summary-stat-value ' +
+        escapeHtml(item.tone || "") +
+        '">' +
+        escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+
+  var licenseValue =
+    [t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed";
+  var primaryCtaValue = t.preferred_contact_label || "Not specified";
+  var experienceParts = [];
+  if (t.bipolar_years_experience) {
+    experienceParts.push(String(t.bipolar_years_experience) + "y bipolar");
+  }
+  if (t.years_experience) {
+    experienceParts.push(String(t.years_experience) + "y total");
+  }
+  var experienceValue = experienceParts.length ? experienceParts.join(" · ") : "Not listed";
+  var credentialStats = [
+    { label: "License", value: licenseValue, tone: t.license_number ? "teal" : "" },
+    {
+      label: "Primary CTA",
+      value: primaryCtaValue,
+      tone: t.preferred_contact_label ? "teal" : "",
+    },
+    {
+      label: "Experience",
+      value: experienceValue,
+      tone: t.bipolar_years_experience ? "green" : t.years_experience ? "teal" : "",
     },
   ]
     .map(function (item) {
@@ -2322,68 +2322,6 @@ function renderProfile(t, therapistDirectory) {
     })
     .join("");
   var contactTiming = getContactTimingGuidance(contactStrategy);
-  var decisionDashboardHtml =
-    '<div class="profile-decision-dashboard tone-' +
-    escapeHtml(decisionSystem.tone) +
-    '"><div class="profile-decision-dashboard-intro"><div class="profile-decision-dashboard-label">Decision system</div><div class="profile-decision-dashboard-score"><span class="profile-decision-dashboard-score-value">' +
-    escapeHtml(String(decisionSystem.overallScore)) +
-    '</span><span class="profile-decision-dashboard-score-max">/100</span></div><div class="profile-decision-dashboard-title">' +
-    escapeHtml(decisionSystem.stanceLabel) +
-    '</div><div class="profile-decision-dashboard-copy">' +
-    escapeHtml(decisionSystem.stanceCopy) +
-    '</div></div><div class="profile-signal-board">' +
-    decisionSystem.dimensions
-      .map(function (item) {
-        return (
-          '<div class="profile-signal-card tone-' +
-          escapeHtml(item.tone) +
-          '"><div class="profile-signal-card-top"><div class="profile-signal-label">' +
-          escapeHtml(item.label) +
-          '</div><div class="profile-signal-score">' +
-          escapeHtml(String(item.score)) +
-          '</div></div><div class="profile-signal-bar"><div class="profile-signal-bar-fill tone-' +
-          escapeHtml(item.tone) +
-          '" style="width:' +
-          escapeHtml(String(item.score)) +
-          '%"></div></div><div class="profile-signal-copy">' +
-          escapeHtml(item.summary) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    '</div><div class="profile-insight-grid"><div class="profile-insight-card"><div class="profile-insight-label">Best for</div><div class="profile-insight-title">Where this profile has the clearest upside</div><div class="profile-insight-list">' +
-    decisionSystem.bestFor
-      .map(function (item) {
-        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
-      })
-      .join("") +
-    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Confirm first</div><div class="profile-insight-title">The fastest unknowns to clear</div><div class="profile-insight-list">' +
-    decisionSystem.confirmFirst
-      .map(function (item) {
-        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
-      })
-      .join("") +
-    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Management mode</div><div class="profile-insight-title">' +
-    escapeHtml(decisionSystem.managementTitle) +
-    '</div><div class="profile-insight-copy">' +
-    escapeHtml(decisionSystem.managementCopy) +
-    "</div></div></div></div>";
-  var fitSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Bottom line</div><div class="section-story-title">' +
-    escapeHtml(fitHeadline) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(fitSubheadline) +
-    "</div></div>";
-  var trustSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Trust read</div><div class="section-story-title">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "This profile has stronger-than-average trust support."
-        : "This profile is usable, but some trust work still shifts to outreach.",
-    ) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(reviewedDetailsCopy) +
-    "</div></div>";
   var logisticsSectionLeadHtml =
     '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
     escapeHtml(
@@ -2429,21 +2367,7 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  var belowFoldOverviewHtml =
-    '<section class="profile-section profile-overview-panel" id="section-overview" data-profile-section><div class="profile-section-static-header"><span><span class="section-kicker">Overview</span><h2>Decision support and trust context</h2></span></div>' +
-    decisionDashboardHtml +
-    '<div class="trust-evidence-grid" style="margin-top:0.95rem">' +
-    trustEvidenceHtml +
-    "</div></section>";
-  var sectionNavHtml =
-    '<div class="profile-section-nav" id="profileSectionNav">' +
-    '<a href="#section-overview" class="section-nav-link is-active" data-section-link="section-overview">Overview</a>' +
-    '<a href="#section-fit" class="section-nav-link" data-section-link="section-fit">Fit</a>' +
-    '<a href="#section-trust" class="section-nav-link" data-section-link="section-trust">Evidence</a>' +
-    '<a href="#section-logistics" class="section-nav-link" data-section-link="section-logistics">Access</a>' +
-    '<a href="#section-contact" class="section-nav-link" data-section-link="section-contact">Outreach</a>' +
-    '<a href="#section-bio" class="section-nav-link" data-section-link="section-bio">Bio</a>' +
-    "</div>";
+  var sectionNavHtml = "";
   var decisionRailRows = [
     {
       label: "Best next move now",
@@ -2519,11 +2443,6 @@ function renderProfile(t, therapistDirectory) {
     '<a href="portal.html?slug=' +
     encodeURIComponent(t.slug) +
     '" class="btn-website">Claim or manage profile</a>';
-  var mobileDockActions =
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
-    '<button type="button" class="btn-website" data-profile-focus-script>Preview first message</button>' +
-    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
-
   contactBtns =
     '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
     escapeHtml(contactStrategy.routeLabel) +
@@ -2566,19 +2485,20 @@ function renderProfile(t, therapistDirectory) {
     "</div>";
   void contactBtns;
 
-  var topFoldBioSource = String(t.bio_preview || t.bio || t.care_approach || "").trim();
-  var topFoldBio = getFirstMeaningfulSentence(topFoldBioSource);
-  if (topFoldBio && topFoldBio.length > 220) {
-    topFoldBio =
-      topFoldBio
-        .slice(0, 217)
-        .trim()
-        .replace(/[,:;-\s]+$/, "") + "...";
-  }
+  var bioBodyHtml =
+    (t.bio
+      ? '<p class="profile-bio-paragraph">' + escapeHtml(t.bio) + "</p>"
+      : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
+    (t.care_approach
+      ? '<p class="profile-bio-paragraph profile-bio-approach">' +
+        escapeHtml(t.care_approach) +
+        "</p>"
+      : "");
 
   var html =
     '<div class="profile-header">' +
     '<div class="profile-hero-main">' +
+    '<div class="profile-hero-top">' +
     '<div class="profile-identity">' +
     '<div class="avatar">' +
     avatar +
@@ -2602,388 +2522,142 @@ function renderProfile(t, therapistDirectory) {
     acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
-    '<div class="hero-verdict-card"><div class="hero-summary-label">Fast fit verdict</div><h2>' +
-    escapeHtml(fitHeadline) +
-    "</h2><p>" +
-    escapeHtml(fitSubheadline) +
-    '</p><div class="fit-summary">' +
-    escapeHtml(fitSummaryCopy) +
-    "</div>" +
-    (topFoldBio
-      ? '<div class="hero-bio-snippet"><div class="hero-bio-label">About</div><div class="hero-bio-copy">' +
-        escapeHtml(topFoldBio) +
-        "</div></div>"
+    '<div class="profile-contact-card">' +
+    '<div class="profile-contact-card-label">Contact</div>' +
+    (t.phone
+      ? '<a href="tel:' +
+        escapeHtml(t.phone) +
+        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
+        escapeHtml(t.phone) +
+        "</span></a>"
       : "") +
-    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
+    (t.email && t.email !== "contact@example.com"
+      ? '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
+        escapeHtml(t.email) +
+        "</span></a>"
+      : "") +
+    (t.website && websiteHealthy
+      ? '<a href="' +
+        escapeHtml(t.website) +
+        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
+        escapeHtml(t.website.replace(/^https?:\/\//, "")) +
+        "</span></a>"
+      : "") +
+    (t.booking_url && bookingHealthy
+      ? '<a href="' +
+        escapeHtml(t.booking_url) +
+        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
+      : "") +
+    (!t.phone &&
+    (!t.email || t.email === "contact@example.com") &&
+    !(t.website && websiteHealthy) &&
+    !(t.booking_url && bookingHealthy)
+      ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
+      : "") +
+    "</div>" +
+    "</div>" +
+    '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
+    '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
+    '<span class="profile-bio-toggle-label">Read full bio</span>' +
+    '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
+    "</button>" +
+    '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+    bioBodyHtml +
+    "</div>" +
+    "</div>" +
+    '<div class="profile-summary-strip">' +
+    summaryStats +
+    "</div>" +
+    '<div class="profile-summary-strip profile-summary-strip-secondary">' +
+    credentialStats +
+    "</div>" +
+    '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
     (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div>" +
-    '<div class="profile-summary-strip">' +
-    summaryStats +
-    "</div>" +
-    '<div class="profile-mobile-dock"><div class="profile-mobile-dock-label">Best next move</div><div class="profile-mobile-dock-copy">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="profile-mobile-dock-actions">' +
-    mobileDockActions +
-    "</div></div>" +
     "</div>" +
     sectionNavHtml +
     '<div class="profile-body">' +
     "<div>" +
-    belowFoldOverviewHtml +
-    '<section class="profile-section profile-section-collapsible" id="section-fit" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Fit</span><h2>Why this profile may fit</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    fitSectionLeadHtml +
-    '<div class="bio-text section-body-copy">' +
-    escapeHtml(fitSummaryCopy) +
-    "</div>" +
-    (quickFitHtml
-      ? '<div class="decision-list" style="margin-top:0.95rem">' + quickFitHtml + "</div>"
-      : "") +
-    (specialties
-      ? '<div class="profile-subsection"><div class="mini-section-label">Conditions and focus areas</div><div class="specialty-grid">' +
-        specialties +
-        "</div></div>"
-      : "") +
-    (modalities
-      ? '<div class="profile-subsection"><div class="mini-section-label">Treatment approach</div><div class="specialty-grid">' +
-        modalities +
-        "</div></div>"
-      : "") +
-    (populations
-      ? '<div class="profile-subsection"><div class="mini-section-label">Populations served</div><div class="specialty-grid">' +
-        populations +
-        "</div></div>"
-      : "") +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-trust" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Evidence</span><h2>Why this looks credible</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    trustSectionLeadHtml +
-    '<div class="bio-text section-body-copy">' +
-    escapeHtml(reviewedDetailsCopy) +
-    "</div>" +
-    '<div class="trust-section-grid">' +
-    trustSectionCardsHtml +
-    "</div>" +
-    (bipolarTrustHtml
-      ? '<div class="decision-list" style="margin-top:0.95rem">' + bipolarTrustHtml + "</div>"
-      : "") +
-    (therapistReportedCopy
-      ? '<div class="bio-text" style="margin-top:0.8rem">' +
-        escapeHtml(therapistReportedCopy) +
-        "</div>"
-      : "") +
-    (recentApplied
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(recentApplied.note) +
-        "</div>"
-      : "") +
-    (recentConfirmation
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(recentConfirmation.note) +
-        "</div>"
-      : "") +
-    (sourceReviewCopy
-      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(sourceReviewCopy) + "</div>"
-      : "") +
-    (freshness.status !== "fresh"
-      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(freshness.note) + "</div>"
-      : "") +
-    (operationalTrustSummary
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(operationalTrustSummary) +
-        "</div>"
-      : "") +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-logistics" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Access</span><h2>Practical details before you contact</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    logisticsSectionLeadHtml +
-    '<div class="section-mini-stat-grid">' +
-    logisticsSignalStripHtml +
-    "</div>" +
-    (practicalDetailsHtml ? '<div class="decision-list">' + practicalDetailsHtml + "</div>" : "") +
-    (insTags
-      ? '<div class="profile-subsection"><div class="mini-section-label">Insurance accepted</div><div class="ins-list">' +
-        insTags +
-        "</div></div>"
-      : "") +
-    '<div class="profile-subsection"><div class="mini-section-label">Fees</div>' +
-    feesHtml +
-    "</div>" +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
-    '<div class="next-step-item is-emphasis"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="next-step-helper">' +
-    escapeHtml(contactStrategy.routeReason) +
-    "</div></div>" +
-    '<div class="next-step-item is-emphasis"><div class="next-step-label">Why this route is worth trying first</div><div class="next-step-value soft">' +
-    escapeHtml(contactStrategy.proofLine) +
-    '</div><div class="next-step-helper">' +
-    escapeHtml(contactStrategy.confidenceLabel + ": " + contactStrategy.confidenceNote) +
-    "</div></div>" +
-    '<div class="next-step-item"><div class="next-step-label">Expected reply window</div><div class="next-step-value ' +
-    escapeHtml(contactStrategy.timingTone) +
-    '">' +
-    escapeHtml(contactStrategy.replyWindowCopy) +
-    "</div></div>" +
-    '<div class="next-step-item" data-profile-outreach-script tabindex="-1"><div class="next-step-label">' +
-    escapeHtml(contactScriptLabel) +
-    '</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
-    escapeHtml(outreachScript) +
-    '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper"><strong>Use this as your low-friction starting point.</strong> Adjust the greeting or one detail if you want it to sound more like you, but you do not need to overwork the first reach-out.</div></div></div></div>' +
-    (t.estimated_wait_time
-      ? '<div class="next-step-item"><div class="next-step-label">Recent availability note</div><div class="next-step-value">' +
-        escapeHtml(t.estimated_wait_time) +
-        "</div></div>"
-      : "") +
-    (contactGuidance
-      ? '<div class="next-step-item"><div class="next-step-label">What to include</div><div class="next-step-value">' +
-        escapeHtml(contactGuidance) +
-        "</div></div>"
-      : "") +
-    (contactQuestionHtml
-      ? '<div class="next-step-item" data-profile-contact-questions><div class="next-step-label">' +
-        escapeHtml(contactQuestionsLabel) +
-        '</div><div class="next-step-question-list">' +
-        contactQuestionHtml +
-        "</div></div>"
-      : "") +
-    consultPrepHtml +
-    '<div class="next-step-item"><div class="next-step-label">Follow up if needed</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.followUpCopy) +
-    "</div></div>" +
-    '<div class="next-step-item"><div class="next-step-label">If this stalls</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.backupPlanCopy) +
-    "</div></div>" +
-    (outreachQueueState
-      ? '<div class="next-step-item"><div class="next-step-label">Queue status</div><div class="next-step-value">' +
-        escapeHtml(outreachQueueState.title) +
-        '</div><div class="next-step-helper">' +
-        escapeHtml(outreachQueueState.copy) +
-        '</div><a href="' +
-        escapeHtml(outreachQueueState.ctaHref) +
-        '" class="profile-queue-inline-link">' +
-        escapeHtml(outreachQueueState.ctaLabel) +
-        "</a>" +
-        renderQueueActionButtons(outreachQueueState) +
-        "</div>"
-      : "") +
-    followThroughHtml +
-    '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div></div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Bio</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
-    escapeHtml(
-      t.bio ||
-        "A longer bio is not available on this profile yet. Use the fit, trust, and contact sections above to decide whether this therapist is worth a first outreach.",
-    ) +
-    "</div>" +
-    (t.care_approach
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(t.care_approach) +
-        "</div>"
-      : "") +
-    "</div></section>" +
+    (function () {
+      var hasTextChannel =
+        (t.email && t.email !== "contact@example.com") ||
+        (t.website && websiteHealthy) ||
+        (t.booking_url && bookingHealthy);
+      var hasPhone = Boolean(t.phone);
+      var callScript = hasPhone ? buildCallScript(t) : null;
+
+      var afterItems = [
+        "Notice how the reply lands — warm, informed, and responsive is a good sign.",
+        "Ask for a short consult call before committing to ongoing sessions.",
+        "It's completely fine to message two or three therapists at once to compare fit.",
+      ];
+
+      var renderTipList = function (items) {
+        return (
+          '<ul class="outreach-tip-list">' +
+          items
+            .map(function (item) {
+              return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
+            })
+            .join("") +
+          "</ul>"
+        );
+      };
+
+      var messageCardHtml = hasTextChannel
+        ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
+          escapeHtml(outreachScript) +
+          '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
+        : "";
+
+      var callCardHtml = "";
+      if (hasPhone && callScript) {
+        var phoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
+        callCardHtml =
+          '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
+          '<div class="call-script-shell">' +
+          '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
+          escapeHtml(callScript.liveOpener) +
+          "</p>" +
+          (callScript.liveContext
+            ? '<p class="call-script-context">' + escapeHtml(callScript.liveContext) + "</p>"
+            : "") +
+          "</div></div>" +
+          '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
+          escapeHtml(callScript.voicemail) +
+          "</p></div></div>" +
+          (phoneDigits
+            ? '<a href="tel:' +
+              escapeHtml(phoneDigits) +
+              '" class="btn-contact call-script-cta">Call ' +
+              escapeHtml(t.phone) +
+              "</a>"
+            : "") +
+          "</div></div>";
+      }
+
+      return (
+        '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="outreach-intro">Reaching out is easier than it feels. Pick the path that feels calmest — a written message or a phone call — and use the script below as a starting point.</div><div class="next-step-card">' +
+        messageCardHtml +
+        callCardHtml +
+        (contactGuidance
+          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
+            escapeHtml(contactGuidance) +
+            "</div></div>"
+          : "") +
+        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
+        renderTipList(afterItems) +
+        "</div>" +
+        "</div></div></section>"
+      );
+    })() +
     "</div>" +
     '<div class="profile-sidebar-stack">' +
-    '<div class="sidebar-panel decision-workspace-panel"><h3>Decision workspace</h3><div class="workspace-summary-card tone-' +
-    escapeHtml(decisionSystem.tone) +
-    '"><div class="workspace-summary-label">Current stance</div><div class="workspace-summary-title">' +
-    escapeHtml(decisionSystem.stanceLabel) +
-    '</div><div class="workspace-summary-copy">' +
-    escapeHtml(decisionSystem.managementCopy) +
-    '</div><div class="workspace-summary-score">' +
-    escapeHtml(String(decisionSystem.overallScore)) +
-    '/100 decision clarity</div></div><div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
-    (uncertaintyState
-      ? '<div class="profile-uncertainty-state">' +
-        renderUncertaintyCard(uncertaintyState) +
-        "</div>"
-      : "") +
-    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
-    renderDecisionMemoryCard(decisionMemoryState) +
-    '</div><div class="profile-queue-status" id="profileQueueStatus">' +
-    renderQueueStatusCard(outreachQueueState) +
-    '</div><div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Priority label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
-    SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
-      return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
-    }).join("") +
-    '</select><label for="profileShortlistNote">Why it stands out</label><textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="Capture the one thing future-you should remember."></textarea><div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">Keep this to one sharp reminder for future-you.</div></div><div class="workspace-link-grid"><a href="' +
-    escapeHtml(shortlistCompareUrl) +
-    '" class="workspace-link">Review list</a><a href="' +
-    escapeHtml(outreachQueueUrl) +
-    '" class="workspace-link">Open outreach queue</a></div></div>' +
-    '<div class="sidebar-panel decision-rail-panel"><h3>Decision rail</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(
-      "Use this rail to decide quickly whether to contact now, save for later, or keep comparing.",
-    ) +
     "</div>" +
-    decisionRailRows +
-    "</div>" +
-    '<div class="sidebar-panel trust-panel"><h3>Trust and fit</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(standoutCopy) +
-    "</div>" +
-    '<div class="info-row"><span class="info-label">Match confidence</span><span class="info-val green">' +
-    escapeHtml(readinessTitle) +
-    "</span></div>" +
-    '<div class="match-confidence-note">' +
-    escapeHtml(readinessCopy) +
-    '</div><div class="match-confidence-note">' +
-    escapeHtml(
-      "This signal reflects how complete and decision-ready the profile appears. It does not guarantee personal chemistry, exact live availability, or clinical quality.",
-    ) +
-    "</div>" +
-    (responsivenessSignal
-      ? '<div class="info-row"><span class="info-label">Contact responsiveness</span><span class="info-val ' +
-        (responsivenessSignal.tone === "positive" ? "green" : "teal") +
-        '">' +
-        escapeHtml(responsivenessSignal.label) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(responsivenessSignal.note) +
-        '</div><div class="responsiveness-note">' +
-        escapeHtml(
-          "This speaks only to contact follow-through patterns, not care quality or clinical outcomes.",
-        ) +
-        "</div>"
-      : "") +
-    '<div class="info-row"><span class="info-label">Verification</span><span class="info-val green">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "Editorially verified"
-        : "Recently reviewed profile",
-    ) +
-    '</span></div><div class="responsiveness-note">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "Editorial verification means key profile details were reviewed. It is not a rating of therapeutic quality or fit."
-        : "This profile still gives a useful first-pass picture, but some details may need a direct check before you decide.",
-    ) +
-    "</div>" +
-    (sourceReviewedDate
-      ? '<div class="info-row"><span class="info-label">Source review</span><span class="info-val">' +
-        escapeHtml(sourceReviewedDate) +
-        "</span></div>"
-      : "") +
-    (recentConfirmation && therapistReportedDate
-      ? '<div class="info-row"><span class="info-label">Therapist re-confirmed</span><span class="info-val green">' +
-        escapeHtml(therapistReportedDate) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(
-          "This means key operational details were recently re-confirmed directly by the specialist. It does not guarantee exact live availability or personal fit.",
-        ) +
-        "</div>"
-      : "") +
-    (recentApplied
-      ? '<div class="info-row"><span class="info-label">Recently updated</span><span class="info-val green">' +
-        escapeHtml(recentApplied.label) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(recentApplied.note) +
-        "</div>"
-      : "") +
-    '<div class="info-row"><span class="info-label">Freshness</span><span class="info-val ' +
-    (freshness.status === "fresh" ? "green" : "teal") +
-    '">' +
-    escapeHtml(freshness.label) +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">License</span><span class="info-val">' +
-    escapeHtml([t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed") +
-    "</span></div>" +
-    (t.preferred_contact_method
-      ? '<div class="info-row"><span class="info-label">Preferred contact</span><span class="info-val">' +
-        escapeHtml(
-          t.preferred_contact_method === "booking" ? "Booking link" : t.preferred_contact_method,
-        ) +
-        "</span></div>"
-      : "") +
-    (t.preferred_contact_label
-      ? '<div class="info-row"><span class="info-label">Primary CTA</span><span class="info-val">' +
-        escapeHtml(t.preferred_contact_label) +
-        "</span></div>"
-      : "") +
-    (t.bipolar_years_experience
-      ? '<div class="info-row"><span class="info-label">Bipolar-specific experience</span><span class="info-val">' +
-        escapeHtml(t.bipolar_years_experience) +
-        " years</span></div>"
-      : "") +
-    (t.years_experience
-      ? '<div class="info-row"><span class="info-label">Total experience</span><span class="info-val">' +
-        escapeHtml(t.years_experience) +
-        " years</span></div>"
-      : "") +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Access details</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(reachabilityCopy) +
-    "</div>" +
-    '<div class="info-row"><span class="info-label">Status</span><span class="info-val ' +
-    (t.accepting_new_patients ? "green" : "") +
-    '">' +
-    escapeHtml(t.accepting_new_patients ? "Accepting patients" : "Waitlist") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">Telehealth</span><span class="info-val ' +
-    (t.accepts_telehealth ? "green" : "") +
-    '">' +
-    escapeHtml(t.accepts_telehealth ? "Available" : "Not offered") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">In-person</span><span class="info-val ' +
-    (t.accepts_in_person ? "teal" : "") +
-    '">' +
-    escapeHtml(t.accepts_in_person ? "Available" : "Not offered") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">Medication management</span><span class="info-val">' +
-    escapeHtml(t.medication_management ? "Offered" : "No") +
-    "</span></div>" +
-    (t.estimated_wait_time
-      ? '<div class="info-row"><span class="info-label">Availability note</span><span class="info-val">' +
-        escapeHtml(t.estimated_wait_time) +
-        "</span></div>"
-      : "") +
-    (langPills
-      ? '<div class="info-row"><span class="info-label">Languages</span><div class="lang-pills">' +
-        langPills +
-        "</div></div>"
-      : "") +
-    (telehealthStates
-      ? '<div class="info-row"><span class="info-label">Telehealth states</span><div class="lang-pills">' +
-        telehealthStates +
-        "</div></div>"
-      : "") +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Session fees</h3>' +
-    feesHtml +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Contact</h3>' +
-    (contactGuidance
-      ? '<p class="action-panel-note" style="margin-bottom:0.8rem">' +
-        escapeHtml(contactGuidance) +
-        "</p>"
-      : "") +
-    (t.phone
-      ? '<div class="contact-item"><span class="contact-icon">📞</span><a href="tel:' +
-        escapeHtml(t.phone) +
-        '">' +
-        escapeHtml(t.phone) +
-        "</a></div>"
-      : "") +
-    (t.email && t.email !== "contact@example.com"
-      ? '<div class="contact-item"><span class="contact-icon">✉️</span><a href="mailto:' +
-        escapeHtml(t.email) +
-        '">' +
-        escapeHtml(t.email) +
-        "</a></div>"
-      : "") +
-    (t.website
-      ? '<div class="contact-item"><span class="contact-icon">🌐</span><a href="' +
-        escapeHtml(t.website) +
-        '" target="_blank" rel="noopener">' +
-        escapeHtml(t.website.replace(/^https?:\/\//, "")) +
-        "</a></div>"
-      : "") +
-    (!t.phone && (!t.email || t.email === "contact@example.com") && !t.website
-      ? '<p style="font-size:.85rem;color:var(--muted)">A direct contact path is not listed here yet. If this profile still looks promising, save it and compare it with stronger-contact options.</p>'
-      : "") +
-    "</div></div>" +
     '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';
 
   document.getElementById("profileWrap").innerHTML = html;
@@ -3148,6 +2822,27 @@ function renderProfile(t, therapistDirectory) {
           outcome: outcome,
         });
         updateShortlistAction(t.slug);
+      });
+    });
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-bio-toggle] .profile-bio-toggle-btn"))
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var wrap = button.closest("[data-profile-bio-toggle]");
+        var panel = wrap ? wrap.querySelector(".profile-bio-panel") : null;
+        var label = button.querySelector(".profile-bio-toggle-label");
+        var icon = button.querySelector(".profile-bio-toggle-icon");
+        if (!panel) {
+          return;
+        }
+        var collapsed = panel.classList.toggle("is-collapsed");
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        if (label) {
+          label.textContent = collapsed ? "Read full bio" : "Hide bio";
+        }
+        if (icon) {
+          icon.textContent = collapsed ? "+" : "−";
+        }
       });
     });
   Array.prototype.slice
