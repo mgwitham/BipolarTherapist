@@ -84,10 +84,7 @@ async function run() {
     var newDiscipline =
       result.licensureVerification.disciplineFlag && !t.currentStatus !== "discipline_flagged";
 
-    await client
-      .patch(t._id)
-      .set({ licensureVerification: result.licensureVerification })
-      .commit();
+    await client.patch(t._id).set({ licensureVerification: result.licensureVerification }).commit();
     updated++;
 
     if (statusChanged || newDiscipline) {

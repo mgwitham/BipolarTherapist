@@ -10,31 +10,31 @@ const LICENSE_TYPE_MAP = {
 };
 
 const BOARD_NAME_MAP = {
-  "2001": "California Board of Behavioral Sciences",
-  "2002": "California Board of Behavioral Sciences",
-  "2003": "California Board of Behavioral Sciences",
-  "2005": "California Board of Behavioral Sciences",
-  "5002": "Board of Psychology",
-  "8002": "Medical Board of California",
+  2001: "California Board of Behavioral Sciences",
+  2002: "California Board of Behavioral Sciences",
+  2003: "California Board of Behavioral Sciences",
+  2005: "California Board of Behavioral Sciences",
+  5002: "Board of Psychology",
+  8002: "Medical Board of California",
 };
 
 const LICENSE_LABEL_MAP = {
-  "2001": "Licensed Marriage and Family Therapist",
-  "2002": "Licensed Clinical Social Worker",
-  "2003": "Licensed Educational Psychologist",
-  "2005": "Licensed Professional Clinical Counselor",
-  "5002": "Psychologist",
-  "8002": "Physician and Surgeon",
+  2001: "Licensed Marriage and Family Therapist",
+  2002: "Licensed Clinical Social Worker",
+  2003: "Licensed Educational Psychologist",
+  2005: "Licensed Professional Clinical Counselor",
+  5002: "Psychologist",
+  8002: "Physician and Surgeon",
 };
 
 const STATUS_MAP = {
-  "20": "active",
-  "30": "inactive",
-  "40": "delinquent",
-  "50": "cancelled",
-  "60": "revoked",
-  "70": "surrendered",
-  "80": "expired",
+  20: "active",
+  30: "inactive",
+  40: "delinquent",
+  50: "cancelled",
+  60: "revoked",
+  70: "surrendered",
+  80: "expired",
 };
 
 export function resolveLicenseTypeCode(label) {
