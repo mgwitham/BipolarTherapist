@@ -1662,13 +1662,14 @@ function renderLeadMatchSnapshot(entry) {
 
 function renderCompareValue(value, kind) {
   if (kind === "order") {
-    var tone =
-      value === "Contact first"
-        ? "positive"
-        : value === "Backup if stalled"
-          ? "secondary"
-          : "neutral";
-    return '<span class="compare-chip compare-chip-' + tone + '">' + escapeHtml(value) + "</span>";
+    var tone = value === "#1 Best match" ? "positive" : "neutral";
+    return (
+      '<div class="compare-cell-center"><span class="compare-chip compare-chip-' +
+      tone +
+      '">' +
+      escapeHtml(value) +
+      "</span></div>"
+    );
   }
   if (kind === "format") {
     if (Array.isArray(value)) {
@@ -1799,13 +1800,11 @@ function getCompareFreshness(entry) {
 }
 
 function getCompareRole(entry, index) {
+  var rank = index + 1;
   if (index === 0) {
-    return "Contact first";
+    return "#1 Best match";
   }
-  if (index === 1) {
-    return "Strong contender";
-  }
-  return "Compare if needed";
+  return "#" + rank + " match";
 }
 
 function getCompareRoleReason(entry, profile, recommendation, role) {
