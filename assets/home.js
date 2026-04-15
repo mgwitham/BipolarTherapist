@@ -776,8 +776,10 @@ function renderPageSections(homePage, _featuredTherapists) {
         return renderTestimonialsSection(section);
       }
 
+      // ctaSection is the bottom therapist-recruitment strip; suppressed on the
+      // patient-facing home until we have a demand story worth pitching.
       if (section._type === "ctaSection") {
-        return renderCtaSection(section);
+        return "";
       }
 
       return "";
