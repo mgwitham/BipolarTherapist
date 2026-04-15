@@ -244,77 +244,107 @@ function buildProfileEntryState(source, therapist, backupState) {
   };
 }
 
+function buildCallScript(therapist) {
+  var formatLine = "";
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    formatLine = "Either telehealth or in-person would work for me.";
+  } else if (therapist.accepts_telehealth) {
+    formatLine = "I'm hoping for telehealth if that's available.";
+  } else if (therapist.accepts_in_person) {
+    formatLine = "I'm hoping for in-person care if that's available.";
+  }
+  var medicationLine = therapist.medication_management
+    ? "Medication support or coordination may also be part of the picture."
+    : "";
+  var insuranceLine =
+    therapist.insurance_accepted && therapist.insurance_accepted.length
+      ? "I'd also love to confirm insurance or fee details before going further."
+      : "I'd also love to briefly confirm fees or payment options.";
+
+  var liveOpener =
+    "Hi, my name is [your name]. I found your profile on BipolarTherapyHub and I'm looking for a therapist who works with bipolar disorder. Are you currently taking new clients?";
+
+  var liveContextParts = [formatLine, medicationLine, insuranceLine].filter(Boolean);
+  var liveContext = liveContextParts.length ? "If they are: " + liveContextParts.join(" ") : "";
+
+  var voicemail =
+    "Hi, my name is [your name] and my number is [your number]. I found your profile on BipolarTherapyHub and I'm looking for a therapist experienced with bipolar disorder. Please give me a call back when you have a moment. Thank you so much.";
+
+  return {
+    liveOpener: liveOpener,
+    liveContext: liveContext,
+    voicemail: voicemail,
+  };
+}
+
 function buildOutreachScript(therapist, contactStrategy) {
   var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
-  var opener =
-    route === "phone"
-      ? "Hi, I found your BipolarTherapyHub profile and I am looking for bipolar-focused support."
-      : "Hi, I found your BipolarTherapyHub profile and wanted to ask about fit for bipolar-focused support.";
-  var formatCue =
-    therapist.accepts_telehealth && therapist.accepts_in_person
-      ? "I am open to either telehealth or in-person care."
-      : therapist.accepts_telehealth
-        ? "I would be hoping for telehealth."
-        : therapist.accepts_in_person
-          ? "I would be hoping for in-person care."
-          : "";
-  var medicationCue = therapist.medication_management
-    ? "I may also want medication support or coordination."
+
+  var greeting = "Hi,";
+
+  var intro =
+    "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
+
+  var contextParts = [];
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    contextParts.push("I'm open to either telehealth or in-person care");
+  } else if (therapist.accepts_telehealth) {
+    contextParts.push("I'm hoping for telehealth");
+  } else if (therapist.accepts_in_person) {
+    contextParts.push("I'm hoping for in-person care");
+  }
+  if (therapist.medication_management) {
+    contextParts.push("medication support or coordination may also be part of the picture");
+  }
+  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
+    contextParts.push("and I'd love to confirm insurance or cost details before going further");
+  }
+  var contextLine = contextParts.length
+    ? contextParts.join(", ").replace(/, and /g, " and ") + "."
     : "";
-  var insuranceCue =
-    therapist.insurance_accepted && therapist.insurance_accepted.length
-      ? "I would also love to confirm whether my insurance or cost path would likely line up before I go too far."
-      : "";
-  var questions = [
-    "Are you currently taking new clients?",
-    therapist.medication_management
-      ? "If it seems like a fit, how do you usually handle medication support or coordination?"
-      : "If it seems like a fit, what does the first step usually look like?",
-  ];
+  if (contextLine) {
+    contextLine = contextLine.charAt(0).toUpperCase() + contextLine.slice(1);
+  }
 
-  if (formatCue) {
-    questions.splice(
-      1,
-      0,
-      therapist.accepts_telehealth && therapist.accepts_in_person
-        ? "Would you recommend starting with telehealth or in-person care?"
-        : therapist.accepts_telehealth
-          ? "Are you currently offering telehealth openings?"
-          : "Are you currently offering in-person openings?",
+  var questions = ["Are you currently taking new clients?"];
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    questions.push("Would you recommend starting with telehealth or in-person care?");
+  } else if (therapist.accepts_telehealth) {
+    questions.push("Are you offering telehealth openings right now?");
+  } else if (therapist.accepts_in_person) {
+    questions.push("Are you offering in-person openings right now?");
+  }
+  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
+    questions.push(
+      "Anything I should know about insurance, fees, or out-of-pocket costs before scheduling?",
     );
   }
-  if (insuranceCue) {
-    questions.splice(
-      questions.length - 1,
-      0,
-      "Is there anything important to know about insurance, fees, or out-of-pocket expectations before I schedule?",
-    );
-  }
+  var closingQuestion;
   if (route === "booking") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is the booking link the best place to start or is there a better first step?";
+    closingQuestion = "If it seems like a fit, is the booking link the best place to start?";
   } else if (route === "email") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is email the best way to begin or is there a better first step?";
+    closingQuestion = "If it seems like a fit, is email the best way to begin?";
   } else if (route === "phone") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is a phone call still the best way to begin or is there another step you prefer first?";
+    closingQuestion = "If it seems like a fit, is a phone call still the best way to begin?";
   } else if (route === "website") {
-    questions[questions.length - 1] =
-      "If it seems like a fit, is the website inquiry form the best place to begin or is there a better first step?";
+    closingQuestion =
+      "If it seems like a fit, is the website inquiry form the best place to start?";
+  } else {
+    closingQuestion = "If it seems like a fit, what's the best first step?";
   }
+  questions.push(closingQuestion);
 
-  return [
-    opener,
-    formatCue,
-    medicationCue,
-    insuranceCue,
-    "A couple of quick questions before I reach out further:",
-    "- " + questions.join("\n- "),
-    "Thank you.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  var questionsBlock =
+    "A few quick questions:\n\n" +
+    questions
+      .map(function (q) {
+        return "• " + q;
+      })
+      .join("\n\n");
+
+  var closing = "Thanks so much,";
+
+  return [greeting, intro, contextLine, questionsBlock, closing].filter(Boolean).join("\n\n");
 }
 
 function getFirstMeaningfulSentence(value) {
@@ -1633,11 +1663,6 @@ function renderProfile(t, therapistDirectory) {
   if (responsivenessSignal && responsivenessSignal.tone === "positive") {
     fitReasons.push("earlier outreach patterns suggest stronger follow-through");
   }
-  var fitSummaryCopy = fitReasons.length
-    ? "This clinician may be worth saving because " +
-      fitReasons.slice(0, 3).join(", ") +
-      ". You should still confirm availability, insurance, and personal fit directly."
-    : "Use this profile to make a first-pass decision on fit, access, and trust. The remaining unknowns are best handled with one focused outreach rather than more scrolling.";
   var likelyFitAudience = [];
   if (t.medication_management) {
     likelyFitAudience.push("people who may need psychiatry or medication support");
@@ -1765,8 +1790,6 @@ function renderProfile(t, therapistDirectory) {
   var practicalDetailsItems = [];
   var contactChecklistItems = [];
   var contactQuestionItems = [];
-  var fitHeadline = "";
-  var fitSubheadline = "";
   var bookingHealthy = isBookingRouteHealthy(t);
   var websiteHealthy = isWebsiteRouteHealthy(t);
   var contactRouteLabel =
@@ -1852,9 +1875,6 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
-  var specialties = renderCompactTagList(t.specialties, "spec-tag", 4);
-  var modalities = renderCompactTagList(t.treatment_modalities, "spec-tag", 4);
-  var populations = renderCompactTagList(t.client_populations, "spec-tag", 4);
   var insTags = renderList(t.insurance_accepted, "ins-item");
   var langPills = renderCompactTagList(t.languages || ["English"], "lang-pill", 3);
   var telehealthStates = renderCompactTagList(t.telehealth_states, "lang-pill", 4);
@@ -1877,76 +1897,6 @@ function renderProfile(t, therapistDirectory) {
         : "") +
       "."
     : "";
-  var trustEvidenceCards = [
-    {
-      tone:
-        freshnessSignal && freshnessSignal.tone === "fresh"
-          ? "fresh"
-          : freshnessSignal && freshnessSignal.tone === "recent"
-            ? "source"
-            : "foundation",
-      label: "Freshness",
-      title: freshnessSignal ? freshnessSignal.label : "Freshness still needs confirmation",
-      copy:
-        (freshnessSignal && freshnessSignal.note) ||
-        "Treat timing and public details as worth confirming directly before you commit.",
-      proof: freshness && freshness.status === "fresh" ? "Lower trust drag" : "Worth a quick check",
-    },
-    {
-      tone: sourceReviewedDate ? "source" : "foundation",
-      label: "Source review",
-      title: sourceReviewedDate
-        ? "Reviewed against public sources"
-        : "Source review is still lighter here",
-      copy:
-        sourceReviewCopy ||
-        "A stronger source-review trail would make this profile easier to trust at a glance.",
-      proof: sourceHost ? "Primary source: " + sourceHost : "Public-source trail lighter",
-    },
-    {
-      tone: therapistReportedFields.length ? "confirmed" : "foundation",
-      label: "Therapist-confirmed details",
-      title: therapistReportedFields.length
-        ? "Operational details confirmed directly"
-        : "Direct therapist confirmation is limited",
-      copy:
-        therapistReportedCopy ||
-        "Direct confirmation from the therapist would strengthen the confidence you can place in logistics and access details here.",
-      proof: therapistReportedDate
-        ? "Confirmed on " + therapistReportedDate
-        : "Direct confirmation missing",
-    },
-    {
-      tone: "foundation",
-      label: "Trust foundation",
-      title:
-        t.verification_status === "editorially_verified"
-          ? "Editorial trust foundation is in place"
-          : "Usable trust foundation, but not the strongest tier",
-      copy:
-        operationalTrustSummary ||
-        reviewedDetailsCopy ||
-        "This profile has enough to support a first-pass trust decision, but not enough to remove all direct confirmation work.",
-      proof: readinessTitle,
-    },
-  ];
-  var trustEvidenceHtml = trustEvidenceCards
-    .map(function (item) {
-      return (
-        '<div class="trust-evidence-card tone-' +
-        escapeHtml(item.tone) +
-        '"><div class="trust-evidence-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="trust-evidence-title">' +
-        escapeHtml(item.title) +
-        '</div><div class="trust-evidence-copy">' +
-        escapeHtml(item.copy) +
-        '</div><div class="trust-evidence-proof">' +
-        escapeHtml(item.proof) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var trustSectionCards = [
     {
       label: "Reviewed details",
@@ -2148,14 +2098,6 @@ function renderProfile(t, therapistDirectory) {
   }
   contactQuestionItems.push("What usually happens after the first message or consult?");
 
-  fitHeadline = quickFitItems.length
-    ? "This looks like a strong first-pass therapy option."
-    : "This profile could still be worth a message, but it needs a little more confirmation first.";
-  fitSubheadline = quickFitItems.length
-    ? "You should be able to decide quickly whether to contact now, save for later, or keep comparing."
-    : "Use the strongest trust and logistics signals here to decide whether this is a smart outreach now or a profile to keep in reserve.";
-
-  var quickFitHtml = renderList(quickFitItems.slice(0, 3), "decision-list-item");
   var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
   var practicalDetailsHtml = renderList(practicalDetailsItems.slice(0, 4), "decision-list-item");
   var contactQuestionHtml = renderList(contactQuestionItems.slice(0, 4), "contact-checklist-item");
@@ -2222,433 +2164,502 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  // --- Display helpers for the simplified profile layout ---
-  var firstName = String(t.name || "").split(" ")[0] || t.name || "this therapist";
-
-  var displayAcceptingText = t.accepting_new_patients
-    ? t.estimated_wait_time || "Accepting new patients"
-    : "Waitlist";
-  var displayFeeShort =
-    t.session_fee_min && t.session_fee_max
-      ? "$" + t.session_fee_min + "–$" + t.session_fee_max + " / session"
-      : t.session_fee_min
-        ? "From $" + t.session_fee_min + " / session"
-        : t.sliding_scale
-          ? "Sliding scale"
-          : "Ask directly";
-  var insArr = t.insurance_accepted || [];
-  var displayInsuranceShort = insArr.length
-    ? joinNaturalList(insArr.slice(0, 2)) + (insArr.length > 2 ? " + more" : "")
-    : "Ask directly";
-  var langsArr = (t.languages && t.languages.length ? t.languages : ["English"]) || ["English"];
-  var displayLanguagesShort = langsArr.slice(0, 3).join(", ");
-  var displayFormatText =
-    t.accepts_telehealth && t.accepts_in_person
-      ? "Telehealth + in-person"
-      : t.accepts_telehealth
-        ? "Telehealth only"
-        : t.accepts_in_person
-          ? "In-person only"
-          : "Ask directly";
-
-  // Hero badges — at most four, each stating a single fact.
-  var heroBadges = [];
-  heroBadges.push(
-    t.accepting_new_patients
-      ? '<span class="ts-badge ts-badge-green">Accepting new patients</span>'
-      : '<span class="ts-badge ts-badge-amber">Waitlist</span>',
-  );
-  if (t.verification_status === "editorially_verified") {
-    heroBadges.push('<span class="ts-badge ts-badge-teal">Verified</span>');
-  }
-  if (t.accepts_telehealth) {
-    heroBadges.push('<span class="ts-badge ts-badge-neutral">Telehealth</span>');
-  }
-  if (t.medication_management) {
-    heroBadges.push('<span class="ts-badge ts-badge-neutral">Medication management</span>');
-  }
-  var heroBadgesHtml = heroBadges.join("");
-
-  // One short fit sentence under the hero. Falls back to a clean default.
-  var fitSentence =
-    fitSummaryCopy && fitSummaryCopy.length < 260
-      ? fitSummaryCopy
-      : "Review the details below to decide whether " + firstName + " is worth a first message.";
-
-  // Unified secondary contact buttons (everything that isn't the primary route).
-  var secondaryContactButtonsHtml = "";
-  if (t.phone && t.preferred_contact_method !== "phone") {
-    secondaryContactButtonsHtml +=
-      '<a href="tel:' +
-      escapeHtml(t.phone) +
-      '" class="ts-btn ts-btn-ghost" data-profile-contact-route="phone" data-profile-contact-priority="secondary">Call ' +
-      escapeHtml(t.phone) +
-      "</a>";
-  }
-  if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
-    secondaryContactButtonsHtml +=
-      '<a href="mailto:' +
-      escapeHtml(t.email) +
-      '" class="ts-btn ts-btn-ghost" data-profile-contact-route="email" data-profile-contact-priority="secondary">Email</a>';
-  }
-  if (t.website && websiteHealthy && t.preferred_contact_method !== "website") {
-    secondaryContactButtonsHtml +=
-      '<a href="' +
-      escapeHtml(t.website) +
-      '" target="_blank" rel="noopener" class="ts-btn ts-btn-ghost" data-profile-contact-route="website" data-profile-contact-priority="secondary">Website</a>';
-  }
-  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
-    secondaryContactButtonsHtml +=
-      '<a href="' +
-      escapeHtml(t.booking_url) +
-      '" target="_blank" rel="noopener" class="ts-btn ts-btn-ghost" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
-  }
-  var hasAnyContact = !!(
-    t.phone ||
-    (t.email && t.email !== "contact@example.com") ||
-    t.website ||
-    t.booking_url
-  );
-
-  // Trust lines — one consolidated list, each fact stated once.
-  var trustLines = [];
-  trustLines.push(
-    t.verification_status === "editorially_verified"
-      ? "We've checked " + firstName + "'s license, location, and contact path."
-      : "Key details reviewed, but this profile has not been editorially verified yet.",
-  );
-  if (freshnessSignal && freshnessSignal.label) {
-    trustLines.push(freshnessSignal.label + ".");
-  }
-  if (sourceReviewedDate) {
-    trustLines.push(
-      "Last checked against public sources on " +
-        sourceReviewedDate +
-        (sourceHost ? " (primary source: " + sourceHost + ")." : "."),
-    );
-  }
-  if (therapistReportedFields.length) {
-    trustLines.push(
-      firstName +
-        " confirmed these details directly" +
-        (therapistReportedDate ? " on " + therapistReportedDate : "") +
-        ": " +
-        therapistReportedFields.join(", ").replace(/_/g, " ") +
-        ".",
-    );
-  }
-  if (bipolarExperience) {
-    trustLines.push(bipolarExperience + " years of bipolar-specific experience on record.");
-  } else if (totalExperience) {
-    trustLines.push(totalExperience + " years of clinical experience on record.");
-  }
-  if (responsivenessSignal && responsivenessSignal.tone === "positive") {
-    trustLines.push(responsivenessSignal.label + ".");
-  }
-  var trustLinesHtml = trustLines
-    .map(function (line) {
-      return "<li>" + escapeHtml(line) + "</li>";
+  var contactPrepCardsHtml = [
+    {
+      label: "Lead with",
+      title: "A calm first opener",
+      copy:
+        "<strong>" +
+        escapeHtml(contactMessageOpener) +
+        "</strong> Then keep the next line focused on fit or timing instead of writing a long backstory.",
+    },
+    {
+      label: "Confirm first",
+      title: "The two fastest questions",
+      copy: escapeHtml(
+        contactQuestionPreview ||
+          "Ask one fit question and one timing question so you can rule this option in or out quickly.",
+      ),
+    },
+    {
+      label: "Use the first reply well",
+      title: "Confirm these before you commit",
+      copy: escapeHtml(
+        consultConfirmPreview ||
+          "Use the first reply to confirm fit, timing, and cost path before you treat this as your lead route.",
+      ),
+    },
+    {
+      label: "Keep momentum",
+      title: "Know the pivot before you start",
+      copy: escapeHtml(
+        contactStrategy.backupPlanCopy ||
+          "If this route stalls after one follow-up, move to the clearest backup instead of waiting indefinitely.",
+      ),
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="profile-cockpit-card"><div class="profile-cockpit-label">' +
+        item.label +
+        '</div><div class="profile-cockpit-title">' +
+        item.title +
+        '</div><div class="profile-cockpit-copy">' +
+        item.copy +
+        "</div></div>"
+      );
     })
     .join("");
-
-  // Suppress lint warnings for data-derivation values the simplified layout no longer renders.
-  void contactBtns;
-  void fitHeadline;
-  void fitSubheadline;
-  void quickFitHtml;
-  void bipolarTrustHtml;
-  void practicalDetailsHtml;
-  void contactChecklistItems;
-  void strongReplyItems;
-  void pivotFastItems;
-  void consultConfirmItems;
-  void contactMessageOpener;
-  void contactQuestionPreview;
-  void consultConfirmPreview;
-  void trustEvidenceCards;
-  void trustEvidenceHtml;
-  void trustSectionCards;
-  void trustSectionCardsHtml;
-  void decisionSystem;
-  void standoutCopy;
-  void readinessCopy;
-  void reviewedDetailsCopy;
-  void reachabilityCopy;
-  void likelyFitAudience;
-  void followThroughItems;
-  void operationalTrustSummary;
-
-  var primaryCtaHtml =
-    primaryButton || '<a href="directory.html" class="ts-btn ts-btn-primary">Back to directory</a>';
-
-  var bioBodyHtml =
-    '<p class="ts-bio">' +
-    escapeHtml(t.bio || "A longer bio is not available yet for " + firstName + ".") +
-    "</p>" +
-    (t.care_approach
-      ? '<p class="ts-bio ts-bio-secondary">' + escapeHtml(t.care_approach) + "</p>"
-      : "");
-
-  var specialtiesBlockHtml = "";
-  if (specialties) {
-    specialtiesBlockHtml +=
-      '<div class="ts-taggroup"><div class="ts-taggroup-label">Focus areas</div><div class="ts-tagrow">' +
-      specialties +
-      "</div></div>";
-  }
-  if (modalities) {
-    specialtiesBlockHtml +=
-      '<div class="ts-taggroup"><div class="ts-taggroup-label">Treatment approach</div><div class="ts-tagrow">' +
-      modalities +
-      "</div></div>";
-  }
-  if (populations) {
-    specialtiesBlockHtml +=
-      '<div class="ts-taggroup"><div class="ts-taggroup-label">Populations served</div><div class="ts-tagrow">' +
-      populations +
-      "</div></div>";
-  }
-
-  var practicalFacts = [
+  var consultPrepHtml =
+    '<div class="next-step-item"><div class="next-step-label">Use the first reply to judge fit fast</div><div class="next-step-helper">A strong reply should lower uncertainty quickly. If it does not, keep your backup route warm instead of overinvesting here.</div><div class="next-step-question-list">' +
+    renderList(strongReplyItems.slice(0, 3), "contact-checklist-item") +
+    '</div></div><div class="next-step-item"><div class="next-step-label">Confirm before booking or committing</div><div class="next-step-question-list">' +
+    renderList(consultConfirmItems.slice(0, 3), "contact-checklist-item") +
+    '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
+    renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
+    "</div></div>";
+  var insuranceList = Array.isArray(t.insurance_accepted) ? t.insurance_accepted : [];
+  var insuranceSummary = insuranceList.length
+    ? insuranceList.length <= 2
+      ? joinNaturalList(insuranceList)
+      : insuranceList.slice(0, 2).join(", ") + " +" + (insuranceList.length - 2) + " more"
+    : "Contact to confirm";
+  var languageList = Array.isArray(t.languages) && t.languages.length ? t.languages : ["English"];
+  var languageSummary =
+    languageList.length <= 2
+      ? joinNaturalList(languageList)
+      : languageList.slice(0, 2).join(", ") + " +" + (languageList.length - 2) + " more";
+  var summaryStats = [
     {
-      label: "Accepting",
-      value: displayAcceptingText,
-      good: !!t.accepting_new_patients,
+      label: "Openings",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting patients"
+        : "Confirm directly",
+      tone: t.accepting_new_patients ? "green" : "teal",
     },
     {
       label: "Format",
-      value: displayFormatText,
-      good: !!(t.accepts_telehealth || t.accepts_in_person),
+      value:
+        t.accepts_telehealth && t.accepts_in_person
+          ? "Telehealth + in-person"
+          : t.accepts_telehealth
+            ? "Telehealth"
+            : t.accepts_in_person
+              ? "In-person"
+              : "Format to confirm",
+      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
     },
     {
-      label: "Medication management",
-      value: t.medication_management ? "Offered" : "Not offered",
-      good: false,
+      label: "Session fee",
+      value:
+        t.session_fee_min && t.session_fee_max
+          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+          : t.session_fee_min
+            ? "From $" + t.session_fee_min
+            : t.sliding_scale
+              ? "Sliding scale"
+              : "Fees to confirm",
+      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
+    },
+    {
+      label: "Insurance",
+      value: insuranceSummary,
+      tone: insuranceList.length ? "teal" : "",
     },
     {
       label: "Languages",
-      value: displayLanguagesShort,
-      good: false,
+      value: languageSummary,
+      tone: "",
     },
-  ];
-  if ((t.telehealth_states || []).length) {
-    practicalFacts.push({
-      label: "Telehealth states",
-      value: (t.telehealth_states || []).slice(0, 6).join(", "),
-      good: false,
-    });
-  }
-  if (t.license_state || t.license_number) {
-    practicalFacts.push({
-      label: "License",
-      value: [t.license_state, t.license_number].filter(Boolean).join(" · "),
-      good: false,
-    });
-  }
-  var practicalFactsHtml = practicalFacts
-    .map(function (row) {
+  ]
+    .map(function (item) {
       return (
-        '<div class="ts-fact"><div class="ts-fact-label">' +
-        escapeHtml(row.label) +
-        '</div><div class="ts-fact-value' +
-        (row.good ? " is-good" : "") +
+        '<div class="summary-stat"><div class="summary-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="summary-stat-value ' +
+        escapeHtml(item.tone || "") +
         '">' +
-        escapeHtml(row.value) +
+        escapeHtml(item.value) +
         "</div></div>"
       );
     })
     .join("");
 
-  var insuranceBlockHtml = insTags
-    ? '<div class="ts-detail-block"><div class="ts-detail-label">Insurance accepted</div><div class="ts-ins-list">' +
-      insTags +
-      "</div></div>"
-    : '<div class="ts-detail-block"><div class="ts-detail-label">Insurance</div><div class="ts-detail-muted">Not listed — ask directly</div></div>';
+  var licenseValue =
+    [t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed";
+  var primaryCtaValue = t.preferred_contact_label || "Not specified";
+  var experienceParts = [];
+  if (t.bipolar_years_experience) {
+    experienceParts.push(String(t.bipolar_years_experience) + "y bipolar");
+  }
+  if (t.years_experience) {
+    experienceParts.push(String(t.years_experience) + "y total");
+  }
+  var experienceValue = experienceParts.length ? experienceParts.join(" · ") : "Not listed";
+  var credentialStats = [
+    { label: "License", value: licenseValue, tone: t.license_number ? "teal" : "" },
+    {
+      label: "Primary CTA",
+      value: primaryCtaValue,
+      tone: t.preferred_contact_label ? "teal" : "",
+    },
+    {
+      label: "Experience",
+      value: experienceValue,
+      tone: t.bipolar_years_experience ? "green" : t.years_experience ? "teal" : "",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="summary-stat"><div class="summary-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="summary-stat-value ' +
+        escapeHtml(item.tone || "") +
+        '">' +
+        escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+  var contactTiming = getContactTimingGuidance(contactStrategy);
+  var logisticsSectionLeadHtml =
+    '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
+    escapeHtml(
+      t.accepting_new_patients || t.estimated_wait_time
+        ? "The access path is visible enough to act on."
+        : "This is still more of a logistics check than a ready-now option.",
+    ) +
+    '</div><div class="section-story-copy">' +
+    escapeHtml(reachabilityCopy) +
+    "</div></div>";
+  var logisticsSignalStripHtml = [
+    {
+      label: "Openings",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting now"
+        : "Confirm directly",
+    },
+    {
+      label: "Coverage",
+      value: (t.insurance_accepted || []).length
+        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
+        : "Ask directly",
+    },
+    {
+      label: "Format",
+      value:
+        t.accepts_telehealth && t.accepts_in_person
+          ? "Telehealth + in-person"
+          : t.accepts_telehealth
+            ? "Telehealth"
+            : t.accepts_in_person
+              ? "In-person"
+              : "Confirm directly",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="section-mini-stat"><div class="section-mini-stat-label">' +
+        escapeHtml(item.label) +
+        '</div><div class="section-mini-stat-value">' +
+        escapeHtml(item.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+  var sectionNavHtml = "";
+  var decisionRailRows = [
+    {
+      label: "Best next move now",
+      value: contactStrategy.routeLabel,
+      tone: "green",
+    },
+    {
+      label: "Action timing",
+      value: contactTiming.title,
+      tone: contactStrategy.confidenceTone === "outcomes" ? "green" : "teal",
+    },
+    {
+      label: "Availability",
+      value: t.accepting_new_patients
+        ? t.estimated_wait_time || "Accepting patients"
+        : "Openings to confirm",
+      tone: t.accepting_new_patients ? "green" : "",
+    },
+    {
+      label: "Insurance",
+      value: (t.insurance_accepted || []).length
+        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
+        : "Coverage to confirm",
+      tone: (t.insurance_accepted || []).length ? "teal" : "",
+    },
+    {
+      label: "Fees",
+      value:
+        t.session_fee_min && t.session_fee_max
+          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
+          : t.sliding_scale
+            ? "Sliding scale"
+            : "Fees to confirm",
+      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
+    },
+  ]
+    .map(function (item) {
+      return (
+        '<div class="rail-row"><span class="info-label">' +
+        escapeHtml(item.label) +
+        '</span><span class="info-val ' +
+        escapeHtml(item.tone || "") +
+        '">' +
+        escapeHtml(item.value) +
+        "</span></div>"
+      );
+    })
+    .join("");
 
-  var feesBlockHtml =
-    '<div class="ts-detail-block"><div class="ts-detail-label">Fees</div>' + feesHtml + "</div>";
-
-  var contactGuidanceHtml = contactGuidance
-    ? '<p class="ts-hint">' + escapeHtml(contactGuidance) + "</p>"
-    : "";
-
-  var contactQuestionsBlockHtml = contactQuestionHtml
-    ? '<div class="ts-questions" data-profile-contact-questions><div class="ts-questions-label">' +
-      escapeHtml(contactQuestionsLabel || "Good questions to ask") +
-      '</div><ul class="ts-questions-list">' +
-      contactQuestionHtml +
-      "</ul></div>"
-    : "";
-
-  var reachOutLead =
-    (contactStrategy && contactStrategy.routeLabel ? contactStrategy.routeLabel + "." : "") +
-    (contactStrategy && contactStrategy.routeReason ? " " + contactStrategy.routeReason : "");
-  reachOutLead = reachOutLead.trim() || "Reach out when you're ready.";
-
-  var sidebarFactsHtml =
-    '<dl class="ts-facts">' +
-    '<dt>Accepting</dt><dd class="' +
-    (t.accepting_new_patients ? "is-good" : "") +
+  var secondaryButtons =
+    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
+  if (t.phone && t.preferred_contact_method !== "phone") {
+    secondaryButtons +=
+      '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
+  }
+  if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
+    secondaryButtons +=
+      '<a href="mailto:' + escapeHtml(t.email) + '" class="btn-website">Email</a>';
+  }
+  if (t.website && websiteHealthy && t.preferred_contact_method !== "website") {
+    secondaryButtons +=
+      '<a href="' +
+      escapeHtml(t.website) +
+      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
+  }
+  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
+    secondaryButtons +=
+      '<a href="' +
+      escapeHtml(t.booking_url) +
+      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
+  }
+  secondaryButtons +=
+    '<a href="portal.html?slug=' +
+    encodeURIComponent(t.slug) +
+    '" class="btn-website">Claim or manage profile</a>';
+  contactBtns =
+    '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="profile-actions-intro-copy">' +
+    escapeHtml(contactStrategy.routeReason) +
+    "</div></div>" +
+    '<div class="profile-actions-header"><div class="profile-actions-kicker">Outreach cockpit</div><div class="profile-actions-title">Make one strong first move, not three hesitant ones.</div><div class="profile-actions-microcopy">This rail is built to help you choose the safest route, send a more credible first message, and know exactly when to pivot if the first path stalls.</div></div>' +
+    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best outreach path</div><div class="contact-strategy-title">' +
+    escapeHtml(contactStrategy.routeLabel) +
+    '</div><div class="contact-strategy-copy">' +
+    escapeHtml(contactStrategy.routeReason) +
+    '</div><div class="contact-strategy-highlight"><strong>Why this route now:</strong> ' +
+    escapeHtml(contactStrategy.proofLine) +
+    '</div><div class="contact-strategy-confidence tone-' +
+    escapeHtml(contactStrategy.confidenceTone) +
+    '"><div class="contact-strategy-confidence-label">' +
+    escapeHtml(contactStrategy.confidenceLabel) +
+    '</div><div class="contact-strategy-confidence-note">' +
+    escapeHtml(contactStrategy.confidenceNote) +
+    '</div></div><div class="contact-strategy-grid"><div class="contact-strategy-item"><div class="contact-strategy-label">Expected reply window</div><div class="contact-strategy-value ' +
+    escapeHtml(contactStrategy.timingTone) +
     '">' +
-    escapeHtml(displayAcceptingText) +
-    "</dd>" +
-    "<dt>Fees</dt><dd>" +
-    escapeHtml(displayFeeShort) +
-    "</dd>" +
-    "<dt>Insurance</dt><dd>" +
-    escapeHtml(displayInsuranceShort) +
-    "</dd>" +
-    "<dt>Languages</dt><dd>" +
-    escapeHtml(displayLanguagesShort) +
-    "</dd>" +
-    "</dl>";
+    escapeHtml(contactStrategy.replyWindowCopy) +
+    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">Follow up if needed</div><div class="contact-strategy-value">' +
+    escapeHtml(contactStrategy.followUpCopy) +
+    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">If this stalls</div><div class="contact-strategy-value">' +
+    escapeHtml(contactStrategy.backupPlanCopy) +
+    "</div></div></div></div>" +
+    '<div class="profile-cockpit-strip">' +
+    contactPrepCardsHtml +
+    "</div>" +
+    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
+    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    '<div class="profile-primary-caption">' +
+    escapeHtml(bestNextStepCopy) +
+    "</div></div></div>" +
+    renderBackupCard(backupState) +
+    '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
+    secondaryButtons +
+    "</div>";
+  void contactBtns;
 
-  var noContactNote = hasAnyContact
-    ? ""
-    : '<p class="ts-hint">No direct contact info listed yet. Save this profile and compare later.</p>';
+  var bioBodyHtml =
+    (t.bio
+      ? '<p class="profile-bio-paragraph">' + escapeHtml(t.bio) + "</p>"
+      : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
+    (t.care_approach
+      ? '<p class="profile-bio-paragraph profile-bio-approach">' +
+        escapeHtml(t.care_approach) +
+        "</p>"
+      : "");
 
   var html =
-    // ---------- HERO ----------
-    '<header class="ts-hero">' +
-    '<div class="ts-hero-main">' +
-    '<div class="ts-avatar">' +
+    '<div class="profile-header">' +
+    '<div class="profile-hero-main">' +
+    '<div class="profile-hero-top">' +
+    '<div class="profile-identity">' +
+    '<div class="avatar">' +
     avatar +
     "</div>" +
-    '<div class="ts-hero-text">' +
+    '<div class="profile-main"><div class="profile-eyebrow-row"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
+    acceptingBadge +
+    "</div>" +
     "<h1>" +
     escapeHtml(t.name) +
     "</h1>" +
-    (t.credentials
-      ? '<div class="ts-hero-credentials">' + escapeHtml(t.credentials) + "</div>"
-      : "") +
-    (t.title ? '<div class="ts-hero-title">' + escapeHtml(t.title) + "</div>" : "") +
+    (t.credentials ? '<div class="creds">' + escapeHtml(t.credentials) + "</div>" : "") +
+    (t.title ? '<div class="title-text">' + escapeHtml(t.title) + "</div>" : "") +
     (t.practice_name
-      ? '<div class="ts-hero-practice">' + escapeHtml(t.practice_name) + "</div>"
+      ? '<div class="title-text practice-line">' + escapeHtml(t.practice_name) + "</div>"
       : "") +
-    '<div class="ts-hero-location">' +
+    '<div class="location">📍 ' +
     escapeHtml(t.city) +
     ", " +
     escapeHtml(t.state) +
     (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
-    '<div class="ts-hero-badges">' +
-    heroBadgesHtml +
-    "</div>" +
-    "</div>" +
-    "</div>" +
-    '<p class="ts-hero-fit">' +
-    escapeHtml(fitSentence) +
-    "</p>" +
-    "</header>" +
-    // ---------- BODY LAYOUT ----------
-    '<div class="ts-body">' +
-    // Main column
-    '<main class="ts-main">' +
-    // § About
-    '<section class="ts-section" id="section-bio" data-profile-section>' +
-    "<h2>About " +
-    escapeHtml(firstName) +
-    "</h2>" +
-    bioBodyHtml +
-    "</section>" +
-    // § Specialties & approach (only if there's anything to show)
-    (specialtiesBlockHtml
-      ? '<section class="ts-section" id="section-fit" data-profile-section>' +
-        "<h2>Specialties &amp; approach</h2>" +
-        specialtiesBlockHtml +
-        "</section>"
+    '<div class="hero-meta">' +
+    (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
+    "</div></div></div>" +
+    '<div class="profile-contact-card">' +
+    '<div class="profile-contact-card-label">Contact</div>' +
+    (t.phone
+      ? '<a href="tel:' +
+        escapeHtml(t.phone) +
+        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
+        escapeHtml(t.phone) +
+        "</span></a>"
       : "") +
-    // § Practical details
-    '<section class="ts-section" id="section-logistics" data-profile-section>' +
-    "<h2>Practical details</h2>" +
-    '<div class="ts-facts-grid">' +
-    practicalFactsHtml +
+    (t.email && t.email !== "contact@example.com"
+      ? '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
+        escapeHtml(t.email) +
+        "</span></a>"
+      : "") +
+    (t.website && websiteHealthy
+      ? '<a href="' +
+        escapeHtml(t.website) +
+        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
+        escapeHtml(t.website.replace(/^https?:\/\//, "")) +
+        "</span></a>"
+      : "") +
+    (t.booking_url && bookingHealthy
+      ? '<a href="' +
+        escapeHtml(t.booking_url) +
+        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
+      : "") +
+    (!t.phone &&
+    (!t.email || t.email === "contact@example.com") &&
+    !(t.website && websiteHealthy) &&
+    !(t.booking_url && bookingHealthy)
+      ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
+      : "") +
     "</div>" +
-    insuranceBlockHtml +
-    feesBlockHtml +
-    "</section>" +
-    // § Reach out
-    '<section class="ts-section" id="section-contact" data-profile-section data-profile-contact-section>' +
-    "<h2>Reach out</h2>" +
-    '<p class="ts-section-lead">' +
-    escapeHtml(reachOutLead) +
-    "</p>" +
-    contactGuidanceHtml +
-    '<div class="ts-reach-script" data-profile-outreach-script tabindex="-1">' +
-    '<div class="ts-reach-script-label">' +
-    escapeHtml(contactScriptLabel || "Suggested first message") +
     "</div>" +
-    '<div class="ts-reach-script-body" id="profileContactScriptPreview">' +
-    escapeHtml(outreachScript) +
-    "</div>" +
-    '<div class="ts-reach-script-actions">' +
-    '<button type="button" class="ts-btn ts-btn-secondary" data-profile-copy-script>Copy message</button>' +
-    '<span class="ts-reach-script-hint">Feel free to edit before sending.</span>' +
-    "</div>" +
-    "</div>" +
-    contactQuestionsBlockHtml +
-    renderBackupCard(backupState) +
-    "</section>" +
-    // § Why you can trust this profile (collapsed by default)
-    '<section class="ts-section ts-section-collapsible" id="section-trust" data-profile-section>' +
-    '<button type="button" class="ts-section-header profile-section-header" aria-expanded="false">' +
-    "<h2>Why you can trust this profile</h2>" +
-    '<span class="ts-section-toggle section-toggle">Show</span>' +
+    '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
+    '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
+    '<span class="profile-bio-toggle-label">Read full bio</span>' +
+    '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
     "</button>" +
-    '<div class="profile-section-content is-collapsed">' +
-    '<ul class="ts-trust-list">' +
-    trustLinesHtml +
-    "</ul>" +
-    "</div>" +
-    "</section>" +
-    "</main>" +
-    // ---------- SIDEBAR ----------
-    '<aside class="ts-side">' +
-    '<div class="ts-actions-card">' +
-    '<div class="ts-actions-primary">' +
-    primaryCtaHtml +
-    "</div>" +
-    '<button type="button" class="ts-btn ts-btn-save shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to list</button>' +
-    '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
-    sidebarFactsHtml +
-    (secondaryContactButtonsHtml
-      ? '<div class="ts-actions-secondary">' +
-        '<div class="ts-actions-secondary-label">More ways to contact</div>' +
-        secondaryContactButtonsHtml +
-        "</div>"
-      : "") +
-    noContactNote +
-    '<a href="portal.html?slug=' +
-    encodeURIComponent(t.slug) +
-    '" class="ts-actions-claim">Is this you? Claim this profile.</a>' +
-    "</div>" +
-    // Keep the stateful cards the rest of the app relies on — visually minimal.
-    '<div class="profile-decision-memory" id="profileDecisionMemory">' +
-    renderDecisionMemoryCard(decisionMemoryState) +
-    "</div>" +
-    '<div class="profile-queue-status" id="profileQueueStatus">' +
-    renderQueueStatusCard(outreachQueueState) +
-    "</div>" +
-    '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none">' +
-    '<label for="profileShortlistPriority">Priority</label>' +
-    '<select id="profileShortlistPriority"><option value="">No label</option>' +
-    SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
-      return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
-    }).join("") +
-    "</select>" +
-    '<label for="profileShortlistNote">Why it stands out</label>' +
-    '<textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="A short reminder for later."></textarea>' +
-    '<div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">One sharp reminder.</div>' +
-    "</div>" +
-    "</aside>" +
-    // ---------- MOBILE DOCK ----------
-    '<div class="ts-mobile-dock">' +
-    primaryCtaHtml +
-    '<button type="button" class="ts-btn ts-btn-ghost shortlist-profile-btn" data-shortlist-trigger="profile">Save</button>' +
+    '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+    bioBodyHtml +
     "</div>" +
     "</div>" +
-    // ---------- FOOTNOTE ----------
-    '<p class="ts-footnote">Profile details are checked for accuracy, not clinical quality or personal fit. Always confirm availability directly.</p>';
+    '<div class="profile-summary-strip">' +
+    summaryStats +
+    "</div>" +
+    '<div class="profile-summary-strip profile-summary-strip-secondary">' +
+    credentialStats +
+    "</div>" +
+    '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
+    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    '<div class="profile-primary-caption">' +
+    escapeHtml(bestNextStepCopy) +
+    "</div></div></div></div>" +
+    "</div>" +
+    sectionNavHtml +
+    '<div class="profile-body">' +
+    "<div>" +
+    (function () {
+      var hasTextChannel =
+        (t.email && t.email !== "contact@example.com") ||
+        (t.website && websiteHealthy) ||
+        (t.booking_url && bookingHealthy);
+      var hasPhone = Boolean(t.phone);
+      var callScript = hasPhone ? buildCallScript(t) : null;
+
+      var afterItems = [
+        "Notice how the reply lands — warm, informed, and responsive is a good sign.",
+        "Ask for a short consult call before committing to ongoing sessions.",
+        "It's completely fine to message two or three therapists at once to compare fit.",
+      ];
+
+      var renderTipList = function (items) {
+        return (
+          '<ul class="outreach-tip-list">' +
+          items
+            .map(function (item) {
+              return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
+            })
+            .join("") +
+          "</ul>"
+        );
+      };
+
+      var messageCardHtml = hasTextChannel
+        ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
+          escapeHtml(outreachScript) +
+          '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
+        : "";
+
+      var callCardHtml = "";
+      if (hasPhone && callScript) {
+        var phoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
+        callCardHtml =
+          '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
+          '<div class="call-script-shell">' +
+          '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
+          escapeHtml(callScript.liveOpener) +
+          "</p>" +
+          (callScript.liveContext
+            ? '<p class="call-script-context">' + escapeHtml(callScript.liveContext) + "</p>"
+            : "") +
+          "</div></div>" +
+          '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
+          escapeHtml(callScript.voicemail) +
+          "</p></div></div>" +
+          (phoneDigits
+            ? '<a href="tel:' +
+              escapeHtml(phoneDigits) +
+              '" class="btn-contact call-script-cta">Call ' +
+              escapeHtml(t.phone) +
+              "</a>"
+            : "") +
+          "</div></div>";
+      }
+
+      return (
+        '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="outreach-intro">Reaching out is easier than it feels. Pick the path that feels calmest — a written message or a phone call — and use the script below as a starting point.</div><div class="next-step-card">' +
+        messageCardHtml +
+        callCardHtml +
+        (contactGuidance
+          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
+            escapeHtml(contactGuidance) +
+            "</div></div>"
+          : "") +
+        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
+        renderTipList(afterItems) +
+        "</div>" +
+        "</div></div></section>"
+      );
+    })() +
+    "</div>" +
+    '<div class="profile-sidebar-stack">' +
+    "</div>" +
+    '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';
 
   document.getElementById("profileWrap").innerHTML = html;
   updateShortlistAction(t.slug);
@@ -2812,6 +2823,27 @@ function renderProfile(t, therapistDirectory) {
           outcome: outcome,
         });
         updateShortlistAction(t.slug);
+      });
+    });
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-bio-toggle] .profile-bio-toggle-btn"))
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var wrap = button.closest("[data-profile-bio-toggle]");
+        var panel = wrap ? wrap.querySelector(".profile-bio-panel") : null;
+        var label = button.querySelector(".profile-bio-toggle-label");
+        var icon = button.querySelector(".profile-bio-toggle-icon");
+        if (!panel) {
+          return;
+        }
+        var collapsed = panel.classList.toggle("is-collapsed");
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        if (label) {
+          label.textContent = collapsed ? "Read full bio" : "Hide bio";
+        }
+        if (icon) {
+          icon.textContent = collapsed ? "+" : "−";
+        }
       });
     });
   Array.prototype.slice
