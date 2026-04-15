@@ -1687,7 +1687,7 @@ function renderCompareValue(value, kind) {
   }
   if (kind === "boolean") {
     if (value === true) {
-      return '<span class="compare-chip compare-chip-positive">Available</span>';
+      return "Available";
     }
     if (value === false) {
       return '<span class="compare-sub">Not listed</span>';
