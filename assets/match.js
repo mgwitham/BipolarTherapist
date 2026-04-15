@@ -4463,7 +4463,9 @@ function renderSupportingResultCard(entry, rank) {
   var explanation = getMatchCardExplanation(entry);
   var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
   var feeText = buildFeeText(therapist);
   var ctaLabel =
     routeType === "booking"
