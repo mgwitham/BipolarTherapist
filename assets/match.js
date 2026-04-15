@@ -2124,8 +2124,12 @@ function renderComparison(entries) {
         var entry = topEntries.find(function (item) {
           return item && item.therapist && item.therapist.slug === therapist.slug;
         });
-        var readiness = getContactReadiness(entry);
-        return readiness && readiness.route ? readiness.route : "";
+        var routeType = getPreferredRouteType(entry);
+        if (routeType === "booking") return "Book a consultation";
+        if (routeType === "email") return "Email";
+        if (routeType === "phone") return "Call";
+        if (routeType === "website") return "Visit website";
+        return "View profile";
       },
     },
     {
