@@ -4364,7 +4364,9 @@ function renderLeadResultCard(entry, backupName) {
   var readiness = getContactReadiness(entry);
   var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
   var feeText = buildFeeText(therapist);
   var ctaLabel =
     routeType === "booking"
