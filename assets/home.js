@@ -535,9 +535,9 @@ function renderIconCardsSection(section) {
     cards
       .map(function (card) {
         return (
-          '<div class="why-card"><div class="why-icon">' +
-          escapeHtml(card.icon || "•") +
-          '</div><div class="why-title">' +
+          '<div class="why-card">' +
+          (card.icon ? '<div class="why-icon">' + escapeHtml(card.icon) + "</div>" : "") +
+          '<div class="why-title">' +
           escapeHtml(card.title || "") +
           '</div><div class="why-desc">' +
           escapeHtml(card.description || "") +
@@ -560,9 +560,9 @@ function renderStepsSection(section) {
     cards
       .map(function (card) {
         return (
-          '<div class="step-card"><div class="step-icon">' +
-          escapeHtml(card.icon || "•") +
-          '</div><div class="step-num">' +
+          '<div class="step-card">' +
+          (card.icon ? '<div class="step-icon">' + escapeHtml(card.icon) + "</div>" : "") +
+          '<div class="step-num">' +
           escapeHtml(card.stepLabel || "") +
           '</div><div class="step-title">' +
           escapeHtml(card.title || "") +
@@ -639,25 +639,19 @@ function defaultSectionsFromLegacy(homePage) {
           ? homePage.whyCards
           : [
               {
-                icon: "🎯",
+                icon: "",
                 title: "Specialty-first search",
                 description:
                   "Bipolar disorder is the starting point, not a buried filter inside a broad therapist marketplace.",
               },
               {
-                icon: "✅",
-                title: "Trust signals that feel useful",
-                description:
-                  "Profiles are designed to make expertise, fit, and practical details easier to understand before you reach out.",
-              },
-              {
-                icon: "🧭",
+                icon: "",
                 title: "Less noise, more relevance",
                 description:
                   "The goal is not to show the most options. It is to help you narrow toward the right ones faster.",
               },
               {
-                icon: "🤝",
+                icon: "",
                 title: "Built for overwhelmed moments",
                 description:
                   "The experience is meant to reduce stress and make the next step feel more manageable when the search already feels heavy.",
@@ -673,21 +667,21 @@ function defaultSectionsFromLegacy(homePage) {
           ? homePage.stepsCards
           : [
               {
-                icon: "🔍",
+                icon: "",
                 stepLabel: "Step 1",
                 title: "Start with your care type and location",
                 description:
                   "Tell us whether you want therapy or psychiatry support, then add your ZIP code to ground the search.",
               },
               {
-                icon: "👤",
+                icon: "",
                 stepLabel: "Step 2",
                 title: "See bipolar-relevant therapist options",
                 description:
                   "Compare profiles built to highlight specialty relevance, fit, and practical details that matter before first contact.",
               },
               {
-                icon: "📞",
+                icon: "",
                 stepLabel: "Step 3",
                 title: "Choose your next step with confidence",
                 description:

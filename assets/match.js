@@ -205,7 +205,7 @@ function syncZipResolvedLabel(value) {
 function syncMatchStartState() {
   return syncMatchStartStateBase({
     form: getMatchShellRefs().form,
-    button: getMatchShellRefs().searchButton,
+    button: null, // "More filters" toggle should not be dynamically relabeled
     helper: document.getElementById("matchStartHelper"),
     careField: document.querySelector("[data-match-care-field]"),
     escapeHtml: escapeHtml,
@@ -794,23 +794,40 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 }
 
 function bindRefineButtons() {
-  ["refineSearchButton", "openAdvancedFiltersButton"].forEach(function (id) {
-    var button = document.getElementById(id);
-    if (!button || button.dataset.boundRefine === "true") {
-      return;
-    }
-    button.dataset.boundRefine = "true";
-    button.addEventListener("click", function () {
-      var builder = document.querySelector(".match-builder");
+  // refineSearchButton: external trigger — always opens the panel
+  var externalBtn = document.getElementById("refineSearchButton");
+  if (externalBtn && externalBtn.dataset.boundRefine !== "true") {
+    externalBtn.dataset.boundRefine = "true";
+    externalBtn.addEventListener("click", function () {
       var refinements = document.querySelector(".match-refinements");
+      var moreBtn = document.getElementById("openAdvancedFiltersButton");
       if (refinements) {
         refinements.open = true;
+        if (moreBtn) {
+          moreBtn.setAttribute("aria-expanded", "true");
+          moreBtn.classList.add("is-expanded");
+        }
       }
+      var builder = document.querySelector(".match-builder");
       if (builder) {
         builder.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
-  });
+  }
+
+  // openAdvancedFiltersButton: inline toggle button
+  var moreBtn = document.getElementById("openAdvancedFiltersButton");
+  if (moreBtn && moreBtn.dataset.boundRefine !== "true") {
+    moreBtn.dataset.boundRefine = "true";
+    moreBtn.addEventListener("click", function () {
+      var refinements = document.querySelector(".match-refinements");
+      if (refinements) {
+        refinements.open = !refinements.open;
+        moreBtn.setAttribute("aria-expanded", refinements.open ? "true" : "false");
+        moreBtn.classList.toggle("is-expanded", refinements.open);
+      }
+    });
+  }
 }
 
 function bindRefineTeaserShortcuts() {
@@ -1404,8 +1421,17 @@ function buildEntryOutreachDraft(entry, profile) {
     return "";
   }
 
-  var outreach = getPreferredOutreach(entry);
-  var route = outreach ? outreach.label : "Review profile";
+  var routeType = getPreferredRouteType(entry);
+  var route =
+    routeType === "booking"
+      ? "Book a consultation"
+      : routeType === "phone"
+        ? "Call"
+        : routeType === "email"
+          ? "Email"
+          : routeType === "website"
+            ? "Visit the website"
+            : "Review profile";
   var therapist = entry.therapist;
   var reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
@@ -1636,33 +1662,32 @@ function renderLeadMatchSnapshot(entry) {
 
 function renderCompareValue(value, kind) {
   if (kind === "order") {
-    var tone =
-      value === "Contact first"
-        ? "positive"
-        : value === "Backup if stalled"
-          ? "secondary"
-          : "neutral";
-    return '<span class="compare-chip compare-chip-' + tone + '">' + escapeHtml(value) + "</span>";
+    var tone = value === "#1 Best match" ? "positive" : "neutral";
+    return (
+      '<div class="compare-cell-center"><span class="compare-chip compare-chip-' +
+      tone +
+      '">' +
+      escapeHtml(value) +
+      "</span></div>"
+    );
   }
   if (kind === "format") {
     if (Array.isArray(value)) {
       return value.length
         ? value
             .map(function (item) {
-              return (
-                '<span class="compare-chip compare-chip-neutral">' + escapeHtml(item) + "</span>"
-              );
+              return '<div class="compare-format-item">' + escapeHtml(item) + "</div>";
             })
             .join("")
         : '<span class="compare-sub">Not listed</span>';
     }
     return value
-      ? '<span class="compare-chip compare-chip-neutral">' + escapeHtml(String(value)) + "</span>"
+      ? '<div class="compare-format-item">' + escapeHtml(String(value)) + "</div>"
       : '<span class="compare-sub">Not listed</span>';
   }
   if (kind === "boolean") {
     if (value === true) {
-      return '<span class="compare-chip compare-chip-positive">Available</span>';
+      return "Available";
     }
     if (value === false) {
       return '<span class="compare-sub">Not listed</span>';
@@ -1697,13 +1722,13 @@ function getCompareCostLabel(therapist) {
   var min = therapist.session_fee_min;
   var max = therapist.session_fee_max;
   if (min && max && min !== max) {
-    return "$" + min + "–$" + max + " per session";
+    return "$" + min + "–$" + max;
   }
   if (min) {
-    return "$" + min + " per session";
+    return "$" + min;
   }
   if (max) {
-    return "Up to $" + max + " per session";
+    return "Up to $" + max;
   }
   if (therapist.sliding_scale) {
     return "Sliding scale available";
@@ -1772,26 +1797,12 @@ function getCompareFreshness(entry) {
     : null;
 }
 
-function getCompareRole(entry, index, recommendedSlug) {
-  var priority = String(entry?.evaluation?.shortlist_priority || "").toLowerCase();
-  var slug = entry?.therapist?.slug || "";
-
-  if (recommendedSlug && slug === recommendedSlug) {
-    return "Contact first";
-  }
-  if (priority === "top pick") {
-    return "Contact first";
-  }
-  if (priority === "backup") {
-    return "Backup if stalled";
-  }
+function getCompareRole(entry, index) {
+  var rank = index + 1;
   if (index === 0) {
-    return "Strong contender";
+    return "#1 Best match";
   }
-  if (index === 1) {
-    return "Backup if stalled";
-  }
-  return "Compare if needed";
+  return "#" + rank + " match";
 }
 
 function getCompareRoleReason(entry, profile, recommendation, role) {
@@ -1911,7 +1922,7 @@ function renderCompareDecisionCards(topEntries, profile) {
         var therapist = entry.therapist;
         var readiness = getContactReadiness(entry);
         var freshness = getCompareFreshness(entry);
-        var role = getCompareRole(entry, index, recommendedSlug);
+        var role = getCompareRole(entry, index);
         var leadName =
           topEntries[0] && topEntries[0].therapist ? topEntries[0].therapist.name : "your lead";
         var backupName =
@@ -2035,7 +2046,7 @@ function buildPartnerCompareSummary(entries, profile) {
 
   topEntries.forEach(function (entry, index) {
     var therapist = entry.therapist;
-    var role = getCompareRole(entry, index, recommendedSlug);
+    var role = getCompareRole(entry, index);
     var reason = getCompareRoleReason(entry, profile, recommendation, role);
     var timing = getCompareTimingLabel(therapist) || "timing not listed";
     var cost = getCompareCostLabel(therapist) || "fees not listed";
@@ -2093,78 +2104,36 @@ function renderComparison(entries) {
 
   var rows = [
     {
-      label: "Decision role",
+      label: "Who to contact first",
       kind: "order",
       alwaysShow: true,
       getValue: function (therapist) {
         var index = topEntries.findIndex(function (entry) {
           return entry && entry.therapist && entry.therapist.slug === therapist.slug;
         });
-        var recommendation = buildFirstContactRecommendation(profile, topEntries);
-        var recommendedSlug =
-          recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
-        return getCompareRole(topEntries[index], index, recommendedSlug);
+        return getCompareRole(topEntries[index], index);
       },
     },
     {
-      label: "Best next step",
+      label: "How to reach out",
       alwaysShow: true,
       getValue: function (therapist) {
         var entry = topEntries.find(function (item) {
           return item && item.therapist && item.therapist.slug === therapist.slug;
         });
-        var readiness = getContactReadiness(entry);
-        return readiness && readiness.route ? readiness.route : "";
+        var routeType = getPreferredRouteType(entry);
+        if (routeType === "booking") return "Book a consultation";
+        if (routeType === "email") return "Email";
+        if (routeType === "phone") return "Call";
+        if (routeType === "website") return "Visit website";
+        return "View profile";
       },
     },
     {
-      label: "Timing",
+      label: "Session cost",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareTimingLabel(therapist);
-      },
-    },
-    {
-      label: "Trust signal",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getCompareTrustLabel(entry);
-      },
-    },
-    {
-      label: "Languages",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return therapist.languages || [];
-      },
-    },
-    {
-      label: "Medication support",
-      kind: "boolean",
-      getValue: function (therapist) {
-        return therapist.medication_management;
-      },
-    },
-    {
-      label: "Bipolar experience",
-      getValue: function (therapist) {
-        return therapist.bipolar_years_experience
-          ? therapist.bipolar_years_experience + " years"
-          : "";
-      },
-    },
-    {
-      label: "Format",
-      kind: "format",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return [
-          therapist.accepts_telehealth ? "Telehealth" : "",
-          therapist.accepts_in_person ? "In-person" : "",
-        ].filter(Boolean);
+        return getCompareCostLabel(therapist);
       },
     },
     {
@@ -2176,20 +2145,44 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Cost",
+      label: "Telehealth / In-person",
+      kind: "format",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareCostLabel(therapist);
+        return [
+          therapist.accepts_telehealth ? "Telehealth" : "",
+          therapist.accepts_in_person ? "In-person" : "",
+        ].filter(Boolean);
       },
     },
     {
-      label: "Why they stand out",
+      label: "Availability",
       alwaysShow: true,
       getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getMatchCardExplanation(entry);
+        return getCompareTimingLabel(therapist);
+      },
+    },
+    {
+      label: "Bipolar experience",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.bipolar_years_experience
+          ? therapist.bipolar_years_experience + " years"
+          : "";
+      },
+    },
+    {
+      label: "Prescribes medication",
+      kind: "boolean",
+      getValue: function (therapist) {
+        return therapist.medication_management;
+      },
+    },
+    {
+      label: "Languages",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.languages || [];
       },
     },
   ];
@@ -2248,65 +2241,20 @@ function renderComparison(entries) {
       );
     })
     .join("");
-  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved list";
-  var compareCopy = profile
-    ? "Use fit, trust, timing, cost, and next step together so you can move on one therapist instead of stalling across three."
-    : "Your saved list is now organized into a clearer first choice, backup, and side-by-side decision view.";
-  var persistedShortlist = persistEntriesToDirectoryShortlist(topEntries);
-  var compareUrl = buildShortlistCompareUrl(topEntries);
-  var savedCount = persistedShortlist.length;
-  var reshapeHistory = readShortlistReshapeHistory();
-
   root.innerHTML =
-    '<details class="result-disclosure"><summary><div><div class="result-disclosure-title">Compare finalists in detail</div><div class="result-disclosure-copy">Open this if you want a side-by-side decision board for your top saved options.</div></div><span class="result-disclosure-toggle" aria-hidden="true"></span></summary><div class="result-disclosure-body"><section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
-    escapeHtml(compareTitle) +
-    '</div><div class="match-support-panel-copy">' +
-    escapeHtml(compareCopy) +
-    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>List decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
-    (savedCount ? " across " + escapeHtml(String(savedCount)) + " saved therapists." : ".") +
+    '<div class="match-compare-feature">' +
+    '<div class="match-compare-feature-head">' +
+    '<span class="match-compare-kicker">Side-by-side</span>' +
+    '<h3 class="match-compare-feature-title">Compare your matches</h3>' +
+    '<p class="match-compare-feature-copy">Cost, insurance, format, and experience across all your matches — so you can pick one and reach out.</p>' +
     "</div>" +
-    (reshapeHistory && reshapeHistory.summary
-      ? '<div class="compare-summary-history"><span class="compare-summary-kicker">' +
-        escapeHtml(reshapeHistory.title || "Last list reshape") +
-        '</span><div class="compare-summary-text">' +
-        escapeHtml(reshapeHistory.summary) +
-        '</div><div class="compare-summary-history-meta">' +
-        escapeHtml(reshapeHistory.meta || "") +
-        "</div></div>"
-      : "") +
-    '<div class="compare-summary-actions"><button type="button" class="btn-secondary" data-copy-compare-link>Copy compare link</button><a class="btn-secondary" href="directory.html">Back to directory</a></div></div>' +
-    renderPartnerCompareSummary(topEntries, profile) +
-    renderCompareDecisionCards(topEntries, profile) +
+    '<section class="match-compare">' +
     '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
     escapeHtml(String(topEntries.length)) +
     ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
-    "</div></section></div></section></div></details>";
-
-  var copyButton = root.querySelector("[data-copy-compare-link]");
-  if (copyButton) {
-    copyButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(compareUrl);
-        setActionState(true, "Copied the list comparison link.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the comparison link automatically.");
-      }
-    });
-  }
-
-  var summaryButton = root.querySelector("[data-copy-partner-summary]");
-  if (summaryButton) {
-    summaryButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(buildPartnerCompareSummary(topEntries, profile));
-        setActionState(true, "Copied the shareable list summary.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the list summary automatically.");
-      }
-    });
-  }
+    "</div></section></div>";
 
   triggerMotion(root, "motion-enter");
 }
@@ -4307,304 +4255,233 @@ function renderOutreachPanel(entries) {
   });
 }
 
+function getInitials(name) {
+  return (name || "")
+    .split(" ")
+    .filter(Boolean)
+    .map(function (w) {
+      return w[0];
+    })
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function buildFeeText(therapist) {
+  if (therapist.session_fee_min && therapist.session_fee_max) {
+    return "$" + therapist.session_fee_min + "–$" + therapist.session_fee_max + "/session";
+  }
+  if (therapist.session_fee_min) {
+    return "From $" + therapist.session_fee_min + "/session";
+  }
+  return "";
+}
+
+function renderLeadResultCard(entry, backupName) {
+  var therapist = entry.therapist || {};
+  var preferredRoute = getPreferredOutreach(entry);
+  var routeType = getPreferredRouteType(entry);
+  var explanation = getMatchCardExplanation(entry);
+  var confidence = getMatchConfidenceMeta(entry);
+  var readiness = getContactReadiness(entry);
+  var initials = getInitials(therapist.name);
+  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
+  var feeText = buildFeeText(therapist);
+  var ctaLabel =
+    routeType === "booking"
+      ? "Book a consultation"
+      : routeType === "phone"
+        ? "Call this provider"
+        : routeType === "email"
+          ? "Email this provider"
+          : routeType === "website"
+            ? "Visit provider site"
+            : "View full profile";
+  var signals = [];
+  if (therapist.accepting_new_patients) {
+    signals.push('<span class="result-signal is-green">Accepting patients</span>');
+  }
+  if (therapist.accepts_telehealth) {
+    signals.push('<span class="result-signal">Telehealth available</span>');
+  }
+  if (therapist.accepts_in_person) {
+    signals.push('<span class="result-signal">In-person available</span>');
+  }
+  if (feeText) {
+    signals.push('<span class="result-signal">' + escapeHtml(feeText) + "</span>");
+  }
+  if (therapist.sliding_scale) {
+    signals.push('<span class="result-signal">Sliding scale</span>');
+  }
+  var contactNote = "";
+
+  return (
+    '<article class="result-lead">' +
+    '<div class="result-lead-header">' +
+    '<div class="result-avatar result-avatar--lead">' +
+    escapeHtml(initials) +
+    "</div>" +
+    '<div class="result-lead-identity">' +
+    '<div class="result-badges">' +
+    '<span class="result-badge result-badge--lead">Best match</span>' +
+    '<span class="result-confidence tone-' +
+    escapeHtml(confidence.tone) +
+    '">' +
+    escapeHtml(confidence.label) +
+    "</span>" +
+    "</div>" +
+    '<h3 class="result-name">' +
+    escapeHtml(therapist.name || "") +
+    "</h3>" +
+    (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
+    (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
+    "</div>" +
+    "</div>" +
+    (signals.length ? '<div class="result-signals">' + signals.join("") + "</div>" : "") +
+    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
+    (contactNote ? '<div class="result-contact-note">' + escapeHtml(contactNote) + "</div>" : "") +
+    '<div class="result-actions">' +
+    (preferredRoute
+      ? '<a href="' +
+        escapeHtml(preferredRoute.href) +
+        '" class="result-cta-primary" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(ctaLabel) +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ">" +
+        escapeHtml(ctaLabel) +
+        "</a>"
+      : "") +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-view-profile" data-match-profile-link="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-profile-link-context="primary-card">View profile</a>' +
+    "</div>" +
+    (backupName
+      ? '<div class="result-backup-note">If this stalls, your next best option is <strong>' +
+        escapeHtml(backupName) +
+        "</strong></div>"
+      : "") +
+    "</article>"
+  );
+}
+
+function renderSupportingResultCard(entry, rank) {
+  var therapist = entry.therapist || {};
+  var preferredRoute = getPreferredOutreach(entry);
+  var routeType = getPreferredRouteType(entry);
+  var explanation = getMatchCardExplanation(entry);
+  var initials = getInitials(therapist.name);
+  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
+  var feeText = buildFeeText(therapist);
+  var ctaLabel =
+    routeType === "booking"
+      ? "Book"
+      : routeType === "phone"
+        ? "Call"
+        : routeType === "email"
+          ? "Email"
+          : routeType === "website"
+            ? "Visit site"
+            : "View profile";
+
+  return (
+    '<article class="result-card">' +
+    '<div class="result-card-rank">#' +
+    rank +
+    "</div>" +
+    '<div class="result-card-avatar">' +
+    '<div class="result-avatar">' +
+    escapeHtml(initials) +
+    "</div>" +
+    "</div>" +
+    '<div class="result-card-body">' +
+    '<div class="result-card-header">' +
+    '<div class="result-card-identity">' +
+    '<div class="result-name">' +
+    escapeHtml(therapist.name || "") +
+    "</div>" +
+    (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
+    (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
+    "</div>" +
+    "</div>" +
+    (explanation
+      ? '<p class="result-reason result-reason--compact">' + escapeHtml(explanation) + "</p>"
+      : "") +
+    '<div class="result-card-meta">' +
+    (therapist.accepting_new_patients
+      ? '<span class="result-signal is-green">Accepting</span>'
+      : "") +
+    (therapist.accepts_telehealth ? '<span class="result-signal">Telehealth</span>' : "") +
+    (feeText ? '<span class="result-signal">' + escapeHtml(feeText) + "</span>" : "") +
+    "</div>" +
+    "</div>" +
+    '<div class="result-card-action">' +
+    (preferredRoute
+      ? '<a href="' +
+        escapeHtml(preferredRoute.href) +
+        '" class="result-cta-sm" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(ctaLabel) +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ">" +
+        escapeHtml(ctaLabel) +
+        "</a>"
+      : "") +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-card-profile-link" data-match-profile-link="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-profile-link-context="supporting-card">View profile</a>' +
+    "</div>" +
+    "</article>"
+  );
+}
+
 function renderPrimaryMatchCards(entries, _profile) {
   var root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
   }
 
-  var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  var primaryEntries = (entries || []).slice(0, 5);
 
   if (!primaryEntries.length) {
     root.className = "match-empty";
     return;
   }
 
-  var resultCountLabel =
-    primaryEntries.length === 1
-      ? "Showing 1 strongest match right now."
-      : "Showing the top " + primaryEntries.length + " matches to start with.";
-  var summaryKicker = starterResultsMode ? "Your first matches are ready" : "Your list is ready";
-  var directoryBrowseUrl = buildDirectoryBrowseUrl(_profile);
-  var appliedPills = _profile
-    ? buildAppliedAnswerPills(_profile)
-    : ["Therapy", "California", "Starter list"];
-  var summarySlides = primaryEntries
-    .map(function (entry, index) {
-      var leadAction = buildPrimaryResultAction(entry);
-      var requestSummary = _profile
-        ? buildRequestSummary(_profile)
-        : "List based on your current answers.";
-      var summaryIntro =
-        index === 0
-          ? starterResultsMode
-            ? "You already have real options. Start with the lead provider, then refine if you want a tighter fit."
-            : _profile
-              ? "Your homepage answers are already applied, so you can move straight into the strongest place to start and refine from there."
-              : "These saved providers are organized into the clearest place to start first."
-          : "This is one of your next-best options if you want to compare, pivot, or keep a strong backup close.";
-      var backupName =
-        primaryEntries[index + 1] && primaryEntries[index + 1].therapist
-          ? primaryEntries[index + 1].therapist.name || ""
-          : "";
-      var nextStepLabel =
-        leadAction && leadAction.therapistName
-          ? index === 0
-            ? "Best next move: start with " +
-              leadAction.therapistName +
-              (backupName ? ", then keep " + backupName + " as your backup." : ".")
-            : "Next-best option: keep " +
-              leadAction.therapistName +
-              " close" +
-              (backupName ? ", then review " + backupName + " after that." : ".")
-          : "Best next move: review this provider as one of your strongest current options.";
-      var summaryTitle =
-        leadAction && leadAction.therapistName
-          ? (index === 0 ? "Start with <span>" : "Then consider <span>") +
-            escapeHtml(leadAction.therapistName) +
-            "</span>" +
-            (index === 0 ? " first." : ".")
-          : "Your list is ready to act on.";
-
-      return (
-        '<div class="match-summary-slide"><article class="match-summary-bar">' +
-        '<div class="match-summary-top"><div><span class="match-summary-kicker">' +
-        escapeHtml(summaryKicker) +
-        '</span><h2 class="match-summary-title">' +
-        summaryTitle +
-        "</h2>" +
-        '<div class="match-summary-meta">' +
-        escapeHtml(resultCountLabel) +
-        '</div><div class="match-summary-meta is-strong">' +
-        escapeHtml(nextStepLabel) +
-        '</div></div><div class="match-summary-actions">' +
-        (leadAction
-          ? '<a class="btn-primary" href="' +
-            escapeHtml(leadAction.href) +
-            ' data-match-summary-primary="' +
-            escapeHtml(leadAction.therapistSlug) +
-            '"' +
-            (leadAction.external ? ' target="_blank" rel="noopener"' : "") +
-            ">" +
-            escapeHtml(leadAction.label) +
-            "</a>"
-          : "") +
-        '<button type="button" class="btn-secondary" id="refineSearchButton">' +
-        escapeHtml("Refine your match") +
-        '</button><a class="btn-secondary" href="' +
-        escapeHtml(directoryBrowseUrl) +
-        '">Browse more providers</a></div></div><div class="match-summary-text">' +
-        escapeHtml(summaryIntro) +
-        '</div><div class="match-summary-request">' +
-        escapeHtml(requestSummary) +
-        '</div><div class="match-summary-applied"><div class="match-summary-applied-label">Current filters</div>' +
-        appliedPills
-          .map(function (pill) {
-            return '<span class="match-summary-pill">' + escapeHtml(pill) + "</span>";
-          })
-          .join("") +
-        "</div></article></div>"
-      );
-    })
-    .join("");
+  var leadEntry = primaryEntries[0];
+  var supportingEntries = primaryEntries.slice(1);
+  var backupName =
+    primaryEntries[1] && primaryEntries[1].therapist ? primaryEntries[1].therapist.name || "" : "";
 
   root.className = "match-list";
   root.innerHTML =
-    '<section class="match-summary-slider-shell" aria-label="Scroll through your first matches"><div class="match-summary-slider-top"><div><div class="match-card-slider-title">Scroll through your first matches</div><div class="match-card-slider-copy">Start with the lead provider, then move through the next-best options right from the top of the page.</div></div><div class="match-card-slider-meta"><div class="match-card-slider-count" data-match-summary-slider-count>1 of ' +
-    escapeHtml(String(primaryEntries.length)) +
-    '</div></div></div><div class="match-summary-slider-track" data-match-summary-slider-track>' +
-    summarySlides +
-    '</div><button type="button" class="match-summary-slider-arrow is-prev" data-match-summary-slider-prev="true" aria-label="Previous match"><span class="match-summary-slider-arrow-icon" aria-hidden="true">‹</span></button><button type="button" class="match-summary-slider-arrow is-next" data-match-summary-slider-next="true" aria-label="Next match"><span class="match-summary-slider-arrow-icon" aria-hidden="true">›</span></button><div class="match-card-slider-dots">' +
-    primaryEntries
-      .map(function (_entry, index) {
-        return (
-          '<button type="button" class="match-card-slider-dot' +
-          (index === 0 ? " is-active" : "") +
-          '" aria-label="Go to summary match ' +
-          escapeHtml(String(index + 1)) +
-          '" aria-current="' +
-          (index === 0 ? "true" : "false") +
-          '" data-match-summary-slider-dot></button>'
-        );
-      })
-      .join("") +
-    '</div></section><section class="match-card-slider-shell" aria-label="Swipe through your ranked provider matches"><div class="match-card-slider-top"><div><div class="match-card-slider-title">Swipe through your next best options</div><div class="match-card-slider-copy">Start with the lead provider, then slide to your next-best fit if you want to compare or pivot quickly.</div></div><div class="match-card-slider-meta"><div class="match-card-slider-count" data-match-card-slider-count>1 of ' +
-    escapeHtml(String(primaryEntries.length)) +
-    '</div><div class="match-card-slider-nav"><button type="button" class="btn-secondary" data-match-card-slider-prev="true">Previous</button><button type="button" class="btn-secondary" data-match-card-slider-next="true">Next best fit</button></div></div></div><div class="match-card-slider-track" data-match-card-slider-track>' +
-    primaryEntries
-      .map(function (entry, index) {
-        var therapist = entry && entry.therapist ? entry.therapist : {};
-        var preferredRoute = getPreferredOutreach(entry);
-        var routeType = getPreferredRouteType(entry);
-        var locationLine = [therapist.city, therapist.state, therapist.zip]
-          .filter(Boolean)
-          .join(", ");
-        if (therapist.state && therapist.zip) {
-          locationLine = [therapist.city, therapist.state + " " + therapist.zip]
-            .filter(Boolean)
-            .join(", ");
-        }
-        var credentialLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-        var confidence = getMatchConfidenceMeta(entry);
-        var explanation = getMatchCardExplanation(entry);
-        var caution = getMatchCardCaution(entry);
-        var actionCopy = getMatchCardActionCopy(entry);
-        var readiness = getContactReadiness(entry);
-        var routeConfidence = getMatchCardRouteConfidence(entry);
-        var contactPromise = getMatchCardReachOutPromise(entry);
-        var ctaLabel =
-          routeType === "booking"
-            ? "Start with this provider"
-            : routeType === "phone"
-              ? "Call this provider"
-              : routeType === "email"
-                ? "Email this provider"
-                : routeType === "website"
-                  ? "Visit provider site"
-                  : "View full profile";
-        var cardCtaClass =
-          index === 0 ? "btn-primary match-card-cta" : "btn-secondary match-card-cta is-supporting";
-        var copyDraftButton =
-          index === 0
-            ? '<button type="button" class="btn-secondary match-card-copy-btn is-soft" data-copy-entry-draft="' +
-              escapeHtml(therapist.slug || "") +
-              '">Copy first outreach</button>'
-            : "";
-        return (
-          '<div class="match-card-slide"><article class="match-card' +
-          (index === 0 ? " lead-card" : "") +
-          (index > 0 ? " supporting-card" : "") +
-          '">' +
-          '<div class="match-card-header">' +
-          '<div class="match-card-badges"><div class="match-rank' +
-          (index === 0 ? " is-lead" : "") +
-          '">' +
-          escapeHtml(index === 0 ? "Best place to start" : "Top " + (index + 1) + " match") +
-          '</div><div class="match-confidence tone-' +
-          escapeHtml(confidence.tone) +
-          '">' +
-          escapeHtml(confidence.label) +
-          "</div></div>" +
-          '<a href="therapist.html?slug=' +
-          encodeURIComponent(therapist.slug || "") +
-          '" class="btn-secondary match-card-profile-link" data-match-profile-link="' +
-          escapeHtml(therapist.slug || "") +
-          '" data-profile-link-context="primary-card">View profile</a>' +
-          "</div>" +
-          '<div class="match-card-body">' +
-          "<h3>" +
-          escapeHtml(therapist.name || "") +
-          "</h3>" +
-          (credentialLine
-            ? '<div class="match-credentials">' + escapeHtml(credentialLine) + "</div>"
-            : "") +
-          (locationLine ? '<div class="match-meta">' + escapeHtml(locationLine) + "</div>" : "") +
-          '<p class="match-explanation">' +
-          escapeHtml(explanation) +
-          "</p>" +
-          (caution
-            ? '<div class="match-segment-learning"><strong>Watch for:</strong> ' +
-              escapeHtml(caution) +
-              "</div>"
-            : "") +
-          (index === 0 ? renderLeadMatchSnapshot(entry) : "") +
-          "</div>" +
-          '<div class="match-summary-pills">' +
-          getShortlistSummary(entry) +
-          '</div><div class="match-card-decision-rail"><div class="match-card-decision-panel"><div class="match-card-decision-label">' +
-          escapeHtml(index === 0 ? "Why act here first" : "Why keep this close") +
-          '</div><div class="match-card-decision-title">' +
-          escapeHtml(
-            index === 0
-              ? "This is the clearest first move right now."
-              : "This is the strongest backup if your lead path slows down.",
-          ) +
-          '</div><div class="match-card-decision-copy">' +
-          escapeHtml(
-            index === 0
-              ? contactPromise
-              : "You do not need to contact everyone. Keep this option close so you can pivot quickly without reopening the entire search.",
-          ) +
-          '</div></div><div class="match-card-decision-panel"><div class="match-card-decision-label">If this stalls</div><div class="match-card-decision-title">' +
-          escapeHtml(
-            index === 0
-              ? primaryEntries[1] && primaryEntries[1].therapist
-                ? "Move to " + (primaryEntries[1].therapist.name || "your backup") + " next."
-                : "Pivot to your next strongest option."
-              : "Return to compare or refine instead of widening the search immediately.",
-          ) +
-          '</div><div class="match-card-decision-copy">' +
-          escapeHtml(
-            index === 0
-              ? primaryEntries[1] && primaryEntries[1].therapist
-                ? "Your backup is already identified, so you can keep momentum without reopening the whole search."
-                : "If this route feels weak after one focused attempt, use the list and directory instead of waiting indefinitely."
-              : "This stays strongest as a backup path. If both options feel weak, refine the list instead of scattering your outreach.",
-          ) +
-          "</div></div></div>" +
-          '<div class="match-card-footer"><div class="match-card-action-block"><div class="match-card-action-label">' +
-          escapeHtml(index === 0 ? "Recommended first move" : "Backup move") +
-          '</div><div class="match-card-action-title">' +
-          escapeHtml(ctaLabel) +
-          '</div><div class="match-card-action-copy">' +
-          escapeHtml(
-            index === 0
-              ? actionCopy
-              : "Keep this ready as your second move if the first provider is not the right fit or cannot move quickly.",
-          ) +
-          '</div><div class="match-card-contact-grid"><div class="match-card-contact-item"><div class="match-card-contact-label">Route confidence</div><div class="match-card-contact-value">' +
-          escapeHtml(routeConfidence) +
-          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">When to act</div><div class="match-card-contact-value">' +
-          escapeHtml(getMatchCardActionTiming(entry)) +
-          '</div></div><div class="match-card-contact-item"><div class="match-card-contact-label">What happens after this</div><div class="match-card-contact-value">' +
-          escapeHtml(
-            readiness && readiness.wait
-              ? readiness.wait
-              : readiness && readiness.firstStep
-                ? readiness.firstStep
-                : "A short first outreach is usually enough to confirm fit and next steps.",
-          ) +
-          '</div></div></div><div class="match-card-contact-note"><strong>Before you reach out:</strong> ' +
-          escapeHtml(contactPromise) +
-          '</div><div class="outreach-card-actions">' +
-          '<a href="' +
-          escapeHtml(
-            preferredRoute
-              ? preferredRoute.href
-              : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
-          ) +
-          '" class="' +
-          escapeHtml(cardCtaClass) +
-          '" data-match-primary-cta="' +
-          escapeHtml(therapist.slug || "") +
-          '" data-match-primary-route="' +
-          escapeHtml(ctaLabel) +
-          '"' +
-          (preferredRoute && preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
-          ">" +
-          escapeHtml(ctaLabel) +
-          "</a>" +
-          copyDraftButton +
-          "</div></div></div>" +
-          "</article></div>"
-        );
-      })
-      .join("") +
-    '</div><div class="match-card-slider-dots">' +
-    primaryEntries
-      .map(function (_entry, index) {
-        return (
-          '<button type="button" class="match-card-slider-dot' +
-          (index === 0 ? " is-active" : "") +
-          '" aria-label="Go to match ' +
-          escapeHtml(String(index + 1)) +
-          '" aria-current="' +
-          (index === 0 ? "true" : "false") +
-          '" data-match-card-slider-dot></button>'
-        );
-      })
-      .join("") +
-    "</div></section>";
+    '<div class="results-panel">' +
+    renderLeadResultCard(leadEntry, backupName) +
+    (supportingEntries.length
+      ? '<div class="result-supporting-header">Other strong matches</div>' +
+        '<div class="result-supporting-list">' +
+        supportingEntries
+          .map(function (entry, i) {
+            return renderSupportingResultCard(entry, i + 2);
+          })
+          .join("") +
+        "</div>"
+      : "") +
+    "</div>";
 
   placeBuilderInResults(root);
 
@@ -4642,30 +4519,6 @@ function renderPrimaryMatchCards(entries, _profile) {
           context: link.getAttribute("data-profile-link-context") || "result",
         }),
       );
-    });
-  });
-
-  root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-entry-draft") || "";
-      var entry = (entries || []).find(function (item) {
-        return item && item.therapist && item.therapist.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
-        trackFunnelEvent(
-          "match_entry_draft_copied",
-          buildMatchTrackingPayload(slug, {
-            route: "Primary card",
-          }),
-        );
-        setActionState(true, "Copied a first outreach message for " + entry.therapist.name + ".");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the outreach message automatically.");
-      }
     });
   });
 
@@ -4715,14 +4568,12 @@ function renderResults(entries, profile) {
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
-  renderFirstContactRecommendation(profile, primaryEntries);
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   renderShortlistQueue(entries);
   if (refs.feedbackBar) {
     refs.feedbackBar.hidden = false;
   }
-  renderOutreachPanel(entries);
   renderComparison(entries);
 }
 

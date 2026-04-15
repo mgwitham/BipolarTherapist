@@ -24,7 +24,7 @@
       .match-results-hero {
         max-width: 1080px;
         margin: 0 auto;
-        padding: 1.4rem 1.5rem 0;
+        padding: 1rem 1.1rem 0;
       }
       .match-hero-copy {
         text-align: left;
@@ -151,7 +151,7 @@
         border-radius: 18px;
       }
       .match-panel {
-        padding: 1.35rem;
+        padding: 1rem;
         box-shadow: 0 14px 36px rgba(14, 77, 95, 0.06);
       }
       .match-builder {
@@ -1428,6 +1428,392 @@
         gap: 1.1rem;
         align-items: stretch;
       }
+
+      /* ── New results panel ─────────────────────────────── */
+      .results-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      /* Lead card */
+      .result-lead {
+        background: #fff;
+        border: 1px solid var(--border, #d4e4e9);
+        border-left: 4px solid #1a7a8f;
+        border-radius: 16px;
+        padding: 0.95rem 1.1rem;
+        box-shadow: 0 6px 24px rgba(10, 45, 56, 0.08);
+      }
+      .result-lead-header {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        margin-bottom: 0.6rem;
+      }
+      .result-lead-identity {
+        flex: 1;
+        min-width: 0;
+      }
+      /* keep legacy selectors inert — new layout doesn't render them */
+      .result-lead-top,
+      .result-lead-body {
+        display: none;
+      }
+      .result-badges {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .result-badge--lead {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        background: #1a7a8f;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .result-confidence {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        background: #e8f5f8;
+        color: #155f70;
+      }
+      .result-confidence.tone-high {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .result-confidence.tone-medium {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .result-confidence.tone-light {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .result-profile-link {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #1a7a8f;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .result-profile-link:hover {
+        text-decoration: underline;
+      }
+      /* Tertiary "View profile" in lead card actions row */
+      .result-view-profile {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #6b8290;
+        text-decoration: none;
+        white-space: nowrap;
+        padding: 0.3rem 0;
+        margin-left: 0.25rem;
+      }
+      .result-view-profile:hover {
+        color: #1a7a8f;
+        text-decoration: underline;
+      }
+      .result-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a7a8f, #2a9cb3);
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .result-avatar--lead {
+        width: 52px;
+        height: 52px;
+        font-size: 1rem;
+      }
+      .result-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .result-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1d3a4a;
+        line-height: 1.3;
+      }
+      .result-creds {
+        font-size: 0.78rem;
+        color: #1a7a8f;
+        font-weight: 600;
+        margin-top: 0.15rem;
+      }
+      .result-loc {
+        font-size: 0.76rem;
+        color: #6b8290;
+        margin-top: 0.1rem;
+      }
+      .result-reason {
+        font-size: 0.87rem;
+        color: #4a6572;
+        line-height: 1.5;
+        margin-bottom: 0.45rem;
+      }
+      .result-reason--compact {
+        font-size: 0.82rem;
+        margin-bottom: 0.45rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .result-signals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-bottom: 0.45rem;
+      }
+      .result-signal {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        background: #f1f8fa;
+        border: 1px solid #d4e4e9;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #4a6572;
+      }
+      .result-signal.is-green {
+        background: #d1fae5;
+        border-color: #6ee7b7;
+        color: #065f46;
+      }
+      .result-contact-note {
+        font-size: 0.81rem;
+        color: #6b8290;
+        line-height: 1.5;
+        margin-bottom: 0.65rem;
+        padding: 0.55rem 0.75rem;
+        background: #f7fbfc;
+        border-radius: 9px;
+        border: 1px solid #e8f0f3;
+      }
+      .result-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 0.3rem;
+      }
+      .result-cta-primary {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1.3rem;
+        border-radius: 8px;
+        background: #1a7a8f;
+        color: #fff;
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        letter-spacing: 0.01em;
+        transition: background 0.18s;
+      }
+      .result-cta-primary:hover {
+        background: #155f70;
+      }
+      .result-cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.7rem 0.9rem;
+        border-radius: 10px;
+        background: #fff;
+        color: #1a7a8f;
+        font-size: 0.84rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid #d4e4e9;
+        cursor: pointer;
+        transition:
+          border-color 0.18s,
+          background 0.18s;
+        font-family: inherit;
+        white-space: nowrap;
+      }
+      .result-cta-secondary:hover {
+        border-color: #1a7a8f;
+        background: #f2fbfc;
+      }
+      .result-backup-note {
+        font-size: 0.78rem;
+        color: #6b8290;
+        margin-top: 0.1rem;
+      }
+      .result-backup-note strong {
+        color: #1d3a4a;
+      }
+
+      /* Supporting list — 2-column grid, 1px gaps act as dividers */
+      .result-supporting-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: #e4edf1;
+        border: 1px solid #e4edf1;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(10, 45, 56, 0.05);
+        margin-top: 0.15rem;
+      }
+      .result-supporting-header {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #6b8290;
+        padding: 0 0.2rem 0.25rem;
+      }
+      .result-card {
+        display: flex;
+        gap: 0.55rem;
+        align-items: center;
+        background: #fff;
+        border: none;
+        border-radius: 0;
+        padding: 0.7rem 0.95rem;
+        box-shadow: none;
+        transition: background 0.15s;
+      }
+      .result-card:hover {
+        background: #f5fafb;
+      }
+      .result-card-rank {
+        font-size: 0.63rem;
+        font-weight: 800;
+        color: #b8cdd5;
+        min-width: 14px;
+        text-align: center;
+        letter-spacing: 0;
+        flex-shrink: 0;
+      }
+      .result-card-avatar {
+        flex-shrink: 0;
+      }
+      .result-card-avatar .result-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 0.68rem;
+      }
+      .result-card-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .result-card-header {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        margin-bottom: 0;
+      }
+      .result-card-identity {
+        flex: 1;
+        min-width: 0;
+      }
+      .result-card-identity .result-name {
+        font-size: 0.875rem;
+        display: inline;
+      }
+      /* Creds + location inline after name */
+      .result-card-identity .result-creds {
+        display: inline;
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: #3d8ea3;
+        margin-left: 0;
+      }
+      .result-card-identity .result-creds::before {
+        content: " · ";
+        color: #c5d6dc;
+        font-weight: 400;
+      }
+      .result-card-identity .result-loc {
+        display: block;
+        font-size: 0.71rem;
+        color: #8fa4af;
+        margin-top: 0.15rem;
+      }
+      .result-card-identity .result-loc::before {
+        content: none;
+      }
+      /* Hide reason text — too verbose for compact rows */
+      .result-card .result-reason--compact {
+        display: none;
+      }
+      .result-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: 0.3rem;
+      }
+      .result-card-meta .result-signal {
+        font-size: 0.67rem;
+        padding: 0.15rem 0.48rem;
+      }
+      .result-card-action {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.22rem;
+        padding-top: 0;
+      }
+      .result-cta-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.42rem 0.78rem;
+        border-radius: 7px;
+        background: #1a7a8f;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.18s;
+      }
+      .result-cta-sm:hover {
+        background: #155f70;
+      }
+      .result-card-profile-link {
+        font-size: 0.67rem;
+        font-weight: 500;
+        color: #9fb8c2;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .result-card-profile-link:hover {
+        color: #1a7a8f;
+        text-decoration: underline;
+      }
+      /* ── End new results panel ──────────────────────────── */
       .match-summary-slider-shell,
       .match-summary-bar,
       .match-card-slider-shell {
@@ -1588,8 +1974,37 @@
         background: var(--teal);
         box-shadow: 0 0 0 4px rgba(26, 122, 143, 0.12);
       }
+      /* Compare feature section */
+      .match-compare-feature {
+        margin-top: 1.2rem;
+      }
+      .match-compare-feature-head {
+        margin-bottom: 0.55rem;
+      }
+      .match-compare-kicker {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1a7a8f;
+        margin-bottom: 0.3rem;
+      }
+      .match-compare-feature-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--navy);
+        margin: 0 0 0.3rem;
+        line-height: 1.2;
+      }
+      .match-compare-feature-copy {
+        font-size: 0.83rem;
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.5;
+      }
       .match-compare {
-        margin-top: 1.1rem;
+        margin-top: 0;
         border: 1px solid var(--border);
         border-radius: 16px;
         overflow: hidden;
@@ -1874,13 +2289,15 @@
         background: #fff;
       }
       .compare-cell {
-        padding: 0.95rem 1rem;
+        padding: 0.65rem 0.85rem;
         border-right: 1px solid var(--border);
         border-bottom: 1px solid var(--border);
         font-size: 0.84rem;
         color: var(--slate);
         line-height: 1.5;
         background: rgba(255, 255, 255, 0.94);
+        text-align: center;
+        vertical-align: middle;
       }
       .compare-cell-end-col {
         border-right: none;
@@ -1894,25 +2311,52 @@
         color: var(--navy);
         font-size: 0.8rem;
         letter-spacing: 0.01em;
+        text-align: left;
+        vertical-align: middle;
       }
       .compare-cell-header {
         background: linear-gradient(180deg, #f7fbfc 0%, #f1f8fa 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0.75rem 0.65rem;
+      }
+      /* Keep the top-left "Compare" header label left-aligned */
+      .compare-cell-label.compare-cell-header {
+        align-items: flex-start;
+        text-align: left;
       }
       .compare-name {
         font-weight: 800;
         color: var(--navy);
-        margin-bottom: 0.24rem;
-        font-size: 0.98rem;
+        margin-bottom: 0.18rem;
+        font-size: 0.88rem;
+        line-height: 1.25;
+        text-align: center;
       }
       .compare-sub {
-        font-size: 0.76rem;
+        font-size: 0.73rem;
         color: var(--muted);
+        text-align: center;
+        line-height: 1.4;
       }
       .compare-list-item {
         display: block;
       }
       .compare-list-item + .compare-list-item {
         margin-top: 0.22rem;
+      }
+      .compare-cell-center {
+        display: flex;
+        justify-content: center;
+      }
+      .compare-format-item {
+        font-size: inherit;
+        color: inherit;
+        font-weight: inherit;
+        line-height: 1.5;
       }
       .compare-chip {
         display: inline-flex;
@@ -3776,6 +4220,646 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ═══════════════════════════════════════════════════════
+         REFINE WIDGET — redesigned
+         ════════════════════════════════════════════════════ */
+
+      /* ── Primary row: care type + ZIP (homepage-consistent) ── */
+      .refine-primary {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 0;
+      }
+      .refine-primary-field {
+        display: flex;
+        flex-direction: column;
+        padding: 0.1rem 0 0.25rem;
+      }
+      .refine-primary-select {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid rgba(14, 77, 95, 0.15);
+        border-radius: 0;
+        padding: 0.38rem 1.6rem 0.38rem 0;
+        font-size: 1rem;
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--navy);
+        outline: none;
+        width: 100%;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231a7a8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.2rem center;
+        transition: border-color 0.15s;
+      }
+      .refine-primary-select:focus {
+        border-bottom-color: #1a7a8f;
+      }
+      .refine-primary-select option[value=""] {
+        color: rgba(85, 104, 118, 0.5);
+      }
+      /* Placeholder color when no care type chosen */
+      .refine-primary-field:not(.has-value) .refine-primary-select {
+        color: rgba(85, 104, 118, 0.45);
+      }
+      .refine-primary-field.has-value .refine-primary-select,
+      .refine-primary-select:focus {
+        color: var(--navy);
+      }
+      .refine-primary-input {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid rgba(14, 77, 95, 0.15);
+        border-radius: 0;
+        padding: 0.38rem 0;
+        font-size: 1rem;
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--navy);
+        outline: none;
+        width: 100%;
+        transition: border-color 0.15s;
+      }
+      .refine-primary-input:focus {
+        border-bottom-color: #1a7a8f;
+      }
+      .refine-primary-input::placeholder {
+        color: rgba(85, 104, 118, 0.42);
+      }
+      .refine-primary-sep {
+        height: 1px;
+        background: rgba(14, 77, 95, 0.09);
+        margin: 0;
+      }
+      .refine-primary-divider {
+        height: 1px;
+        background: rgba(14, 77, 95, 0.1);
+        margin: 0.65rem 0 0.7rem;
+      }
+      /* Hide ZIP resolved label when empty */
+      .match-zip-resolved:empty {
+        display: none;
+      }
+      .match-zip-resolved {
+        font-size: 0.72rem;
+        color: rgba(26, 122, 143, 0.8);
+        margin-top: 0.18rem;
+        min-height: 0;
+      }
+
+      .refine-quick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 1.6rem;
+        align-items: flex-end;
+        padding-bottom: 1rem;
+      }
+      .refine-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        min-width: 0;
+        flex: 1 1 200px;
+      }
+      .refine-field--format {
+        flex: 0 0 auto;
+      }
+      .refine-field-lbl {
+        font-size: 0.67rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--slate);
+        opacity: 0.7;
+      }
+      .refine-input {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid rgba(14, 77, 95, 0.18);
+        border-radius: 0;
+        padding: 0.38rem 0;
+        font-size: 0.9rem;
+        font-family: inherit;
+        color: var(--navy);
+        outline: none;
+        transition: border-color 0.15s;
+        width: 100%;
+      }
+      .refine-input:focus {
+        border-bottom-color: #1a7a8f;
+      }
+      .refine-input::placeholder {
+        color: rgba(85, 104, 118, 0.42);
+        font-size: 0.86rem;
+      }
+
+      /* Format segmented control */
+      .refine-format-seg {
+        display: inline-flex;
+        border: 1.5px solid rgba(14, 77, 95, 0.16);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .refine-seg-opt {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+      }
+      .refine-seg-opt input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-seg-opt span {
+        display: block;
+        padding: 0.35rem 0.82rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: transparent;
+        transition:
+          background 0.12s,
+          color 0.12s;
+        white-space: nowrap;
+        border-right: 1px solid rgba(14, 77, 95, 0.11);
+        user-select: none;
+      }
+      .refine-seg-opt:last-child span {
+        border-right: none;
+      }
+      .refine-seg-opt input[type="radio"]:checked + span {
+        background: #1a7a8f;
+        color: #fff;
+        font-weight: 600;
+      }
+      .refine-seg-opt:hover span {
+        background: rgba(26, 122, 143, 0.07);
+        color: #1a7a8f;
+      }
+      .refine-seg-opt:has(input:checked):hover span {
+        background: #1a7a8f;
+        color: #fff;
+      }
+
+      /* Footer row: more-filters + submit */
+      .refine-foot {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
+      .refine-more-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: none;
+        border: none;
+        padding: 0.3rem 0;
+        font-size: 0.83rem;
+        font-weight: 600;
+        color: #1a7a8f;
+        cursor: pointer;
+        font-family: inherit;
+        transition: opacity 0.15s;
+        flex: 1 1 0;
+        text-align: left;
+        min-width: 0;
+      }
+      .refine-more-btn:hover {
+        opacity: 0.72;
+      }
+      .refine-filter-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        font-size: 0.64rem;
+        font-weight: 700;
+        background: #1a7a8f;
+        color: #fff;
+        border-radius: 9px;
+        line-height: 1;
+      }
+      .refine-filter-count[hidden] {
+        display: none;
+      }
+      .refine-chevron {
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+      }
+      .refine-more-btn.is-expanded .refine-chevron {
+        transform: rotate(180deg);
+      }
+
+      /* details element: suppress native styles */
+      .match-refinements {
+        display: block;
+      }
+      .match-refinements summary {
+        display: none !important;
+        list-style: none;
+      }
+      .match-refinements summary::-webkit-details-marker {
+        display: none;
+      }
+      /* Override the old is-results-mode styles that gave <details> a border */
+      .match-builder.is-results-mode .match-refinements {
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        margin-top: 0 !important;
+      }
+      .match-builder.is-results-mode .match-refinements summary {
+        display: none !important;
+        min-height: 0 !important;
+      }
+
+      /* Advanced panel */
+      .refine-advanced-panel {
+        padding-top: 1rem;
+        margin-top: 0.55rem;
+        border-top: 1px solid rgba(14, 77, 95, 0.09);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .refine-adv-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .refine-adv-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--slate);
+      }
+      .refine-adv-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+        gap: 0.72rem 1rem;
+        align-items: start;
+      }
+      .refine-adv-grid .match-group > label,
+      .refine-adv-grid .match-group label:first-child {
+        font-size: 0.69rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: rgba(85, 104, 118, 0.75);
+        margin-bottom: 0.2rem;
+        display: block;
+      }
+      .refine-adv-grid .match-group input,
+      .refine-adv-grid .match-group select {
+        width: 100%;
+        font-size: 0.85rem;
+        padding: 0.3rem 0.45rem;
+      }
+      .refine-adv-grid .match-launch-note {
+        margin-top: 0.18rem;
+        font-size: 0.7rem;
+        color: var(--slate);
+        opacity: 0.6;
+      }
+
+      /* Chip checkboxes */
+      .refine-chips-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+      .refine-chips-lbl {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        color: rgba(85, 104, 118, 0.8);
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+      .refine-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+      }
+      .refine-chip {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+      }
+      .refine-chip input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-chip span {
+        display: inline-block;
+        padding: 0.27rem 0.72rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: rgba(14, 77, 95, 0.04);
+        border: 1px solid rgba(14, 77, 95, 0.13);
+        border-radius: 20px;
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+        user-select: none;
+        line-height: 1.4;
+      }
+      .refine-chip:hover span {
+        background: rgba(26, 122, 143, 0.09);
+        border-color: rgba(26, 122, 143, 0.28);
+        color: #1a7a8f;
+      }
+      .refine-chip input[type="checkbox"]:checked + span {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+        font-weight: 600;
+      }
+      .refine-chip:focus-within span {
+        outline: 2px solid rgba(26, 122, 143, 0.38);
+        outline-offset: 2px;
+      }
+
+      /* Override uppercase inside the advanced panel */
+      .refine-advanced-panel .refine-field-lbl,
+      .refine-advanced-panel label {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      /* Pill / chip spans — always sentence case */
+      .refine-chip span,
+      .refine-chip,
+      .refine-med-opt span,
+      .refine-med-opt,
+      .refine-priority-card,
+      .refine-seg-opt span {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      /* Section header with optional hint */
+      .refine-adv-header {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .refine-adv-hint {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: rgba(85, 104, 118, 0.55);
+        font-style: italic;
+      }
+
+      /* Priority tiles */
+      .refine-priority-opts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+      }
+      .refine-priority-opt {
+        cursor: pointer;
+      }
+      .refine-priority-opt input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-priority-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0.45rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: rgba(14, 77, 95, 0.04);
+        border: 1px solid rgba(14, 77, 95, 0.13);
+        border-radius: 8px;
+        line-height: 1.3;
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+        min-height: 2.4rem;
+        user-select: none;
+        cursor: pointer;
+      }
+      .refine-priority-opt:hover .refine-priority-card {
+        background: rgba(26, 122, 143, 0.07);
+        border-color: rgba(26, 122, 143, 0.25);
+        color: #1a7a8f;
+      }
+      .refine-priority-opt input[type="radio"]:checked + .refine-priority-card {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+        font-weight: 600;
+      }
+      .refine-priority-opt:focus-within .refine-priority-card {
+        outline: 2px solid rgba(26, 122, 143, 0.38);
+        outline-offset: 2px;
+      }
+
+      /* Cost & access 2-col row */
+      .refine-cost-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+        align-items: start;
+      }
+      .refine-cost-row .refine-field-lbl {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.75);
+        display: block;
+        margin-bottom: 0.2rem;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .refine-cost-row .match-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Medication management radio pills */
+      .refine-med-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.8);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      .refine-med-opts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+      }
+      .refine-med-opt {
+        cursor: pointer;
+      }
+      .refine-med-opt input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
+      .refine-med-opt span {
+        display: inline-block;
+        padding: 0.27rem 0.72rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--slate);
+        background: rgba(14, 77, 95, 0.04);
+        border: 1px solid rgba(14, 77, 95, 0.13);
+        border-radius: 20px;
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+        user-select: none;
+        line-height: 1.4;
+      }
+      .refine-med-opt:hover span {
+        background: rgba(26, 122, 143, 0.09);
+        border-color: rgba(26, 122, 143, 0.28);
+        color: #1a7a8f;
+      }
+      .refine-med-opt input[type="radio"]:checked + span {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+        font-weight: 600;
+      }
+      .refine-med-opt:focus-within span {
+        outline: 2px solid rgba(26, 122, 143, 0.38);
+        outline-offset: 2px;
+      }
+
+      /* Change search section — visually secondary */
+      .refine-adv-section--search {
+        padding-top: 1.1rem;
+        border-top: 1px dashed rgba(14, 77, 95, 0.18);
+        opacity: 0.85;
+      }
+      .refine-search-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+        align-items: start;
+      }
+      .refine-search-row .refine-field-lbl,
+      .refine-search-row label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(85, 104, 118, 0.75);
+        display: block;
+        text-transform: none;
+        letter-spacing: 0;
+        margin-bottom: 0.2rem;
+      }
+      .refine-search-row select,
+      .refine-search-row input[type="text"] {
+        width: 100%;
+        font-size: 0.85rem;
+        padding: 0.3rem 0.45rem;
+        border: 1px solid rgba(14, 77, 95, 0.18);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--slate);
+        font-family: inherit;
+      }
+      .refine-search-row select:focus,
+      .refine-search-row input[type="text"]:focus {
+        outline: 2px solid rgba(26, 122, 143, 0.35);
+        outline-offset: 1px;
+        border-color: rgba(26, 122, 143, 0.4);
+      }
+
+      /* Submit button */
+      .refine-update-btn {
+        flex-shrink: 0;
+        background: #1a7a8f;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 0.5rem 1.2rem;
+        font-size: 0.87rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.14s,
+          transform 0.1s;
+        white-space: nowrap;
+        font-family: inherit;
+        line-height: 1.35;
+      }
+      .refine-update-btn:hover {
+        background: #166a7d;
+      }
+      .refine-update-btn:active {
+        transform: scale(0.97);
+      }
+
+      @media (max-width: 540px) {
+        .refine-quick {
+          gap: 0.85rem;
+        }
+        .refine-field {
+          flex-basis: 100%;
+        }
+        .refine-field--format {
+          flex: 1 1 100%;
+        }
+        .refine-format-seg {
+          width: 100%;
+        }
+        .refine-seg-opt {
+          flex: 1 1 0;
+          justify-content: center;
+        }
+        .refine-seg-opt span {
+          text-align: center;
+          width: 100%;
+        }
+        .refine-adv-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .refine-priority-opts {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .refine-cost-row {
+          grid-template-columns: 1fr;
+        }
+        .refine-search-row {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -3900,319 +4984,427 @@
           <form id="matchForm" class="match-form">
             <div class="match-tool-shell">
               <div class="match-tool-card">
-                <details class="match-refinements">
-                  <summary>
-                    <div class="match-refinements-title">
-                      <div class="match-refine-summary-copy">
-                        <strong>Refine this list before you reach out</strong>
-                        <span class="match-refine-copy"
-                          >Use insurance, telehealth, budget, and fit details to tighten the
-                          ranking.</span
-                        >
-                      </div>
-                      <div class="match-refine-teaser-grid" aria-label="Advanced filter preview">
-                        <div
-                          class="match-refine-teaser"
-                          data-refine-teaser="insurance"
-                          data-refine-target="insurance"
-                          role="button"
-                          tabindex="0"
-                        >
-                          <span class="match-refine-teaser-label">Insurance</span>
-                          <span class="match-refine-teaser-input"
-                            ><strong>Aetna, Blue Shield, Medi-Cal</strong></span
-                          >
-                        </div>
-                        <div
-                          class="match-refine-teaser"
-                          data-refine-teaser="telehealth"
-                          data-refine-target="care_format"
-                          data-refine-value="Telehealth"
-                          role="button"
-                          tabindex="0"
-                        >
-                          <span class="match-refine-teaser-label">Telehealth</span>
-                          <span class="match-refine-teaser-check"
-                            ><span class="match-refine-teaser-box" aria-hidden="true"></span
-                            ><strong>Open to telehealth</strong></span
-                          >
-                        </div>
-                      </div>
-                    </div>
-                    <div class="match-refine-summary-action">
-                      <button type="button" class="btn-primary" id="openAdvancedFiltersButton">
-                        Refine my search
-                      </button>
-                    </div>
-                  </summary>
-                  <div class="match-refinement-grid">
-                    <div class="match-search-box">
-                      <div class="search-field search-field--prompt" data-match-care-field>
-                        <label for="care_intent">Type of care</label>
-                        <select id="care_intent" name="care_intent" required>
-                          <option value="">What kind of care do you want first?</option>
-                          <option value="Therapy">Therapy</option>
-                          <option value="Psychiatry">Psychiatry</option>
-                        </select>
-                      </div>
+                <!-- ── REFINE WIDGET ─────────────────────────────── -->
 
+                <!-- Primary: care type + ZIP (homepage-consistent, always visible) -->
+                <div class="refine-primary">
+                  <div
+                    class="refine-primary-field"
+                    data-intake-field="care_intent"
+                    data-match-care-field
+                  >
+                    <select
+                      id="care_intent"
+                      name="care_intent"
+                      class="refine-primary-select"
+                      aria-label="What kind of support do you want?"
+                    >
+                      <option value="">What kind of support do you want?</option>
+                      <option value="Therapy">Therapy</option>
+                      <option value="Psychiatry">Psychiatry</option>
+                    </select>
+                  </div>
+                  <div class="refine-primary-sep" role="separator"></div>
+                  <div class="refine-primary-field" data-intake-field="location_query">
+                    <input
+                      id="location_query"
+                      name="location_query"
+                      type="text"
+                      class="refine-primary-input"
+                      placeholder="Enter ZIP code"
+                      inputmode="numeric"
+                      maxlength="5"
+                      required
+                    />
+                    <span
+                      class="match-zip-resolved"
+                      id="matchZipResolved"
+                      aria-live="polite"
+                    ></span>
+                  </div>
+                </div>
+                <div class="refine-primary-divider"></div>
+
+                <!-- Quick filters: insurance + format -->
+                <div class="refine-quick">
+                  <div class="refine-field" data-intake-field="insurance">
+                    <label class="refine-field-lbl" for="insurance">Insurance</label>
+                    <input
+                      id="insurance"
+                      name="insurance"
+                      type="text"
+                      class="refine-input"
+                      placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                    />
+                  </div>
+                  <div class="refine-field refine-field--format">
+                    <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
+                    <div
+                      class="refine-format-seg"
+                      role="radiogroup"
+                      aria-labelledby="refineFormatLabel"
+                    >
+                      <label class="refine-seg-opt">
+                        <input type="radio" name="care_format" value="" checked />
+                        <span>Any</span>
+                      </label>
+                      <label class="refine-seg-opt">
+                        <input type="radio" name="care_format" value="Telehealth" />
+                        <span>Telehealth</span>
+                      </label>
+                      <label class="refine-seg-opt">
+                        <input type="radio" name="care_format" value="In-Person" />
+                        <span>In-person</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer row: more-filters + submit (always visible, same line) -->
+                <div class="refine-foot">
+                  <button
+                    type="button"
+                    class="refine-more-btn"
+                    id="openAdvancedFiltersButton"
+                    aria-expanded="false"
+                    aria-controls="refineAdvancedDetails"
+                  >
+                    More filters
+                    <span class="refine-filter-count" id="refineFilterCount" hidden></span>
+                    <svg
+                      class="refine-chevron"
+                      width="11"
+                      height="7"
+                      viewBox="0 0 11 7"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M1 1l4.5 4.5L10 1"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button type="submit" id="refinementSubmitButton" class="refine-update-btn">
+                    Update results
+                  </button>
+                </div>
+
+                <!-- Advanced panel (expands below the foot row) -->
+                <details class="match-refinements" id="refineAdvancedDetails">
+                  <summary aria-hidden="true"></summary>
+
+                  <div class="refine-advanced-panel">
+                    <!-- 1. What matters most — leads because it has the biggest impact -->
+                    <div class="refine-adv-section">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">What matters most to you?</span>
+                      </div>
                       <div
-                        class="search-field search-field--zip"
-                        data-intake-field="location_query"
+                        class="refine-priority-opts"
+                        role="radiogroup"
+                        aria-label="Ranking priority"
                       >
-                        <label for="location_query">Enter your ZIP code</label>
-                        <div class="match-zip-inline">
+                        <label class="refine-priority-opt">
                           <input
-                            id="location_query"
-                            name="location_query"
-                            type="text"
-                            placeholder="Enter your ZIP code"
-                            inputmode="numeric"
-                            required
+                            type="radio"
+                            name="priority_mode"
+                            value="Best overall fit"
+                            checked
                           />
-                          <span
-                            class="match-zip-resolved"
-                            id="matchZipResolved"
-                            aria-live="polite"
-                          ></span>
-                        </div>
+                          <span class="refine-priority-card">Best overall fit</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Soonest availability" />
+                          <span class="refine-priority-card">Soonest available</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Lowest cost" />
+                          <span class="refine-priority-card">Lowest cost</span>
+                        </label>
+                        <label class="refine-priority-opt">
+                          <input type="radio" name="priority_mode" value="Highest specialization" />
+                          <span class="refine-priority-card">Most specialized</span>
+                        </label>
                       </div>
-
-                      <div class="match-launch-note">Currently matching California ZIP codes.</div>
                     </div>
 
-                    <section class="match-refine-section">
-                      <div class="match-refine-section-header">
-                        <div class="match-refine-section-title">Practical fit</div>
-                        <div class="match-refine-section-copy">
-                          Set the real-world constraints that usually decide whether outreach feels
-                          worth it.
-                        </div>
+                    <!-- 2. Cost & access -->
+                    <div class="refine-adv-section">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Cost & access</span>
                       </div>
-                      <div class="match-refine-section-grid">
-                        <div class="match-group" data-intake-field="insurance">
-                          <label for="insurance">Insurance or Payment Preference</label>
-                          <input
-                            id="insurance"
-                            name="insurance"
-                            type="text"
-                            placeholder="Aetna, Medicaid, Self-Pay"
-                          />
-                        </div>
-
-                        <div class="match-group" data-intake-field="language_preferences">
-                          <label for="language_preferences">Language Preferences</label>
-                          <input
-                            id="language_preferences"
-                            name="language_preferences"
-                            type="text"
-                            placeholder="English, Spanish"
-                          />
-                        </div>
-
+                      <div class="refine-cost-row">
                         <div class="match-group" data-intake-field="budget_max">
-                          <label for="budget_max">Budget Max Per Session</label>
+                          <label class="refine-field-lbl" for="budget_max"
+                            >Max per session ($)</label
+                          >
                           <input
                             id="budget_max"
                             name="budget_max"
                             type="number"
                             min="0"
-                            placeholder="150"
+                            class="refine-input"
+                            placeholder="e.g. 150"
+                          />
+                        </div>
+                        <div class="match-group" data-intake-field="language_preferences">
+                          <label class="refine-field-lbl" for="language_preferences"
+                            >Language preference</label
+                          >
+                          <input
+                            id="language_preferences"
+                            name="language_preferences"
+                            type="text"
+                            class="refine-input"
+                            placeholder="English, Spanish…"
                           />
                         </div>
                       </div>
-                    </section>
-
-                    <section class="match-refine-section">
-                      <div class="match-refine-section-header">
-                        <div class="match-refine-section-title">How care works</div>
-                        <div class="match-refine-section-copy">
-                          Narrow by format, medication support, and what matters most right now.
+                      <div class="match-group" data-intake-field="needs_medication_management">
+                        <label class="refine-field-lbl">Do you need medication management?</label>
+                        <div
+                          class="refine-med-opts"
+                          role="radiogroup"
+                          aria-label="Medication management"
+                        >
+                          <label class="refine-med-opt">
+                            <input
+                              type="radio"
+                              name="needs_medication_management"
+                              value="Open to either"
+                              checked
+                            />
+                            <span>Open to either</span>
+                          </label>
+                          <label class="refine-med-opt">
+                            <input type="radio" name="needs_medication_management" value="Yes" />
+                            <span>Yes, needed</span>
+                          </label>
+                          <label class="refine-med-opt">
+                            <input type="radio" name="needs_medication_management" value="No" />
+                            <span>Not needed</span>
+                          </label>
                         </div>
                       </div>
-                      <div class="match-refine-section-grid">
-                        <div class="match-group" data-intake-field="care_format">
-                          <label for="care_format">How do you want to meet?</label>
-                          <select id="care_format" name="care_format">
-                            <option>In-Person</option>
-                            <option>Telehealth</option>
-                          </select>
-                        </div>
+                    </div>
 
-                        <div class="match-group" data-intake-field="needs_medication_management">
-                          <label for="needs_medication_management"
-                            >Do you need medication management?</label
-                          >
-                          <select
-                            id="needs_medication_management"
-                            name="needs_medication_management"
-                          >
-                            <option>Open to either</option>
-                            <option>Yes</option>
-                            <option>No</option>
-                          </select>
-                        </div>
-
-                        <div class="match-group" data-intake-field="priority_mode">
-                          <label for="priority_mode">What matters most right now?</label>
-                          <select id="priority_mode" name="priority_mode">
-                            <option>Best overall fit</option>
-                            <option>Soonest availability</option>
-                            <option>Lowest cost</option>
-                            <option>Highest specialization</option>
-                          </select>
-                        </div>
+                    <!-- 3. Clinical focus — optional, for users who know what they want -->
+                    <div class="refine-adv-section">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Clinical focus</span>
+                        <span class="refine-adv-hint">Optional — skip if you're not sure</span>
                       </div>
-                    </section>
-
-                    <section class="match-refine-section">
-                      <div class="match-refine-section-header">
-                        <div class="match-refine-section-title">Clinical fit</div>
-                        <div class="match-refine-section-copy">
-                          Go deeper on bipolar focus, therapy style, and population fit when you
-                          want a sharper list.
-                        </div>
-                      </div>
-                      <div class="match-refinement-grid">
+                      <div class="refine-chips-group">
                         <div class="match-group" data-intake-field="bipolar_focus">
-                          <div class="match-section-label">Bipolar Focus</div>
-                          <div class="match-options">
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Bipolar I" />
-                              Bipolar I</label
+                          <span class="refine-chips-lbl">Specific diagnosis or focus</span>
+                          <div class="refine-chips">
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="bipolar_focus" value="Bipolar I" /><span
+                                >Bipolar I</span
+                              ></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Bipolar II" />
-                              Bipolar II</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Bipolar II"
+                              /><span>Bipolar II</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Cyclothymia" />
-                              Cyclothymia</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Cyclothymia"
+                              /><span>Cyclothymia</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Rapid Cycling" />
-                              Rapid Cycling</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Rapid Cycling"
+                              /><span>Rapid Cycling</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Mixed Episodes" />
-                              Mixed Episodes</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Mixed Episodes"
+                              /><span>Mixed Episodes</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Psychosis" />
-                              Psychosis</label
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="bipolar_focus" value="Psychosis" /><span
+                                >Psychosis</span
+                              ></label
                             >
-                            <label class="match-check"
+                            <label class="refine-chip"
                               ><input
                                 type="checkbox"
                                 name="bipolar_focus"
                                 value="Medication Management"
-                              />
-                              Medication Mgmt</label
+                              /><span>Medication mgmt</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="bipolar_focus" value="Family Support" />
-                              Family Support</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="bipolar_focus"
+                                value="Family Support"
+                              /><span>Family support</span></label
                             >
                           </div>
                         </div>
-
                         <div class="match-group" data-intake-field="preferred_modalities">
-                          <div class="match-section-label">Preferred Modalities</div>
-                          <div class="match-options">
-                            <label class="match-check"
-                              ><input type="checkbox" name="preferred_modalities" value="CBT" />
-                              CBT</label
+                          <span class="refine-chips-lbl">Therapy style</span>
+                          <div class="refine-chips">
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="CBT"
+                              /><span>CBT</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="preferred_modalities" value="DBT" />
-                              DBT</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="DBT"
+                              /><span>DBT</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="preferred_modalities" value="IPSRT" />
-                              IPSRT</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="IPSRT"
+                              /><span>IPSRT</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="preferred_modalities" value="ACT" />
-                              ACT</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="preferred_modalities"
+                                value="ACT"
+                              /><span>ACT</span></label
                             >
-                            <label class="match-check"
+                            <label class="refine-chip"
                               ><input
                                 type="checkbox"
                                 name="preferred_modalities"
                                 value="Family therapy"
-                              />
-                              Family therapy</label
+                              /><span>Family therapy</span></label
                             >
-                            <label class="match-check"
+                            <label class="refine-chip"
                               ><input
                                 type="checkbox"
                                 name="preferred_modalities"
                                 value="Mindfulness-based therapy"
-                              />
-                              Mindfulness</label
+                              /><span>Mindfulness</span></label
                             >
-                            <label class="match-check"
+                            <label class="refine-chip"
                               ><input
                                 type="checkbox"
                                 name="preferred_modalities"
                                 value="Psychoeducation"
-                              />
-                              Psychoeducation</label
+                              /><span>Psychoeducation</span></label
                             >
                           </div>
                         </div>
-
                         <div class="match-group" data-intake-field="population_fit">
-                          <div class="match-section-label">Population Fit</div>
-                          <div class="match-options">
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Adults" />
-                              Adults</label
+                          <span class="refine-chips-lbl">Who is this for?</span>
+                          <div class="refine-chips">
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="population_fit" value="Adults" /><span
+                                >Adults</span
+                              ></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Young adults" />
-                              Young adults</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="population_fit"
+                                value="Young adults"
+                              /><span>Young adults</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Adolescents" />
-                              Adolescents</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="population_fit"
+                                value="Adolescents"
+                              /><span>Adolescents</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Couples" />
-                              Couples</label
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="population_fit" value="Couples" /><span
+                                >Couples</span
+                              ></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Families" />
-                              Families</label
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="population_fit" value="Families" /><span
+                                >Families</span
+                              ></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="Professionals" />
-                              Professionals</label
+                            <label class="refine-chip"
+                              ><input
+                                type="checkbox"
+                                name="population_fit"
+                                value="Professionals"
+                              /><span>Professionals</span></label
                             >
-                            <label class="match-check"
+                            <label class="refine-chip"
                               ><input
                                 type="checkbox"
                                 name="population_fit"
                                 value="College students"
-                              />
-                              College students</label
+                              /><span>College students</span></label
                             >
-                            <label class="match-check"
-                              ><input type="checkbox" name="population_fit" value="LGBTQ+" />
-                              LGBTQ+</label
+                            <label class="refine-chip"
+                              ><input type="checkbox" name="population_fit" value="LGBTQ+" /><span
+                                >LGBTQ+</span
+                              ></label
                             >
                           </div>
                         </div>
                       </div>
-                    </section>
-                  </div>
-                  <input type="hidden" id="urgency" name="urgency" value="ASAP" />
-                  <div class="match-refinement-actions">
-                    <button type="submit" class="btn-primary" id="refinementSubmitButton">
-                      Update my matches
-                    </button>
+                    </div>
+
+                    <!-- 4. Update search — secondary, at the bottom -->
+                    <div class="refine-adv-section refine-adv-section--search">
+                      <div class="refine-adv-header">
+                        <span class="refine-adv-title">Change your search</span>
+                        <span class="refine-adv-hint">Update care type or location</span>
+                      </div>
+                      <div class="refine-search-row">
+                        <div class="match-group" data-intake-field="care_intent">
+                          <label class="refine-field-lbl" for="care_intent">Type of care</label>
+                          <select id="care_intent" name="care_intent" required>
+                            <option value="">Any type</option>
+                            <option value="Therapy">Therapy</option>
+                            <option value="Psychiatry">Psychiatry</option>
+                          </select>
+                        </div>
+                        <div class="match-group" data-intake-field="location_query">
+                          <label class="refine-field-lbl" for="location_query">ZIP code</label>
+                          <div class="match-zip-inline">
+                            <input
+                              id="location_query"
+                              name="location_query"
+                              type="text"
+                              placeholder="ZIP code"
+                              inputmode="numeric"
+                              required
+                            />
+                            <span
+                              class="match-zip-resolved"
+                              id="matchZipResolved"
+                              aria-live="polite"
+                            ></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </details>
+
+                <input type="hidden" id="urgency" name="urgency" value="ASAP" />
               </div>
             </div>
           </form>
@@ -4220,7 +5412,7 @@
         <div id="matchFirstContact"></div>
         <div id="matchFallbackContact"></div>
         <div class="match-queue" id="matchQueue" hidden></div>
-        <div id="matchOutreach"></div>
+        <div id="matchOutreach" hidden></div>
         <div id="matchCompare"></div>
         <div class="match-feedback-bar" id="matchFeedbackBar" hidden>
           <div class="match-feedback-title">Did this list feel useful?</div>

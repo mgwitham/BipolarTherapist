@@ -11,6 +11,630 @@
       rel="stylesheet"
     />
     <style>
+      /* ============================================================
+         Simplified therapist profile — ts-* namespace.
+         These styles take precedence over legacy rules further below.
+         ============================================================ */
+      .profile-wrap {
+        max-width: 1120px;
+        margin: 1.25rem auto 3rem;
+        padding: 0 1.25rem;
+      }
+      .ts-hero {
+        background: #fff;
+        border: 1px solid #e6ecef;
+        border-radius: 14px;
+        padding: 1.75rem 1.85rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(29, 58, 74, 0.04);
+      }
+      .ts-hero-main {
+        display: flex;
+        gap: 1.4rem;
+        align-items: flex-start;
+      }
+      .ts-avatar {
+        flex: 0 0 auto;
+        width: 104px;
+        height: 104px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2a9cb3 0%, #1a7a8f 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Lora", Georgia, serif;
+        font-size: 2.4rem;
+        font-weight: 600;
+        overflow: hidden;
+      }
+      .ts-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .ts-hero-text {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .ts-hero-text h1 {
+        font-family: "Lora", Georgia, serif;
+        font-size: 2.1rem;
+        font-weight: 600;
+        color: #1d3a4a;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.15rem;
+      }
+      .ts-hero-credentials {
+        color: #1a7a8f;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+      }
+      .ts-hero-title {
+        color: #4a6572;
+        font-size: 0.98rem;
+        margin-top: 0.2rem;
+      }
+      .ts-hero-practice {
+        color: #4a6572;
+        font-size: 0.92rem;
+        font-style: italic;
+      }
+      .ts-hero-location {
+        color: #6b7b86;
+        font-size: 0.9rem;
+        margin-top: 0.45rem;
+      }
+      .ts-hero-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.85rem;
+      }
+      .ts-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        line-height: 1.3;
+        border: 1px solid transparent;
+      }
+      .ts-badge-green {
+        background: #e7f5ea;
+        color: #1f6b36;
+        border-color: #c6e6cf;
+      }
+      .ts-badge-amber {
+        background: #fdf3e1;
+        color: #8b5a0b;
+        border-color: #f2d9a6;
+      }
+      .ts-badge-teal {
+        background: #e8f5f8;
+        color: #155f70;
+        border-color: #c1e1e8;
+      }
+      .ts-badge-neutral {
+        background: #f1f4f6;
+        color: #4a6572;
+        border-color: #dde4e8;
+      }
+      .ts-hero-fit {
+        margin: 1.25rem 0 0;
+        padding-top: 1.25rem;
+        border-top: 1px solid #eef2f4;
+        color: #2c4a5a;
+        font-size: 1.02rem;
+        line-height: 1.55;
+        max-width: 62ch;
+      }
+
+      .ts-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 1.75rem;
+        align-items: start;
+      }
+      .ts-main {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-width: 0;
+      }
+      .ts-section {
+        background: #fff;
+        border: 1px solid #e6ecef;
+        border-radius: 12px;
+        padding: 1.5rem 1.65rem;
+        box-shadow: 0 1px 2px rgba(29, 58, 74, 0.03);
+      }
+      .ts-section > h2 {
+        font-family: "Lora", Georgia, serif;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #1d3a4a;
+        margin: 0 0 1rem;
+        letter-spacing: -0.005em;
+      }
+      .ts-section-lead {
+        color: #4a6572;
+        font-size: 0.96rem;
+        line-height: 1.55;
+        margin: 0 0 1rem;
+      }
+      .ts-section-collapsible .ts-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+      }
+      .ts-section-collapsible .ts-section-header h2 {
+        font-family: "Lora", Georgia, serif;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #1d3a4a;
+        margin: 0;
+      }
+      .ts-section-collapsible .ts-section-toggle {
+        color: #1a7a8f;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .ts-section-collapsible .profile-section-content {
+        margin-top: 1rem;
+      }
+      .ts-section-collapsible .profile-section-content.is-collapsed {
+        display: none;
+      }
+
+      .ts-bio {
+        color: #2c4a5a;
+        font-size: 0.98rem;
+        line-height: 1.65;
+        margin: 0 0 0.85rem;
+        white-space: pre-wrap;
+      }
+      .ts-bio:last-child {
+        margin-bottom: 0;
+      }
+      .ts-bio-secondary {
+        color: #4a6572;
+        font-size: 0.94rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #eef2f4;
+      }
+
+      .ts-taggroup {
+        margin-bottom: 1rem;
+      }
+      .ts-taggroup:last-child {
+        margin-bottom: 0;
+      }
+      .ts-taggroup-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6b7b86;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.55rem;
+      }
+      .ts-tagrow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .ts-tagrow .spec-tag,
+      .ts-tagrow .lang-pill,
+      .ts-tagrow .trust-pill {
+        background: #f4f7f9;
+        color: #2c4a5a;
+        border: 1px solid #e1e8ec;
+        padding: 0.32rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        font-weight: 500;
+      }
+
+      .ts-facts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.8rem 1.2rem;
+        margin-bottom: 1.1rem;
+      }
+      .ts-fact {
+        min-width: 0;
+      }
+      .ts-fact-label {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: #6b7b86;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.22rem;
+      }
+      .ts-fact-value {
+        color: #1d3a4a;
+        font-size: 0.96rem;
+        font-weight: 500;
+        word-wrap: break-word;
+      }
+      .ts-fact-value.is-good {
+        color: #1f6b36;
+      }
+      .ts-detail-block {
+        padding-top: 0.85rem;
+        margin-top: 0.85rem;
+        border-top: 1px solid #eef2f4;
+      }
+      .ts-detail-label {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: #6b7b86;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.45rem;
+      }
+      .ts-detail-muted {
+        color: #6b7b86;
+        font-size: 0.92rem;
+      }
+      .ts-detail-block .fee-range {
+        color: #1d3a4a;
+        font-weight: 600;
+        font-size: 1.05rem;
+      }
+      .ts-detail-block .fee-note {
+        color: #4a6572;
+        font-size: 0.88rem;
+        margin-top: 0.25rem;
+      }
+      .ts-ins-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .ts-ins-list .ins-item {
+        background: #f4f7f9;
+        color: #2c4a5a;
+        border: 1px solid #e1e8ec;
+        padding: 0.3rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.82rem;
+      }
+
+      .ts-reach-script {
+        background: #f8fbfc;
+        border: 1px solid #dde7eb;
+        border-radius: 10px;
+        padding: 1rem 1.15rem;
+        margin: 0.5rem 0 1rem;
+      }
+      .ts-reach-script-label {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: #155f70;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.5rem;
+      }
+      .ts-reach-script-body {
+        color: #2c4a5a;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        background: #fff;
+        border: 1px solid #e6ecef;
+        border-radius: 8px;
+        padding: 0.8rem 0.95rem;
+        margin-bottom: 0.75rem;
+      }
+      .ts-reach-script-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+      }
+      .ts-reach-script-hint {
+        color: #6b7b86;
+        font-size: 0.82rem;
+      }
+      .ts-questions {
+        margin-top: 0.75rem;
+      }
+      .ts-questions-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6b7b86;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.5rem;
+      }
+      .ts-questions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .ts-questions-list .contact-checklist-item {
+        color: #2c4a5a;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        padding-left: 1.1rem;
+        position: relative;
+      }
+      .ts-questions-list .contact-checklist-item::before {
+        content: "›";
+        position: absolute;
+        left: 0;
+        color: #1a7a8f;
+        font-weight: 700;
+      }
+      .ts-hint {
+        color: #4a6572;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        margin: 0 0 0.85rem;
+      }
+
+      .ts-trust-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+      .ts-trust-list li {
+        color: #2c4a5a;
+        font-size: 0.93rem;
+        line-height: 1.55;
+        padding-left: 1.25rem;
+        position: relative;
+      }
+      .ts-trust-list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #1f6b36;
+        font-weight: 700;
+      }
+
+      /* ---------- Sidebar ---------- */
+      .ts-side {
+        position: sticky;
+        top: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .ts-actions-card {
+        background: #fff;
+        border: 1px solid #e6ecef;
+        border-radius: 12px;
+        padding: 1.3rem 1.35rem;
+        box-shadow: 0 1px 3px rgba(29, 58, 74, 0.04);
+      }
+      .ts-actions-primary {
+        display: flex;
+      }
+      .ts-actions-primary > * {
+        flex: 1 1 auto;
+      }
+      .ts-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+        transition:
+          transform 0.08s ease,
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .ts-btn:hover {
+        transform: translateY(-1px);
+      }
+      .ts-btn-primary,
+      .ts-actions-primary .btn-contact {
+        width: 100%;
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+      }
+      .ts-btn-primary:hover,
+      .ts-actions-primary .btn-contact:hover {
+        background: #155f70;
+        border-color: #155f70;
+      }
+      .ts-btn-save {
+        width: 100%;
+        margin-top: 0.55rem;
+        background: #fff;
+        color: #1a7a8f;
+        border-color: #1a7a8f;
+      }
+      .ts-btn-save:hover {
+        background: #e8f5f8;
+      }
+      .ts-btn-save.is-saved {
+        background: #e7f5ea;
+        color: #1f6b36;
+        border-color: #c6e6cf;
+      }
+      .ts-btn-secondary {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+      }
+      .ts-btn-secondary:hover {
+        background: #155f70;
+      }
+      .ts-btn-ghost {
+        background: #fff;
+        color: #1a7a8f;
+        border-color: #c1e1e8;
+      }
+      .ts-btn-ghost:hover {
+        background: #e8f5f8;
+      }
+
+      .ts-facts {
+        margin: 1.1rem 0 0;
+        padding: 1rem 0 0;
+        border-top: 1px solid #eef2f4;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.55rem 0.9rem;
+        font-size: 0.88rem;
+      }
+      .ts-facts dt {
+        color: #6b7b86;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        align-self: center;
+      }
+      .ts-facts dd {
+        color: #1d3a4a;
+        font-weight: 500;
+        margin: 0;
+        word-wrap: break-word;
+      }
+      .ts-facts dd.is-good {
+        color: #1f6b36;
+      }
+
+      .ts-actions-secondary {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eef2f4;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .ts-actions-secondary-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #6b7b86;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.25rem;
+      }
+      .ts-actions-secondary .ts-btn {
+        width: 100%;
+      }
+      .ts-actions-claim {
+        display: block;
+        margin-top: 1rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #eef2f4;
+        color: #1a7a8f;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+      }
+      .ts-actions-claim:hover {
+        color: #155f70;
+        text-decoration: underline;
+      }
+
+      .ts-side .profile-shortlist-status:empty,
+      .ts-side .profile-decision-memory:empty,
+      .ts-side .profile-queue-status:empty {
+        display: none;
+      }
+
+      /* ---------- Mobile dock ---------- */
+      .ts-mobile-dock {
+        display: none;
+      }
+      .ts-footnote {
+        max-width: 70ch;
+        margin: 2rem auto 0;
+        color: #6b7b86;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        text-align: center;
+      }
+
+      @media (max-width: 860px) {
+        .ts-body {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .ts-side {
+          position: static;
+          order: -1;
+          margin-bottom: 0.25rem;
+        }
+        .ts-hero {
+          padding: 1.35rem 1.25rem;
+        }
+        .ts-hero-main {
+          gap: 1rem;
+        }
+        .ts-avatar {
+          width: 80px;
+          height: 80px;
+          font-size: 1.8rem;
+        }
+        .ts-hero-text h1 {
+          font-size: 1.65rem;
+        }
+        .ts-section {
+          padding: 1.25rem 1.15rem;
+        }
+        .ts-facts-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .ts-mobile-dock {
+          display: flex;
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 40;
+          padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0));
+          background: rgba(255, 255, 255, 0.98);
+          border-top: 1px solid #e6ecef;
+          gap: 0.6rem;
+          box-shadow: 0 -4px 14px rgba(29, 58, 74, 0.08);
+        }
+        .ts-mobile-dock > * {
+          flex: 1 1 auto;
+        }
+        .ts-mobile-dock .ts-btn-ghost {
+          flex: 0 0 auto;
+          min-width: 88px;
+        }
+        .profile-wrap {
+          padding-bottom: 5.5rem;
+        }
+      }
+
       *,
       *::before,
       *::after {
