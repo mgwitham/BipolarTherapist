@@ -149,15 +149,11 @@ export function renderValuePillRow(therapist, pillClass) {
           escapeHtml(payloadId) +
           '" aria-haspopup="true" aria-expanded="false">' +
           escapeHtml(pill.label) +
-          (pill.count
-            ? ' <span class="value-pill-count">+' + pill.count + "</span>"
-            : "") +
+          (pill.count ? ' <span class="value-pill-count">+' + pill.count + "</span>" : "") +
           "</button>"
         );
       }
-      return (
-        '<span class="' + escapeHtml(baseClass) + '">' + escapeHtml(pill.label) + "</span>"
-      );
+      return '<span class="' + escapeHtml(baseClass) + '">' + escapeHtml(pill.label) + "</span>";
     })
     .join("");
 }
@@ -220,8 +216,7 @@ function openPopover(trigger) {
       return "<li>" + escapeHtml(item) + "</li>";
     })
     .join("");
-  popoverEl.innerHTML =
-    titleHtml + '<ul class="value-pill-popover-list">' + listHtml + "</ul>";
+  popoverEl.innerHTML = titleHtml + '<ul class="value-pill-popover-list">' + listHtml + "</ul>";
   popoverEl.hidden = false;
   popoverTrigger = trigger;
   trigger.setAttribute("aria-expanded", "true");
