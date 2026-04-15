@@ -3,6 +3,7 @@ import {
   buildLikelyFitCopy,
   getPreferredContactRoute,
 } from "./directory-logic.js";
+import { renderValuePillRow } from "./therapist-pills.js";
 
 export function formatDirectoryFeeLabel(therapist, fallback) {
   if (!therapist) {
@@ -46,15 +47,7 @@ export function buildCardViewModel(options) {
     acceptance: therapist.accepting_new_patients ? "Accepting patients" : "Check current openings",
     acceptanceTone: therapist.accepting_new_patients ? "accepting" : "accepting not-acc",
     feeSummary: formatDirectoryFeeLabel(therapist, "Fees to confirm"),
-    quickStats: [
-      {
-        label: "Fit",
-        value: therapist.bipolar_years_experience
-          ? therapist.bipolar_years_experience + " yrs bipolar care"
-          : "Check bipolar depth",
-        tone: therapist.bipolar_years_experience ? "green" : "teal",
-      },
-    ],
+    valuePillHtml: renderValuePillRow(therapist, "value-pill"),
   };
 }
 
@@ -64,7 +57,7 @@ export function buildDirectoryDecisionPreviewModel(options) {
   var isShortlisted = options.isShortlisted;
   var feeCopy = formatDirectoryFeeLabel(therapist, "Fees to confirm");
   var opennessCopy = therapist.accepting_new_patients
-    ? therapist.estimated_wait_time || "Accepting new patients"
+    ? "Accepting new patients"
     : "Current openings to confirm";
 
   function buildPreviewOpenReason() {
@@ -103,12 +96,13 @@ export function buildDirectoryDecisionPreviewModel(options) {
     therapist: therapist,
     shortlisted: isShortlisted(therapist.slug),
     openReason: buildPreviewOpenReason(),
+    valuePillHtml: renderValuePillRow(therapist, "value-pill"),
     quickStats: [
       {
         label: "",
         value: opennessCopy,
         plain: true,
-        tone: therapist.accepting_new_patients || therapist.estimated_wait_time ? "green" : "",
+        tone: therapist.accepting_new_patients ? "green" : "",
       },
       {
         label: "",

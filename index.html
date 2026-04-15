@@ -52,17 +52,17 @@
         line-height: 1.6;
       }
       nav {
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
+        background: transparent;
         padding: 0 1.5rem;
         height: 64px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        position: sticky;
+        position: absolute;
         top: 0;
+        left: 0;
+        right: 0;
         z-index: 100;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
       }
       .nav-logo {
         display: flex;
@@ -70,24 +70,13 @@
         gap: 0.5rem;
         text-decoration: none;
       }
-      .nav-icon {
-        width: 34px;
-        height: 34px;
-        background: var(--teal);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-      }
       .nav-name {
         font-size: 1rem;
         font-weight: 700;
-        color: var(--navy);
+        color: rgba(255, 255, 255, 0.92);
       }
       .nav-name span {
-        color: var(--teal);
+        color: rgba(255, 255, 255, 0.65);
       }
       .nav-links {
         display: flex;
@@ -97,262 +86,73 @@
       }
       .nav-links a {
         text-decoration: none;
-        color: var(--slate);
+        color: rgba(255, 255, 255, 0.8);
         font-size: 0.875rem;
         font-weight: 500;
         transition: color 0.2s;
       }
       .nav-links a:hover {
-        color: var(--teal);
+        color: white;
       }
-      .nav-cta {
-        background: var(--teal) !important;
-        color: white !important;
-        padding: 0.5rem 1.25rem;
-        border-radius: 8px;
-        font-weight: 600 !important;
+      .nav-therapist-link {
+        color: rgba(255, 255, 255, 0.65) !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
       }
-      .nav-cta:hover {
-        background: var(--teal-dark) !important;
+      .nav-therapist-link:hover {
+        color: rgba(255, 255, 255, 0.9) !important;
       }
       .hero {
-        background: linear-gradient(135deg, #0e4d5f 0%, #1a7a8f 55%, #2a9cb3 100%);
-        padding: 5.25rem 1.5rem 3.5rem;
-        color: white;
-      }
-      .hero-inner {
-        max-width: 1120px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 430px);
-        gap: 1.8rem;
-        align-items: start;
-      }
-      .hero-copy {
-        max-width: 660px;
-        text-align: left;
-      }
-      .hero-eyebrow {
-        display: inline-flex;
+        background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.45rem;
-        padding: 0.38rem 0.7rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 0.76rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        justify-content: center;
+        padding: 5rem 1.5rem 4rem;
+        color: white;
+        text-align: center;
       }
-      .hero h1 {
+      .hero-headline {
         font-family: "Lora", serif;
-        font-size: clamp(1.9rem, 5vw, 3rem);
+        font-size: clamp(2rem, 5vw, 3.2rem);
         font-weight: 600;
-        line-height: 1.2;
-        margin-bottom: 0;
-      }
-      .hero-copy p {
-        margin-top: 0.85rem;
-        font-size: 1.02rem;
-        line-height: 1.7;
-        color: rgba(255, 255, 255, 0.9);
-      }
-      .hero-decision-strip {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.8rem;
-        margin-top: 1.25rem;
-      }
-      .hero-decision-card {
-        padding: 0.95rem 1rem;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      }
-      .hero-decision-label {
-        font-size: 0.7rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.7);
-        margin-bottom: 0.28rem;
-      }
-      .hero-decision-title {
-        font-size: 0.95rem;
-        font-weight: 800;
-        line-height: 1.35;
+        line-height: 1.18;
         color: white;
+        max-width: 640px;
+        margin-bottom: 0.75rem;
       }
-      .hero-decision-copy {
-        margin-top: 0.3rem;
+      .hero-sub {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.78);
+        max-width: 440px;
+        margin: 0 auto 0.9rem;
+        line-height: 1.6;
+      }
+      .hero-reassurance {
         font-size: 0.82rem;
-        line-height: 1.56;
-        color: rgba(255, 255, 255, 0.82);
-      }
-      .hero-proof {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-top: 1.35rem;
-      }
-      .hero-proof-item {
-        padding: 0.85rem 0.9rem;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        text-align: left;
-      }
-      .hero-proof-label {
-        display: block;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.72);
-      }
-      .hero-proof-value {
-        display: block;
-        margin-top: 0.2rem;
-        font-size: 0.96rem;
         font-weight: 600;
-        line-height: 1.45;
-        color: white;
-      }
-      .hero-trust-system {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-top: 1.1rem;
-      }
-      .hero-trust-card {
-        padding: 0.9rem 0.95rem;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        text-align: left;
-      }
-      .hero-trust-card-label {
-        display: block;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.58);
+        margin: 0 auto 1.8rem;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.72);
-      }
-      .hero-trust-card-title {
-        display: block;
-        margin-top: 0.22rem;
-        font-size: 0.94rem;
-        font-weight: 800;
-        line-height: 1.36;
-        color: white;
-      }
-      .hero-trust-card-copy {
-        display: block;
-        margin-top: 0.28rem;
-        font-size: 0.82rem;
-        line-height: 1.56;
-        color: rgba(255, 255, 255, 0.84);
       }
       .tool-shell {
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 28px;
-        padding: 1.2rem;
-        box-shadow: 0 28px 60px rgba(3, 25, 31, 0.2);
-        backdrop-filter: blur(6px);
+        padding: 1rem;
+        box-shadow: 0 32px 64px rgba(3, 25, 31, 0.28);
+        backdrop-filter: blur(8px);
         width: 100%;
+        max-width: 520px;
       }
       .tool-card {
         background: white;
         color: var(--navy);
-        border-radius: 22px;
-        padding: 1.35rem;
+        border-radius: 20px;
+        padding: 1.5rem;
         box-shadow: 0 14px 36px rgba(10, 45, 56, 0.16);
-      }
-      .tool-card p {
-        color: var(--slate);
-        font-size: 0.96rem;
-        line-height: 1.6;
-        max-width: 31rem;
-        margin: 0 auto 1.05rem;
-      }
-      .tool-kicker {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        margin-bottom: 0.55rem;
-        color: var(--teal-dark);
-        font-size: 0.74rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-      .tool-title {
-        font-family: "Lora", serif;
-        font-size: clamp(1.35rem, 2.8vw, 1.7rem);
-        line-height: 1.2;
-        color: var(--navy);
-      }
-      .tool-title + p {
-        margin-top: 0.6rem;
-      }
-      .pathframe {
-        display: grid;
-        gap: 0.9rem;
-      }
-      .pathframe-header {
-        display: grid;
-        gap: 0.3rem;
-      }
-      .pathframe-kicker {
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--teal-dark);
-      }
-      .pathframe-title {
-        font-family: "Lora", serif;
-        font-size: 1.22rem;
-        line-height: 1.2;
-        color: var(--navy);
-      }
-      .pathframe-copy {
-        font-size: 0.9rem;
-        line-height: 1.62;
-        color: var(--slate);
-      }
-      .path-options {
-        display: grid;
-        gap: 0.75rem;
-      }
-      .path-option {
-        padding: 0.95rem 1rem;
-        border-radius: 18px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
-      }
-      .path-option--primary {
-        background: linear-gradient(180deg, #f2fbfc 0%, #ffffff 100%);
-        border-color: rgba(26, 122, 143, 0.18);
-        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.08);
-      }
-      .path-option-label {
-        font-size: 0.7rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 0.24rem;
-      }
-      .path-option-title {
-        font-size: 0.95rem;
-        font-weight: 800;
-        color: var(--navy);
       }
       .path-option-copy {
         margin-top: 0.3rem;
@@ -361,13 +161,13 @@
         color: var(--slate);
       }
       .search-box {
-        background: #f7fbfc;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.05rem;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
         display: grid;
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 1.1rem;
       }
       .search-field {
         display: flex;
@@ -545,9 +345,24 @@
         cursor: pointer;
         transition: background 0.2s;
         font-family: inherit;
+        width: 100%;
       }
       .search-btn:hover {
         background: var(--teal-dark);
+      }
+      .hero-browse-link {
+        margin-top: 0.95rem;
+        text-align: center;
+      }
+      .hero-browse-link a {
+        font-size: 0.92rem;
+        color: var(--teal-dark);
+        font-weight: 700;
+        text-decoration: none;
+        transition: color 0.18s;
+      }
+      .hero-browse-link a:hover {
+        color: var(--navy);
       }
       .search-helper {
         margin-top: 0.2rem;
@@ -593,8 +408,8 @@
         color: var(--slate);
       }
       .search-launch-note {
-        margin-top: -0.35rem;
-        text-align: left;
+        margin-top: -0.4rem;
+        text-align: center;
         color: var(--muted);
         font-size: 0.78rem;
         line-height: 1.4;
@@ -1475,307 +1290,63 @@
         <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="#howItWorks">How it works</a></li>
-        <li><a href="directory.html" id="navBrowseLink">Browse therapists</a></li>
-        <li><a href="signup.html" class="nav-cta" id="navCtaLink">For Therapists</a></li>
+        <li><a href="signup.html" class="nav-therapist-link" id="navCtaLink">For therapists</a></li>
       </ul>
     </nav>
-    <div class="public-mobile-nav" aria-label="Mobile navigation">
-      <a href="index.html" class="public-mobile-nav-link is-current">
-        <span class="public-mobile-nav-kicker">Start</span>
-        <span class="public-mobile-nav-title">Homepage</span>
-        <span class="public-mobile-nav-copy">Choose your path</span>
-      </a>
-      <a href="match.html" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Guided</span>
-        <span class="public-mobile-nav-title">Get matched</span>
-        <span class="public-mobile-nav-copy">Smaller list</span>
-      </a>
-      <a href="directory.html" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Browse</span>
-        <span class="public-mobile-nav-title">Directory</span>
-        <span class="public-mobile-nav-copy">Compare directly</span>
-      </a>
-    </div>
 
     <section class="hero" id="startMatch">
-      <div class="hero-inner">
-        <div class="hero-copy">
-          <div class="hero-eyebrow" id="heroEyebrow">Bipolar-focused therapist matching</div>
-          <h1 id="heroTitle">Find a bipolar-informed therapist without the usual guesswork</h1>
-          <p id="heroDescription">
-            Start with a calmer way to narrow the field. We’ll turn a broad search into a smaller,
-            more trustworthy list shaped around bipolar-informed care.
-          </p>
-          <div class="hero-decision-strip" aria-label="Why this is different">
-            <div class="hero-decision-card">
-              <div class="hero-decision-label">Why start here</div>
-              <div class="hero-decision-title">
-                A steadier first move than trying to manage the whole search at once
-              </div>
-              <div class="hero-decision-copy">
-                The goal is to lower noise early so you can focus on a smaller set of
-                bipolar-relevant options with clearer trust and contact signals.
-              </div>
-            </div>
-            <div class="hero-decision-card">
-              <div class="hero-decision-label">Best for</div>
-              <div class="hero-decision-title">
-                People who want help getting oriented before making a lot of decisions
-              </div>
-              <div class="hero-decision-copy">
-                Start with matching if the search already feels noisy and you want the first pass to
-                feel calmer, narrower, and easier to act on.
-              </div>
-            </div>
-            <div class="hero-decision-card">
-              <div class="hero-decision-label">If you’re not ready</div>
-              <div class="hero-decision-title">
-                You can still browse first without locking yourself into anything
-              </div>
-              <div class="hero-decision-copy">
-                Explore the directory if a gentler start feels better today, then come back to the
-                guided path when you want more structure.
-              </div>
-            </div>
+      <h1 class="hero-headline" id="heroTitle">A calmer way to find bipolar care</h1>
+      <p class="hero-sub">Not every therapist gets bipolar. These do.</p>
+      <p class="hero-reassurance">Free · No account · No insurance needed</p>
+      <div class="tool-shell">
+        <div class="tool-card">
+          <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
+            <div class="hero-validation-title">Almost there</div>
+            <div class="hero-validation-list" id="heroValidationList"></div>
           </div>
-          <div class="hero-proof" aria-label="Why start here">
-            <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel1">First pass</span>
-              <span class="hero-proof-value" id="heroProofValue1"
-                >About 2 minutes to move from broad searching into a smaller, more decision-ready
-                list.</span
-              >
+          <form class="search-box" id="homeSearchForm" action="match.html" method="get" novalidate>
+            <div class="search-field search-field--prompt">
+              <label for="homepage_interest">What kind of support are you looking for?</label>
+              <select id="homepage_interest" required>
+                <option value="therapist" selected>Therapy</option>
+                <option value="psychiatrist">Psychiatry</option>
+              </select>
             </div>
-            <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel2">What it checks first</span>
-              <span class="hero-proof-value" id="heroProofValue2"
-                >Bipolar-relevant fit, stronger profile trust signals, and a clearer first-contact
-                path.</span
-              >
+            <div class="search-field search-field--zip">
+              <label id="locationLabel">Enter your ZIP code</label>
+              <div class="zip-inline">
+                <input
+                  type="text"
+                  id="location"
+                  name="location_query"
+                  placeholder="Enter ZIP code"
+                  inputmode="numeric"
+                  maxlength="5"
+                  pattern="[0-9]{5}"
+                  required
+                />
+                <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
+              </div>
             </div>
-            <div class="hero-proof-item">
-              <span class="hero-proof-label" id="heroProofLabel3">What you still confirm</span>
-              <span class="hero-proof-value" id="heroProofValue3"
-                >Openings, insurance, cost path, and whether the therapist feels right in actual
-                conversation.</span
-              >
-            </div>
+            <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
+            <input
+              type="hidden"
+              id="homepage_medication_need"
+              name="needs_medication_management"
+              value=""
+            />
+            <div class="search-launch-note">Currently matching California ZIP codes.</div>
+            <button type="submit" class="search-btn" id="searchButton">Start my match</button>
+          </form>
+          <div class="hero-return-panel" id="homeReturnPanel" aria-live="polite">
+            <div class="hero-return-label">Welcome back</div>
+            <div class="hero-return-title" id="homeReturnTitle"></div>
+            <div class="hero-return-copy" id="homeReturnCopy"></div>
+            <div class="hero-return-meta" id="homeReturnMeta"></div>
+            <div class="hero-return-actions" id="homeReturnActions"></div>
           </div>
-          <div class="hero-trust-system" aria-label="How trust works here">
-            <div class="hero-trust-card">
-              <span class="hero-trust-card-label">What we check</span>
-              <span class="hero-trust-card-title"
-                >Bipolar fit, profile freshness, and route clarity</span
-              >
-              <span class="hero-trust-card-copy">
-                The platform is built to raise the providers who look stronger on bipolar relevance,
-                reviewed profile detail, and a more usable first outreach path.
-              </span>
-            </div>
-            <div class="hero-trust-card">
-              <span class="hero-trust-card-label">What trust means here</span>
-              <span class="hero-trust-card-title">A stronger list, not a fake certainty</span>
-              <span class="hero-trust-card-copy">
-                Better trust signals are meant to reduce early guesswork. They do not pretend to
-                replace direct confirmation or personal judgment.
-              </span>
-            </div>
-            <div class="hero-trust-card">
-              <span class="hero-trust-card-label">What you still confirm</span>
-              <span class="hero-trust-card-title">Availability, coverage, and human fit</span>
-              <span class="hero-trust-card-copy">
-                The product helps you narrow more credibly first, then use outreach to confirm the
-                last decision-critical details before you commit energy.
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="tool-shell">
-          <div class="tool-card">
-            <div class="pathframe">
-              <div class="pathframe-header">
-                <div class="pathframe-kicker">Choose your entry path</div>
-                <div class="pathframe-title" id="toolTitle">Get a smaller, more relevant list</div>
-                <div class="pathframe-copy">
-                  The strongest default move is to start with the guided match. It reduces noise,
-                  helps surface more credible options first, and gets you to a list that feels
-                  easier to trust and easier to act on.
-                </div>
-              </div>
-              <div class="path-options" aria-label="Entry path comparison">
-                <div class="path-option path-option--primary">
-                  <div class="path-option-label">Recommended</div>
-                  <div class="path-option-title">Start with the guided match</div>
-                  <div class="path-option-copy">
-                    Best if you want the platform to help you narrow by fit, trust, and clearer next
-                    steps before you spend energy comparing profiles.
-                  </div>
-                </div>
-                <div class="path-option">
-                  <div class="path-option-label">Lower-pressure option</div>
-                  <div class="path-option-title">Browse the directory first</div>
-                  <div class="path-option-copy">
-                    Better if you want to look around first, then move into matching once you have a
-                    better sense of what feels promising.
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
-              <div class="hero-validation-title">Almost there</div>
-              <div class="hero-validation-list" id="heroValidationList"></div>
-            </div>
-            <form
-              class="search-box"
-              id="homeSearchForm"
-              action="match.html"
-              method="get"
-              novalidate
-            >
-              <div class="search-field search-field--prompt">
-                <label for="homepage_interest">What kind of support do you want first?</label>
-                <select id="homepage_interest" required>
-                  <option value="">What kind of support do you want first?</option>
-                  <option value="therapist">Therapy</option>
-                  <option value="psychiatrist">Psychiatry</option>
-                </select>
-              </div>
-              <div class="search-field search-field--zip">
-                <label id="locationLabel">Enter your ZIP code</label>
-                <div class="zip-inline">
-                  <input
-                    type="text"
-                    id="location"
-                    name="location_query"
-                    placeholder="Enter ZIP code"
-                    inputmode="numeric"
-                    maxlength="5"
-                    pattern="[0-9]{5}"
-                    required
-                  />
-                  <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
-                </div>
-              </div>
-              <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
-              <input
-                type="hidden"
-                id="homepage_medication_need"
-                name="needs_medication_management"
-                value=""
-              />
-              <div class="search-launch-note">Currently matching California ZIP codes.</div>
-              <button type="submit" class="search-btn" id="searchButton">Start my match</button>
-            </form>
-            <div class="search-helper" id="searchHelper">
-              <strong>Next:</strong> answer a few quick questions and get to a calmer, more relevant
-              list.
-            </div>
-            <div class="search-preview-grid" aria-label="Live search guidance">
-              <div class="search-preview-card">
-                <div class="search-preview-label">Right now</div>
-                <div class="search-preview-title" id="homePreviewStateTitle">
-                  Start with two lightweight answers.
-                </div>
-                <div class="search-preview-copy" id="homePreviewStateCopy">
-                  Care type and ZIP are enough to move from generic browsing into a more focused
-                  first pass.
-                </div>
-              </div>
-              <div class="search-preview-card">
-                <div class="search-preview-label">What gets easier next</div>
-                <div class="search-preview-title" id="homePreviewMomentumTitle">
-                  You are not committing to a heavy process.
-                </div>
-                <div class="search-preview-copy" id="homePreviewMomentumCopy">
-                  The next step is meant to reduce guesswork, not trap you in a long intake.
-                </div>
-              </div>
-            </div>
-            <div class="hero-handoff" aria-label="What happens after you start">
-              <div class="hero-handoff-card">
-                <div class="hero-handoff-label">What happens next</div>
-                <div class="hero-handoff-title" id="handoffTitle1">
-                  You answer a few focused questions.
-                </div>
-                <div class="hero-handoff-copy" id="handoffCopy1">
-                  The match uses only a small amount of information up front so you can get to a
-                  useful list quickly.
-                </div>
-              </div>
-              <div class="hero-handoff-card">
-                <div class="hero-handoff-label">Why people use this</div>
-                <div class="hero-handoff-title" id="handoffTitle2">
-                  It is designed to reduce second-guessing.
-                </div>
-                <div class="hero-handoff-copy" id="handoffCopy2">
-                  The goal is not endless browsing. It is to help you decide where to focus first
-                  with more trust, less noise, and less search fatigue.
-                </div>
-              </div>
-              <div class="hero-handoff-card">
-                <div class="hero-handoff-label">What you are not doing</div>
-                <div class="hero-handoff-title" id="handoffTitle3">
-                  You are not signing up for a heavy process.
-                </div>
-                <div class="hero-handoff-copy" id="handoffCopy3">
-                  No account is required to start, and you can still browse on your own at any point
-                  if that feels better.
-                </div>
-              </div>
-            </div>
-            <div class="hero-return-panel" id="homeReturnPanel" aria-live="polite">
-              <div class="hero-return-label">Welcome back</div>
-              <div class="hero-return-title" id="homeReturnTitle"></div>
-              <div class="hero-return-copy" id="homeReturnCopy"></div>
-              <div class="hero-return-meta" id="homeReturnMeta"></div>
-              <div class="hero-return-actions" id="homeReturnActions"></div>
-            </div>
-            <div class="tool-trust-row" aria-label="Trust signals">
-              <div class="tool-trust-pill" id="homeTrustPill1">
-                Built specifically for bipolar-related care search
-              </div>
-              <div class="tool-trust-pill" id="homeTrustPill2">
-                You still confirm openings and fit directly
-              </div>
-              <a class="tool-trust-pill tool-trust-pill--secondary" href="directory.html">
-                Prefer to browse first?
-              </a>
-            </div>
-            <div class="hero-actions">
-              <a class="hero-link primary" href="#homeSearchForm">Start with guided match</a>
-              <a class="hero-link secondary" href="directory.html">Browse the directory first</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ease-strip" id="howItWorks">
-      <div class="ease-strip-card">
-        <div class="ease-strip-kicker">How It Works</div>
-        <div class="ease-strip-grid">
-          <div class="ease-strip-step">
-            <div class="ease-strip-step-num">Step 1</div>
-            <div class="ease-strip-step-title">Start with the care you need</div>
-            <div class="ease-strip-step-copy">
-              Choose your ZIP code and whether you want therapy or psychiatry support first.
-            </div>
-          </div>
-          <div class="ease-strip-step">
-            <div class="ease-strip-step-num">Step 2</div>
-            <div class="ease-strip-step-title">Compare bipolar-relevant options</div>
-            <div class="ease-strip-step-copy">
-              Review profiles built to highlight fit, specialty relevance, and practical next-step
-              details.
-            </div>
-          </div>
-          <div class="ease-strip-step">
-            <div class="ease-strip-step-num">Step 3</div>
-            <div class="ease-strip-step-title">Reach out with more confidence</div>
-            <div class="ease-strip-step-copy">
-              Move from browsing to contact with less guesswork about who may be the strongest fit.
-            </div>
+          <div class="hero-browse-link">
+            <a href="directory.html">Prefer to browse first?</a>
           </div>
         </div>
       </div>

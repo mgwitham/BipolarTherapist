@@ -1325,131 +1325,145 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function bindEventHandlers() {
-    document.getElementById("reviewerWorkloadFilter").addEventListener("change", function (event) {
-      dependencies.uiState.workloadFilter = event.target.value || "";
-      renderReviewerWorkload();
-    });
+    var workloadFilterEl = document.getElementById("reviewerWorkloadFilter");
+    if (workloadFilterEl) {
+      workloadFilterEl.addEventListener("change", function (event) {
+        dependencies.uiState.workloadFilter = event.target.value || "";
+        renderReviewerWorkload();
+      });
+    }
 
-    document.getElementById("reviewerWorkloadSlice").addEventListener("change", function (event) {
-      dependencies.uiState.workloadSlice = event.target.value || "all";
-      renderReviewerWorkload();
-    });
+    var workloadSliceEl = document.getElementById("reviewerWorkloadSlice");
+    if (workloadSliceEl) {
+      workloadSliceEl.addEventListener("change", function (event) {
+        dependencies.uiState.workloadSlice = event.target.value || "all";
+        renderReviewerWorkload();
+      });
+    }
 
-    document.getElementById("reviewerMyQueueToggle").addEventListener("click", function () {
-      var preferredReviewer = getPreferredReviewer();
-      if (!dependencies.uiState.myQueueMode && !preferredReviewer) {
-        var roster = getReviewerRoster();
-        var selectedReviewer = window.prompt(
-          roster.length
-            ? "Who should My work belong to? Available reviewers: " + roster.join(", ")
-            : "Who should My work belong to?",
-          "",
-        );
-        if (selectedReviewer === null) return;
-        preferredReviewer = String(selectedReviewer || "").trim();
-        if (!preferredReviewer) return;
-        var selectedReviewerEntry = findReviewerEntryByName(preferredReviewer);
-        setPreferredReviewer(
-          preferredReviewer,
-          selectedReviewerEntry ? selectedReviewerEntry.id : "",
-        );
-        writeReviewerDirectory(
-          Array.from(new Set(getReviewerRoster().concat([preferredReviewer]))).sort(
+    var myQueueToggleEl = document.getElementById("reviewerMyQueueToggle");
+    if (myQueueToggleEl)
+      myQueueToggleEl.addEventListener("click", function () {
+        var preferredReviewer = getPreferredReviewer();
+        if (!dependencies.uiState.myQueueMode && !preferredReviewer) {
+          var roster = getReviewerRoster();
+          var selectedReviewer = window.prompt(
+            roster.length
+              ? "Who should My work belong to? Available reviewers: " + roster.join(", ")
+              : "Who should My work belong to?",
+            "",
+          );
+          if (selectedReviewer === null) return;
+          preferredReviewer = String(selectedReviewer || "").trim();
+          if (!preferredReviewer) return;
+          var selectedReviewerEntry = findReviewerEntryByName(preferredReviewer);
+          setPreferredReviewer(
+            preferredReviewer,
+            selectedReviewerEntry ? selectedReviewerEntry.id : "",
+          );
+          writeReviewerDirectory(
+            Array.from(new Set(getReviewerRoster().concat([preferredReviewer]))).sort(
+              function (a, b) {
+                return a.localeCompare(b);
+              },
+            ),
+          );
+        }
+        setReviewerMyQueueMode(!dependencies.uiState.myQueueMode);
+        renderAttentionQueue();
+        renderReviewerWorkload();
+      });
+
+    var rosterAddEl = document.getElementById("reviewerRosterAdd");
+    if (rosterAddEl)
+      rosterAddEl.addEventListener("click", function () {
+        void (async function () {
+          var name = window.prompt("Add reviewer name:", "");
+          if (!name) return;
+          var trimmedName = name.trim();
+          if (!trimmedName) return;
+          var nextRoster = Array.from(new Set(getReviewerRoster().concat([trimmedName]))).sort(
             function (a, b) {
               return a.localeCompare(b);
             },
-          ),
-        );
-      }
-      setReviewerMyQueueMode(!dependencies.uiState.myQueueMode);
-      renderAttentionQueue();
-      renderReviewerWorkload();
-    });
-
-    document.getElementById("reviewerRosterAdd").addEventListener("click", function () {
-      void (async function () {
-        var name = window.prompt("Add reviewer name:", "");
-        if (!name) return;
-        var trimmedName = name.trim();
-        if (!trimmedName) return;
-        var nextRoster = Array.from(new Set(getReviewerRoster().concat([trimmedName]))).sort(
-          function (a, b) {
-            return a.localeCompare(b);
-          },
-        );
-        if (dependencies.getRuntimeState().dataMode === "sanity") {
-          dependencies.setRemoteReviewerRoster(
-            await dependencies.updateTherapistReviewers(
-              nextRoster.map(function (item) {
-                var existing = findReviewerEntryByName(item);
-                return {
-                  id: existing ? existing.id : buildReviewerIdFromName(item),
-                  name: item,
-                  active: true,
-                };
-              }),
-            ),
           );
-        } else {
-          writeReviewerDirectory(nextRoster);
-        }
-        renderAttentionQueue();
-        renderReviewerWorkload();
-      })();
-    });
+          if (dependencies.getRuntimeState().dataMode === "sanity") {
+            dependencies.setRemoteReviewerRoster(
+              await dependencies.updateTherapistReviewers(
+                nextRoster.map(function (item) {
+                  var existing = findReviewerEntryByName(item);
+                  return {
+                    id: existing ? existing.id : buildReviewerIdFromName(item),
+                    name: item,
+                    active: true,
+                  };
+                }),
+              ),
+            );
+          } else {
+            writeReviewerDirectory(nextRoster);
+          }
+          renderAttentionQueue();
+          renderReviewerWorkload();
+        })();
+      });
 
-    document.getElementById("reviewerRosterRemove").addEventListener("click", function () {
-      void (async function () {
-        var name =
-          dependencies.uiState.workloadFilter || window.prompt("Remove which reviewer?", "");
-        if (!name) return;
-        var trimmedName = String(name || "").trim();
-        if (!trimmedName) return;
-        var nextRoster = getReviewerRoster().filter(function (item) {
-          return item !== trimmedName;
-        });
-        if (dependencies.getRuntimeState().dataMode === "sanity") {
-          dependencies.setRemoteReviewerRoster(
-            await dependencies.updateTherapistReviewers(
-              nextRoster.map(function (item) {
-                var existing = findReviewerEntryByName(item);
-                return {
-                  id: existing ? existing.id : buildReviewerIdFromName(item),
-                  name: item,
-                  active: true,
-                };
-              }),
-            ),
-          );
-        } else {
-          writeReviewerDirectory(nextRoster);
+    var rosterRemoveEl = document.getElementById("reviewerRosterRemove");
+    if (rosterRemoveEl)
+      rosterRemoveEl.addEventListener("click", function () {
+        void (async function () {
+          var name =
+            dependencies.uiState.workloadFilter || window.prompt("Remove which reviewer?", "");
+          if (!name) return;
+          var trimmedName = String(name || "").trim();
+          if (!trimmedName) return;
+          var nextRoster = getReviewerRoster().filter(function (item) {
+            return item !== trimmedName;
+          });
+          if (dependencies.getRuntimeState().dataMode === "sanity") {
+            dependencies.setRemoteReviewerRoster(
+              await dependencies.updateTherapistReviewers(
+                nextRoster.map(function (item) {
+                  var existing = findReviewerEntryByName(item);
+                  return {
+                    id: existing ? existing.id : buildReviewerIdFromName(item),
+                    name: item,
+                    active: true,
+                  };
+                }),
+              ),
+            );
+          } else {
+            writeReviewerDirectory(nextRoster);
+          }
+          if (dependencies.uiState.workloadFilter === trimmedName) {
+            dependencies.uiState.workloadFilter = "";
+          }
+          if (getPreferredReviewer() === trimmedName) {
+            setPreferredReviewer("", "");
+            setReviewerMyQueueMode(false);
+          }
+          renderAttentionQueue();
+          renderReviewerWorkload();
+        })();
+      });
+
+    var reviewerWorkloadEl = document.getElementById("reviewerWorkload");
+    if (reviewerWorkloadEl)
+      reviewerWorkloadEl.addEventListener("click", function (event) {
+        var focusButton = event.target.closest("[data-reviewer-workload-focus]");
+        if (focusButton) {
+          dependencies.uiState.workloadFilter =
+            focusButton.getAttribute("data-reviewer-workload-focus") || "";
+          renderReviewerWorkload();
+          return;
         }
-        if (dependencies.uiState.workloadFilter === trimmedName) {
+        if (event.target.closest("#reviewerWorkloadClearFilter")) {
           dependencies.uiState.workloadFilter = "";
+          dependencies.uiState.workloadSlice = "all";
+          renderReviewerWorkload();
         }
-        if (getPreferredReviewer() === trimmedName) {
-          setPreferredReviewer("", "");
-          setReviewerMyQueueMode(false);
-        }
-        renderAttentionQueue();
-        renderReviewerWorkload();
-      })();
-    });
-
-    document.getElementById("reviewerWorkload").addEventListener("click", function (event) {
-      var focusButton = event.target.closest("[data-reviewer-workload-focus]");
-      if (focusButton) {
-        dependencies.uiState.workloadFilter =
-          focusButton.getAttribute("data-reviewer-workload-focus") || "";
-        renderReviewerWorkload();
-        return;
-      }
-      if (event.target.closest("#reviewerWorkloadClearFilter")) {
-        dependencies.uiState.workloadFilter = "";
-        dependencies.uiState.workloadSlice = "all";
-        renderReviewerWorkload();
-      }
-    });
+      });
 
     document.getElementById("applicationsList").addEventListener("click", function (event) {
       handleReviewEntityTaskAction(event);
