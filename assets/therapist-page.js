@@ -2503,7 +2503,9 @@ function renderProfile(t, therapistDirectory) {
     '<div class="avatar">' +
     avatar +
     "</div>" +
-    '<div class="profile-main"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
+    '<div class="profile-main"><div class="profile-eyebrow-row"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
+    acceptingBadge +
+    "</div>" +
     "<h1>" +
     escapeHtml(t.name) +
     "</h1>" +
@@ -2519,7 +2521,6 @@ function renderProfile(t, therapistDirectory) {
     (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
     '<div class="hero-meta">' +
-    acceptingBadge +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
     '<div class="profile-contact-card">' +

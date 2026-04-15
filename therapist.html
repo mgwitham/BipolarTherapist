@@ -200,6 +200,17 @@
         gap: 1.1rem;
         min-width: 0;
       }
+      .profile-eyebrow-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.3rem;
+        flex-wrap: wrap;
+      }
+      .profile-eyebrow-row .eyebrow {
+        margin-bottom: 0;
+      }
       .profile-hero-top {
         display: grid;
         grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.95fr);
@@ -380,7 +391,7 @@
       .trust-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.32rem;
       }
       .hero-signal-grid {
         display: grid;
@@ -440,13 +451,14 @@
         box-shadow: 0 10px 24px rgba(15, 74, 92, 0.04);
       }
       .trust-pill {
-        font-size: 0.75rem;
+        font-size: 0.66rem;
         font-weight: 700;
-        padding: 0.42rem 0.78rem;
+        padding: 0.24rem 0.58rem;
         border-radius: 999px;
         background: rgba(26, 122, 143, 0.09);
         color: var(--teal-dark);
         border: 1px solid rgba(26, 122, 143, 0.08);
+        letter-spacing: 0.01em;
       }
       .snapshot-pill {
         font-size: 0.74rem;
