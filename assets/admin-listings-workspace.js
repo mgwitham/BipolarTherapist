@@ -995,12 +995,15 @@ export function createListingsWorkspace(options) {
             '"' +
             (isStartHere ? ' id="publishedListingsStartHere"' : "") +
             '><div class="launch-card-main">' +
-            (isStartHere
-              ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Review this listing first. It is the top visible promotion or maintenance decision in the current listing view.</div><div class="start-here-action">Do this now: choose the simplest clear state for this profile, then decide whether it belongs in homepage, match-priority, or standard live rotation.</div>'
-              : "") +
-            "<strong>" +
+            (isStartHere ? '<div class="start-here-chip">Start here</div>' : "") +
+            '<div class="launch-name-row"><strong>' +
             escapeHtml(item.name) +
-            '</strong><div class="subtle">' +
+            '</strong><span class="readiness-badge readiness-' +
+            (readiness.score >= 81 ? "green" : readiness.score >= 61 ? "amber" : "red") +
+            '">Readiness: ' +
+            escapeHtml(String(readiness.score)) +
+            "</span></div>" +
+            '<div class="subtle">' +
             escapeHtml(item.city + ", " + item.state + " · " + item.credentials) +
             '</div><div class="tag-row"><span class="tag">' +
             escapeHtml(getLaunchStateLabel(control.launch_state)) +
@@ -1011,11 +1014,7 @@ export function createListingsWorkspace(options) {
             escapeHtml(quality.label) +
             " · merchandising " +
             escapeHtml(quality.score) +
-            '</div><div class="subtle">' +
-            escapeHtml(readiness.label) +
-            " · " +
-            escapeHtml(readiness.score) +
-            "/100</div>" +
+            "</div>" +
             (routeHealthWarnings.length
               ? '<div class="tag-row">' +
                 routeHealthWarnings

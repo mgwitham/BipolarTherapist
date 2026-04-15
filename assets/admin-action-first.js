@@ -2,13 +2,7 @@ export function renderActionFirstIntro(config) {
   if (!config || !config.active) {
     return "";
   }
-  return (
-    '<div class="start-here-chip">Start here</div><div class="start-here-copy">' +
-    config.escapeHtml(String(config.title || "")) +
-    '</div><div class="start-here-action">' +
-    config.escapeHtml(String(config.action || "")) +
-    "</div>"
-  );
+  return '<div class="start-here-chip">Start here</div>';
 }
 
 export function renderRecommendedActionBar(config) {

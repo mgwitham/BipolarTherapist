@@ -216,28 +216,43 @@ export function renderCandidateMergeWorkbench(item, context) {
   ];
 
   return (
-    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Merge workbench</div><div class="subtle" style="margin-bottom:0.7rem">Compare this candidate against the matched ' +
-    context.escapeHtml(target.label.toLowerCase()) +
-    ' before merging or rejecting as duplicate.</div><div class="queue-summary-grid">' +
+    '<div class="queue-insights" style="margin-top:0.8rem">' +
+    '<div class="queue-insights-title">Duplicate check · ' +
+    context.escapeHtml(target.label) +
+    "</div>" +
+    '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:0.5rem">' +
+    "<thead><tr>" +
+    '<th style="text-align:left;padding:0.3rem 0.5rem 0.3rem 0;color:var(--slate);font-weight:600;border-bottom:1px solid rgba(0,0,0,0.1)"></th>' +
+    '<th style="text-align:left;padding:0.3rem 0.5rem;color:var(--slate);font-weight:600;border-bottom:1px solid rgba(0,0,0,0.1)">Candidate</th>' +
+    '<th style="text-align:left;padding:0.3rem 0 0.3rem 0.5rem;color:var(--slate);font-weight:600;border-bottom:1px solid rgba(0,0,0,0.1)">' +
+    context.escapeHtml(target.label) +
+    "</th>" +
+    "</tr></thead><tbody>" +
     rows
       .map(function (row) {
-        const valuesMatch = row.candidate === row.target;
+        const match = row.candidate === row.target;
         return (
-          '<div class="queue-kpi"><div class="queue-kpi-label">' +
-          context.escapeHtml(row.label + " · Candidate") +
-          '</div><div class="queue-kpi-value">' +
+          "<tr" +
+          (match ? "" : ' style="background:rgba(220,60,40,0.05)"') +
+          ">" +
+          '<td style="padding:0.35rem 0.5rem 0.35rem 0;color:var(--slate);white-space:nowrap;border-bottom:1px solid rgba(0,0,0,0.06)">' +
+          context.escapeHtml(row.label) +
+          "</td>" +
+          '<td style="padding:0.35rem 0.5rem;border-bottom:1px solid rgba(0,0,0,0.06)' +
+          (match ? "" : ";font-weight:600") +
+          '">' +
           context.escapeHtml(row.candidate) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">' +
-          context.escapeHtml(row.label + " · " + target.label) +
-          '</div><div class="queue-kpi-value">' +
+          "</td>" +
+          '<td style="padding:0.35rem 0 0.35rem 0.5rem;border-bottom:1px solid rgba(0,0,0,0.06)' +
+          (match ? "" : ";font-weight:600") +
+          '">' +
           context.escapeHtml(row.target) +
-          '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Comparison</div><div class="queue-kpi-value">' +
-          context.escapeHtml(valuesMatch ? "Matches" : "Review") +
-          "</div></div>"
+          "</td>" +
+          "</tr>"
         );
       })
       .join("") +
-    "</div></div>"
+    "</tbody></table></div>"
   );
 }
 

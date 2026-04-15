@@ -7592,25 +7592,23 @@ function renderReviewEventSnippetHtml(events, options) {
   }
 
   return (
-    '<div class="queue-summary"><strong>Recent activity:</strong></div>' +
-    '<div style="display:grid;gap:0.45rem;margin:0.5rem 0 0.75rem">' +
+    '<div class="queue-summary" style="margin-bottom:0.35rem"><strong>Recent activity</strong></div>' +
+    '<div style="margin-bottom:0.75rem">' +
     items
       .map(function (item) {
         const summary = buildReviewEventSummary(item);
         const showRationale = item.rationale && item.rationale !== item.notes;
         return (
-          '<div class="mini-card" style="padding:0.6rem 0.75rem;border-radius:12px">' +
-          '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">' +
+          '<div style="display:flex;justify-content:space-between;gap:0.75rem;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(0,0,0,0.06)">' +
           '<div style="min-width:0">' +
-          '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' +
-          '<div style="font-size:0.84rem;font-weight:700;color:var(--navy)">' +
+          '<span style="font-weight:600;color:var(--navy)">' +
           options.escapeHtml(getReviewEventActionLabel(item)) +
-          "</div>" +
-          '<span class="tag" style="font-size:0.72rem;padding:0.12rem 0.45rem">' +
+          "</span>" +
+          '<span class="tag" style="margin-left:0.4rem;font-size:0.7rem;padding:0.1rem 0.4rem">' +
           options.escapeHtml(getReviewEventLaneLabel(item)) +
-          "</span></div>" +
+          "</span>" +
           (summary
-            ? '<div style="margin-top:0.2rem;font-size:0.8rem;color:var(--slate)">' +
+            ? '<div style="color:var(--slate);margin-top:0.1rem">' +
               options.escapeHtml(summary) +
               "</div>"
             : "") +
@@ -7620,9 +7618,8 @@ function renderReviewEventSnippetHtml(events, options) {
               "</div>"
             : "") +
           "</div>" +
-          '<div class="subtle" style="white-space:nowrap;font-size:0.78rem">' +
+          '<div class="subtle" style="white-space:nowrap;font-size:0.76rem;padding-top:0.1rem">' +
           options.escapeHtml(options.formatDate(item.created_at)) +
-          "</div>" +
           "</div>" +
           "</div>"
         );

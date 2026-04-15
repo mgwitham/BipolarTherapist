@@ -4,8 +4,8 @@
   --teal-dark: #155f70;
   --teal-faint: #e8f5f8;
   --navy: #1d3a4a;
-  --slate: #4a6572;
-  --muted: #6b8290;
+  --slate: #1a1a1a;
+  --muted: #333333;
   --border: #d4e4e9;
   --bg: #f7fbfc;
   --white: #ffffff;
@@ -1312,7 +1312,7 @@ nav {
 }
 
 .card-hero-kicker {
-  font-size: 0.66rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1527,7 +1527,7 @@ nav {
 }
 
 .card-freshness-label {
-  font-size: 0.64rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1565,7 +1565,7 @@ nav {
 }
 
 .card-primary-decision-label {
-  font-size: 0.66rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1613,7 +1613,7 @@ nav {
 }
 
 .card-mobile-handoff-label {
-  font-size: 0.66rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1658,7 +1658,7 @@ nav {
 }
 
 .card-priority-label {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -1702,7 +1702,7 @@ nav {
 }
 
 .profile-uncertainty-label {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1758,7 +1758,7 @@ nav {
 }
 
 .profile-decision-memory-label {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1803,7 +1803,7 @@ nav {
 }
 
 .profile-queue-status-label {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1864,7 +1864,7 @@ nav {
 }
 
 .profile-backup-kicker {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1911,7 +1911,7 @@ nav {
 }
 
 .trust-summary-label {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -1947,7 +1947,7 @@ nav {
 }
 
 .next-step-label {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -2066,7 +2066,7 @@ nav {
 }
 
 .empty-state-card-label {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
