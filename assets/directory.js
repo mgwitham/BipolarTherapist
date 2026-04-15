@@ -30,8 +30,10 @@ import {
   renderPaginationMarkup,
 } from "./directory-render.js";
 import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./directory-view-model.js";
+import { initValuePillPopover } from "./therapist-pills.js";
 
 (async function () {
+  initValuePillPopover();
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];

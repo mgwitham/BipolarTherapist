@@ -68,6 +68,7 @@ import {
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
+import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -1509,17 +1510,6 @@ function getShortlistSummary(entry) {
   ].filter(Boolean);
 
   return renderTags(pills);
-}
-
-function getMatchConfidenceMeta(entry) {
-  var confidence = Number(entry?.evaluation?.confidence_score || 0);
-  if (confidence >= 80) {
-    return { label: "High confidence", tone: "high" };
-  }
-  if (confidence >= 60) {
-    return { label: "Good confidence", tone: "medium" };
-  }
-  return { label: "Promising fit", tone: "light" };
 }
 
 function getMatchCardExplanation(entry) {
@@ -4267,29 +4257,16 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-function buildFeeText(therapist) {
-  if (therapist.session_fee_min && therapist.session_fee_max) {
-    return "$" + therapist.session_fee_min + "–$" + therapist.session_fee_max + "/session";
-  }
-  if (therapist.session_fee_min) {
-    return "From $" + therapist.session_fee_min + "/session";
-  }
-  return "";
-}
-
 function renderLeadResultCard(entry, backupName) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var explanation = getMatchCardExplanation(entry);
-  var confidence = getMatchConfidenceMeta(entry);
-  var readiness = getContactReadiness(entry);
   var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
   var locLine =
     [therapist.city, therapist.state].filter(Boolean).join(", ") +
     (therapist.zip ? " " + therapist.zip : "");
-  var feeText = buildFeeText(therapist);
   var ctaLabel =
     routeType === "booking"
       ? "Book a consultation"
@@ -4300,22 +4277,10 @@ function renderLeadResultCard(entry, backupName) {
           : routeType === "website"
             ? "Visit provider site"
             : "View full profile";
-  var signals = [];
-  if (therapist.accepting_new_patients) {
-    signals.push('<span class="result-signal is-green">Accepting patients</span>');
-  }
-  if (therapist.accepts_telehealth) {
-    signals.push('<span class="result-signal">Telehealth available</span>');
-  }
-  if (therapist.accepts_in_person) {
-    signals.push('<span class="result-signal">In-person available</span>');
-  }
-  if (feeText) {
-    signals.push('<span class="result-signal">' + escapeHtml(feeText) + "</span>");
-  }
-  if (therapist.sliding_scale) {
-    signals.push('<span class="result-signal">Sliding scale</span>');
-  }
+  var valuePills = renderValuePillRow(therapist, "value-pill");
+  var acceptingSignal = therapist.accepting_new_patients
+    ? '<span class="result-signal is-green">Accepting patients</span>'
+    : "";
   var contactNote = "";
 
   return (
@@ -4327,11 +4292,7 @@ function renderLeadResultCard(entry, backupName) {
     '<div class="result-lead-identity">' +
     '<div class="result-badges">' +
     '<span class="result-badge result-badge--lead">Best match</span>' +
-    '<span class="result-confidence tone-' +
-    escapeHtml(confidence.tone) +
-    '">' +
-    escapeHtml(confidence.label) +
-    "</span>" +
+    (acceptingSignal || "") +
     "</div>" +
     '<h3 class="result-name">' +
     escapeHtml(therapist.name || "") +
@@ -4340,7 +4301,7 @@ function renderLeadResultCard(entry, backupName) {
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
     "</div>" +
     "</div>" +
-    (signals.length ? '<div class="result-signals">' + signals.join("") + "</div>" : "") +
+    (valuePills ? '<div class="value-pill-row">' + valuePills + "</div>" : "") +
     (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
     (contactNote ? '<div class="result-contact-note">' + escapeHtml(contactNote) + "</div>" : "") +
     '<div class="result-actions">' +
@@ -4382,7 +4343,7 @@ function renderSupportingResultCard(entry, rank) {
   var locLine =
     [therapist.city, therapist.state].filter(Boolean).join(", ") +
     (therapist.zip ? " " + therapist.zip : "");
-  var feeText = buildFeeText(therapist);
+  var valuePills = renderValuePillRow(therapist, "value-pill");
   var ctaLabel =
     routeType === "booking"
       ? "Book"
@@ -4417,13 +4378,7 @@ function renderSupportingResultCard(entry, rank) {
     (explanation
       ? '<p class="result-reason result-reason--compact">' + escapeHtml(explanation) + "</p>"
       : "") +
-    '<div class="result-card-meta">' +
-    (therapist.accepting_new_patients
-      ? '<span class="result-signal is-green">Accepting</span>'
-      : "") +
-    (therapist.accepts_telehealth ? '<span class="result-signal">Telehealth</span>' : "") +
-    (feeText ? '<span class="result-signal">' + escapeHtml(feeText) + "</span>" : "") +
-    "</div>" +
+    (valuePills ? '<div class="value-pill-row">' + valuePills + "</div>" : "") +
     "</div>" +
     '<div class="result-card-action">' +
     (preferredRoute
@@ -4734,6 +4689,7 @@ function refreshIntakeUiFromForm() {
 }
 
 (async function init() {
+  initValuePillPopover();
   var siteSettings = await fetchPublicSiteSettings();
   MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
   await preloadZipcodes();

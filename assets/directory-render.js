@@ -56,7 +56,11 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
     "</div>" +
     '<div class="directory-decision-preview-subtitle">' +
     escapeHtml(model.openReason) +
-    '</div></div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
+    "</div>" +
+    (model.valuePillHtml
+      ? '<div class="value-pill-row">' + model.valuePillHtml + "</div>"
+      : "") +
+    '</div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
     model.quickStats
       .map(function (item) {
         return (
@@ -157,6 +161,9 @@ export function renderCardMarkup(options) {
     ", " +
     escapeHtml(therapist.state) +
     "</div></div></div>" +
+    (model.valuePillHtml
+      ? '<div class="value-pill-row">' + model.valuePillHtml + "</div>"
+      : "") +
     '<div class="card-actions"><a href="' +
     escapeHtml(profileHref) +
     '" class="card-open-profile-btn" data-review-fit="' +
