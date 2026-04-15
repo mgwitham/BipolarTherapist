@@ -4401,7 +4401,11 @@ function renderLeadResultCard(entry, backupName) {
 
   return (
     '<article class="result-lead">' +
-    '<div class="result-lead-top">' +
+    '<div class="result-lead-header">' +
+    '<div class="result-avatar result-avatar--lead">' +
+    escapeHtml(initials) +
+    "</div>" +
+    '<div class="result-lead-identity">' +
     '<div class="result-badges">' +
     '<span class="result-badge result-badge--lead">Best match</span>' +
     '<span class="result-confidence tone-' +
@@ -4410,17 +4414,6 @@ function renderLeadResultCard(entry, backupName) {
     escapeHtml(confidence.label) +
     "</span>" +
     "</div>" +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
-    '" class="result-profile-link" data-match-profile-link="' +
-    escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">View profile</a>' +
-    "</div>" +
-    '<div class="result-lead-body">' +
-    '<div class="result-avatar result-avatar--lead">' +
-    escapeHtml(initials) +
-    "</div>" +
-    '<div class="result-info">' +
     '<h3 class="result-name">' +
     escapeHtml(therapist.name || "") +
     "</h3>" +
@@ -4428,8 +4421,8 @@ function renderLeadResultCard(entry, backupName) {
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
     "</div>" +
     "</div>" +
-    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
     (signals.length ? '<div class="result-signals">' + signals.join("") + "</div>" : "") +
+    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
     (contactNote ? '<div class="result-contact-note">' + escapeHtml(contactNote) + "</div>" : "") +
     '<div class="result-actions">' +
     (preferredRoute
@@ -4448,6 +4441,11 @@ function renderLeadResultCard(entry, backupName) {
     '<button type="button" class="result-cta-secondary" data-copy-entry-draft="' +
     escapeHtml(therapist.slug || "") +
     '">Copy first outreach</button>' +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-view-profile" data-match-profile-link="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-profile-link-context="primary-card">View profile</a>' +
     "</div>" +
     (backupName
       ? '<div class="result-backup-note">If this stalls, your next best option is <strong>' +
@@ -4497,11 +4495,6 @@ function renderSupportingResultCard(entry, rank) {
     (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
     "</div>" +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
-    '" class="result-profile-link result-profile-link--sm" data-match-profile-link="' +
-    escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="supporting-card">Profile</a>' +
     "</div>" +
     (explanation
       ? '<p class="result-reason result-reason--compact">' + escapeHtml(explanation) + "</p>"
@@ -4527,11 +4520,12 @@ function renderSupportingResultCard(entry, rank) {
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
-      : '<a href="therapist.html?slug=' +
-        encodeURIComponent(therapist.slug || "") +
-        '" class="result-cta-sm" data-match-profile-link="' +
-        escapeHtml(therapist.slug || "") +
-        '">View profile</a>') +
+      : "") +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-card-profile-link" data-match-profile-link="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-profile-link-context="supporting-card">View profile</a>' +
     "</div>" +
     "</article>"
   );
