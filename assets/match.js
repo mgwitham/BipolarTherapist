@@ -2244,7 +2244,23 @@ function renderComparison(entries) {
     ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
-    "</div></section></div>";
+    "</div></section>" +
+    renderPartnerCompareSummary(topEntries, profile) +
+    "</div>";
+
+  var copyBtn = root.querySelector("[data-copy-partner-summary]");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function () {
+      var body = root.querySelector(".partner-compare-body");
+      if (!body) return;
+      navigator.clipboard.writeText(body.textContent).then(function () {
+        copyBtn.textContent = "Copied!";
+        window.setTimeout(function () {
+          copyBtn.textContent = "Copy summary";
+        }, 2000);
+      });
+    });
+  }
 
   triggerMotion(root, "motion-enter");
 }
