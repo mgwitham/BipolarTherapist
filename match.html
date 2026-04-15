@@ -4870,6 +4870,77 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ── Results-first layout ──────────────────────── */
+
+      /* Hide hero when results are showing */
+      .match-results-hero:not(.match-empty) .match-hero-copy,
+      .match-results-hero:not(.match-empty) .match-decision-strip,
+      .match-results-hero:not(.match-empty) .match-trust-pills,
+      .match-results-hero:not(.match-empty) .match-trust-system {
+        display: none;
+      }
+
+      /* Refine section toggle */
+      .match-refine-section {
+        margin: 1.2rem 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .match-refine-section > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--text);
+        user-select: none;
+      }
+      .match-refine-section > summary::-webkit-details-marker {
+        display: none;
+      }
+      .match-refine-section > summary .refine-chevron {
+        transition: transform 0.2s ease;
+      }
+      .match-refine-section[open] > summary .refine-chevron {
+        transform: rotate(180deg);
+      }
+      .match-refine-section > .match-builder {
+        padding: 0 1.25rem 1.25rem;
+      }
+
+      /* When refine section is inside details, remove card chrome from inner tool */
+      .match-refine-section .match-tool-shell {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .match-refine-section .match-tool-card {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      @media (max-width: 640px) {
+        .match-refine-section {
+          margin: 0.75rem 0;
+          border-radius: 10px;
+        }
+        .match-refine-section > summary {
+          padding: 0.85rem 1rem;
+          font-size: 0.95rem;
+        }
+        .match-refine-section > .match-builder {
+          padding: 0 1rem 1rem;
+        }
+      }
     </style>
   </head>
   <body>
