@@ -4098,6 +4098,93 @@
          REFINE WIDGET — redesigned
          ════════════════════════════════════════════════════ */
 
+      /* ── Primary row: care type + ZIP (homepage-consistent) ── */
+      .refine-primary {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 0;
+      }
+      .refine-primary-field {
+        display: flex;
+        flex-direction: column;
+        padding: 0.1rem 0 0.25rem;
+      }
+      .refine-primary-select {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid rgba(14, 77, 95, 0.15);
+        border-radius: 0;
+        padding: 0.38rem 1.6rem 0.38rem 0;
+        font-size: 1rem;
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--navy);
+        outline: none;
+        width: 100%;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231a7a8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.2rem center;
+        transition: border-color 0.15s;
+      }
+      .refine-primary-select:focus {
+        border-bottom-color: #1a7a8f;
+      }
+      .refine-primary-select option[value=""] {
+        color: rgba(85, 104, 118, 0.5);
+      }
+      /* Placeholder color when no care type chosen */
+      .refine-primary-field:not(.has-value) .refine-primary-select {
+        color: rgba(85, 104, 118, 0.45);
+      }
+      .refine-primary-field.has-value .refine-primary-select,
+      .refine-primary-select:focus {
+        color: var(--navy);
+      }
+      .refine-primary-input {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid rgba(14, 77, 95, 0.15);
+        border-radius: 0;
+        padding: 0.38rem 0;
+        font-size: 1rem;
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--navy);
+        outline: none;
+        width: 100%;
+        transition: border-color 0.15s;
+      }
+      .refine-primary-input:focus {
+        border-bottom-color: #1a7a8f;
+      }
+      .refine-primary-input::placeholder {
+        color: rgba(85, 104, 118, 0.42);
+      }
+      .refine-primary-sep {
+        height: 1px;
+        background: rgba(14, 77, 95, 0.09);
+        margin: 0;
+      }
+      .refine-primary-divider {
+        height: 1px;
+        background: rgba(14, 77, 95, 0.1);
+        margin: 0.65rem 0 0.7rem;
+      }
+      /* Hide ZIP resolved label when empty */
+      .match-zip-resolved:empty {
+        display: none;
+      }
+      .match-zip-resolved {
+        font-size: 0.72rem;
+        color: rgba(26, 122, 143, 0.8);
+        margin-top: 0.18rem;
+        min-height: 0;
+      }
+
       .refine-quick {
         display: flex;
         flex-wrap: wrap;
@@ -4772,7 +4859,46 @@
               <div class="match-tool-card">
                 <!-- ── REFINE WIDGET ─────────────────────────────── -->
 
-                <!-- Quick filters: always visible -->
+                <!-- Primary: care type + ZIP (homepage-consistent, always visible) -->
+                <div class="refine-primary">
+                  <div
+                    class="refine-primary-field"
+                    data-intake-field="care_intent"
+                    data-match-care-field
+                  >
+                    <select
+                      id="care_intent"
+                      name="care_intent"
+                      class="refine-primary-select"
+                      aria-label="What kind of support do you want?"
+                    >
+                      <option value="">What kind of support do you want?</option>
+                      <option value="Therapy">Therapy</option>
+                      <option value="Psychiatry">Psychiatry</option>
+                    </select>
+                  </div>
+                  <div class="refine-primary-sep" role="separator"></div>
+                  <div class="refine-primary-field" data-intake-field="location_query">
+                    <input
+                      id="location_query"
+                      name="location_query"
+                      type="text"
+                      class="refine-primary-input"
+                      placeholder="Enter ZIP code"
+                      inputmode="numeric"
+                      maxlength="5"
+                      required
+                    />
+                    <span
+                      class="match-zip-resolved"
+                      id="matchZipResolved"
+                      aria-live="polite"
+                    ></span>
+                  </div>
+                </div>
+                <div class="refine-primary-divider"></div>
+
+                <!-- Quick filters: insurance + format -->
                 <div class="refine-quick">
                   <div class="refine-field" data-intake-field="insurance">
                     <label class="refine-field-lbl" for="insurance">Insurance</label>
@@ -5108,42 +5234,6 @@
                                 >LGBTQ+</span
                               ></label
                             >
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- 4. Update search — secondary, at the bottom -->
-                    <div class="refine-adv-section refine-adv-section--search">
-                      <div class="refine-adv-header">
-                        <span class="refine-adv-title">Change your search</span>
-                        <span class="refine-adv-hint">Update care type or location</span>
-                      </div>
-                      <div class="refine-search-row">
-                        <div class="match-group" data-intake-field="care_intent">
-                          <label class="refine-field-lbl" for="care_intent">Type of care</label>
-                          <select id="care_intent" name="care_intent" required>
-                            <option value="">Any type</option>
-                            <option value="Therapy">Therapy</option>
-                            <option value="Psychiatry">Psychiatry</option>
-                          </select>
-                        </div>
-                        <div class="match-group" data-intake-field="location_query">
-                          <label class="refine-field-lbl" for="location_query">ZIP code</label>
-                          <div class="match-zip-inline">
-                            <input
-                              id="location_query"
-                              name="location_query"
-                              type="text"
-                              placeholder="ZIP code"
-                              inputmode="numeric"
-                              required
-                            />
-                            <span
-                              class="match-zip-resolved"
-                              id="matchZipResolved"
-                              aria-live="polite"
-                            ></span>
                           </div>
                         </div>
                       </div>
