@@ -7597,6 +7597,7 @@ function renderReviewEventSnippetHtml(events, options) {
     items
       .map(function (item) {
         const summary = buildReviewEventSummary(item);
+        const showRationale = item.rationale && item.rationale !== item.notes;
         return (
           '<div style="display:flex;justify-content:space-between;gap:0.75rem;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(0,0,0,0.06)">' +
           '<div style="min-width:0">' +
@@ -7609,6 +7610,11 @@ function renderReviewEventSnippetHtml(events, options) {
           (summary
             ? '<div style="color:var(--slate);margin-top:0.1rem">' +
               options.escapeHtml(summary) +
+              "</div>"
+            : "") +
+          (showRationale
+            ? '<div style="margin-top:0.2rem;font-size:0.78rem;color:#333">' +
+              options.escapeHtml(item.rationale) +
               "</div>"
             : "") +
           "</div>" +

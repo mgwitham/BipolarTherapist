@@ -1,10 +1,4 @@
-import {
-  bindCandidateDecisionButtons,
-  renderCandidateMergePreview,
-  renderCandidateMergeWorkbench,
-  renderCandidatePublishPacket,
-  renderCandidateTrustChips,
-} from "./admin-candidate-review.js";
+import { bindCandidateDecisionButtons } from "./admin-candidate-review.js";
 
 const IMPORT_WAVE_HISTORY_KEY = "bth_import_wave_history_v1";
 const IMPORT_WAVE_HISTORY_LIMIT = 8;
@@ -2334,21 +2328,6 @@ export function renderOpsInboxPanel(options) {
   }
 
   function renderCandidateOpsCard(item) {
-    const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
-    const trustSummary = options.getCandidateTrustSummary(item);
-    const trustRecommendation = options.getCandidateTrustRecommendation(item, trustSummary);
-    const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
-    const mergePreview = renderCandidateMergePreview(item, {
-      therapists: therapists,
-      applications: applications,
-      escapeHtml: options.escapeHtml,
-    });
-    const watchCount = trustSummary.watchFields.length;
-    const hasMatch = item.matched_therapist_slug || item.matched_application_id;
-    const scoreLabel = item.review_priority == null ? "" : item.review_priority + "/100";
-    const dueLabel = item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now";
-    const reason = options.getCandidateOpsReason(item);
-
     return (
       '<article class="ops-card">' +
       '<div class="ops-card-head">' +
@@ -2359,52 +2338,25 @@ export function renderOpsInboxPanel(options) {
       "</h3>" +
       '<span class="tag" style="font-size:0.72rem">' +
       options.escapeHtml(options.getCandidateReviewLaneLabel(item.review_lane)) +
-      "</span>" +
-      "</div>" +
-      '<div class="ops-card-meta">' +
-      options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
-      "</div>" +
-      "</div>" +
-      '<div class="ops-card-aside">' +
-      (scoreLabel
-        ? '<div class="ops-card-score">' + options.escapeHtml(scoreLabel) + "</div>"
-        : "") +
-      '<div class="ops-card-due">' +
-      options.escapeHtml(dueLabel) +
-      "</div>" +
-      "</div>" +
-      "</div>" +
-      (reason
-        ? '<div style="margin-top:0.4rem;font-size:0.8rem;color:var(--slate)">' +
-          options.escapeHtml(reason) +
-          "</div>"
-        : "") +
-      (watchCount > 0
-        ? renderCandidateTrustChips(trustSummary, 3, { escapeHtml: options.escapeHtml })
-        : "") +
-      '<div class="ops-card-actions">' +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(item.review_priority == null ? "—" : item.review_priority + "/100") +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(
+        item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now",
+      ) +
+      '</div></div></div><div class="subtle" style="margin-top:0.65rem">' +
+      options.escapeHtml(options.getCandidateOpsReason(item)) +
+      '</div><div class="ops-card-actions">' +
       options.buildCandidateDecisionActions(item) +
       (item.source_url
         ? '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(item.source_url) +
           '" target="_blank" rel="noopener">Open source</a>'
         : "") +
-      "</div>" +
-      '<details class="ops-card-details">' +
-      "<summary>Details</summary>" +
-      "<div>" +
-      '<div class="subtle" style="margin-bottom:0.4rem">' +
-      options.escapeHtml(trustRecommendation) +
-      "</div>" +
-      renderCandidatePublishPacket(publishPacket, { escapeHtml: options.escapeHtml }) +
-      renderCandidateMergeWorkbench(item, {
-        therapists: therapists,
-        applications: applications,
-        escapeHtml: options.escapeHtml,
-      }) +
-      mergePreview +
-      "</div></details>" +
-      '<div class="review-coach-status" data-candidate-status-id="' +
+      '<button class="btn-secondary btn-inline" data-edit-candidate-id="' +
+      options.escapeHtml(item.id) +
+      '">Edit profile</button></div><div class="review-coach-status" data-candidate-status-id="' +
       options.escapeHtml(item.id) +
       '"></div>' +
       "</article>"
@@ -2416,13 +2368,6 @@ export function renderOpsInboxPanel(options) {
     const freshness = entry.freshness;
     const trustSummary = options.getTherapistFieldTrustSummary(item);
     const nextMove = options.getTherapistTrustRecommendation(item, freshness, trustSummary);
-    const location = [item.city, item.state, item.zip].filter(Boolean).join(", ");
-    const scoreLabel =
-      item.verificationPriority == null ? "" : String(item.verificationPriority) + "/100";
-    const dueLabel = item.nextReviewDueAt ? options.formatDate(item.nextReviewDueAt) : "Now";
-    const reason = getTherapistOpsReason(freshness, item, options);
-    const watchCount = trustSummary.watchFields.length;
-    const tid = options.escapeHtml(item.id || item._id || "");
 
     return (
       '<article class="ops-card">' +
@@ -2434,60 +2379,24 @@ export function renderOpsInboxPanel(options) {
       "</h3>" +
       '<span class="tag" style="font-size:0.72rem">' +
       options.escapeHtml(options.getVerificationLaneLabel(item.verificationLane)) +
-      "</span>" +
-      "</div>" +
-      '<div class="ops-card-meta">' +
-      options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
-      "</div>" +
-      "</div>" +
-      '<div class="ops-card-aside">' +
-      (scoreLabel
-        ? '<div class="ops-card-score">' + options.escapeHtml(scoreLabel) + "</div>"
-        : "") +
-      '<div class="ops-card-due">' +
-      options.escapeHtml(dueLabel) +
-      "</div>" +
-      "</div>" +
-      "</div>" +
-      (reason
-        ? '<div style="margin-top:0.4rem;font-size:0.8rem;color:var(--slate)">' +
-          options.escapeHtml(reason) +
-          "</div>"
-        : "") +
-      (watchCount > 0 ? options.renderFieldTrustChips(trustSummary, 3) : "") +
-      '<div class="ops-card-actions">' +
-      '<button class="btn-primary" data-therapist-ops="' +
-      tid +
-      '" data-therapist-next="mark_reviewed">Mark reviewed</button>' +
-      '<button class="btn-secondary" data-therapist-ops="' +
-      tid +
-      '" data-therapist-next="snooze_7d">Defer 7d</button>' +
-      '<button class="btn-secondary" data-therapist-ops="' +
-      tid +
-      '" data-therapist-next="snooze_30d">Defer 30d</button>' +
-      '<a class="btn-secondary" href="therapist.html?slug=' +
-      encodeURIComponent(item.slug) +
-      '">Open profile</a>' +
-      (item.sourceUrl
-        ? '<a class="btn-secondary" href="' +
-          options.escapeHtml(item.sourceUrl) +
-          '" target="_blank" rel="noopener">Open source</a>'
-        : "") +
-      "</div>" +
-      '<details class="ops-card-details"><summary>Details</summary>' +
-      '<div><div class="subtle">' +
+      '</span></div><div class="ops-card-body">' +
+      '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Freshness</div><div class="ops-card-kpi-value">' +
+      options.escapeHtml(freshness.label) +
+      '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Next move</div><div class="ops-card-kpi-value">' +
       options.escapeHtml(nextMove) +
-      "</div>" +
-      (freshness.label
-        ? '<div class="subtle" style="margin-top:0.2rem">Freshness: ' +
-          options.escapeHtml(freshness.label) +
-          "</div>"
-        : "") +
-      "</div></details>" +
-      '<div class="review-coach-status" data-therapist-status-id="' +
-      tid +
-      '"></div>' +
-      "</article>"
+      '</div></div></div><div class="subtle" style="margin-top:0.65rem">' +
+      options.escapeHtml(getTherapistOpsReason(freshness, item, options)) +
+      '</div><div class="ops-card-actions"><button class="btn-primary" data-therapist-ops="' +
+      options.escapeHtml(item.id || item._id || "") +
+      '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
+      options.escapeHtml(item.id || item._id || "") +
+      '" data-therapist-next="snooze_7d">Defer 7 days</button><a class="btn-secondary" href="therapist.html?slug=' +
+      encodeURIComponent(item.slug) +
+      '">Open profile</a><button class="btn-secondary btn-inline" data-edit-therapist-id="' +
+      options.escapeHtml(item.id || item._id || "") +
+      '">Edit profile</button></div><div class="review-coach-status" data-therapist-status-id="' +
+      options.escapeHtml(item.id || item._id || "") +
+      '"></div></article>'
     );
   }
 
@@ -2813,40 +2722,86 @@ export function renderOpsInboxPanel(options) {
     );
   }
 
-  const heroPills = [
-    { value: publishNow.length, label: "Publish now" },
-    { value: duplicateQueue.length, label: "Duplicates" },
-    { value: confirmationQueue.length, label: "Confirmation" },
-    { value: refreshQueue.length, label: "Refresh" },
-    { value: licensureQueue.length, label: "Licensure" },
-  ]
-    .filter(function (item) {
-      return item.value > 0;
-    })
-    .map(function (item) {
-      return (
-        '<span class="ops-pill"><span class="ops-pill-count">' +
-        options.escapeHtml(String(item.value)) +
-        "</span>" +
-        options.escapeHtml(item.label) +
-        "</span>"
-      );
-    })
-    .join("");
-
   root.innerHTML =
-    '<div class="ops-inbox">' +
-    '<div class="ops-inbox-hero">' +
-    '<div class="ops-inbox-headline">' +
-    options.escapeHtml(String(totalActions)) +
-    " item" +
-    (totalActions === 1 ? "" : "s") +
-    " need attention</div>" +
-    '<div class="ops-inbox-pills">' +
-    heroPills +
-    "</div>" +
-    "</div>" +
-    '<div class="review-coach-status" id="opsInboxExportStatus"></div>' +
+    '<div class="ops-inbox"><div class="ops-inbox-hero"><div class="ops-inbox-grid">' +
+    [
+      { value: publishNow.length, label: "Publish now", urgent: publishNow.length > 0 },
+      { value: duplicateQueue.length, label: "Duplicates", urgent: duplicateQueue.length > 0 },
+      { value: confirmationQueue.length, label: "Needs confirmation", urgent: false },
+      { value: licensureQueue.length, label: "Licensure", urgent: false },
+    ]
+      .map(function (kpi) {
+        return (
+          '<div class="ops-kpi' +
+          (kpi.urgent ? " is-urgent" : "") +
+          '"><div class="ops-kpi-value">' +
+          options.escapeHtml(kpi.value) +
+          '</div><div class="ops-kpi-label">' +
+          options.escapeHtml(kpi.label) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    '</div></div><div class="review-coach-status" id="opsInboxExportStatus"></div>' +
+    renderGroup(
+      "Publish now",
+      "Ready to go live.",
+      publishNow.length
+        ? publishNow.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Resolve duplicates",
+      "Clear these before adding new supply.",
+      duplicateQueue.length
+        ? duplicateQueue.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Needs confirmation",
+      "One trust detail needed before publish.",
+      confirmationQueue.length
+        ? confirmationQueue.map(renderCandidateOpsCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Refresh live profiles",
+      "Listed therapists that need a data check.",
+      refreshQueue.length
+        ? refreshQueue.map(renderTherapistOpsCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Conversion freshness watch",
+      "High-conversion profiles at risk of going stale.",
+      conversionFreshnessQueue.length
+        ? conversionFreshnessQueue.map(renderConversionFreshnessCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Ready to import",
+      "Confirmed profiles queued for the next import wave.",
+      readyToImportQueue.length
+        ? readyToImportQueue.map(renderReadyToImportCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+      readyToImportQueue.length
+        ? '<button class="btn-secondary" data-ready-import-export="apply-csv">Copy CSV</button><button class="btn-secondary" data-ready-import-export="apply-summary">Copy summary</button>'
+        : "",
+    ) +
+    renderGroup(
+      "Licensure trust",
+      "Primary-source licensure refreshes.",
+      licensureQueue.length
+        ? licensureQueue.map(renderLicensureOpsCard).join("")
+        : '<div class="subtle">Queue is clear.</div>',
+    ) +
+    renderGroup(
+      "Import wave history",
+      "Recent export and apply actions.",
+      importWaveHistory.length
+        ? importWaveHistory.map(renderImportWaveHistoryCard).join("")
+        : '<div class="subtle">No history yet.</div>',
+    ) +
     buildWeeklyOpsDigest(
       {
         conversionFreshnessQueue: conversionFreshnessQueue,
@@ -2861,81 +2816,6 @@ export function renderOpsInboxPanel(options) {
         therapists: therapists,
       },
       options,
-    ) +
-    renderGroup(
-      "Publish now",
-      "High-readiness candidates that are closest to becoming live therapists.",
-      publishNow.length
-        ? publishNow.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No immediate publish candidates right now.</div>',
-    ) +
-    renderGroup(
-      "Resolve duplicates",
-      "Protect the provider graph before adding anything new.",
-      duplicateQueue.length
-        ? duplicateQueue.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No duplicate work is blocking the queue right now.</div>',
-    ) +
-    renderGroup(
-      "Needs confirmation",
-      "Good candidates that need one more trust pass before publish.",
-      confirmationQueue.length
-        ? confirmationQueue.map(renderCandidateOpsCard).join("")
-        : '<div class="subtle">No confirmation-driven candidate work is waiting right now.</div>',
-    ) +
-    renderGroup(
-      "Refresh live profiles",
-      "Keep listed therapists fresh so the product stays trustworthy and ranking stays healthy.",
-      refreshQueue.length
-        ? refreshQueue.map(renderTherapistOpsCard).join("")
-        : '<div class="subtle">No live profiles currently need refresh attention.</div>',
-    ) +
-    renderGroup(
-      "Conversion freshness watch",
-      "High-conversion profiles that should be refreshed before trust and contact intent soften.",
-      conversionFreshnessQueue.length
-        ? conversionFreshnessQueue.map(renderConversionFreshnessCard).join("")
-        : '<div class="subtle">No conversion freshness watch items are waiting right now.</div>',
-    ) +
-    renderGroup(
-      "Ready to import",
-      "Recently confirmed or applied profiles with captured values that should move together in the next import wave.",
-      readyToImportQueue.length
-        ? readyToImportQueue.map(renderReadyToImportCard).join("")
-        : '<div class="subtle">No confirmed profiles are queued for the next import wave yet.</div>',
-      readyToImportQueue.length
-        ? '<button class="btn-secondary" data-ready-import-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-ready-import-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-ready-import-export="apply-checklist">Copy apply checklist</button>'
-        : "",
-    ) +
-    '<div class="queue-summary"><strong>Import wave health:</strong> ' +
-    options.escapeHtml(
-      importWaveMetrics.waitingConfirmed +
-        " waiting to apply · " +
-        importWaveMetrics.alreadyApplied +
-        " already applied · " +
-        importWaveMetrics.exportedThisWeek +
-        " export event" +
-        (importWaveMetrics.exportedThisWeek === 1 ? "" : "s") +
-        " this week · " +
-        importWaveMetrics.movedThisWeek +
-        " moved this week.",
-    ) +
-    '</div><div class="queue-summary subtle">' +
-    options.escapeHtml(importWaveMetrics.bottleneck) +
-    "</div>" +
-    renderGroup(
-      "Import wave history",
-      "Recent export and apply actions from the ready-to-import queue.",
-      importWaveHistory.length
-        ? importWaveHistory.map(renderImportWaveHistoryCard).join("")
-        : '<div class="subtle">No import wave history yet. Export or apply a batch to start the trail.</div>',
-    ) +
-    renderGroup(
-      "Licensure trust",
-      "Primary-source licensure upgrades and refreshes that strengthen identity and compliance confidence.",
-      licensureQueue.length
-        ? licensureQueue.map(renderLicensureOpsCard).join("")
-        : '<div class="subtle">No licensure work is waiting right now.</div>',
     ) +
     "</div>";
 

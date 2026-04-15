@@ -1759,41 +1759,39 @@
       }
       .ops-inbox-hero {
         border: 1px solid var(--border);
-        border-radius: 16px;
-        background: linear-gradient(135deg, #f0f7fa 0%, #e8f4f8 100%);
-        padding: 0.85rem 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f6fbfc 100%);
+        padding: 0.75rem 1rem;
       }
-      .ops-inbox-headline {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--navy);
+      .ops-inbox-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
       }
-      .ops-inbox-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
+      .ops-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.7rem 0.8rem;
+        background: #fff;
       }
-      .ops-pill {
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--teal-dark);
-        background: rgba(26, 122, 143, 0.1);
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        border-radius: 20px;
-        padding: 0.22rem 0.6rem;
-        gap: 0.3rem;
+      .ops-kpi.is-urgent {
+        border-color: #f59e0b;
+        background: #fffbeb;
       }
-      .ops-pill-count {
-        font-size: 0.8rem;
+      .ops-kpi-value {
+        font-size: 1.4rem;
         font-weight: 800;
         color: var(--navy);
+        line-height: 1;
+      }
+      .ops-kpi.is-urgent .ops-kpi-value {
+        color: #b45309;
+      }
+      .ops-kpi-label {
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #555;
       }
       .ops-group {
         border: 1px solid var(--border);
@@ -1846,6 +1844,31 @@
         color: var(--navy);
       }
       .ops-card-meta {
+        margin-top: 0.3rem;
+        font-size: 0.84rem;
+        color: #333;
+        line-height: 1.5;
+      }
+      .ops-card-body {
+        margin-top: 0.7rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.55rem;
+      }
+      .ops-card-kpi {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.65rem 0.7rem;
+      }
+      .ops-card-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ops-card-kpi-value {
         margin-top: 0.2rem;
         font-size: 0.8rem;
         color: var(--slate);
@@ -1987,20 +2010,20 @@
         margin: 0.78rem 0 0.82rem;
         padding: 0.78rem 0.88rem;
         border-radius: 15px;
-        border: 1px solid #b8cdd4;
-        background: #eef4f6;
+        border: 1px solid #4a8fa3;
+        background: #7ab8c8;
       }
       .card-state-strip.is-publish {
-        border-color: #82c9a0;
-        background: #e2f5ec;
+        border-color: #16a34a;
+        background: #86efac;
       }
       .card-state-strip.is-trust {
-        border-color: #d4a84e;
-        background: #fdf0cc;
+        border-color: #b45309;
+        background: #fcd34d;
       }
       .card-state-strip.is-ownership {
-        border-color: #7a9acc;
-        background: #dce8f8;
+        border-color: #1d4ed8;
+        background: #93c5fd;
       }
       .card-state-head {
         display: flex;
@@ -2033,8 +2056,8 @@
         align-items: center;
         padding: 0.34rem 0.58rem;
         border-radius: 999px;
-        background: #c4d8de;
-        color: #1d3a4a;
+        background: #7ab8c8;
+        color: #0c2d38;
         font-size: 0.68rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2042,16 +2065,16 @@
         white-space: nowrap;
       }
       .card-state-strip.is-trust .card-state-badge {
-        background: #e8c060;
-        color: #4a2800;
+        background: #f59e0b;
+        color: #3a1f00;
       }
       .card-state-strip.is-publish .card-state-badge {
-        background: #68c898;
-        color: #0a3820;
+        background: #22c55e;
+        color: #052e16;
       }
       .card-state-strip.is-ownership .card-state-badge {
-        background: #88aad8;
-        color: #0c2248;
+        background: #3b82f6;
+        color: #0c1d4a;
       }
       .card-state-meta {
         display: flex;
@@ -2074,24 +2097,24 @@
         font-weight: 600;
         padding: 0.25rem 0.6rem;
         border-radius: 999px;
-        background: #b8d8e2;
-        color: #0e3d4a;
+        background: #7ab8c8;
+        color: #0c2d38;
       }
       .tag.is-publish {
-        background: #8ed8b4;
-        color: #0a3820;
+        background: #4abe86;
+        color: #052e16;
       }
       .tag.is-trust {
-        background: #eaca72;
-        color: #4a2800;
+        background: #f59e0b;
+        color: #3a1f00;
       }
       .tag.is-ownership {
-        background: #8eb0e2;
-        color: #0c2248;
+        background: #3b82f6;
+        color: #0c1d4a;
       }
       .tag.is-neutral {
-        background: #c4d4da;
-        color: #2a3a44;
+        background: #94a3b8;
+        color: #1e293b;
       }
       .meta-grid {
         display: grid;
@@ -2983,6 +3006,185 @@
           width: 100%;
         }
       }
+
+      /* ── Edit profile drawer ── */
+      .candidate-edit-drawer {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 900;
+        background: rgba(12, 29, 44, 0.45);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+      }
+      .candidate-edit-drawer.is-open {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+      }
+      body.drawer-open {
+        overflow: hidden;
+      }
+      .edit-drawer-panel {
+        width: min(560px, 100vw);
+        height: 100dvh;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -4px 0 32px rgba(12, 29, 44, 0.18);
+        animation: drawerSlideIn 200ms ease;
+      }
+      @keyframes drawerSlideIn {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+      .edit-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #d6e4ea;
+        flex-shrink: 0;
+      }
+      .edit-drawer-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .edit-drawer-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.3rem 0.5rem;
+        font-size: 1.2rem;
+        color: var(--muted);
+        line-height: 1;
+        border-radius: 6px;
+      }
+      .edit-drawer-close:hover {
+        background: #f0f4f6;
+        color: var(--navy);
+      }
+      .edit-drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.2rem;
+      }
+      .edit-drawer-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .edit-section-title {
+        font-size: 0.72rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--teal-dark);
+        margin: 1.2rem 0 0.6rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid #d6e4ea;
+      }
+      .edit-section-title:first-child {
+        margin-top: 0;
+      }
+      .edit-field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+      }
+      .edit-field-grid.is-full {
+        grid-template-columns: 1fr;
+      }
+      .edit-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .edit-field label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--slate);
+      }
+      .edit-field input[type="text"],
+      .edit-field input[type="email"],
+      .edit-field input[type="tel"],
+      .edit-field input[type="url"],
+      .edit-field input[type="number"],
+      .edit-field textarea,
+      .edit-field select {
+        width: 100%;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid #b8cdd4;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: var(--navy);
+        background: #fff;
+        box-sizing: border-box;
+        transition: border-color 120ms;
+      }
+      .edit-field input:focus,
+      .edit-field textarea:focus,
+      .edit-field select:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .edit-field textarea {
+        resize: vertical;
+        min-height: 72px;
+      }
+      .edit-check-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.2rem;
+        margin-top: 0.2rem;
+      }
+      .edit-check-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.84rem;
+        color: var(--navy);
+        cursor: pointer;
+      }
+      .edit-check-item input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        accent-color: var(--teal);
+        cursor: pointer;
+      }
+      .edit-drawer-footer {
+        padding: 0.9rem 1.2rem;
+        border-top: 1px solid #d6e4ea;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        background: #f8fbfc;
+      }
+      .edit-save-btn {
+        flex-shrink: 0;
+      }
+      .edit-save-status {
+        font-size: 0.84rem;
+        font-weight: 600;
+      }
+      .edit-save-status.is-success {
+        color: #16a34a;
+      }
+      .edit-save-status.is-error {
+        color: #dc2626;
+      }
+      .edit-hint {
+        font-size: 0.74rem;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
     </style>
   </head>
   <body>
@@ -3028,6 +3230,8 @@
         <div class="admin-quick-nav-label">Jump To</div>
         <div class="admin-quick-nav-links">
           <a href="#supplyReviewRegion">New scraped listings</a>
+          <a href="#liveListingsRegion">Live Listings</a>
+          <a href="#confirmationRegion">Confirmation</a>
           <a href="#requestsRegion">Requests</a>
           <a href="#intelligenceRegion">Intelligence</a>
         </div>
@@ -3629,7 +3833,7 @@
               <div class="admin-region-header">
                 <div>
                   <div class="admin-region-kicker">Requests And Team Operations</div>
-                  <h2 class="admin-region-title">Handle incoming work and human follow-up</h2>
+                  <h2 class="admin-region-title">Ops inbox</h2>
                   <div class="admin-region-copy">
                     This region is where user requests, therapist requests, team workload, and live
                     review activity stay visible without competing with the publish lanes.
@@ -3659,57 +3863,6 @@
                     style="margin-bottom: 0.7rem"
                   ></div>
                   <div id="reviewAttentionQueue"></div>
-                </div>
-                <div class="panel" id="reviewerWorkloadPanel" style="margin-bottom: 1rem">
-                  <h2>Assigned Work</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Shared ownership across applications and new listings, including overdue,
-                    blocked, and unassigned work.
-                  </p>
-                  <div id="reviewerWorkloadGuidance"></div>
-                  <div class="toolbar" style="margin-bottom: 0.8rem">
-                    <select id="reviewerWorkloadFilter">
-                      <option value="">All reviewers</option>
-                    </select>
-                    <button class="btn-secondary" type="button" id="reviewerMyQueueToggle">
-                      My work
-                    </button>
-                    <select id="reviewerWorkloadSlice">
-                      <option value="all">All work</option>
-                      <option value="overdue">Overdue only</option>
-                      <option value="today">Due today</option>
-                      <option value="this_week">Due this week</option>
-                      <option value="stale">Needs nudge</option>
-                      <option value="blocked">Blocked only</option>
-                      <option value="unassigned">Unassigned only</option>
-                    </select>
-                    <button class="btn-secondary" type="button" id="reviewerRosterAdd">
-                      Add Reviewer
-                    </button>
-                    <button class="btn-secondary" type="button" id="reviewerRosterRemove">
-                      Remove Reviewer
-                    </button>
-                  </div>
-                  <div id="reviewerWorkload"></div>
-                </div>
-                <div class="panel" id="conciergePanel" style="margin-bottom: 1rem">
-                  <h2>Concierge Queue</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Local-only requests captured when a user wants help choosing or reaching out.
-                  </p>
-                  <div class="toolbar" style="margin-bottom: 0.8rem">
-                    <select id="conciergeStatusFilter">
-                      <option value="">All request statuses</option>
-                      <option value="open">Open items</option>
-                      <option value="new">New</option>
-                      <option value="triaging">Triaging</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="waiting_on_user">Waiting on user</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                    <div class="subtle" id="conciergeQueueCount"></div>
-                  </div>
-                  <div id="conciergeQueue"></div>
                 </div>
                 <div class="panel" id="portalRequestsPanel" style="margin-bottom: 1rem">
                   <h2>Therapist Portal Requests</h2>
@@ -3871,5 +4024,172 @@
     </div>
 
     <script type="module" src="assets/admin.js"></script>
+
+    <!-- Edit profile drawer -->
+    <div
+      class="candidate-edit-drawer"
+      id="candidateEditDrawer"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit profile"
+    >
+      <div class="edit-drawer-panel">
+        <div class="edit-drawer-header">
+          <div class="edit-drawer-title" id="editDrawerTitle">Edit profile</div>
+          <button class="edit-drawer-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="edit-drawer-body">
+          <form class="edit-drawer-form" id="candidateEditForm" novalidate>
+            <div class="edit-section-title">Identity</div>
+            <div class="edit-field-grid">
+              <div class="edit-field" style="grid-column: 1 / -1">
+                <label for="editName">Full name</label>
+                <input type="text" id="editName" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editCredentials">Credentials</label>
+                <input
+                  type="text"
+                  id="editCredentials"
+                  placeholder="e.g. LMFT, PhD"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="edit-field">
+                <label for="editTitle">Professional title</label>
+                <input type="text" id="editTitle" autocomplete="off" />
+              </div>
+              <div class="edit-field" style="grid-column: 1 / -1">
+                <label for="editPracticeName">Practice name</label>
+                <input type="text" id="editPracticeName" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="edit-section-title">Location</div>
+            <div class="edit-field-grid">
+              <div class="edit-field">
+                <label for="editCity">City</label>
+                <input type="text" id="editCity" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editState">State</label>
+                <input type="text" id="editState" placeholder="e.g. CA" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editZip">ZIP</label>
+                <input type="text" id="editZip" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="edit-section-title">License</div>
+            <div class="edit-field-grid">
+              <div class="edit-field">
+                <label for="editLicenseState">License state</label>
+                <input type="text" id="editLicenseState" placeholder="e.g. CA" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editLicenseNumber">License number</label>
+                <input type="text" id="editLicenseNumber" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="edit-section-title">Contact</div>
+            <div class="edit-field-grid">
+              <div class="edit-field">
+                <label for="editEmail">Email</label>
+                <input type="email" id="editEmail" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editPhone">Phone</label>
+                <input type="tel" id="editPhone" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editWebsite">Website</label>
+                <input type="url" id="editWebsite" placeholder="https://" autocomplete="off" />
+              </div>
+              <div class="edit-field">
+                <label for="editBookingUrl">Booking URL</label>
+                <input type="url" id="editBookingUrl" placeholder="https://" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="edit-section-title">Care approach</div>
+            <div class="edit-field-grid is-full">
+              <div class="edit-field">
+                <label for="editCareApproach">How they help bipolar clients</label>
+                <textarea id="editCareApproach" rows="3"></textarea>
+              </div>
+              <div class="edit-field">
+                <label for="editSpecialties">Specialties</label>
+                <input type="text" id="editSpecialties" autocomplete="off" />
+                <div class="edit-hint">Comma-separated, e.g. Bipolar I, Anxiety, CBT</div>
+              </div>
+              <div class="edit-field">
+                <label for="editTreatmentModalities">Treatment modalities</label>
+                <input type="text" id="editTreatmentModalities" autocomplete="off" />
+                <div class="edit-hint">Comma-separated</div>
+              </div>
+              <div class="edit-field">
+                <label for="editClientPopulations">Populations served</label>
+                <input type="text" id="editClientPopulations" autocomplete="off" />
+                <div class="edit-hint">Comma-separated</div>
+              </div>
+              <div class="edit-field">
+                <label for="editInsuranceAccepted">Insurance accepted</label>
+                <input type="text" id="editInsuranceAccepted" autocomplete="off" />
+                <div class="edit-hint">Comma-separated</div>
+              </div>
+            </div>
+
+            <div class="edit-section-title">Availability &amp; fees</div>
+            <div class="edit-check-row">
+              <label class="edit-check-item">
+                <input type="checkbox" id="editAcceptsTelehealth" />
+                Telehealth
+              </label>
+              <label class="edit-check-item">
+                <input type="checkbox" id="editAcceptsInPerson" />
+                In-person
+              </label>
+              <label class="edit-check-item">
+                <input type="checkbox" id="editAcceptingNewPatients" />
+                Accepting new patients
+              </label>
+              <label class="edit-check-item">
+                <input type="checkbox" id="editSlidingScale" />
+                Sliding scale
+              </label>
+            </div>
+            <div class="edit-field-grid" style="margin-top: 0.65rem">
+              <div class="edit-field">
+                <label for="editSessionFeeMin">Fee min ($)</label>
+                <input type="number" id="editSessionFeeMin" min="0" step="5" />
+              </div>
+              <div class="edit-field">
+                <label for="editSessionFeeMax">Fee max ($)</label>
+                <input type="number" id="editSessionFeeMax" min="0" step="5" />
+              </div>
+            </div>
+
+            <div class="edit-section-title">Internal notes</div>
+            <div class="edit-field-grid is-full">
+              <div class="edit-field">
+                <textarea
+                  id="editNotes"
+                  rows="3"
+                  placeholder="Notes visible only to the review team"
+                ></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="edit-drawer-footer">
+          <button type="submit" form="candidateEditForm" class="btn-primary edit-save-btn">
+            Save changes
+          </button>
+          <span class="edit-save-status"></span>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

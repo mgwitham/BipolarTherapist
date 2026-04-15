@@ -28,25 +28,21 @@ export function renderCandidatePublishPacket(packet, helpers) {
     });
   }
 
-  const blockers = packet.blockers.length ? humanizeLabels(packet.blockers).join(", ") : "";
-  const watch = packet.watch.length ? humanizeLabels(packet.watch).join(", ") : "";
-
   return (
-    '<div class="queue-insights" style="margin-top:0.8rem">' +
-    '<div class="queue-insights-title">Publish readiness · ' +
+    '<div class="queue-insights" style="margin-top:0.8rem"><div class="queue-insights-title">Publish readiness</div><div class="queue-summary-grid">' +
+    '<div class="queue-kpi"><div class="queue-kpi-label">Can we publish?</div><div class="queue-kpi-value">' +
     helpers.escapeHtml(packet.decision) +
-    "</div>" +
-    (blockers
-      ? '<div style="margin-top:0.4rem;font-size:0.82rem"><strong>Blocking:</strong> ' +
-        helpers.escapeHtml(blockers) +
-        "</div>"
-      : "") +
-    (watch
-      ? '<div style="margin-top:0.25rem;font-size:0.82rem;color:var(--slate)"><strong>Watch:</strong> ' +
-        helpers.escapeHtml(watch) +
-        "</div>"
-      : "") +
-    "</div>"
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Looks good</div><div class="queue-kpi-value">' +
+    helpers.escapeHtml(
+      packet.strong.length ? humanizeLabels(packet.strong).join(", ") : "Still building",
+    ) +
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Still needs a check</div><div class="queue-kpi-value">' +
+    helpers.escapeHtml(packet.watch.length ? humanizeLabels(packet.watch).join(", ") : "Nothing") +
+    '</div></div><div class="queue-kpi"><div class="queue-kpi-label">Blocking publish</div><div class="queue-kpi-value">' +
+    helpers.escapeHtml(
+      packet.blockers.length ? humanizeLabels(packet.blockers).join(", ") : "Nothing",
+    ) +
+    "</div></div></div></div>"
   );
 }
 
