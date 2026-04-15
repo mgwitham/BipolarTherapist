@@ -4357,9 +4357,6 @@ function renderLeadResultCard(entry, backupName) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    '<button type="button" class="result-cta-secondary" data-copy-entry-draft="' +
-    escapeHtml(therapist.slug || "") +
-    '">Copy first outreach</button>' +
     '<a href="therapist.html?slug=' +
     encodeURIComponent(therapist.slug || "") +
     '" class="result-view-profile" data-match-profile-link="' +
@@ -4522,30 +4519,6 @@ function renderPrimaryMatchCards(entries, _profile) {
           context: link.getAttribute("data-profile-link-context") || "result",
         }),
       );
-    });
-  });
-
-  root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-entry-draft") || "";
-      var entry = (entries || []).find(function (item) {
-        return item && item.therapist && item.therapist.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
-        trackFunnelEvent(
-          "match_entry_draft_copied",
-          buildMatchTrackingPayload(slug, {
-            route: "Primary card",
-          }),
-        );
-        setActionState(true, "Copied a first outreach message for " + entry.therapist.name + ".");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the outreach message automatically.");
-      }
     });
   });
 
