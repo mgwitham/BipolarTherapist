@@ -21,6 +21,7 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
 
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug");
@@ -1597,6 +1598,7 @@ async function resolveTherapistForProfile(slugValue) {
       preferred_contact_method: therapist.preferred_contact_method || "unknown",
     });
     renderProfile(therapist, therapistDirectory);
+    initValuePillPopover();
   } catch (error) {
     console.error("Therapist profile failed to load.", error);
     document.getElementById("profileWrap").innerHTML =
@@ -1753,22 +1755,7 @@ function renderProfile(t, therapistDirectory) {
     ? '<span class="status-badge badge-accepting">Accepting new patients</span>'
     : '<span class="status-badge badge-waitlist">Waitlist only</span>';
 
-  var trustPillItems = [
-    t.verification_status === "editorially_verified"
-      ? "Editorially verified"
-      : "Recently reviewed profile",
-    freshnessSignal ? freshnessSignal.label : "",
-    t.bipolar_years_experience ? t.bipolar_years_experience + " yrs bipolar care" : "",
-    readinessTitle,
-    t.medication_management ? "Medication management" : "",
-    t.accepts_telehealth ? "Telehealth available" : "",
-  ].slice(0, 4);
-  var trustPills = trustPillItems
-    .filter(Boolean)
-    .map(function (pill) {
-      return '<span class="trust-pill">' + escapeHtml(pill) + "</span>";
-    })
-    .join("");
+  var trustPills = renderValuePillRow(t, "value-pill");
 
   var contactBtns = "";
   var primaryContactLabel = String(t.preferred_contact_label || "").trim();
@@ -2232,9 +2219,7 @@ function renderProfile(t, therapistDirectory) {
   var summaryStats = [
     {
       label: "Openings",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting patients"
-        : "Confirm directly",
+      value: t.accepting_new_patients ? "Accepting patients" : "Confirm directly",
       tone: t.accepting_new_patients ? "green" : "teal",
     },
     {
@@ -2335,9 +2320,7 @@ function renderProfile(t, therapistDirectory) {
   var logisticsSignalStripHtml = [
     {
       label: "Openings",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting now"
-        : "Confirm directly",
+      value: t.accepting_new_patients ? "Accepting now" : "Confirm directly",
     },
     {
       label: "Coverage",
@@ -2381,9 +2364,7 @@ function renderProfile(t, therapistDirectory) {
     },
     {
       label: "Availability",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting patients"
-        : "Openings to confirm",
+      value: t.accepting_new_patients ? "Accepting patients" : "Openings to confirm",
       tone: t.accepting_new_patients ? "green" : "",
     },
     {
