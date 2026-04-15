@@ -2185,16 +2185,6 @@ function renderComparison(entries) {
         return therapist.languages || [];
       },
     },
-    {
-      label: "What makes them different",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getMatchCardExplanation(entry);
-      },
-    },
   ];
 
   var visibleRows = rows.filter(function (row) {
