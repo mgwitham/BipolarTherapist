@@ -84,16 +84,13 @@
       .nav-links a:hover {
         color: white;
       }
-      .nav-cta {
-        background: rgba(255, 255, 255, 0.15) !important;
-        color: white !important;
-        padding: 0.5rem 1.25rem;
-        border-radius: 8px;
-        font-weight: 600 !important;
-        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      .nav-therapist-link {
+        color: rgba(255, 255, 255, 0.65) !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
       }
-      .nav-cta:hover {
-        background: rgba(255, 255, 255, 0.25) !important;
+      .nav-therapist-link:hover {
+        color: rgba(255, 255, 255, 0.9) !important;
       }
       .hero {
         background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
@@ -119,8 +116,16 @@
         font-size: 1.05rem;
         color: rgba(255, 255, 255, 0.78);
         max-width: 440px;
-        margin: 0 auto 2.2rem;
+        margin: 0 auto 0.9rem;
         line-height: 1.6;
+      }
+      .hero-reassurance {
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.58);
+        margin: 0 auto 1.8rem;
+        text-transform: uppercase;
       }
       .tool-shell {
         background: rgba(255, 255, 255, 0.1);
@@ -336,18 +341,18 @@
         background: var(--teal-dark);
       }
       .hero-browse-link {
-        margin-top: 0.85rem;
+        margin-top: 0.95rem;
         text-align: center;
       }
       .hero-browse-link a {
-        font-size: 0.83rem;
-        color: var(--muted);
+        font-size: 0.92rem;
+        color: var(--teal-dark);
+        font-weight: 700;
         text-decoration: none;
-        font-weight: 500;
-        transition: color 0.2s;
+        transition: color 0.18s;
       }
       .hero-browse-link a:hover {
-        color: var(--teal);
+        color: var(--navy);
       }
       .search-helper {
         margin-top: 0.2rem;
@@ -1275,15 +1280,14 @@
         <span class="nav-name">Bipolar<span>TherapyHub</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="#howItWorks">How it works</a></li>
-        <li><a href="directory.html" id="navBrowseLink">Browse therapists</a></li>
-        <li><a href="signup.html" class="nav-cta" id="navCtaLink">For Therapists</a></li>
+        <li><a href="signup.html" class="nav-therapist-link" id="navCtaLink">For therapists</a></li>
       </ul>
     </nav>
 
     <section class="hero" id="startMatch">
-      <h1 class="hero-headline" id="heroTitle">Find bipolar informed care</h1>
-      <p class="hero-sub">A calmer way to search — built specifically for bipolar-related care.</p>
+      <h1 class="hero-headline" id="heroTitle">A calmer way to find bipolar care</h1>
+      <p class="hero-sub">Not every therapist gets bipolar. These do.</p>
+      <p class="hero-reassurance">Free · No account · No insurance needed</p>
       <div class="tool-shell">
         <div class="tool-card">
           <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
@@ -1292,10 +1296,9 @@
           </div>
           <form class="search-box" id="homeSearchForm" action="match.html" method="get" novalidate>
             <div class="search-field search-field--prompt">
-              <label for="homepage_interest">What kind of support do you want first?</label>
+              <label for="homepage_interest">What kind of support are you looking for?</label>
               <select id="homepage_interest" required>
-                <option value="">What kind of support do you want first?</option>
-                <option value="therapist">Therapy</option>
+                <option value="therapist" selected>Therapy</option>
                 <option value="psychiatrist">Psychiatry</option>
               </select>
             </div>

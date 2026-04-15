@@ -629,11 +629,11 @@ function defaultSectionsFromLegacy(homePage) {
       title:
         homePage && homePage.whyTitle
           ? homePage.whyTitle
-          : "A calmer way to find bipolar-informed care",
+          : "Less noise. Less guesswork. Built for bipolar.",
       description:
         homePage && homePage.whyDescription
           ? homePage.whyDescription
-          : "General directories can leave you guessing. This one is built to make therapist search feel more relevant, more understandable, and easier to act on.",
+          : "General directories make you do the sorting. This one starts with bipolar and narrows toward the therapists most likely to help.",
       cards:
         homePage && Array.isArray(homePage.whyCards) && homePage.whyCards.length
           ? homePage.whyCards
@@ -769,15 +769,17 @@ function renderPageSections(homePage, _featuredTherapists) {
       }
 
       if (section._type === "stepsSection") {
-        return renderStepsSection(section);
+        return "";
       }
 
       if (section._type === "testimonialsSection") {
         return renderTestimonialsSection(section);
       }
 
+      // ctaSection is the bottom therapist-recruitment strip; suppressed on the
+      // patient-facing home until we have a demand story worth pitching.
       if (section._type === "ctaSection") {
-        return renderCtaSection(section);
+        return "";
       }
 
       return "";
