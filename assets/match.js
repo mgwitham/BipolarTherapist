@@ -205,7 +205,7 @@ function syncZipResolvedLabel(value) {
 function syncMatchStartState() {
   return syncMatchStartStateBase({
     form: getMatchShellRefs().form,
-    button: getMatchShellRefs().searchButton,
+    button: null, // "More filters" toggle should not be dynamically relabeled
     helper: document.getElementById("matchStartHelper"),
     careField: document.querySelector("[data-match-care-field]"),
     escapeHtml: escapeHtml,
@@ -794,23 +794,40 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 }
 
 function bindRefineButtons() {
-  ["refineSearchButton", "openAdvancedFiltersButton"].forEach(function (id) {
-    var button = document.getElementById(id);
-    if (!button || button.dataset.boundRefine === "true") {
-      return;
-    }
-    button.dataset.boundRefine = "true";
-    button.addEventListener("click", function () {
-      var builder = document.querySelector(".match-builder");
+  // refineSearchButton: external trigger — always opens the panel
+  var externalBtn = document.getElementById("refineSearchButton");
+  if (externalBtn && externalBtn.dataset.boundRefine !== "true") {
+    externalBtn.dataset.boundRefine = "true";
+    externalBtn.addEventListener("click", function () {
       var refinements = document.querySelector(".match-refinements");
+      var moreBtn = document.getElementById("openAdvancedFiltersButton");
       if (refinements) {
         refinements.open = true;
+        if (moreBtn) {
+          moreBtn.setAttribute("aria-expanded", "true");
+          moreBtn.classList.add("is-expanded");
+        }
       }
+      var builder = document.querySelector(".match-builder");
       if (builder) {
         builder.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
-  });
+  }
+
+  // openAdvancedFiltersButton: inline toggle button
+  var moreBtn = document.getElementById("openAdvancedFiltersButton");
+  if (moreBtn && moreBtn.dataset.boundRefine !== "true") {
+    moreBtn.dataset.boundRefine = "true";
+    moreBtn.addEventListener("click", function () {
+      var refinements = document.querySelector(".match-refinements");
+      if (refinements) {
+        refinements.open = !refinements.open;
+        moreBtn.setAttribute("aria-expanded", refinements.open ? "true" : "false");
+        moreBtn.classList.toggle("is-expanded", refinements.open);
+      }
+    });
+  }
 }
 
 function bindRefineTeaserShortcuts() {
