@@ -1662,33 +1662,32 @@ function renderLeadMatchSnapshot(entry) {
 
 function renderCompareValue(value, kind) {
   if (kind === "order") {
-    var tone =
-      value === "Contact first"
-        ? "positive"
-        : value === "Backup if stalled"
-          ? "secondary"
-          : "neutral";
-    return '<span class="compare-chip compare-chip-' + tone + '">' + escapeHtml(value) + "</span>";
+    var tone = value === "#1 Best match" ? "positive" : "neutral";
+    return (
+      '<div class="compare-cell-center"><span class="compare-chip compare-chip-' +
+      tone +
+      '">' +
+      escapeHtml(value) +
+      "</span></div>"
+    );
   }
   if (kind === "format") {
     if (Array.isArray(value)) {
       return value.length
         ? value
             .map(function (item) {
-              return (
-                '<span class="compare-chip compare-chip-neutral">' + escapeHtml(item) + "</span>"
-              );
+              return '<div class="compare-format-item">' + escapeHtml(item) + "</div>";
             })
             .join("")
         : '<span class="compare-sub">Not listed</span>';
     }
     return value
-      ? '<span class="compare-chip compare-chip-neutral">' + escapeHtml(String(value)) + "</span>"
+      ? '<div class="compare-format-item">' + escapeHtml(String(value)) + "</div>"
       : '<span class="compare-sub">Not listed</span>';
   }
   if (kind === "boolean") {
     if (value === true) {
-      return '<span class="compare-chip compare-chip-positive">Available</span>';
+      return "Available";
     }
     if (value === false) {
       return '<span class="compare-sub">Not listed</span>';
@@ -1723,13 +1722,13 @@ function getCompareCostLabel(therapist) {
   var min = therapist.session_fee_min;
   var max = therapist.session_fee_max;
   if (min && max && min !== max) {
-    return "$" + min + "–$" + max + " per session";
+    return "$" + min + "–$" + max;
   }
   if (min) {
-    return "$" + min + " per session";
+    return "$" + min;
   }
   if (max) {
-    return "Up to $" + max + " per session";
+    return "Up to $" + max;
   }
   if (therapist.sliding_scale) {
     return "Sliding scale available";
@@ -1798,26 +1797,12 @@ function getCompareFreshness(entry) {
     : null;
 }
 
-function getCompareRole(entry, index, recommendedSlug) {
-  var priority = String(entry?.evaluation?.shortlist_priority || "").toLowerCase();
-  var slug = entry?.therapist?.slug || "";
-
-  if (recommendedSlug && slug === recommendedSlug) {
-    return "Contact first";
-  }
-  if (priority === "top pick") {
-    return "Contact first";
-  }
-  if (priority === "backup") {
-    return "Backup if stalled";
-  }
+function getCompareRole(entry, index) {
+  var rank = index + 1;
   if (index === 0) {
-    return "Strong contender";
+    return "#1 Best match";
   }
-  if (index === 1) {
-    return "Backup if stalled";
-  }
-  return "Compare if needed";
+  return "#" + rank + " match";
 }
 
 function getCompareRoleReason(entry, profile, recommendation, role) {
@@ -1937,7 +1922,7 @@ function renderCompareDecisionCards(topEntries, profile) {
         var therapist = entry.therapist;
         var readiness = getContactReadiness(entry);
         var freshness = getCompareFreshness(entry);
-        var role = getCompareRole(entry, index, recommendedSlug);
+        var role = getCompareRole(entry, index);
         var leadName =
           topEntries[0] && topEntries[0].therapist ? topEntries[0].therapist.name : "your lead";
         var backupName =
@@ -2061,7 +2046,7 @@ function buildPartnerCompareSummary(entries, profile) {
 
   topEntries.forEach(function (entry, index) {
     var therapist = entry.therapist;
-    var role = getCompareRole(entry, index, recommendedSlug);
+    var role = getCompareRole(entry, index);
     var reason = getCompareRoleReason(entry, profile, recommendation, role);
     var timing = getCompareTimingLabel(therapist) || "timing not listed";
     var cost = getCompareCostLabel(therapist) || "fees not listed";
@@ -2119,78 +2104,36 @@ function renderComparison(entries) {
 
   var rows = [
     {
-      label: "Decision role",
+      label: "Who to contact first",
       kind: "order",
       alwaysShow: true,
       getValue: function (therapist) {
         var index = topEntries.findIndex(function (entry) {
           return entry && entry.therapist && entry.therapist.slug === therapist.slug;
         });
-        var recommendation = buildFirstContactRecommendation(profile, topEntries);
-        var recommendedSlug =
-          recommendation && recommendation.therapist ? recommendation.therapist.slug : "";
-        return getCompareRole(topEntries[index], index, recommendedSlug);
+        return getCompareRole(topEntries[index], index);
       },
     },
     {
-      label: "Best next step",
+      label: "How to reach out",
       alwaysShow: true,
       getValue: function (therapist) {
         var entry = topEntries.find(function (item) {
           return item && item.therapist && item.therapist.slug === therapist.slug;
         });
-        var readiness = getContactReadiness(entry);
-        return readiness && readiness.route ? readiness.route : "";
+        var routeType = getPreferredRouteType(entry);
+        if (routeType === "booking") return "Book a consultation";
+        if (routeType === "email") return "Email";
+        if (routeType === "phone") return "Call";
+        if (routeType === "website") return "Visit website";
+        return "View profile";
       },
     },
     {
-      label: "Timing",
+      label: "Session cost",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareTimingLabel(therapist);
-      },
-    },
-    {
-      label: "Trust signal",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getCompareTrustLabel(entry);
-      },
-    },
-    {
-      label: "Languages",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return therapist.languages || [];
-      },
-    },
-    {
-      label: "Medication support",
-      kind: "boolean",
-      getValue: function (therapist) {
-        return therapist.medication_management;
-      },
-    },
-    {
-      label: "Bipolar experience",
-      getValue: function (therapist) {
-        return therapist.bipolar_years_experience
-          ? therapist.bipolar_years_experience + " years"
-          : "";
-      },
-    },
-    {
-      label: "Format",
-      kind: "format",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        return [
-          therapist.accepts_telehealth ? "Telehealth" : "",
-          therapist.accepts_in_person ? "In-person" : "",
-        ].filter(Boolean);
+        return getCompareCostLabel(therapist);
       },
     },
     {
@@ -2202,20 +2145,44 @@ function renderComparison(entries) {
       },
     },
     {
-      label: "Cost",
+      label: "Telehealth / In-person",
+      kind: "format",
       alwaysShow: true,
       getValue: function (therapist) {
-        return getCompareCostLabel(therapist);
+        return [
+          therapist.accepts_telehealth ? "Telehealth" : "",
+          therapist.accepts_in_person ? "In-person" : "",
+        ].filter(Boolean);
       },
     },
     {
-      label: "Why they stand out",
+      label: "Availability",
       alwaysShow: true,
       getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        return getMatchCardExplanation(entry);
+        return getCompareTimingLabel(therapist);
+      },
+    },
+    {
+      label: "Bipolar experience",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.bipolar_years_experience
+          ? therapist.bipolar_years_experience + " years"
+          : "";
+      },
+    },
+    {
+      label: "Prescribes medication",
+      kind: "boolean",
+      getValue: function (therapist) {
+        return therapist.medication_management;
+      },
+    },
+    {
+      label: "Languages",
+      alwaysShow: true,
+      getValue: function (therapist) {
+        return therapist.languages || [];
       },
     },
   ];
@@ -2274,65 +2241,20 @@ function renderComparison(entries) {
       );
     })
     .join("");
-  var compareTitle = profile ? "Decide who to contact first" : "Compare your saved list";
-  var compareCopy = profile
-    ? "Use fit, trust, timing, cost, and next step together so you can move on one therapist instead of stalling across three."
-    : "Your saved list is now organized into a clearer first choice, backup, and side-by-side decision view.";
-  var persistedShortlist = persistEntriesToDirectoryShortlist(topEntries);
-  var compareUrl = buildShortlistCompareUrl(topEntries);
-  var savedCount = persistedShortlist.length;
-  var reshapeHistory = readShortlistReshapeHistory();
-
   root.innerHTML =
-    '<details class="result-disclosure"><summary><div><div class="result-disclosure-title">Compare finalists in detail</div><div class="result-disclosure-copy">Open this if you want a side-by-side decision board for your top saved options.</div></div><span class="result-disclosure-toggle" aria-hidden="true"></span></summary><div class="result-disclosure-body"><section class="match-support-panel"><div class="match-support-panel-static"><div><div class="match-support-panel-title">' +
-    escapeHtml(compareTitle) +
-    '</div><div class="match-support-panel-copy">' +
-    escapeHtml(compareCopy) +
-    '</div></div></div><div class="match-support-panel-body"><section class="match-compare"><div class="match-compare-header"><h3>List decision board</h3><p>Start with the decision cards, then scan the detailed comparison only if you need to pressure-test the finalists.</p></div><div class="compare-summary-bar"><div><span class="compare-summary-kicker">Saved for later</span><div class="compare-summary-text">This comparison is now saved on this browser for quick return' +
-    (savedCount ? " across " + escapeHtml(String(savedCount)) + " saved therapists." : ".") +
+    '<div class="match-compare-feature">' +
+    '<div class="match-compare-feature-head">' +
+    '<span class="match-compare-kicker">Side-by-side</span>' +
+    '<h3 class="match-compare-feature-title">Compare your matches</h3>' +
+    '<p class="match-compare-feature-copy">Cost, insurance, format, and experience across all your matches — so you can pick one and reach out.</p>' +
     "</div>" +
-    (reshapeHistory && reshapeHistory.summary
-      ? '<div class="compare-summary-history"><span class="compare-summary-kicker">' +
-        escapeHtml(reshapeHistory.title || "Last list reshape") +
-        '</span><div class="compare-summary-text">' +
-        escapeHtml(reshapeHistory.summary) +
-        '</div><div class="compare-summary-history-meta">' +
-        escapeHtml(reshapeHistory.meta || "") +
-        "</div></div>"
-      : "") +
-    '<div class="compare-summary-actions"><button type="button" class="btn-secondary" data-copy-compare-link>Copy compare link</button><a class="btn-secondary" href="directory.html">Back to directory</a></div></div>' +
-    renderPartnerCompareSummary(topEntries, profile) +
-    renderCompareDecisionCards(topEntries, profile) +
+    '<section class="match-compare">' +
     '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
     escapeHtml(String(topEntries.length)) +
     ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
-    "</div></section></div></section></div></details>";
-
-  var copyButton = root.querySelector("[data-copy-compare-link]");
-  if (copyButton) {
-    copyButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(compareUrl);
-        setActionState(true, "Copied the list comparison link.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the comparison link automatically.");
-      }
-    });
-  }
-
-  var summaryButton = root.querySelector("[data-copy-partner-summary]");
-  if (summaryButton) {
-    summaryButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(buildPartnerCompareSummary(topEntries, profile));
-        setActionState(true, "Copied the shareable list summary.");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the list summary automatically.");
-      }
-    });
-  }
+    "</div></section></div>";
 
   triggerMotion(root, "motion-enter");
 }
@@ -4364,7 +4286,9 @@ function renderLeadResultCard(entry, backupName) {
   var readiness = getContactReadiness(entry);
   var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
   var feeText = buildFeeText(therapist);
   var ctaLabel =
     routeType === "booking"
@@ -4392,16 +4316,15 @@ function renderLeadResultCard(entry, backupName) {
   if (therapist.sliding_scale) {
     signals.push('<span class="result-signal">Sliding scale</span>');
   }
-  var contactNote =
-    readiness && readiness.guidance
-      ? readiness.guidance
-      : readiness && readiness.firstStep
-        ? readiness.firstStep
-        : "";
+  var contactNote = "";
 
   return (
     '<article class="result-lead">' +
-    '<div class="result-lead-top">' +
+    '<div class="result-lead-header">' +
+    '<div class="result-avatar result-avatar--lead">' +
+    escapeHtml(initials) +
+    "</div>" +
+    '<div class="result-lead-identity">' +
     '<div class="result-badges">' +
     '<span class="result-badge result-badge--lead">Best match</span>' +
     '<span class="result-confidence tone-' +
@@ -4410,17 +4333,6 @@ function renderLeadResultCard(entry, backupName) {
     escapeHtml(confidence.label) +
     "</span>" +
     "</div>" +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
-    '" class="result-profile-link" data-match-profile-link="' +
-    escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">View profile</a>' +
-    "</div>" +
-    '<div class="result-lead-body">' +
-    '<div class="result-avatar result-avatar--lead">' +
-    escapeHtml(initials) +
-    "</div>" +
-    '<div class="result-info">' +
     '<h3 class="result-name">' +
     escapeHtml(therapist.name || "") +
     "</h3>" +
@@ -4428,8 +4340,8 @@ function renderLeadResultCard(entry, backupName) {
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
     "</div>" +
     "</div>" +
-    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
     (signals.length ? '<div class="result-signals">' + signals.join("") + "</div>" : "") +
+    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
     (contactNote ? '<div class="result-contact-note">' + escapeHtml(contactNote) + "</div>" : "") +
     '<div class="result-actions">' +
     (preferredRoute
@@ -4445,9 +4357,11 @@ function renderLeadResultCard(entry, backupName) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    '<button type="button" class="result-cta-secondary" data-copy-entry-draft="' +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-view-profile" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '">Copy first outreach</button>' +
+    '" data-profile-link-context="primary-card">View profile</a>' +
     "</div>" +
     (backupName
       ? '<div class="result-backup-note">If this stalls, your next best option is <strong>' +
@@ -4465,7 +4379,9 @@ function renderSupportingResultCard(entry, rank) {
   var explanation = getMatchCardExplanation(entry);
   var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
   var feeText = buildFeeText(therapist);
   var ctaLabel =
     routeType === "booking"
@@ -4497,11 +4413,6 @@ function renderSupportingResultCard(entry, rank) {
     (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
     (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
     "</div>" +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
-    '" class="result-profile-link result-profile-link--sm" data-match-profile-link="' +
-    escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="supporting-card">Profile</a>' +
     "</div>" +
     (explanation
       ? '<p class="result-reason result-reason--compact">' + escapeHtml(explanation) + "</p>"
@@ -4527,11 +4438,12 @@ function renderSupportingResultCard(entry, rank) {
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
-      : '<a href="therapist.html?slug=' +
-        encodeURIComponent(therapist.slug || "") +
-        '" class="result-cta-sm" data-match-profile-link="' +
-        escapeHtml(therapist.slug || "") +
-        '">View profile</a>') +
+      : "") +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="result-card-profile-link" data-match-profile-link="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-profile-link-context="supporting-card">View profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -4560,8 +4472,8 @@ function renderPrimaryMatchCards(entries, _profile) {
     '<div class="results-panel">' +
     renderLeadResultCard(leadEntry, backupName) +
     (supportingEntries.length
-      ? '<div class="result-supporting-list">' +
-        '<div class="result-supporting-header">Other strong matches</div>' +
+      ? '<div class="result-supporting-header">Other strong matches</div>' +
+        '<div class="result-supporting-list">' +
         supportingEntries
           .map(function (entry, i) {
             return renderSupportingResultCard(entry, i + 2);
@@ -4607,30 +4519,6 @@ function renderPrimaryMatchCards(entries, _profile) {
           context: link.getAttribute("data-profile-link-context") || "result",
         }),
       );
-    });
-  });
-
-  root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-entry-draft") || "";
-      var entry = (entries || []).find(function (item) {
-        return item && item.therapist && item.therapist.slug === slug;
-      });
-      if (!entry) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(buildEntryOutreachDraft(entry, latestProfile));
-        trackFunnelEvent(
-          "match_entry_draft_copied",
-          buildMatchTrackingPayload(slug, {
-            route: "Primary card",
-          }),
-        );
-        setActionState(true, "Copied a first outreach message for " + entry.therapist.name + ".");
-      } catch (_error) {
-        setActionState(true, "Unable to copy the outreach message automatically.");
-      }
     });
   });
 
@@ -4680,14 +4568,12 @@ function renderResults(entries, profile) {
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
-  renderFirstContactRecommendation(profile, primaryEntries);
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   renderShortlistQueue(entries);
   if (refs.feedbackBar) {
     refs.feedbackBar.hidden = false;
   }
-  renderOutreachPanel(entries);
   renderComparison(entries);
 }
 
