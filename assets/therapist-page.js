@@ -2222,769 +2222,433 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  var contactPrepCardsHtml = [
-    {
-      label: "Lead with",
-      title: "A calm first opener",
-      copy:
-        "<strong>" +
-        escapeHtml(contactMessageOpener) +
-        "</strong> Then keep the next line focused on fit or timing instead of writing a long backstory.",
-    },
-    {
-      label: "Confirm first",
-      title: "The two fastest questions",
-      copy: escapeHtml(
-        contactQuestionPreview ||
-          "Ask one fit question and one timing question so you can rule this option in or out quickly.",
-      ),
-    },
-    {
-      label: "Use the first reply well",
-      title: "Confirm these before you commit",
-      copy: escapeHtml(
-        consultConfirmPreview ||
-          "Use the first reply to confirm fit, timing, and cost path before you treat this as your lead route.",
-      ),
-    },
-    {
-      label: "Keep momentum",
-      title: "Know the pivot before you start",
-      copy: escapeHtml(
-        contactStrategy.backupPlanCopy ||
-          "If this route stalls after one follow-up, move to the clearest backup instead of waiting indefinitely.",
-      ),
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="profile-cockpit-card"><div class="profile-cockpit-label">' +
-        item.label +
-        '</div><div class="profile-cockpit-title">' +
-        item.title +
-        '</div><div class="profile-cockpit-copy">' +
-        item.copy +
-        "</div></div>"
-      );
-    })
-    .join("");
-  var consultPrepHtml =
-    '<div class="next-step-item"><div class="next-step-label">Use the first reply to judge fit fast</div><div class="next-step-helper">A strong reply should lower uncertainty quickly. If it does not, keep your backup route warm instead of overinvesting here.</div><div class="next-step-question-list">' +
-    renderList(strongReplyItems.slice(0, 3), "contact-checklist-item") +
-    '</div></div><div class="next-step-item"><div class="next-step-label">Confirm before booking or committing</div><div class="next-step-question-list">' +
-    renderList(consultConfirmItems.slice(0, 3), "contact-checklist-item") +
-    '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
-    renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
-    "</div></div>";
-  var summaryStats = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting patients"
-        : "Confirm directly",
-      tone: t.accepting_new_patients ? "green" : "teal",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Format to confirm",
-      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
-    },
-    {
-      label: "Cost path",
-      value:
-        t.session_fee_min || t.session_fee_max || t.sliding_scale
-          ? t.session_fee_min && t.session_fee_max
-            ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-            : t.sliding_scale
-              ? "Sliding scale"
-              : "Fee info listed"
-          : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-  var contactTiming = getContactTimingGuidance(contactStrategy);
-  var decisionDashboardHtml =
-    '<div class="profile-decision-dashboard tone-' +
-    escapeHtml(decisionSystem.tone) +
-    '"><div class="profile-decision-dashboard-intro"><div class="profile-decision-dashboard-label">Decision system</div><div class="profile-decision-dashboard-score"><span class="profile-decision-dashboard-score-value">' +
-    escapeHtml(String(decisionSystem.overallScore)) +
-    '</span><span class="profile-decision-dashboard-score-max">/100</span></div><div class="profile-decision-dashboard-title">' +
-    escapeHtml(decisionSystem.stanceLabel) +
-    '</div><div class="profile-decision-dashboard-copy">' +
-    escapeHtml(decisionSystem.stanceCopy) +
-    '</div></div><div class="profile-signal-board">' +
-    decisionSystem.dimensions
-      .map(function (item) {
-        return (
-          '<div class="profile-signal-card tone-' +
-          escapeHtml(item.tone) +
-          '"><div class="profile-signal-card-top"><div class="profile-signal-label">' +
-          escapeHtml(item.label) +
-          '</div><div class="profile-signal-score">' +
-          escapeHtml(String(item.score)) +
-          '</div></div><div class="profile-signal-bar"><div class="profile-signal-bar-fill tone-' +
-          escapeHtml(item.tone) +
-          '" style="width:' +
-          escapeHtml(String(item.score)) +
-          '%"></div></div><div class="profile-signal-copy">' +
-          escapeHtml(item.summary) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    '</div><div class="profile-insight-grid"><div class="profile-insight-card"><div class="profile-insight-label">Best for</div><div class="profile-insight-title">Where this profile has the clearest upside</div><div class="profile-insight-list">' +
-    decisionSystem.bestFor
-      .map(function (item) {
-        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
-      })
-      .join("") +
-    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Confirm first</div><div class="profile-insight-title">The fastest unknowns to clear</div><div class="profile-insight-list">' +
-    decisionSystem.confirmFirst
-      .map(function (item) {
-        return '<div class="profile-insight-item">' + escapeHtml(item) + "</div>";
-      })
-      .join("") +
-    '</div></div><div class="profile-insight-card"><div class="profile-insight-label">Management mode</div><div class="profile-insight-title">' +
-    escapeHtml(decisionSystem.managementTitle) +
-    '</div><div class="profile-insight-copy">' +
-    escapeHtml(decisionSystem.managementCopy) +
-    "</div></div></div></div>";
-  var fitSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Bottom line</div><div class="section-story-title">' +
-    escapeHtml(fitHeadline) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(fitSubheadline) +
-    "</div></div>";
-  var trustSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Trust read</div><div class="section-story-title">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "This profile has stronger-than-average trust support."
-        : "This profile is usable, but some trust work still shifts to outreach.",
-    ) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(reviewedDetailsCopy) +
-    "</div></div>";
-  var logisticsSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
-    escapeHtml(
-      t.accepting_new_patients || t.estimated_wait_time
-        ? "The access path is visible enough to act on."
-        : "This is still more of a logistics check than a ready-now option.",
-    ) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(reachabilityCopy) +
-    "</div></div>";
-  var logisticsSignalStripHtml = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting now"
-        : "Confirm directly",
-    },
-    {
-      label: "Coverage",
-      value: (t.insurance_accepted || []).length
-        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
-        : "Ask directly",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Confirm directly",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="section-mini-stat"><div class="section-mini-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="section-mini-stat-value">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-  var belowFoldOverviewHtml =
-    '<section class="profile-section profile-overview-panel" id="section-overview" data-profile-section><div class="profile-section-static-header"><span><span class="section-kicker">Overview</span><h2>Decision support and trust context</h2></span></div>' +
-    decisionDashboardHtml +
-    '<div class="trust-evidence-grid" style="margin-top:0.95rem">' +
-    trustEvidenceHtml +
-    "</div></section>";
-  var sectionNavHtml =
-    '<div class="profile-section-nav" id="profileSectionNav">' +
-    '<a href="#section-overview" class="section-nav-link is-active" data-section-link="section-overview">Overview</a>' +
-    '<a href="#section-fit" class="section-nav-link" data-section-link="section-fit">Fit</a>' +
-    '<a href="#section-trust" class="section-nav-link" data-section-link="section-trust">Evidence</a>' +
-    '<a href="#section-logistics" class="section-nav-link" data-section-link="section-logistics">Access</a>' +
-    '<a href="#section-contact" class="section-nav-link" data-section-link="section-contact">Outreach</a>' +
-    '<a href="#section-bio" class="section-nav-link" data-section-link="section-bio">Bio</a>' +
-    "</div>";
-  var decisionRailRows = [
-    {
-      label: "Best next move now",
-      value: contactStrategy.routeLabel,
-      tone: "green",
-    },
-    {
-      label: "Action timing",
-      value: contactTiming.title,
-      tone: contactStrategy.confidenceTone === "outcomes" ? "green" : "teal",
-    },
-    {
-      label: "Availability",
-      value: t.accepting_new_patients
-        ? t.estimated_wait_time || "Accepting patients"
-        : "Openings to confirm",
-      tone: t.accepting_new_patients ? "green" : "",
-    },
-    {
-      label: "Insurance",
-      value: (t.insurance_accepted || []).length
-        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
-        : "Coverage to confirm",
-      tone: (t.insurance_accepted || []).length ? "teal" : "",
-    },
-    {
-      label: "Fees",
-      value:
-        t.session_fee_min && t.session_fee_max
-          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-          : t.sliding_scale
-            ? "Sliding scale"
-            : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="rail-row"><span class="info-label">' +
-        escapeHtml(item.label) +
-        '</span><span class="info-val ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</span></div>"
-      );
-    })
-    .join("");
+  // --- Display helpers for the simplified profile layout ---
+  var firstName = String(t.name || "").split(" ")[0] || t.name || "this therapist";
 
-  var secondaryButtons =
-    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
+  var displayAcceptingText = t.accepting_new_patients
+    ? t.estimated_wait_time || "Accepting new patients"
+    : "Waitlist";
+  var displayFeeShort =
+    t.session_fee_min && t.session_fee_max
+      ? "$" + t.session_fee_min + "–$" + t.session_fee_max + " / session"
+      : t.session_fee_min
+        ? "From $" + t.session_fee_min + " / session"
+        : t.sliding_scale
+          ? "Sliding scale"
+          : "Ask directly";
+  var insArr = t.insurance_accepted || [];
+  var displayInsuranceShort = insArr.length
+    ? joinNaturalList(insArr.slice(0, 2)) + (insArr.length > 2 ? " + more" : "")
+    : "Ask directly";
+  var langsArr = (t.languages && t.languages.length ? t.languages : ["English"]) || ["English"];
+  var displayLanguagesShort = langsArr.slice(0, 3).join(", ");
+  var displayFormatText =
+    t.accepts_telehealth && t.accepts_in_person
+      ? "Telehealth + in-person"
+      : t.accepts_telehealth
+        ? "Telehealth only"
+        : t.accepts_in_person
+          ? "In-person only"
+          : "Ask directly";
+
+  // Hero badges — at most four, each stating a single fact.
+  var heroBadges = [];
+  heroBadges.push(
+    t.accepting_new_patients
+      ? '<span class="ts-badge ts-badge-green">Accepting new patients</span>'
+      : '<span class="ts-badge ts-badge-amber">Waitlist</span>',
+  );
+  if (t.verification_status === "editorially_verified") {
+    heroBadges.push('<span class="ts-badge ts-badge-teal">Verified</span>');
+  }
+  if (t.accepts_telehealth) {
+    heroBadges.push('<span class="ts-badge ts-badge-neutral">Telehealth</span>');
+  }
+  if (t.medication_management) {
+    heroBadges.push('<span class="ts-badge ts-badge-neutral">Medication management</span>');
+  }
+  var heroBadgesHtml = heroBadges.join("");
+
+  // One short fit sentence under the hero. Falls back to a clean default.
+  var fitSentence =
+    fitSummaryCopy && fitSummaryCopy.length < 260
+      ? fitSummaryCopy
+      : "Review the details below to decide whether " + firstName + " is worth a first message.";
+
+  // Unified secondary contact buttons (everything that isn't the primary route).
+  var secondaryContactButtonsHtml = "";
   if (t.phone && t.preferred_contact_method !== "phone") {
-    secondaryButtons +=
-      '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
+    secondaryContactButtonsHtml +=
+      '<a href="tel:' +
+      escapeHtml(t.phone) +
+      '" class="ts-btn ts-btn-ghost" data-profile-contact-route="phone" data-profile-contact-priority="secondary">Call ' +
+      escapeHtml(t.phone) +
+      "</a>";
   }
   if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
-    secondaryButtons +=
-      '<a href="mailto:' + escapeHtml(t.email) + '" class="btn-website">Email</a>';
+    secondaryContactButtonsHtml +=
+      '<a href="mailto:' +
+      escapeHtml(t.email) +
+      '" class="ts-btn ts-btn-ghost" data-profile-contact-route="email" data-profile-contact-priority="secondary">Email</a>';
   }
   if (t.website && websiteHealthy && t.preferred_contact_method !== "website") {
-    secondaryButtons +=
+    secondaryContactButtonsHtml +=
       '<a href="' +
       escapeHtml(t.website) +
-      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
+      '" target="_blank" rel="noopener" class="ts-btn ts-btn-ghost" data-profile-contact-route="website" data-profile-contact-priority="secondary">Website</a>';
   }
   if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
-    secondaryButtons +=
+    secondaryContactButtonsHtml +=
       '<a href="' +
       escapeHtml(t.booking_url) +
-      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
+      '" target="_blank" rel="noopener" class="ts-btn ts-btn-ghost" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
-  secondaryButtons +=
-    '<a href="portal.html?slug=' +
-    encodeURIComponent(t.slug) +
-    '" class="btn-website">Claim or manage profile</a>';
-  var mobileDockActions =
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
-    '<button type="button" class="btn-website" data-profile-focus-script>Preview first message</button>' +
-    '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
+  var hasAnyContact = !!(
+    t.phone ||
+    (t.email && t.email !== "contact@example.com") ||
+    t.website ||
+    t.booking_url
+  );
 
-  contactBtns =
-    '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="profile-actions-intro-copy">' +
-    escapeHtml(contactStrategy.routeReason) +
-    "</div></div>" +
-    '<div class="profile-actions-header"><div class="profile-actions-kicker">Outreach cockpit</div><div class="profile-actions-title">Make one strong first move, not three hesitant ones.</div><div class="profile-actions-microcopy">This rail is built to help you choose the safest route, send a more credible first message, and know exactly when to pivot if the first path stalls.</div></div>' +
-    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best outreach path</div><div class="contact-strategy-title">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="contact-strategy-copy">' +
-    escapeHtml(contactStrategy.routeReason) +
-    '</div><div class="contact-strategy-highlight"><strong>Why this route now:</strong> ' +
-    escapeHtml(contactStrategy.proofLine) +
-    '</div><div class="contact-strategy-confidence tone-' +
-    escapeHtml(contactStrategy.confidenceTone) +
-    '"><div class="contact-strategy-confidence-label">' +
-    escapeHtml(contactStrategy.confidenceLabel) +
-    '</div><div class="contact-strategy-confidence-note">' +
-    escapeHtml(contactStrategy.confidenceNote) +
-    '</div></div><div class="contact-strategy-grid"><div class="contact-strategy-item"><div class="contact-strategy-label">Expected reply window</div><div class="contact-strategy-value ' +
-    escapeHtml(contactStrategy.timingTone) +
-    '">' +
-    escapeHtml(contactStrategy.replyWindowCopy) +
-    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">Follow up if needed</div><div class="contact-strategy-value">' +
-    escapeHtml(contactStrategy.followUpCopy) +
-    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">If this stalls</div><div class="contact-strategy-value">' +
-    escapeHtml(contactStrategy.backupPlanCopy) +
-    "</div></div></div></div>" +
-    '<div class="profile-cockpit-strip">' +
-    contactPrepCardsHtml +
-    "</div>" +
-    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
-    '<div class="profile-primary-caption">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div>" +
-    renderBackupCard(backupState) +
-    '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
-    secondaryButtons +
-    "</div>";
+  // Trust lines — one consolidated list, each fact stated once.
+  var trustLines = [];
+  trustLines.push(
+    t.verification_status === "editorially_verified"
+      ? "We've checked " + firstName + "'s license, location, and contact path."
+      : "Key details reviewed, but this profile has not been editorially verified yet.",
+  );
+  if (freshnessSignal && freshnessSignal.label) {
+    trustLines.push(freshnessSignal.label + ".");
+  }
+  if (sourceReviewedDate) {
+    trustLines.push(
+      "Last checked against public sources on " +
+        sourceReviewedDate +
+        (sourceHost ? " (primary source: " + sourceHost + ")." : "."),
+    );
+  }
+  if (therapistReportedFields.length) {
+    trustLines.push(
+      firstName +
+        " confirmed these details directly" +
+        (therapistReportedDate ? " on " + therapistReportedDate : "") +
+        ": " +
+        therapistReportedFields.join(", ").replace(/_/g, " ") +
+        ".",
+    );
+  }
+  if (bipolarExperience) {
+    trustLines.push(bipolarExperience + " years of bipolar-specific experience on record.");
+  } else if (totalExperience) {
+    trustLines.push(totalExperience + " years of clinical experience on record.");
+  }
+  if (responsivenessSignal && responsivenessSignal.tone === "positive") {
+    trustLines.push(responsivenessSignal.label + ".");
+  }
+  var trustLinesHtml = trustLines
+    .map(function (line) {
+      return "<li>" + escapeHtml(line) + "</li>";
+    })
+    .join("");
+
+  // Suppress lint warnings for data-derivation values the simplified layout no longer renders.
   void contactBtns;
+  void fitHeadline;
+  void fitSubheadline;
+  void quickFitHtml;
+  void bipolarTrustHtml;
+  void practicalDetailsHtml;
+  void contactChecklistItems;
+  void strongReplyItems;
+  void pivotFastItems;
+  void consultConfirmItems;
+  void contactMessageOpener;
+  void contactQuestionPreview;
+  void consultConfirmPreview;
+  void trustEvidenceCards;
+  void trustEvidenceHtml;
+  void trustSectionCards;
+  void trustSectionCardsHtml;
+  void decisionSystem;
+  void standoutCopy;
+  void readinessCopy;
+  void reviewedDetailsCopy;
+  void reachabilityCopy;
+  void likelyFitAudience;
+  void followThroughItems;
+  void operationalTrustSummary;
 
-  var topFoldBioSource = String(t.bio_preview || t.bio || t.care_approach || "").trim();
-  var topFoldBio = getFirstMeaningfulSentence(topFoldBioSource);
-  if (topFoldBio && topFoldBio.length > 220) {
-    topFoldBio =
-      topFoldBio
-        .slice(0, 217)
-        .trim()
-        .replace(/[,:;-\s]+$/, "") + "...";
+  var primaryCtaHtml =
+    primaryButton || '<a href="directory.html" class="ts-btn ts-btn-primary">Back to directory</a>';
+
+  var bioBodyHtml =
+    '<p class="ts-bio">' +
+    escapeHtml(t.bio || "A longer bio is not available yet for " + firstName + ".") +
+    "</p>" +
+    (t.care_approach
+      ? '<p class="ts-bio ts-bio-secondary">' + escapeHtml(t.care_approach) + "</p>"
+      : "");
+
+  var specialtiesBlockHtml = "";
+  if (specialties) {
+    specialtiesBlockHtml +=
+      '<div class="ts-taggroup"><div class="ts-taggroup-label">Focus areas</div><div class="ts-tagrow">' +
+      specialties +
+      "</div></div>";
   }
+  if (modalities) {
+    specialtiesBlockHtml +=
+      '<div class="ts-taggroup"><div class="ts-taggroup-label">Treatment approach</div><div class="ts-tagrow">' +
+      modalities +
+      "</div></div>";
+  }
+  if (populations) {
+    specialtiesBlockHtml +=
+      '<div class="ts-taggroup"><div class="ts-taggroup-label">Populations served</div><div class="ts-tagrow">' +
+      populations +
+      "</div></div>";
+  }
+
+  var practicalFacts = [
+    {
+      label: "Accepting",
+      value: displayAcceptingText,
+      good: !!t.accepting_new_patients,
+    },
+    {
+      label: "Format",
+      value: displayFormatText,
+      good: !!(t.accepts_telehealth || t.accepts_in_person),
+    },
+    {
+      label: "Medication management",
+      value: t.medication_management ? "Offered" : "Not offered",
+      good: false,
+    },
+    {
+      label: "Languages",
+      value: displayLanguagesShort,
+      good: false,
+    },
+  ];
+  if ((t.telehealth_states || []).length) {
+    practicalFacts.push({
+      label: "Telehealth states",
+      value: (t.telehealth_states || []).slice(0, 6).join(", "),
+      good: false,
+    });
+  }
+  if (t.license_state || t.license_number) {
+    practicalFacts.push({
+      label: "License",
+      value: [t.license_state, t.license_number].filter(Boolean).join(" · "),
+      good: false,
+    });
+  }
+  var practicalFactsHtml = practicalFacts
+    .map(function (row) {
+      return (
+        '<div class="ts-fact"><div class="ts-fact-label">' +
+        escapeHtml(row.label) +
+        '</div><div class="ts-fact-value' +
+        (row.good ? " is-good" : "") +
+        '">' +
+        escapeHtml(row.value) +
+        "</div></div>"
+      );
+    })
+    .join("");
+
+  var insuranceBlockHtml = insTags
+    ? '<div class="ts-detail-block"><div class="ts-detail-label">Insurance accepted</div><div class="ts-ins-list">' +
+      insTags +
+      "</div></div>"
+    : '<div class="ts-detail-block"><div class="ts-detail-label">Insurance</div><div class="ts-detail-muted">Not listed — ask directly</div></div>';
+
+  var feesBlockHtml =
+    '<div class="ts-detail-block"><div class="ts-detail-label">Fees</div>' + feesHtml + "</div>";
+
+  var contactGuidanceHtml = contactGuidance
+    ? '<p class="ts-hint">' + escapeHtml(contactGuidance) + "</p>"
+    : "";
+
+  var contactQuestionsBlockHtml = contactQuestionHtml
+    ? '<div class="ts-questions" data-profile-contact-questions><div class="ts-questions-label">' +
+      escapeHtml(contactQuestionsLabel || "Good questions to ask") +
+      '</div><ul class="ts-questions-list">' +
+      contactQuestionHtml +
+      "</ul></div>"
+    : "";
+
+  var reachOutLead =
+    (contactStrategy && contactStrategy.routeLabel ? contactStrategy.routeLabel + "." : "") +
+    (contactStrategy && contactStrategy.routeReason ? " " + contactStrategy.routeReason : "");
+  reachOutLead = reachOutLead.trim() || "Reach out when you're ready.";
+
+  var sidebarFactsHtml =
+    '<dl class="ts-facts">' +
+    '<dt>Accepting</dt><dd class="' +
+    (t.accepting_new_patients ? "is-good" : "") +
+    '">' +
+    escapeHtml(displayAcceptingText) +
+    "</dd>" +
+    "<dt>Fees</dt><dd>" +
+    escapeHtml(displayFeeShort) +
+    "</dd>" +
+    "<dt>Insurance</dt><dd>" +
+    escapeHtml(displayInsuranceShort) +
+    "</dd>" +
+    "<dt>Languages</dt><dd>" +
+    escapeHtml(displayLanguagesShort) +
+    "</dd>" +
+    "</dl>";
+
+  var noContactNote = hasAnyContact
+    ? ""
+    : '<p class="ts-hint">No direct contact info listed yet. Save this profile and compare later.</p>';
 
   var html =
-    '<div class="profile-header">' +
-    '<div class="profile-hero-main">' +
-    '<div class="profile-identity">' +
-    '<div class="avatar">' +
+    // ---------- HERO ----------
+    '<header class="ts-hero">' +
+    '<div class="ts-hero-main">' +
+    '<div class="ts-avatar">' +
     avatar +
     "</div>" +
-    '<div class="profile-main"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
+    '<div class="ts-hero-text">' +
     "<h1>" +
     escapeHtml(t.name) +
     "</h1>" +
-    (t.credentials ? '<div class="creds">' + escapeHtml(t.credentials) + "</div>" : "") +
-    (t.title ? '<div class="title-text">' + escapeHtml(t.title) + "</div>" : "") +
-    (t.practice_name
-      ? '<div class="title-text practice-line">' + escapeHtml(t.practice_name) + "</div>"
+    (t.credentials
+      ? '<div class="ts-hero-credentials">' + escapeHtml(t.credentials) + "</div>"
       : "") +
-    '<div class="location">📍 ' +
+    (t.title ? '<div class="ts-hero-title">' + escapeHtml(t.title) + "</div>" : "") +
+    (t.practice_name
+      ? '<div class="ts-hero-practice">' + escapeHtml(t.practice_name) + "</div>"
+      : "") +
+    '<div class="ts-hero-location">' +
     escapeHtml(t.city) +
     ", " +
     escapeHtml(t.state) +
     (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
-    '<div class="hero-meta">' +
-    acceptingBadge +
-    (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
-    "</div></div></div>" +
-    '<div class="hero-verdict-card"><div class="hero-summary-label">Fast fit verdict</div><h2>' +
-    escapeHtml(fitHeadline) +
-    "</h2><p>" +
-    escapeHtml(fitSubheadline) +
-    '</p><div class="fit-summary">' +
-    escapeHtml(fitSummaryCopy) +
+    '<div class="ts-hero-badges">' +
+    heroBadgesHtml +
     "</div>" +
-    (topFoldBio
-      ? '<div class="hero-bio-snippet"><div class="hero-bio-label">About</div><div class="hero-bio-copy">' +
-        escapeHtml(topFoldBio) +
-        "</div></div>"
-      : "") +
-    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
-    '<div class="profile-primary-caption">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div></div>" +
-    '<div class="profile-summary-strip">' +
-    summaryStats +
     "</div>" +
-    '<div class="profile-mobile-dock"><div class="profile-mobile-dock-label">Best next move</div><div class="profile-mobile-dock-copy">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="profile-mobile-dock-actions">' +
-    mobileDockActions +
-    "</div></div>" +
     "</div>" +
-    sectionNavHtml +
-    '<div class="profile-body">' +
-    "<div>" +
-    belowFoldOverviewHtml +
-    '<section class="profile-section profile-section-collapsible" id="section-fit" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Fit</span><h2>Why this profile may fit</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    fitSectionLeadHtml +
-    '<div class="bio-text section-body-copy">' +
-    escapeHtml(fitSummaryCopy) +
+    '<p class="ts-hero-fit">' +
+    escapeHtml(fitSentence) +
+    "</p>" +
+    "</header>" +
+    // ---------- BODY LAYOUT ----------
+    '<div class="ts-body">' +
+    // Main column
+    '<main class="ts-main">' +
+    // § About
+    '<section class="ts-section" id="section-bio" data-profile-section>' +
+    "<h2>About " +
+    escapeHtml(firstName) +
+    "</h2>" +
+    bioBodyHtml +
+    "</section>" +
+    // § Specialties & approach (only if there's anything to show)
+    (specialtiesBlockHtml
+      ? '<section class="ts-section" id="section-fit" data-profile-section>' +
+        "<h2>Specialties &amp; approach</h2>" +
+        specialtiesBlockHtml +
+        "</section>"
+      : "") +
+    // § Practical details
+    '<section class="ts-section" id="section-logistics" data-profile-section>' +
+    "<h2>Practical details</h2>" +
+    '<div class="ts-facts-grid">' +
+    practicalFactsHtml +
     "</div>" +
-    (quickFitHtml
-      ? '<div class="decision-list" style="margin-top:0.95rem">' + quickFitHtml + "</div>"
-      : "") +
-    (specialties
-      ? '<div class="profile-subsection"><div class="mini-section-label">Conditions and focus areas</div><div class="specialty-grid">' +
-        specialties +
-        "</div></div>"
-      : "") +
-    (modalities
-      ? '<div class="profile-subsection"><div class="mini-section-label">Treatment approach</div><div class="specialty-grid">' +
-        modalities +
-        "</div></div>"
-      : "") +
-    (populations
-      ? '<div class="profile-subsection"><div class="mini-section-label">Populations served</div><div class="specialty-grid">' +
-        populations +
-        "</div></div>"
-      : "") +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-trust" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Evidence</span><h2>Why this looks credible</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    trustSectionLeadHtml +
-    '<div class="bio-text section-body-copy">' +
-    escapeHtml(reviewedDetailsCopy) +
+    insuranceBlockHtml +
+    feesBlockHtml +
+    "</section>" +
+    // § Reach out
+    '<section class="ts-section" id="section-contact" data-profile-section data-profile-contact-section>' +
+    "<h2>Reach out</h2>" +
+    '<p class="ts-section-lead">' +
+    escapeHtml(reachOutLead) +
+    "</p>" +
+    contactGuidanceHtml +
+    '<div class="ts-reach-script" data-profile-outreach-script tabindex="-1">' +
+    '<div class="ts-reach-script-label">' +
+    escapeHtml(contactScriptLabel || "Suggested first message") +
     "</div>" +
-    '<div class="trust-section-grid">' +
-    trustSectionCardsHtml +
-    "</div>" +
-    (bipolarTrustHtml
-      ? '<div class="decision-list" style="margin-top:0.95rem">' + bipolarTrustHtml + "</div>"
-      : "") +
-    (therapistReportedCopy
-      ? '<div class="bio-text" style="margin-top:0.8rem">' +
-        escapeHtml(therapistReportedCopy) +
-        "</div>"
-      : "") +
-    (recentApplied
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(recentApplied.note) +
-        "</div>"
-      : "") +
-    (recentConfirmation
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(recentConfirmation.note) +
-        "</div>"
-      : "") +
-    (sourceReviewCopy
-      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(sourceReviewCopy) + "</div>"
-      : "") +
-    (freshness.status !== "fresh"
-      ? '<div class="bio-text" style="margin-top:0.8rem">' + escapeHtml(freshness.note) + "</div>"
-      : "") +
-    (operationalTrustSummary
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(operationalTrustSummary) +
-        "</div>"
-      : "") +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-logistics" data-profile-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Access</span><h2>Practical details before you contact</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content">' +
-    logisticsSectionLeadHtml +
-    '<div class="section-mini-stat-grid">' +
-    logisticsSignalStripHtml +
-    "</div>" +
-    (practicalDetailsHtml ? '<div class="decision-list">' + practicalDetailsHtml + "</div>" : "") +
-    (insTags
-      ? '<div class="profile-subsection"><div class="mini-section-label">Insurance accepted</div><div class="ins-list">' +
-        insTags +
-        "</div></div>"
-      : "") +
-    '<div class="profile-subsection"><div class="mini-section-label">Fees</div>' +
-    feesHtml +
-    "</div>" +
-    "</div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out well</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="next-step-card">' +
-    '<div class="next-step-item is-emphasis"><div class="next-step-label">Best first step</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="next-step-helper">' +
-    escapeHtml(contactStrategy.routeReason) +
-    "</div></div>" +
-    '<div class="next-step-item is-emphasis"><div class="next-step-label">Why this route is worth trying first</div><div class="next-step-value soft">' +
-    escapeHtml(contactStrategy.proofLine) +
-    '</div><div class="next-step-helper">' +
-    escapeHtml(contactStrategy.confidenceLabel + ": " + contactStrategy.confidenceNote) +
-    "</div></div>" +
-    '<div class="next-step-item"><div class="next-step-label">Expected reply window</div><div class="next-step-value ' +
-    escapeHtml(contactStrategy.timingTone) +
-    '">' +
-    escapeHtml(contactStrategy.replyWindowCopy) +
-    "</div></div>" +
-    '<div class="next-step-item" data-profile-outreach-script tabindex="-1"><div class="next-step-label">' +
-    escapeHtml(contactScriptLabel) +
-    '</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
+    '<div class="ts-reach-script-body" id="profileContactScriptPreview">' +
     escapeHtml(outreachScript) +
-    '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper"><strong>Use this as your low-friction starting point.</strong> Adjust the greeting or one detail if you want it to sound more like you, but you do not need to overwork the first reach-out.</div></div></div></div>' +
-    (t.estimated_wait_time
-      ? '<div class="next-step-item"><div class="next-step-label">Recent availability note</div><div class="next-step-value">' +
-        escapeHtml(t.estimated_wait_time) +
-        "</div></div>"
-      : "") +
-    (contactGuidance
-      ? '<div class="next-step-item"><div class="next-step-label">What to include</div><div class="next-step-value">' +
-        escapeHtml(contactGuidance) +
-        "</div></div>"
-      : "") +
-    (contactQuestionHtml
-      ? '<div class="next-step-item" data-profile-contact-questions><div class="next-step-label">' +
-        escapeHtml(contactQuestionsLabel) +
-        '</div><div class="next-step-question-list">' +
-        contactQuestionHtml +
-        "</div></div>"
-      : "") +
-    consultPrepHtml +
-    '<div class="next-step-item"><div class="next-step-label">Follow up if needed</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.followUpCopy) +
-    "</div></div>" +
-    '<div class="next-step-item"><div class="next-step-label">If this stalls</div><div class="next-step-value">' +
-    escapeHtml(contactStrategy.backupPlanCopy) +
-    "</div></div>" +
-    (outreachQueueState
-      ? '<div class="next-step-item"><div class="next-step-label">Queue status</div><div class="next-step-value">' +
-        escapeHtml(outreachQueueState.title) +
-        '</div><div class="next-step-helper">' +
-        escapeHtml(outreachQueueState.copy) +
-        '</div><a href="' +
-        escapeHtml(outreachQueueState.ctaHref) +
-        '" class="profile-queue-inline-link">' +
-        escapeHtml(outreachQueueState.ctaLabel) +
-        "</a>" +
-        renderQueueActionButtons(outreachQueueState) +
-        "</div>"
-      : "") +
-    followThroughHtml +
-    '<div class="next-step-item"><div class="next-step-label">What usually comes next</div><div class="next-step-value">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div></div></section>" +
-    '<section class="profile-section profile-section-collapsible" id="section-bio" data-profile-section><button type="button" class="profile-section-header" aria-expanded="false"><span><span class="section-kicker">Bio</span><h2>About this therapist</h2></span><span class="section-toggle">Show</span></button><div class="profile-section-content is-collapsed"><div class="bio-text">' +
-    escapeHtml(
-      t.bio ||
-        "A longer bio is not available on this profile yet. Use the fit, trust, and contact sections above to decide whether this therapist is worth a first outreach.",
-    ) +
     "</div>" +
-    (t.care_approach
-      ? '<div class="bio-text" style="margin-top:0.8rem;color:var(--teal-dark)">' +
-        escapeHtml(t.care_approach) +
-        "</div>"
-      : "") +
-    "</div></section>" +
+    '<div class="ts-reach-script-actions">' +
+    '<button type="button" class="ts-btn ts-btn-secondary" data-profile-copy-script>Copy message</button>' +
+    '<span class="ts-reach-script-hint">Feel free to edit before sending.</span>' +
     "</div>" +
-    '<div class="profile-sidebar-stack">' +
-    '<div class="sidebar-panel decision-workspace-panel"><h3>Decision workspace</h3><div class="workspace-summary-card tone-' +
-    escapeHtml(decisionSystem.tone) +
-    '"><div class="workspace-summary-label">Current stance</div><div class="workspace-summary-title">' +
-    escapeHtml(decisionSystem.stanceLabel) +
-    '</div><div class="workspace-summary-copy">' +
-    escapeHtml(decisionSystem.managementCopy) +
-    '</div><div class="workspace-summary-score">' +
-    escapeHtml(String(decisionSystem.overallScore)) +
-    '/100 decision clarity</div></div><div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
-    (uncertaintyState
-      ? '<div class="profile-uncertainty-state">' +
-        renderUncertaintyCard(uncertaintyState) +
+    "</div>" +
+    contactQuestionsBlockHtml +
+    renderBackupCard(backupState) +
+    "</section>" +
+    // § Why you can trust this profile (collapsed by default)
+    '<section class="ts-section ts-section-collapsible" id="section-trust" data-profile-section>' +
+    '<button type="button" class="ts-section-header profile-section-header" aria-expanded="false">' +
+    "<h2>Why you can trust this profile</h2>" +
+    '<span class="ts-section-toggle section-toggle">Show</span>' +
+    "</button>" +
+    '<div class="profile-section-content is-collapsed">' +
+    '<ul class="ts-trust-list">' +
+    trustLinesHtml +
+    "</ul>" +
+    "</div>" +
+    "</section>" +
+    "</main>" +
+    // ---------- SIDEBAR ----------
+    '<aside class="ts-side">' +
+    '<div class="ts-actions-card">' +
+    '<div class="ts-actions-primary">' +
+    primaryCtaHtml +
+    "</div>" +
+    '<button type="button" class="ts-btn ts-btn-save shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to list</button>' +
+    '<div class="profile-shortlist-status" id="profileShortlistStatus"></div>' +
+    sidebarFactsHtml +
+    (secondaryContactButtonsHtml
+      ? '<div class="ts-actions-secondary">' +
+        '<div class="ts-actions-secondary-label">More ways to contact</div>' +
+        secondaryContactButtonsHtml +
         "</div>"
       : "") +
+    noContactNote +
+    '<a href="portal.html?slug=' +
+    encodeURIComponent(t.slug) +
+    '" class="ts-actions-claim">Is this you? Claim this profile.</a>' +
+    "</div>" +
+    // Keep the stateful cards the rest of the app relies on — visually minimal.
     '<div class="profile-decision-memory" id="profileDecisionMemory">' +
     renderDecisionMemoryCard(decisionMemoryState) +
-    '</div><div class="profile-queue-status" id="profileQueueStatus">' +
+    "</div>" +
+    '<div class="profile-queue-status" id="profileQueueStatus">' +
     renderQueueStatusCard(outreachQueueState) +
-    '</div><div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none"><label for="profileShortlistPriority">Priority label</label><select id="profileShortlistPriority"><option value="">No label yet</option>' +
+    "</div>" +
+    '<div class="profile-shortlist-priority" id="profileShortlistPriorityWrap" style="display:none">' +
+    '<label for="profileShortlistPriority">Priority</label>' +
+    '<select id="profileShortlistPriority"><option value="">No label</option>' +
     SHORTLIST_PRIORITY_OPTIONS.map(function (option) {
       return '<option value="' + escapeHtml(option) + '">' + escapeHtml(option) + "</option>";
     }).join("") +
-    '</select><label for="profileShortlistNote">Why it stands out</label><textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="Capture the one thing future-you should remember."></textarea><div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">Keep this to one sharp reminder for future-you.</div></div><div class="workspace-link-grid"><a href="' +
-    escapeHtml(shortlistCompareUrl) +
-    '" class="workspace-link">Review list</a><a href="' +
-    escapeHtml(outreachQueueUrl) +
-    '" class="workspace-link">Open outreach queue</a></div></div>' +
-    '<div class="sidebar-panel decision-rail-panel"><h3>Decision rail</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(
-      "Use this rail to decide quickly whether to contact now, save for later, or keep comparing.",
-    ) +
+    "</select>" +
+    '<label for="profileShortlistNote">Why it stands out</label>' +
+    '<textarea id="profileShortlistNote" maxlength="120" rows="3" placeholder="A short reminder for later."></textarea>' +
+    '<div class="profile-shortlist-note-meta" id="profileShortlistNoteMeta">One sharp reminder.</div>' +
     "</div>" +
-    decisionRailRows +
+    "</aside>" +
+    // ---------- MOBILE DOCK ----------
+    '<div class="ts-mobile-dock">' +
+    primaryCtaHtml +
+    '<button type="button" class="ts-btn ts-btn-ghost shortlist-profile-btn" data-shortlist-trigger="profile">Save</button>' +
     "</div>" +
-    '<div class="sidebar-panel trust-panel"><h3>Trust and fit</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(standoutCopy) +
     "</div>" +
-    '<div class="info-row"><span class="info-label">Match confidence</span><span class="info-val green">' +
-    escapeHtml(readinessTitle) +
-    "</span></div>" +
-    '<div class="match-confidence-note">' +
-    escapeHtml(readinessCopy) +
-    '</div><div class="match-confidence-note">' +
-    escapeHtml(
-      "This signal reflects how complete and decision-ready the profile appears. It does not guarantee personal chemistry, exact live availability, or clinical quality.",
-    ) +
-    "</div>" +
-    (responsivenessSignal
-      ? '<div class="info-row"><span class="info-label">Contact responsiveness</span><span class="info-val ' +
-        (responsivenessSignal.tone === "positive" ? "green" : "teal") +
-        '">' +
-        escapeHtml(responsivenessSignal.label) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(responsivenessSignal.note) +
-        '</div><div class="responsiveness-note">' +
-        escapeHtml(
-          "This speaks only to contact follow-through patterns, not care quality or clinical outcomes.",
-        ) +
-        "</div>"
-      : "") +
-    '<div class="info-row"><span class="info-label">Verification</span><span class="info-val green">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "Editorially verified"
-        : "Recently reviewed profile",
-    ) +
-    '</span></div><div class="responsiveness-note">' +
-    escapeHtml(
-      t.verification_status === "editorially_verified"
-        ? "Editorial verification means key profile details were reviewed. It is not a rating of therapeutic quality or fit."
-        : "This profile still gives a useful first-pass picture, but some details may need a direct check before you decide.",
-    ) +
-    "</div>" +
-    (sourceReviewedDate
-      ? '<div class="info-row"><span class="info-label">Source review</span><span class="info-val">' +
-        escapeHtml(sourceReviewedDate) +
-        "</span></div>"
-      : "") +
-    (recentConfirmation && therapistReportedDate
-      ? '<div class="info-row"><span class="info-label">Therapist re-confirmed</span><span class="info-val green">' +
-        escapeHtml(therapistReportedDate) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(
-          "This means key operational details were recently re-confirmed directly by the specialist. It does not guarantee exact live availability or personal fit.",
-        ) +
-        "</div>"
-      : "") +
-    (recentApplied
-      ? '<div class="info-row"><span class="info-label">Recently updated</span><span class="info-val green">' +
-        escapeHtml(recentApplied.label) +
-        '</span></div><div class="responsiveness-note">' +
-        escapeHtml(recentApplied.note) +
-        "</div>"
-      : "") +
-    '<div class="info-row"><span class="info-label">Freshness</span><span class="info-val ' +
-    (freshness.status === "fresh" ? "green" : "teal") +
-    '">' +
-    escapeHtml(freshness.label) +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">License</span><span class="info-val">' +
-    escapeHtml([t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed") +
-    "</span></div>" +
-    (t.preferred_contact_method
-      ? '<div class="info-row"><span class="info-label">Preferred contact</span><span class="info-val">' +
-        escapeHtml(
-          t.preferred_contact_method === "booking" ? "Booking link" : t.preferred_contact_method,
-        ) +
-        "</span></div>"
-      : "") +
-    (t.preferred_contact_label
-      ? '<div class="info-row"><span class="info-label">Primary CTA</span><span class="info-val">' +
-        escapeHtml(t.preferred_contact_label) +
-        "</span></div>"
-      : "") +
-    (t.bipolar_years_experience
-      ? '<div class="info-row"><span class="info-label">Bipolar-specific experience</span><span class="info-val">' +
-        escapeHtml(t.bipolar_years_experience) +
-        " years</span></div>"
-      : "") +
-    (t.years_experience
-      ? '<div class="info-row"><span class="info-label">Total experience</span><span class="info-val">' +
-        escapeHtml(t.years_experience) +
-        " years</span></div>"
-      : "") +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Access details</h3>' +
-    '<div class="match-confidence-note" style="margin-bottom:0.8rem">' +
-    escapeHtml(reachabilityCopy) +
-    "</div>" +
-    '<div class="info-row"><span class="info-label">Status</span><span class="info-val ' +
-    (t.accepting_new_patients ? "green" : "") +
-    '">' +
-    escapeHtml(t.accepting_new_patients ? "Accepting patients" : "Waitlist") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">Telehealth</span><span class="info-val ' +
-    (t.accepts_telehealth ? "green" : "") +
-    '">' +
-    escapeHtml(t.accepts_telehealth ? "Available" : "Not offered") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">In-person</span><span class="info-val ' +
-    (t.accepts_in_person ? "teal" : "") +
-    '">' +
-    escapeHtml(t.accepts_in_person ? "Available" : "Not offered") +
-    "</span></div>" +
-    '<div class="info-row"><span class="info-label">Medication management</span><span class="info-val">' +
-    escapeHtml(t.medication_management ? "Offered" : "No") +
-    "</span></div>" +
-    (t.estimated_wait_time
-      ? '<div class="info-row"><span class="info-label">Availability note</span><span class="info-val">' +
-        escapeHtml(t.estimated_wait_time) +
-        "</span></div>"
-      : "") +
-    (langPills
-      ? '<div class="info-row"><span class="info-label">Languages</span><div class="lang-pills">' +
-        langPills +
-        "</div></div>"
-      : "") +
-    (telehealthStates
-      ? '<div class="info-row"><span class="info-label">Telehealth states</span><div class="lang-pills">' +
-        telehealthStates +
-        "</div></div>"
-      : "") +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Session fees</h3>' +
-    feesHtml +
-    "</div>" +
-    '<div class="sidebar-panel"><h3>Contact</h3>' +
-    (contactGuidance
-      ? '<p class="action-panel-note" style="margin-bottom:0.8rem">' +
-        escapeHtml(contactGuidance) +
-        "</p>"
-      : "") +
-    (t.phone
-      ? '<div class="contact-item"><span class="contact-icon">📞</span><a href="tel:' +
-        escapeHtml(t.phone) +
-        '">' +
-        escapeHtml(t.phone) +
-        "</a></div>"
-      : "") +
-    (t.email && t.email !== "contact@example.com"
-      ? '<div class="contact-item"><span class="contact-icon">✉️</span><a href="mailto:' +
-        escapeHtml(t.email) +
-        '">' +
-        escapeHtml(t.email) +
-        "</a></div>"
-      : "") +
-    (t.website
-      ? '<div class="contact-item"><span class="contact-icon">🌐</span><a href="' +
-        escapeHtml(t.website) +
-        '" target="_blank" rel="noopener">' +
-        escapeHtml(t.website.replace(/^https?:\/\//, "")) +
-        "</a></div>"
-      : "") +
-    (!t.phone && (!t.email || t.email === "contact@example.com") && !t.website
-      ? '<p style="font-size:.85rem;color:var(--muted)">A direct contact path is not listed here yet. If this profile still looks promising, save it and compare it with stronger-contact options.</p>'
-      : "") +
-    "</div></div>" +
-    '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';
+    // ---------- FOOTNOTE ----------
+    '<p class="ts-footnote">Profile details are checked for accuracy, not clinical quality or personal fit. Always confirm availability directly.</p>';
 
   document.getElementById("profileWrap").innerHTML = html;
   updateShortlistAction(t.slug);
