@@ -4340,12 +4340,7 @@ function renderLeadResultCard(entry, backupName) {
   if (therapist.sliding_scale) {
     signals.push('<span class="result-signal">Sliding scale</span>');
   }
-  var contactNote =
-    readiness && readiness.guidance
-      ? readiness.guidance
-      : readiness && readiness.firstStep
-        ? readiness.firstStep
-        : "";
+  var contactNote = "";
 
   return (
     '<article class="result-lead">' +
