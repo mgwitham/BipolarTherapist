@@ -11,6 +11,24 @@ import {
   computeTherapistVerificationMeta,
 } from "./therapist-trust-domain.mjs";
 
+// Sanity document IDs are capped at 128 characters. Event IDs are composed as
+// `therapist-publish-event-{entityId}-{uuid}` which easily overflows for
+// entities with long slug-based IDs (e.g. a long candidate slug). Truncating
+// the entity fragment keeps the total comfortably under the limit while the
+// appended UUID guarantees uniqueness, and the full entity reference is still
+// recorded in the event's `candidateId` / `candidateDocumentId` / etc fields.
+const PUBLISH_EVENT_ID_PREFIX = "therapist-publish-event-";
+const MAX_EVENT_ID_ENTITY_FRAGMENT = 40;
+
+export function buildPublishEventId(entityId) {
+  const raw = String(entityId || "").trim();
+  const fragment = raw.slice(0, MAX_EVENT_ID_ENTITY_FRAGMENT);
+  const uuid = crypto.randomUUID();
+  return fragment
+    ? `${PUBLISH_EVENT_ID_PREFIX}${fragment}-${uuid}`
+    : `${PUBLISH_EVENT_ID_PREFIX}${uuid}`;
+}
+
 function mergeUniqueUrls(primary, supporting, extra) {
   const urls = []
     .concat(primary ? [primary] : [])
@@ -322,7 +340,7 @@ export function normalizePortableCandidate(doc, helpers) {
 export function buildCandidateReviewEvent(candidate, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${candidate.candidateId || candidate._id}-${crypto.randomUUID()}`,
+    _id: buildPublishEventId(candidate.candidateId || candidate._id),
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: candidate.providerId || buildProviderId(candidate),
@@ -344,7 +362,7 @@ export function buildCandidateReviewEvent(candidate, updates) {
 export function buildApplicationReviewEvent(application, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${application._id}-${crypto.randomUUID()}`,
+    _id: buildPublishEventId(application._id),
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: application.providerId || buildProviderId(application),
@@ -370,7 +388,7 @@ export function buildApplicationReviewEvent(application, updates) {
 export function buildTherapistOpsEvent(therapist, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${therapist._id}-${crypto.randomUUID()}`,
+    _id: buildPublishEventId(therapist._id),
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: therapist.providerId || buildProviderId(therapist),
