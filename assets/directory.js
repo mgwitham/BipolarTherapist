@@ -22,7 +22,7 @@ import {
   matchesDirectoryFilters,
 } from "./directory-logic.js";
 
-var DIRECTORY_LIST_LIMIT = 6;
+var DIRECTORY_LIST_LIMIT = 50;
 import {
   renderDirectoryDecisionPreviewMarkup,
   renderCardMarkup,

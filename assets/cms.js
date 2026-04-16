@@ -547,6 +547,14 @@ export async function fetchHomePageContent() {
 export async function fetchDirectoryPageContent() {
   const seededTherapists = getTherapists().map(normalizeDirectoryTherapist);
 
+  console.log(
+    "CMS_DEBUG: fetchDirectoryPageContent cmsEnabled=" +
+      cmsEnabled +
+      " projectId=" +
+      projectId +
+      " dataset=" +
+      dataset,
+  );
   if (!cmsEnabled) {
     setCmsState("seed", null);
     return {
@@ -613,6 +621,7 @@ export async function fetchDirectoryPageContent() {
     };
   } catch (error) {
     console.error("Failed to load directory page content from Sanity.", error);
+    console.error("CMS_DEBUG: cmsEnabled=" + cmsEnabled + " projectId=" + projectId);
     setCmsState("error", error);
     return {
       therapists: seededTherapists,
