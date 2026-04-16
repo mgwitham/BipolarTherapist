@@ -20,6 +20,24 @@ function getSharedCompareModal(options) {
   return sharedCompareModal;
 }
 
+function clearStaleWorkflowFocus(queueRoot) {
+  if (!queueRoot) {
+    return;
+  }
+  const grid = queueRoot.closest(".grid");
+  if (!grid || !grid.classList.contains("workflow-focus-active")) {
+    return;
+  }
+  // If there is no focus target anywhere in the grid, the focus mode is
+  // stale from a prior navigation and should not keep dimming cards.
+  if (!grid.querySelector(".workflow-focus-target")) {
+    grid.classList.remove("workflow-focus-active");
+    grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+      node.classList.remove("workflow-focus-owner");
+    });
+  }
+}
+
 const candidateActionFlash = createActionFlashStore();
 
 function setCandidateActionFlash(id, message) {
@@ -501,6 +519,12 @@ export function renderCandidateQueuePanel(options) {
         return renderCandidateCardHtml(item, index + 1, options, therapists, applications);
       })
       .join("");
+
+  // Self-heal any stuck workflow-focus-active state. Focus mode is applied
+  // when the user jumps into this section from the landing priority row; once
+  // the original focus target is gone (after a decision + re-render), the
+  // grid should not keep dimming fresh cards.
+  clearStaleWorkflowFocus(root);
 
   bindCandidateDecisionButtons(root, {
     decideTherapistCandidate: options.decideTherapistCandidate,
