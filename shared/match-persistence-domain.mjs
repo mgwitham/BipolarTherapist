@@ -257,6 +257,22 @@ function hashString(value) {
   return (hash >>> 0).toString(36);
 }
 
+// Sanity rejects document IDs over 128 chars. Match request IDs are composed
+// from request_id, which in practice concatenates the state plus every top
+// therapist slug and can exceed the limit. Cap the base fragment and append a
+// stable hash of the full seed so the resulting ID stays short, deterministic,
+// and idempotent-friendly for createOrReplace.
+const MAX_MATCH_ID_BASE_LENGTH = 40;
+
+function boundIdBase(idBase, seed) {
+  if (!idBase || idBase.length <= MAX_MATCH_ID_BASE_LENGTH) {
+    return idBase;
+  }
+  const truncated = idBase.slice(0, MAX_MATCH_ID_BASE_LENGTH).replace(/-+$/, "");
+  const suffix = hashString(seed || idBase);
+  return truncated ? `${truncated}-${suffix}` : suffix;
+}
+
 export function normalizePortableMatchRequest(input) {
   const requestId =
     normalizeText(input.requestId || input.request_id || input.journey_id) ||
@@ -349,7 +365,8 @@ export function normalizePortableMatchOutcome(input) {
 
 export function buildMatchRequestDocument(input) {
   const record = normalizePortableMatchRequest(input);
-  const idBase = normalizeIdSegment(record.request_id) || hashString(record.request_id);
+  const rawIdBase = normalizeIdSegment(record.request_id) || hashString(record.request_id);
+  const idBase = boundIdBase(rawIdBase, record.request_id);
   return {
     _id: `match-request-${idBase || hashString(JSON.stringify(record))}`,
     _type: "matchRequest",
@@ -377,9 +394,12 @@ export function buildMatchRequestDocument(input) {
 
 export function buildMatchOutcomeDocument(input) {
   const record = normalizePortableMatchOutcome(input);
-  const idBase =
+  const outcomeSeed =
+    record.outcome_id || [record.request_id, record.therapist_slug, record.recorded_at].join("|");
+  const rawIdBase =
     normalizeIdSegment(record.outcome_id) ||
     hashString([record.request_id, record.therapist_slug, record.recorded_at].join("|"));
+  const idBase = boundIdBase(rawIdBase, outcomeSeed);
   return {
     _id: `match-outcome-${idBase}`,
     _type: "matchOutcome",

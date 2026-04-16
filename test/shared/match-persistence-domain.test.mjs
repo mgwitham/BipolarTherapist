@@ -100,6 +100,53 @@ test("buildMatchRequestDocument stores normalized enum values expected by the sc
   assert.deepEqual(document.languagePreferences, ["english", "tagalog"]);
 });
 
+test("buildMatchRequestDocument caps _id under Sanity's 128-char limit for long request_ids", function () {
+  // Mirrors the exact prod request_id that triggered a 500 from /api/review/match/requests:
+  // the care_state plus every top shortlist slug concatenated produces an id far over 128 chars.
+  const longRequestId =
+    "1776380164868-ca-dr-keith-valone-pasadena-ca-dr-daniel-kaushansky-los-angeles-ca-aubri-gomez-los-angeles-ca-heidi-jackson-santa-monica-ca-kandice-timmons-beverly-hills-ca-kara-park-pasadena-ca";
+
+  const document = buildMatchRequestDocument({
+    request_id: longRequestId,
+    care_state: "CA",
+    care_intent: "Therapy",
+  });
+
+  assert.ok(document._id.length <= 128, `_id exceeded 128 chars: ${document._id}`);
+  assert.ok(document._id.startsWith("match-request-"));
+  // Deterministic: the same request_id must produce the same _id so createOrReplace stays idempotent.
+  const again = buildMatchRequestDocument({
+    request_id: longRequestId,
+    care_state: "CA",
+    care_intent: "Therapy",
+  });
+  assert.equal(document._id, again._id);
+});
+
+test("buildMatchRequestDocument preserves short request_ids as-is", function () {
+  const document = buildMatchRequestDocument({
+    request_id: "journey-124",
+    care_intent: "Therapy",
+  });
+  assert.equal(document._id, "match-request-journey-124");
+});
+
+test("buildMatchOutcomeDocument caps _id under Sanity's 128-char limit for long outcome_ids", function () {
+  const longOutcomeId =
+    "outcome-1776380164868-ca-dr-keith-valone-pasadena-ca-dr-daniel-kaushansky-los-angeles-ca-aubri-gomez-los-angeles-ca-heidi-jackson-santa-monica-ca-kandice-timmons-beverly-hills-ca";
+
+  const document = buildMatchOutcomeDocument({
+    outcome_id: longOutcomeId,
+    request_id: "journey-125",
+    therapist_slug: "aubri-gomez-los-angeles-ca",
+    recorded_at: "2026-04-16T22:56:04.000Z",
+    outcome: "booked_consult",
+  });
+
+  assert.ok(document._id.length <= 128, `_id exceeded 128 chars: ${document._id}`);
+  assert.ok(document._id.startsWith("match-outcome-"));
+});
+
 test("buildMatchOutcomeDocument preserves high-signal outcome context fields", function () {
   const document = buildMatchOutcomeDocument({
     request_id: "journey-125",
