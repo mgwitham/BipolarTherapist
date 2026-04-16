@@ -93,7 +93,7 @@ export function placeBuilderInResults(resultsRoot) {
   resultsRoot.appendChild(refineWrapper);
   refineWrapper.appendChild(refs.builder);
 
-  // Move result containers above the refine section
+  // Order: results → refine tool → queue (more options)
   if (refs.firstContact) {
     resultsRoot.insertBefore(refs.firstContact, refineWrapper);
   }
@@ -101,7 +101,7 @@ export function placeBuilderInResults(resultsRoot) {
     resultsRoot.insertBefore(refs.fallbackContact, refineWrapper);
   }
   if (refs.queue) {
-    resultsRoot.insertBefore(refs.queue, refineWrapper);
+    resultsRoot.appendChild(refs.queue);
   }
 }
 

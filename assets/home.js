@@ -1121,6 +1121,17 @@ function handleHomeSearch(event) {
     },
   });
   syncHomeSearchHiddenFields(validation.interest, elements);
+  try {
+    window.localStorage.setItem(
+      "bth_last_search",
+      JSON.stringify({
+        interest: validation.interest || "",
+        location_query: validation.locationQuery || "",
+      }),
+    );
+  } catch (_e) {
+    /* ignore */
+  }
   window.location.assign(buildHomeSearchTarget(elements.form));
 }
 
@@ -1133,6 +1144,22 @@ function initHomeSearchForm() {
 
   form.addEventListener("submit", handleHomeSearch);
   form.dataset.bound = "true";
+
+  // Restore last search values
+  try {
+    var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
+    if (lastSearch) {
+      if (lastSearch.location_query && elements.locationInput) {
+        elements.locationInput.value = lastSearch.location_query;
+      }
+      if (lastSearch.interest && elements.interestInput) {
+        elements.interestInput.value = lastSearch.interest;
+        syncHomeSearchHiddenFields(lastSearch.interest, elements);
+      }
+    }
+  } catch (_e) {
+    /* ignore */
+  }
 }
 
 (async function () {
