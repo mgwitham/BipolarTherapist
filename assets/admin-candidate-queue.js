@@ -423,10 +423,16 @@ export function renderCandidateQueuePanel(options) {
     if (filters.q && !haystack.includes(filters.q.toLowerCase())) {
       return false;
     }
-    if (filters.review_status && item.review_status !== filters.review_status) {
+    const INACTIVE_REVIEW = ["archived", "published"];
+    const INACTIVE_DEDUPE = ["rejected_duplicate", "merged"];
+    if (filters.review_status) {
+      if (item.review_status !== filters.review_status) return false;
+    } else if (INACTIVE_REVIEW.includes(item.review_status)) {
       return false;
     }
-    if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
+    if (filters.dedupe_status) {
+      if (item.dedupe_status !== filters.dedupe_status) return false;
+    } else if (INACTIVE_DEDUPE.includes(item.dedupe_status)) {
       return false;
     }
     if (filters.review_lane && item.review_lane !== filters.review_lane) {
