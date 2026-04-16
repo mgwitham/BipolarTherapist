@@ -1,5 +1,6 @@
 import {
   bindCandidateDecisionButtons,
+  findCandidateMergeTarget,
   renderCandidateMergePreview,
   renderCandidateMergeWorkbench,
   renderCandidatePublishPacket,
@@ -7,6 +8,35 @@ import {
 } from "./admin-candidate-review.js";
 
 import { createActionFlashStore } from "./admin-action-flash.js";
+import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
+
+let sharedCompareModal = null;
+
+function getSharedCompareModal(options) {
+  if (sharedCompareModal) {
+    return sharedCompareModal;
+  }
+  sharedCompareModal = createCandidateCompareModal(options);
+  return sharedCompareModal;
+}
+
+function clearStaleWorkflowFocus(queueRoot) {
+  if (!queueRoot) {
+    return;
+  }
+  const grid = queueRoot.closest(".grid");
+  if (!grid || !grid.classList.contains("workflow-focus-active")) {
+    return;
+  }
+  // If there is no focus target anywhere in the grid, the focus mode is
+  // stale from a prior navigation and should not keep dimming cards.
+  if (!grid.querySelector(".workflow-focus-target")) {
+    grid.classList.remove("workflow-focus-active");
+    grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+      node.classList.remove("workflow-focus-owner");
+    });
+  }
+}
 
 const candidateActionFlash = createActionFlashStore();
 
@@ -490,6 +520,12 @@ export function renderCandidateQueuePanel(options) {
       })
       .join("");
 
+  // Self-heal any stuck workflow-focus-active state. Focus mode is applied
+  // when the user jumps into this section from the landing priority row; once
+  // the original focus target is gone (after a decision + re-render), the
+  // grid should not keep dimming fresh cards.
+  clearStaleWorkflowFocus(root);
+
   bindCandidateDecisionButtons(root, {
     decideTherapistCandidate: options.decideTherapistCandidate,
     onDecisionComplete: function (id, decision) {
@@ -498,17 +534,30 @@ export function renderCandidateQueuePanel(options) {
     loadData: options.loadData,
   });
 
+  const compareModal = getSharedCompareModal({
+    decideTherapistCandidate: options.decideTherapistCandidate,
+    loadData: options.loadData,
+    escapeHtml: options.escapeHtml,
+    getQueueRoot: function () {
+      return root;
+    },
+    onDecisionComplete: function (id, decision) {
+      setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
+    },
+  });
+
   root.querySelectorAll("[data-candidate-compare]").forEach(function (button) {
     button.addEventListener("click", function () {
       const id = button.getAttribute("data-candidate-compare");
-      const workbench = root.querySelector('[data-candidate-merge-workbench="' + id + '"]');
-      if (!workbench) return;
-      const card = workbench.closest("article[data-candidate-card-id]");
-      const detailsElement = card ? card.querySelector("details.queue-more-details") : null;
-      if (detailsElement) {
-        detailsElement.open = true;
-      }
-      workbench.scrollIntoView({ behavior: "smooth", block: "start" });
+      const item = candidates.find(function (entry) {
+        return String(entry.id) === String(id);
+      });
+      if (!item) return;
+      const matchTarget = findCandidateMergeTarget(item, {
+        therapists: therapists,
+        applications: applications,
+      });
+      compareModal.open(item, matchTarget, item.dedupe_reasons || [], button);
     });
   });
 }
