@@ -1509,13 +1509,13 @@
         opacity: 1;
         filter: none;
       }
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .queue-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .application-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .mini-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]) {
         opacity: 0.58;
