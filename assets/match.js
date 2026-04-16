@@ -68,7 +68,7 @@ import {
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
-import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
+import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -4299,16 +4299,84 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-function renderLeadResultCard(entry, backupName) {
+function getCareFormatLabel(therapist) {
+  var tele = Boolean(therapist && therapist.accepts_telehealth);
+  var inPerson = Boolean(therapist && therapist.accepts_in_person);
+  if (tele && inPerson) return "In-person & telehealth";
+  if (tele) return "Telehealth";
+  if (inPerson) return "In-person";
+  return "";
+}
+
+function getShortCareFormatLabel(therapist) {
+  var tele = Boolean(therapist && therapist.accepts_telehealth);
+  var inPerson = Boolean(therapist && therapist.accepts_in_person);
+  if (tele && inPerson) return "Both";
+  if (tele) return "Telehealth";
+  if (inPerson) return "In-person";
+  return "";
+}
+
+function getHeroFitChips(therapist, entry) {
+  var chips = [];
+  var check =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  if (therapist.accepting_new_patients) {
+    chips.push({ icon: check, label: "Accepting new patients" });
+  }
+  var insurance = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
+  if (insurance.length) {
+    var top = insurance.slice(0, 2).join(", ");
+    chips.push({ icon: check, label: "In-network: " + top });
+  }
+  var format = getCareFormatLabel(therapist);
+  if (format && chips.length < 3) {
+    chips.push({ icon: check, label: format });
+  }
+  // Fallback: use the matching explanation if we still have < 2 chips
+  if (chips.length < 2) {
+    var explanation = getMatchCardExplanation(entry);
+    if (explanation) {
+      chips.push({ icon: check, label: explanation.split(".")[0].slice(0, 56) });
+    }
+  }
+  return chips.slice(0, 3);
+}
+
+function renderHeroPhoto(therapist) {
+  var initials = getInitials(therapist.name);
+  if (therapist.photo_url) {
+    return '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" loading="lazy" />';
+  }
+  return '<span class="mx-hero-photo-initials">' + escapeHtml(initials) + "</span>";
+}
+
+function renderCardPhoto(therapist) {
+  var initials = getInitials(therapist.name);
+  if (therapist.photo_url) {
+    return '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" loading="lazy" />';
+  }
+  return escapeHtml(initials);
+}
+
+function renderSaveIcon() {
+  return (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>' +
+    "</svg>"
+  );
+}
+
+function renderLeadResultCard(entry, _backupName, options) {
+  var settings = options || {};
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-  var explanation = getMatchCardExplanation(entry);
-  var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
   var locLine =
     [therapist.city, therapist.state].filter(Boolean).join(", ") +
     (therapist.zip ? " " + therapist.zip : "");
+  var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
   var ctaLabel =
     routeType === "booking"
       ? "Book a consultation"
@@ -4318,43 +4386,71 @@ function renderLeadResultCard(entry, backupName) {
           ? "Email this provider"
           : routeType === "website"
             ? "Visit provider site"
-            : "View full profile";
-  var valuePills = renderValuePillRow(therapist, "value-pill");
-  var acceptingSignal = therapist.accepting_new_patients
-    ? '<span class="result-signal is-green">Accepting patients</span>'
+            : "Reach out";
+  var chips = getHeroFitChips(therapist, entry);
+  var chipsHtml = chips
+    .map(function (chip) {
+      return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
+    })
+    .join("");
+
+  var availabilityLabel = getCompareTimingLabel(therapist);
+  var costLabel = getCompareCostLabel(therapist);
+  var formatLabel = getCareFormatLabel(therapist);
+
+  var badgeHtml = settings.showBestBadge
+    ? '<span class="mx-hero-badge">' +
+      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>' +
+      "Best match for you" +
+      "</span>"
     : "";
-  var licenseVerifiedSignal = isLicenseVerified(therapist)
-    ? '<span class="result-signal is-verified">License verified</span>'
-    : "";
-  var contactNote = "";
 
   return (
-    '<article class="result-lead">' +
-    '<div class="result-lead-header">' +
-    '<div class="result-avatar result-avatar--lead">' +
-    escapeHtml(initials) +
+    '<article class="mx-hero">' +
+    '<div class="mx-hero-photo">' +
+    badgeHtml +
+    renderHeroPhoto(therapist) +
     "</div>" +
-    '<div class="result-lead-identity">' +
-    '<div class="result-badges">' +
-    '<span class="result-badge result-badge--lead">Best match</span>' +
-    (acceptingSignal || "") +
-    (licenseVerifiedSignal || "") +
-    "</div>" +
-    '<h3 class="result-name">' +
+    '<div class="mx-hero-body">' +
+    '<div class="mx-hero-top">' +
+    "<div>" +
+    '<h3 class="mx-hero-name">' +
     escapeHtml(therapist.name || "") +
     "</h3>" +
-    (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
-    (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
+    (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
+    "</div>" +
+    '<button type="button" class="mx-save" aria-label="Save">' +
+    renderSaveIcon() +
+    "</button>" +
+    "</div>" +
+    (chipsHtml ? '<div class="mx-fit-row">' + chipsHtml + "</div>" : "") +
+    '<div class="mx-hero-meta">' +
+    '<div class="mx-meta-item">' +
+    '<span class="mx-meta-label">Availability</span>' +
+    '<span class="mx-meta-value' +
+    (availabilityLabel ? " is-available" : "") +
+    '">' +
+    escapeHtml(availabilityLabel || "Check profile") +
+    "</span>" +
+    "</div>" +
+    '<div class="mx-meta-item">' +
+    '<span class="mx-meta-label">Session fee</span>' +
+    '<span class="mx-meta-value">' +
+    escapeHtml(costLabel || "See profile") +
+    "</span>" +
+    "</div>" +
+    '<div class="mx-meta-item">' +
+    '<span class="mx-meta-label">Format</span>' +
+    '<span class="mx-meta-value">' +
+    escapeHtml(formatLabel || "See profile") +
+    "</span>" +
     "</div>" +
     "</div>" +
-    (valuePills ? '<div class="value-pill-row">' + valuePills + "</div>" : "") +
-    (explanation ? '<p class="result-reason">' + escapeHtml(explanation) + "</p>" : "") +
-    (contactNote ? '<div class="result-contact-note">' + escapeHtml(contactNote) + "</div>" : "") +
-    '<div class="result-actions">' +
+    '<div class="mx-hero-actions">' +
     (preferredRoute
       ? '<a href="' +
         escapeHtml(preferredRoute.href) +
-        '" class="result-cta-primary" data-match-primary-cta="' +
+        '" class="mx-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
@@ -4366,30 +4462,27 @@ function renderLeadResultCard(entry, backupName) {
       : "") +
     '<a href="therapist.html?slug=' +
     encodeURIComponent(therapist.slug || "") +
-    '" class="result-view-profile" data-match-profile-link="' +
+    '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">View profile</a>' +
+    '" data-profile-link-context="primary-card">See full profile</a>' +
     "</div>" +
-    (backupName
-      ? '<div class="result-backup-note">If this stalls, your next best option is <strong>' +
-        escapeHtml(backupName) +
-        "</strong></div>"
-      : "") +
+    "</div>" +
     "</article>"
   );
 }
 
-function renderSupportingResultCard(entry, rank) {
+function renderSupportingResultCard(entry, _rank, options) {
+  var settings = options || {};
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var explanation = getMatchCardExplanation(entry);
-  var initials = getInitials(therapist.name);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine =
-    [therapist.city, therapist.state].filter(Boolean).join(", ") +
-    (therapist.zip ? " " + therapist.zip : "");
-  var valuePills = renderValuePillRow(therapist, "value-pill");
+  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
+  var availabilityLabel = getCompareTimingLabel(therapist);
+  var costLabel = getCompareCostLabel(therapist);
+  var formatLabel = getShortCareFormatLabel(therapist);
   var ctaLabel =
     routeType === "booking"
       ? "Book"
@@ -4398,42 +4491,45 @@ function renderSupportingResultCard(entry, rank) {
         : routeType === "email"
           ? "Email"
           : routeType === "website"
-            ? "Visit site"
-            : "View profile";
+            ? "Visit"
+            : "Reach out";
+  var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
+
+  var metaParts = [];
+  if (availabilityLabel) {
+    metaParts.push('<span class="mx-avail">● ' + escapeHtml(availabilityLabel) + "</span>");
+  }
+  if (costLabel) {
+    metaParts.push("<span>" + escapeHtml(costLabel) + "</span>");
+  }
+  if (formatLabel) {
+    metaParts.push("<span>" + escapeHtml(formatLabel) + "</span>");
+  }
+  var metaHtml = metaParts.join('<span class="mx-dot" aria-hidden="true"></span>');
 
   return (
-    '<article class="result-card">' +
-    '<div class="result-card-rank">#' +
-    rank +
+    '<article class="mx-card">' +
+    '<div class="mx-card-top">' +
+    '<div class="mx-card-photo">' +
+    renderCardPhoto(therapist) +
     "</div>" +
-    '<div class="result-card-avatar">' +
-    '<div class="result-avatar">' +
-    escapeHtml(initials) +
-    "</div>" +
-    "</div>" +
-    '<div class="result-card-body">' +
-    '<div class="result-card-header">' +
-    '<div class="result-card-identity">' +
-    '<div class="result-name">' +
+    '<div class="mx-card-ident">' +
+    '<h3 class="mx-card-name">' +
     escapeHtml(therapist.name || "") +
+    "</h3>" +
+    (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
-    (credLine ? '<div class="result-creds">' + escapeHtml(credLine) + "</div>" : "") +
-    (locLine ? '<div class="result-loc">' + escapeHtml(locLine) + "</div>" : "") +
-    (isLicenseVerified(therapist)
-      ? '<span class="result-signal is-verified result-signal--sm">License verified</span>'
-      : "") +
+    '<button type="button" class="mx-card-save" aria-label="Save">' +
+    renderSaveIcon() +
+    "</button>" +
     "</div>" +
-    "</div>" +
-    (explanation
-      ? '<p class="result-reason result-reason--compact">' + escapeHtml(explanation) + "</p>"
-      : "") +
-    (valuePills ? '<div class="value-pill-row">' + valuePills + "</div>" : "") +
-    "</div>" +
-    '<div class="result-card-action">' +
+    (explanation ? '<p class="mx-card-reason">' + escapeHtml(explanation) + "</p>" : "") +
+    (metaHtml ? '<div class="mx-card-meta">' + metaHtml + "</div>" : "") +
+    '<div class="mx-card-actions">' +
     (preferredRoute
       ? '<a href="' +
         escapeHtml(preferredRoute.href) +
-        '" class="result-cta-sm" data-match-primary-cta="' +
+        '" class="mx-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
@@ -4445,9 +4541,11 @@ function renderSupportingResultCard(entry, rank) {
       : "") +
     '<a href="therapist.html?slug=' +
     encodeURIComponent(therapist.slug || "") +
-    '" class="result-card-profile-link" data-match-profile-link="' +
+    '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="supporting-card">View profile</a>' +
+    '" data-profile-link-context="' +
+    escapeHtml(contextLabel) +
+    '">Profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -4459,35 +4557,106 @@ function renderPrimaryMatchCards(entries, _profile) {
     return;
   }
 
-  var primaryEntries = (entries || []).slice(0, 5);
+  var allEntries = (entries || []).slice(0, 10);
 
-  if (!primaryEntries.length) {
+  if (!allEntries.length) {
     root.className = "match-empty";
     return;
   }
 
-  var leadEntry = primaryEntries[0];
-  var supportingEntries = primaryEntries.slice(1);
-  var backupName =
-    primaryEntries[1] && primaryEntries[1].therapist ? primaryEntries[1].therapist.name || "" : "";
+  var leadEntry = allEntries[0];
+  var runnerUps = allEntries.slice(1, 3); // ranks 2 & 3
+  var bankEntries = allEntries.slice(3); // ranks 4-10
+
+  // Only show the "Best match" badge when rank 1 materially beats rank 2.
+  var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
+  var runnerScore =
+    runnerUps[0] && typeof runnerUps[0].score === "number" ? runnerUps[0].score : null;
+  var showBestBadge =
+    leadScore !== null && runnerScore !== null ? leadScore - runnerScore > 0.05 : true;
+
+  var runnersHtml = runnerUps.length
+    ? '<div class="mx-runners">' +
+      runnerUps
+        .map(function (entry) {
+          return renderSupportingResultCard(entry, 0, { context: "runner" });
+        })
+        .join("") +
+      "</div>"
+    : "";
+
+  var swipeHint =
+    '<div class="mx-swipe-hint" aria-hidden="true">' +
+    "<span>Swipe for your top 3</span>" +
+    '<span class="mx-swipe-hint-dots">' +
+    '<span class="mx-swipe-hint-dot is-active"></span>' +
+    '<span class="mx-swipe-hint-dot"></span>' +
+    '<span class="mx-swipe-hint-dot"></span>' +
+    "</span>" +
+    "</div>";
+
+  var refineBand =
+    '<aside class="mx-refine-band">' +
+    '<div class="mx-refine-copy">' +
+    '<h3 class="mx-refine-title">Want a tighter fit?</h3>' +
+    '<p class="mx-refine-sub">Narrow these matches with a detail you care about.</p>' +
+    "</div>" +
+    '<div class="mx-refine-chips">' +
+    '<button type="button" class="mx-refine-chip" data-mx-refine-open="insurance">' +
+    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Takes my insurance</button>' +
+    '<button type="button" class="mx-refine-chip" data-mx-refine-open="format">' +
+    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Telehealth only</button>' +
+    '<button type="button" class="mx-refine-chip" data-mx-refine-open="language">' +
+    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Language</button>' +
+    "</div>" +
+    "</aside>";
+
+  var bankHtml = bankEntries.length
+    ? '<header class="mx-bank-header">' +
+      '<h2 class="mx-bank-title">More strong matches</h2>' +
+      '<span class="mx-bank-count">' +
+      bankEntries.length +
+      " more</span>" +
+      "</header>" +
+      '<section class="mx-bank-grid">' +
+      bankEntries
+        .map(function (entry) {
+          return renderSupportingResultCard(entry, 0, { context: "bank" });
+        })
+        .join("") +
+      "</section>"
+    : "";
 
   root.className = "match-list";
   root.innerHTML =
     '<div class="results-panel">' +
-    renderLeadResultCard(leadEntry, backupName) +
-    (supportingEntries.length
-      ? '<div class="result-supporting-header">Other strong matches</div>' +
-        '<div class="result-supporting-list">' +
-        supportingEntries
-          .map(function (entry, i) {
-            return renderSupportingResultCard(entry, i + 2);
-          })
-          .join("") +
-        "</div>"
-      : "") +
+    swipeHint +
+    '<section class="mx-top-three">' +
+    renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
+    runnersHtml +
+    "</section>" +
+    refineBand +
+    bankHtml +
     "</div>";
 
   placeBuilderInResults(root);
+
+  // Wire smart-refine chips to open the existing filter panel
+  root.querySelectorAll("[data-mx-refine-open]").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var advanced = document.getElementById("refineAdvancedDetails");
+      if (advanced) {
+        advanced.setAttribute("open", "");
+      }
+      var refineSection = document.getElementById("matchRefineSection");
+      if (refineSection) {
+        refineSection.setAttribute("open", "");
+        refineSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      var target = chip.getAttribute("data-mx-refine-open");
+      trackFunnelEvent("match_smart_refine_chip", { target: target });
+    });
+  });
 
   root.querySelectorAll("[data-match-primary-cta]").forEach(function (link) {
     link.addEventListener("click", function () {
