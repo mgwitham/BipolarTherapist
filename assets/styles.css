@@ -138,7 +138,7 @@ nav {
 .nav-name {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--navy);
+  color: #000;
 }
 
 .nav-name span {

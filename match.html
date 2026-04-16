@@ -5030,12 +5030,517 @@
           padding: 0 1rem 1rem;
         }
       }
+
+      /* ── Match page redesign (hero + runners-up + bank) ────────
+         New class namespace: .mx-*  so it doesn't collide with
+         legacy .result-* rules above, which the new render
+         functions no longer emit.
+      */
+      .mx-top-three {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .mx-top-three + .mx-refine-band {
+        margin-top: 2rem;
+      }
+      .mx-runners {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.9rem;
+      }
+
+      /* Hero card */
+      .mx-hero {
+        background: #fff;
+        border: 1px solid var(--border, #d4e4e9);
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(15, 31, 40, 0.08);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        position: relative;
+      }
+      .mx-hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #1a7a8f 0%, #2a9cb3 100%);
+        z-index: 1;
+      }
+      .mx-hero-photo {
+        min-height: 280px;
+        background: linear-gradient(135deg, #d4e4e9 0%, #b8d1d8 100%);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mx-hero-photo-initials {
+        font-family: "Fraunces", "Inter", serif;
+        font-size: 3.6rem;
+        font-weight: 500;
+        color: #155f70;
+        opacity: 0.7;
+      }
+      .mx-hero-photo img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .mx-hero-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.75rem;
+        background: rgba(255, 255, 255, 0.95);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #155f70;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        z-index: 2;
+      }
+      .mx-hero-badge svg {
+        width: 12px;
+        height: 12px;
+      }
+      .mx-hero-body {
+        padding: 1.5rem 1.75rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+      .mx-hero-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .mx-hero-name {
+        font-family: "Fraunces", "Inter", serif;
+        font-weight: 500;
+        font-size: 1.5rem;
+        line-height: 1.18;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.2rem;
+        color: #0f1f28;
+      }
+      .mx-hero-cred {
+        color: #52707c;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+      .mx-save {
+        background: transparent;
+        border: 1px solid #c9dce1;
+        border-radius: 999px;
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #52707c;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+      .mx-save:hover {
+        border-color: #1a7a8f;
+        color: #155f70;
+      }
+      .mx-save svg {
+        width: 16px;
+        height: 16px;
+      }
+      .mx-fit-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .mx-fit-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.7rem;
+        background: #e8f5f8;
+        color: #155f70;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 500;
+      }
+      .mx-fit-chip svg {
+        width: 11px;
+        height: 11px;
+      }
+      .mx-hero-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.25rem 1rem;
+        padding: 0.8rem 0;
+        border-top: 1px solid #e1ecef;
+        border-bottom: 1px solid #e1ecef;
+      }
+      .mx-meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .mx-meta-label {
+        font-size: 0.68rem;
+        color: #8aa3ad;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+      }
+      .mx-meta-value {
+        font-size: 0.88rem;
+        color: #0f1f28;
+        font-weight: 500;
+      }
+      .mx-meta-value.is-available {
+        color: #3aaa7a;
+      }
+      .mx-hero-actions {
+        display: flex;
+        gap: 0.6rem;
+      }
+      .mx-btn-primary {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1.1rem;
+        background: #1a7a8f;
+        color: #fff;
+        border: 0;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .mx-btn-primary:hover {
+        background: #155f70;
+        color: #fff;
+      }
+      .mx-btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1.1rem;
+        background: #fff;
+        color: #0f1f28;
+        border: 1px solid #c9dce1;
+        border-radius: 10px;
+        font-size: 0.86rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+      .mx-btn-secondary:hover {
+        border-color: #1a7a8f;
+        color: #155f70;
+      }
+
+      /* Condensed card (runners-up + bank) */
+      .mx-card {
+        background: #fff;
+        border: 1px solid var(--border, #d4e4e9);
+        border-radius: 14px;
+        padding: 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .mx-card:hover {
+        border-color: #c9dce1;
+        box-shadow: 0 4px 16px rgba(15, 31, 40, 0.06);
+      }
+      .mx-card-top {
+        display: flex;
+        gap: 0.8rem;
+        align-items: flex-start;
+      }
+      .mx-card-photo {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #d4e4e9 0%, #b8d1d8 100%);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #155f70;
+        font-family: "Fraunces", "Inter", serif;
+        font-size: 1.2rem;
+        font-weight: 500;
+        overflow: hidden;
+        position: relative;
+      }
+      .mx-card-photo img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .mx-card-ident {
+        flex: 1;
+        min-width: 0;
+      }
+      .mx-card-name {
+        font-family: "Fraunces", "Inter", serif;
+        font-weight: 500;
+        font-size: 1.05rem;
+        line-height: 1.2;
+        color: #0f1f28;
+        margin: 0 0 0.1rem;
+      }
+      .mx-card-cred {
+        font-size: 0.8rem;
+        color: #52707c;
+        margin: 0;
+      }
+      .mx-card-save {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: transparent;
+        border: 0;
+        color: #8aa3ad;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .mx-card-save:hover {
+        color: #155f70;
+      }
+      .mx-card-save svg {
+        width: 14px;
+        height: 14px;
+      }
+      .mx-card-reason {
+        font-size: 0.85rem;
+        color: #52707c;
+        line-height: 1.45;
+        margin: 0;
+      }
+      .mx-card-meta {
+        display: flex;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 0.78rem;
+        color: #52707c;
+      }
+      .mx-card-meta .mx-avail {
+        color: #3aaa7a;
+        font-weight: 500;
+      }
+      .mx-card-meta .mx-dot {
+        width: 3px;
+        height: 3px;
+        background: #8aa3ad;
+        border-radius: 50%;
+      }
+      .mx-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.15rem;
+      }
+      .mx-card-actions .mx-btn-primary {
+        font-size: 0.82rem;
+        padding: 0.6rem 0.95rem;
+      }
+      .mx-card-actions .mx-btn-secondary {
+        font-size: 0.78rem;
+        padding: 0.6rem 0.85rem;
+      }
+
+      /* Smart-refine band */
+      .mx-refine-band {
+        background: linear-gradient(180deg, #e8f5f8 0%, rgba(232, 245, 248, 0.3) 100%);
+        border: 1px solid rgba(26, 122, 143, 0.15);
+        border-radius: 14px;
+        padding: 1.35rem 1.5rem;
+        margin: 2rem 0 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+      .mx-refine-copy {
+        flex: 1;
+        min-width: 220px;
+      }
+      .mx-refine-title {
+        font-family: "Fraunces", "Inter", serif;
+        font-weight: 500;
+        font-size: 1.1rem;
+        color: #0f1f28;
+        margin: 0 0 0.2rem;
+        letter-spacing: -0.01em;
+      }
+      .mx-refine-sub {
+        font-size: 0.85rem;
+        color: #52707c;
+        margin: 0;
+      }
+      .mx-refine-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .mx-refine-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 0.9rem;
+        background: #fff;
+        border: 1px solid #e1ecef;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: #0f1f28;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s ease;
+      }
+      .mx-refine-chip:hover {
+        border-color: #1a7a8f;
+        color: #155f70;
+      }
+      .mx-refine-chip-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #1a7a8f;
+      }
+
+      /* Bank header + grid */
+      .mx-bank-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 2rem 0 1rem;
+      }
+      .mx-bank-title {
+        font-family: "Fraunces", "Inter", serif;
+        font-weight: 500;
+        font-size: 1.3rem;
+        margin: 0;
+        color: #0f1f28;
+        letter-spacing: -0.01em;
+      }
+      .mx-bank-count {
+        font-size: 0.82rem;
+        color: #52707c;
+      }
+      .mx-bank-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.9rem;
+      }
+
+      /* Mobile ≤ 820px: top-3 becomes horizontal swipe carousel */
+      @media (max-width: 820px) {
+        .mx-top-three {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          gap: 0.7rem;
+          padding: 0 1rem 1rem;
+          margin: 0 -1rem;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .mx-top-three::-webkit-scrollbar {
+          display: none;
+        }
+        .mx-top-three > .mx-hero,
+        .mx-top-three > .mx-runners {
+          scroll-snap-align: start;
+          flex: 0 0 88%;
+        }
+        .mx-top-three > .mx-runners {
+          display: flex;
+          flex-direction: column;
+          gap: 0.7rem;
+        }
+        .mx-hero {
+          grid-template-columns: 1fr;
+        }
+        .mx-hero-photo {
+          min-height: 160px;
+        }
+        .mx-hero-body {
+          padding: 1.15rem 1.2rem 1.15rem;
+        }
+        .mx-swipe-hint {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.35rem;
+          font-size: 0.78rem;
+          color: #8aa3ad;
+          margin: 0 0 0.75rem;
+        }
+        .mx-swipe-hint-dots {
+          display: inline-flex;
+          gap: 0.3rem;
+        }
+        .mx-swipe-hint-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #c9dce1;
+        }
+        .mx-swipe-hint-dot.is-active {
+          background: #1a7a8f;
+          width: 18px;
+          border-radius: 3px;
+        }
+        .mx-refine-band {
+          padding: 1.15rem 1.15rem;
+        }
+        .mx-bank-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (min-width: 821px) {
+        .mx-swipe-hint {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <span class="nav-name">Bipolar<span>TherapyHub</span></span>
+        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
       <ul class="nav-links">
         <li><a href="match.html" style="color: var(--teal); font-weight: 600">Get Matched</a></li>
