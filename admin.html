@@ -305,6 +305,207 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.95),
           0 10px 18px rgba(52, 94, 111, 0.08);
       }
+      .nav-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.2rem;
+        margin-left: 0.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .nav-count:empty {
+        display: none;
+      }
+      .admin-quick-nav-links a.is-active .nav-count,
+      .admin-quick-nav-links a[aria-current="true"] .nav-count {
+        background: rgba(26, 122, 143, 0.22);
+      }
+      .admin-now {
+        margin-bottom: 0.85rem;
+        padding: 0.95rem 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at top left, rgba(42, 156, 179, 0.08), transparent 32%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        box-shadow: 0 12px 26px rgba(29, 58, 74, 0.05);
+        display: grid;
+        gap: 0.9rem;
+      }
+      .admin-now-title {
+        margin: 0 0 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #628192;
+      }
+      .admin-now-empty {
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px dashed rgba(132, 163, 178, 0.35);
+        color: #547283;
+        font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.55);
+      }
+      .priority-rows {
+        display: grid;
+        gap: 0.5rem;
+      }
+      .priority-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.85rem;
+        width: 100%;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 14px;
+        background: #ffffff;
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        transition:
+          border-color 140ms ease,
+          box-shadow 140ms ease,
+          transform 140ms ease;
+      }
+      .priority-row:hover {
+        border-color: rgba(26, 122, 143, 0.4);
+        box-shadow: 0 8px 18px rgba(29, 58, 74, 0.08);
+        transform: translateY(-1px);
+      }
+      .priority-row:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
+      }
+      .priority-row-rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-weight: 800;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+      }
+      .priority-row-body {
+        display: grid;
+        gap: 0.15rem;
+        min-width: 0;
+      }
+      .priority-row-headline {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.25;
+      }
+      .priority-row-target {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--teal-dark);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .priority-row-why {
+        font-size: 0.8rem;
+        color: #6a8494;
+        line-height: 1.35;
+      }
+      .priority-row-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #ffffff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .priority-row:hover .priority-row-action {
+        background: var(--teal-dark);
+      }
+      .priority-row-arrow {
+        font-size: 0.9rem;
+      }
+      .admin-now-scorecard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.55rem;
+      }
+      .admin-now-scorecard .stat-card {
+        padding: 0.7rem 0.85rem;
+        border-radius: 14px;
+      }
+      .admin-now-scorecard .stat-value {
+        font-size: 1.55rem;
+      }
+      .admin-now-scorecard .stat-label {
+        font-size: 0.82rem;
+      }
+      .admin-now-scorecard .stat-action-note {
+        font-size: 0.72rem;
+      }
+      .region-playbook-toggle {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 0 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(26, 122, 143, 0.2);
+        background: rgba(255, 255, 255, 0.7);
+        color: #547283;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          color 140ms ease,
+          background-color 140ms ease,
+          border-color 140ms ease;
+      }
+      .region-playbook-toggle:hover {
+        color: var(--teal-dark);
+        background: rgba(238, 247, 249, 0.95);
+        border-color: rgba(26, 122, 143, 0.35);
+      }
+      .region-playbook-toggle[aria-expanded="true"] .region-playbook-toggle-caret {
+        transform: rotate(180deg);
+      }
+      .region-playbook-toggle-caret {
+        display: inline-block;
+        font-size: 0.7rem;
+        transition: transform 140ms ease;
+      }
+      .sop-note.is-collapsed {
+        display: none;
+      }
+      @media (max-width: 720px) {
+        .priority-row {
+          grid-template-columns: auto minmax(0, 1fr);
+          row-gap: 0.55rem;
+        }
+        .priority-row-action {
+          grid-column: 1 / -1;
+          justify-self: start;
+        }
+      }
       .admin-stack {
         display: grid;
         gap: 0.85rem;
@@ -687,7 +888,8 @@
         gap: 1rem;
       }
       .btn-primary,
-      .btn-secondary {
+      .btn-secondary,
+      .btn-danger-quiet {
         border: none;
         border-radius: 10px;
         padding: 0.7rem 1rem;
@@ -703,10 +905,116 @@
         border: 1px solid var(--border);
         color: #333;
       }
+      .btn-danger-quiet {
+        background: var(--white);
+        border: 1px solid rgba(194, 65, 12, 0.45);
+        color: var(--red);
+        font-weight: 600;
+      }
+      .btn-danger-quiet:hover,
+      .btn-danger-quiet:focus-visible {
+        background: rgba(194, 65, 12, 0.08);
+        border-color: var(--red);
+      }
       .btn-inline {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+      }
+      .queue-duplicate-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin-top: 0.7rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 10px;
+        border-left: 3px solid #d97706;
+        background: rgba(217, 119, 6, 0.08);
+        color: #7a4a0d;
+        font-size: 0.88rem;
+        font-weight: 600;
+        line-height: 1.4;
+      }
+      .queue-duplicate-banner-icon {
+        font-size: 1rem;
+        line-height: 1.2;
+      }
+      .queue-duplicate-action {
+        margin-top: 0.55rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        justify-content: flex-end;
+      }
+      .queue-duplicate-action .btn-secondary {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.86rem;
+      }
+      .queue-dedupe-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+      .queue-dedupe-reason-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(217, 119, 6, 0.12);
+        color: #7a4a0d;
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+      .queue-dedupe-reason-chip.is-definite {
+        background: rgba(194, 65, 12, 0.14);
+        color: var(--red);
+      }
+      .queue-duplicate-banner.is-definite {
+        border-left-color: var(--red);
+        background: rgba(194, 65, 12, 0.08);
+        color: var(--red);
+      }
+      .queue-card.is-review-mode {
+        border-color: rgba(217, 119, 6, 0.4);
+        background: linear-gradient(180deg, rgba(255, 247, 235, 0.6), #ffffff 40%);
+      }
+      .queue-card.is-review-mode .queue-more-details {
+        border-top: none;
+        margin-top: 0.75rem;
+      }
+      .queue-card.is-review-mode .queue-more-details > summary {
+        color: #7a4a0d;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .queue-card-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 0.7rem;
+        font-size: 0.82rem;
+      }
+      .queue-card-links a,
+      .queue-card-links button {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: #5a7684;
+        font: inherit;
+        font-size: 0.82rem;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      .queue-card-links a:hover,
+      .queue-card-links button:hover,
+      .queue-card-links a:focus-visible,
+      .queue-card-links button:focus-visible {
+        color: var(--teal);
       }
       .cms-note {
         margin-top: 0.75rem;
@@ -1308,13 +1616,13 @@
         opacity: 1;
         filter: none;
       }
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .queue-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .application-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]),
-      .grid.workflow-focus-active
+      .grid.workflow-focus-active:has(.workflow-focus-target)
         > .workflow-focus-owner
         .mini-card:not(.workflow-focus-target):not([data-workflow-handoff="true"]) {
         opacity: 0.58;
@@ -3008,6 +3316,290 @@
       }
 
       /* ── Edit profile drawer ── */
+      .compare-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 950;
+        background: rgba(12, 29, 44, 0.55);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        padding: 1.2rem;
+      }
+      .compare-modal.is-open {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .compare-modal-panel {
+        width: min(1100px, 96vw);
+        max-height: min(880px, 94vh);
+        background: #fff;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 24px 64px rgba(12, 29, 44, 0.3);
+        overflow: hidden;
+        animation: compareModalIn 180ms ease;
+      }
+      @keyframes compareModalIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .compare-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.1rem 1.4rem 0.95rem;
+        border-bottom: 1px solid #d6e4ea;
+        flex-shrink: 0;
+      }
+      .compare-modal-kicker {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #628192;
+        margin-bottom: 0.25rem;
+      }
+      .compare-modal-title {
+        font-family: "Inter", sans-serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin: 0;
+        line-height: 1.25;
+      }
+      .compare-modal-vs {
+        color: #96a9b8;
+        font-weight: 500;
+        font-size: 0.95rem;
+        margin: 0 0.3rem;
+      }
+      .compare-modal-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.3rem 0.55rem;
+        font-size: 1.4rem;
+        line-height: 1;
+        color: var(--muted);
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+      .compare-modal-close:hover {
+        background: #f0f4f6;
+        color: var(--navy);
+      }
+      .compare-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.55rem;
+      }
+      .compare-reason-chip {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(217, 119, 6, 0.12);
+        color: #d97706;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .compare-modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.15rem 1.4rem;
+      }
+      .compare-columns {
+        display: grid;
+        grid-template-columns: minmax(110px, auto) 1fr 1fr;
+        border: 1px solid #e3ecf0;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .compare-columns-header {
+        display: contents;
+      }
+      .compare-columns-header > div {
+        padding: 0.7rem 0.9rem;
+        background: #f3f8fa;
+        border-bottom: 1px solid #e3ecf0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #547283;
+        letter-spacing: 0.03em;
+      }
+      .compare-columns-title {
+        font-size: 0.88rem;
+        color: var(--navy);
+      }
+      .compare-row {
+        display: contents;
+      }
+      .compare-row > div {
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid #eef3f5;
+        font-size: 0.9rem;
+        color: var(--navy);
+        min-height: 2.4rem;
+        display: flex;
+        align-items: center;
+      }
+      .compare-row:last-of-type > div {
+        border-bottom: none;
+      }
+      .compare-row-label {
+        font-weight: 600;
+        color: #547283;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: #fafcfd;
+      }
+      .compare-row.is-match > .compare-row-value {
+        background: rgba(58, 170, 122, 0.08);
+      }
+      .compare-row.is-differ > .compare-row-value {
+        background: rgba(194, 65, 12, 0.07);
+        font-weight: 600;
+      }
+      .compare-row.is-missing > .compare-row-value {
+        background: #fafbfc;
+        color: #8aa0ad;
+      }
+      .compare-row.is-missing-both > .compare-row-value {
+        color: #8aa0ad;
+      }
+      .compare-row.is-candidate-only > div {
+        padding: 0.7rem 0.9rem;
+      }
+      .compare-fallback {
+        grid-column: 3 / 4;
+        padding: 1.1rem 1.2rem;
+        background: #fdf8f1;
+        border-left: 1px solid #e3ecf0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.88rem;
+        color: #6a4621;
+      }
+      .compare-fallback-title {
+        font-weight: 700;
+        color: #8a4a10;
+        font-size: 0.95rem;
+      }
+      .compare-fallback-copy {
+        line-height: 1.45;
+      }
+      .compare-fallback-actions {
+        margin-top: 0.35rem;
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+      .compare-sources {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+      }
+      .compare-sources-col {
+        padding: 0.75rem 0.9rem;
+        background: #f7fafc;
+        border: 1px solid #e3ecf0;
+        border-radius: 10px;
+      }
+      .compare-sources-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #628192;
+        margin-bottom: 0.3rem;
+      }
+      .compare-sources-col a {
+        color: var(--teal-dark);
+        word-break: break-all;
+      }
+      .compare-sources-text {
+        color: #8aa0ad;
+      }
+      .compare-modal-error {
+        margin-top: 0.85rem;
+        padding: 0.6rem 0.85rem;
+        border-radius: 8px;
+        background: rgba(194, 65, 12, 0.1);
+        color: #a8340a;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .compare-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.65rem;
+        padding: 0.9rem 1.4rem;
+        border-top: 1px solid #d6e4ea;
+        background: #f8fbfc;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      .compare-close-link {
+        background: none;
+        border: none;
+        color: #547283;
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0.35rem 0;
+        text-decoration: underline;
+      }
+      .compare-close-link:hover {
+        color: var(--navy);
+      }
+      .compare-actions-primary {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 720px) {
+        .compare-columns {
+          grid-template-columns: 1fr;
+        }
+        .compare-columns-header {
+          display: none;
+        }
+        .compare-row > div {
+          border-bottom: none;
+          padding: 0.35rem 0.9rem;
+        }
+        .compare-fallback {
+          grid-column: 1 / -1;
+        }
+        .compare-sources {
+          grid-template-columns: 1fr;
+        }
+        .compare-actions {
+          justify-content: stretch;
+        }
+        .compare-actions-primary {
+          width: 100%;
+        }
+        .compare-actions-primary > button {
+          flex: 1;
+        }
+      }
       .candidate-edit-drawer {
         display: none;
         position: fixed;
@@ -3219,23 +3811,32 @@
     <div class="wrap">
       <div class="hero">
         <div class="hero-copy">
-          <h1>Admin Portal</h1>
-          <p class="subtle">
-            The control panel for managing applications, workflows, and intelligence.
-          </p>
+          <h1>Admin</h1>
+          <p class="subtle" id="adminHeroStatus">Loading status…</p>
         </div>
       </div>
 
       <div class="admin-quick-nav" id="adminQuickNav" style="display: none">
-        <div class="admin-quick-nav-label">Jump To</div>
+        <div class="admin-quick-nav-label">Jump to</div>
         <div class="admin-quick-nav-links">
-          <a href="#supplyReviewRegion">New scraped listings</a>
-          <a href="#liveListingsRegion">Live Listings</a>
-          <a href="#confirmationRegion">Confirmation</a>
-          <a href="#requestsRegion">Requests</a>
-          <a href="#intelligenceRegion">Intelligence</a>
+          <a href="#supplyReviewRegion"
+            >Triage new listings<span class="nav-count" id="navCountCandidates"></span
+          ></a>
+          <a href="#reviewRegion">Review<span class="nav-count" id="navCountReview"></span></a>
+          <a href="#confirmationRegion"
+            >Work confirmations<span class="nav-count" id="navCountConfirmations"></span
+          ></a>
+          <a href="#requestsRegion"
+            >Handle requests<span class="nav-count" id="navCountRequests"></span
+          ></a>
+          <a href="#liveListingsRegion"
+            >Maintain live<span class="nav-count" id="navCountLive"></span
+          ></a>
+          <a href="#intelligenceRegion">Check health</a>
         </div>
       </div>
+
+      <section class="admin-now" id="adminStats" style="display: none"></section>
 
       <div class="auth-gate" id="adminAuthGate" style="display: none">
         <div class="auth-gate-layout">
@@ -3696,27 +4297,17 @@
                         <select id="candidateReviewStatusFilter">
                           <option value="">All review statuses</option>
                           <option value="queued">Queued</option>
-                          <option value="needs_review">Needs review</option>
-                          <option value="needs_confirmation">Needs confirmation</option>
-                          <option value="ready_to_publish">Ready to publish</option>
                           <option value="published">Published</option>
-                          <option value="archived">Archived</option>
+                          <option value="archived">Deleted</option>
                         </select>
                         <select id="candidateDedupeStatusFilter">
                           <option value="">All dedupe states</option>
                           <option value="unreviewed">Unreviewed</option>
                           <option value="unique">Unique</option>
+                          <option value="definite_duplicate">Definite duplicate</option>
                           <option value="possible_duplicate">Possible duplicate</option>
                           <option value="rejected_duplicate">Rejected duplicate</option>
                           <option value="merged">Merged</option>
-                        </select>
-                        <select id="candidateReviewLaneFilter">
-                          <option value="">All ops lanes</option>
-                          <option value="publish_now">Publish now</option>
-                          <option value="editorial_review">Editorial review</option>
-                          <option value="needs_confirmation">Needs confirmation</option>
-                          <option value="resolve_duplicates">Resolve duplicates</option>
-                          <option value="archived">Archived</option>
                         </select>
                         <div class="subtle" id="candidateQueueCount"></div>
                       </div>
@@ -3825,6 +4416,44 @@
                       </div>
                     </div>
                     <div id="applicationsList" style="display: none"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="admin-region-shell" id="reviewRegion">
+              <div class="admin-region-header">
+                <div>
+                  <h2 class="admin-region-title">Review — parked listings</h2>
+                  <div class="admin-region-copy">
+                    Listings parked here need investigation before publishing or deleting. Fix
+                    what's missing, then ship or scrap.
+                  </div>
+                </div>
+              </div>
+              <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
+                <div class="admin-workspace-main">
+                  <div class="admin-region-grid">
+                    <div class="panel" id="reviewQueuePanel" style="margin-bottom: 1rem">
+                      <div id="reviewQueueGuidance"></div>
+                      <div class="toolbar" style="margin-bottom: 0.8rem">
+                        <input
+                          type="search"
+                          id="reviewSearch"
+                          placeholder="Search parked listings, cities, source types..."
+                        />
+                        <select id="reviewDedupeStatusFilter">
+                          <option value="">All dedupe states</option>
+                          <option value="unreviewed">Unreviewed</option>
+                          <option value="unique">Unique</option>
+                          <option value="definite_duplicate">Definite duplicate</option>
+                          <option value="possible_duplicate">Possible duplicate</option>
+                          <option value="rejected_duplicate">Rejected duplicate</option>
+                          <option value="merged">Merged</option>
+                        </select>
+                        <div class="subtle" id="reviewQueueCount"></div>
+                      </div>
+                      <div id="reviewQueue"></div>
+                    </div>
                   </div>
                 </div>
               </div>

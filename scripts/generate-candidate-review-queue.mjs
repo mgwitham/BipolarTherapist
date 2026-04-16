@@ -73,6 +73,10 @@ function formatDate(value) {
   return value ? String(value).slice(0, 10) : "";
 }
 
+function isDuplicateStatus(value) {
+  return value === "possible_duplicate" || value === "definite_duplicate";
+}
+
 function scoreCandidate(candidate) {
   let score = 0;
   if (candidate.licenseNumber) score += 25;
@@ -85,13 +89,16 @@ function scoreCandidate(candidate) {
   if (candidate.preferredContactMethod) score += 5;
   if (candidate.extractionConfidence)
     score += Math.round(Number(candidate.extractionConfidence) * 15);
-  if (candidate.dedupeStatus === "possible_duplicate") score -= 25;
+  if (isDuplicateStatus(candidate.dedupeStatus)) score -= 25;
   if (candidate.reviewStatus === "needs_confirmation") score -= 10;
   return Math.max(0, Math.min(100, score));
 }
 
 function getNextAction(candidate) {
-  if (candidate.dedupeStatus === "possible_duplicate") {
+  if (candidate.dedupeStatus === "definite_duplicate") {
+    return "Mark confirmed duplicate";
+  }
+  if (isDuplicateStatus(candidate.dedupeStatus)) {
     return "Review duplicate match";
   }
   if (candidate.reviewStatus === "needs_confirmation") {
@@ -116,8 +123,8 @@ function sortCandidates(candidates) {
       return scoreDelta;
     }
 
-    const dedupePriority = a.dedupeStatus === "possible_duplicate" ? 1 : 0;
-    const otherDedupePriority = b.dedupeStatus === "possible_duplicate" ? 1 : 0;
+    const dedupePriority = isDuplicateStatus(a.dedupeStatus) ? 1 : 0;
+    const otherDedupePriority = isDuplicateStatus(b.dedupeStatus) ? 1 : 0;
     if (dedupePriority !== otherDedupePriority) {
       return otherDedupePriority - dedupePriority;
     }
@@ -179,7 +186,7 @@ function buildMarkdown(candidates) {
     return candidate.reviewStatus === "queued" || candidate.reviewStatus === "needs_review";
   }).length;
   const duplicates = candidates.filter(function (candidate) {
-    return candidate.dedupeStatus === "possible_duplicate";
+    return isDuplicateStatus(candidate.dedupeStatus);
   }).length;
   const confirmation = candidates.filter(function (candidate) {
     return candidate.reviewStatus === "needs_confirmation";

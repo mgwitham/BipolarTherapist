@@ -1,5 +1,6 @@
 import {
   bindCandidateDecisionButtons,
+  findCandidateMergeTarget,
   renderCandidateMergePreview,
   renderCandidateMergeWorkbench,
   renderCandidatePublishPacket,
@@ -7,6 +8,35 @@ import {
 } from "./admin-candidate-review.js";
 
 import { createActionFlashStore } from "./admin-action-flash.js";
+import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
+
+let sharedCompareModal = null;
+
+function getSharedCompareModal(options) {
+  if (sharedCompareModal) {
+    return sharedCompareModal;
+  }
+  sharedCompareModal = createCandidateCompareModal(options);
+  return sharedCompareModal;
+}
+
+function clearStaleWorkflowFocus(queueRoot) {
+  if (!queueRoot) {
+    return;
+  }
+  const grid = queueRoot.closest(".grid");
+  if (!grid || !grid.classList.contains("workflow-focus-active")) {
+    return;
+  }
+  // If there is no focus target anywhere in the grid, the focus mode is
+  // stale from a prior navigation and should not keep dimming cards.
+  if (!grid.querySelector(".workflow-focus-target")) {
+    grid.classList.remove("workflow-focus-active");
+    grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+      node.classList.remove("workflow-focus-owner");
+    });
+  }
+}
 
 const candidateActionFlash = createActionFlashStore();
 
@@ -37,92 +67,42 @@ function getCandidateDecisionOutcome(decision) {
   switch (decision) {
     case "publish":
       return "Published.";
-    case "needs_confirmation":
-      return "Sent to confirmation.";
+    case "needs_review":
+      return "Sent to review.";
+    case "archive":
+      return "Deleted.";
     case "reject_duplicate":
       return "Marked as duplicate.";
-    case "merge":
-      return "Merged.";
-    case "archive":
-      return "Archived.";
-    case "mark_ready":
-      return "Queued for publish.";
+    case "mark_unique":
+      return "Confirmed as unique.";
     default:
       return "Done.";
   }
 }
 
-function getCandidateStartHereGuidance(item) {
-  if (!item) {
-    return {
-      primaryAction: "mark_ready",
-      primaryLabel: "Queue for publish",
-      whyNow: "This is the top current new listing in the filtered view.",
-      doneWhen: "This listing has a clear next state and is no longer sitting in unworked review.",
-    };
+function getDedupeReasonLabel(reason) {
+  switch (reason) {
+    case "license":
+      return "License number match";
+    case "email":
+      return "Email match";
+    case "website":
+      return "Website match";
+    case "name_location_phone":
+      return "Name + location + phone match";
+    case "name_location":
+      return "Name + location match";
+    case "slug":
+      return "Slug match";
+    case "provider_id":
+      return "Provider ID match";
+    default:
+      return reason;
   }
-
-  if (item.dedupe_status === "possible_duplicate") {
-    return {
-      primaryAction: "reject_duplicate",
-      primaryLabel: "Resolve duplicate now",
-      whyNow:
-        "Possible duplicate risk should be resolved first so you do not create clutter or publish the wrong profile.",
-      doneWhen:
-        "The listing is marked duplicate, merged, or clearly kept as unique before you move on.",
-    };
-  }
-
-  if (
-    item.review_status === "needs_confirmation" ||
-    item.review_lane === "needs_confirmation" ||
-    item.publish_recommendation === "needs_confirmation"
-  ) {
-    return {
-      primaryAction: "needs_confirmation",
-      primaryLabel: "Send to confirmation now",
-      whyNow:
-        "This listing looks promising but still needs one more trust pass before it is safe to publish.",
-      doneWhen:
-        "The listing is clearly moved into confirmation follow-up instead of staying in ambiguous review.",
-    };
-  }
-
-  if (item.review_status === "ready_to_publish" || item.review_lane === "publish_now") {
-    return {
-      primaryAction: "publish",
-      primaryLabel: "Publish now",
-      whyNow: "This is a strong publish-ready listing and the fastest way to add trusted supply.",
-      doneWhen:
-        "The listing is published or moved out of publish-ready with a clear reason recorded.",
-    };
-  }
-
-  return {
-    primaryAction: "mark_ready",
-    primaryLabel: "Queue for publish",
-    whyNow:
-      "This listing appears unique enough to move forward, even if you are not publishing it immediately.",
-    doneWhen:
-      "The listing is moved into the right next state: publish-ready, confirmation, duplicate, merge, or archive.",
-  };
 }
 
-function buildCandidateButton(itemId, action, label, isPrimary) {
-  return (
-    '<button class="' +
-    (isPrimary ? "btn-primary" : "btn-secondary") +
-    '" data-candidate-decision="' +
-    itemId +
-    '" data-candidate-next="' +
-    action +
-    '">' +
-    label +
-    "</button>"
-  );
-}
-
-function renderCandidateCardHtml(item, index, options, therapists, applications) {
+function renderCandidateCardHtml(item, index, options, therapists, applications, mode) {
+  const isReviewMode = mode === "review";
   const location = [item.city, item.state, item.zip]
     .filter(Boolean)
     .join(", ")
@@ -137,18 +117,44 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   const trustSummary = options.getCandidateTrustSummary(item);
   const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
   const reviewEvents = options.getReviewEventsForCandidate(item);
-  const startHereGuidance = getCandidateStartHereGuidance(item);
   const actionFlash = getCandidateActionFlash(item.id);
-  const mergeWorkbench = renderCandidateMergeWorkbench(item, {
+  const isDefiniteDuplicate = item.dedupe_status === "definite_duplicate";
+  const isPossibleDuplicate = item.dedupe_status === "possible_duplicate";
+  const isDuplicateFlagged = isDefiniteDuplicate || isPossibleDuplicate;
+  const mergeWorkbenchHtml = renderCandidateMergeWorkbench(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const mergeWorkbench = mergeWorkbenchHtml
+    ? '<div data-candidate-merge-workbench="' +
+      options.escapeHtml(item.id) +
+      '">' +
+      mergeWorkbenchHtml +
+      "</div>"
+    : "";
   const mergePreview = renderCandidateMergePreview(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const dedupeReasons = Array.isArray(item.dedupe_reasons) ? item.dedupe_reasons : [];
+  const dedupeReasonChipsHtml =
+    isDuplicateFlagged && dedupeReasons.length
+      ? '<div class="queue-dedupe-reasons">' +
+        dedupeReasons
+          .map(function (reason) {
+            return (
+              '<span class="queue-dedupe-reason-chip' +
+              (isDefiniteDuplicate ? " is-definite" : "") +
+              '">' +
+              options.escapeHtml(getDedupeReasonLabel(reason)) +
+              "</span>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : "";
   const expandedDetails =
     renderCandidatePublishPacket(publishPacket, {
       escapeHtml: options.escapeHtml,
@@ -182,37 +188,72 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     mergeWorkbench +
     mergePreview;
 
-  // Fallback actions (exclude the primary)
-  var fallbackBtns = [];
-  if (
-    startHereGuidance.primaryAction !== "mark_ready" &&
-    item.review_status !== "ready_to_publish"
-  ) {
-    fallbackBtns.push(buildCandidateButton(item.id, "mark_ready", "Queue for publish", false));
-  }
-  if (
-    startHereGuidance.primaryAction !== "needs_confirmation" &&
-    item.review_status !== "needs_confirmation"
-  ) {
-    fallbackBtns.push(
-      buildCandidateButton(item.id, "needs_confirmation", "Send to confirmation", false),
-    );
-  }
-  if (
-    startHereGuidance.primaryAction !== "reject_duplicate" &&
-    item.dedupe_status !== "rejected_duplicate"
-  ) {
-    fallbackBtns.push(
-      buildCandidateButton(item.id, "reject_duplicate", "Mark as duplicate", false),
-    );
-  }
-  if (startHereGuidance.primaryAction !== "publish") {
-    fallbackBtns.push(buildCandidateButton(item.id, "publish", "Publish now", false));
-  }
+  const matchedLabel = item.matched_therapist_slug || item.matched_application_id || "";
+  const duplicateBanner = isDuplicateFlagged
+    ? '<div class="queue-duplicate-banner' +
+      (isDefiniteDuplicate ? " is-definite" : "") +
+      '"><span class="queue-duplicate-banner-icon">\u26A0</span><span>' +
+      (isDefiniteDuplicate ? "Definite duplicate" : "Possible duplicate") +
+      (matchedLabel ? " of <strong>" + options.escapeHtml(matchedLabel) + "</strong>" : "") +
+      ". Check the match before publishing.</span></div>"
+    : "";
+
+  // Primary actions — review mode drops "Send to Review" since the card is already there
+  const primaryActions = isReviewMode
+    ? '<button class="btn-primary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish</button>' +
+      '<button class="btn-danger-quiet" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>'
+    : '<button class="btn-primary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="needs_review">Send to Review</button>' +
+      '<button class="btn-danger-quiet" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
+
+  // Conditional duplicate action row — only when a duplicate has been flagged
+  const duplicateActions = isDuplicateFlagged
+    ? '<div class="queue-duplicate-action">' +
+      '<button class="btn-secondary" data-candidate-compare="' +
+      options.escapeHtml(item.id) +
+      '">Compare side-by-side</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="mark_unique">Keep as unique</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="reject_duplicate">Mark as duplicate</button>' +
+      "</div>"
+    : "";
+
+  // Secondary link row — de-emphasized tools. In review mode the details are
+  // already open so we drop the "See full details" toggle.
+  const linkRow =
+    '<div class="queue-card-links">' +
+    (sourceReference.href
+      ? '<a href="' +
+        options.escapeHtml(sourceReference.href) +
+        '" target="_blank" rel="noopener">Open source</a>'
+      : "") +
+    '<button type="button" data-edit-candidate-id="' +
+    options.escapeHtml(item.id) +
+    '">Edit profile</button>' +
+    (expandedDetails && !isReviewMode
+      ? '<button type="button" data-queue-card-toggle-details="' +
+        options.escapeHtml(item.id) +
+        '">See full details</button>'
+      : "") +
+    "</div>";
 
   return (
     '<article class="queue-card' +
     (index === 0 ? " is-start-here" : "") +
+    (isReviewMode ? " is-review-mode" : "") +
     '"' +
     (actionFlash ? ' data-has-action-flash="true"' : "") +
     ' data-candidate-card-id="' +
@@ -220,7 +261,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +
     ">" +
-    // Header: name + status tags
+    // Header: name + status tag
     '<div class="queue-head"><div><h3 style="display:flex;align-items:baseline;gap:0.55rem;flex-wrap:wrap">' +
     options.escapeHtml(item.name || "Unnamed listing") +
     (item.readiness_score != null
@@ -239,32 +280,15 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
     '</div></div><div class="queue-head-actions"><span class="tag">' +
     options.escapeHtml(options.getCandidateReviewChipLabel(item.review_status)) +
-    '</span><span class="tag">' +
-    options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
-    // Recommended next step sentence
-    '<div class="queue-summary" style="margin-top:0.6rem">' +
-    options.escapeHtml(startHereGuidance.whyNow) +
-    "</div>" +
-    // Action buttons
+    duplicateBanner +
+    dedupeReasonChipsHtml +
+    // Primary action row
     '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
-    '<button class="btn-primary" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-next="' +
-    options.escapeHtml(startHereGuidance.primaryAction) +
-    '">' +
-    options.escapeHtml(startHereGuidance.primaryLabel) +
-    "</button>" +
-    fallbackBtns.join("") +
-    (sourceReference.href
-      ? '<a class="btn-secondary btn-inline" href="' +
-        options.escapeHtml(sourceReference.href) +
-        '" target="_blank" rel="noopener">Open source</a>'
-      : "") +
-    '<button class="btn-secondary btn-inline" data-edit-candidate-id="' +
-    options.escapeHtml(item.id) +
-    '">Edit profile</button>' +
+    primaryActions +
     "</div>" +
+    duplicateActions +
+    linkRow +
     // Status feedback
     '<div class="review-coach-status" data-candidate-status-id="' +
     options.escapeHtml(item.id) +
@@ -273,12 +297,36 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     "</div>" +
     // Collapsed details
     (expandedDetails
-      ? '<details class="queue-more-details"><summary>See full details</summary><div class="queue-more-details-body">' +
+      ? '<details class="queue-more-details" data-queue-card-details-id="' +
+        options.escapeHtml(item.id) +
+        '"' +
+        (isReviewMode ? " open" : "") +
+        "><summary>" +
+        (isReviewMode ? "Hide details" : "See full details") +
+        '</summary><div class="queue-more-details-body">' +
         expandedDetails +
         "</div></details>"
       : "") +
     "</article>"
   );
+}
+
+function bindQueueCardDetailToggles(root) {
+  if (!root) {
+    return;
+  }
+  root.querySelectorAll("[data-queue-card-toggle-details]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const card = button.closest("[data-candidate-card-id]");
+      const details = card ? card.querySelector("[data-queue-card-details-id]") : null;
+      if (details) {
+        details.open = !details.open;
+        if (details.open) {
+          details.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }
+    });
+  });
 }
 
 export function renderCandidateQueuePanel(options) {
@@ -298,6 +346,7 @@ export function renderCandidateQueuePanel(options) {
   const therapists = Array.isArray(options.therapists) ? options.therapists : [];
   const applications = Array.isArray(options.applications) ? options.applications : [];
   const filters = options.filters || {};
+  const mode = options.mode === "review" ? "review" : "triage";
 
   const filtered = candidates.filter(function (item) {
     const haystack = [
@@ -316,13 +365,27 @@ export function renderCandidateQueuePanel(options) {
     if (filters.q && !haystack.includes(filters.q.toLowerCase())) {
       return false;
     }
-    if (filters.review_status && item.review_status !== filters.review_status) {
+    if (mode === "review") {
+      // Review bay shows only parked listings. Review-status filter is ignored here.
+      if (item.review_status !== "needs_review") {
+        return false;
+      }
+      if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
+        return false;
+      }
+      return true;
+    }
+    // Triage mode: hide archived, published, and parked review items by default.
+    const INACTIVE_REVIEW = ["archived", "published", "needs_review"];
+    const INACTIVE_DEDUPE = ["rejected_duplicate", "merged"];
+    if (filters.review_status) {
+      if (item.review_status !== filters.review_status) return false;
+    } else if (INACTIVE_REVIEW.includes(item.review_status)) {
       return false;
     }
-    if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
-      return false;
-    }
-    if (filters.review_lane && item.review_lane !== filters.review_lane) {
+    if (filters.dedupe_status) {
+      if (item.dedupe_status !== filters.dedupe_status) return false;
+    } else if (INACTIVE_DEDUPE.includes(item.dedupe_status)) {
       return false;
     }
     return true;
@@ -335,28 +398,25 @@ export function renderCandidateQueuePanel(options) {
     " listing" +
     (candidates.length === 1 ? "" : "s");
 
+  if (mode === "review" && !filtered.length) {
+    root.innerHTML =
+      '<div class="empty">Nothing parked in review. Send a listing here from Triage when it needs more investigation before publishing.</div>';
+    return;
+  }
+
   if (!candidates.length) {
     root.innerHTML =
       '<div class="empty">No new therapist listings have been added yet. Run the discovery or import workflow and they will appear here.</div>';
     return;
   }
 
-  const duplicateCount = candidates.filter(function (item) {
-    return item.dedupe_status === "possible_duplicate";
-  }).length;
-  const confirmCount = candidates.filter(function (item) {
-    return item.review_status === "needs_confirmation";
-  }).length;
-  const publishNowCount = candidates.filter(function (item) {
-    return item.review_lane === "publish_now";
-  }).length;
-  const recentFlashes = getRecentCandidateActionFlashes(candidates, 3);
+  const recentFlashes = mode === "review" ? [] : getRecentCandidateActionFlashes(candidates, 3);
   const firstFiltered = filtered.length ? filtered[0] : null;
   const remainingFiltered = filtered.length > 1 ? filtered.slice(1) : [];
 
   root.innerHTML =
     (firstFiltered
-      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications)
+      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications, mode)
       : "") +
     (recentFlashes.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
@@ -373,43 +433,18 @@ export function renderCandidateQueuePanel(options) {
           .join("") +
         "</div></div>"
       : "") +
-    '<div class="queue-insights"><div class="queue-insights-title">New listings snapshot</div><div class="queue-insights-grid">' +
-    [
-      {
-        value: publishNowCount,
-        label: "Publish now lane",
-        note: "These are the fastest trustworthy wins if the source trail looks clean.",
-      },
-      {
-        value: confirmCount,
-        label: "Needs confirmation",
-        note: "Good listings that still need one more trust pass before publish.",
-      },
-      {
-        value: duplicateCount,
-        label: "Possible duplicates",
-        note: "Review these before publishing to keep the provider graph clean.",
-      },
-    ]
-      .map(function (item) {
-        return (
-          '<div class="queue-insight-card"><div class="queue-insight-value">' +
-          options.escapeHtml(item.value) +
-          '</div><div class="queue-insight-label">' +
-          options.escapeHtml(item.label) +
-          '</div><div class="queue-insight-note">' +
-          options.escapeHtml(item.note) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>" +
-    (filtered.length ? "" : '<div class="empty">No new listings match the current filters.</div>') +
+    (filtered.length ? "" : '<div class="empty">No listings match the current filters.</div>') +
     remainingFiltered
       .map(function (item, index) {
-        return renderCandidateCardHtml(item, index + 1, options, therapists, applications);
+        return renderCandidateCardHtml(item, index + 1, options, therapists, applications, mode);
       })
       .join("");
+
+  // Self-heal any stuck workflow-focus-active state. Focus mode is applied
+  // when the user jumps into this section from the landing priority row; once
+  // the original focus target is gone (after a decision + re-render), the
+  // grid should not keep dimming fresh cards.
+  clearStaleWorkflowFocus(root);
 
   bindCandidateDecisionButtons(root, {
     decideTherapistCandidate: options.decideTherapistCandidate,
@@ -417,5 +452,33 @@ export function renderCandidateQueuePanel(options) {
       setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
     },
     loadData: options.loadData,
+  });
+  bindQueueCardDetailToggles(root);
+
+  const compareModal = getSharedCompareModal({
+    decideTherapistCandidate: options.decideTherapistCandidate,
+    loadData: options.loadData,
+    escapeHtml: options.escapeHtml,
+    getQueueRoot: function () {
+      return root;
+    },
+    onDecisionComplete: function (id, decision) {
+      setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
+    },
+  });
+
+  root.querySelectorAll("[data-candidate-compare]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const id = button.getAttribute("data-candidate-compare");
+      const item = candidates.find(function (entry) {
+        return String(entry.id) === String(id);
+      });
+      if (!item) return;
+      const matchTarget = findCandidateMergeTarget(item, {
+        therapists: therapists,
+        applications: applications,
+      });
+      compareModal.open(item, matchTarget, item.dedupe_reasons || [], button);
+    });
   });
 }
