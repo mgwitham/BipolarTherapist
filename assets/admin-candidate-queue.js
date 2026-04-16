@@ -101,7 +101,8 @@ function getDedupeReasonLabel(reason) {
   }
 }
 
-function renderCandidateCardHtml(item, index, options, therapists, applications) {
+function renderCandidateCardHtml(item, index, options, therapists, applications, mode) {
+  const isReviewMode = mode === "review";
   const location = [item.city, item.state, item.zip]
     .filter(Boolean)
     .join(", ")
@@ -197,17 +198,23 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
       ". Check the match before publishing.</span></div>"
     : "";
 
-  // Primary three actions — identical on every card
-  const primaryActions =
-    '<button class="btn-primary" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-next="publish">Publish</button>' +
-    '<button class="btn-secondary" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-next="needs_review">Send to Review</button>' +
-    '<button class="btn-danger-quiet" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
+  // Primary actions — review mode drops "Send to Review" since the card is already there
+  const primaryActions = isReviewMode
+    ? '<button class="btn-primary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish</button>' +
+      '<button class="btn-danger-quiet" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>'
+    : '<button class="btn-primary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="needs_review">Send to Review</button>' +
+      '<button class="btn-danger-quiet" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
 
   // Conditional duplicate action row — only when a duplicate has been flagged
   const duplicateActions = isDuplicateFlagged
@@ -224,7 +231,8 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
       "</div>"
     : "";
 
-  // Secondary link row — de-emphasized tools
+  // Secondary link row — de-emphasized tools. In review mode the details are
+  // already open so we drop the "See full details" toggle.
   const linkRow =
     '<div class="queue-card-links">' +
     (sourceReference.href
@@ -235,7 +243,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '<button type="button" data-edit-candidate-id="' +
     options.escapeHtml(item.id) +
     '">Edit profile</button>' +
-    (expandedDetails
+    (expandedDetails && !isReviewMode
       ? '<button type="button" data-queue-card-toggle-details="' +
         options.escapeHtml(item.id) +
         '">See full details</button>'
@@ -245,6 +253,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   return (
     '<article class="queue-card' +
     (index === 0 ? " is-start-here" : "") +
+    (isReviewMode ? " is-review-mode" : "") +
     '"' +
     (actionFlash ? ' data-has-action-flash="true"' : "") +
     ' data-candidate-card-id="' +
@@ -290,7 +299,11 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     (expandedDetails
       ? '<details class="queue-more-details" data-queue-card-details-id="' +
         options.escapeHtml(item.id) +
-        '"><summary>See full details</summary><div class="queue-more-details-body">' +
+        '"' +
+        (isReviewMode ? " open" : "") +
+        "><summary>" +
+        (isReviewMode ? "Hide details" : "See full details") +
+        '</summary><div class="queue-more-details-body">' +
         expandedDetails +
         "</div></details>"
       : "") +
@@ -333,6 +346,7 @@ export function renderCandidateQueuePanel(options) {
   const therapists = Array.isArray(options.therapists) ? options.therapists : [];
   const applications = Array.isArray(options.applications) ? options.applications : [];
   const filters = options.filters || {};
+  const mode = options.mode === "review" ? "review" : "triage";
 
   const filtered = candidates.filter(function (item) {
     const haystack = [
@@ -351,7 +365,18 @@ export function renderCandidateQueuePanel(options) {
     if (filters.q && !haystack.includes(filters.q.toLowerCase())) {
       return false;
     }
-    const INACTIVE_REVIEW = ["archived", "published"];
+    if (mode === "review") {
+      // Review bay shows only parked listings. Review-status filter is ignored here.
+      if (item.review_status !== "needs_review") {
+        return false;
+      }
+      if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
+        return false;
+      }
+      return true;
+    }
+    // Triage mode: hide archived, published, and parked review items by default.
+    const INACTIVE_REVIEW = ["archived", "published", "needs_review"];
     const INACTIVE_DEDUPE = ["rejected_duplicate", "merged"];
     if (filters.review_status) {
       if (item.review_status !== filters.review_status) return false;
@@ -373,19 +398,25 @@ export function renderCandidateQueuePanel(options) {
     " listing" +
     (candidates.length === 1 ? "" : "s");
 
+  if (mode === "review" && !filtered.length) {
+    root.innerHTML =
+      '<div class="empty">Nothing parked in review. Send a listing here from Triage when it needs more investigation before publishing.</div>';
+    return;
+  }
+
   if (!candidates.length) {
     root.innerHTML =
       '<div class="empty">No new therapist listings have been added yet. Run the discovery or import workflow and they will appear here.</div>';
     return;
   }
 
-  const recentFlashes = getRecentCandidateActionFlashes(candidates, 3);
+  const recentFlashes = mode === "review" ? [] : getRecentCandidateActionFlashes(candidates, 3);
   const firstFiltered = filtered.length ? filtered[0] : null;
   const remainingFiltered = filtered.length > 1 ? filtered.slice(1) : [];
 
   root.innerHTML =
     (firstFiltered
-      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications)
+      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications, mode)
       : "") +
     (recentFlashes.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
@@ -402,10 +433,10 @@ export function renderCandidateQueuePanel(options) {
           .join("") +
         "</div></div>"
       : "") +
-    (filtered.length ? "" : '<div class="empty">No new listings match the current filters.</div>') +
+    (filtered.length ? "" : '<div class="empty">No listings match the current filters.</div>') +
     remainingFiltered
       .map(function (item, index) {
-        return renderCandidateCardHtml(item, index + 1, options, therapists, applications);
+        return renderCandidateCardHtml(item, index + 1, options, therapists, applications, mode);
       })
       .join("");
 

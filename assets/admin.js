@@ -192,6 +192,10 @@ let candidateFilters = {
   dedupe_status: "",
   review_lane: "",
 };
+let reviewFilters = {
+  q: "",
+  dedupe_status: "",
+};
 const reviewerWorkspace = createReviewerWorkspace({
   applicationFilters: applicationFilters,
   candidateFilters: candidateFilters,
@@ -424,6 +428,9 @@ function ensureWorkflowSectionRendered(sectionId) {
   switch (sectionId) {
     case "candidateQueuePanel":
       renderCandidateQueue();
+      break;
+    case "reviewQueuePanel":
+      renderReviewQueue();
       break;
     case "applicationsPanel":
       renderApplications();
@@ -5497,6 +5504,7 @@ function updateHeroStatus(context) {
 function updateNavCounts(counts) {
   var mapping = {
     navCountCandidates: counts.candidates,
+    navCountReview: counts.review,
     navCountConfirmations: counts.confirmations,
     navCountRequests: counts.requests,
     navCountLive: counts.live,
@@ -5622,7 +5630,14 @@ function renderStats() {
     }).length;
     const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
     const candidateReviewCount = candidateQueueItems.filter(function (item) {
-      return item.review_status !== "published" && item.review_status !== "archived";
+      return (
+        item.review_status !== "published" &&
+        item.review_status !== "archived" &&
+        item.review_status !== "needs_review"
+      );
+    }).length;
+    const candidateParkedReviewCount = candidateQueueItems.filter(function (item) {
+      return item.review_status === "needs_review";
     }).length;
     const candidateReadyCount = candidateQueueItems.filter(function (item) {
       return item.review_status === "ready_to_publish";
@@ -5807,6 +5822,7 @@ function renderStats() {
     });
     updateNavCounts({
       candidates: candidateReviewCount,
+      review: candidateParkedReviewCount,
       confirmations: profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount,
       requests: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
       live: profilesNeedingRefresh + strictImportBlockerCount,
@@ -7119,6 +7135,36 @@ function renderCandidateQueue() {
   });
 }
 
+function renderReviewQueue() {
+  withLazyAdminModule("./admin-candidate-queue.js", function (module) {
+    module.renderCandidateQueuePanel({
+      mode: "review",
+      root: document.getElementById("reviewQueue"),
+      countEl: document.getElementById("reviewQueueCount"),
+      authRequired: authRequired,
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+      filters: reviewFilters,
+      getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+      getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+      getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+      getCandidateReviewChipLabel: reviewModels.getCandidateReviewChipLabel,
+      getCandidateDedupeChipLabel: reviewModels.getCandidateDedupeChipLabel,
+      getSourceReferenceMeta: getSourceReferenceMeta,
+      buildCandidateDecisionActions: buildCandidateDecisionActions,
+      getReviewEventsForCandidate: getReviewEventsForCandidate,
+      renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+      renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+      escapeHtml: escapeHtml,
+      formatDate: formatDate,
+      decideTherapistCandidate: decideTherapistCandidate,
+      loadData: loadData,
+    });
+  });
+}
+
 function renderConciergeQueue() {
   withLazyAdminModule("./admin-concierge-queue.js", function (module) {
     module.renderConciergeQueuePanel({
@@ -7616,6 +7662,7 @@ function renderAll() {
   renderAdminSection("needs action now", reviewerWorkspace.renderAttentionQueue);
   renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
   renderAdminSection("add new listings", renderCandidateQueue);
+  renderAdminSection("review parked listings", renderReviewQueue);
   renderAdminSection("review applications", renderApplications);
   renderAdminSection("record inspector", renderAdminRecordInspector);
 }
@@ -8128,6 +8175,16 @@ document.getElementById("candidateReviewStatusFilter").addEventListener("change"
 document.getElementById("candidateDedupeStatusFilter").addEventListener("change", function (event) {
   candidateFilters.dedupe_status = event.target.value || "";
   renderCandidateQueue();
+});
+
+document.getElementById("reviewSearch").addEventListener("input", function (event) {
+  reviewFilters.q = event.target.value.trim();
+  renderReviewQueue();
+});
+
+document.getElementById("reviewDedupeStatusFilter").addEventListener("change", function (event) {
+  reviewFilters.dedupe_status = event.target.value || "";
+  renderReviewQueue();
 });
 
 if (getAdminSessionToken()) {

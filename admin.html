@@ -975,6 +975,21 @@
         background: rgba(194, 65, 12, 0.08);
         color: var(--red);
       }
+      .queue-card.is-review-mode {
+        border-color: rgba(217, 119, 6, 0.4);
+        background: linear-gradient(180deg, rgba(255, 247, 235, 0.6), #ffffff 40%);
+      }
+      .queue-card.is-review-mode .queue-more-details {
+        border-top: none;
+        margin-top: 0.75rem;
+      }
+      .queue-card.is-review-mode .queue-more-details > summary {
+        color: #7a4a0d;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
       .queue-card-links {
         display: flex;
         flex-wrap: wrap;
@@ -3807,6 +3822,7 @@
           <a href="#supplyReviewRegion"
             >Triage new listings<span class="nav-count" id="navCountCandidates"></span
           ></a>
+          <a href="#reviewRegion">Review<span class="nav-count" id="navCountReview"></span></a>
           <a href="#confirmationRegion"
             >Work confirmations<span class="nav-count" id="navCountConfirmations"></span
           ></a>
@@ -4281,7 +4297,6 @@
                         <select id="candidateReviewStatusFilter">
                           <option value="">All review statuses</option>
                           <option value="queued">Queued</option>
-                          <option value="needs_review">In review</option>
                           <option value="published">Published</option>
                           <option value="archived">Deleted</option>
                         </select>
@@ -4401,6 +4416,44 @@
                       </div>
                     </div>
                     <div id="applicationsList" style="display: none"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="admin-region-shell" id="reviewRegion">
+              <div class="admin-region-header">
+                <div>
+                  <h2 class="admin-region-title">Review — parked listings</h2>
+                  <div class="admin-region-copy">
+                    Listings parked here need investigation before publishing or deleting. Fix
+                    what's missing, then ship or scrap.
+                  </div>
+                </div>
+              </div>
+              <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
+                <div class="admin-workspace-main">
+                  <div class="admin-region-grid">
+                    <div class="panel" id="reviewQueuePanel" style="margin-bottom: 1rem">
+                      <div id="reviewQueueGuidance"></div>
+                      <div class="toolbar" style="margin-bottom: 0.8rem">
+                        <input
+                          type="search"
+                          id="reviewSearch"
+                          placeholder="Search parked listings, cities, source types..."
+                        />
+                        <select id="reviewDedupeStatusFilter">
+                          <option value="">All dedupe states</option>
+                          <option value="unreviewed">Unreviewed</option>
+                          <option value="unique">Unique</option>
+                          <option value="definite_duplicate">Definite duplicate</option>
+                          <option value="possible_duplicate">Possible duplicate</option>
+                          <option value="rejected_duplicate">Rejected duplicate</option>
+                          <option value="merged">Merged</option>
+                        </select>
+                        <div class="subtle" id="reviewQueueCount"></div>
+                      </div>
+                      <div id="reviewQueue"></div>
+                    </div>
                   </div>
                 </div>
               </div>
