@@ -4411,24 +4411,17 @@ function renderAdminWorkflowGuidance(context) {
         ? "Treat this lane like pipeline creation. Clear duplicate risk first, then push strong supply into publish or confirmation so promising listings do not age in review."
         : "No unworked candidate supply is waiting right now. Use this lane for net-new sourcing bursts or spot-checks.",
     badge:
-      candidateReadyCount > 0
-        ? candidateReadyCount + " ready to publish"
-        : candidateDuplicateCount > 0
-          ? candidateDuplicateCount + " duplicate decisions"
-          : "Lane stable",
-    metrics: [
-      { label: "In queue", value: String(candidateReviewCount) },
-      { label: "Publish now", value: String(candidateReadyCount) },
-      { label: "Duplicate risk", value: String(candidateDuplicateCount) },
-      { label: "Needs confirmation", value: String(candidateConfirmationCount) },
-    ],
+      candidateDuplicateCount > 0
+        ? candidateDuplicateCount + " possible duplicates"
+        : "Lane stable",
+    metrics: [{ label: "Listings to work", value: String(candidateReviewCount) }],
     steps: [
-      "Start with duplicate-risk cards so the system does not create parallel truth.",
-      "Move strong, unique listings into publish-ready or confirmation in the same sitting.",
+      "Work the top card first. Publish, send to review, or delete in one click.",
+      "Resolve any duplicate flag before publishing so the provider graph stays clean.",
       "Do not leave candidates as ambiguous maybes. Every card should leave cleaner than it arrived.",
     ],
     success: [
-      "Unique high-signal listings move toward publish or confirmation quickly.",
+      "Strong listings publish in one click without an intermediate staging step.",
       "Weak or duplicate supply stops clogging the top of the funnel.",
       "The queue reflects deliberate operating choices, not indecision.",
     ],
@@ -4696,18 +4689,21 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
     return;
   }
   if (inspectorAction.indexOf("candidate_") === 0) {
-    if (inspectorAction === "candidate_mark_ready") {
-      await decideTherapistCandidate(inspectorId, { decision: "mark_ready" });
-      adminInspectorActionStatus = "Candidate queued for publish review.";
-    } else if (inspectorAction === "candidate_confirmation") {
-      await decideTherapistCandidate(inspectorId, { decision: "needs_confirmation" });
-      adminInspectorActionStatus = "Candidate moved into confirmation.";
+    if (inspectorAction === "candidate_publish") {
+      await decideTherapistCandidate(inspectorId, { decision: "publish" });
+      adminInspectorActionStatus = "Candidate published from the inspector.";
+    } else if (inspectorAction === "candidate_review") {
+      await decideTherapistCandidate(inspectorId, { decision: "needs_review" });
+      adminInspectorActionStatus = "Candidate sent to review.";
+    } else if (inspectorAction === "candidate_delete") {
+      if (!window.confirm("Delete this listing? This archives it and removes it from the queue.")) {
+        return;
+      }
+      await decideTherapistCandidate(inspectorId, { decision: "archive" });
+      adminInspectorActionStatus = "Candidate deleted.";
     } else if (inspectorAction === "candidate_duplicate") {
       await decideTherapistCandidate(inspectorId, { decision: "reject_duplicate" });
       adminInspectorActionStatus = "Candidate marked as duplicate.";
-    } else if (inspectorAction === "candidate_publish") {
-      await decideTherapistCandidate(inspectorId, { decision: "publish" });
-      adminInspectorActionStatus = "Candidate published from the inspector.";
     }
     await loadData();
     renderAll();
@@ -5347,18 +5343,20 @@ function renderAdminRecordInspector() {
       '</li></ul></div><div class="inspector-actions"><button class="btn-primary" type="button" data-inspector-focus-kind="candidate" data-inspector-focus-id="' +
       escapeHtml(candidate.id) +
       '">Jump to card</button>' +
-      '<button class="btn-secondary" type="button" data-inspector-action="candidate_mark_ready" data-inspector-id="' +
-      escapeHtml(candidate.id) +
-      '">Queue for publish</button>' +
-      '<button class="btn-secondary" type="button" data-inspector-action="candidate_confirmation" data-inspector-id="' +
-      escapeHtml(candidate.id) +
-      '">Send to confirmation</button>' +
-      '<button class="btn-secondary" type="button" data-inspector-action="candidate_duplicate" data-inspector-id="' +
-      escapeHtml(candidate.id) +
-      '">Mark duplicate</button>' +
       '<button class="btn-primary" type="button" data-inspector-action="candidate_publish" data-inspector-id="' +
       escapeHtml(candidate.id) +
-      '">Publish now</button>' +
+      '">Publish</button>' +
+      '<button class="btn-secondary" type="button" data-inspector-action="candidate_review" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Send to Review</button>' +
+      '<button class="btn-danger-quiet" type="button" data-inspector-action="candidate_delete" data-inspector-id="' +
+      escapeHtml(candidate.id) +
+      '">Delete</button>' +
+      (candidate.dedupe_status === "possible_duplicate"
+        ? '<button class="btn-secondary" type="button" data-inspector-action="candidate_duplicate" data-inspector-id="' +
+          escapeHtml(candidate.id) +
+          '">Mark duplicate</button>'
+        : "") +
       '<button class="btn-secondary" type="button" data-inspector-nav-direction="prev"' +
       (candidateSequence.previous ? "" : " disabled") +
       ">Previous</button>" +
@@ -7222,47 +7220,24 @@ function buildCandidateDecisionActions(item) {
     );
   }
 
-  var actions = [];
-  if (item.review_status !== "ready_to_publish") {
-    actions.push(
-      '<button class="btn-secondary" data-candidate-decision="' +
-        escapeHtml(item.id) +
-        '" data-candidate-next="mark_ready">Queue for publish</button>',
-    );
-  }
-  if (item.review_status !== "needs_confirmation") {
-    actions.push(
-      '<button class="btn-secondary" data-candidate-decision="' +
-        escapeHtml(item.id) +
-        '" data-candidate-next="needs_confirmation">Send to confirmation</button>',
-    );
-  }
-  if (item.dedupe_status !== "rejected_duplicate") {
+  var actions = [
+    '<button class="btn-primary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="publish">Publish</button>',
+    '<button class="btn-secondary" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-next="needs_review">Send to Review</button>',
+    '<button class="btn-danger-quiet" data-candidate-decision="' +
+      escapeHtml(item.id) +
+      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>',
+  ];
+  if (item.dedupe_status === "possible_duplicate") {
     actions.push(
       '<button class="btn-secondary" data-candidate-decision="' +
         escapeHtml(item.id) +
         '" data-candidate-next="reject_duplicate">Mark as duplicate</button>',
     );
   }
-  if (item.matched_therapist_id) {
-    actions.push(
-      '<button class="btn-secondary" data-candidate-decision="' +
-        escapeHtml(item.id) +
-        '" data-candidate-next="merge_to_therapist">Merge into therapist</button>',
-    );
-  }
-  if (item.matched_application_id) {
-    actions.push(
-      '<button class="btn-secondary" data-candidate-decision="' +
-        escapeHtml(item.id) +
-        '" data-candidate-next="merge_to_application">Merge into application</button>',
-    );
-  }
-  actions.push(
-    '<button class="btn-primary" data-candidate-decision="' +
-      escapeHtml(item.id) +
-      '" data-candidate-next="publish">Publish now</button>',
-  );
   return actions.join("");
 }
 
@@ -8358,11 +8333,6 @@ document.getElementById("candidateReviewStatusFilter").addEventListener("change"
 
 document.getElementById("candidateDedupeStatusFilter").addEventListener("change", function (event) {
   candidateFilters.dedupe_status = event.target.value || "";
-  renderCandidateQueue();
-});
-
-document.getElementById("candidateReviewLaneFilter").addEventListener("change", function (event) {
-  candidateFilters.review_lane = event.target.value || "";
   renderCandidateQueue();
 });
 

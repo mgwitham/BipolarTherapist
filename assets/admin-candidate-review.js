@@ -316,6 +316,11 @@ export function bindCandidateDecisionButtons(root, handlers) {
         return;
       }
 
+      const confirmMessage = button.getAttribute("data-candidate-confirm");
+      if (confirmMessage && !window.confirm(confirmMessage)) {
+        return;
+      }
+
       const prior = button.textContent;
       const status = root.querySelector('[data-candidate-status-id="' + id + '"]');
 
@@ -334,12 +339,11 @@ export function bindCandidateDecisionButtons(root, handlers) {
             "background:#d4f2e4;color:#14502f;font-weight:700;font-size:0.85rem;";
           var successMessages = {
             publish: "Published successfully.",
-            needs_confirmation: "Sent to confirmation.",
+            needs_review: "Sent to review.",
             reject_duplicate: "Marked as duplicate.",
-            mark_ready: "Queued for publish.",
+            archive: "Deleted.",
             merge_to_therapist: "Merged into therapist.",
             merge_to_application: "Merged into application.",
-            archive: "Archived.",
           };
           status.textContent = successMessages[decision] || "Done.";
         }

@@ -687,7 +687,8 @@
         gap: 1rem;
       }
       .btn-primary,
-      .btn-secondary {
+      .btn-secondary,
+      .btn-danger-quiet {
         border: none;
         border-radius: 10px;
         padding: 0.7rem 1rem;
@@ -703,10 +704,74 @@
         border: 1px solid var(--border);
         color: #333;
       }
+      .btn-danger-quiet {
+        background: var(--white);
+        border: 1px solid rgba(194, 65, 12, 0.45);
+        color: var(--red);
+        font-weight: 600;
+      }
+      .btn-danger-quiet:hover,
+      .btn-danger-quiet:focus-visible {
+        background: rgba(194, 65, 12, 0.08);
+        border-color: var(--red);
+      }
       .btn-inline {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+      }
+      .queue-duplicate-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin-top: 0.7rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 10px;
+        border-left: 3px solid #d97706;
+        background: rgba(217, 119, 6, 0.08);
+        color: #7a4a0d;
+        font-size: 0.88rem;
+        font-weight: 600;
+        line-height: 1.4;
+      }
+      .queue-duplicate-banner-icon {
+        font-size: 1rem;
+        line-height: 1.2;
+      }
+      .queue-duplicate-action {
+        margin-top: 0.55rem;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .queue-duplicate-action .btn-secondary {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.86rem;
+      }
+      .queue-card-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 0.7rem;
+        font-size: 0.82rem;
+      }
+      .queue-card-links a,
+      .queue-card-links button {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: #5a7684;
+        font: inherit;
+        font-size: 0.82rem;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      .queue-card-links a:hover,
+      .queue-card-links button:hover,
+      .queue-card-links a:focus-visible,
+      .queue-card-links button:focus-visible {
+        color: var(--teal);
       }
       .cms-note {
         margin-top: 0.75rem;
@@ -3696,11 +3761,9 @@
                         <select id="candidateReviewStatusFilter">
                           <option value="">All review statuses</option>
                           <option value="queued">Queued</option>
-                          <option value="needs_review">Needs review</option>
-                          <option value="needs_confirmation">Needs confirmation</option>
-                          <option value="ready_to_publish">Ready to publish</option>
+                          <option value="needs_review">In review</option>
                           <option value="published">Published</option>
-                          <option value="archived">Archived</option>
+                          <option value="archived">Deleted</option>
                         </select>
                         <select id="candidateDedupeStatusFilter">
                           <option value="">All dedupe states</option>
@@ -3709,14 +3772,6 @@
                           <option value="possible_duplicate">Possible duplicate</option>
                           <option value="rejected_duplicate">Rejected duplicate</option>
                           <option value="merged">Merged</option>
-                        </select>
-                        <select id="candidateReviewLaneFilter">
-                          <option value="">All ops lanes</option>
-                          <option value="publish_now">Publish now</option>
-                          <option value="editorial_review">Editorial review</option>
-                          <option value="needs_confirmation">Needs confirmation</option>
-                          <option value="resolve_duplicates">Resolve duplicates</option>
-                          <option value="archived">Archived</option>
                         </select>
                         <div class="subtle" id="candidateQueueCount"></div>
                       </div>

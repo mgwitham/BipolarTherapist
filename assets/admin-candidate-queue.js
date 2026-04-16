@@ -37,89 +37,15 @@ function getCandidateDecisionOutcome(decision) {
   switch (decision) {
     case "publish":
       return "Published.";
-    case "needs_confirmation":
-      return "Sent to confirmation.";
+    case "needs_review":
+      return "Sent to review.";
+    case "archive":
+      return "Deleted.";
     case "reject_duplicate":
       return "Marked as duplicate.";
-    case "merge":
-      return "Merged.";
-    case "archive":
-      return "Archived.";
-    case "mark_ready":
-      return "Queued for publish.";
     default:
       return "Done.";
   }
-}
-
-function getCandidateStartHereGuidance(item) {
-  if (!item) {
-    return {
-      primaryAction: "mark_ready",
-      primaryLabel: "Queue for publish",
-      whyNow: "This is the top current new listing in the filtered view.",
-      doneWhen: "This listing has a clear next state and is no longer sitting in unworked review.",
-    };
-  }
-
-  if (item.dedupe_status === "possible_duplicate") {
-    return {
-      primaryAction: "reject_duplicate",
-      primaryLabel: "Resolve duplicate now",
-      whyNow:
-        "Possible duplicate risk should be resolved first so you do not create clutter or publish the wrong profile.",
-      doneWhen:
-        "The listing is marked duplicate, merged, or clearly kept as unique before you move on.",
-    };
-  }
-
-  if (
-    item.review_status === "needs_confirmation" ||
-    item.review_lane === "needs_confirmation" ||
-    item.publish_recommendation === "needs_confirmation"
-  ) {
-    return {
-      primaryAction: "needs_confirmation",
-      primaryLabel: "Send to confirmation now",
-      whyNow:
-        "This listing looks promising but still needs one more trust pass before it is safe to publish.",
-      doneWhen:
-        "The listing is clearly moved into confirmation follow-up instead of staying in ambiguous review.",
-    };
-  }
-
-  if (item.review_status === "ready_to_publish" || item.review_lane === "publish_now") {
-    return {
-      primaryAction: "publish",
-      primaryLabel: "Publish now",
-      whyNow: "This is a strong publish-ready listing and the fastest way to add trusted supply.",
-      doneWhen:
-        "The listing is published or moved out of publish-ready with a clear reason recorded.",
-    };
-  }
-
-  return {
-    primaryAction: "mark_ready",
-    primaryLabel: "Queue for publish",
-    whyNow:
-      "This listing appears unique enough to move forward, even if you are not publishing it immediately.",
-    doneWhen:
-      "The listing is moved into the right next state: publish-ready, confirmation, duplicate, merge, or archive.",
-  };
-}
-
-function buildCandidateButton(itemId, action, label, isPrimary) {
-  return (
-    '<button class="' +
-    (isPrimary ? "btn-primary" : "btn-secondary") +
-    '" data-candidate-decision="' +
-    itemId +
-    '" data-candidate-next="' +
-    action +
-    '">' +
-    label +
-    "</button>"
-  );
 }
 
 function renderCandidateCardHtml(item, index, options, therapists, applications) {
@@ -137,8 +63,8 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   const trustSummary = options.getCandidateTrustSummary(item);
   const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
   const reviewEvents = options.getReviewEventsForCandidate(item);
-  const startHereGuidance = getCandidateStartHereGuidance(item);
   const actionFlash = getCandidateActionFlash(item.id);
+  const isPossibleDuplicate = item.dedupe_status === "possible_duplicate";
   const mergeWorkbench = renderCandidateMergeWorkbench(item, {
     therapists: therapists,
     applications: applications,
@@ -182,33 +108,53 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     mergeWorkbench +
     mergePreview;
 
-  // Fallback actions (exclude the primary)
-  var fallbackBtns = [];
-  if (
-    startHereGuidance.primaryAction !== "mark_ready" &&
-    item.review_status !== "ready_to_publish"
-  ) {
-    fallbackBtns.push(buildCandidateButton(item.id, "mark_ready", "Queue for publish", false));
-  }
-  if (
-    startHereGuidance.primaryAction !== "needs_confirmation" &&
-    item.review_status !== "needs_confirmation"
-  ) {
-    fallbackBtns.push(
-      buildCandidateButton(item.id, "needs_confirmation", "Send to confirmation", false),
-    );
-  }
-  if (
-    startHereGuidance.primaryAction !== "reject_duplicate" &&
-    item.dedupe_status !== "rejected_duplicate"
-  ) {
-    fallbackBtns.push(
-      buildCandidateButton(item.id, "reject_duplicate", "Mark as duplicate", false),
-    );
-  }
-  if (startHereGuidance.primaryAction !== "publish") {
-    fallbackBtns.push(buildCandidateButton(item.id, "publish", "Publish now", false));
-  }
+  const duplicateMatchLabel = isPossibleDuplicate
+    ? item.matched_therapist_slug || item.matched_application_id || item.matched_therapist_id || ""
+    : "";
+  const duplicateBanner = isPossibleDuplicate
+    ? '<div class="queue-duplicate-banner"><span class="queue-duplicate-banner-icon">\u26A0</span><span>Possible duplicate' +
+      (duplicateMatchLabel
+        ? " of <strong>" + options.escapeHtml(duplicateMatchLabel) + "</strong>"
+        : "") +
+      ". Check the match before publishing.</span></div>"
+    : "";
+
+  // Primary three actions, identical on every card
+  const primaryActions =
+    '<button class="btn-primary" data-candidate-decision="' +
+    options.escapeHtml(item.id) +
+    '" data-candidate-next="publish">Publish</button>' +
+    '<button class="btn-secondary" data-candidate-decision="' +
+    options.escapeHtml(item.id) +
+    '" data-candidate-next="needs_review">Send to Review</button>' +
+    '<button class="btn-danger-quiet" data-candidate-decision="' +
+    options.escapeHtml(item.id) +
+    '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
+
+  // Conditional duplicate action — only when a duplicate has been flagged
+  const duplicateAction = isPossibleDuplicate
+    ? '<div class="queue-duplicate-action"><button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="reject_duplicate">Mark as duplicate</button></div>'
+    : "";
+
+  // Secondary link row — open source, edit profile, see full details
+  const linkRow =
+    '<div class="queue-card-links">' +
+    (sourceReference.href
+      ? '<a href="' +
+        options.escapeHtml(sourceReference.href) +
+        '" target="_blank" rel="noopener">Open source</a>'
+      : "") +
+    '<button type="button" data-edit-candidate-id="' +
+    options.escapeHtml(item.id) +
+    '">Edit profile</button>' +
+    (expandedDetails
+      ? '<button type="button" data-queue-card-toggle-details="' +
+        options.escapeHtml(item.id) +
+        '">See full details</button>'
+      : "") +
+    "</div>";
 
   return (
     '<article class="queue-card' +
@@ -239,32 +185,14 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     options.escapeHtml([item.credentials, location].filter(Boolean).join(" · ")) +
     '</div></div><div class="queue-head-actions"><span class="tag">' +
     options.escapeHtml(options.getCandidateReviewChipLabel(item.review_status)) +
-    '</span><span class="tag">' +
-    options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
-    // Recommended next step sentence
-    '<div class="queue-summary" style="margin-top:0.6rem">' +
-    options.escapeHtml(startHereGuidance.whyNow) +
-    "</div>" +
-    // Action buttons
+    duplicateBanner +
+    // Primary action row
     '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
-    '<button class="btn-primary" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-next="' +
-    options.escapeHtml(startHereGuidance.primaryAction) +
-    '">' +
-    options.escapeHtml(startHereGuidance.primaryLabel) +
-    "</button>" +
-    fallbackBtns.join("") +
-    (sourceReference.href
-      ? '<a class="btn-secondary btn-inline" href="' +
-        options.escapeHtml(sourceReference.href) +
-        '" target="_blank" rel="noopener">Open source</a>'
-      : "") +
-    '<button class="btn-secondary btn-inline" data-edit-candidate-id="' +
-    options.escapeHtml(item.id) +
-    '">Edit profile</button>' +
+    primaryActions +
     "</div>" +
+    duplicateAction +
+    linkRow +
     // Status feedback
     '<div class="review-coach-status" data-candidate-status-id="' +
     options.escapeHtml(item.id) +
@@ -273,12 +201,36 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     "</div>" +
     // Collapsed details
     (expandedDetails
-      ? '<details class="queue-more-details"><summary>See full details</summary><div class="queue-more-details-body">' +
+      ? '<details class="queue-more-details" data-queue-card-details-id="' +
+        options.escapeHtml(item.id) +
+        '"><summary>See full details</summary><div class="queue-more-details-body">' +
         expandedDetails +
         "</div></details>"
       : "") +
     "</article>"
   );
+}
+
+function bindQueueCardDetailToggles(root) {
+  if (!root) {
+    return;
+  }
+  root.querySelectorAll("[data-queue-card-toggle-details]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const id = button.getAttribute("data-queue-card-toggle-details");
+      if (!id) {
+        return;
+      }
+      const card = button.closest("[data-candidate-card-id]");
+      const details = card ? card.querySelector("[data-queue-card-details-id]") : null;
+      if (details) {
+        details.open = !details.open;
+        if (details.open) {
+          details.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }
+    });
+  });
 }
 
 export function renderCandidateQueuePanel(options) {
@@ -322,9 +274,6 @@ export function renderCandidateQueuePanel(options) {
     if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
       return false;
     }
-    if (filters.review_lane && item.review_lane !== filters.review_lane) {
-      return false;
-    }
     return true;
   });
 
@@ -341,15 +290,6 @@ export function renderCandidateQueuePanel(options) {
     return;
   }
 
-  const duplicateCount = candidates.filter(function (item) {
-    return item.dedupe_status === "possible_duplicate";
-  }).length;
-  const confirmCount = candidates.filter(function (item) {
-    return item.review_status === "needs_confirmation";
-  }).length;
-  const publishNowCount = candidates.filter(function (item) {
-    return item.review_lane === "publish_now";
-  }).length;
   const recentFlashes = getRecentCandidateActionFlashes(candidates, 3);
   const firstFiltered = filtered.length ? filtered[0] : null;
   const remainingFiltered = filtered.length > 1 ? filtered.slice(1) : [];
@@ -373,37 +313,6 @@ export function renderCandidateQueuePanel(options) {
           .join("") +
         "</div></div>"
       : "") +
-    '<div class="queue-insights"><div class="queue-insights-title">New listings snapshot</div><div class="queue-insights-grid">' +
-    [
-      {
-        value: publishNowCount,
-        label: "Publish now lane",
-        note: "These are the fastest trustworthy wins if the source trail looks clean.",
-      },
-      {
-        value: confirmCount,
-        label: "Needs confirmation",
-        note: "Good listings that still need one more trust pass before publish.",
-      },
-      {
-        value: duplicateCount,
-        label: "Possible duplicates",
-        note: "Review these before publishing to keep the provider graph clean.",
-      },
-    ]
-      .map(function (item) {
-        return (
-          '<div class="queue-insight-card"><div class="queue-insight-value">' +
-          options.escapeHtml(item.value) +
-          '</div><div class="queue-insight-label">' +
-          options.escapeHtml(item.label) +
-          '</div><div class="queue-insight-note">' +
-          options.escapeHtml(item.note) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>" +
     (filtered.length ? "" : '<div class="empty">No new listings match the current filters.</div>') +
     remainingFiltered
       .map(function (item, index) {
@@ -418,4 +327,5 @@ export function renderCandidateQueuePanel(options) {
     },
     loadData: options.loadData,
   });
+  bindQueueCardDetailToggles(root);
 }
