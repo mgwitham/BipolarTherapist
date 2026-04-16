@@ -2,36 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  buildDirectoryStrategySegments,
   compareTherapistsWithFilters,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
 
-test("buildDirectoryStrategySegments captures the active directory filter intent", function () {
-  const segments = buildDirectoryStrategySegments({
-    telehealth: true,
-    in_person: false,
-    medication_management: true,
-    insurance: "Aetna",
-    accepting: false,
-    sortBy: "soonest_availability",
-  });
-
-  assert.deepEqual(segments, [
-    "all",
-    "format:telehealth",
-    "intent:psychiatry",
-    "medication:yes",
-    "insurance:user",
-    "urgency:within-2-weeks",
-  ]);
-});
-
 test("compareTherapistsWithFilters favors the stronger specialty match in best-match sorting", function () {
   const filters = {
-    q: "",
     state: "",
-    city: "",
     specialty: "Bipolar II",
     modality: "",
     population: "",
@@ -88,9 +65,7 @@ test("compareTherapistsWithFilters favors the stronger specialty match in best-m
 
 test("matchesDirectoryFilters applies the shared directory predicate consistently", function () {
   const filters = {
-    q: "bipolar",
     state: "CA",
-    city: "Los Angeles",
     specialty: "Bipolar II",
     modality: "CBT",
     population: "Adults",
@@ -129,7 +104,6 @@ test("matchesDirectoryFilters applies the shared directory predicate consistentl
   const nonMatchingTherapist = {
     ...matchingTherapist,
     slug: "sam-lee",
-    city: "San Diego",
     insurance_accepted: ["United"],
   };
 

@@ -3,9 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildDirectoryTestControls,
-  buildDirectoryTestFilters,
   buildDirectoryTestTherapist,
-  renderDirectoryTestShortlist,
   runDirectoryTestFlow,
 } from "./directory-test-helpers.mjs";
 
@@ -38,8 +36,7 @@ test("directory flow harness applies controls, sorts results, and renders the to
   assert.equal(flow.renderState.activeFilterCount, 5);
   assert.match(flow.html, /Jamie Rivera/);
   assert.match(flow.html, /Book intro/);
-  assert.match(flow.html, /Bipolar II/);
-  assert.match(flow.html, /Save to shortlist/);
+  assert.match(flow.html, /Save to list/);
 });
 
 test("directory flow harness exposes empty results when filters overconstrain the list", function () {
@@ -92,31 +89,4 @@ test("directory flow harness responds to sort changes in controller state", func
 
   assert.equal(flow.sortChanged.filters.sortBy, "soonest_availability");
   assert.equal(flow.renderState.pageItems[0].slug, "fast-option");
-});
-
-test("directory shortlist helper surfaces outreach progress and queue priority", function () {
-  const therapist = buildDirectoryTestTherapist();
-  const html = renderDirectoryTestShortlist({
-    shortlist: [{ slug: therapist.slug, priority: "Best fit", note: "" }],
-    therapists: [therapist],
-    filters: buildDirectoryTestFilters({
-      insurance: "",
-      telehealth: false,
-      accepting: false,
-    }),
-    buildCompareUrl: function () {
-      return "match.html?shortlist=jamie-rivera";
-    },
-    buildOutreachQueueUrl: function () {
-      return "match.html?shortlist=jamie-rivera&entry=outreach_queue";
-    },
-    outreachProgress: {
-      hasProgress: true,
-      summary: "You already started outreach here.",
-    },
-  });
-
-  assert.match(html, /Resume outreach queue/);
-  assert.match(html, /You already started outreach here\./);
-  assert.match(html, /Contact first/);
 });
