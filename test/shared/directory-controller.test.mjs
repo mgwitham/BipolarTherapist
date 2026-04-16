@@ -47,9 +47,8 @@ test("buildDirectoryRenderState derives page items and preview slug", function (
 
 test("applyDirectoryFiltersAction reads controls and resets paging", function () {
   const controls = {
-    q: { value: " bipolar " },
     state: { value: "CA" },
-    city: { value: "" },
+    zip: { value: " 90210 " },
     specialty: { value: "" },
     modality: { value: "" },
     population: { value: "" },
@@ -73,7 +72,8 @@ test("applyDirectoryFiltersAction reads controls and resets paging", function ()
   });
 
   assert.equal(state.currentPage, 1);
-  assert.equal(state.filters.q, "bipolar");
+  assert.equal(state.filters.state, "CA");
+  assert.equal(state.filters.zip, "90210");
   assert.equal(state.filters.telehealth, true);
   assert.equal(state.filters.responsive_contact, true);
 });

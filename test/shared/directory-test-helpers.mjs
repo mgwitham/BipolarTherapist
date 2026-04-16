@@ -7,11 +7,8 @@ import {
   compareTherapistsWithFilters,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
-import {
-  buildCardViewModel,
-  buildShortlistBarViewModel,
-} from "../../assets/directory-view-model.js";
-import { renderCardMarkup, renderShortlistBarMarkup } from "../../assets/directory-render.js";
+import { buildCardViewModel } from "../../assets/directory-view-model.js";
+import { renderCardMarkup } from "../../assets/directory-render.js";
 
 export function buildDirectoryTestTherapist(overrides) {
   return {
@@ -66,9 +63,7 @@ export function buildDirectoryTestFilters(overrides) {
 
 export function buildDirectoryTestControls(overrides) {
   return {
-    q: { value: "" },
     state: { value: "CA" },
-    city: { value: "" },
     specialty: { value: "Bipolar II" },
     modality: { value: "" },
     population: { value: "" },
@@ -95,7 +90,6 @@ export function renderDirectoryTestCard(options) {
       therapist: therapist,
       filters: filters,
       shortlist: shortlist,
-      shortlistPriorityOptions: ["Best fit", "Best availability", "Best value"],
       isShortlisted: function (slug) {
         return shortlist.some(function (item) {
           return item.slug === slug;
@@ -103,19 +97,6 @@ export function renderDirectoryTestCard(options) {
       },
     }),
   });
-}
-
-export function renderDirectoryTestShortlist(options) {
-  return renderShortlistBarMarkup({
-    model: buildShortlistBarViewModel({
-      shortlist: options.shortlist,
-      therapists: options.therapists,
-      filters: options.filters || buildDirectoryTestFilters(),
-      buildCompareUrl: options.buildCompareUrl,
-      buildOutreachQueueUrl: options.buildOutreachQueueUrl,
-      outreachProgress: options.outreachProgress,
-    }),
-  }).html;
 }
 
 export function runDirectoryTestFlow(options) {
@@ -156,7 +137,6 @@ export function runDirectoryTestFlow(options) {
           therapist: renderState.pageItems[0],
           filters: sortChanged.filters,
           shortlist: [],
-          shortlistPriorityOptions: ["Best fit", "Best availability", "Best value"],
           isShortlisted: function () {
             return false;
           },
