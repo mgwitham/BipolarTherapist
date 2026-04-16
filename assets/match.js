@@ -67,7 +67,7 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
+import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
@@ -482,10 +482,7 @@ function getTherapistZipValue(therapist) {
 }
 
 function getZipDistance(fromZip, toZip) {
-  if (!/^\d{5}$/.test(String(fromZip || "")) || !/^\d{5}$/.test(String(toZip || ""))) {
-    return Number.POSITIVE_INFINITY;
-  }
-  return Math.abs(Number(fromZip) - Number(toZip));
+  return getZipDistanceMiles(fromZip, toZip);
 }
 
 function applyZipAwareOrdering(entries, profile) {
@@ -493,6 +490,9 @@ function applyZipAwareOrdering(entries, profile) {
   if (!requestedZip) {
     return (entries || []).slice();
   }
+
+  var isInPerson =
+    profile && (profile.care_format === "In-Person" || profile.care_format === "In-person");
 
   return (entries || []).slice().sort(function (a, b) {
     var aScore = Number(a?.evaluation?.score) || 0;
@@ -502,6 +502,31 @@ function applyZipAwareOrdering(entries, profile) {
     var bZip = getTherapistZipValue(b && b.therapist);
     var aDistance = getZipDistance(requestedZip, aZip);
     var bDistance = getZipDistance(requestedZip, bZip);
+
+    // For in-person: proximity is heavily weighted
+    // Closer therapist wins unless score gap is very large (>40 points)
+    if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
+      if (scoreDiff <= 40) {
+        // Within 10 miles: strong proximity boost
+        var aClose = aDistance <= 10;
+        var bClose = bDistance <= 10;
+        if (aClose !== bClose) {
+          return Number(bClose) - Number(aClose);
+        }
+        // Within 25 miles: moderate proximity boost
+        var aNear = aDistance <= 25;
+        var bNear = bDistance <= 25;
+        if (aNear !== bNear && scoreDiff <= 30) {
+          return Number(bNear) - Number(aNear);
+        }
+        // Otherwise sort by distance if scores are close
+        if (scoreDiff <= 20) {
+          return aDistance - bDistance;
+        }
+      }
+    }
+
+    // For telehealth or no format: lighter proximity weight (original behavior)
     var aExact = aZip === requestedZip;
     var bExact = bZip === requestedZip;
 

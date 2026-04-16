@@ -214,3 +214,31 @@ export function getZipMarketStatus(zip) {
     message: "We’re not currently live in " + (US_STATE_NAMES[state] || state) + " yet.",
   };
 }
+
+export function getZipCoords(zip) {
+  var normalizedZip = normalizeZip(zip);
+  if (!normalizedZip) return null;
+  var entry = californiaZipcodes[normalizedZip];
+  if (!entry || entry.lat === undefined || entry.lng === undefined) return null;
+  return { lat: entry.lat, lng: entry.lng };
+}
+
+export function getZipDistanceMiles(fromZip, toZip) {
+  var from = getZipCoords(fromZip);
+  var to = getZipCoords(toZip);
+  if (!from || !to) return Number.POSITIVE_INFINITY;
+  return haversine(from.lat, from.lng, to.lat, to.lng);
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  var R = 3959;
+  var dLat = ((lat2 - lat1) * Math.PI) / 180;
+  var dLng = ((lng2 - lng1) * Math.PI) / 180;
+  var a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
