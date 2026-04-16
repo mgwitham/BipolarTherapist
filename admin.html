@@ -305,6 +305,207 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.95),
           0 10px 18px rgba(52, 94, 111, 0.08);
       }
+      .nav-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.2rem;
+        margin-left: 0.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .nav-count:empty {
+        display: none;
+      }
+      .admin-quick-nav-links a.is-active .nav-count,
+      .admin-quick-nav-links a[aria-current="true"] .nav-count {
+        background: rgba(26, 122, 143, 0.22);
+      }
+      .admin-now {
+        margin-bottom: 0.85rem;
+        padding: 0.95rem 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at top left, rgba(42, 156, 179, 0.08), transparent 32%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+        box-shadow: 0 12px 26px rgba(29, 58, 74, 0.05);
+        display: grid;
+        gap: 0.9rem;
+      }
+      .admin-now-title {
+        margin: 0 0 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #628192;
+      }
+      .admin-now-empty {
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px dashed rgba(132, 163, 178, 0.35);
+        color: #547283;
+        font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.55);
+      }
+      .priority-rows {
+        display: grid;
+        gap: 0.5rem;
+      }
+      .priority-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.85rem;
+        width: 100%;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 14px;
+        background: #ffffff;
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        transition:
+          border-color 140ms ease,
+          box-shadow 140ms ease,
+          transform 140ms ease;
+      }
+      .priority-row:hover {
+        border-color: rgba(26, 122, 143, 0.4);
+        box-shadow: 0 8px 18px rgba(29, 58, 74, 0.08);
+        transform: translateY(-1px);
+      }
+      .priority-row:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
+      }
+      .priority-row-rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-weight: 800;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+      }
+      .priority-row-body {
+        display: grid;
+        gap: 0.15rem;
+        min-width: 0;
+      }
+      .priority-row-headline {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.25;
+      }
+      .priority-row-target {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--teal-dark);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .priority-row-why {
+        font-size: 0.8rem;
+        color: #6a8494;
+        line-height: 1.35;
+      }
+      .priority-row-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #ffffff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .priority-row:hover .priority-row-action {
+        background: var(--teal-dark);
+      }
+      .priority-row-arrow {
+        font-size: 0.9rem;
+      }
+      .admin-now-scorecard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.55rem;
+      }
+      .admin-now-scorecard .stat-card {
+        padding: 0.7rem 0.85rem;
+        border-radius: 14px;
+      }
+      .admin-now-scorecard .stat-value {
+        font-size: 1.55rem;
+      }
+      .admin-now-scorecard .stat-label {
+        font-size: 0.82rem;
+      }
+      .admin-now-scorecard .stat-action-note {
+        font-size: 0.72rem;
+      }
+      .region-playbook-toggle {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 0 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(26, 122, 143, 0.2);
+        background: rgba(255, 255, 255, 0.7);
+        color: #547283;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          color 140ms ease,
+          background-color 140ms ease,
+          border-color 140ms ease;
+      }
+      .region-playbook-toggle:hover {
+        color: var(--teal-dark);
+        background: rgba(238, 247, 249, 0.95);
+        border-color: rgba(26, 122, 143, 0.35);
+      }
+      .region-playbook-toggle[aria-expanded="true"] .region-playbook-toggle-caret {
+        transform: rotate(180deg);
+      }
+      .region-playbook-toggle-caret {
+        display: inline-block;
+        font-size: 0.7rem;
+        transition: transform 140ms ease;
+      }
+      .sop-note.is-collapsed {
+        display: none;
+      }
+      @media (max-width: 720px) {
+        .priority-row {
+          grid-template-columns: auto minmax(0, 1fr);
+          row-gap: 0.55rem;
+        }
+        .priority-row-action {
+          grid-column: 1 / -1;
+          justify-self: start;
+        }
+      }
       .admin-stack {
         display: grid;
         gap: 0.85rem;
@@ -3219,23 +3420,31 @@
     <div class="wrap">
       <div class="hero">
         <div class="hero-copy">
-          <h1>Admin Portal</h1>
-          <p class="subtle">
-            The control panel for managing applications, workflows, and intelligence.
-          </p>
+          <h1>Admin</h1>
+          <p class="subtle" id="adminHeroStatus">Loading status…</p>
         </div>
       </div>
 
       <div class="admin-quick-nav" id="adminQuickNav" style="display: none">
-        <div class="admin-quick-nav-label">Jump To</div>
+        <div class="admin-quick-nav-label">Jump to</div>
         <div class="admin-quick-nav-links">
-          <a href="#supplyReviewRegion">New scraped listings</a>
-          <a href="#liveListingsRegion">Live Listings</a>
-          <a href="#confirmationRegion">Confirmation</a>
-          <a href="#requestsRegion">Requests</a>
-          <a href="#intelligenceRegion">Intelligence</a>
+          <a href="#supplyReviewRegion"
+            >Triage new listings<span class="nav-count" id="navCountCandidates"></span
+          ></a>
+          <a href="#confirmationRegion"
+            >Work confirmations<span class="nav-count" id="navCountConfirmations"></span
+          ></a>
+          <a href="#requestsRegion"
+            >Handle requests<span class="nav-count" id="navCountRequests"></span
+          ></a>
+          <a href="#liveListingsRegion"
+            >Maintain live<span class="nav-count" id="navCountLive"></span
+          ></a>
+          <a href="#intelligenceRegion">Check health</a>
         </div>
       </div>
+
+      <section class="admin-now" id="adminStats" style="display: none"></section>
 
       <div class="auth-gate" id="adminAuthGate" style="display: none">
         <div class="auth-gate-layout">
