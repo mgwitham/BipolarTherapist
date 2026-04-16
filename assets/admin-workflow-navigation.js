@@ -58,6 +58,17 @@ export function createAdminWorkflowNavigator(config) {
     return null;
   }
 
+  function isCardLikeTarget(element) {
+    if (!element || !element.classList) {
+      return false;
+    }
+    return (
+      element.classList.contains("queue-card") ||
+      element.classList.contains("application-card") ||
+      element.classList.contains("mini-card")
+    );
+  }
+
   function applyWorkflowFocusMode(target) {
     const grid = getGrid();
     if (!grid || !target) {
@@ -72,7 +83,13 @@ export function createAdminWorkflowNavigator(config) {
     clearWorkflowFocusMode();
     grid.classList.add("workflow-focus-active");
     owner.classList.add("workflow-focus-owner");
-    target.classList.add("workflow-focus-target");
+    // Only tag a card-level focus-target. Tagging a whole section makes the
+    // `:has(.workflow-focus-target)` CSS rule dim every card inside the owner,
+    // which washes out the page on a fresh reload of a section-anchor URL
+    // like `/admin#supplyReviewRegion`.
+    if (isCardLikeTarget(target)) {
+      target.classList.add("workflow-focus-target");
+    }
   }
 
   function buildWorkflowHandoffMarkup(item) {
