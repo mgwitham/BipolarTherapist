@@ -735,6 +735,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getCandidateDedupeChipLabel(status) {
+    if (status === "definite_duplicate") return "Definite duplicate";
     if (status === "possible_duplicate") return "Possible duplicate";
     if (status === "rejected_duplicate") return "Rejected duplicate";
     if (status === "merged") return "Merged";
@@ -808,7 +809,8 @@ export function createAdminReviewModels(dependencies) {
     } else {
       attention.push("Operational details");
     }
-    if (item.dedupe_status === "possible_duplicate") attention.unshift("Duplicate risk");
+    if (item.dedupe_status === "definite_duplicate") attention.unshift("Confirmed duplicate");
+    else if (item.dedupe_status === "possible_duplicate") attention.unshift("Duplicate risk");
     var watchFields = attention.slice(0, 3);
     var headline = watchFields.length
       ? "Watch " + watchFields.join(", ")
@@ -820,8 +822,10 @@ export function createAdminReviewModels(dependencies) {
 
   function getCandidateTrustRecommendation(item, summary) {
     var trust = summary || getCandidateTrustSummary(item);
+    if (item.dedupe_status === "definite_duplicate")
+      return "This candidate matches an existing record on license and name. Mark as duplicate or merge before doing any publish work.";
     if (item.dedupe_status === "possible_duplicate")
-      return "Resolve duplicate risk before doing any publish or confirmation work.";
+      return "Compare with the possible match before doing any publish or confirmation work.";
     if (trust.attention.includes("Source trail") && trust.attention.includes("Contact path")) {
       return "Confirm source trail and contact path first. Without those, this is not publish-ready.";
     }
@@ -842,7 +846,8 @@ export function createAdminReviewModels(dependencies) {
     var strong = [];
     var watch = [];
     var blockers = [];
-    if (item.dedupe_status === "possible_duplicate") blockers.push("Duplicate risk");
+    if (item.dedupe_status === "definite_duplicate") blockers.push("Confirmed duplicate");
+    else if (item.dedupe_status === "possible_duplicate") blockers.push("Duplicate risk");
     if (item.review_status === "needs_confirmation") watch.push("Confirmation pass");
     if (item.review_status === "needs_review" && item.publish_recommendation !== "ready") {
       watch.push("Editorial review");

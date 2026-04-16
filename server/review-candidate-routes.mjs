@@ -175,6 +175,7 @@ export async function handleCandidateRoutes(context) {
   const notes = String(body.notes || "").trim();
   const allowedDecisions = new Set([
     "mark_ready",
+    "mark_unique",
     "needs_review",
     "needs_confirmation",
     "archive",
@@ -219,6 +220,13 @@ export async function handleCandidateRoutes(context) {
   if (decision === "mark_ready") {
     reviewStatus = "ready_to_publish";
     publishRecommendation = "ready";
+  } else if (decision === "mark_unique") {
+    dedupeStatus = "unique";
+    if (reviewStatus === "queued" || !reviewStatus) {
+      reviewStatus = "needs_review";
+    }
+    eventType = "candidate_marked_unique";
+    changedFields.push("dedupeStatus");
   } else if (decision === "needs_review") {
     reviewStatus = "needs_review";
   } else if (decision === "needs_confirmation") {

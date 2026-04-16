@@ -27,7 +27,9 @@ export function renderIngestionScorecardPanel(options) {
     return item.review_lane === "publish_now";
   }).length;
   var duplicateCandidates = candidates.filter(function (item) {
-    return item.dedupe_status === "possible_duplicate";
+    return (
+      item.dedupe_status === "possible_duplicate" || item.dedupe_status === "definite_duplicate"
+    );
   }).length;
   var confirmationCandidates = candidates.filter(function (item) {
     return item.review_lane === "needs_confirmation";

@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
-import { buildProviderId } from "../shared/therapist-domain.mjs";
+import {
+  buildProviderId,
+  classifyDuplicateCertainty,
+  pickStrongestDuplicateMatch,
+} from "../shared/therapist-domain.mjs";
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapist-candidates.csv");
@@ -321,6 +325,7 @@ function parseDedupeStatus(value, fallback) {
     normalized === "unreviewed" ||
     normalized === "unique" ||
     normalized === "possible_duplicate" ||
+    normalized === "definite_duplicate" ||
     normalized === "merged" ||
     normalized === "rejected_duplicate"
   ) {
@@ -402,21 +407,51 @@ function buildCandidateDocument(row, context, index) {
     phone: normalizePhone(row.phone),
   };
 
-  const therapistMatch = context.therapists.find(function (record) {
-    return compareIdentity(identity, record).length > 0;
-  });
-  const applicationMatch = context.applications.find(function (record) {
-    return compareIdentity(identity, record).length > 0;
-  });
-  const existingCandidateMatch = context.candidates.find(function (record) {
-    return record.candidateId !== candidateId && compareIdentity(identity, record).length > 0;
-  });
+  const therapistMatches = context.therapists
+    .map(function (record) {
+      return { record: record, reasons: compareIdentity(identity, record) };
+    })
+    .filter(function (entry) {
+      return entry.reasons.length > 0;
+    });
+  const applicationMatches = context.applications
+    .map(function (record) {
+      return { record: record, reasons: compareIdentity(identity, record) };
+    })
+    .filter(function (entry) {
+      return entry.reasons.length > 0;
+    });
+  const existingCandidateMatches = context.candidates
+    .filter(function (record) {
+      return record.candidateId !== candidateId;
+    })
+    .map(function (record) {
+      return { record: record, reasons: compareIdentity(identity, record) };
+    })
+    .filter(function (entry) {
+      return entry.reasons.length > 0;
+    });
 
-  const hasDuplicate = Boolean(therapistMatch || applicationMatch || existingCandidateMatch);
-  const dedupeStatus = parseDedupeStatus(
-    row.dedupeStatus,
-    hasDuplicate ? "possible_duplicate" : "unique",
+  const bestTherapist = pickStrongestDuplicateMatch(therapistMatches);
+  const bestApplication = pickStrongestDuplicateMatch(applicationMatches);
+  const bestExistingCandidate = pickStrongestDuplicateMatch(existingCandidateMatches);
+
+  const strongestOverall = pickStrongestDuplicateMatch(
+    [bestTherapist, bestApplication, bestExistingCandidate].filter(Boolean),
   );
+  const bestReasons = strongestOverall ? strongestOverall.reasons : [];
+  const certainty = classifyDuplicateCertainty(bestReasons);
+  const therapistMatch = bestTherapist ? bestTherapist.record : null;
+  const applicationMatch = bestApplication ? bestApplication.record : null;
+
+  const hasDuplicate = certainty !== "unique";
+  const inferredDedupeStatus =
+    certainty === "definite"
+      ? "definite_duplicate"
+      : certainty === "possible"
+        ? "possible_duplicate"
+        : "unique";
+  const dedupeStatus = parseDedupeStatus(row.dedupeStatus, inferredDedupeStatus);
   const reviewStatus = parseReviewStatus(
     row.reviewStatus,
     hasDuplicate ? "needs_review" : "queued",
@@ -475,9 +510,14 @@ function buildCandidateDocument(row, context, index) {
     sessionFeeMax: parseNumber(row.sessionFeeMax),
     slidingScale: parseBoolean(row.slidingScale, false),
     dedupeStatus: dedupeStatus,
+    dedupeReasons: bestReasons,
     dedupeConfidence:
       parseNumber(row.dedupeConfidence) ||
-      (hasDuplicate ? 0.9 : parseNumber(row.extractionConfidence)),
+      (certainty === "definite"
+        ? 1
+        : certainty === "possible"
+          ? 0.9
+          : parseNumber(row.extractionConfidence)),
     matchedTherapistSlug: therapistMatch ? therapistMatch.slug || "" : "",
     matchedTherapistId: therapistMatch ? therapistMatch._id || "" : "",
     matchedApplicationId: applicationMatch ? applicationMatch._id || "" : "",
@@ -556,12 +596,15 @@ async function run() {
 
   await transaction.commit({ visibility: "sync" });
 
-  const duplicateCount = documents.filter(function (document) {
+  const definiteDuplicateCount = documents.filter(function (document) {
+    return document.dedupeStatus === "definite_duplicate";
+  }).length;
+  const possibleDuplicateCount = documents.filter(function (document) {
     return document.dedupeStatus === "possible_duplicate";
   }).length;
 
   console.log(
-    `Imported ${documents.length} therapist candidate record(s) into Sanity dataset "${config.dataset}". ${duplicateCount} candidate(s) were flagged as possible duplicates.`,
+    `Imported ${documents.length} therapist candidate record(s) into Sanity dataset "${config.dataset}". ${definiteDuplicateCount} flagged as definite duplicates, ${possibleDuplicateCount} as possible duplicates.`,
   );
 }
 

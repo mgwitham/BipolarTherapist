@@ -4,10 +4,12 @@ import assert from "node:assert/strict";
 import {
   buildDuplicateIdentity,
   buildProviderId,
+  classifyDuplicateCertainty,
   compareDuplicateIdentity,
   mapFieldReviewStatesToCamelCase,
   mapFieldReviewStatesToSnakeCase,
   normalizeFieldReviewStates,
+  pickStrongestDuplicateMatch,
   resolveApplicationIntakeType,
 } from "../../shared/therapist-domain.mjs";
 
@@ -107,4 +109,61 @@ test("field review state normalization defaults to unknown and maps between key 
       bipolar_years_experience: "unknown",
     },
   );
+});
+
+test("classifyDuplicateCertainty returns definite only when license and name both match", function () {
+  assert.equal(classifyDuplicateCertainty(["license", "name_location"]), "definite");
+  assert.equal(classifyDuplicateCertainty(["name_location", "license"]), "definite");
+  assert.equal(classifyDuplicateCertainty(["license", "name_location", "email"]), "definite");
+  // The import script emits "name_location_phone" as its confirmed-name signal.
+  assert.equal(classifyDuplicateCertainty(["license", "name_location_phone"]), "definite");
+});
+
+test("classifyDuplicateCertainty returns possible for single strong or weak signals", function () {
+  assert.equal(classifyDuplicateCertainty(["license"]), "possible");
+  assert.equal(classifyDuplicateCertainty(["email"]), "possible");
+  assert.equal(classifyDuplicateCertainty(["slug"]), "possible");
+  assert.equal(classifyDuplicateCertainty(["name_location"]), "possible");
+  assert.equal(classifyDuplicateCertainty(["license", "email"]), "possible");
+  assert.equal(classifyDuplicateCertainty(["license", "slug"]), "possible");
+});
+
+test("classifyDuplicateCertainty returns unique for empty or invalid input", function () {
+  assert.equal(classifyDuplicateCertainty([]), "unique");
+  assert.equal(classifyDuplicateCertainty(null), "unique");
+  assert.equal(classifyDuplicateCertainty(undefined), "unique");
+  assert.equal(classifyDuplicateCertainty("license"), "unique");
+});
+
+test("pickStrongestDuplicateMatch prefers entries with stronger reasons", function () {
+  const therapistA = { id: "A" };
+  const therapistB = { id: "B" };
+  const therapistC = { id: "C" };
+
+  const best = pickStrongestDuplicateMatch([
+    { record: therapistA, reasons: ["name_location"] },
+    { record: therapistB, reasons: ["license", "name_location"] },
+    { record: therapistC, reasons: ["slug"] },
+  ]);
+
+  assert.equal(best.record, therapistB);
+  assert.deepEqual(best.reasons, ["license", "name_location"]);
+});
+
+test("pickStrongestDuplicateMatch returns null when no reasons match", function () {
+  assert.equal(pickStrongestDuplicateMatch([]), null);
+  assert.equal(pickStrongestDuplicateMatch([{ record: { id: "A" }, reasons: [] }]), null);
+  assert.equal(pickStrongestDuplicateMatch(null), null);
+});
+
+test("pickStrongestDuplicateMatch tiebreaks on reason count when top reason ties", function () {
+  const therapistA = { id: "A" };
+  const therapistB = { id: "B" };
+
+  const best = pickStrongestDuplicateMatch([
+    { record: therapistA, reasons: ["license"] },
+    { record: therapistB, reasons: ["license", "email"] },
+  ]);
+
+  assert.equal(best.record, therapistB);
 });
