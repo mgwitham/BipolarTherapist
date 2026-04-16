@@ -346,11 +346,65 @@ export function createAdminDashboardCardBuilders(config) {
     );
   }
 
+  function buildPriorityActionRow(action, index) {
+    var item = action || {};
+    var attrs = [
+      'type="button"',
+      'class="priority-row"',
+      'data-admin-scroll-target="' + escapeHtml(item.targetId || "") + '"',
+    ];
+    if (item.confirmationFilter !== undefined) {
+      attrs.push('data-admin-confirmation-filter="' + escapeHtml(item.confirmationFilter) + '"');
+    }
+    if (item.applicationStatus !== undefined) {
+      attrs.push('data-admin-application-status="' + escapeHtml(item.applicationStatus) + '"');
+    }
+    if (item.conciergeStatus !== undefined) {
+      attrs.push('data-admin-concierge-status="' + escapeHtml(item.conciergeStatus) + '"');
+    }
+    if (item.portalRequestStatus !== undefined) {
+      attrs.push('data-admin-portal-request-status="' + escapeHtml(item.portalRequestStatus) + '"');
+    }
+    if (item.focusSelector !== undefined) {
+      attrs.push('data-admin-focus-selector="' + escapeHtml(item.focusSelector) + '"');
+    }
+    if (item.focusTargetId !== undefined) {
+      attrs.push('data-admin-focus-target-id="' + escapeHtml(item.focusTargetId) + '"');
+    }
+    if (item.headline !== undefined) {
+      attrs.push('data-admin-workflow-title="' + escapeHtml(item.headline) + '"');
+    }
+    if (item.firstStep !== undefined) {
+      attrs.push('data-admin-workflow-first-step="' + escapeHtml(item.firstStep) + '"');
+    }
+    if (item.successState !== undefined) {
+      attrs.push('data-admin-workflow-done="' + escapeHtml(item.successState) + '"');
+    }
+
+    return (
+      "<button " +
+      attrs.join(" ") +
+      '><span class="priority-row-rank">' +
+      escapeHtml(index + 1) +
+      '</span><span class="priority-row-body"><span class="priority-row-headline">' +
+      escapeHtml(item.headline || "Priority action") +
+      "</span>" +
+      (item.title
+        ? '<span class="priority-row-target">' + escapeHtml(item.title) + "</span>"
+        : "") +
+      (item.whyNow ? '<span class="priority-row-why">' + escapeHtml(item.whyNow) + "</span>" : "") +
+      '</span><span class="priority-row-action">' +
+      escapeHtml(item.actionLabel || "Open") +
+      '<span class="priority-row-arrow" aria-hidden="true">→</span></span></button>'
+    );
+  }
+
   return {
     buildActionStatCard,
     buildOperatorGuideCard,
     buildPassiveStatCard,
     buildPriorityActionCard,
+    buildPriorityActionRow,
     buildWorkQueueCard,
     wrapStatsGroup,
   };
