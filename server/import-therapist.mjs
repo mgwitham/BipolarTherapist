@@ -19,15 +19,12 @@ function slugify(text) {
 }
 
 async function importTherapist(profile) {
-  var slug = slugify(
-    [profile.name, profile.city, profile.state].filter(Boolean).join(" "),
-  );
+  var slug = slugify([profile.name, profile.city, profile.state].filter(Boolean).join(" "));
 
   // Check for duplicate
-  var existing = await client.fetch(
-    '*[_type == "therapist" && slug.current == $slug][0]._id',
-    { slug: slug },
-  );
+  var existing = await client.fetch('*[_type == "therapist" && slug.current == $slug][0]._id', {
+    slug: slug,
+  });
   if (existing) {
     console.log("  Already exists: " + slug + " (" + existing + ")");
     return null;
@@ -41,9 +38,7 @@ async function importTherapist(profile) {
       var result = await verifyLicense(config, typeCode, profile.licenseNumber);
       if (result.verified) {
         licensureVerification = result.licensureVerification;
-        console.log(
-          "  DCA verified: " + result.licensureVerification.primaryStatus,
-        );
+        console.log("  DCA verified: " + result.licensureVerification.primaryStatus);
       } else {
         console.log("  DCA verification failed: " + result.error);
       }
@@ -161,8 +156,16 @@ var therapists = [
     preferredContactMethod: "website",
     practiceName: "LifeStance Health",
     bio: "Rufina Sandoval is a Licensed Clinical Social Worker specializing in bipolar disorder, obsessive-compulsive disorder, and postpartum depression and anxiety. She works with adolescents and adults navigating mood disorders, trauma, and life transitions.",
-    careApproach: "Evidence-based therapeutic approaches for mood disorders with a focus on practical coping strategies and emotional regulation.",
-    specialties: ["Bipolar Disorder", "OCD", "Postpartum Depression", "Anxiety", "Depression", "Trauma"],
+    careApproach:
+      "Evidence-based therapeutic approaches for mood disorders with a focus on practical coping strategies and emotional regulation.",
+    specialties: [
+      "Bipolar Disorder",
+      "OCD",
+      "Postpartum Depression",
+      "Anxiety",
+      "Depression",
+      "Trauma",
+    ],
     treatmentModalities: ["CBT", "DBT"],
     clientPopulations: ["Adults", "Adolescents"],
     insuranceAccepted: [],
@@ -192,9 +195,17 @@ var therapists = [
     preferredContactMethod: "phone",
     practiceName: "",
     bio: "Lana Cohen is a Licensed Marriage and Family Therapist who explores how problems are shaped by complicated social, cultural, and political contexts. She uses collaborative, post-modern approaches emphasizing values and coping skills to help clients with bipolar disorder, depression, and anxiety.",
-    careApproach: "Collaborative, post-modern therapeutic approach using narrative and solution-focused techniques. Emphasizes values clarification and practical coping skills.",
+    careApproach:
+      "Collaborative, post-modern therapeutic approach using narrative and solution-focused techniques. Emphasizes values clarification and practical coping skills.",
     specialties: ["Bipolar Disorder", "Depression", "Anxiety", "ADHD", "Grief", "Chronic Illness"],
-    treatmentModalities: ["Narrative Therapy", "Solution Focused Brief Therapy", "ACT", "CBT", "DBT", "Existential Therapy"],
+    treatmentModalities: [
+      "Narrative Therapy",
+      "Solution Focused Brief Therapy",
+      "ACT",
+      "CBT",
+      "DBT",
+      "Existential Therapy",
+    ],
     clientPopulations: ["Adults"],
     insuranceAccepted: [],
     languages: ["English"],
@@ -225,8 +236,16 @@ var therapists = [
     preferredContactMethod: "phone",
     practiceName: "Kaushansky Psychology",
     bio: "Dr. Daniel Kaushansky is a Licensed Clinical Psychologist who earned his doctorate from the Chicago School of Professional Psychology. He completed a predoctoral internship in Child and Adolescent Psychiatry at Mount Sinai St. Luke's and a two-year postdoctoral fellowship in Adolescent Medicine at Children's Hospital Los Angeles. He holds certifications in both Psychoanalytic Psychotherapy and Cognitive Behavioral Therapy. He has extensive experience providing diagnostic assessments, crisis intervention, and individual therapy to adults with complex presentations including bipolar disorder.",
-    careApproach: "Integrative approach combining psychoanalytic psychotherapy and cognitive behavioral therapy for complex mood disorders. Specializes in diagnostic assessment and evidence-based treatment planning.",
-    specialties: ["Bipolar Disorder", "Depression", "Anxiety", "Addiction", "Grief", "Adolescent Therapy"],
+    careApproach:
+      "Integrative approach combining psychoanalytic psychotherapy and cognitive behavioral therapy for complex mood disorders. Specializes in diagnostic assessment and evidence-based treatment planning.",
+    specialties: [
+      "Bipolar Disorder",
+      "Depression",
+      "Anxiety",
+      "Addiction",
+      "Grief",
+      "Adolescent Therapy",
+    ],
     treatmentModalities: ["CBT", "Psychoanalytic Psychotherapy", "Psychodynamic Therapy"],
     clientPopulations: ["Adults", "Adolescents", "Young Adults"],
     insuranceAccepted: [],
@@ -245,7 +264,7 @@ var therapists = [
 async function run() {
   console.log("Importing " + therapists.length + " therapist(s)...\n");
   for (var i = 0; i < therapists.length; i++) {
-    console.log((i + 1) + ". " + therapists[i].name);
+    console.log(i + 1 + ". " + therapists[i].name);
     await importTherapist(therapists[i]);
   }
   console.log("\nDone.");
