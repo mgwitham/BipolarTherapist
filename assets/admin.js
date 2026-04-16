@@ -1,7 +1,6 @@
 import {
   approveApplication,
   getApplications,
-  getStats,
   getTherapists,
   requestApplicationChanges,
   publishApplication,
@@ -1029,9 +1028,28 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+const adminLazyModuleLoaders = import.meta.glob([
+  "./admin-candidate-queue.js",
+  "./admin-application-review.js",
+  "./admin-ops-inbox.js",
+  "./admin-concierge-queue.js",
+  "./admin-portal-requests.js",
+  "./admin-confirmation-queue.js",
+  "./admin-confirmation-sprint.js",
+  "./admin-import-blocker-sprint.js",
+  "./admin-sourcing-intelligence.js",
+  "./admin-ingestion-scorecard.js",
+  "./admin-refresh-queue.js",
+  "./admin-licensure-queue.js",
+  "./admin-licensure-sprint.js",
+  "./admin-licensure-deferred-queue.js",
+  "./admin-licensure-activity.js",
+]);
+
 function loadAdminLazyModule(path) {
   if (!adminLazyModuleCache.has(path)) {
-    adminLazyModuleCache.set(path, import(path));
+    const loader = adminLazyModuleLoaders[path];
+    adminLazyModuleCache.set(path, loader ? loader() : import(path));
   }
   return adminLazyModuleCache.get(path);
 }
@@ -1306,20 +1324,14 @@ const {
   },
 });
 
-const {
-  buildActionStatCard,
-  buildOperatorGuideCard,
-  buildPassiveStatCard,
-  buildPriorityActionCard,
-  buildWorkQueueCard,
-  wrapStatsGroup,
-} = createAdminDashboardCardBuilders({
-  escapeHtml: escapeHtml,
-  getWorkItemTriageLabel: getWorkItemTriageLabel,
-  buildWorkItemSummary: buildWorkItemSummary,
-  getWorkItemLaneLabel: getWorkItemLaneLabel,
-  getWorkItemTypeLabel: getWorkItemTypeLabel,
-});
+const { buildActionStatCard, buildOperatorGuideCard, buildPriorityActionRow, wrapStatsGroup } =
+  createAdminDashboardCardBuilders({
+    escapeHtml: escapeHtml,
+    getWorkItemTriageLabel: getWorkItemTriageLabel,
+    buildWorkItemSummary: buildWorkItemSummary,
+    getWorkItemLaneLabel: getWorkItemLaneLabel,
+    getWorkItemTypeLabel: getWorkItemTypeLabel,
+  });
 
 const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
   isWebsiteRouteHealthy: isWebsiteRouteHealthy,
@@ -5336,9 +5348,11 @@ function renderAdminRecordInspector() {
       escapeHtml(trustRecommendation) +
       "</li><li>" +
       escapeHtml(
-        candidate.dedupe_status === "possible_duplicate"
-          ? "Resolve duplicate risk before publishing so the provider graph stays clean."
-          : "Move this listing into publish, confirmation, merge, or archive so it does not remain ambiguous.",
+        candidate.dedupe_status === "definite_duplicate"
+          ? "License and name match an existing record. Mark as duplicate or merge before any publish work."
+          : candidate.dedupe_status === "possible_duplicate"
+            ? "Compare with the possible match before publishing so the provider graph stays clean."
+            : "Move this listing into publish, confirmation, merge, or archive so it does not remain ambiguous.",
       ) +
       '</li></ul></div><div class="inspector-actions"><button class="btn-primary" type="button" data-inspector-focus-kind="candidate" data-inspector-focus-id="' +
       escapeHtml(candidate.id) +
@@ -5450,6 +5464,78 @@ function renderAdminRecordInspector() {
     renderInspectorActionStatusHtml();
 }
 
+function updateHeroStatus(context) {
+  var heroStatus = document.getElementById("adminHeroStatus");
+  if (!heroStatus) return;
+  var ctx = context || {};
+  var parts = [];
+  if (ctx.priorityCount) {
+    parts.push(
+      ctx.priorityCount + " thing" + (ctx.priorityCount === 1 ? "" : "s") + " need you now",
+    );
+  } else {
+    parts.push("No urgent actions");
+  }
+  if (ctx.candidateReviewCount) {
+    parts.push(
+      ctx.candidateReviewCount +
+        " new listing" +
+        (ctx.candidateReviewCount === 1 ? "" : "s") +
+        " to triage",
+    );
+  }
+  if (ctx.pendingApplicationsCount) {
+    parts.push(
+      ctx.pendingApplicationsCount +
+        " pending application" +
+        (ctx.pendingApplicationsCount === 1 ? "" : "s"),
+    );
+  }
+  heroStatus.textContent = parts.join(" · ");
+}
+
+function updateNavCounts(counts) {
+  var mapping = {
+    navCountCandidates: counts.candidates,
+    navCountConfirmations: counts.confirmations,
+    navCountRequests: counts.requests,
+    navCountLive: counts.live,
+  };
+  Object.keys(mapping).forEach(function (id) {
+    var node = document.getElementById(id);
+    if (!node) return;
+    var value = Number(mapping[id]) || 0;
+    node.textContent = value > 0 ? String(value) : "";
+  });
+}
+
+var sopNotesCollapsed = false;
+function collapseRegionSopNotes() {
+  if (sopNotesCollapsed) return;
+  var sopNotes = document.querySelectorAll(".sop-note");
+  if (!sopNotes.length) return;
+  sopNotes.forEach(function (note, index) {
+    if (note.dataset.playbookWired === "1") return;
+    note.dataset.playbookWired = "1";
+    note.classList.add("is-collapsed");
+    var toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "region-playbook-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+    var panelId = "regionPlaybookPanel" + index;
+    note.id = panelId;
+    toggle.setAttribute("aria-controls", panelId);
+    toggle.innerHTML =
+      'Operator playbook <span class="region-playbook-toggle-caret" aria-hidden="true">▾</span>';
+    toggle.addEventListener("click", function () {
+      var isOpen = note.classList.toggle("is-collapsed") === false;
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+    note.parentNode.insertBefore(toggle, note);
+  });
+  sopNotesCollapsed = true;
+}
+
 function renderStats() {
   var statsRoot = document.getElementById("adminStats");
   if (!statsRoot) {
@@ -5462,20 +5548,6 @@ function renderStats() {
     return;
   }
   try {
-    const stats =
-      dataMode === "sanity"
-        ? {
-            total_therapists: publishedTherapists.length,
-            states_covered: new Set(
-              publishedTherapists.map(function (item) {
-                return item.state;
-              }),
-            ).size,
-            accepting_count: publishedTherapists.filter(function (item) {
-              return item.accepting_new_patients;
-            }).length,
-          }
-        : getStats();
     const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
     const applications = dataMode === "sanity" ? remoteApplications : getApplications();
     const conciergeRequests = readConciergeRequests();
@@ -5503,28 +5575,12 @@ function renderStats() {
         getTherapistFieldTrustAttentionCount(item)
       );
     }).length;
-    const profilesWithFieldTrustAttention = therapists.filter(function (item) {
-      return getTherapistFieldTrustAttentionCount(item) > 0;
-    }).length;
-    const recentlyMaintainedCount = therapists.filter(function (item) {
-      return Boolean(getConfirmationGraceWindowNote(item));
-    }).length;
     const profilesNeedingConfirmation = therapists.filter(function (item) {
       return getTherapistConfirmationAgenda(item).needs_confirmation;
     }).length;
     const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
     const strictImportBlockerCount = strictImportBlockers.length;
-    const topStrictImportBlocker = strictImportBlockers.length
-      ? strictImportBlockers[0].item.name
-      : "";
-    const strictImportBlockerHealth =
-      strictImportBlockerCount === 0
-        ? "Safe import gate clear"
-        : strictImportBlockerCount <= 3
-          ? "Safe import gate blocked by a small top wave"
-          : "Safe import gate still blocked by a broader backlog";
     const confirmationQueue = getPublishedTherapistConfirmationQueue();
-    const topConfirmationProfile = confirmationQueue.length ? confirmationQueue[0].item.name : "";
     const refreshQueue = therapists
       .map(function (item) {
         return {
@@ -5556,12 +5612,6 @@ function renderStats() {
         );
       });
     const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
-    const recentlyMaintainedProfiles = therapists.filter(function (item) {
-      return Boolean(getConfirmationGraceWindowNote(item));
-    });
-    const topRecentlyMaintainedProfile = recentlyMaintainedProfiles.length
-      ? recentlyMaintainedProfiles[0].name
-      : "";
     const confirmationQueueState = readConfirmationQueueState();
     const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
       var entry = confirmationQueueState[slug];
@@ -5578,7 +5628,11 @@ function renderStats() {
       return item.review_status === "ready_to_publish";
     }).length;
     const candidateDuplicateCount = candidateQueueItems.filter(function (item) {
-      return item.dedupe_status === "possible_duplicate" || item.dedupe_status === "unreviewed";
+      return (
+        item.dedupe_status === "definite_duplicate" ||
+        item.dedupe_status === "possible_duplicate" ||
+        item.dedupe_status === "unreviewed"
+      );
     }).length;
     const candidateConfirmationCount = candidateQueueItems.filter(function (item) {
       return item.review_status === "needs_confirmation";
@@ -5635,339 +5689,6 @@ function renderStats() {
     } catch (error) {
       console.error("Admin work queue failed to render:", error);
     }
-    let workQueueCards = [];
-    try {
-      workQueueCards = [
-        buildWorkQueueCard({
-          bucket: "my_tasks",
-          label: "My Tasks",
-          count: workQueueSnapshot.myTasks.length,
-          meta: workQueueSnapshot.preferredReviewer
-            ? "Assigned to " + workQueueSnapshot.preferredReviewer
-            : "Set a preferred reviewer to use this bucket",
-          topItem: workQueueSnapshot.myTasks[0] || null,
-          items: workQueueSnapshot.myTasks,
-          actionLabel: workQueueSnapshot.myTasks.length
-            ? "Open first owned task"
-            : "Nothing assigned",
-        }),
-        buildWorkQueueCard({
-          bucket: "unassigned",
-          label: "Unassigned",
-          count: workQueueSnapshot.unassigned.length,
-          meta: "Work that still needs an owner",
-          topItem: workQueueSnapshot.unassigned[0] || null,
-          items: workQueueSnapshot.unassigned,
-          actionLabel: workQueueSnapshot.unassigned.length
-            ? "Open first unassigned task"
-            : "No unassigned work",
-        }),
-        buildWorkQueueCard({
-          bucket: "due_today",
-          label: "Due Today",
-          count: workQueueSnapshot.dueToday.length,
-          meta: "Overdue and due-today work across the main lanes",
-          topItem: workQueueSnapshot.dueToday[0] || null,
-          items: workQueueSnapshot.dueToday,
-          actionLabel: workQueueSnapshot.dueToday.length
-            ? "Open first due task"
-            : "Nothing due today",
-        }),
-        buildWorkQueueCard({
-          bucket: "done_recently",
-          label: "Done Recently",
-          count: workQueueSnapshot.doneRecently.length,
-          meta: "Recently completed work for quick handoff context",
-          topItem: workQueueSnapshot.doneRecently[0] || null,
-          items: workQueueSnapshot.doneRecently,
-          actionLabel: workQueueSnapshot.doneRecently.length
-            ? "Open most recent completed task"
-            : "No recent completions",
-        }),
-      ];
-    } catch (error) {
-      console.error("Admin work queue cards failed to render:", error);
-      workQueueCards = [];
-    }
-    const publishMaintainCardConfig =
-      readyToApplyCount > 0
-        ? {
-            title: "Apply Ready Updates",
-            countLabel: readyToApplyCount,
-            copy: "Land therapist-confirmed values on live listings so trusted updates do not sit waiting in the queue.",
-            steps: [
-              "Open the confirmed update queue and start with the top ready profile.",
-              "Apply the therapist-confirmed values that are ready for live listings.",
-              "Confirm the listing is now updated and no longer waiting on a live apply decision.",
-            ],
-            done: "The confirmed profile has been applied to the live listing or moved out of the ready-to-apply state with a clear reason.",
-            actionLabel: "Open confirm-details overview",
-            directActionLabel: "Start with first ready update",
-            targetId: "confirmationQueueSection",
-            focusTargetId: "confirmationQueueStartHere",
-            confirmationFilter: "confirmed",
-          }
-        : profilesNeedingRefresh > 0
-          ? {
-              title: "Review Listing Updates",
-              countLabel: profilesNeedingRefresh,
-              copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
-              steps: [
-                "Open the refresh queue and start with the highest-risk listing.",
-                "Review the stale or trust-risk fields and decide refresh versus confirmation.",
-                "Mark the item reviewed, defer it, or move it into a stronger follow-up path.",
-              ],
-              done: "The listing is no longer the top refresh risk and has a clear maintenance decision recorded.",
-              actionLabel: "Open listing-updates overview",
-              directActionLabel: "Start with first refresh task",
-              targetId: "refreshQueueSection",
-              focusTargetId: "refreshQueueStartHere",
-            }
-          : {
-              title: "Promote Live Listings",
-              countLabel: listingPromotionCount,
-              copy: "Move strong live listings into the right visibility level so good profiles do not sit under-promoted.",
-              steps: [
-                "Open live-listing controls and start with the top promotion decision.",
-                "Choose the simplest clear state for the profile: feature it, mark it ready to feature, or keep it standard.",
-                "Leave the listing in the right visibility level before moving on.",
-              ],
-              done: "The top listing has a clear promotion decision and is no longer waiting on staging.",
-              actionLabel: "Open listings overview",
-              directActionLabel: "Start with top listing decision",
-              targetId: "publishedListingsSection",
-              focusTargetId: "publishedListingsStartHere",
-            };
-    const verifyTrustCardConfig =
-      strictImportBlockerCount > 0
-        ? {
-            title: "Fix Missing Listing Details",
-            countLabel: strictImportBlockerCount,
-            copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
-            steps: [
-              "Open the missing-details lane and start with the top listing.",
-              "Verify the first missing detail from a strong source, or move the listing into confirmation if therapist input is required.",
-              "Leave the listing with fewer missing trust details or in the correct follow-up path before moving on.",
-            ],
-            done: "The listing is no longer missing its top trust-critical detail or has been moved into confirmation with a clear next step.",
-            actionLabel: "Open missing-details overview",
-            directActionLabel: "Start with first listing",
-            targetId: "importBlockerSprintSection",
-            focusTargetId: "importBlockerStartHere",
-          }
-        : awaitingConfirmationCount > 0
-          ? {
-              title: "Follow Up Confirmations",
-              countLabel: awaitingConfirmationCount,
-              copy: "Follow up on therapist confirmation requests so trusted listing details do not sit waiting on replies.",
-              steps: [
-                "Open the follow-up queue and start with the top waiting profile.",
-                "Send the next follow-up or capture a reply if one has arrived.",
-                "Update the confirmation state so the profile moves forward instead of staying in waiting.",
-              ],
-              done: "The profile is no longer sitting in waiting-on-therapist without a fresh follow-up or captured reply.",
-              actionLabel: "Open reply follow-ups overview",
-              directActionLabel: "Start with first follow-up",
-              targetId: "confirmationQueueSection",
-              focusTargetId: "confirmationQueueStartHere",
-              confirmationFilter: "waiting_on_therapist",
-            }
-          : {
-              title: "Send Confirmation Requests",
-              countLabel: profilesNeedingConfirmation,
-              copy: "Send new confirmation requests for missing operational details so live listings stay trustworthy and current.",
-              steps: [
-                "Open the confirmation sprint and start with the top profile needing outreach.",
-                "Send the confirmation request using the recommended field order and outreach path.",
-                "Mark the request state clearly so the profile leaves the unsent confirmation pile.",
-              ],
-              done: "The profile has a clear confirmation request state and is no longer sitting as an unworked trust task.",
-              actionLabel: "Open confirmation sprint overview",
-              directActionLabel: "Start with first confirmation task",
-              targetId: "confirmationSprintSection",
-              focusTargetId: "confirmationSprintStartHere",
-            };
-    const startHereCards = [
-      buildOperatorGuideCard({
-        kicker: "Add Supply",
-        title: "Add New Listings",
-        countLabel: candidateReviewCount,
-        copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
-        steps: [
-          "Open the new-listings lane and inspect the original source.",
-          "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
-          "Move the card to the right next state before leaving it.",
-        ],
-        done: "The listing is marked ready, sent to confirmation, merged as a duplicate, or published.",
-        actionLabel: "Open new-listings overview",
-        directActionLabel: "Start with first listing",
-        targetId: "candidateQueuePanel",
-        focusTargetId: "candidateQueueStartHere",
-        targetSummary: "Add New Listings -> first listing row",
-        overviewSummary: "Add New Listings overview",
-      }),
-      buildOperatorGuideCard({
-        kicker: "Review Supply",
-        title: "Review Applications",
-        countLabel: pendingApplicationsCount,
-        copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
-        steps: [
-          "Open the applications lane and start with the oldest or strongest pending item.",
-          "Check trust-critical fields, revision notes, and any therapist follow-up context.",
-          "Approve, request changes, reject, or publish so the application leaves limbo.",
-        ],
-        done: "The application has a clear decision and no longer sits in the pending review pile.",
-        actionLabel: "Open applications overview",
-        directActionLabel: "Start with top application",
-        targetId: "applicationsPanel",
-        applicationStatus: "pending",
-        focusTargetId: "applicationReviewStartHere",
-        targetSummary: "Review Applications -> top pending application",
-        overviewSummary: "Review Applications overview",
-      }),
-      buildOperatorGuideCard({
-        kicker: "Verify Trust",
-        title: verifyTrustCardConfig.title,
-        countLabel: verifyTrustCardConfig.countLabel,
-        copy: verifyTrustCardConfig.copy,
-        steps: verifyTrustCardConfig.steps,
-        done: verifyTrustCardConfig.done,
-        actionLabel: verifyTrustCardConfig.actionLabel,
-        directActionLabel: verifyTrustCardConfig.directActionLabel,
-        targetId: verifyTrustCardConfig.targetId,
-        focusTargetId: verifyTrustCardConfig.focusTargetId,
-        focusSelector: verifyTrustCardConfig.focusSelector,
-        confirmationFilter: verifyTrustCardConfig.confirmationFilter,
-        targetSummary:
-          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
-            ? "Fix Missing Listing Details -> first listing row"
-            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
-              ? "Confirm Listing Details -> first waiting follow-up"
-              : "Send Confirmation Requests -> first outreach task",
-        overviewSummary:
-          verifyTrustCardConfig.targetId === "importBlockerSprintSection"
-            ? "Fix Missing Listing Details overview"
-            : verifyTrustCardConfig.targetId === "confirmationQueueSection"
-              ? "Confirm Listing Details overview"
-              : "Send Confirmation Requests overview",
-      }),
-      buildOperatorGuideCard({
-        kicker: "Publish And Maintain",
-        title: publishMaintainCardConfig.title,
-        countLabel: publishMaintainCardConfig.countLabel,
-        copy: publishMaintainCardConfig.copy,
-        steps: publishMaintainCardConfig.steps,
-        done: publishMaintainCardConfig.done,
-        actionLabel: publishMaintainCardConfig.actionLabel,
-        directActionLabel: publishMaintainCardConfig.directActionLabel,
-        targetId: publishMaintainCardConfig.targetId,
-        focusTargetId: publishMaintainCardConfig.focusTargetId,
-        confirmationFilter: publishMaintainCardConfig.confirmationFilter,
-        targetSummary:
-          publishMaintainCardConfig.targetId === "confirmationQueueSection"
-            ? "Confirm Listing Details -> first ready-to-apply update"
-            : publishMaintainCardConfig.targetId === "refreshQueueSection"
-              ? "Review Listing Updates -> first listing task"
-              : "Promote Live Listings -> top listing decision",
-        overviewSummary:
-          publishMaintainCardConfig.targetId === "confirmationQueueSection"
-            ? "Confirm Listing Details overview"
-            : publishMaintainCardConfig.targetId === "refreshQueueSection"
-              ? "Review Listing Updates overview"
-              : "Promote Live Listings overview",
-      }),
-    ];
-
-    const primaryOpsCards = [
-      buildActionStatCard(pendingApplicationsCount, "Pending applications", "applicationsPanel", {
-        applicationStatus: "pending",
-        actionLabel: "Open review queue",
-      }),
-      buildActionStatCard(openConciergeCount, "Open concierge items", "conciergePanel", {
-        conciergeStatus: "open",
-        actionLabel: "Open active items",
-      }),
-      buildActionStatCard(openPortalRequestCount, "Portal requests open", "portalRequestsPanel", {
-        portalRequestStatus: "open",
-        actionLabel: "Open portal queue",
-      }),
-      buildActionStatCard(
-        profilesNeedingRefresh,
-        "Listings needing review",
-        "refreshQueueSection",
-        {
-          meta: topRefreshProfile
-            ? "Top: " +
-              topRefreshProfile +
-              (profilesWithFieldTrustAttention
-                ? " · " + profilesWithFieldTrustAttention + " with trust risk"
-                : "")
-            : profilesWithFieldTrustAttention
-              ? profilesWithFieldTrustAttention + " with trust risk"
-              : "",
-          actionLabel: "Open listing-updates lane",
-        },
-      ),
-      buildActionStatCard(
-        strictImportBlockerCount,
-        "Listings missing key details",
-        "importBlockerSprintSection",
-        {
-          meta:
-            strictImportBlockerHealth +
-            (topStrictImportBlocker ? " · Top: " + topStrictImportBlocker : ""),
-          actionLabel: "Open missing-details lane",
-        },
-      ),
-      buildActionStatCard(
-        profilesNeedingConfirmation,
-        "Listings needing confirmation",
-        "confirmationQueueSection",
-        {
-          meta: topConfirmationProfile ? "Top: " + topConfirmationProfile : "",
-          actionLabel: "Open confirm-details lane",
-          focusTargetId: "confirmationQueueStartHere",
-        },
-      ),
-      buildActionStatCard(
-        awaitingConfirmationCount,
-        "Reply follow-ups open",
-        "confirmationQueueSection",
-        {
-          confirmationFilter: "waiting_on_therapist",
-          actionLabel: "Open reply follow-ups",
-          focusTargetId: "confirmationQueueStartHere",
-        },
-      ),
-    ];
-
-    const secondaryContextCards = [
-      buildPassiveStatCard(therapists.length, "Live listings"),
-      buildPassiveStatCard(stats.states_covered, "States covered"),
-      buildPassiveStatCard(stats.accepting_count, "Accepting patients"),
-      buildPassiveStatCard(matchReadyCount, "Match-ready profiles"),
-      buildActionStatCard(conciergeRequests.length, "Concierge requests", "conciergePanel", {
-        actionLabel: "Open concierge queue",
-      }),
-      buildPassiveStatCard(heardBackCount, "Heard-back outcomes"),
-      buildPassiveStatCard(bookedConsultCount, "Booked consults"),
-      buildActionStatCard(
-        recentlyMaintainedCount,
-        "Recently maintained",
-        "recentlyMaintainedRefresh",
-        {
-          meta: topRecentlyMaintainedProfile ? "Latest: " + topRecentlyMaintainedProfile : "",
-          actionLabel: "Open maintained list",
-        },
-      ),
-      buildActionStatCard(funnelSummary.searches, "Searches tracked", "funnelAnalyticsPanel", {
-        actionLabel: "Open analytics",
-      }),
-      buildPassiveStatCard(funnelSummary.matches, "Matches run"),
-      buildPassiveStatCard(funnelSummary.shortlist_saves, "Shortlist saves"),
-      buildPassiveStatCard(funnelSummary.help_requests, "Help requests"),
-    ];
-
     renderExecutiveCommandDeck({
       candidateReviewCount: candidateReviewCount,
       funnelSummary: funnelSummary,
@@ -5999,25 +5720,98 @@ function renderStats() {
       workQueueSnapshot: workQueueSnapshot,
     });
 
+    var topActions = nextBestActions.slice(0, 3);
+    var nowSectionHtml = topActions.length
+      ? '<div><div class="admin-now-title">What needs you now</div>' +
+        '<div class="priority-rows">' +
+        topActions
+          .map(function (action, index) {
+            return buildPriorityActionRow(action, index);
+          })
+          .join("") +
+        "</div></div>"
+      : '<div><div class="admin-now-title">What needs you now</div>' +
+        '<div class="admin-now-empty">Nothing urgent. Queues are clear or actions are in-flight.</div></div>';
+
+    var scorecardCards = [
+      buildActionStatCard(candidateReviewCount, "New listings to triage", "supplyReviewRegion", {
+        meta: candidateReadyCount
+          ? candidateReadyCount + " ready to publish"
+          : candidateDuplicateCount
+            ? candidateDuplicateCount + " possible duplicates"
+            : "",
+        actionLabel: "Open triage lane",
+      }),
+      buildActionStatCard(
+        profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount,
+        "Confirmations in flight",
+        "confirmationRegion",
+        {
+          meta: readyToApplyCount
+            ? readyToApplyCount + " ready to apply"
+            : awaitingConfirmationCount
+              ? awaitingConfirmationCount + " waiting on reply"
+              : "",
+          actionLabel: "Open confirmations",
+        },
+      ),
+      buildActionStatCard(
+        pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
+        "Requests to handle",
+        "requestsRegion",
+        {
+          meta: pendingApplicationsCount
+            ? pendingApplicationsCount + " pending applications"
+            : openPortalRequestCount
+              ? openPortalRequestCount + " portal requests"
+              : "",
+          actionLabel: "Open ops inbox",
+        },
+      ),
+      buildActionStatCard(
+        profilesNeedingRefresh + strictImportBlockerCount,
+        "Live listings to maintain",
+        "liveListingsRegion",
+        {
+          meta: strictImportBlockerCount
+            ? strictImportBlockerCount + " blocked on details"
+            : topRefreshProfile
+              ? "Top: " + topRefreshProfile
+              : "",
+          actionLabel: "Open maintenance",
+        },
+      ),
+    ];
+
     document.getElementById("adminStats").innerHTML =
       (getWorkQueueActionFlash()
-        ? '<div class="mini-status" style="margin-bottom:1rem"><strong>Work Queue update:</strong> ' +
+        ? '<div class="mini-status"><strong>Update:</strong> ' +
           escapeHtml(getWorkQueueActionFlash()) +
           "</div>"
         : "") +
-      wrapStatsGroup("Start Here", startHereCards, "ops-grid") +
-      (nextBestActions.length
-        ? wrapStatsGroup(
-            "Next Best Actions",
-            nextBestActions.map(function (action, index) {
-              return buildPriorityActionCard(action, index);
-            }),
-            "ops-grid",
-          )
-        : "") +
-      (workQueueCards.length ? wrapStatsGroup("Work Queue", workQueueCards, "ops-grid") : "") +
-      wrapStatsGroup("Operator workflows", primaryOpsCards, "ops-grid") +
-      wrapStatsGroup("Reference metrics", secondaryContextCards, "");
+      nowSectionHtml +
+      '<div><div class="admin-now-title">At a glance</div>' +
+      '<div class="admin-now-scorecard">' +
+      scorecardCards.join("") +
+      "</div></div>";
+
+    var statsContainer = document.getElementById("adminStats");
+    if (statsContainer) {
+      statsContainer.style.display = "";
+    }
+
+    updateHeroStatus({
+      priorityCount: topActions.length,
+      candidateReviewCount: candidateReviewCount,
+      pendingApplicationsCount: pendingApplicationsCount,
+    });
+    updateNavCounts({
+      candidates: candidateReviewCount,
+      confirmations: profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount,
+      requests: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
+      live: profilesNeedingRefresh + strictImportBlockerCount,
+    });
+    collapseRegionSopNotes();
 
     document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
       button.addEventListener("click", function () {

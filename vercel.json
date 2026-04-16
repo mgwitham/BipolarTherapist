@@ -2,5 +2,6 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "cleanUrls": true,
   "rewrites": [{ "source": "/api/review/(.*)", "destination": "/api/review/[...path]" }]
 }

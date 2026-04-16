@@ -1,5 +1,6 @@
 import {
   bindCandidateDecisionButtons,
+  findCandidateMergeTarget,
   renderCandidateMergePreview,
   renderCandidateMergeWorkbench,
   renderCandidatePublishPacket,
@@ -7,6 +8,35 @@ import {
 } from "./admin-candidate-review.js";
 
 import { createActionFlashStore } from "./admin-action-flash.js";
+import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
+
+let sharedCompareModal = null;
+
+function getSharedCompareModal(options) {
+  if (sharedCompareModal) {
+    return sharedCompareModal;
+  }
+  sharedCompareModal = createCandidateCompareModal(options);
+  return sharedCompareModal;
+}
+
+function clearStaleWorkflowFocus(queueRoot) {
+  if (!queueRoot) {
+    return;
+  }
+  const grid = queueRoot.closest(".grid");
+  if (!grid || !grid.classList.contains("workflow-focus-active")) {
+    return;
+  }
+  // If there is no focus target anywhere in the grid, the focus mode is
+  // stale from a prior navigation and should not keep dimming cards.
+  if (!grid.querySelector(".workflow-focus-target")) {
+    grid.classList.remove("workflow-focus-active");
+    grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+      node.classList.remove("workflow-focus-owner");
+    });
+  }
+}
 
 const candidateActionFlash = createActionFlashStore();
 
@@ -43,8 +73,31 @@ function getCandidateDecisionOutcome(decision) {
       return "Deleted.";
     case "reject_duplicate":
       return "Marked as duplicate.";
+    case "mark_unique":
+      return "Confirmed as unique.";
     default:
       return "Done.";
+  }
+}
+
+function getDedupeReasonLabel(reason) {
+  switch (reason) {
+    case "license":
+      return "License number match";
+    case "email":
+      return "Email match";
+    case "website":
+      return "Website match";
+    case "name_location_phone":
+      return "Name + location + phone match";
+    case "name_location":
+      return "Name + location match";
+    case "slug":
+      return "Slug match";
+    case "provider_id":
+      return "Provider ID match";
+    default:
+      return reason;
   }
 }
 
@@ -64,17 +117,43 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   const publishPacket = options.getCandidatePublishPacket(item, trustSummary);
   const reviewEvents = options.getReviewEventsForCandidate(item);
   const actionFlash = getCandidateActionFlash(item.id);
+  const isDefiniteDuplicate = item.dedupe_status === "definite_duplicate";
   const isPossibleDuplicate = item.dedupe_status === "possible_duplicate";
-  const mergeWorkbench = renderCandidateMergeWorkbench(item, {
+  const isDuplicateFlagged = isDefiniteDuplicate || isPossibleDuplicate;
+  const mergeWorkbenchHtml = renderCandidateMergeWorkbench(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const mergeWorkbench = mergeWorkbenchHtml
+    ? '<div data-candidate-merge-workbench="' +
+      options.escapeHtml(item.id) +
+      '">' +
+      mergeWorkbenchHtml +
+      "</div>"
+    : "";
   const mergePreview = renderCandidateMergePreview(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const dedupeReasons = Array.isArray(item.dedupe_reasons) ? item.dedupe_reasons : [];
+  const dedupeReasonChipsHtml =
+    isDuplicateFlagged && dedupeReasons.length
+      ? '<div class="queue-dedupe-reasons">' +
+        dedupeReasons
+          .map(function (reason) {
+            return (
+              '<span class="queue-dedupe-reason-chip' +
+              (isDefiniteDuplicate ? " is-definite" : "") +
+              '">' +
+              options.escapeHtml(getDedupeReasonLabel(reason)) +
+              "</span>"
+            );
+          })
+          .join("") +
+        "</div>"
+      : "";
   const expandedDetails =
     renderCandidatePublishPacket(publishPacket, {
       escapeHtml: options.escapeHtml,
@@ -108,18 +187,17 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     mergeWorkbench +
     mergePreview;
 
-  const duplicateMatchLabel = isPossibleDuplicate
-    ? item.matched_therapist_slug || item.matched_application_id || item.matched_therapist_id || ""
-    : "";
-  const duplicateBanner = isPossibleDuplicate
-    ? '<div class="queue-duplicate-banner"><span class="queue-duplicate-banner-icon">\u26A0</span><span>Possible duplicate' +
-      (duplicateMatchLabel
-        ? " of <strong>" + options.escapeHtml(duplicateMatchLabel) + "</strong>"
-        : "") +
+  const matchedLabel = item.matched_therapist_slug || item.matched_application_id || "";
+  const duplicateBanner = isDuplicateFlagged
+    ? '<div class="queue-duplicate-banner' +
+      (isDefiniteDuplicate ? " is-definite" : "") +
+      '"><span class="queue-duplicate-banner-icon">\u26A0</span><span>' +
+      (isDefiniteDuplicate ? "Definite duplicate" : "Possible duplicate") +
+      (matchedLabel ? " of <strong>" + options.escapeHtml(matchedLabel) + "</strong>" : "") +
       ". Check the match before publishing.</span></div>"
     : "";
 
-  // Primary three actions, identical on every card
+  // Primary three actions — identical on every card
   const primaryActions =
     '<button class="btn-primary" data-candidate-decision="' +
     options.escapeHtml(item.id) +
@@ -131,14 +209,22 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     options.escapeHtml(item.id) +
     '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
 
-  // Conditional duplicate action — only when a duplicate has been flagged
-  const duplicateAction = isPossibleDuplicate
-    ? '<div class="queue-duplicate-action"><button class="btn-secondary" data-candidate-decision="' +
+  // Conditional duplicate action row — only when a duplicate has been flagged
+  const duplicateActions = isDuplicateFlagged
+    ? '<div class="queue-duplicate-action">' +
+      '<button class="btn-secondary" data-candidate-compare="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-next="reject_duplicate">Mark as duplicate</button></div>'
+      '">Compare side-by-side</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="mark_unique">Keep as unique</button>' +
+      '<button class="btn-secondary" data-candidate-decision="' +
+      options.escapeHtml(item.id) +
+      '" data-candidate-next="reject_duplicate">Mark as duplicate</button>' +
+      "</div>"
     : "";
 
-  // Secondary link row — open source, edit profile, see full details
+  // Secondary link row — de-emphasized tools
   const linkRow =
     '<div class="queue-card-links">' +
     (sourceReference.href
@@ -166,7 +252,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '"' +
     (index === 0 ? ' id="candidateQueueStartHere"' : "") +
     ">" +
-    // Header: name + status tags
+    // Header: name + status tag
     '<div class="queue-head"><div><h3 style="display:flex;align-items:baseline;gap:0.55rem;flex-wrap:wrap">' +
     options.escapeHtml(item.name || "Unnamed listing") +
     (item.readiness_score != null
@@ -187,11 +273,12 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     options.escapeHtml(options.getCandidateReviewChipLabel(item.review_status)) +
     "</span></div></div>" +
     duplicateBanner +
+    dedupeReasonChipsHtml +
     // Primary action row
     '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
     primaryActions +
     "</div>" +
-    duplicateAction +
+    duplicateActions +
     linkRow +
     // Status feedback
     '<div class="review-coach-status" data-candidate-status-id="' +
@@ -217,10 +304,6 @@ function bindQueueCardDetailToggles(root) {
   }
   root.querySelectorAll("[data-queue-card-toggle-details]").forEach(function (button) {
     button.addEventListener("click", function () {
-      const id = button.getAttribute("data-queue-card-toggle-details");
-      if (!id) {
-        return;
-      }
       const card = button.closest("[data-candidate-card-id]");
       const details = card ? card.querySelector("[data-queue-card-details-id]") : null;
       if (details) {
@@ -268,10 +351,16 @@ export function renderCandidateQueuePanel(options) {
     if (filters.q && !haystack.includes(filters.q.toLowerCase())) {
       return false;
     }
-    if (filters.review_status && item.review_status !== filters.review_status) {
+    const INACTIVE_REVIEW = ["archived", "published"];
+    const INACTIVE_DEDUPE = ["rejected_duplicate", "merged"];
+    if (filters.review_status) {
+      if (item.review_status !== filters.review_status) return false;
+    } else if (INACTIVE_REVIEW.includes(item.review_status)) {
       return false;
     }
-    if (filters.dedupe_status && item.dedupe_status !== filters.dedupe_status) {
+    if (filters.dedupe_status) {
+      if (item.dedupe_status !== filters.dedupe_status) return false;
+    } else if (INACTIVE_DEDUPE.includes(item.dedupe_status)) {
       return false;
     }
     return true;
@@ -320,6 +409,12 @@ export function renderCandidateQueuePanel(options) {
       })
       .join("");
 
+  // Self-heal any stuck workflow-focus-active state. Focus mode is applied
+  // when the user jumps into this section from the landing priority row; once
+  // the original focus target is gone (after a decision + re-render), the
+  // grid should not keep dimming fresh cards.
+  clearStaleWorkflowFocus(root);
+
   bindCandidateDecisionButtons(root, {
     decideTherapistCandidate: options.decideTherapistCandidate,
     onDecisionComplete: function (id, decision) {
@@ -328,4 +423,31 @@ export function renderCandidateQueuePanel(options) {
     loadData: options.loadData,
   });
   bindQueueCardDetailToggles(root);
+
+  const compareModal = getSharedCompareModal({
+    decideTherapistCandidate: options.decideTherapistCandidate,
+    loadData: options.loadData,
+    escapeHtml: options.escapeHtml,
+    getQueueRoot: function () {
+      return root;
+    },
+    onDecisionComplete: function (id, decision) {
+      setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
+    },
+  });
+
+  root.querySelectorAll("[data-candidate-compare]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const id = button.getAttribute("data-candidate-compare");
+      const item = candidates.find(function (entry) {
+        return String(entry.id) === String(id);
+      });
+      if (!item) return;
+      const matchTarget = findCandidateMergeTarget(item, {
+        therapists: therapists,
+        applications: applications,
+      });
+      compareModal.open(item, matchTarget, item.dedupe_reasons || [], button);
+    });
+  });
 }

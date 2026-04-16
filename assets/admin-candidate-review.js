@@ -86,7 +86,7 @@ export function renderCandidateTrustChips(summary, limit, helpers) {
   );
 }
 
-function findCandidateMergeTarget(item, context) {
+export function findCandidateMergeTarget(item, context) {
   if (!item) {
     return null;
   }
@@ -136,14 +136,14 @@ function findCandidateMergeTarget(item, context) {
   return null;
 }
 
-function formatMergeLocation(record) {
+export function formatMergeLocation(record) {
   return [record.city, record.state, record.zip]
     .filter(Boolean)
     .join(", ")
     .replace(/, (?=\d{5}$)/, " ");
 }
 
-function formatMergeContact(record) {
+export function formatMergeContact(record) {
   return (
     record.website ||
     record.booking_url ||
@@ -154,13 +154,13 @@ function formatMergeContact(record) {
   );
 }
 
-function formatMergeLicense(record) {
+export function formatMergeLicense(record) {
   const state = record.license_state || record.licenseState || "";
   const number = record.license_number || record.licenseNumber || "";
   return [state, number].filter(Boolean).join(" ");
 }
 
-function formatMergeSource(record, kind) {
+export function formatMergeSource(record, kind) {
   if (kind === "therapist") {
     return record.source_url || record.sourceUrl || "Live listing";
   }
@@ -340,10 +340,13 @@ export function bindCandidateDecisionButtons(root, handlers) {
           var successMessages = {
             publish: "Published successfully.",
             needs_review: "Sent to review.",
+            needs_confirmation: "Sent to confirmation.",
             reject_duplicate: "Marked as duplicate.",
-            archive: "Deleted.",
+            mark_unique: "Confirmed as unique.",
+            mark_ready: "Queued for publish.",
             merge_to_therapist: "Merged into therapist.",
             merge_to_application: "Merged into application.",
+            archive: "Deleted.",
           };
           status.textContent = successMessages[decision] || "Done.";
         }
