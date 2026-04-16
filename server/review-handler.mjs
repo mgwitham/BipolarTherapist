@@ -51,6 +51,7 @@ import { annotateProviderFieldObservationForDisplay } from "../shared/provider-f
 import {
   buildApplicationReviewEvent,
   buildCandidateReviewEvent,
+  buildPublishEventId,
   buildTherapistApplicationFieldPatch,
   buildTherapistDocument,
   buildTherapistDocumentFromCandidate,
@@ -264,7 +265,7 @@ function computeCandidateReviewMeta(candidateLike) {
 function buildLicensureOpsEvent(record, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${record._id}-${crypto.randomUUID()}`,
+    _id: buildPublishEventId(record._id),
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: record.providerId || "",

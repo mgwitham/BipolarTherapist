@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import crypto from "node:crypto";
 import { createClient } from "@sanity/client";
+
+import { buildPublishEventId } from "../shared/therapist-publishing-domain.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -293,7 +294,7 @@ function computeTherapistVerificationMeta(record) {
 function buildTherapistOpsEvent(therapist, updates) {
   const now = new Date().toISOString();
   return {
-    _id: `therapist-publish-event-${therapist._id}-${crypto.randomUUID()}`,
+    _id: buildPublishEventId(therapist._id),
     _type: "therapistPublishEvent",
     eventType: updates.eventType,
     providerId: therapist.providerId || "",
