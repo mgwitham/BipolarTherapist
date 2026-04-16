@@ -312,6 +312,7 @@ export const therapistCandidateType = defineType({
         list: [
           { title: "Unreviewed", value: "unreviewed" },
           { title: "Unique", value: "unique" },
+          { title: "Definite duplicate", value: "definite_duplicate" },
           { title: "Possible duplicate", value: "possible_duplicate" },
           { title: "Merged", value: "merged" },
           { title: "Rejected duplicate", value: "rejected_duplicate" },
@@ -325,6 +326,15 @@ export const therapistCandidateType = defineType({
       type: "number",
       group: "review",
       validation: (rule) => rule.min(0).max(1),
+    }),
+    defineField({
+      name: "dedupeReasons",
+      title: "Dedupe reasons",
+      type: "array",
+      group: "review",
+      of: [defineArrayMember({ type: "string" })],
+      description:
+        "Which identity signals matched: license, email, website, name_location_phone, etc. Drives definite vs possible tiering.",
     }),
     defineField({
       name: "matchedTherapistSlug",

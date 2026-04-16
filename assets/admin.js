@@ -5359,9 +5359,11 @@ function renderAdminRecordInspector() {
       escapeHtml(trustRecommendation) +
       "</li><li>" +
       escapeHtml(
-        candidate.dedupe_status === "possible_duplicate"
-          ? "Resolve duplicate risk before publishing so the provider graph stays clean."
-          : "Move this listing into publish, confirmation, merge, or archive so it does not remain ambiguous.",
+        candidate.dedupe_status === "definite_duplicate"
+          ? "License and name match an existing record. Mark as duplicate or merge before any publish work."
+          : candidate.dedupe_status === "possible_duplicate"
+            ? "Compare with the possible match before publishing so the provider graph stays clean."
+            : "Move this listing into publish, confirmation, merge, or archive so it does not remain ambiguous.",
       ) +
       '</li></ul></div><div class="inspector-actions"><button class="btn-primary" type="button" data-inspector-focus-kind="candidate" data-inspector-focus-id="' +
       escapeHtml(candidate.id) +
@@ -5599,7 +5601,11 @@ function renderStats() {
       return item.review_status === "ready_to_publish";
     }).length;
     const candidateDuplicateCount = candidateQueueItems.filter(function (item) {
-      return item.dedupe_status === "possible_duplicate" || item.dedupe_status === "unreviewed";
+      return (
+        item.dedupe_status === "definite_duplicate" ||
+        item.dedupe_status === "possible_duplicate" ||
+        item.dedupe_status === "unreviewed"
+      );
     }).length;
     const candidateConfirmationCount = candidateQueueItems.filter(function (item) {
       return item.review_status === "needs_confirmation";

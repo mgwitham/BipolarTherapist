@@ -41,6 +41,8 @@ function getCandidateDecisionOutcome(decision) {
       return "Sent to confirmation.";
     case "reject_duplicate":
       return "Marked as duplicate.";
+    case "mark_unique":
+      return "Confirmed as unique.";
     case "merge":
       return "Merged.";
     case "archive":
@@ -49,6 +51,27 @@ function getCandidateDecisionOutcome(decision) {
       return "Queued for publish.";
     default:
       return "Done.";
+  }
+}
+
+function getDedupeReasonLabel(reason) {
+  switch (reason) {
+    case "license":
+      return "License number match";
+    case "email":
+      return "Email match";
+    case "website":
+      return "Website match";
+    case "name_location_phone":
+      return "Name + location + phone match";
+    case "name_location":
+      return "Name + location match";
+    case "slug":
+      return "Slug match";
+    case "provider_id":
+      return "Provider ID match";
+    default:
+      return reason;
   }
 }
 
@@ -62,14 +85,27 @@ function getCandidateStartHereGuidance(item) {
     };
   }
 
-  if (item.dedupe_status === "possible_duplicate") {
+  if (item.dedupe_status === "definite_duplicate") {
+    const matchedName =
+      item.matched_therapist_slug || item.matched_application_id || "an existing record";
     return {
       primaryAction: "reject_duplicate",
-      primaryLabel: "Resolve duplicate now",
+      primaryLabel: "Mark as duplicate",
       whyNow:
-        "Possible duplicate risk should be resolved first so you do not create clutter or publish the wrong profile.",
-      doneWhen:
-        "The listing is marked duplicate, merged, or clearly kept as unique before you move on.",
+        "License number and name both match " + matchedName + ", so this is the same provider.",
+      doneWhen: "The listing is marked duplicate or merged into the matched record.",
+    };
+  }
+
+  if (item.dedupe_status === "possible_duplicate") {
+    const matchedLabel =
+      item.matched_therapist_slug || item.matched_application_id || "the possible match";
+    return {
+      primaryAction: "compare_match",
+      primaryLabel: "Compare with " + matchedLabel,
+      whyNow:
+        "Some identity signals match an existing record but it is not verified. Look before deciding.",
+      doneWhen: "The listing is confirmed unique, marked duplicate, or merged.",
     };
   }
 
@@ -139,16 +175,41 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
   const reviewEvents = options.getReviewEventsForCandidate(item);
   const startHereGuidance = getCandidateStartHereGuidance(item);
   const actionFlash = getCandidateActionFlash(item.id);
-  const mergeWorkbench = renderCandidateMergeWorkbench(item, {
+  const mergeWorkbenchHtml = renderCandidateMergeWorkbench(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const mergeWorkbench = mergeWorkbenchHtml
+    ? '<div data-candidate-merge-workbench="' +
+      options.escapeHtml(item.id) +
+      '">' +
+      mergeWorkbenchHtml +
+      "</div>"
+    : "";
   const mergePreview = renderCandidateMergePreview(item, {
     therapists: therapists,
     applications: applications,
     escapeHtml: options.escapeHtml,
   });
+  const dedupeReasons = Array.isArray(item.dedupe_reasons) ? item.dedupe_reasons : [];
+  const dedupeReasonChipsHtml = dedupeReasons.length
+    ? '<div class="queue-dedupe-reasons" style="margin-top:0.5rem;display:flex;gap:0.35rem;flex-wrap:wrap">' +
+      dedupeReasons
+        .map(function (reason) {
+          return (
+            '<span class="tag" style="background:' +
+            (item.dedupe_status === "definite_duplicate"
+              ? "rgba(194,65,12,0.12);color:#c2410c"
+              : "rgba(217,119,6,0.12);color:#d97706") +
+            ';font-size:0.72rem">' +
+            options.escapeHtml(getDedupeReasonLabel(reason)) +
+            "</span>"
+          );
+        })
+        .join("") +
+      "</div>"
+    : "";
   const expandedDetails =
     renderCandidatePublishPacket(publishPacket, {
       escapeHtml: options.escapeHtml,
@@ -206,9 +267,29 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
       buildCandidateButton(item.id, "reject_duplicate", "Mark as duplicate", false),
     );
   }
+  const isDuplicateFlagged =
+    item.dedupe_status === "possible_duplicate" || item.dedupe_status === "definite_duplicate";
+  if (isDuplicateFlagged) {
+    fallbackBtns.push(buildCandidateButton(item.id, "mark_unique", "Keep as unique", false));
+  }
   if (startHereGuidance.primaryAction !== "publish") {
     fallbackBtns.push(buildCandidateButton(item.id, "publish", "Publish now", false));
   }
+
+  const primaryButtonHtml =
+    startHereGuidance.primaryAction === "compare_match"
+      ? '<button class="btn-primary" data-candidate-compare="' +
+        options.escapeHtml(item.id) +
+        '">' +
+        options.escapeHtml(startHereGuidance.primaryLabel) +
+        "</button>"
+      : '<button class="btn-primary" data-candidate-decision="' +
+        options.escapeHtml(item.id) +
+        '" data-candidate-next="' +
+        options.escapeHtml(startHereGuidance.primaryAction) +
+        '">' +
+        options.escapeHtml(startHereGuidance.primaryLabel) +
+        "</button>";
 
   return (
     '<article class="queue-card' +
@@ -242,19 +323,15 @@ function renderCandidateCardHtml(item, index, options, therapists, applications)
     '</span><span class="tag">' +
     options.escapeHtml(options.getCandidateDedupeChipLabel(item.dedupe_status)) +
     "</span></div></div>" +
+    // Dedupe reason chips (when present)
+    dedupeReasonChipsHtml +
     // Recommended next step sentence
     '<div class="queue-summary" style="margin-top:0.6rem">' +
     options.escapeHtml(startHereGuidance.whyNow) +
     "</div>" +
     // Action buttons
     '<div class="action-row" style="margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap">' +
-    '<button class="btn-primary" data-candidate-decision="' +
-    options.escapeHtml(item.id) +
-    '" data-candidate-next="' +
-    options.escapeHtml(startHereGuidance.primaryAction) +
-    '">' +
-    options.escapeHtml(startHereGuidance.primaryLabel) +
-    "</button>" +
+    primaryButtonHtml +
     fallbackBtns.join("") +
     (sourceReference.href
       ? '<a class="btn-secondary btn-inline" href="' +
@@ -342,7 +419,9 @@ export function renderCandidateQueuePanel(options) {
   }
 
   const duplicateCount = candidates.filter(function (item) {
-    return item.dedupe_status === "possible_duplicate";
+    return (
+      item.dedupe_status === "possible_duplicate" || item.dedupe_status === "definite_duplicate"
+    );
   }).length;
   const confirmCount = candidates.filter(function (item) {
     return item.review_status === "needs_confirmation";
@@ -417,5 +496,19 @@ export function renderCandidateQueuePanel(options) {
       setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
     },
     loadData: options.loadData,
+  });
+
+  root.querySelectorAll("[data-candidate-compare]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const id = button.getAttribute("data-candidate-compare");
+      const workbench = root.querySelector('[data-candidate-merge-workbench="' + id + '"]');
+      if (!workbench) return;
+      const card = workbench.closest("article[data-candidate-card-id]");
+      const detailsElement = card ? card.querySelector("details.queue-more-details") : null;
+      if (detailsElement) {
+        detailsElement.open = true;
+      }
+      workbench.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   });
 }

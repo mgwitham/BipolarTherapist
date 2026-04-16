@@ -336,6 +336,7 @@ export function bindCandidateDecisionButtons(root, handlers) {
             publish: "Published successfully.",
             needs_confirmation: "Sent to confirmation.",
             reject_duplicate: "Marked as duplicate.",
+            mark_unique: "Confirmed as unique.",
             mark_ready: "Queued for publish.",
             merge_to_therapist: "Merged into therapist.",
             merge_to_application: "Merged into application.",

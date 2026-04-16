@@ -271,6 +271,7 @@ function buildSourcePerformanceInsights(candidates) {
     }
     if (
       item.dedupe_status === "possible_duplicate" ||
+      item.dedupe_status === "definite_duplicate" ||
       item.dedupe_status === "rejected_duplicate"
     ) {
       entry.duplicates += 1;

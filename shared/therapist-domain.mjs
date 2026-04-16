@@ -156,6 +156,42 @@ export function compareDuplicateIdentity(identity, candidate) {
   return reasons;
 }
 
+const NAME_CONFIRMING_DUPLICATE_REASONS = ["name_location", "name_location_phone"];
+
+export function classifyDuplicateCertainty(reasons) {
+  const set = new Set(Array.isArray(reasons) ? reasons : []);
+  const hasLicense = set.has("license");
+  const hasNameConfirm = NAME_CONFIRMING_DUPLICATE_REASONS.some(function (reason) {
+    return set.has(reason);
+  });
+  if (hasLicense && hasNameConfirm) {
+    return "definite";
+  }
+  if (set.size > 0) {
+    return "possible";
+  }
+  return "unique";
+}
+
+export function pickStrongestDuplicateMatch(candidates) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  let best = null;
+  const strength = { license: 4, email: 3, slug: 2, name_location: 1 };
+  for (const entry of list) {
+    if (!entry || !Array.isArray(entry.reasons) || entry.reasons.length === 0) {
+      continue;
+    }
+    const topReason = entry.reasons.reduce(function (accumulator, reason) {
+      return (strength[reason] || 0) > (strength[accumulator] || 0) ? reason : accumulator;
+    }, entry.reasons[0]);
+    const score = (strength[topReason] || 0) * 10 + entry.reasons.length;
+    if (!best || score > best.score) {
+      best = { record: entry.record, reasons: entry.reasons, score: score };
+    }
+  }
+  return best;
+}
+
 export function resolveApplicationIntakeType(input) {
   const requested = String(input.application_intake_type || input.intake_type || "").trim();
   if (
