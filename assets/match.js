@@ -503,27 +503,19 @@ function applyZipAwareOrdering(entries, profile) {
     var aDistance = getZipDistance(requestedZip, aZip);
     var bDistance = getZipDistance(requestedZip, bZip);
 
-    // For in-person: proximity is heavily weighted
-    // Closer therapist wins unless score gap is very large (>40 points)
+    // For in-person: proximity adds bonus points to score
+    // ≤1mi: +60, ≤3mi: +50, ≤5mi: +40, ≤10mi: +25, >10mi: +15
     if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
-      if (scoreDiff <= 40) {
-        // Within 10 miles: strong proximity boost
-        var aClose = aDistance <= 10;
-        var bClose = bDistance <= 10;
-        if (aClose !== bClose) {
-          return Number(bClose) - Number(aClose);
-        }
-        // Within 25 miles: moderate proximity boost
-        var aNear = aDistance <= 25;
-        var bNear = bDistance <= 25;
-        if (aNear !== bNear && scoreDiff <= 30) {
-          return Number(bNear) - Number(aNear);
-        }
-        // Otherwise sort by distance if scores are close
-        if (scoreDiff <= 20) {
-          return aDistance - bDistance;
-        }
+      var aProx =
+        aDistance <= 1 ? 60 : aDistance <= 3 ? 50 : aDistance <= 5 ? 40 : aDistance <= 10 ? 25 : 15;
+      var bProx =
+        bDistance <= 1 ? 60 : bDistance <= 3 ? 50 : bDistance <= 5 ? 40 : bDistance <= 10 ? 25 : 15;
+      var aAdjusted = aScore + aProx;
+      var bAdjusted = bScore + bProx;
+      if (aAdjusted !== bAdjusted) {
+        return bAdjusted - aAdjusted;
       }
+      return aDistance - bDistance;
     }
 
     // For telehealth or no format: lighter proximity weight (original behavior)
