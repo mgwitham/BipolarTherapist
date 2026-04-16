@@ -67,7 +67,7 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
+import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
@@ -482,10 +482,7 @@ function getTherapistZipValue(therapist) {
 }
 
 function getZipDistance(fromZip, toZip) {
-  if (!/^\d{5}$/.test(String(fromZip || "")) || !/^\d{5}$/.test(String(toZip || ""))) {
-    return Number.POSITIVE_INFINITY;
-  }
-  return Math.abs(Number(fromZip) - Number(toZip));
+  return getZipDistanceMiles(fromZip, toZip);
 }
 
 function applyZipAwareOrdering(entries, profile) {
@@ -493,6 +490,9 @@ function applyZipAwareOrdering(entries, profile) {
   if (!requestedZip) {
     return (entries || []).slice();
   }
+
+  var isInPerson =
+    profile && (profile.care_format === "In-Person" || profile.care_format === "In-person");
 
   return (entries || []).slice().sort(function (a, b) {
     var aScore = Number(a?.evaluation?.score) || 0;
@@ -502,6 +502,23 @@ function applyZipAwareOrdering(entries, profile) {
     var bZip = getTherapistZipValue(b && b.therapist);
     var aDistance = getZipDistance(requestedZip, aZip);
     var bDistance = getZipDistance(requestedZip, bZip);
+
+    // For in-person: proximity adds bonus points to score
+    // ≤1mi: +60, ≤3mi: +50, ≤5mi: +40, ≤10mi: +25, >10mi: +15
+    if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
+      var aProx =
+        aDistance <= 1 ? 60 : aDistance <= 3 ? 50 : aDistance <= 5 ? 40 : aDistance <= 10 ? 25 : 15;
+      var bProx =
+        bDistance <= 1 ? 60 : bDistance <= 3 ? 50 : bDistance <= 5 ? 40 : bDistance <= 10 ? 25 : 15;
+      var aAdjusted = aScore + aProx;
+      var bAdjusted = bScore + bProx;
+      if (aAdjusted !== bAdjusted) {
+        return bAdjusted - aAdjusted;
+      }
+      return aDistance - bDistance;
+    }
+
+    // For telehealth or no format: lighter proximity weight (original behavior)
     var aExact = aZip === requestedZip;
     var bExact = bZip === requestedZip;
 
