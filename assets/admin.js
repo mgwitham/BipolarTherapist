@@ -1029,9 +1029,28 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+const adminLazyModuleLoaders = import.meta.glob([
+  "./admin-candidate-queue.js",
+  "./admin-application-review.js",
+  "./admin-ops-inbox.js",
+  "./admin-concierge-queue.js",
+  "./admin-portal-requests.js",
+  "./admin-confirmation-queue.js",
+  "./admin-confirmation-sprint.js",
+  "./admin-import-blocker-sprint.js",
+  "./admin-sourcing-intelligence.js",
+  "./admin-ingestion-scorecard.js",
+  "./admin-refresh-queue.js",
+  "./admin-licensure-queue.js",
+  "./admin-licensure-sprint.js",
+  "./admin-licensure-deferred-queue.js",
+  "./admin-licensure-activity.js",
+]);
+
 function loadAdminLazyModule(path) {
   if (!adminLazyModuleCache.has(path)) {
-    adminLazyModuleCache.set(path, import(path));
+    const loader = adminLazyModuleLoaders[path];
+    adminLazyModuleCache.set(path, loader ? loader() : import(path));
   }
   return adminLazyModuleCache.get(path);
 }
