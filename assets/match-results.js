@@ -151,7 +151,7 @@ export function renderShortlistQueueSection(options) {
 
   root.hidden = false;
   root.innerHTML =
-    '<details class="match-queue-disclosure" open><summary><span class="match-queue-title">More options to consider</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
+    '<details class="match-queue-disclosure"><summary><span class="match-queue-title">More options to consider</span><span class="match-queue-toggle" aria-hidden="true"></span></summary><div class="match-queue-list">' +
     queueEntries
       .map(function (entry, index) {
         var therapist = entry.therapist;
