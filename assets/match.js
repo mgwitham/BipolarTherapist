@@ -4551,7 +4551,71 @@ function renderSupportingResultCard(entry, _rank, options) {
   );
 }
 
-function renderPrimaryMatchCards(entries, _profile) {
+function countActiveRefinements(profile) {
+  if (!profile) return 0;
+  var count = 0;
+  if (profile.insurance) count += 1;
+  if (profile.care_format) count += 1;
+  if (profile.budget_max) count += 1;
+  if (profile.urgency && profile.urgency !== "ASAP") count += 1;
+  if (Array.isArray(profile.bipolar_focus) && profile.bipolar_focus.length) count += 1;
+  if (Array.isArray(profile.preferred_modalities) && profile.preferred_modalities.length)
+    count += 1;
+  if (Array.isArray(profile.population_fit) && profile.population_fit.length) count += 1;
+  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length)
+    count += 1;
+  return count;
+}
+
+function buildResultsHeaderHtml(profile, totalCount) {
+  var careIntent =
+    profile && profile.care_intent ? String(profile.care_intent) : "Bipolar-informed care";
+  var zip = profile && profile.location_query ? String(profile.location_query) : "";
+  var format =
+    profile && profile.care_format ? String(profile.care_format) : "In-person or telehealth";
+  var parts = [careIntent];
+  if (zip) parts.push(zip);
+  if (format) parts.push(format);
+  var subDetails = parts.join(" · ");
+
+  var activeCount = countActiveRefinements(profile);
+  var countBadge = activeCount
+    ? '<span class="mx-refine-btn-count">' + activeCount + "</span>"
+    : '<span class="mx-refine-btn-count" hidden>0</span>';
+
+  return (
+    '<header class="mx-results-header">' +
+    '<div class="mx-results-header-copy">' +
+    '<div class="mx-results-kicker">Your matches</div>' +
+    '<h1 class="mx-results-title">' +
+    totalCount +
+    " bipolar-informed " +
+    (totalCount === 1 ? "match" : "matches") +
+    " for you</h1>" +
+    '<p class="mx-results-sub">Ranked for <strong>' +
+    escapeHtml(subDetails) +
+    "</strong>. Tap <em>Refine</em> to tighten the fit.</p>" +
+    "</div>" +
+    '<button type="button" class="mx-refine-btn" data-mx-refine-open="header">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<line x1="4" y1="21" x2="4" y2="14"></line>' +
+    '<line x1="4" y1="10" x2="4" y2="3"></line>' +
+    '<line x1="12" y1="21" x2="12" y2="12"></line>' +
+    '<line x1="12" y1="8" x2="12" y2="3"></line>' +
+    '<line x1="20" y1="21" x2="20" y2="16"></line>' +
+    '<line x1="20" y1="12" x2="20" y2="3"></line>' +
+    '<line x1="1" y1="14" x2="7" y2="14"></line>' +
+    '<line x1="9" y1="8" x2="15" y2="8"></line>' +
+    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
+    "</svg>" +
+    "Refine" +
+    countBadge +
+    "</button>" +
+    "</header>"
+  );
+}
+
+function renderPrimaryMatchCards(entries, profile) {
   var root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
@@ -4630,6 +4694,7 @@ function renderPrimaryMatchCards(entries, _profile) {
   root.className = "match-list";
   root.innerHTML =
     '<div class="results-panel">' +
+    buildResultsHeaderHtml(profile, allEntries.length) +
     swipeHint +
     '<section class="mx-top-three">' +
     renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
