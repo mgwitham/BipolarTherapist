@@ -4206,21 +4206,19 @@
               </div>
             </details>
             <section class="admin-region-shell workflow-section" id="confirmationRegion">
-              <div class="admin-region-header">
-                <div>
-                  <div class="admin-region-kicker">Trust And Confirmation</div>
-                  <h2 class="admin-region-title">Resolve missing or aging profile detail</h2>
-                  <div class="admin-region-copy">
-                    These lanes exist to turn incomplete or uncertain profile data into trusted live
-                    information.
-                  </div>
-                </div>
-              </div>
-              <div
-                class="workflow-section"
-                id="importBlockerSprintSection"
-                style="margin-top: 1.2rem"
-              >
+              <header class="admin-live-header">
+                <h2 class="admin-live-title">Confirmations</h2>
+                <p class="admin-live-subtitle">
+                  Turn incomplete or aging profile data into trusted live information.
+                </p>
+                <nav class="admin-live-chips" aria-label="Confirmation sections">
+                  <a href="#importBlockerSprintSection">Missing details</a>
+                  <a href="#californiaPriorityConfirmationWaveSection">California priority</a>
+                  <a href="#confirmationSprintSection">Sprint</a>
+                  <a href="#confirmationQueueSection">Queue</a>
+                </nav>
+              </header>
+              <div class="workflow-section" id="importBlockerSprintSection" style="margin-top: 0">
                 <h2>Fix Missing Listing Details</h2>
                 <p class="subtle" style="margin-top: 0">
                   These listings still have missing details that need to be verified before the live
@@ -4280,7 +4278,11 @@
                 </div>
                 <div id="importBlockerSprint"></div>
               </div>
-              <div style="margin-top: 1.2rem">
+              <div
+                class="workflow-section"
+                id="californiaPriorityConfirmationWaveSection"
+                style="margin-top: 1.2rem"
+              >
                 <h2>California Priority Wave</h2>
                 <p class="subtle" style="margin-top: 0">
                   The exact top California confirmation targets we should work first for live trust
