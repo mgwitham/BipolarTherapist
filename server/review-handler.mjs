@@ -15,6 +15,7 @@ import { handleApplicationRoutes } from "./review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
 import { handleCandidateIngestRoutes } from "./review-candidate-ingest-routes.mjs";
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
+import { verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import {
@@ -541,6 +542,7 @@ function createReviewRouteModules() {
         isAuthorized,
         parseBody,
         sendJson,
+        verifyLicense,
       },
     },
     {

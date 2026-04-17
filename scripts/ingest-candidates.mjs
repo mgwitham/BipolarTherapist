@@ -141,6 +141,22 @@ async function main() {
   console.log(`  skippedDuplicate: ${summary.skippedDuplicate ?? 0}`);
   console.log(`  errors:           ${summary.errors ?? 0}`);
 
+  function formatVerification(v) {
+    if (!v || !v.attempted) {
+      if (v?.reason === "dca_not_configured")
+        return "  [license check skipped: DCA not configured]";
+      if (v?.reason === "license_type_unknown")
+        return "  [license check skipped: unknown license type]";
+      return "";
+    }
+    if (v.ok && v.status === "active" && v.nameMatch === "match") return "  [license ✓ active]";
+    if (v.ok && v.nameMatch === "match") return `  [license ✓ ${v.status}]`;
+    if (v.ok && v.nameMatch === "indeterminate") return "  [license ✓ (name unverified)]";
+    if (!v.ok && v.status === "name_mismatch") return `  [⚠ name mismatch → DCA: ${v.dcaName}]`;
+    if (!v.ok && v.status === "lookup_failed") return `  [⚠ ${v.error}]`;
+    return "";
+  }
+
   const created = ingest.payload?.created || [];
   if (created.length) {
     console.log("\nCreated:");
@@ -148,7 +164,9 @@ async function main() {
       const dup = row.possibleDuplicate
         ? ` (possible dup of ${row.possibleDuplicate.kind} ${row.possibleDuplicate.id})`
         : "";
-      console.log(`  • ${row.name}  —  ${row.candidateId}${dup}`);
+      console.log(
+        `  • ${row.name}  —  ${row.candidateId}${dup}${formatVerification(row.verification)}`,
+      );
     }
   }
 
@@ -156,7 +174,7 @@ async function main() {
   if (updated.length) {
     console.log("\nUpdated:");
     for (const row of updated) {
-      console.log(`  • ${row.name}  —  ${row.candidateId}`);
+      console.log(`  • ${row.name}  —  ${row.candidateId}${formatVerification(row.verification)}`);
     }
   }
 
