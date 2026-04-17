@@ -97,16 +97,40 @@
         </button>
 
         <div class="dir-vb-chips" id="dirVbChips">
-          <button type="button" class="dir-vb-chip" data-chip-for="accepting" aria-pressed="false">
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="accepting"
+            aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+          >
             <span id="acceptingLabelText">Accepting new</span>
           </button>
-          <button type="button" class="dir-vb-chip" data-chip-for="telehealth" aria-pressed="false">
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="telehealth"
+            aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+          >
             <span id="telehealthLabelText">Telehealth</span>
           </button>
-          <button type="button" class="dir-vb-chip" data-chip-for="in_person" aria-pressed="false">
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="in_person"
+            aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+          >
             <span id="inPersonLabelText">In-person</span>
           </button>
-          <button type="button" class="dir-vb-chip" data-chip-for="therapist" aria-pressed="false">
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="therapist"
+            aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+          >
             <span>Therapist</span>
           </button>
           <button
@@ -114,6 +138,7 @@
             class="dir-vb-chip"
             data-chip-for="psychiatrist"
             aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
           >
             <span>Psychiatrist</span>
           </button>
@@ -122,6 +147,7 @@
             class="dir-vb-chip"
             data-chip-for="medication_management"
             aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
           >
             <span>Medication mgmt</span>
           </button>
@@ -130,6 +156,7 @@
             class="dir-vb-chip"
             data-chip-for="responsive_contact"
             aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
           >
             <span>Easy to contact</span>
           </button>
@@ -138,6 +165,7 @@
             class="dir-vb-chip"
             data-chip-for="recently_confirmed"
             aria-pressed="false"
+            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
           >
             <span>Recently updated</span>
           </button>
@@ -349,15 +377,34 @@
     </footer>
 
     <script>
-      // Chip wiring — independent of modal code so a modal error can't
-      // silently disable filtering. Uses event delegation off the chips
-      // container so late DOM changes still work.
+      // Chip toggle — exposed globally so inline onclick handlers on each
+      // chip button can call it. That bypasses any environment (browser
+      // extensions, SES lockdown, etc.) that might interfere with
+      // addEventListener or event delegation.
+      window.__dirVbToggleChip = function (chip) {
+        if (!chip) return;
+        var id = chip.getAttribute("data-chip-for");
+        var input = id ? document.getElementById(id) : null;
+        if (!input) return;
+        input.checked = !input.checked;
+        chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
+        chip.classList.toggle("is-active", input.checked);
+        try {
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (_err) {
+          // Fallback: fire the apply-filters button, which directory.js
+          // also listens to and which re-reads every input's .checked.
+          var applyBtn = document.getElementById("applyFiltersButton");
+          if (applyBtn && applyBtn.click) applyBtn.click();
+        }
+      };
+
+      // Sync any chip whose backing checkbox state changes (reset, deep link).
       (function () {
         var container = document.getElementById("dirVbChips");
         if (!container) return;
         function syncFromInput(chip, input) {
-          var pressed = input.checked ? "true" : "false";
-          chip.setAttribute("aria-pressed", pressed);
+          chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
           chip.classList.toggle("is-active", input.checked);
         }
         function eachChip(fn) {
@@ -368,23 +415,11 @@
           });
         }
         eachChip(syncFromInput);
-        container.addEventListener("click", function (event) {
-          var chip = event.target && event.target.closest(".dir-vb-chip");
-          if (!chip || !container.contains(chip)) return;
-          var id = chip.getAttribute("data-chip-for");
-          var input = id ? document.getElementById(id) : null;
-          if (!input) return;
-          input.checked = !input.checked;
-          syncFromInput(chip, input);
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-        });
-        // Sync visual state whenever the backing checkbox changes (reset, deep link).
         eachChip(function (chip, input) {
           input.addEventListener("change", function () {
             syncFromInput(chip, input);
           });
         });
-        // One more sync after directory.js has applied default filters.
         setTimeout(function () {
           eachChip(syncFromInput);
         }, 300);
