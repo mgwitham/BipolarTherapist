@@ -211,7 +211,8 @@ test("workflow: candidate publish creates therapist and records candidate review
   const candidate = state.documents.get("candidate-workflow-1");
   const therapist = state.documents.get(therapistId);
 
-  assert.equal(candidate.reviewStatus, "published");
+  assert.equal(candidate.reviewStatus, "archived");
+  assert.equal(candidate.reviewLane, "archived");
   assert.equal(candidate.publishRecommendation, "ready");
   assert.equal(candidate.publishedTherapistId, therapistId);
   assert.equal(Array.isArray(candidate.reviewHistory), true);
@@ -222,4 +223,30 @@ test("workflow: candidate publish creates therapist and records candidate review
   assert.equal(therapist.licenseState, "");
   assert.equal(therapist.verificationStatus, "under_review");
   assert.deepEqual(therapist.supportingSourceUrls, ["https://example.com/casey/profile"]);
+
+  const listResponse = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/candidates",
+  });
+  assert.equal(listResponse.statusCode, 200);
+  const editorialQueue = listResponse.payload.filter(function (item) {
+    const lane = String(item.review_lane || "").toLowerCase();
+    const status = String(item.review_status || "").toLowerCase();
+    return (
+      status !== "published" &&
+      status !== "archived" &&
+      (lane === "editorial_review" || status === "queued" || status === "needs_review")
+    );
+  });
+  assert.equal(
+    editorialQueue.find(function (item) {
+      return item.id === "candidate-workflow-1";
+    }),
+    undefined,
+    "Published candidate should not appear in editorial_review/queued selection",
+  );
 });

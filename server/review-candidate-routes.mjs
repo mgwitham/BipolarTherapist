@@ -266,7 +266,7 @@ export async function handleCandidateRoutes(context) {
       publishingHelpers,
     );
     therapistId = nextTherapist._id;
-    reviewStatus = "published";
+    reviewStatus = "archived";
     publishRecommendation = "ready";
     eventType = "candidate_published";
     changedFields.push("publishedTherapistId", "publishedAt", "matchedTherapistId");
