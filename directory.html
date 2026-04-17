@@ -349,6 +349,49 @@
     </footer>
 
     <script>
+      // Chip wiring — independent of modal code so a modal error can't
+      // silently disable filtering. Uses event delegation off the chips
+      // container so late DOM changes still work.
+      (function () {
+        var container = document.getElementById("dirVbChips");
+        if (!container) return;
+        function syncFromInput(chip, input) {
+          var pressed = input.checked ? "true" : "false";
+          chip.setAttribute("aria-pressed", pressed);
+          chip.classList.toggle("is-active", input.checked);
+        }
+        function eachChip(fn) {
+          container.querySelectorAll(".dir-vb-chip").forEach(function (chip) {
+            var id = chip.getAttribute("data-chip-for");
+            var input = id ? document.getElementById(id) : null;
+            if (input) fn(chip, input);
+          });
+        }
+        eachChip(syncFromInput);
+        container.addEventListener("click", function (event) {
+          var chip = event.target && event.target.closest(".dir-vb-chip");
+          if (!chip || !container.contains(chip)) return;
+          var id = chip.getAttribute("data-chip-for");
+          var input = id ? document.getElementById(id) : null;
+          if (!input) return;
+          input.checked = !input.checked;
+          syncFromInput(chip, input);
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        // Sync visual state whenever the backing checkbox changes (reset, deep link).
+        eachChip(function (chip, input) {
+          input.addEventListener("change", function () {
+            syncFromInput(chip, input);
+          });
+        });
+        // One more sync after directory.js has applied default filters.
+        setTimeout(function () {
+          eachChip(syncFromInput);
+        }, 300);
+      })();
+    </script>
+    <script>
+      // Modal open/close — separate IIFE.
       (function () {
         var openBtn = document.getElementById("dirVbModalOpen");
         var modal = document.getElementById("dirVbModal");
@@ -381,40 +424,6 @@
         });
         var applyBtn = document.getElementById("applyFiltersButton");
         if (applyBtn) applyBtn.addEventListener("click", close);
-
-        // Chip buttons toggle their backing hidden checkbox and dispatch
-        // the change event directory.js is already listening for. Also
-        // keeps aria-pressed + .is-active in lockstep with the checkbox.
-        function syncChipFromInput(chip, input) {
-          var pressed = input.checked ? "true" : "false";
-          chip.setAttribute("aria-pressed", pressed);
-          chip.classList.toggle("is-active", input.checked);
-        }
-        var chips = document.querySelectorAll(".dir-vb-chip");
-        chips.forEach(function (chip) {
-          var id = chip.getAttribute("data-chip-for");
-          var input = id ? document.getElementById(id) : null;
-          if (!input) return;
-          syncChipFromInput(chip, input);
-          chip.addEventListener("click", function () {
-            input.checked = !input.checked;
-            syncChipFromInput(chip, input);
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-          });
-          // If something else flips the checkbox (reset, URL restore,
-          // deep link), keep the chip visual in sync.
-          input.addEventListener("change", function () {
-            syncChipFromInput(chip, input);
-          });
-        });
-        // Re-sync once directory.js has applied default state (state=CA).
-        setTimeout(function () {
-          chips.forEach(function (chip) {
-            var id = chip.getAttribute("data-chip-for");
-            var input = id ? document.getElementById(id) : null;
-            if (input) syncChipFromInput(chip, input);
-          });
-        }, 300);
       })();
     </script>
     <script type="module" src="assets/directory.js"></script>
