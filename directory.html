@@ -26,7 +26,7 @@
     />
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
-  <body>
+  <body class="dir-vb">
     <nav>
       <a href="index.html" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
@@ -76,61 +76,137 @@
           Filter by what matters, compare the strongest options side by side, and save the
           therapists worth a second look.
         </p>
-
-        <div class="dir-hero-trust" aria-label="How this page works">
-          <div class="dir-hero-trust-card">
-            <div class="dir-hero-trust-label">Step 1</div>
-            <div class="dir-hero-trust-title">Narrow with one or two filters</div>
-            <div class="dir-hero-trust-copy">
-              Start with location and insurance. Small moves reveal the strongest options fast.
-            </div>
-          </div>
-          <div class="dir-hero-trust-card">
-            <div class="dir-hero-trust-label">Step 2</div>
-            <div class="dir-hero-trust-title">Scan for fit, not perfection</div>
-            <div class="dir-hero-trust-copy">
-              Cards surface experience, fees, and availability so the tradeoffs are easy to weigh.
-            </div>
-          </div>
-          <div class="dir-hero-trust-card">
-            <div class="dir-hero-trust-label">Step 3</div>
-            <div class="dir-hero-trust-title">Save a short list to revisit</div>
-            <div class="dir-hero-trust-copy">
-              Keep the therapists you would really consider. Come back when you are ready to reach
-              out.
-            </div>
-          </div>
-        </div>
       </div>
     </header>
 
-    <main class="layout">
-      <aside class="directory-sidebar-shell" id="directoryFilters">
-        <div class="filter-workspace">
-          <button
-            type="button"
-            class="mobile-filter-toggle"
-            id="mobileFilterToggle"
-            aria-controls="sidebar"
-            aria-expanded="false"
-          >
-            Filters <span id="filterCount"></span>
-          </button>
+    <div class="dir-vb-bar-wrap">
+      <div class="dir-vb-bar" role="region" aria-label="Quick filters">
+        <button type="button" class="dir-vb-filters-btn" id="dirVbModalOpen" aria-haspopup="dialog">
+          <span class="dir-vb-filters-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2 4h12M4 8h8M6 12h4"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+          <span>Filters</span>
+          <span class="dir-vb-filters-count" id="filterCount"></span>
+        </button>
 
-          <div class="filter-shell-header">
-            <h2>Filters</h2>
-            <span class="filter-shell-count">Refine</span>
+        <div class="dir-vb-chips" id="dirVbChips">
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="accepting" />
+            <span id="acceptingLabelText">Accepting new</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="telehealth" />
+            <span id="telehealthLabelText">Telehealth</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="in_person" />
+            <span id="inPersonLabelText">In-person</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="therapist" />
+            <span>Therapist</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="psychiatrist" />
+            <span>Psychiatrist</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="medication_management" />
+            <span>Medication mgmt</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="responsive_contact" />
+            <span>Easy to contact</span>
+          </label>
+          <label class="dir-vb-chip">
+            <input type="checkbox" id="recently_confirmed" />
+            <span>Recently updated</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <main class="dir-vb-main">
+      <div class="dir-vb-canvas">
+        <div class="results-focus-banner">
+          <div class="results-focus-banner-pill-group">
+            <div class="results-focus-banner-label">Current focus</div>
+            <button type="button" class="results-focus-banner-clear" id="focusClearFiltersButton">
+              Clear filters
+            </button>
           </div>
+          <div class="results-focus-banner-main">
+            <div class="results-focus-banner-copy" id="activeFilterSummary">
+              No filters applied yet. Start with one strong narrowing move.
+            </div>
+          </div>
+          <div class="results-focus-banner-chips" id="activeFilterChips"></div>
+        </div>
 
-          <div class="sidebar" id="sidebar">
-            <div class="filter-panel">
-              <h3>
-                <span class="dir-panel-dot"></span><span id="locationPanelTitle">Location</span>
-              </h3>
+        <div class="results-header">
+          <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
+          <div class="results-tools">
+            <label for="sortBy">Sort by</label>
+            <select id="sortBy">
+              <option value="lowest_fee">Lowest fee</option>
+              <option value="best_match">Best match</option>
+              <option value="most_experienced">Most bipolar experience</option>
+              <option value="soonest_availability">Soonest availability</option>
+              <option value="most_responsive">Most responsive contact</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="directory-section-copy" id="directoryJourneySummary" hidden></p>
+        <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
+
+        <div class="therapist-grid dir-vb-grid" id="resultsGrid">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Finding bipolar-informed options...</p>
+          </div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </main>
+
+    <!-- Full-screen filter modal -->
+    <div class="dir-vb-modal-scrim" id="dirVbModalScrim" hidden data-dir-vb-modal-close></div>
+    <div
+      class="dir-vb-modal"
+      id="dirVbModal"
+      role="dialog"
+      aria-label="Filters"
+      aria-modal="true"
+      hidden
+    >
+      <div class="dir-vb-modal-head">
+        <button type="button" class="dir-vb-modal-close" aria-label="Close" data-dir-vb-modal-close>
+          ×
+        </button>
+        <h2>Filters</h2>
+        <button type="button" class="dir-vb-modal-clear" id="resetFiltersButton">Clear all</button>
+      </div>
+
+      <div class="dir-vb-modal-body" id="directoryFilters">
+        <div class="sidebar" id="sidebar">
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="locationPanelTitle">Location</h3>
+              <p>Start here — most searches narrow fastest with one state and a zip.</p>
+            </div>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
                 <label for="state" id="stateLabelText">State</label>
                 <select id="state">
-                  <option value="">All States</option>
+                  <option value="">All states</option>
                 </select>
               </div>
               <div class="filter-group">
@@ -144,35 +220,14 @@
                 />
               </div>
             </div>
+          </section>
 
-            <div class="filter-panel">
-              <h3><span class="dir-panel-dot"></span><span>Care preference</span></h3>
-              <div class="check-group">
-                <label class="check-label"
-                  ><input type="checkbox" id="therapist" /> <span>Therapist</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="psychiatrist" /> <span>Psychiatrist</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="telehealth" />
-                  <span id="telehealthLabelText">Telehealth available</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="in_person" />
-                  <span id="inPersonLabelText">In-person available</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="accepting" />
-                  <span id="acceptingLabelText">Accepting new patients</span></label
-                >
-              </div>
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="insurancePanelTitle">Coverage</h3>
+              <p>Filter to the plans you actually carry.</p>
             </div>
-
-            <div class="filter-panel">
-              <h3>
-                <span class="dir-panel-dot"></span><span id="insurancePanelTitle">Coverage</span>
-              </h3>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
                 <label for="insurance" id="insuranceLabelText">Insurance</label>
                 <select id="insurance">
@@ -180,12 +235,14 @@
                 </select>
               </div>
             </div>
+          </section>
 
-            <div class="filter-panel">
-              <h3>
-                <span class="dir-panel-dot"></span
-                ><span id="bipolarExperiencePanelTitle">Bipolar experience</span>
-              </h3>
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="bipolarExperiencePanelTitle">Bipolar experience</h3>
+              <p>Only show providers with real bipolar caseload depth.</p>
+            </div>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
                 <label for="bipolar_experience">Experience level</label>
                 <select id="bipolar_experience">
@@ -196,12 +253,14 @@
                 </select>
               </div>
             </div>
+          </section>
 
-            <div class="filter-panel">
-              <h3>
-                <span class="dir-panel-dot"></span
-                ><span id="populationPanelTitle">Population served</span>
-              </h3>
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="populationPanelTitle">Population served</h3>
+              <p>Narrow to providers who specialize in the people you see yourself in.</p>
+            </div>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
                 <label for="population">Population</label>
                 <select id="population">
@@ -209,11 +268,14 @@
                 </select>
               </div>
             </div>
+          </section>
 
-            <div class="filter-panel">
-              <h3>
-                <span class="dir-panel-dot"></span><span id="specialtyPanelTitle">Specialty</span>
-              </h3>
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="specialtyPanelTitle">Specialty</h3>
+              <p>Optional. Helpful if you already know what you want to work on.</p>
+            </div>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
                 <label for="specialty" id="specialtyLabelText">Focus area</label>
                 <select id="specialty">
@@ -221,86 +283,40 @@
                 </select>
               </div>
             </div>
+          </section>
 
-            <div class="filter-panel">
-              <h3><span class="dir-panel-dot"></span><span>Match quality</span></h3>
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3>Treatment modality</h3>
+              <p>The approach the provider uses in session.</p>
+            </div>
+            <div class="dir-vb-section-body">
               <div class="filter-group">
-                <label for="modality">Treatment modality</label>
+                <label for="modality">Modality</label>
                 <select id="modality">
                   <option value="">All modalities</option>
                 </select>
               </div>
-              <div class="check-group">
-                <label class="check-label"
-                  ><input type="checkbox" id="medication_management" />
-                  <span>Medication management</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="responsive_contact" />
-                  <span>Easy to contact</span></label
-                >
-                <label class="check-label"
-                  ><input type="checkbox" id="recently_confirmed" />
-                  <span>Recently updated</span></label
-                >
-              </div>
             </div>
-          </div>
-
-          <div class="filter-action-bar">
-            <button type="button" class="btn-filter" id="applyFiltersButton">Apply filters</button>
-            <button type="button" class="btn-reset" id="resetFiltersButton">Reset</button>
-          </div>
+          </section>
         </div>
-      </aside>
+      </div>
 
-      <section
-        class="directory-results"
-        id="directoryResults"
-        aria-label="Therapist directory results"
-      >
-        <div class="directory-results-shell">
-          <div class="results-focus-banner">
-            <div class="results-focus-banner-pill-group">
-              <div class="results-focus-banner-label">Current focus</div>
-              <button type="button" class="results-focus-banner-clear" id="focusClearFiltersButton">
-                Clear filters
-              </button>
-            </div>
-            <div class="results-focus-banner-main">
-              <div class="results-focus-banner-copy" id="activeFilterSummary">
-                No filters applied yet. Start with one strong narrowing move.
-              </div>
-            </div>
-            <div class="results-focus-banner-chips" id="activeFilterChips"></div>
-          </div>
-          <div class="results-header">
-            <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
-            <div class="results-tools">
-              <label for="sortBy">Sort by</label>
-              <select id="sortBy">
-                <option value="lowest_fee">Lowest fee</option>
-                <option value="best_match">Best match</option>
-                <option value="most_experienced">Most bipolar experience</option>
-                <option value="soonest_availability">Soonest availability</option>
-                <option value="most_responsive">Most responsive contact</option>
-              </select>
-            </div>
-          </div>
-          <p class="directory-section-copy" id="directoryJourneySummary" hidden>
-            Compare the strongest options, then save the therapists you want to revisit.
-          </p>
-          <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
-          <div class="therapist-grid" id="resultsGrid">
-            <div class="loading">
-              <div class="spinner"></div>
-              <p>Finding bipolar-informed options...</p>
-            </div>
-          </div>
-          <div class="pagination" id="pagination"></div>
-        </div>
-      </section>
-    </main>
+      <div class="dir-vb-modal-foot">
+        <button type="button" class="btn-filter dir-vb-modal-apply" id="applyFiltersButton">
+          Show results
+        </button>
+      </div>
+    </div>
+    <!-- directory.js references these IDs on load; keep them in DOM even if unused visually. -->
+    <button
+      type="button"
+      id="mobileFilterToggle"
+      aria-controls="sidebar"
+      aria-expanded="false"
+      hidden
+      style="display: none"
+    ></button>
 
     <footer>
       <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
@@ -309,6 +325,41 @@
       </p>
     </footer>
 
+    <script>
+      (function () {
+        var openBtn = document.getElementById("dirVbModalOpen");
+        var modal = document.getElementById("dirVbModal");
+        var scrim = document.getElementById("dirVbModalScrim");
+        if (!openBtn || !modal || !scrim) return;
+        function open() {
+          modal.hidden = false;
+          scrim.hidden = false;
+          requestAnimationFrame(function () {
+            modal.setAttribute("data-open", "true");
+            scrim.setAttribute("data-open", "true");
+          });
+          document.body.style.overflow = "hidden";
+        }
+        function close() {
+          modal.removeAttribute("data-open");
+          scrim.removeAttribute("data-open");
+          setTimeout(function () {
+            modal.hidden = true;
+            scrim.hidden = true;
+          }, 220);
+          document.body.style.overflow = "";
+        }
+        openBtn.addEventListener("click", open);
+        document.querySelectorAll("[data-dir-vb-modal-close]").forEach(function (el) {
+          el.addEventListener("click", close);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && modal.getAttribute("data-open") === "true") close();
+        });
+        var applyBtn = document.getElementById("applyFiltersButton");
+        if (applyBtn) applyBtn.addEventListener("click", close);
+      })();
+    </script>
     <script type="module" src="assets/directory.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
