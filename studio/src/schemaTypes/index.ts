@@ -11,6 +11,7 @@ import { therapistEngagementSummaryType } from "./therapistEngagementSummary";
 import { therapistPublishEventType } from "./therapistPublishEvent";
 import { therapistPortalRequestType } from "./therapistPortalRequest";
 import { therapistType } from "./therapist";
+import { zipOutreachTaskType } from "./zipOutreachTask";
 
 export const schemaTypes = [
   directoryPageType,
@@ -26,4 +27,5 @@ export const schemaTypes = [
   therapistPublishEventType,
   therapistPortalRequestType,
   therapistEngagementSummaryType,
+  zipOutreachTaskType,
 ];

@@ -426,25 +426,52 @@ function deriveStatusStanding(primaryStatus) {
   return "unknown";
 }
 
+function titleCaseCity(value) {
+  return String(value || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function parseAddressParts(addressText) {
-  const cleaned = normalizeWhitespace(String(addressText || "").replace(/\s*,\s*/g, ", "));
-  const match = cleaned.match(/(.+?),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/);
-  if (!match) {
+  const cleaned = normalizeWhitespace(String(addressText || ""))
+    .replace(/^Address of Record[:\s]*/i, "")
+    .replace(/\s+Map\s*$/i, "")
+    .replace(/\s+[A-Z][A-Z\s]*\s+county\s*$/i, "")
+    .trim();
+
+  const commaMatch = cleaned.match(/(.+?),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/);
+  if (commaMatch) {
+    const prefix = commaMatch[1];
+    const cityMatch = prefix.match(/([^,]+)$/);
     return {
       addressOfRecord: cleaned,
-      addressCity: "",
-      addressState: "",
-      addressZip: "",
+      addressCity: cityMatch ? cityMatch[1].trim() : "",
+      addressState: commaMatch[2],
+      addressZip: commaMatch[3],
     };
   }
 
-  const prefix = match[1];
-  const cityMatch = prefix.match(/([^,]+)$/);
+  const freeMatch = cleaned.match(
+    /^(.*?)\s+([A-Z][A-Z .'-]+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/,
+  );
+  if (freeMatch) {
+    return {
+      addressOfRecord: cleaned,
+      addressCity: titleCaseCity(freeMatch[2]),
+      addressState: freeMatch[3],
+      addressZip: freeMatch[4],
+    };
+  }
+
+  const zipMatch = cleaned.match(/\b(\d{5}(?:-\d{4})?)\b/);
   return {
     addressOfRecord: cleaned,
-    addressCity: cityMatch ? cityMatch[1].trim() : "",
-    addressState: match[2],
-    addressZip: match[3],
+    addressCity: "",
+    addressState: "",
+    addressZip: zipMatch ? zipMatch[1] : "",
   };
 }
 
