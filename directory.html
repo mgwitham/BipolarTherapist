@@ -358,6 +358,28 @@
         });
         var applyBtn = document.getElementById("applyFiltersButton");
         if (applyBtn) applyBtn.addEventListener("click", close);
+
+        // Chip active-state sync — reflect checkbox state on the chip label
+        // so users see the filled teal pill even if :has() lags or loses.
+        function syncChipActive(chip) {
+          var input = chip.querySelector('input[type="checkbox"]');
+          if (!input) return;
+          chip.classList.toggle("is-active", input.checked);
+        }
+        var chips = document.querySelectorAll(".dir-vb-chip");
+        chips.forEach(function (chip) {
+          var input = chip.querySelector('input[type="checkbox"]');
+          if (!input) return;
+          syncChipActive(chip);
+          input.addEventListener("change", function () {
+            syncChipActive(chip);
+          });
+        });
+        // After directory.js has had a tick to sync controls from state,
+        // re-sync the visual state (default filters may set CA, etc.).
+        setTimeout(function () {
+          chips.forEach(syncChipActive);
+        }, 300);
       })();
     </script>
     <script type="module" src="assets/directory.js"></script>
