@@ -51,8 +51,15 @@ Run the first batch with `--count 10`. Review all 10 by hand before
 scaling up. Watch for two failure modes:
 
 1. **False positives** — therapists listed with bipolar among many other
-   specialties but who don't really focus on it. If you see more than
-   one of these, tighten the "writes about it somewhere else on the
-   site" requirement in `discovery-prompt.template.txt`.
-2. **Aggregator leakage** — Psychology Today or similar URLs sneaking
+   specialties but who don't really focus on it. The prompt's rule 3(b)
+   requires at least one of a dedicated page, a three-sentence clinical
+   paragraph, named bipolar training, or bipolar-specific testimonials.
+   If false positives still slip through, add more required signals to
+   3(b) or raise the bar to "at least TWO of these" in
+   `discovery-prompt.template.txt`.
+2. **Over-rejection** — the prompt defaults to reject when 3(b) is
+   unclear. If the LLM's reject list shows real specialists getting
+   filtered out (check their sites), loosen 3(b) by adding softer
+   signals or switching to "OR" logic between bullets.
+3. **Aggregator leakage** — Psychology Today or similar URLs sneaking
    through. Add their domains to the hard exclusions and re-run.

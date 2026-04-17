@@ -10,13 +10,36 @@ HARD REQUIREMENTS (rows without these are useless):
    therapist's own page OR via the CA DCA lookup
    (https://search.dca.ca.gov/). Accepted prefixes: PSY, MFT, LMFT,
    LCSW, LPCC, LEP, plus MD/DO for psychiatrists.
-3. Explicit bipolar specialization shown on their own website, not just
-   "mood disorders." Acceptable signals:
-   - Names bipolar I, bipolar II, manic, hypomanic, or cyclothymia
-   - Mentions lithium, lamotrigine, mood stabilizers, or IPSRT
-   - Describes family-focused therapy or psychoeducation for bipolar
-   - Lists bipolar in a specialties section AND writes about it
-     somewhere else on the site
+3. Explicit bipolar specialization shown on their own website.
+   BOTH (a) AND (b) must be true:
+
+   (a) Uses bipolar-specific language somewhere on the site. "Mood
+       disorders" alone is NOT sufficient. Acceptable: names bipolar I,
+       bipolar II, manic, hypomanic, cyclothymia, mood stabilizers,
+       lithium, lamotrigine, IPSRT, family-focused therapy, STEP-BD,
+       or psychoeducation for bipolar.
+
+   (b) Demonstrates substantive focus beyond a specialty-list mention.
+       At least ONE of these must be verifiable on the site:
+       - A dedicated page, blog post, or on-page section titled or
+         centered on bipolar disorder, not a generic mental health
+         page that mentions it in passing
+       - A paragraph of three or more sentences describing their
+         clinical approach to bipolar specifically: how they work
+         with episodes, medication coordination with prescribers,
+         family involvement, or relapse prevention
+       - Named bipolar-specific training, certification, or postdoc
+         experience (e.g. bipolar research fellowship, STEP-BD
+         training, IPSRT certification, DBSA leadership, NAMI
+         program involvement)
+       - Testimonials or case descriptions that specifically discuss
+         bipolar, not generic "mood disorders" or "anxiety"
+
+   If (b) is unclear or borderline, REJECT the candidate. Better to
+   miss a real specialist than ingest a generalist who listed bipolar
+   on a keyword-stuffed specialties page. Log the rejection with the
+   specific reason so a human can spot-check and loosen the rule later
+   if too many real specialists are getting filtered out.
 4. Practices in {CITY}, California. Their primary office or telehealth
    service footprint must cover at least one of these ZIPs: {ZIPS}.
 5. Has a dedicated PROFILE PAGE a reviewer can judge in 10 seconds.
