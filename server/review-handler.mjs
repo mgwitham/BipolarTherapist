@@ -13,6 +13,7 @@ import {
 } from "./review-application-support.mjs";
 import { handleApplicationRoutes } from "./review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
+import { handleCandidateIngestRoutes } from "./review-candidate-ingest-routes.mjs";
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
@@ -527,6 +528,19 @@ function createReviewRouteModules() {
         slugify,
         updateApplicationFields,
         validateRevisionInput,
+      },
+    },
+    {
+      handler: handleCandidateIngestRoutes,
+      deps: {
+        buildDuplicateIdentity,
+        buildProviderId,
+        compareDuplicateIdentity,
+        computeCandidateReviewMeta,
+        getAuthorizedActor,
+        isAuthorized,
+        parseBody,
+        sendJson,
       },
     },
     {
