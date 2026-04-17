@@ -344,6 +344,46 @@
         font-size: 0.88rem;
         color: #4a6570;
       }
+      .admin-live-header {
+        margin: 0 0 0.85rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      }
+      .admin-live-title {
+        font-size: 1.25rem;
+        margin: 0 0 0.1rem;
+        color: #0f3f4a;
+        letter-spacing: -0.01em;
+      }
+      .admin-live-subtitle {
+        margin: 0 0 0.65rem;
+        font-size: 0.88rem;
+        color: #4a6570;
+      }
+      .admin-live-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .admin-live-chips a {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        color: #0f3f4a;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease;
+      }
+      .admin-live-chips a:hover {
+        background: rgba(26, 122, 143, 0.18);
+      }
       .admin-quick-nav-today {
         font-weight: 600;
         color: #0f3f4a !important;
@@ -3996,17 +4036,18 @@
       <div id="adminApp" class="admin-stack" style="display: none">
         <div class="grid" style="grid-template-columns: 1fr">
           <aside class="admin-region sidebar-panel" id="liveListingsRegion" style="display: none">
+            <header class="admin-live-header">
+              <h2 class="admin-live-title">Live</h2>
+              <p class="admin-live-subtitle">Keep published listings trustworthy and current.</p>
+              <nav class="admin-live-chips" aria-label="Live sections">
+                <a href="#publishedListingsSection">All listings</a>
+                <a href="#refreshQueueSection">Refresh</a>
+                <a href="#licensureQueueSection">Licensure</a>
+                <a href="#licensureSprintSection">Sprint</a>
+                <a href="#deferredLicensureQueueSection">Deferred</a>
+              </nav>
+            </header>
             <section class="admin-region-shell workflow-section" id="publishedListingsSection">
-              <div class="admin-region-header">
-                <div>
-                  <div class="admin-region-kicker">Live Listings</div>
-                  <h2 class="admin-region-title">Publish and maintain live supply</h2>
-                  <div class="admin-region-copy">
-                    Everything here is about public listings that already exist or are close to
-                    going live.
-                  </div>
-                </div>
-              </div>
               <h2>Promote Live Listings</h2>
               <div class="sop-note">
                 <div class="sop-note-row">
@@ -4134,7 +4175,7 @@
                 <div class="admin-collapsible-icon">+</div>
               </summary>
               <div class="admin-collapsible-body">
-                <div class="workflow-section">
+                <div class="workflow-section" id="licensureQueueSection">
                   <h2>Licensure Refresh Queue</h2>
                   <p class="subtle" style="margin-top: 0">
                     Primary-source licensure cache work, including first-pass enrichment, failed
@@ -4143,14 +4184,14 @@
                   <div class="subtle" id="licensureQueueCount" style="margin-bottom: 0.8rem"></div>
                   <div id="licensureQueue"></div>
                 </div>
-                <div class="workflow-section">
+                <div class="workflow-section" id="licensureSprintSection">
                   <h2>Licensure Sprint</h2>
                   <p class="subtle" style="margin-top: 0">
                     The tightest licensure work packet to improve primary-source coverage fastest.
                   </p>
                   <div id="licensureSprint"></div>
                 </div>
-                <div class="workflow-section">
+                <div class="workflow-section" id="deferredLicensureQueueSection">
                   <h2>Deferred Licensure Queue</h2>
                   <p class="subtle" style="margin-top: 0">
                     Snoozed licensure work with the date it will return to the active queue.
