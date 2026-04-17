@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const LOCAL_BASE_URL = "http://localhost:8787";
-const PROD_BASE_URL = "https://bipolar-therapist.vercel.app/api/review";
+const PROD_BASE_URL = "https://polsia.com/api/review";
 
 function parseArgs(argv) {
   const args = { file: "", prod: false, baseUrl: "" };
