@@ -3226,7 +3226,8 @@ body.dir-vb .dir-vb-chip input[type="checkbox"] {
   height: 0;
 }
 
-body.dir-vb .dir-vb-chip:has(input:checked) {
+body.dir-vb .dir-vb-chip:has(input:checked),
+body.dir-vb .dir-vb-chip.is-active {
   background: linear-gradient(180deg, var(--teal) 0%, var(--teal-dark) 100%);
   color: #ffffff;
   border-color: var(--teal-dark);
