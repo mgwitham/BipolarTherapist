@@ -1353,4 +1353,9 @@ export function renderApplicationsPanel(options) {
     applicationLiveApplySummaries: options.applicationLiveApplySummaries,
     loadData: options.loadData,
   });
+
+  // Restore Focus mode position if it was active before this re-render.
+  import("./admin-triage-focus.js").then(function (mod) {
+    mod.reapplyFocusAfterRender(root);
+  });
 }

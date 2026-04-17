@@ -1,20 +1,86 @@
-// Triage Focus Mode — keyboard-driven one-card-at-a-time review layered
-// over the existing candidate queue. Additive: list mode remains intact.
+// Focus Mode — keyboard-driven one-card-at-a-time review layered
+// over an existing card list. Additive: list mode remains intact.
 //
-// Keyboard (when focus mode is active):
-//   J / ↓ / →  next card
-//   K / ↑ / ←  previous card
-//   P          Publish
-//   C          Needs more work (park in Review bay)
-//   D          Is a duplicate (or open compare if no duplicate flag yet)
-//   A          Archive
-//   ?          Toggle shortcut help
-//   Esc        Exit focus mode
+// Used by both the Triage (candidate) queue and the Signups (application)
+// queue via createFocusMode({ ... }). Backwards-compatible top-level
+// exports still work as the triage-specific entry point.
 
-const FOCUS_CLASS = "is-triage-focus-active";
+const FOCUS_CLASS = "is-focus-mode-active";
 const CURRENT_CLASS = "is-focus-current";
-const KEY_HANDLER_PROP = "__triageFocusKeyHandler";
-const STATE_PROP = "__triageFocusState";
+const KEY_HANDLER_PROP = "__focusModeKeyHandler";
+const STATE_PROP = "__focusModeState";
+const CONFIG_PROP = "__focusModeConfig";
+
+const TRIAGE_CONFIG = {
+  cardSelector: "[data-candidate-card-id]",
+  keys: {
+    p: {
+      label: "publish",
+      action: function (card) {
+        return clickDecisionButton(
+          card,
+          '[data-candidate-decision][data-candidate-next="publish"]',
+        );
+      },
+    },
+    c: {
+      label: "needs work",
+      action: function (card) {
+        return clickDecisionButton(
+          card,
+          '[data-candidate-decision][data-candidate-next="needs_review"]',
+        );
+      },
+    },
+    d: {
+      label: "duplicate",
+      action: function (card) {
+        return (
+          clickDecisionButton(
+            card,
+            '[data-candidate-decision][data-candidate-next="reject_duplicate"]',
+          ) || clickDecisionButton(card, "[data-candidate-compare]")
+        );
+      },
+    },
+    a: {
+      label: "archive",
+      action: function (card) {
+        return clickDecisionButton(
+          card,
+          '[data-candidate-decision][data-candidate-next="archive"]',
+        );
+      },
+    },
+  },
+};
+
+const SIGNUPS_CONFIG = {
+  cardSelector: "[data-application-card-id]",
+  keys: {
+    p: {
+      label: "publish",
+      action: function (card) {
+        return (
+          clickDecisionButton(card, '[data-action="publish"]') ||
+          clickDecisionButton(card, '[data-action="approve_claim"]')
+        );
+      },
+    },
+    c: {
+      label: "request fixes",
+      action: function (card) {
+        return clickDecisionButton(card, '[data-action="requested_changes"]');
+      },
+    },
+    r: {
+      label: "reject",
+      action: function (card) {
+        return clickDecisionButton(card, '[data-action="reject"]');
+      },
+    },
+  },
+};
 
 function isTypingInInput(target) {
   if (!target || !target.tagName) return false;
@@ -23,8 +89,17 @@ function isTypingInInput(target) {
   return target.isContentEditable === true;
 }
 
+function clickDecisionButton(card, selector) {
+  if (!card) return false;
+  const btn = card.querySelector(selector);
+  if (!btn) return false;
+  btn.click();
+  return true;
+}
+
 function getCards(root) {
-  return Array.from(root.querySelectorAll("[data-candidate-card-id]"));
+  const config = root[CONFIG_PROP] || TRIAGE_CONFIG;
+  return Array.from(root.querySelectorAll(config.cardSelector));
 }
 
 function focusCardAt(root, cards, index) {
@@ -39,9 +114,15 @@ function focusCardAt(root, cards, index) {
 }
 
 function updateHud(root, index, total, card) {
-  const hud = root.querySelector("[data-triage-focus-hud]");
+  const hud = root.querySelector("[data-focus-hud]");
   if (!hud) return;
+  const config = root[CONFIG_PROP] || TRIAGE_CONFIG;
   const name = card ? (card.querySelector("h3") || {}).textContent || "" : "";
+  const keyHints = Object.keys(config.keys)
+    .map(function (key) {
+      return "<kbd>" + key.toUpperCase() + "</kbd> " + config.keys[key].label;
+    })
+    .join(" · ");
   hud.innerHTML =
     '<div class="triage-focus-hud-count">' +
     (index + 1) +
@@ -53,11 +134,8 @@ function updateHud(root, index, total, card) {
     "</div>" +
     '<div class="triage-focus-hud-keys">' +
     "<kbd>J</kbd>/<kbd>K</kbd> move · " +
-    "<kbd>P</kbd> publish · " +
-    "<kbd>C</kbd> needs work · " +
-    "<kbd>D</kbd> duplicate · " +
-    "<kbd>A</kbd> archive · " +
-    "<kbd>Esc</kbd> exit" +
+    keyHints +
+    " · <kbd>Esc</kbd> exit" +
     "</div>";
 }
 
@@ -70,28 +148,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function triggerDecision(card, decision) {
-  if (!card) return false;
-  const selector = '[data-candidate-decision][data-candidate-next="' + decision + '"]';
-  const btn = card.querySelector(selector);
-  if (!btn) return false;
-  btn.click();
-  return true;
-}
-
-function triggerDuplicate(card) {
-  if (!card) return false;
-  // Prefer an already-visible "Mark as duplicate" button (duplicate lane).
-  if (triggerDecision(card, "reject_duplicate")) return true;
-  // Fall back to opening the compare modal so the reviewer can decide.
-  const compareBtn = card.querySelector("[data-candidate-compare]");
-  if (compareBtn) {
-    compareBtn.click();
-    return true;
-  }
-  return false;
-}
-
 function attachKeyHandler(root) {
   if (root[KEY_HANDLER_PROP]) return;
   const handler = function (event) {
@@ -101,36 +157,19 @@ function attachKeyHandler(root) {
     const cards = getCards(root);
     if (!cards.length) return;
     const state = root[STATE_PROP] || { index: 0 };
+    const config = root[CONFIG_PROP] || TRIAGE_CONFIG;
     const key = event.key.toLowerCase();
     let handled = true;
-    switch (key) {
-      case "j":
-      case "arrowdown":
-      case "arrowright":
-        focusCardAt(root, cards, state.index + 1);
-        break;
-      case "k":
-      case "arrowup":
-      case "arrowleft":
-        focusCardAt(root, cards, state.index - 1);
-        break;
-      case "p":
-        triggerDecision(cards[state.index], "publish");
-        break;
-      case "c":
-        triggerDecision(cards[state.index], "needs_review");
-        break;
-      case "d":
-        triggerDuplicate(cards[state.index]);
-        break;
-      case "a":
-        triggerDecision(cards[state.index], "archive");
-        break;
-      case "escape":
-        exitFocusMode(root);
-        break;
-      default:
-        handled = false;
+    if (key === "j" || key === "arrowdown" || key === "arrowright") {
+      focusCardAt(root, cards, state.index + 1);
+    } else if (key === "k" || key === "arrowup" || key === "arrowleft") {
+      focusCardAt(root, cards, state.index - 1);
+    } else if (key === "escape") {
+      exitFocusMode(root);
+    } else if (config.keys[key]) {
+      config.keys[key].action(cards[state.index]);
+    } else {
+      handled = false;
     }
     if (handled) event.preventDefault();
   };
@@ -147,20 +186,21 @@ function detachKeyHandler(root) {
 }
 
 function ensureHud(root) {
-  if (root.querySelector("[data-triage-focus-hud]")) return;
+  if (root.querySelector("[data-focus-hud]")) return;
   const hud = document.createElement("div");
   hud.className = "triage-focus-hud";
-  hud.setAttribute("data-triage-focus-hud", "");
+  hud.setAttribute("data-focus-hud", "");
   root.prepend(hud);
 }
 
 function removeHud(root) {
-  const hud = root.querySelector("[data-triage-focus-hud]");
+  const hud = root.querySelector("[data-focus-hud]");
   if (hud) hud.remove();
 }
 
-export function enterFocusMode(root) {
+export function enterFocusMode(root, config) {
   if (!root) return;
+  root[CONFIG_PROP] = config || TRIAGE_CONFIG;
   const cards = getCards(root);
   if (!cards.length) return;
   root.classList.add(FOCUS_CLASS);
@@ -189,7 +229,6 @@ export function reapplyFocusAfterRender(root) {
     return;
   }
   const prev = root[STATE_PROP] || { index: 0 };
-  // Re-ensure HUD (it was inside root.innerHTML which was replaced).
   ensureHud(root);
   focusCardAt(root, cards, Math.min(prev.index, cards.length - 1));
 }
@@ -198,10 +237,12 @@ export function isFocusActive(root) {
   return !!(root && root.classList.contains(FOCUS_CLASS));
 }
 
-export function toggleFocusMode(root) {
+export function toggleFocusMode(root, config) {
   if (isFocusActive(root)) {
     exitFocusMode(root);
   } else {
-    enterFocusMode(root);
+    enterFocusMode(root, config);
   }
 }
+
+export { TRIAGE_CONFIG, SIGNUPS_CONFIG };

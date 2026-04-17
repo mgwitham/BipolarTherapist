@@ -4376,15 +4376,20 @@ function renderWorkflowLaneGuidance(rootId, config) {
     return;
   }
   root.innerHTML =
-    '<div class="workflow-guidance-card"><div class="workflow-guidance-head"><div><div class="workflow-guidance-kicker">' +
+    '<details class="workflow-guidance-details"><summary class="workflow-guidance-summary">' +
+    '<span class="workflow-guidance-summary-kicker">' +
     escapeHtml(config.kicker || "Workflow guidance") +
-    '</div><h3 class="workflow-guidance-title">' +
+    "</span>" +
+    '<span class="workflow-guidance-summary-title">' +
     escapeHtml(config.title) +
-    '</h3><div class="workflow-guidance-copy">' +
-    escapeHtml(config.copy || "") +
-    '</div></div><div class="workflow-guidance-badge">' +
+    "</span>" +
+    '<span class="workflow-guidance-summary-badge">' +
     escapeHtml(config.badge || "In focus") +
-    '</div></div><div class="workflow-guidance-metrics">' +
+    "</span>" +
+    "</summary>" +
+    '<div class="workflow-guidance-card"><div class="workflow-guidance-copy">' +
+    escapeHtml(config.copy || "") +
+    '</div><div class="workflow-guidance-metrics">' +
     (Array.isArray(config.metrics)
       ? config.metrics.map(buildWorkflowGuidanceMetricHtml).join("")
       : "") +
@@ -4394,7 +4399,7 @@ function renderWorkflowLaneGuidance(rootId, config) {
     buildWorkflowGuidanceListHtml(config.success || []) +
     '</div></div><div class="workflow-guidance-callout"><strong>Business read:</strong> ' +
     escapeHtml(config.callout || "") +
-    "</div></div>";
+    "</div></div></details>";
 }
 
 function renderAdminWorkflowGuidance(context) {
@@ -5517,6 +5522,25 @@ function updateNavCounts(counts) {
   });
 }
 
+function updateSignupsPill(pendingCount) {
+  var pill = document.getElementById("adminSignupsPill");
+  var countNode = document.getElementById("adminSignupsPillCount");
+  if (!pill || !countNode) return;
+  var count = Number(pendingCount) || 0;
+  countNode.textContent = String(count);
+  pill.classList.toggle("is-active", count > 0);
+  pill.classList.toggle("is-empty", count === 0);
+  pill.setAttribute(
+    "title",
+    count > 0
+      ? count +
+          " therapist" +
+          (count === 1 ? "" : "s") +
+          " submitted a signup and is waiting on review"
+      : "No live signups pending. This updates when a therapist submits through the signup form.",
+  );
+}
+
 var sopNotesCollapsed = false;
 function collapseRegionSopNotes() {
   if (sopNotesCollapsed) return;
@@ -5628,6 +5652,7 @@ function renderStats() {
     const pendingApplicationsCount = applications.filter(function (item) {
       return item.status === "pending";
     }).length;
+    updateSignupsPill(pendingApplicationsCount);
     const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
     const candidateReviewCount = candidateQueueItems.filter(function (item) {
       return (
@@ -7964,6 +7989,71 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
   renderApplications();
 });
 
+(function wireApplicationsFocusMode() {
+  const toggleBtn = document.getElementById("applicationsFocusToggle");
+  const listRoot = document.getElementById("applicationsList");
+  if (!toggleBtn || !listRoot) return;
+
+  function toggle() {
+    import("./admin-triage-focus.js").then(function (mod) {
+      mod.toggleFocusMode(listRoot, mod.SIGNUPS_CONFIG);
+      toggleBtn.classList.toggle("is-active", listRoot.classList.contains("is-focus-mode-active"));
+    });
+  }
+
+  toggleBtn.addEventListener("click", toggle);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key !== "f" && event.key !== "F") return;
+    const target = event.target;
+    if (target && target.tagName) {
+      const tag = target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (target.isContentEditable) return;
+    }
+    const rect = listRoot.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    // Only handle F here if the candidate queue isn't currently visible, so the
+    // two panels don't fight for the same shortcut.
+    const candidateQueue = document.getElementById("candidateQueue");
+    if (candidateQueue) {
+      const cqRect = candidateQueue.getBoundingClientRect();
+      const cqVisible = cqRect.width > 0 && cqRect.height > 0;
+      // If both are visible in viewport, prefer the one closer to the top of the screen.
+      if (cqVisible && Math.abs(cqRect.top) < Math.abs(rect.top)) {
+        return;
+      }
+    }
+    event.preventDefault();
+    toggle();
+  });
+})();
+
+(function wireReviewerWorkloadToolbar() {
+  const myQueueBtn = document.getElementById("reviewerMyQueueToggle");
+  const filterEl = document.getElementById("reviewerWorkloadFilter");
+  const sliceEl = document.getElementById("reviewerWorkloadSlice");
+  if (myQueueBtn) {
+    myQueueBtn.addEventListener("click", function () {
+      reviewerWorkspace.setReviewerMyQueueMode(!reviewerWorkspaceUi.myQueueMode);
+      renderAll();
+    });
+  }
+  if (filterEl) {
+    filterEl.addEventListener("change", function (event) {
+      reviewerWorkspaceUi.workloadFilter = event.target.value || "";
+      renderAll();
+    });
+  }
+  if (sliceEl) {
+    sliceEl.addEventListener("change", function (event) {
+      reviewerWorkspaceUi.workloadSlice = event.target.value || "";
+      renderAll();
+    });
+  }
+})();
+
 var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
 if (conciergeStatusFilterEl) {
   conciergeStatusFilterEl.addEventListener("change", function (event) {
@@ -8193,10 +8283,7 @@ document.getElementById("candidateDedupeStatusFilter").addEventListener("change"
   function toggle() {
     withLazyAdminModule("./admin-candidate-queue.js", function (module) {
       module.toggleTriageFocusMode(queueRoot);
-      toggleBtn.classList.toggle(
-        "is-active",
-        queueRoot.classList.contains("is-triage-focus-active"),
-      );
+      toggleBtn.classList.toggle("is-active", queueRoot.classList.contains("is-focus-mode-active"));
     });
   }
 
