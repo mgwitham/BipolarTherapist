@@ -21,10 +21,439 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      /* ============================================================
+         Directory page — polished design system
+         Mirrors the match page's hero + card language, normalized to
+         a 1080px canvas so both flows feel like one product.
+         ============================================================ */
+
+      /* ---------- Hero (light, calm, airbnb-esque) ---------- */
+      .dir-header {
+        background:
+          radial-gradient(circle at 12% 10%, rgba(26, 122, 143, 0.06), transparent 32%),
+          radial-gradient(circle at 88% 0%, rgba(90, 182, 201, 0.05), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #f4fafb 100%);
+        color: var(--navy);
+        padding: 2.6rem 1.5rem 2rem;
+        border-bottom: 1px solid rgba(26, 122, 143, 0.08);
+      }
+
+      .dir-hero-shell {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: block;
+        padding: 0;
+      }
+
+      .dir-hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.72rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 0.9rem;
+      }
+
+      .dir-header h1 {
+        font-family: "Inter", sans-serif;
+        font-weight: 700;
+        font-size: clamp(1.9rem, 3.6vw, 2.6rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: var(--navy);
+        margin: 0 0 0.55rem;
+        max-width: 34ch;
+      }
+
+      .dir-header p {
+        margin: 0;
+        color: var(--slate);
+        font-size: 1rem;
+        line-height: 1.65;
+        max-width: 60ch;
+        opacity: 1;
+      }
+
+      .dir-hero-trust {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.35rem;
+      }
+
+      .dir-hero-trust-card {
+        padding: 0.92rem 0.98rem;
+        border-radius: 18px;
+        border: 1px solid rgba(14, 77, 95, 0.12);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+      }
+
+      .dir-hero-trust-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.24rem;
+      }
+
+      .dir-hero-trust-title {
+        font-size: 0.94rem;
+        line-height: 1.35;
+        font-weight: 800;
+        color: var(--navy);
+      }
+
+      .dir-hero-trust-copy {
+        margin-top: 0.28rem;
+        font-size: 0.82rem;
+        line-height: 1.56;
+        color: var(--slate);
+      }
+
+      /* ---------- Layout canvas ---------- */
+      .layout {
+        display: grid;
+        grid-template-columns: 312px minmax(0, 1fr);
+        gap: 1.4rem;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 1.6rem 1.5rem 2.4rem;
+        align-items: start;
+      }
+
+      /* ---------- Filter column ---------- */
+      .directory-sidebar-shell {
+        position: sticky;
+        top: 1rem;
+      }
+
+      .filter-workspace {
+        display: grid;
+        gap: 0;
+        padding: 0;
+        border-radius: 22px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: #ffffff;
+        box-shadow:
+          0 18px 36px rgba(14, 77, 95, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        overflow: hidden;
+      }
+
+      .filter-shell-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1.05rem 1.15rem 0.85rem;
+        border-bottom: 1px solid rgba(26, 122, 143, 0.08);
+      }
+
+      .filter-shell-header h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--navy);
+        letter-spacing: -0.01em;
+      }
+
+      .filter-shell-count {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+
+      /* The sidebar hosts one tight column of filter panels */
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      /* Each panel becomes a crisp row with a hairline divider */
+      .filter-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        padding: 0.95rem 1.15rem;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        border-bottom: 1px solid rgba(26, 122, 143, 0.08);
+        transition: background 0.18s ease;
+      }
+
+      .filter-panel:hover {
+        background: rgba(244, 250, 251, 0.6);
+        transform: none;
+        box-shadow: none;
+        border-color: transparent;
+        border-bottom-color: rgba(26, 122, 143, 0.08);
+      }
+
+      .filter-panel h3 {
+        margin: 0;
+        padding: 0;
+        border: none;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .filter-panel h3 .dir-panel-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--teal), var(--teal-light));
+      }
+
+      .filter-group {
+        gap: 0.3rem;
+      }
+
+      .filter-group label,
+      .meta-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: none;
+        letter-spacing: 0.01em;
+      }
+
+      .filter-group select,
+      .filter-group input[type="text"] {
+        padding: 0.62rem 0.72rem;
+        border-radius: 10px;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        font-size: 0.85rem;
+        background: #ffffff;
+      }
+
+      .filter-group select:focus,
+      .filter-group input:focus {
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.1);
+      }
+
+      .check-group {
+        gap: 0.12rem;
+      }
+
+      .check-label {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.82rem;
+        border-radius: 10px;
+        color: var(--slate);
+      }
+
+      .check-label:hover {
+        background: rgba(26, 122, 143, 0.06);
+        transform: none;
+      }
+
+      /* Sticky action bar so Apply is always within reach */
+      .filter-action-bar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+        padding: 0.85rem 1.15rem 1rem;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), #ffffff 40%);
+        border-top: 1px solid rgba(26, 122, 143, 0.08);
+      }
+
+      .filter-action-bar .btn-filter {
+        padding: 0.72rem 0.95rem;
+        border-radius: 12px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        width: auto;
+        background: linear-gradient(180deg, rgba(20, 123, 146, 0.98), rgba(33, 143, 166, 0.96));
+        box-shadow:
+          0 12px 22px rgba(20, 123, 146, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      }
+
+      .filter-action-bar .btn-filter:hover {
+        background: linear-gradient(180deg, rgba(16, 105, 126, 0.98), rgba(24, 128, 150, 0.96));
+      }
+
+      .filter-action-bar .btn-reset {
+        padding: 0.72rem 0.9rem;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        width: auto;
+        background: #ffffff;
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        color: var(--navy);
+      }
+
+      /* ---------- Results column ---------- */
+      .directory-results-shell {
+        display: grid;
+        gap: 1rem;
+        padding: 1.1rem 1.2rem 1.2rem;
+        border-radius: 22px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: #ffffff;
+        box-shadow:
+          0 18px 36px rgba(14, 77, 95, 0.05),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .results-focus-banner {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: 0.7rem 0.85rem;
+        margin-bottom: 0;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f7fbfc 0%, #ffffff 100%);
+        border-color: rgba(26, 122, 143, 0.1);
+        box-shadow: none;
+      }
+
+      .results-focus-banner-label {
+        font-size: 0.62rem;
+        padding: 0.42rem 0.7rem;
+        background: #ffffff;
+      }
+
+      .results-focus-banner-copy {
+        font-size: 0.92rem;
+        line-height: 1.3;
+      }
+
+      .results-header {
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.1rem 0.25rem 0;
+        margin: 0;
+      }
+
+      .results-count {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--navy);
+        letter-spacing: -0.01em;
+      }
+
+      .results-tools {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .results-tools label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .results-tools select {
+        padding: 0.5rem 2rem 0.5rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        background: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--navy);
+        min-height: 38px;
+      }
+
+      /* ---------- Therapist cards (lifted to match-card polish) ---------- */
+      .therapist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.1rem;
+      }
+
+      .t-card {
+        border-radius: 24px;
+        padding: 1.4rem;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background:
+          radial-gradient(circle at top, rgba(26, 122, 143, 0.05), transparent 42%),
+          linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+        box-shadow:
+          0 16px 32px rgba(14, 77, 95, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .t-card::before {
+        inset: 0 auto auto 1.4rem;
+        width: 64px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--teal) 0%, rgba(90, 182, 201, 0.35) 100%);
+      }
+
+      .t-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 26px 48px rgba(14, 77, 95, 0.13);
+        border-color: rgba(26, 122, 143, 0.24);
+      }
+
+      .t-name {
+        font-size: clamp(1.08rem, 1.1vw, 1.2rem);
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        font-weight: 800;
+      }
+
+      /* ---------- Mobile ---------- */
+      @media (max-width: 960px) {
+        .dir-hero-trust {
+          grid-template-columns: 1fr;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+          padding: 1.2rem 1.1rem 2rem;
+        }
+        .directory-sidebar-shell {
+          position: static;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .dir-header {
+          padding: 2rem 1.1rem 1.5rem;
+        }
+        .dir-header h1 {
+          font-size: clamp(1.7rem, 6vw, 2.1rem);
+        }
+        .results-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
   </head>
   <body>
     <nav>
@@ -68,28 +497,39 @@
 
     <header class="dir-header">
       <div class="dir-hero-shell">
-        <div class="dir-hero-copy">
-          <h1 id="directoryHeroTitle">
-            Browse therapists and psychiatrists with bipolar-related expertise
-          </h1>
-          <p id="directoryHeroDescription">
-            Start with a few filters, compare the strongest options, and save the therapists you
-            would actually consider contacting.
-          </p>
-        </div>
+        <div class="dir-hero-kicker">Browse the directory</div>
+        <h1 id="directoryHeroTitle">
+          Find a bipolar-informed therapist you would actually consider contacting.
+        </h1>
+        <p id="directoryHeroDescription">
+          Filter by what matters, compare the strongest options side by side, and save the
+          therapists worth a second look.
+        </p>
 
-        <aside class="dir-hero-panel" aria-label="Directory overview">
-          <div class="dir-hero-panel-card">
-            <div class="dir-hero-panel-kicker">Best Use</div>
-            <div class="dir-hero-panel-title">
-              Use this page when you want to compare options yourself.
-            </div>
-            <div class="dir-hero-panel-copy">
-              Filter first, scan the strongest cards, and save only the therapists you may really
-              want to revisit.
+        <div class="dir-hero-trust" aria-label="How this page works">
+          <div class="dir-hero-trust-card">
+            <div class="dir-hero-trust-label">Step 1</div>
+            <div class="dir-hero-trust-title">Narrow with one or two filters</div>
+            <div class="dir-hero-trust-copy">
+              Start with location and insurance. Small moves reveal the strongest options fast.
             </div>
           </div>
-        </aside>
+          <div class="dir-hero-trust-card">
+            <div class="dir-hero-trust-label">Step 2</div>
+            <div class="dir-hero-trust-title">Scan for fit, not perfection</div>
+            <div class="dir-hero-trust-copy">
+              Cards surface experience, fees, and availability so the tradeoffs are easy to weigh.
+            </div>
+          </div>
+          <div class="dir-hero-trust-card">
+            <div class="dir-hero-trust-label">Step 3</div>
+            <div class="dir-hero-trust-title">Save a short list to revisit</div>
+            <div class="dir-hero-trust-copy">
+              Keep the therapists you would really consider. Come back when you are ready to reach
+              out.
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -103,17 +543,17 @@
             aria-controls="sidebar"
             aria-expanded="false"
           >
-            Step 1: Filters <span id="filterCount"></span>
+            Filters <span id="filterCount"></span>
           </button>
-          <div class="sidebar" id="sidebar">
-            <div class="directory-section-heading">
-              <div class="directory-section-step">Step 1</div>
-              <h2 class="directory-section-title">Set filters first</h2>
-              <p class="directory-section-copy">Start with the filters that matter most.</p>
-            </div>
 
+          <div class="filter-shell-header">
+            <h2>Filters</h2>
+            <span class="filter-shell-count">Refine</span>
+          </div>
+
+          <div class="sidebar" id="sidebar">
             <div class="filter-panel">
-              <h3>📍 <span id="locationPanelTitle">Location</span></h3>
+              <h3><span class="dir-panel-dot"></span><span id="locationPanelTitle">Location</span></h3>
               <div class="filter-group">
                 <label for="state" id="stateLabelText">State</label>
                 <select id="state">
@@ -133,7 +573,7 @@
             </div>
 
             <div class="filter-panel">
-              <h3>🩺 <span>Care Preference</span></h3>
+              <h3><span class="dir-panel-dot"></span><span>Care preference</span></h3>
               <div class="check-group">
                 <label class="check-label"
                   ><input type="checkbox" id="therapist" /> <span>Therapist</span></label
@@ -143,33 +583,33 @@
                 >
                 <label class="check-label"
                   ><input type="checkbox" id="telehealth" />
-                  <span id="telehealthLabelText">Telehealth Available</span></label
+                  <span id="telehealthLabelText">Telehealth available</span></label
                 >
                 <label class="check-label"
                   ><input type="checkbox" id="in_person" />
-                  <span id="inPersonLabelText">In-Person Available</span></label
+                  <span id="inPersonLabelText">In-person available</span></label
                 >
                 <label class="check-label"
                   ><input type="checkbox" id="accepting" />
-                  <span id="acceptingLabelText">Accepting New Patients</span></label
+                  <span id="acceptingLabelText">Accepting new patients</span></label
                 >
               </div>
             </div>
 
             <div class="filter-panel">
-              <h3>💳 <span id="insurancePanelTitle">Insurance</span></h3>
+              <h3><span class="dir-panel-dot"></span><span id="insurancePanelTitle">Coverage</span></h3>
               <div class="filter-group">
-                <label for="insurance" id="insuranceLabelText">Accepted Insurance</label>
+                <label for="insurance" id="insuranceLabelText">Insurance</label>
                 <select id="insurance">
-                  <option value="">All Insurance</option>
+                  <option value="">All insurance</option>
                 </select>
               </div>
             </div>
 
             <div class="filter-panel">
-              <h3>🧠 <span id="bipolarExperiencePanelTitle">Bipolar Experience</span></h3>
+              <h3><span class="dir-panel-dot"></span><span id="bipolarExperiencePanelTitle">Bipolar experience</span></h3>
               <div class="filter-group">
-                <label for="bipolar_experience">Experience Level</label>
+                <label for="bipolar_experience">Experience level</label>
                 <select id="bipolar_experience">
                   <option value="">Any experience level</option>
                   <option value="3">3+ years</option>
@@ -180,48 +620,53 @@
             </div>
 
             <div class="filter-panel">
-              <h3>👥 <span id="populationPanelTitle">Population Served</span></h3>
+              <h3><span class="dir-panel-dot"></span><span id="populationPanelTitle">Population served</span></h3>
               <div class="filter-group">
                 <label for="population">Population</label>
                 <select id="population">
-                  <option value="">All Populations</option>
+                  <option value="">All populations</option>
                 </select>
               </div>
             </div>
 
             <div class="filter-panel">
-              <h3>🎯 <span id="specialtyPanelTitle">Specialty</span></h3>
+              <h3><span class="dir-panel-dot"></span><span id="specialtyPanelTitle">Specialty</span></h3>
               <div class="filter-group">
-                <label for="specialty" id="specialtyLabelText">Focus Area</label>
+                <label for="specialty" id="specialtyLabelText">Focus area</label>
                 <select id="specialty">
-                  <option value="">All Specialties</option>
+                  <option value="">All specialties</option>
                 </select>
               </div>
             </div>
 
             <div class="filter-panel">
-              <h3>🧭 Match Quality</h3>
+              <h3><span class="dir-panel-dot"></span><span>Match quality</span></h3>
               <div class="filter-group">
-                <label for="modality">Treatment Modality</label>
+                <label for="modality">Treatment modality</label>
                 <select id="modality">
-                  <option value="">All Modalities</option>
+                  <option value="">All modalities</option>
                 </select>
               </div>
               <div class="check-group">
                 <label class="check-label"
-                  ><input type="checkbox" id="medication_management" /> Medication Management</label
+                  ><input type="checkbox" id="medication_management" />
+                  <span>Medication management</span></label
                 >
                 <label class="check-label"
-                  ><input type="checkbox" id="responsive_contact" /> Easy to Contact</label
+                  ><input type="checkbox" id="responsive_contact" />
+                  <span>Easy to contact</span></label
                 >
                 <label class="check-label"
-                  ><input type="checkbox" id="recently_confirmed" /> Profile Recently Updated</label
+                  ><input type="checkbox" id="recently_confirmed" />
+                  <span>Recently updated</span></label
                 >
               </div>
             </div>
+          </div>
 
-            <button type="button" class="btn-filter" id="applyFiltersButton">Apply Filters</button>
-            <button type="button" class="btn-reset" id="resetFiltersButton">Reset All</button>
+          <div class="filter-action-bar">
+            <button type="button" class="btn-filter" id="applyFiltersButton">Apply filters</button>
+            <button type="button" class="btn-reset" id="resetFiltersButton">Reset</button>
           </div>
         </div>
       </aside>
@@ -232,13 +677,6 @@
         aria-label="Therapist directory results"
       >
         <div class="directory-results-shell">
-          <div class="directory-section-heading directory-section-heading-results">
-            <div class="directory-section-step">Step 2</div>
-            <h2 class="directory-section-title">Review the filtered results</h2>
-            <p class="directory-section-copy" id="directoryJourneySummary">
-              Compare the strongest options, then save the therapists you want to revisit.
-            </p>
-          </div>
           <div class="results-focus-banner">
             <div class="results-focus-banner-pill-group">
               <div class="results-focus-banner-label">Current focus</div>
@@ -266,6 +704,9 @@
               </select>
             </div>
           </div>
+          <p class="directory-section-copy" id="directoryJourneySummary" hidden>
+            Compare the strongest options, then save the therapists you want to revisit.
+          </p>
           <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
           <div class="therapist-grid" id="resultsGrid">
             <div class="loading">
