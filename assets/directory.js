@@ -475,6 +475,25 @@ import { initValuePillPopover } from "./therapist-pills.js";
       "You still have plenty of options. Add another filter or update the sort to bring the best fits forward.";
   }
 
+  function updateSparseMatchNudge(resultsLength, activeFilterCount) {
+    var nudge = getElement("directorySparseNudge");
+    if (!nudge) {
+      return;
+    }
+    var shouldShow = activeFilterCount >= 1 && resultsLength <= 3;
+    if (shouldShow) {
+      if (nudge.hidden) {
+        trackFunnelEvent("directory_sparse_nudge_shown", {
+          results_length: resultsLength,
+          active_filter_count: activeFilterCount,
+        });
+      }
+      nudge.hidden = false;
+    } else {
+      nudge.hidden = true;
+    }
+  }
+
   function uniqueCounts(field, nested) {
     var counts =
       field === "treatment_modalities"
@@ -717,6 +736,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
     renderActiveFilterSummary(results.length);
     renderJourneySummary(results.length, activeFilterCount);
+    updateSparseMatchNudge(results.length, activeFilterCount);
 
     if (!pageItems.length) {
       renderResultsGrid([]);
@@ -968,6 +988,15 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var mobileFilterToggle = getElement("mobileFilterToggle");
   if (mobileFilterToggle) {
     mobileFilterToggle.addEventListener("click", toggleFilters);
+  }
+
+  var sparseNudge = getElement("directorySparseNudge");
+  if (sparseNudge) {
+    sparseNudge.addEventListener("click", function () {
+      trackFunnelEvent("directory_sparse_nudge_click", {
+        active_filter_count: countActiveFilters(filters),
+      });
+    });
   }
 
   getElement("sortBy").addEventListener("change", function () {
