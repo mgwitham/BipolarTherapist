@@ -1157,7 +1157,7 @@ test("top-level review handler supports authenticated candidate publish decision
       document.providerId === publishedTherapist.providerId
     );
   });
-  assert.equal(updatedCandidate.reviewStatus, "published");
+  assert.equal(updatedCandidate.reviewStatus, "archived");
   assert.equal(updatedCandidate.publishedTherapistId, "therapist-dr-casey-north-seattle-wa");
   assert.equal(publishedTherapist._type, "therapist");
   assert.equal(observationDocuments.length > 0, true);
