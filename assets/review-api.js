@@ -21,6 +21,7 @@ const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
 const adminActorIdKey = "bt_review_admin_actor_id_v1";
 const adminActorKey = "bt_review_admin_actor_v1";
+const therapistSessionKey = "bt_therapist_session_v1";
 
 function sanitizeApplication(application) {
   return normalizePortableApplication(application || {});
@@ -194,6 +195,48 @@ export function clearAdminSessionToken() {
   window.sessionStorage.removeItem(adminActorKey);
 }
 
+function canUseLocalStorage() {
+  try {
+    return typeof window !== "undefined" && !!window.localStorage;
+  } catch (_error) {
+    return false;
+  }
+}
+
+export function getTherapistSessionToken() {
+  if (!canUseLocalStorage()) {
+    return "";
+  }
+  return window.localStorage.getItem(therapistSessionKey) || "";
+}
+
+export function setTherapistSessionToken(token) {
+  if (!canUseLocalStorage()) {
+    return;
+  }
+  if (token) {
+    window.localStorage.setItem(therapistSessionKey, token);
+  } else {
+    window.localStorage.removeItem(therapistSessionKey);
+  }
+}
+
+export function clearTherapistSessionToken() {
+  setTherapistSessionToken("");
+}
+
+function getTherapistHeaders() {
+  const token = getTherapistSessionToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function fetchTherapistMe() {
+  return request("/portal/me", {
+    method: "GET",
+    headers: getTherapistHeaders(),
+  });
+}
+
 function getAdminHeaders() {
   const sessionToken = getAdminSessionToken();
   return sessionToken
@@ -318,10 +361,14 @@ export async function fetchTherapistClaimSession(token) {
 }
 
 export async function acceptTherapistClaim(token) {
-  return request("/portal/claim-accept", {
+  const result = await request("/portal/claim-accept", {
     method: "POST",
     body: JSON.stringify({ token }),
   });
+  if (result && result.therapist_session_token) {
+    setTherapistSessionToken(result.therapist_session_token);
+  }
+  return result;
 }
 
 export async function fetchTherapistApplicationRevision(applicationId) {

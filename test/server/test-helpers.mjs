@@ -157,7 +157,27 @@ export function createMemoryClient(initialDocuments) {
   return {
     state,
     client: {
-      async fetch(query) {
+      async fetch(query, params) {
+        if (
+          query.includes(`*[_type == "therapist" && slug.current == $slug][0]`) &&
+          params &&
+          typeof params.slug === "string"
+        ) {
+          const match = Array.from(state.documents.values()).find(function (document) {
+            if (document._type !== "therapist") {
+              return false;
+            }
+            const current = document.slug && document.slug.current;
+            return current === params.slug;
+          });
+          if (!match) {
+            return null;
+          }
+          const cloned = deepClone(match);
+          cloned.slug = params.slug;
+          return cloned;
+        }
+
         if (query.includes(`*[_type == "therapistPortalRequest"]`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapistPortalRequest";
@@ -218,6 +238,48 @@ export function createMemoryClient(initialDocuments) {
       },
       async getDocument(id) {
         return deepClone(state.documents.get(id) || null);
+      },
+      patch(id) {
+        const pending = { set: {}, setIfMissing: {}, inc: {}, append: {} };
+        const api = {
+          set(fields) {
+            pending.set = { ...pending.set, ...fields };
+            return api;
+          },
+          setIfMissing(fields) {
+            pending.setIfMissing = { ...pending.setIfMissing, ...fields };
+            return api;
+          },
+          inc(fields) {
+            Object.entries(fields || {}).forEach(function ([key, value]) {
+              pending.inc[key] = (pending.inc[key] || 0) + Number(value || 0);
+            });
+            return api;
+          },
+          append(field, values) {
+            pending.append[field] = values;
+            return api;
+          },
+          async commit() {
+            const current = deepClone(state.documents.get(id) || {});
+            const next = {
+              ...current,
+              ...deepClone(pending.setIfMissing),
+              ...deepClone(pending.set),
+            };
+            Object.entries(pending.inc).forEach(function ([key, value]) {
+              next[key] = (Number(current[key]) || 0) + value;
+            });
+            Object.entries(pending.append).forEach(function ([key, values]) {
+              next[key] = []
+                .concat(Array.isArray(current[key]) ? current[key] : [])
+                .concat(deepClone(values));
+            });
+            state.documents.set(id, next);
+            return { _id: id };
+          },
+        };
+        return api;
       },
       transaction() {
         return createTransactionSpy(state);
