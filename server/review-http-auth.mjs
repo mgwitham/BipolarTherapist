@@ -246,6 +246,30 @@ export function parseBody(request, maxRequestBodyBytes) {
   });
 }
 
+export function parseRawBody(request, maxRequestBodyBytes) {
+  return new Promise(function (resolve, reject) {
+    const chunks = [];
+    let total = 0;
+
+    request.on("data", function (chunk) {
+      const piece = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += piece.length;
+      if (total > maxRequestBodyBytes) {
+        reject(new Error("Request body too large."));
+        request.destroy();
+        return;
+      }
+      chunks.push(piece);
+    });
+
+    request.on("end", function () {
+      resolve(Buffer.concat(chunks));
+    });
+
+    request.on("error", reject);
+  });
+}
+
 export function canAttemptLogin(request, config) {
   purgeExpiredLoginWindows(config);
   const clientAddress = getClientAddress(request);

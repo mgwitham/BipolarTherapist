@@ -1,0 +1,317 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { handleStripeRoutes } from "../../server/review-stripe-routes.mjs";
+import {
+  createMemoryClient,
+  createResponseCapture,
+  createTestApiConfig,
+  deepClone,
+} from "./test-helpers.mjs";
+
+function buildStripeSubscription(overrides) {
+  return {
+    id: "sub_test_123",
+    status: "trialing",
+    customer: "cus_test_456",
+    current_period_end: 1_800_000_000,
+    trial_end: 1_700_000_000,
+    cancel_at_period_end: false,
+    metadata: { therapist_slug: "jamie-rivera" },
+    items: { data: [{ price: { id: "price_featured_monthly" } }] },
+    ...overrides,
+  };
+}
+
+function buildContext(options) {
+  const response = createResponseCapture();
+  const request = {
+    method: options.method,
+    headers: options.headers || {},
+    on() {
+      return request;
+    },
+    destroy() {},
+  };
+  const sendJson = function sendJson(_res, statusCode, payload) {
+    response.statusCode = statusCode;
+    response.payload = payload;
+  };
+  const deps = { ...options.deps, sendJson };
+  return {
+    response,
+    request,
+    context: {
+      client: options.client,
+      config: options.config || {
+        ...createTestApiConfig(),
+        stripeReturnUrlBase: "https://example.com",
+      },
+      deps,
+      origin: "",
+      request,
+      response,
+      routePath: options.routePath,
+    },
+  };
+}
+
+test("checkout-session endpoint returns the checkout URL from Stripe", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/checkout-session",
+    client,
+    deps: {
+      parseBody: async () => ({
+        therapist_slug: "jamie-rivera",
+        email: "jamie@example.com",
+      }),
+      parseRawBody: async () => Buffer.alloc(0),
+      createFeaturedCheckoutSession: async (_config, options) => {
+        assert.equal(options.therapistSlug, "jamie-rivera");
+        assert.equal(options.customerEmail, "jamie@example.com");
+        return { id: "cs_test_1", url: "https://checkout.stripe.test/cs_test_1" };
+      },
+      verifyAndParseWebhook: async () => {
+        throw new Error("not called in this test");
+      },
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  const handled = await handleStripeRoutes(context);
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.url, "https://checkout.stripe.test/cs_test_1");
+});
+
+test("checkout-session endpoint rejects missing therapist_slug", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/checkout-session",
+    client,
+    deps: {
+      parseBody: async () => ({ email: "no-slug@example.com" }),
+      parseRawBody: async () => Buffer.alloc(0),
+      createFeaturedCheckoutSession: async () => {
+        throw new Error("should not be called");
+      },
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 400);
+});
+
+test("webhook endpoint rejects missing signature header", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: {},
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => {
+        throw new Error("should not be called");
+      },
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 400);
+});
+
+test("webhook endpoint rejects invalid signature", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-bad" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => {
+        throw new Error("No signatures found matching the expected signature");
+      },
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /Webhook verification failed/);
+});
+
+test("webhook: unrelated event type returns ok with handled=false", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_ignored",
+        type: "invoice.created",
+        created: 1_700_000_000,
+        data: { object: {} },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.handled, false);
+});
+
+test("webhook: customer.subscription.created creates a subscription doc", async () => {
+  const { client, state } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_sub_created",
+        type: "customer.subscription.created",
+        created: 1_700_000_100,
+        data: { object: buildStripeSubscription() },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.handled, true);
+
+  const doc = state.documents.get("therapistSubscription-jamie-rivera");
+  assert.ok(doc);
+  assert.equal(doc.status, "trialing");
+  assert.equal(doc.plan, "featured");
+  assert.equal(doc.stripeSubscriptionId, "sub_test_123");
+  assert.equal(doc.lastEventId, "evt_sub_created");
+});
+
+test("webhook: duplicate event ID is skipped as stale", async () => {
+  const { client, state } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      status: "trialing",
+      lastEventId: "evt_dup",
+      lastEventAt: "2026-04-17T12:00:00.000Z",
+    },
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_dup",
+        type: "customer.subscription.updated",
+        created: 1_700_000_200,
+        data: { object: buildStripeSubscription({ status: "active" }) },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.handled, false);
+  // Doc unchanged — status still trialing, not updated to active.
+  const doc = state.documents.get("therapistSubscription-jamie-rivera");
+  assert.equal(doc.status, "trialing");
+});
+
+test("webhook: customer.subscription.deleted flips plan to none", async () => {
+  const { client, state } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": deepClone({
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      plan: "featured",
+      status: "active",
+      lastEventId: "evt_prev",
+      lastEventAt: "2020-01-01T00:00:00.000Z",
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_cancel",
+        type: "customer.subscription.deleted",
+        created: 1_700_000_300,
+        data: { object: buildStripeSubscription({ status: "canceled" }) },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.handled, true);
+  const doc = state.documents.get("therapistSubscription-jamie-rivera");
+  assert.equal(doc.plan, "none");
+  assert.equal(doc.status, "canceled");
+});
+
+test("webhook: missing therapist_slug in metadata returns handled=false", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_no_slug",
+        type: "customer.subscription.created",
+        created: 1_700_000_400,
+        data: { object: buildStripeSubscription({ metadata: {} }) },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.handled, false);
+  assert.equal(response.payload.reason, "no-therapist-slug");
+});

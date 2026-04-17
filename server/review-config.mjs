@@ -114,6 +114,15 @@ export function getReviewApiConfig() {
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
     dcaAppId: process.env.DCA_APP_ID || rootEnv.DCA_APP_ID || "",
     dcaAppKey: process.env.DCA_APP_KEY || rootEnv.DCA_APP_KEY || "",
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
+    stripeFeaturedPriceId:
+      process.env.STRIPE_FEATURED_PRICE_ID || rootEnv.STRIPE_FEATURED_PRICE_ID || "",
+    stripeTrialDays: Number(process.env.STRIPE_TRIAL_DAYS || rootEnv.STRIPE_TRIAL_DAYS || 14),
+    stripeReturnUrlBase:
+      process.env.STRIPE_RETURN_URL_BASE ||
+      rootEnv.STRIPE_RETURN_URL_BASE ||
+      "https://www.bipolartherapyhub.com",
   };
 
   config.sessionSecret =
