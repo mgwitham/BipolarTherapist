@@ -1492,6 +1492,336 @@
           gap: 1.75rem;
         }
       }
+
+      /* Authority strip */
+      .authority-strip {
+        background: var(--navy);
+        color: var(--white);
+        text-align: center;
+        padding: 1rem 1.5rem;
+      }
+      .authority-strip p {
+        max-width: 760px;
+        margin: 0 auto;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      /* Generic section containers */
+      .section-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem;
+      }
+      .section-header {
+        text-align: center;
+        max-width: 640px;
+        margin: 0 auto 2.5rem;
+      }
+      .section-kicker {
+        display: inline-block;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        border-radius: 999px;
+        padding: 0.3rem 0.85rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+      }
+      .section-header h2 {
+        font-size: clamp(1.6rem, 2.5vw, 2rem);
+        line-height: 1.2;
+        color: var(--navy);
+        margin-bottom: 0.75rem;
+        font-weight: 700;
+      }
+      .section-header p {
+        color: var(--slate);
+        font-size: 1rem;
+      }
+
+      /* Unlock ladder */
+      .unlock-ladder {
+        background: var(--white);
+      }
+      .unlock-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+      }
+      .unlock-step {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.5rem 1.25rem;
+        position: relative;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .unlock-step-index {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: var(--teal);
+        color: var(--white);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+      }
+      .unlock-step-body h3 {
+        font-size: 1.1rem;
+        color: var(--navy);
+        margin-bottom: 0.4rem;
+      }
+      .unlock-step-body p {
+        color: var(--slate);
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin-bottom: 0.7rem;
+      }
+      .unlock-step-criteria {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .unlock-step-paid {
+        background: var(--teal-faint);
+        border-color: var(--teal-light);
+      }
+      .unlock-step-paid .unlock-step-index {
+        background: var(--navy);
+      }
+      .unlock-step-paid h3 {
+        color: var(--teal-dark);
+      }
+
+      /* Pricing */
+      .pricing-section {
+        background: var(--bg);
+      }
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.25rem;
+        align-items: stretch;
+      }
+      .pricing-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.75rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        position: relative;
+      }
+      .pricing-card-featured {
+        border-color: var(--teal);
+        box-shadow: 0 14px 40px rgba(26, 122, 143, 0.18);
+        transform: translateY(-8px);
+      }
+      .pricing-card-waitlist {
+        opacity: 0.92;
+      }
+      .pricing-badge-featured,
+      .pricing-badge-waitlist {
+        position: absolute;
+        top: -0.65rem;
+        left: 1.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+      }
+      .pricing-badge-featured {
+        background: var(--teal);
+        color: var(--white);
+      }
+      .pricing-badge-waitlist {
+        background: var(--muted);
+        color: var(--white);
+      }
+      .pricing-card-header h3 {
+        color: var(--navy);
+        font-size: 1.2rem;
+        margin-bottom: 0.4rem;
+      }
+      .pricing-card-price {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+      }
+      .pricing-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .pricing-cadence {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .pricing-features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.55rem;
+        flex: 1;
+      }
+      .pricing-features li {
+        position: relative;
+        padding-left: 1.4rem;
+        color: var(--navy);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .pricing-features li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .pricing-features li strong {
+        color: var(--navy);
+      }
+      .pricing-cta {
+        display: block;
+        text-align: center;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.15s ease;
+      }
+      .pricing-cta-primary {
+        background: var(--teal);
+        color: var(--white);
+      }
+      .pricing-cta-primary:hover {
+        background: var(--teal-dark);
+      }
+      .pricing-cta-secondary {
+        background: var(--white);
+        color: var(--teal-dark);
+        border: 1px solid var(--teal);
+      }
+      .pricing-cta-secondary:hover {
+        background: var(--teal-faint);
+      }
+      .pricing-trust {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.82rem;
+        color: var(--slate);
+        text-align: center;
+      }
+      .pricing-fineprint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+      }
+      .pricing-tie-breaker {
+        margin-top: 2.5rem;
+        text-align: center;
+        color: var(--slate);
+        font-size: 0.98rem;
+        max-width: 680px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* FAQ */
+      .faq-section {
+        background: var(--white);
+      }
+      .faq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem 2rem;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      .faq-item {
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 0;
+      }
+      .faq-item summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--navy);
+        font-size: 1rem;
+        list-style: none;
+        padding-right: 1.5rem;
+        position: relative;
+      }
+      .faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq-item summary::after {
+        content: "+";
+        position: absolute;
+        right: 0;
+        top: 0;
+        color: var(--teal);
+        font-weight: 700;
+        font-size: 1.2rem;
+      }
+      .faq-item[open] summary::after {
+        content: "−";
+      }
+      .faq-item p {
+        margin-top: 0.7rem;
+        color: var(--slate);
+        font-size: 0.93rem;
+        line-height: 1.55;
+      }
+
+      /* New-listing lead-in */
+      .new-listing-leadin {
+        background: var(--bg);
+        border-top: 1px solid var(--border);
+      }
+      .new-listing-leadin .section-inner {
+        padding-top: 3rem;
+        padding-bottom: 1rem;
+      }
+
+      @media (max-width: 960px) {
+        .unlock-steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .pricing-grid {
+          grid-template-columns: 1fr;
+        }
+        .pricing-card-featured {
+          transform: none;
+        }
+        .faq-grid {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+      }
+      @media (max-width: 600px) {
+        .unlock-steps {
+          grid-template-columns: 1fr;
+        }
+        .section-inner {
+          padding: 3rem 1rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1570,34 +1900,223 @@
       </div>
     </section>
 
-    <div class="signup-hero">
-      <div class="pricing-badge">Claim your profile free. Upgrade when you want growth tools.</div>
-      <h1>Claim your bipolar-specialist profile, then upgrade when you want more visibility</h1>
+    <section class="authority-strip" aria-label="Why this directory">
       <p>
-        Start by taking ownership of your profile and confirming your details. Paid plans are for
-        stronger visibility, clearer trust signals, and better-fit patient inquiries.
+        Built around bipolar-specialist therapists verified in California. Patients find you through
+        intent-matched searches, not generic directory browsing.
       </p>
-    </div>
+    </section>
 
-    <div class="offer-strip">
-      <div class="offer-card">
-        <div class="offer-block">
-          <h3>Free Claim</h3>
+    <section class="unlock-ladder" aria-label="How your profile grows">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-kicker">How your profile grows</span>
+          <h2>Four states your profile moves through</h2>
           <p>
-            <strong>Own your profile and make it accurate.</strong> Confirm your identity, fix
-            details, and show patients the basics they need to trust what they are seeing.
+            Every therapist starts at Listed. You unlock the next state by filling in what matters
+            to patients. Featured is the only state that requires paying.
           </p>
+        </header>
+        <ol class="unlock-steps">
+          <li class="unlock-step">
+            <div class="unlock-step-index">1</div>
+            <div class="unlock-step-body">
+              <h3>Listed</h3>
+              <p>Your profile appears in the directory.</p>
+              <span class="unlock-step-criteria">Unlocks with: free claim</span>
+            </div>
+          </li>
+          <li class="unlock-step">
+            <div class="unlock-step-index">2</div>
+            <div class="unlock-step-body">
+              <h3>Searchable</h3>
+              <p>
+                Patients can filter by insurance, session format, and telehealth state to find you.
+              </p>
+              <span class="unlock-step-criteria"
+                >Unlocks with: insurance, format, telehealth states</span
+              >
+            </div>
+          </li>
+          <li class="unlock-step">
+            <div class="unlock-step-index">3</div>
+            <div class="unlock-step-body">
+              <h3>Rankable</h3>
+              <p>You compete for top-3 placement when a patient matches in your area.</p>
+              <span class="unlock-step-criteria"
+                >Unlocks with: bio, care approach, bipolar years, photo</span
+              >
+            </div>
+          </li>
+          <li class="unlock-step unlock-step-paid">
+            <div class="unlock-step-index">4</div>
+            <div class="unlock-step-body">
+              <h3>Featured</h3>
+              <p>
+                Guaranteed top-3 placement, Bipolar Specialist verified badge, priority in
+                telehealth searches.
+              </p>
+              <span class="unlock-step-criteria">Unlocks with: paid upgrade</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="pricing-section" id="pricing" aria-label="Pricing">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-kicker">Pricing</span>
+          <h2>Start free. Pay when the platform produces.</h2>
+          <p>
+            Every therapist gets a free claim forever. Paid tiers are for therapists ready to
+            compete for top placement.
+          </p>
+        </header>
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <header class="pricing-card-header">
+              <h3>Free</h3>
+              <div class="pricing-card-price">
+                <span class="pricing-amount">$0</span><span class="pricing-cadence">forever</span>
+              </div>
+            </header>
+            <ul class="pricing-features">
+              <li>Listed in the directory</li>
+              <li>Standard ranking in local searches</li>
+              <li>Unlimited profile edits</li>
+              <li>Portal access with monthly view counts</li>
+            </ul>
+            <a href="#quickClaimForm" class="pricing-cta pricing-cta-secondary"
+              >Claim your profile</a
+            >
+            <p class="pricing-fineprint">No credit card. Free claim stays free forever.</p>
+          </article>
+
+          <article class="pricing-card pricing-card-featured">
+            <span class="pricing-badge-featured">Recommended</span>
+            <header class="pricing-card-header">
+              <h3>Featured</h3>
+              <div class="pricing-card-price">
+                <span class="pricing-amount">$99</span
+                ><span class="pricing-cadence">per month</span>
+              </div>
+            </header>
+            <ul class="pricing-features">
+              <li><strong>Guaranteed top-3 placement</strong> in your area</li>
+              <li>Bipolar Specialist verified badge</li>
+              <li>Priority in telehealth-state searches</li>
+              <li>Monthly lead report with patient intent signals</li>
+              <li>Everything in Free</li>
+            </ul>
+            <a href="#quickClaimForm" class="pricing-cta pricing-cta-primary"
+              >Start 14-day free trial</a
+            >
+            <div class="pricing-trust">
+              <span>No charge until day 15</span>
+              <span>Cancel from your dashboard in one click</span>
+              <span>30-day refund, no questions</span>
+            </div>
+          </article>
+
+          <article class="pricing-card pricing-card-waitlist">
+            <span class="pricing-badge-waitlist">Coming soon</span>
+            <header class="pricing-card-header">
+              <h3>Pay-per-lead</h3>
+              <div class="pricing-card-price">
+                <span class="pricing-amount">$60</span
+                ><span class="pricing-cadence">per patient contact</span>
+              </div>
+            </header>
+            <ul class="pricing-features">
+              <li>Only pay when a patient reaches out</li>
+              <li>Monthly cap of $300 so bills never surprise you</li>
+              <li>Perfect if you want to start risk-free</li>
+              <li>Standard ranking, same as Free</li>
+            </ul>
+            <a href="#quickClaimForm" class="pricing-cta pricing-cta-secondary"
+              >Join the waitlist</a
+            >
+            <p class="pricing-fineprint">
+              We launch pay-per-lead once patient intake verification is live.
+            </p>
+          </article>
         </div>
-        <div class="offer-block">
-          <h3>Paid Upgrade</h3>
-          <p>
-            <strong>Turn your profile into a patient-acquisition asset.</strong> Unlock better
-            visibility, richer trust signals, and tools that help the right bipolar-care clients
-            contact you first.
-          </p>
+        <p class="pricing-tie-breaker">
+          <strong>Not sure which?</strong> Start Featured with a 14-day free trial. If you are
+          getting two or more patient contacts a month, Featured pays for itself. Cancel anytime.
+        </p>
+      </div>
+    </section>
+
+    <section class="faq-section" aria-label="Common questions">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-kicker">Common questions</span>
+          <h2>Answers to what therapists ask first</h2>
+        </header>
+        <div class="faq-grid">
+          <details class="faq-item">
+            <summary>How do patients actually reach me?</summary>
+            <p>
+              Patients click your profile's contact button, which opens whichever channel you
+              prefer: email, phone, or your booking link. You receive the inquiry directly. We do
+              not gate, relay, or delay messages.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>What if a matched patient is not a good fit?</summary>
+            <p>
+              You are never obligated to take a patient. Respond as you would to any inquiry. We
+              track outcomes so matching gets smarter over time, but no one is forcing a referral.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Do I have to use your booking tool?</summary>
+            <p>
+              No. Use whatever booking you already have: SimplePractice, Calendly, your own email.
+              We link to your system.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>How is ranking determined?</summary>
+            <p>
+              A combination of profile completeness, bipolar-specific experience, proximity to the
+              patient, availability, and Featured status. Featured guarantees top-3 placement in
+              your local proximity.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Can I pause my listing without deleting it?</summary>
+            <p>
+              Yes. One click from your portal. Your listing goes dark until you reactivate. No data
+              is lost and you can return anytime.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Why focus on bipolar disorder specifically?</summary>
+            <p>
+              Bipolar care is chronic, relapse-prone, and often mistreated. Patients who find a
+              bipolar-informed therapist stay in care longer and get better outcomes. Serving that
+              audience well is the whole point.
+            </p>
+          </details>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="new-listing-leadin" aria-label="Create a new listing">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-kicker">Not listed yet?</span>
+          <h2>Create a new profile below</h2>
+          <p>
+            We review new applications within a few business days. Once approved, your profile goes
+            live and you can claim it with the same email you submitted.
+          </p>
+        </header>
+      </div>
+    </section>
 
     <div class="wrap">
       <div class="form-card" id="formCard">
