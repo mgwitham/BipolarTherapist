@@ -240,18 +240,37 @@ function inferSpecialties(text) {
   const source = String(text || "").toLowerCase();
   const specialties = [];
   const mappings = [
-    ["bipolar", "Bipolar Disorder"],
-    ["mania", "Bipolar I"],
-    ["hypomania", "Bipolar II"],
-    ["depression", "Mood Disorders"],
-    ["psychosis", "Psychosis"],
-    ["trauma", "Trauma"],
-    ["anxiety", "Anxiety"],
-    ["family", "Family Support"],
+    [/\bbipolar\s*(?:i|1|one)\b/, "Bipolar I"],
+    [/\b(?:manic episode|full mania|acute mania)\b/, "Bipolar I"],
+    [/\bbipolar\s*(?:ii|2|two)\b/, "Bipolar II"],
+    [/\bhypomani[ac]\b/, "Bipolar II"],
+    [/\bcyclothymi[ac]?\b/, "Cyclothymia"],
+    [/\brapid[\s-]cycling\b/, "Rapid Cycling"],
+    [/\bultra[\s-]rapid\b/, "Rapid Cycling"],
+    [/\bmixed\s+(?:episode|features|states|mania)\b/, "Mixed Episodes"],
+    [/\bdysphoric mania\b/, "Mixed Episodes"],
+    [/\bpsychosis\b/, "Psychosis"],
+    [/\bpsychotic\b/, "Psychosis"],
+    [/\bfirst[\s-]episode psychosis\b/, "Psychosis"],
+    [/\bmedication management\b/, "Medication Management"],
+    [/\bpsychiatrist\b/, "Medication Management"],
+    [/\bpsychiatry\b/, "Medication Management"],
+    [/\bprescrib/, "Medication Management"],
+    [/\bmood stabilizer\b/, "Medication Management"],
+    [/\blithium\b/, "Medication Management"],
+    [/\blamotrigine\b/, "Medication Management"],
+    [/\blamictal\b/, "Medication Management"],
+    [/\bfamily[\s-]focused therapy\b/, "Family Support"],
+    [/\bfft\b/, "Family Support"],
+    [/\bfamily support\b/, "Family Support"],
+    [/\bcaregiver support\b/, "Family Support"],
+    [/\bfamily psychoeducation\b/, "Family Support"],
+    [/\btrauma\b/, "Trauma"],
+    [/\banxiety\b/, "Anxiety"],
   ];
 
-  mappings.forEach(([needle, label]) => {
-    if (source.includes(needle) && !specialties.includes(label)) {
+  mappings.forEach(([pattern, label]) => {
+    if (pattern.test(source) && !specialties.includes(label)) {
       specialties.push(label);
     }
   });
@@ -263,16 +282,26 @@ function inferModalities(text) {
   const source = String(text || "").toLowerCase();
   const modalities = [];
   const mappings = [
-    ["cbt", "CBT"],
-    ["dbt", "DBT"],
-    ["act", "ACT"],
-    ["mindfulness", "Mindfulness"],
-    ["ipsrt", "IPSRT"],
-    ["family therapy", "Family Therapy"],
-    ["psychoeducation", "Psychoeducation"],
+    [/\bcbt\b/, "CBT"],
+    [/\bcognitive[\s-]behavior/, "CBT"],
+    [/\bdbt\b/, "DBT"],
+    [/\bdialectical[\s-]behavior/, "DBT"],
+    [/\bact\b/, "ACT"],
+    [/\bacceptance and commitment\b/, "ACT"],
+    [/\bmindfulness\b/, "Mindfulness"],
+    [/\bmbct\b/, "Mindfulness"],
+    [/\bmbsr\b/, "Mindfulness"],
+    [/\bipsrt\b/, "IPSRT"],
+    [/\binterpersonal and social rhythm\b/, "IPSRT"],
+    [/\bsocial rhythm therapy\b/, "IPSRT"],
+    [/\bfamily[\s-]focused therapy\b/, "Family Therapy"],
+    [/\bfft\b/, "Family Therapy"],
+    [/\bfamily therapy\b/, "Family Therapy"],
+    [/\bpsychoeducation\b/, "Psychoeducation"],
+    [/\bpsycho[\s-]education\b/, "Psychoeducation"],
   ];
-  mappings.forEach(([needle, label]) => {
-    if (source.includes(needle) && !modalities.includes(label)) {
+  mappings.forEach(([pattern, label]) => {
+    if (pattern.test(source) && !modalities.includes(label)) {
       modalities.push(label);
     }
   });
