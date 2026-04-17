@@ -831,206 +831,6 @@ function syncHomeSearchHiddenFields(interest, elements) {
   medicationNeedInput.value = "";
 }
 
-function readHomepageShortlist() {
-  var DIRECTORY_LIST_LIMIT = 6;
-  try {
-    return JSON.parse(window.localStorage.getItem("bth_directory_shortlist_v1") || "[]")
-      .map(function (item) {
-        if (typeof item === "string") {
-          return { slug: item };
-        }
-        return item && item.slug ? item : null;
-      })
-      .filter(Boolean)
-      .slice(0, DIRECTORY_LIST_LIMIT);
-  } catch (_error) {
-    return [];
-  }
-}
-
-function readHomepageOutcomes() {
-  try {
-    return JSON.parse(window.localStorage.getItem("bth_outreach_outcomes_v1") || "[]");
-  } catch (_error) {
-    return [];
-  }
-}
-
-function readHomepageReshapeHistory() {
-  try {
-    return JSON.parse(window.localStorage.getItem("bth_shortlist_reshape_history_v1") || "null");
-  } catch (_error) {
-    return null;
-  }
-}
-
-function getHomepagePriorityRank(value) {
-  var normalized = String(value || "").toLowerCase();
-  if (normalized === "best fit") {
-    return 3;
-  }
-  if (normalized === "best availability") {
-    return 2;
-  }
-  if (normalized === "best value") {
-    return 1;
-  }
-  return 0;
-}
-
-function formatHomepageTherapistName(slug, latestOutcome) {
-  if (latestOutcome && latestOutcome.therapist_name) {
-    return latestOutcome.therapist_name;
-  }
-  return String(slug || "this therapist")
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, function (char) {
-      return char.toUpperCase();
-    });
-}
-
-function buildHomepageReturnSnapshot(shortlist, outcomes) {
-  var latestBySlug = {};
-
-  (Array.isArray(outcomes) ? outcomes : [])
-    .slice()
-    .sort(function (a, b) {
-      return new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime();
-    })
-    .forEach(function (item) {
-      if (!item || !item.therapist_slug || latestBySlug[item.therapist_slug]) {
-        return;
-      }
-      latestBySlug[item.therapist_slug] = item;
-    });
-
-  var ranked = (Array.isArray(shortlist) ? shortlist : [])
-    .map(function (item, index) {
-      return {
-        slug: item.slug,
-        rank: getHomepagePriorityRank(item.priority),
-        index: index,
-        latestOutcome: latestBySlug[item.slug] || null,
-      };
-    })
-    .sort(function (a, b) {
-      return b.rank - a.rank || a.index - b.index;
-    });
-
-  return {
-    lead:
-      ranked.find(function (item) {
-        return (
-          !item.latestOutcome ||
-          ["insurance_mismatch", "waitlist", "no_response"].indexOf(
-            String(item.latestOutcome.outcome || ""),
-          ) === -1
-        );
-      }) ||
-      ranked[0] ||
-      null,
-    live:
-      ranked.find(function (item) {
-        return (
-          item.latestOutcome &&
-          ["heard_back", "booked_consult", "good_fit_call"].indexOf(
-            String(item.latestOutcome.outcome || ""),
-          ) !== -1
-        );
-      }) || null,
-    stalled:
-      ranked.find(function (item) {
-        return (
-          item.latestOutcome &&
-          ["insurance_mismatch", "waitlist", "no_response"].indexOf(
-            String(item.latestOutcome.outcome || ""),
-          ) !== -1
-        );
-      }) || null,
-  };
-}
-
-function renderHomepageReturnJourney() {
-  var panel = document.getElementById("homeReturnPanel");
-  var title = document.getElementById("homeReturnTitle");
-  var copy = document.getElementById("homeReturnCopy");
-  var meta = document.getElementById("homeReturnMeta");
-  var actions = document.getElementById("homeReturnActions");
-  if (!panel || !title || !copy || !meta || !actions) {
-    return;
-  }
-
-  var shortlist = readHomepageShortlist();
-  if (!shortlist.length) {
-    panel.classList.remove("is-visible");
-    title.textContent = "";
-    copy.textContent = "";
-    meta.innerHTML = "";
-    actions.innerHTML = "";
-    return;
-  }
-
-  var shortlistSlugs = shortlist.map(function (item) {
-    return item.slug;
-  });
-  var outcomes = readHomepageOutcomes();
-  var reshapeHistory = readHomepageReshapeHistory();
-  var touchedCount = outcomes.filter(function (item) {
-    return item && shortlistSlugs.indexOf(item.therapist_slug) !== -1;
-  }).length;
-  var snapshot = buildHomepageReturnSnapshot(shortlist, outcomes);
-  var leadName = snapshot.lead
-    ? formatHomepageTherapistName(snapshot.lead.slug, snapshot.lead.latestOutcome)
-    : "your lead option";
-  var liveName = snapshot.live
-    ? formatHomepageTherapistName(snapshot.live.slug, snapshot.live.latestOutcome)
-    : "";
-  var stalledName = snapshot.stalled
-    ? formatHomepageTherapistName(snapshot.stalled.slug, snapshot.stalled.latestOutcome)
-    : "";
-
-  panel.classList.add("is-visible");
-  title.textContent =
-    touchedCount > 0
-      ? "Your saved list is still here, and the decision context is still intact."
-      : "Your saved list is still here and ready whenever you want to pick the search back up.";
-  copy.textContent =
-    touchedCount > 0
-      ? "Resume from the same saved options, reopen the route with live momentum, and decide whether your lead still deserves the top spot."
-      : "You can reopen the list, review the same saved therapists, and keep narrowing without starting the search over from scratch.";
-  meta.innerHTML = [
-    reshapeHistory && reshapeHistory.summary
-      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">' +
-        escapeHtml(reshapeHistory.title || "Last list reshape") +
-        '</div><div class="hero-return-chip-value">Queue updated</div><div class="hero-return-chip-copy">' +
-        escapeHtml(reshapeHistory.summary) +
-        (reshapeHistory.meta ? " " + escapeHtml(reshapeHistory.meta) : "") +
-        "</div></div>"
-      : "",
-    snapshot.lead
-      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Still looks strongest</div><div class="hero-return-chip-value">' +
-        escapeHtml(leadName) +
-        '</div><div class="hero-return-chip-copy">Start here first unless fresh friction or live outreach changes the order.</div></div>'
-      : "",
-    snapshot.live
-      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Already has momentum</div><div class="hero-return-chip-value">' +
-        escapeHtml(liveName) +
-        '</div><div class="hero-return-chip-copy">A reply or consult is already in motion here, so compare it against the backup using real follow-through, not just profile polish.</div></div>'
-      : "",
-    snapshot.stalled
-      ? '<div class="hero-return-chip"><div class="hero-return-chip-label">Probably demote or drop</div><div class="hero-return-chip-value">' +
-        escapeHtml(stalledName) +
-        '</div><div class="hero-return-chip-copy">This path already hit friction. Keep it only if new information clearly changes the picture.</div></div>'
-      : "",
-  ]
-    .filter(Boolean)
-    .join("");
-  actions.innerHTML =
-    '<a class="hero-return-link primary" href="match.html?shortlist=' +
-    encodeURIComponent(shortlistSlugs.join(",")) +
-    '">Resume saved list</a><a class="hero-return-link secondary" href="directory.html">Reopen saved comparison</a>';
-}
-
 function validateHomeSearchInputs(elements) {
   var values = readHomeSearchInputs(elements);
   var zipStatus = getZipMarketStatus(values.locationQuery);
@@ -1184,7 +984,6 @@ function initHomeSearchForm() {
   }
   syncHomeSearchHiddenFields(interestInput ? String(interestInput.value || "").trim() : "");
   syncHeroSearchState();
-  renderHomepageReturnJourney();
 
   try {
     var content = await fetchHomePageContent();
@@ -1199,7 +998,6 @@ function initHomeSearchForm() {
       surface: "homepage",
     });
     applyAdaptiveHomepageMode();
-    renderHomepageReturnJourney();
     renderPageSections(content.homePage, content.featuredTherapists || []);
   } catch (error) {
     console.error("Failed to initialize homepage content.", error);
@@ -1211,7 +1009,6 @@ function initHomeSearchForm() {
       surface: "homepage",
     });
     applyAdaptiveHomepageMode();
-    renderHomepageReturnJourney();
     renderPageSections(null, []);
   }
 })();

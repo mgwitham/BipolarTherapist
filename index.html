@@ -473,94 +473,6 @@
         line-height: 1.58;
         color: var(--slate);
       }
-      .hero-return-panel {
-        display: none;
-        margin-top: 0.9rem;
-        padding: 0.95rem 1rem;
-        border-radius: 18px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: linear-gradient(180deg, #f9fcfd 0%, #ffffff 100%);
-        box-shadow: 0 12px 24px rgba(14, 77, 95, 0.05);
-      }
-      .hero-return-panel.is-visible {
-        display: block;
-      }
-      .hero-return-label {
-        font-size: 0.68rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--teal-dark);
-      }
-      .hero-return-title {
-        margin-top: 0.24rem;
-        font-size: 0.98rem;
-        font-weight: 800;
-        line-height: 1.35;
-        color: var(--navy);
-      }
-      .hero-return-copy {
-        margin-top: 0.3rem;
-        font-size: 0.81rem;
-        line-height: 1.58;
-        color: var(--slate);
-      }
-      .hero-return-meta {
-        display: grid;
-        gap: 0.55rem;
-        margin-top: 0.78rem;
-      }
-      .hero-return-chip {
-        display: grid;
-        gap: 0.14rem;
-        padding: 0.72rem 0.8rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.1);
-        background: rgba(255, 255, 255, 0.9);
-      }
-      .hero-return-chip-label {
-        font-size: 0.68rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .hero-return-chip-value {
-        font-size: 0.82rem;
-        line-height: 1.5;
-        color: var(--navy);
-        font-weight: 700;
-      }
-      .hero-return-chip-copy {
-        font-size: 0.76rem;
-        line-height: 1.5;
-        color: var(--slate);
-      }
-      .hero-return-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.65rem;
-        margin-top: 0.8rem;
-      }
-      .hero-return-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.62rem 0.9rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-decoration: none;
-      }
-      .hero-return-link.primary {
-        background: var(--teal);
-        color: white;
-      }
-      .hero-return-link.secondary {
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: white;
-        color: var(--teal-dark);
-      }
       .tool-trust-pill {
         display: inline-flex;
         align-items: center;
@@ -1265,15 +1177,6 @@
         .hero-trust-system {
           grid-template-columns: 1fr;
         }
-        .hero-return-panel.is-visible {
-          display: none !important;
-        }
-        .hero-return-actions {
-          flex-direction: column;
-        }
-        .hero-return-link {
-          width: 100%;
-        }
       }
     </style>
   </head>
@@ -1331,13 +1234,6 @@
             <div class="search-launch-note">Currently matching California ZIP codes.</div>
             <button type="submit" class="search-btn" id="searchButton">Start my match</button>
           </form>
-          <div class="hero-return-panel" id="homeReturnPanel" aria-live="polite">
-            <div class="hero-return-label">Welcome back</div>
-            <div class="hero-return-title" id="homeReturnTitle"></div>
-            <div class="hero-return-copy" id="homeReturnCopy"></div>
-            <div class="hero-return-meta" id="homeReturnMeta"></div>
-            <div class="hero-return-actions" id="homeReturnActions"></div>
-          </div>
           <div class="hero-browse-link">
             <a href="directory.html">Prefer to browse first?</a>
           </div>
