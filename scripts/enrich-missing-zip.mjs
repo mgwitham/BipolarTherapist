@@ -59,7 +59,8 @@ function getConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
-    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
+    token:
+      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -259,9 +260,7 @@ function buildOutreachRow(doc) {
     city: doc.city || verification.addressCity || "",
     licenseNumber: doc.licenseNumber || "",
     licenseState: doc.licenseState || verification.jurisdiction || "",
-    profileUrl: doc.slug
-      ? `https://www.bipolartherapyhub.com/therapist/${doc.slug}`
-      : "",
+    profileUrl: doc.slug ? `https://www.bipolartherapyhub.com/therapist/${doc.slug}` : "",
     website: doc.website || "",
     sourceUrl: doc.sourceUrl || "",
   };
@@ -353,7 +352,9 @@ function buildMarkdownReport(rows, outreachRows, options) {
   lines.push("", "## Outreach sample", "");
   outreachRows.slice(0, 50).forEach((row) => {
     const contact = row.email || "no-email-on-file";
-    lines.push(`- ${row.name || row.docId} (${row.docType}) · ${contact} · license ${row.licenseNumber || "n/a"}`);
+    lines.push(
+      `- ${row.name || row.docId} (${row.docType}) · ${contact} · license ${row.licenseNumber || "n/a"}`,
+    );
   });
   return lines.join("\n");
 }
@@ -366,7 +367,9 @@ async function main() {
   }
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
-    console.error("Missing Sanity project id or dataset. Set VITE_SANITY_PROJECT_ID / VITE_SANITY_DATASET.");
+    console.error(
+      "Missing Sanity project id or dataset. Set VITE_SANITY_PROJECT_ID / VITE_SANITY_DATASET.",
+    );
     process.exit(1);
   }
   if (!options.dryRun && !config.token) {
