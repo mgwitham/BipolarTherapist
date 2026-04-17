@@ -124,7 +124,7 @@ var isInternalMode = new URLSearchParams(window.location.search).get("internal")
 var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
 var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
 var PRIMARY_SHORTLIST_LIMIT = 6;
-var SHORTLIST_QUEUE_LIMIT = 12;
+var SHORTLIST_QUEUE_LIMIT = 24;
 var MATCH_PRIORITY_SLUGS = [];
 var US_STATE_MAP = {
   ALABAMA: "AL",

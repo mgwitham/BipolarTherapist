@@ -242,21 +242,31 @@ export function readCurrentIntakeProfile(options) {
   if (!form) {
     return null;
   }
+  function readFieldValue(name) {
+    var nodes = form.querySelectorAll('[name="' + name + '"]');
+    for (var i = 0; i < nodes.length; i++) {
+      var value = String(nodes[i].value || "").trim();
+      if (value) {
+        return nodes[i].value;
+      }
+    }
+    return nodes[0] ? nodes[0].value : "";
+  }
   var urgencyField = form.elements.urgency;
-  var locationQuery = normalizeLocationQuery(form.elements.location_query.value);
+  var locationQuery = normalizeLocationQuery(readFieldValue("location_query"));
   var profile = settings.buildUserMatchProfile({
     care_state: settings.deriveStateFromLocation(locationQuery),
-    care_format: form.elements.care_format.value,
-    care_intent: form.elements.care_intent.value,
-    needs_medication_management: form.elements.needs_medication_management.value,
-    insurance: form.elements.insurance.value,
-    budget_max: form.elements.budget_max.value,
+    care_format: readFieldValue("care_format"),
+    care_intent: readFieldValue("care_intent"),
+    needs_medication_management: readFieldValue("needs_medication_management"),
+    insurance: readFieldValue("insurance"),
+    budget_max: readFieldValue("budget_max"),
     urgency: urgencyField ? urgencyField.value : "ASAP",
-    priority_mode: form.elements.priority_mode.value,
+    priority_mode: readFieldValue("priority_mode"),
     bipolar_focus: settings.collectCheckedValues(form, "bipolar_focus"),
     preferred_modalities: settings.collectCheckedValues(form, "preferred_modalities"),
     population_fit: settings.collectCheckedValues(form, "population_fit"),
-    language_preferences: settings.splitCommaSeparated(form.elements.language_preferences.value),
+    language_preferences: settings.splitCommaSeparated(readFieldValue("language_preferences")),
   });
   profile.location_query = locationQuery;
   return profile;
@@ -346,19 +356,28 @@ export function hydrateForm(profile, options) {
 
   var settings = options || {};
   var form = settings.form || document.getElementById("matchForm");
-  form.elements.location_query.value = profile.location_query || profile.care_state || "";
-  settings.syncZipResolvedLabel(form.elements.location_query.value);
-  form.elements.care_format.value = profile.care_format || "In-Person";
-  form.elements.care_intent.value = profile.care_intent || "";
-  form.elements.needs_medication_management.value =
-    profile.needs_medication_management || "Open to either";
-  form.elements.insurance.value = profile.insurance || "";
-  form.elements.budget_max.value = profile.budget_max || "";
-  if (form.elements.urgency) {
-    form.elements.urgency.value = profile.urgency || "ASAP";
+  function setFieldValue(name, value) {
+    var nodes = form.querySelectorAll('[name="' + name + '"]');
+    nodes.forEach(function (node) {
+      node.value = value;
+    });
   }
-  form.elements.priority_mode.value = profile.priority_mode || "Best overall fit";
-  form.elements.language_preferences.value = (profile.language_preferences || []).join(", ");
+  var locationValue = profile.location_query || profile.care_state || "";
+  setFieldValue("location_query", locationValue);
+  settings.syncZipResolvedLabel(locationValue);
+  setFieldValue("care_format", profile.care_format || "In-Person");
+  setFieldValue("care_intent", profile.care_intent || "");
+  setFieldValue(
+    "needs_medication_management",
+    profile.needs_medication_management || "Open to either",
+  );
+  setFieldValue("insurance", profile.insurance || "");
+  setFieldValue("budget_max", profile.budget_max || "");
+  if (form.elements.urgency) {
+    setFieldValue("urgency", profile.urgency || "ASAP");
+  }
+  setFieldValue("priority_mode", profile.priority_mode || "Best overall fit");
+  setFieldValue("language_preferences", (profile.language_preferences || []).join(", "));
 
   ["bipolar_focus", "preferred_modalities", "population_fit"].forEach(function (name) {
     var selected = new Set(profile[name] || []);
