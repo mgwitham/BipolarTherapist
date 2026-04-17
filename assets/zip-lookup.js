@@ -235,11 +235,13 @@ export function getZipDistanceMiles(fromZip, toZip) {
 // out of in-person results.
 export function getInPersonProximityBonus(miles) {
   if (!Number.isFinite(miles)) return 0;
-  if (miles <= 1) return 60;
+  if (miles <= 1) return 70;
+  if (miles <= 2) return 55;
   if (miles <= 3) return 50;
+  if (miles <= 4) return 45;
   if (miles <= 5) return 40;
-  if (miles <= 10) return 25;
-  if (miles <= 20) return 10;
+  if (miles <= 10) return 5;
+  if (miles <= 20) return 0;
   if (miles <= 35) return -15;
   if (miles <= 60) return -60;
   return -500;
