@@ -230,9 +230,6 @@
         border-color: rgba(132, 163, 178, 0.22);
       }
       .admin-quick-nav {
-        position: sticky;
-        top: 76px;
-        z-index: 30;
         margin-bottom: 0.85rem;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -705,8 +702,7 @@
         min-width: 0;
       }
       .admin-workspace-inspector {
-        position: sticky;
-        top: 108px;
+        min-width: 0;
       }
       .inspector-panel {
         overflow: hidden;
@@ -1793,8 +1789,6 @@
         filter: saturate(0.82);
       }
       .sidebar-panel {
-        position: sticky;
-        top: 152px;
         width: 100%;
         min-width: 0;
       }
@@ -3496,10 +3490,6 @@
         .admin-workspace-layout {
           grid-template-columns: 1fr;
         }
-        .admin-workspace-inspector {
-          position: static;
-          top: auto;
-        }
         .workflow-guidance-grid {
           grid-template-columns: 1fr;
         }
@@ -3515,10 +3505,6 @@
         .grid.workflow-focus-active > .workflow-focus-owner .workflow-section,
         .grid.workflow-focus-active > .workflow-focus-owner .panel {
           opacity: 1;
-        }
-        .sidebar-panel {
-          position: static;
-          top: auto;
         }
         .launch-mini-card {
           grid-template-columns: 1fr;
@@ -3540,7 +3526,6 @@
         }
         .admin-quick-nav {
           grid-template-columns: 1fr;
-          top: 64px;
         }
         .auth-gate {
           padding: 1.25rem;
