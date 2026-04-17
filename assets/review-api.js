@@ -275,6 +275,20 @@ export async function submitMatchOutcome(matchOutcome) {
   });
 }
 
+export async function submitTherapistProfileView(payload) {
+  return request("/engagement/view", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitTherapistCtaClick(payload) {
+  return request("/engagement/cta-click", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchTherapistPortalRequests() {
   return request("/portal/requests", {
     method: "GET",

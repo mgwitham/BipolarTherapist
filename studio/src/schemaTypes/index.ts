@@ -7,6 +7,7 @@ import { providerFieldObservationType } from "./providerFieldObservation";
 import { siteSettingsType } from "./siteSettings";
 import { therapistApplicationType } from "./therapistApplication";
 import { therapistCandidateType } from "./therapistCandidate";
+import { therapistEngagementSummaryType } from "./therapistEngagementSummary";
 import { therapistPublishEventType } from "./therapistPublishEvent";
 import { therapistPortalRequestType } from "./therapistPortalRequest";
 import { therapistType } from "./therapist";
@@ -24,4 +25,5 @@ export const schemaTypes = [
   therapistApplicationType,
   therapistPublishEventType,
   therapistPortalRequestType,
+  therapistEngagementSummaryType,
 ];
