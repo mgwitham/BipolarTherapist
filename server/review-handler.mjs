@@ -19,6 +19,12 @@ import { verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
+import { handleStripeRoutes } from "./review-stripe-routes.mjs";
+import {
+  createFeaturedCheckoutSession,
+  retrieveSubscription,
+  verifyAndParseWebhook,
+} from "./stripe-client.mjs";
 import {
   hasEmailConfig,
   notifyAdminOfSubmission,
@@ -36,6 +42,7 @@ import {
   normalizeRoutePath,
   parseAuthorizationHeader,
   parseBody as parseJsonBody,
+  parseRawBody as parseRawRequestBody,
   readSignedPayload,
   readSignedSession,
   recordFailedLogin,
@@ -196,6 +203,10 @@ async function findDuplicateTherapistEntity(client, input) {
 
 function parseBody(request) {
   return parseJsonBody(request, MAX_REQUEST_BODY_BYTES);
+}
+
+function parseRawBody(request) {
+  return parseRawRequestBody(request, MAX_REQUEST_BODY_BYTES);
 }
 
 function addDays(isoString, days) {
@@ -485,6 +496,17 @@ function createReviewRouteModules() {
       deps: {
         parseBody,
         sendJson,
+      },
+    },
+    {
+      handler: handleStripeRoutes,
+      deps: {
+        createFeaturedCheckoutSession,
+        parseBody,
+        parseRawBody,
+        retrieveSubscription,
+        sendJson,
+        verifyAndParseWebhook,
       },
     },
     {

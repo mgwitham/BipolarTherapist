@@ -10,6 +10,7 @@ import { therapistCandidateType } from "./therapistCandidate";
 import { therapistEngagementSummaryType } from "./therapistEngagementSummary";
 import { therapistPublishEventType } from "./therapistPublishEvent";
 import { therapistPortalRequestType } from "./therapistPortalRequest";
+import { therapistSubscriptionType } from "./therapistSubscription";
 import { therapistType } from "./therapist";
 
 export const schemaTypes = [
@@ -26,4 +27,5 @@ export const schemaTypes = [
   therapistPublishEventType,
   therapistPortalRequestType,
   therapistEngagementSummaryType,
+  therapistSubscriptionType,
 ];
