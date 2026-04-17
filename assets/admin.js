@@ -4376,15 +4376,20 @@ function renderWorkflowLaneGuidance(rootId, config) {
     return;
   }
   root.innerHTML =
-    '<div class="workflow-guidance-card"><div class="workflow-guidance-head"><div><div class="workflow-guidance-kicker">' +
+    '<details class="workflow-guidance-details"><summary class="workflow-guidance-summary">' +
+    '<span class="workflow-guidance-summary-kicker">' +
     escapeHtml(config.kicker || "Workflow guidance") +
-    '</div><h3 class="workflow-guidance-title">' +
+    "</span>" +
+    '<span class="workflow-guidance-summary-title">' +
     escapeHtml(config.title) +
-    '</h3><div class="workflow-guidance-copy">' +
-    escapeHtml(config.copy || "") +
-    '</div></div><div class="workflow-guidance-badge">' +
+    "</span>" +
+    '<span class="workflow-guidance-summary-badge">' +
     escapeHtml(config.badge || "In focus") +
-    '</div></div><div class="workflow-guidance-metrics">' +
+    "</span>" +
+    "</summary>" +
+    '<div class="workflow-guidance-card"><div class="workflow-guidance-copy">' +
+    escapeHtml(config.copy || "") +
+    '</div><div class="workflow-guidance-metrics">' +
     (Array.isArray(config.metrics)
       ? config.metrics.map(buildWorkflowGuidanceMetricHtml).join("")
       : "") +
@@ -4394,7 +4399,7 @@ function renderWorkflowLaneGuidance(rootId, config) {
     buildWorkflowGuidanceListHtml(config.success || []) +
     '</div></div><div class="workflow-guidance-callout"><strong>Business read:</strong> ' +
     escapeHtml(config.callout || "") +
-    "</div></div>";
+    "</div></div></details>";
 }
 
 function renderAdminWorkflowGuidance(context) {

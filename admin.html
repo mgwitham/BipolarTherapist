@@ -1404,8 +1404,55 @@
         font-size: 0.8rem;
         line-height: 1.5;
       }
+      .workflow-guidance-details {
+        margin: 0.45rem 0 0.85rem;
+      }
+      .workflow-guidance-summary {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        padding: 0.5rem 0.85rem;
+        border-radius: 12px;
+        border: 1px dashed rgba(15, 53, 87, 0.18);
+        background: rgba(243, 248, 252, 0.65);
+        cursor: pointer;
+        font-size: 0.82rem;
+        list-style: none;
+      }
+      .workflow-guidance-summary::-webkit-details-marker {
+        display: none;
+      }
+      .workflow-guidance-summary::before {
+        content: "▸";
+        color: #4a6570;
+        transition: transform 140ms ease;
+      }
+      .workflow-guidance-details[open] > .workflow-guidance-summary::before {
+        transform: rotate(90deg);
+      }
+      .workflow-guidance-summary-kicker {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #4a6570;
+      }
+      .workflow-guidance-summary-title {
+        flex: 1;
+        font-weight: 600;
+        color: #0f3f4a;
+      }
+      .workflow-guidance-summary-badge {
+        padding: 0.12rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.14);
+        color: #0f3f4a;
+        font-size: 0.74rem;
+        font-weight: 600;
+      }
       .workflow-guidance-card {
-        margin: 0.9rem 0 1rem;
+        margin: 0.6rem 0 0.5rem;
         padding: 1rem 1.05rem;
         border: 1px solid rgba(15, 53, 87, 0.12);
         border-radius: 18px;
