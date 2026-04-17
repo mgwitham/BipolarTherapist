@@ -21,7 +21,78 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
+
+function detectProfileViewSource() {
+  try {
+    var params = new URLSearchParams(window.location.search || "");
+    var utmSource = (params.get("utm_source") || "").toLowerCase();
+    if (utmSource === "email") {
+      return "email";
+    }
+    if (utmSource === "directory") {
+      return "directory";
+    }
+    if (utmSource === "match") {
+      return "match";
+    }
+    var referrer = String(document.referrer || "").toLowerCase();
+    if (!referrer) {
+      return "direct";
+    }
+    var currentHost = (window.location.hostname || "").toLowerCase();
+    if (currentHost && referrer.indexOf(currentHost) === -1) {
+      return "search";
+    }
+    if (referrer.indexOf("/directory") !== -1) {
+      return "directory";
+    }
+    if (referrer.indexOf("/match") !== -1) {
+      return "match";
+    }
+    return "direct";
+  } catch (_error) {
+    return "other";
+  }
+}
+
+function recordProfileViewSafely(slug) {
+  var cleanSlug = String(slug || "").trim();
+  if (!cleanSlug) {
+    return;
+  }
+  try {
+    var promise = submitTherapistProfileView({
+      therapist_slug: cleanSlug,
+      source: detectProfileViewSource(),
+    });
+    if (promise && typeof promise.catch === "function") {
+      promise.catch(function () {});
+    }
+  } catch (_error) {
+    // Engagement pings are best-effort — never block page render.
+  }
+}
+
+function recordCtaClickSafely(slug, route) {
+  var cleanSlug = String(slug || "").trim();
+  var cleanRoute = String(route || "").trim();
+  if (!cleanSlug || !cleanRoute) {
+    return;
+  }
+  try {
+    var promise = submitTherapistCtaClick({
+      therapist_slug: cleanSlug,
+      route: cleanRoute,
+    });
+    if (promise && typeof promise.catch === "function") {
+      promise.catch(function () {});
+    }
+  } catch (_error) {
+    // Engagement pings are best-effort.
+  }
+}
 
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug");
@@ -1597,6 +1668,7 @@ async function resolveTherapistForProfile(slugValue) {
       therapist_slug: therapist.slug || "",
       preferred_contact_method: therapist.preferred_contact_method || "unknown",
     });
+    recordProfileViewSafely(therapist.slug || slug);
     renderProfile(therapist, therapistDirectory);
     initValuePillPopover();
   } catch (error) {
@@ -2687,6 +2759,7 @@ function renderProfile(t, therapistDirectory) {
       link.addEventListener("click", function () {
         var route = link.getAttribute("data-profile-contact-route") || "";
         rememberTherapistContactRoute(t.slug, route, "profile");
+        recordCtaClickSafely(t.slug, route);
         trackFunnelEvent("profile_contact_route_clicked", {
           priority: link.getAttribute("data-profile-contact-priority") || "unknown",
           ...getContactAnalyticsMeta(t, route),
