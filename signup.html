@@ -1337,6 +1337,161 @@
           grid-template-columns: 1fr;
         }
       }
+      .quick-claim-hero {
+        background: linear-gradient(135deg, var(--teal-faint) 0%, var(--white) 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 3rem 1.5rem 2.5rem;
+      }
+      .quick-claim-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 3rem;
+        align-items: center;
+      }
+      .quick-claim-copy .quick-claim-kicker {
+        display: inline-block;
+        background: var(--white);
+        color: var(--teal-dark);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        margin-bottom: 1rem;
+      }
+      .quick-claim-copy h1 {
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        line-height: 1.15;
+        color: var(--navy);
+        margin-bottom: 0.9rem;
+        font-weight: 700;
+      }
+      .quick-claim-copy > p {
+        color: var(--slate);
+        max-width: 46ch;
+        margin-bottom: 1.25rem;
+      }
+      .quick-claim-benefits {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .quick-claim-benefits li {
+        position: relative;
+        padding-left: 1.5rem;
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .quick-claim-benefits li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .quick-claim-form {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.75rem;
+        box-shadow: 0 10px 30px rgba(29, 58, 74, 0.08);
+        display: grid;
+        gap: 0.9rem;
+      }
+      .quick-claim-form label {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .quick-claim-form label span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .quick-claim-form input {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        color: var(--navy);
+        background: var(--white);
+      }
+      .quick-claim-form input:focus {
+        outline: 2px solid var(--teal);
+        outline-offset: 1px;
+        border-color: var(--teal);
+      }
+      .quick-claim-submit {
+        margin-top: 0.35rem;
+        background: var(--teal);
+        color: var(--white);
+        border: none;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        font-weight: 700;
+        font-size: 0.98rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .quick-claim-submit:hover {
+        background: var(--teal-dark);
+      }
+      .quick-claim-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .quick-claim-fineprint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+      }
+      .quick-claim-status {
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .quick-claim-status[data-tone="success"] {
+        background: rgba(58, 170, 122, 0.1);
+        color: #1f6f4a;
+        border: 1px solid rgba(58, 170, 122, 0.35);
+      }
+      .quick-claim-status[data-tone="info"] {
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        border: 1px solid var(--border);
+      }
+      .quick-claim-status[data-tone="warn"] {
+        background: #fff4e5;
+        color: #8a4a00;
+        border: 1px solid #f0c38a;
+      }
+      .quick-claim-fallback {
+        text-align: center;
+        color: var(--teal-dark);
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .quick-claim-fallback:hover {
+        text-decoration: underline;
+      }
+      @media (max-width: 760px) {
+        .quick-claim-hero {
+          padding: 2rem 1rem 1.75rem;
+        }
+        .quick-claim-inner {
+          grid-template-columns: 1fr;
+          gap: 1.75rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1356,6 +1511,64 @@
         </li>
       </ul>
     </nav>
+
+    <section class="quick-claim-hero" aria-label="Quick claim your existing profile">
+      <div class="quick-claim-inner">
+        <div class="quick-claim-copy">
+          <span class="quick-claim-kicker">Already listed on Bipolar Therapy Hub?</span>
+          <h1>Take your page in 60 seconds</h1>
+          <p>
+            Confirm three details and we email you a one-time link. No password to remember. Free
+            forever.
+          </p>
+          <ul class="quick-claim-benefits">
+            <li>Own your profile and control what patients see</li>
+            <li>Stay logged in for 30 days after you claim</li>
+            <li>Unlock Featured placement anytime later</li>
+          </ul>
+        </div>
+        <form id="quickClaimForm" class="quick-claim-form" novalidate>
+          <label>
+            <span>Full name</span>
+            <input
+              type="text"
+              name="full_name"
+              autocomplete="name"
+              placeholder="Dr. Jamie Rivera"
+              required
+            />
+          </label>
+          <label>
+            <span>Email on your current listing</span>
+            <input type="email" name="email" autocomplete="email" required />
+          </label>
+          <label>
+            <span>CA license number</span>
+            <input
+              type="text"
+              name="license_number"
+              autocomplete="off"
+              placeholder="e.g. LMFT12345"
+              required
+            />
+          </label>
+          <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
+            Send claim link
+          </button>
+          <p class="quick-claim-fineprint">No credit card. Free claim stays free forever.</p>
+          <div
+            class="quick-claim-status"
+            id="quickClaimStatus"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+          <a href="#formCard" class="quick-claim-fallback" id="quickClaimCreateNew" hidden>
+            Create a new listing instead →
+          </a>
+        </form>
+      </div>
+    </section>
 
     <div class="signup-hero">
       <div class="pricing-badge">Claim your profile free. Upgrade when you want growth tools.</div>
@@ -2357,6 +2570,7 @@
       </p>
     </footer>
 
+    <script type="module" src="assets/signup-quick-claim.js"></script>
     <script type="module" src="assets/signup.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
