@@ -1053,8 +1053,11 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   var providerKind = getProviderKind(therapist);
   if (profile.care_intent !== "Either") {
     if (providerKind !== profile.care_intent) {
-      breakdown.clinical -= 14;
-      cautions.push("Provider type may not match the requested care style.");
+      hardFailures.push(
+        "Provider type does not match the requested care type (" +
+          profile.care_intent.toLowerCase() +
+          ").",
+      );
     } else {
       breakdown.clinical += 18;
       reasons.push({
