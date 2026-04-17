@@ -144,6 +144,49 @@ export function readSignedSession(token, config) {
   return payload;
 }
 
+const DEFAULT_THERAPIST_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function createTherapistSession(config, claims) {
+  const extraClaims = claims && typeof claims === "object" ? claims : {};
+  const ttl = Number.isFinite(config.therapistSessionTtlMs)
+    ? config.therapistSessionTtlMs
+    : DEFAULT_THERAPIST_SESSION_TTL_MS;
+  return createSignedPayload(
+    {
+      sub: "therapist",
+      iat: Date.now(),
+      exp: Date.now() + ttl,
+      nonce: crypto.randomBytes(12).toString("hex"),
+      ...extraClaims,
+    },
+    config.sessionSecret,
+  );
+}
+
+export function readTherapistSession(token, config) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "therapist" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  if (!payload.slug) {
+    return null;
+  }
+  return payload;
+}
+
+export function getAuthorizedTherapist(request, config) {
+  const payload = readTherapistSession(parseAuthorizationHeader(request), config);
+  if (!payload) {
+    return null;
+  }
+  return {
+    slug: String(payload.slug || ""),
+    email: String(payload.email || ""),
+    issuedAt: payload.iat || 0,
+    expiresAt: payload.exp || 0,
+  };
+}
+
 export function isAuthorized(request, config) {
   const sessionPayload = readSignedSession(parseAuthorizationHeader(request), config);
   if (sessionPayload) {

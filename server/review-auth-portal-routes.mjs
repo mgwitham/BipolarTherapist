@@ -6,6 +6,8 @@ export async function handleAuthAndPortalRoutes(context) {
     canAttemptLogin,
     clearFailedLogins,
     createSignedSession,
+    createTherapistSession,
+    getAuthorizedTherapist,
     getSecurityWarnings,
     normalizePortalRequest,
     parseAuthorizationHeader,
@@ -297,6 +299,11 @@ export async function handleAuthAndPortalRoutes(context) {
       })
       .commit({ visibility: "sync" });
 
+    const therapistSessionToken = createTherapistSession(config, {
+      slug: therapist.slug,
+      email: payload.email,
+    });
+
     sendJson(
       response,
       200,
@@ -304,6 +311,59 @@ export async function handleAuthAndPortalRoutes(context) {
         ok: true,
         therapist_slug: therapist.slug,
         claimed_by_email: payload.email,
+        therapist_session_token: therapistSessionToken,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  if (request.method === "GET" && routePath === "/portal/me") {
+    const session = getAuthorizedTherapist(request, config);
+    if (!session) {
+      sendJson(response, 401, { error: "Not signed in." }, origin, config);
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, email, city, state, practiceName, claimStatus, claimedByEmail, claimedAt,
+        portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
+        "slug": slug.current
+      }`,
+      { slug: session.slug },
+    );
+
+    if (!therapist) {
+      sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+      return true;
+    }
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        session: {
+          slug: session.slug,
+          email: session.email,
+          expires_at: session.expiresAt,
+        },
+        therapist: {
+          slug: therapist.slug,
+          name: therapist.name,
+          email: therapist.email || "",
+          city: therapist.city || "",
+          state: therapist.state || "",
+          practice_name: therapist.practiceName || "",
+          claim_status: therapist.claimStatus || "unclaimed",
+          claimed_by_email: therapist.claimedByEmail || "",
+          claimed_at: therapist.claimedAt || "",
+          portal_last_seen_at: therapist.portalLastSeenAt || "",
+          listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
+          listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
+        },
       },
       origin,
       config,

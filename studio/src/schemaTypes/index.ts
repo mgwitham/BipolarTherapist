@@ -12,6 +12,7 @@ import { therapistPublishEventType } from "./therapistPublishEvent";
 import { therapistPortalRequestType } from "./therapistPortalRequest";
 import { therapistSubscriptionType } from "./therapistSubscription";
 import { therapistType } from "./therapist";
+import { zipOutreachTaskType } from "./zipOutreachTask";
 
 export const schemaTypes = [
   directoryPageType,
@@ -28,4 +29,5 @@ export const schemaTypes = [
   therapistPortalRequestType,
   therapistEngagementSummaryType,
   therapistSubscriptionType,
+  zipOutreachTaskType,
 ];
