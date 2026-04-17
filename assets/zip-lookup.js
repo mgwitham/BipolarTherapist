@@ -240,6 +240,10 @@ export function getInPersonProximityBonus(miles) {
   if (miles <= 3) return 50;
   if (miles <= 4) return 45;
   if (miles <= 5) return 40;
+  if (miles <= 6) return 35;
+  if (miles <= 7) return 30;
+  if (miles <= 8) return 25;
+  if (miles <= 9) return 20;
   if (miles <= 10) return 5;
   if (miles <= 20) return 0;
   if (miles <= 35) return -15;
