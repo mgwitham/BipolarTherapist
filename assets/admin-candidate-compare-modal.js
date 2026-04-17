@@ -298,7 +298,7 @@ export function createCandidateCompareModal(config) {
       '<div class="compare-actions">' +
       '<button type="button" class="compare-close-link" data-compare-close>Close without deciding</button>' +
       '<div class="compare-actions-primary">' +
-      '<button type="button" class="btn-secondary" data-compare-decision="mark_unique">Keep as unique</button>' +
+      '<button type="button" class="btn-secondary" data-compare-decision="mark_unique">Not a duplicate</button>' +
       (mergeDecision
         ? '<button type="button" class="btn-secondary" data-compare-decision="' +
           mergeDecision +
@@ -306,7 +306,7 @@ export function createCandidateCompareModal(config) {
           escapeHtml(mergeLabel) +
           "</button>"
         : "") +
-      '<button type="button" class="btn-primary" data-compare-decision="reject_duplicate">Mark as duplicate</button>' +
+      '<button type="button" class="btn-primary" data-compare-decision="reject_duplicate">Is a duplicate</button>' +
       "</div>" +
       "</div>"
     );

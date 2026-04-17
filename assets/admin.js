@@ -7683,6 +7683,10 @@ function setAuthUiState() {
     if (quickNav) {
       quickNav.style.display = "none";
     }
+    const todayRegionHidden = document.getElementById("todayRegion");
+    if (todayRegionHidden) {
+      todayRegionHidden.style.display = "none";
+    }
     const navLogout = document.getElementById("navLogout");
     if (navLogout) navLogout.style.display = "none";
     if (authError) {
@@ -7717,6 +7721,10 @@ function setAuthUiState() {
   }
   if (quickNav) {
     quickNav.style.display = "";
+  }
+  const todayRegion = document.getElementById("todayRegion");
+  if (todayRegion) {
+    todayRegion.style.display = "";
   }
   syncAdminQuickNavFromViewport();
   const navLogout = document.getElementById("navLogout");
@@ -8176,6 +8184,40 @@ document.getElementById("candidateDedupeStatusFilter").addEventListener("change"
   candidateFilters.dedupe_status = event.target.value || "";
   renderCandidateQueue();
 });
+
+(function wireCandidateQueueFocusMode() {
+  const toggleBtn = document.getElementById("candidateQueueFocusToggle");
+  const queueRoot = document.getElementById("candidateQueue");
+  if (!toggleBtn || !queueRoot) return;
+
+  function toggle() {
+    withLazyAdminModule("./admin-candidate-queue.js", function (module) {
+      module.toggleTriageFocusMode(queueRoot);
+      toggleBtn.classList.toggle(
+        "is-active",
+        queueRoot.classList.contains("is-triage-focus-active"),
+      );
+    });
+  }
+
+  toggleBtn.addEventListener("click", toggle);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key !== "f" && event.key !== "F") return;
+    const target = event.target;
+    if (target && target.tagName) {
+      const tag = target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (target.isContentEditable) return;
+    }
+    // Only trigger when the candidate queue is actually visible on screen.
+    const rect = queueRoot.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    event.preventDefault();
+    toggle();
+  });
+})();
 
 document.getElementById("reviewSearch").addEventListener("input", function (event) {
   reviewFilters.q = event.target.value.trim();

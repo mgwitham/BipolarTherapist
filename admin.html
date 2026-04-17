@@ -327,8 +327,32 @@
       .admin-quick-nav-links a[aria-current="true"] .nav-count {
         background: rgba(26, 122, 143, 0.22);
       }
+      .admin-today {
+        margin-bottom: 1rem;
+      }
+      .admin-today-header {
+        margin: 0 0 0.55rem 0.15rem;
+      }
+      .admin-today-title {
+        font-size: 1.35rem;
+        margin: 0 0 0.1rem;
+        color: #0f3f4a;
+        letter-spacing: -0.01em;
+      }
+      .admin-today-subtitle {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #4a6570;
+      }
+      .admin-quick-nav-today {
+        font-weight: 600;
+        color: #0f3f4a !important;
+      }
+      .admin-quick-nav-secondary {
+        opacity: 0.78;
+      }
       .admin-now {
-        margin-bottom: 0.85rem;
+        margin-bottom: 0;
         padding: 0.95rem 1rem;
         border: 1px solid rgba(26, 122, 143, 0.14);
         border-radius: 20px;
@@ -1746,6 +1770,79 @@
           border-color 180ms ease,
           box-shadow 180ms ease,
           background-color 180ms ease;
+      }
+      /* Triage focus mode — one-card-at-a-time keyboard review. */
+      #candidateQueueFocusToggle.is-active {
+        background: #1a7a8f;
+        color: #fff;
+        border-color: #1a7a8f;
+      }
+      #candidateQueue.is-triage-focus-active {
+        position: relative;
+      }
+      #candidateQueue.is-triage-focus-active .queue-card {
+        display: none;
+      }
+      #candidateQueue.is-triage-focus-active .queue-card.is-focus-current {
+        display: block;
+        margin: 0 auto 1rem;
+        max-width: 900px;
+        border-color: #1a7a8f;
+        box-shadow: 0 18px 40px rgba(29, 58, 74, 0.14);
+      }
+      #candidateQueue.is-triage-focus-active .queue-insights {
+        display: none;
+      }
+      .triage-focus-hud {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.6rem 0.9rem;
+        margin: 0 auto 0.8rem;
+        max-width: 900px;
+        background: #0f3f4a;
+        color: #eaf6f8;
+        border-radius: 12px;
+        font-size: 0.82rem;
+        box-shadow: 0 6px 16px rgba(15, 63, 74, 0.18);
+      }
+      .triage-focus-hud-count {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        padding: 0.18rem 0.55rem;
+        background: rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .triage-focus-hud-name {
+        flex: 1;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .triage-focus-hud-keys {
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .triage-focus-hud-keys kbd {
+        display: inline-block;
+        padding: 0.05rem 0.35rem;
+        margin: 0 0.12rem;
+        background: rgba(255, 255, 255, 0.16);
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.78rem;
+      }
+      @media (max-width: 720px) {
+        .triage-focus-hud-keys {
+          display: none;
+        }
       }
       .queue-card:hover,
       .application-card:hover,
@@ -3819,24 +3916,43 @@
       <div class="admin-quick-nav" id="adminQuickNav" style="display: none">
         <div class="admin-quick-nav-label">Jump to</div>
         <div class="admin-quick-nav-links">
+          <a href="#todayRegion" class="admin-quick-nav-today">Today</a>
           <a href="#supplyReviewRegion"
-            >Triage new listings<span class="nav-count" id="navCountCandidates"></span
+            >Triage<span class="nav-count" id="navCountCandidates"></span
           ></a>
-          <a href="#reviewRegion">Review<span class="nav-count" id="navCountReview"></span></a>
           <a href="#confirmationRegion"
-            >Work confirmations<span class="nav-count" id="navCountConfirmations"></span
+            >Confirmations<span class="nav-count" id="navCountConfirmations"></span
           ></a>
+          <a href="#liveListingsRegion">Live<span class="nav-count" id="navCountLive"></span></a>
           <a href="#requestsRegion"
-            >Handle requests<span class="nav-count" id="navCountRequests"></span
+            >Requests<span class="nav-count" id="navCountRequests"></span
           ></a>
-          <a href="#liveListingsRegion"
-            >Maintain live<span class="nav-count" id="navCountLive"></span
+          <a href="#reviewRegion" class="admin-quick-nav-secondary"
+            >Parked<span class="nav-count" id="navCountReview"></span
           ></a>
-          <a href="#intelligenceRegion">Check health</a>
+          <a href="#intelligenceRegion" class="admin-quick-nav-secondary">Reports</a>
         </div>
       </div>
 
-      <section class="admin-now" id="adminStats" style="display: none"></section>
+      <section class="admin-today" id="todayRegion" style="display: none">
+        <header class="admin-today-header">
+          <h2 class="admin-today-title">Today</h2>
+          <p class="admin-today-subtitle">
+            What needs your attention right now. Start at the top and work down.
+          </p>
+        </header>
+        <section class="admin-now" id="adminStats"></section>
+        <div class="panel" id="reviewAttentionQueuePanel" style="margin: 0.85rem 0 0">
+          <h2>Needs Action Now</h2>
+          <p class="subtle" style="margin-top: 0">
+            The highest-priority work needing action now, based on overdue, stale, and unassigned
+            items.
+          </p>
+          <div id="reviewAttentionQueueGuidance"></div>
+          <div class="subtle" id="reviewAttentionQueueScope" style="margin-bottom: 0.7rem"></div>
+          <div id="reviewAttentionQueue"></div>
+        </div>
+      </section>
 
       <div class="auth-gate" id="adminAuthGate" style="display: none">
         <div class="auth-gate-layout">
@@ -4310,6 +4426,15 @@
                           <option value="merged">Merged</option>
                         </select>
                         <div class="subtle" id="candidateQueueCount"></div>
+                        <button
+                          type="button"
+                          class="btn-secondary"
+                          id="candidateQueueFocusToggle"
+                          style="margin-left: auto"
+                          title="One-at-a-time keyboard review. Press F to toggle."
+                        >
+                          Focus mode
+                        </button>
                       </div>
                       <div id="candidateQueue"></div>
                     </div>
@@ -4478,20 +4603,6 @@
                   </p>
                   <div id="opsInboxGuidance"></div>
                   <div id="opsInbox"></div>
-                </div>
-                <div class="panel" id="reviewAttentionQueuePanel" style="margin-bottom: 1rem">
-                  <h2>Needs Action Now</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    The highest-priority work needing action now, based on overdue, stale, and
-                    unassigned items.
-                  </p>
-                  <div id="reviewAttentionQueueGuidance"></div>
-                  <div
-                    class="subtle"
-                    id="reviewAttentionQueueScope"
-                    style="margin-bottom: 0.7rem"
-                  ></div>
-                  <div id="reviewAttentionQueue"></div>
                 </div>
                 <div class="panel" id="portalRequestsPanel" style="margin-bottom: 1rem">
                   <h2>Therapist Portal Requests</h2>
