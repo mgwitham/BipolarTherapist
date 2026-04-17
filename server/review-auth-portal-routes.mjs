@@ -157,6 +157,113 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  if (request.method === "POST" && routePath === "/portal/quick-claim") {
+    const body = await parseBody(request);
+    const fullName = String(body.full_name || "")
+      .trim()
+      .toLowerCase();
+    const requesterEmail = String(body.email || "")
+      .trim()
+      .toLowerCase();
+    const licenseNumber = String(body.license_number || "").trim();
+
+    if (!fullName || !requesterEmail || !licenseNumber) {
+      sendJson(
+        response,
+        400,
+        { error: "Full name, email, and CA license number are all required." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && licenseNumber == $license][0]{
+        _id, name, email, claimStatus, "slug": slug
+      }`,
+      { license: licenseNumber },
+    );
+
+    if (!therapist || !therapist.slug || !therapist.slug.current) {
+      sendJson(
+        response,
+        404,
+        {
+          error:
+            "We do not see a profile for that license in our directory yet. Create a new listing below.",
+          reason: "not_found",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const profileName = String(therapist.name || "")
+      .trim()
+      .toLowerCase();
+    if (!profileName || profileName !== fullName) {
+      sendJson(
+        response,
+        403,
+        {
+          error:
+            "The name does not match the profile for that license. Contact us if you believe this is a mistake.",
+          reason: "name_mismatch",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const profileEmail = String(therapist.email || "")
+      .trim()
+      .toLowerCase();
+    if (!profileEmail || profileEmail !== requesterEmail) {
+      sendJson(
+        response,
+        403,
+        {
+          error:
+            "That email does not match the public contact email on your profile. Use the contact form so we can verify ownership.",
+          reason: "email_mismatch",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    await sendPortalClaimLink(
+      config,
+      therapist,
+      requesterEmail,
+      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+    );
+
+    await client
+      .patch(therapist._id)
+      .set({
+        claimStatus: therapist.claimStatus === "claimed" ? "claimed" : "claim_requested",
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        message: "Claim link sent. Check your inbox.",
+        therapist_slug: therapist.slug.current,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (request.method === "POST" && routePath === "/portal/claim-link") {
     const body = await parseBody(request);
     const therapistSlug = String(body.therapist_slug || "").trim();

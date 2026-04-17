@@ -21,6 +21,7 @@ module.exports = [
         console: "readonly",
         document: "readonly",
         fetch: "readonly",
+        FormData: "readonly",
         history: "readonly",
         localStorage: "readonly",
         Map: "readonly",

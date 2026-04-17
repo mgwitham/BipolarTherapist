@@ -354,6 +354,13 @@ export async function requestTherapistClaimLink(payload) {
   });
 }
 
+export async function requestTherapistQuickClaim(payload) {
+  return request("/portal/quick-claim", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchTherapistClaimSession(token) {
   return request(`/portal/claim-session?token=${encodeURIComponent(token)}`, {
     method: "GET",

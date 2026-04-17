@@ -178,6 +178,20 @@ export function createMemoryClient(initialDocuments) {
           return cloned;
         }
 
+        if (
+          query.includes(`*[_type == "therapist" && licenseNumber == $license][0]`) &&
+          params &&
+          typeof params.license === "string"
+        ) {
+          const match = Array.from(state.documents.values()).find(function (document) {
+            return (
+              document._type === "therapist" &&
+              String(document.licenseNumber || "") === params.license
+            );
+          });
+          return match ? deepClone(match) : null;
+        }
+
         if (query.includes(`*[_type == "therapistPortalRequest"]`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapistPortalRequest";
