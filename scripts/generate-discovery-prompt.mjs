@@ -95,7 +95,8 @@ function getSanityConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
-    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
+    token:
+      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -121,13 +122,21 @@ async function fetchExistingClinicians() {
 }
 
 function normalizeKey(entry) {
-  const license = String(entry.licenseNumber || "").replace(/\s+/g, "").toUpperCase();
-  const name = String(entry.name || "").trim().toLowerCase();
+  const license = String(entry.licenseNumber || "")
+    .replace(/\s+/g, "")
+    .toUpperCase();
+  const name = String(entry.name || "")
+    .trim()
+    .toLowerCase();
   return license || name;
 }
 
 function buildExclusionBlock(clinicians) {
-  const all = [...(clinicians.therapists || []), ...(clinicians.candidates || []), ...(clinicians.applications || [])];
+  const all = [
+    ...(clinicians.therapists || []),
+    ...(clinicians.candidates || []),
+    ...(clinicians.applications || []),
+  ];
   const seen = new Map();
   for (const entry of all) {
     const key = normalizeKey(entry);

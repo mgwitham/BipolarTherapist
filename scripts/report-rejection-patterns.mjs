@@ -20,16 +20,12 @@ const REASON_LABELS = {
 };
 
 const TUNING_HINTS = {
-  not_a_specialist:
-    "Tighten prompt hard-requirement 3(b). Add more concrete rejection examples.",
+  not_a_specialist: "Tighten prompt hard-requirement 3(b). Add more concrete rejection examples.",
   dead_site: "Add a freshness-check step with stronger 2022-cutoff rule.",
-  group_practice:
-    "Strengthen hard-requirement 1 and exclude service-page URL patterns.",
-  aggregator_url:
-    "Reinforce hard-exclusion list; list any new aggregators surfacing here.",
+  group_practice: "Strengthen hard-requirement 1 and exclude service-page URL patterns.",
+  aggregator_url: "Reinforce hard-exclusion list; list any new aggregators surfacing here.",
   out_of_state: "Add explicit CA-physical-location check to verification step.",
-  license_unverifiable:
-    "Run npm run cms:verify-licenses before import to catch these pre-review.",
+  license_unverifiable: "Run npm run cms:verify-licenses before import to catch these pre-review.",
   duplicate: "Normal — dedupe layer catches these. No prompt change needed.",
   other: "Review the rejectionNotes field for recurring patterns.",
 };
@@ -64,7 +60,8 @@ function getSanityConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
-    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
+    token:
+      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN || "",
   };
 }
 
@@ -122,7 +119,9 @@ async function main() {
 
   if (!rows.length) {
     console.log(`# Rejection report — last ${options.days} days\n`);
-    console.log("No rejected candidates in the window. Either you've been lenient, or the prompt is well-tuned.");
+    console.log(
+      "No rejected candidates in the window. Either you've been lenient, or the prompt is well-tuned.",
+    );
     return;
   }
 
@@ -164,7 +163,9 @@ async function main() {
 
   const unspecifiedCount = byReason.get("unspecified")?.length || 0;
   if (unspecifiedCount / total > 0.3) {
-    console.log("\n> ⚠️  More than 30% of rejections have no reason code. Reviewers should be selecting one when rejecting, or the feedback loop won't work.");
+    console.log(
+      "\n> ⚠️  More than 30% of rejections have no reason code. Reviewers should be selecting one when rejecting, or the feedback loop won't work.",
+    );
   }
 }
 

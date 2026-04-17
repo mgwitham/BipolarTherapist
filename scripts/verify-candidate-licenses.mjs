@@ -200,8 +200,7 @@ async function main() {
 
   const augmentedHeaders = [...headers];
   if (!augmentedHeaders.includes("licenseVerified")) augmentedHeaders.push("licenseVerified");
-  if (!augmentedHeaders.includes("verificationNotes"))
-    augmentedHeaders.push("verificationNotes");
+  if (!augmentedHeaders.includes("verificationNotes")) augmentedHeaders.push("verificationNotes");
 
   const results = [];
   let passed = 0;
