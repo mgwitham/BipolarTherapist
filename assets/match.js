@@ -4287,16 +4287,57 @@ function renderOutreachPanel(entries) {
   });
 }
 
+var NAME_TITLE_PREFIXES = /^(dr|dr\.|mr|mr\.|mrs|mrs\.|ms|ms\.|mx|mx\.|prof|prof\.)$/i;
+
 function getInitials(name) {
-  return (name || "")
-    .split(" ")
+  var words = String(name || "")
+    .split(/\s+/)
     .filter(Boolean)
+    .filter(function (w) {
+      return !NAME_TITLE_PREFIXES.test(w);
+    });
+  return words
     .map(function (w) {
       return w[0];
     })
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+// Deterministic, name-driven palette. Each therapist always gets the same
+// palette so the avatar feels like theirs; the palette set is varied enough
+// that a grid of cards doesn't look monotone, but every hue stays in a calm,
+// brand-adjacent range (no loud primaries).
+var AVATAR_PALETTES = [
+  { from: "#d4e4e9", to: "#b8d1d8", ink: "#155f70" }, // teal (brand)
+  { from: "#dce7d8", to: "#bdd0b9", ink: "#3d6b4a" }, // sage
+  { from: "#ead5d4", to: "#dab8b7", ink: "#7a4d4a" }, // blush
+  { from: "#e9e0d0", to: "#d3c6ad", ink: "#6f5b36" }, // sand
+  { from: "#dcd8ea", to: "#bab5d0", ink: "#534e7a" }, // lavender
+  { from: "#d4dfe9", to: "#b0c2d4", ink: "#3d567a" }, // sky
+];
+
+function getAvatarPalette(name) {
+  var input = String(name || "");
+  var hash = 0;
+  for (var i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
+}
+
+function buildAvatarStyle(palette) {
+  return (
+    "background: radial-gradient(120% 90% at 25% 15%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 55%), " +
+    "linear-gradient(135deg, " +
+    palette.from +
+    " 0%, " +
+    palette.to +
+    " 100%); color: " +
+    palette.ink +
+    ";"
+  );
 }
 
 function getCareFormatLabel(therapist) {
@@ -4348,7 +4389,16 @@ function renderHeroPhoto(therapist) {
   if (therapist.photo_url) {
     return '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" loading="lazy" />';
   }
-  return '<span class="mx-hero-photo-initials">' + escapeHtml(initials) + "</span>";
+  var palette = getAvatarPalette(therapist.name);
+  return (
+    '<div class="mx-hero-photo-fill" style="' +
+    buildAvatarStyle(palette) +
+    '" aria-hidden="true">' +
+    '<span class="mx-hero-photo-initials">' +
+    escapeHtml(initials) +
+    "</span>" +
+    "</div>"
+  );
 }
 
 function renderCardPhoto(therapist) {
@@ -4356,7 +4406,14 @@ function renderCardPhoto(therapist) {
   if (therapist.photo_url) {
     return '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" loading="lazy" />';
   }
-  return escapeHtml(initials);
+  var palette = getAvatarPalette(therapist.name);
+  return (
+    '<span class="mx-card-photo-fill" style="' +
+    buildAvatarStyle(palette) +
+    '" aria-hidden="true">' +
+    escapeHtml(initials) +
+    "</span>"
+  );
 }
 
 function renderSaveIcon() {
