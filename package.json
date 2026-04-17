@@ -70,6 +70,8 @@
     "cms:run:ingestion-automation": "node scripts/run-ingestion-automation.mjs",
     "cms:enrich:california-licensure": "node scripts/enrich-california-licensure.mjs",
     "cms:discovery-prompt": "node scripts/generate-discovery-prompt.mjs",
+    "cms:verify-licenses": "node scripts/verify-candidate-licenses.mjs",
+    "cms:rejection-report": "node scripts/report-rejection-patterns.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
