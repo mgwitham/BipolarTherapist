@@ -181,6 +181,172 @@ test("candidate ingest: re-ingesting the same person updates the existing candid
   assert.equal(doc.reviewHistory.length, 2);
 });
 
+test("candidate ingest: skips license verification cleanly when DCA is not configured", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const token = await loginAsAdmin(handler);
+
+  const response = await ingest(handler, token, {
+    candidates: [
+      {
+        name: "Dr. Alex Doe",
+        license_state: "CA",
+        license_number: "PSY99999",
+        city: "Mill Valley",
+        state: "CA",
+      },
+    ],
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.summary.created, 1);
+  const verification = response.payload.created[0].verification;
+  assert.equal(verification.attempted, false);
+  assert.equal(verification.reason, "dca_not_configured");
+});
+
+test("candidate ingest: DCA name-match boosts confidence and attaches licensureVerification", async function () {
+  const { client, state } = createMemoryClient();
+  const config = {
+    ...createTestApiConfig(),
+    dcaAppId: "test-app-id",
+    dcaAppKey: "test-app-key",
+  };
+  const handler = createReviewApiHandler(config, client);
+  const token = await loginAsAdmin(handler);
+
+  // Stub the network layer the DCA client uses (global fetch).
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async function fakeFetch(url) {
+    if (String(url).includes("dca.ca.gov")) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            licenseDetails: [
+              {
+                getFullLicenseDetail: [
+                  {
+                    getLicenseDetails: [
+                      { primaryStatusCode: "20", issueDate: "2010-01-01", expDate: "2030-01-01" },
+                    ],
+                    getNameDetails: [
+                      {
+                        individualNameDetails: [
+                          { firstName: "Alex", middleName: "", lastName: "Rivera" },
+                        ],
+                      },
+                    ],
+                    getAddressDetail: [],
+                    getPublicRecordActions: [],
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      };
+    }
+    return originalFetch(url);
+  };
+
+  try {
+    const response = await ingest(handler, token, {
+      candidates: [
+        {
+          name: "Dr. Alex Rivera",
+          credentials: "PsyD",
+          license_state: "CA",
+          license_number: "PSY11111",
+          city: "San Rafael",
+          state: "CA",
+        },
+      ],
+    });
+    assert.equal(response.statusCode, 200);
+    const [created] = response.payload.created;
+    assert.equal(created.verification.ok, true);
+    assert.equal(created.verification.nameMatch, "match");
+    const doc = state.documents.get(created.candidateId);
+    assert.ok(doc.licensureVerification, "licensureVerification written to doc");
+    assert.equal(doc.licensureVerification.sourceSystem, "california_dca_search");
+    assert.ok(doc.extractionConfidence >= 0.85);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("candidate ingest: DCA name mismatch lowers confidence and writes a note", async function () {
+  const { client, state } = createMemoryClient();
+  const config = {
+    ...createTestApiConfig(),
+    dcaAppId: "test-app-id",
+    dcaAppKey: "test-app-key",
+  };
+  const handler = createReviewApiHandler(config, client);
+  const token = await loginAsAdmin(handler);
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async function fakeFetch(url) {
+    if (String(url).includes("dca.ca.gov")) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            licenseDetails: [
+              {
+                getFullLicenseDetail: [
+                  {
+                    getLicenseDetails: [
+                      { primaryStatusCode: "20", issueDate: "2010-01-01", expDate: "2030-01-01" },
+                    ],
+                    getNameDetails: [
+                      {
+                        individualNameDetails: [
+                          { firstName: "Completely", middleName: "", lastName: "Different" },
+                        ],
+                      },
+                    ],
+                    getAddressDetail: [],
+                    getPublicRecordActions: [],
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      };
+    }
+    return originalFetch(url);
+  };
+
+  try {
+    const response = await ingest(handler, token, {
+      candidates: [
+        {
+          name: "Dr. Imposter Person",
+          credentials: "PsyD",
+          license_state: "CA",
+          license_number: "PSY22222",
+          city: "Mill Valley",
+          state: "CA",
+          extraction_confidence: 0.5,
+        },
+      ],
+    });
+    assert.equal(response.statusCode, 200);
+    const [created] = response.payload.created;
+    assert.equal(created.verification.ok, false);
+    assert.equal(created.verification.status, "name_mismatch");
+    const doc = state.documents.get(created.candidateId);
+    assert.ok(doc.notes.includes("DCA name mismatch"));
+    assert.ok(doc.extractionConfidence < 0.5);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("candidate ingest: flags within-candidate duplicates as possible_duplicate", async function () {
   const { client, state } = createMemoryClient({
     existing: [

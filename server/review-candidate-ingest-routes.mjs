@@ -1,6 +1,64 @@
 const MAX_BATCH_SIZE = 50;
 const EXTRACTION_VERSION = "claude-ingest-v1";
 const DEFAULT_SOURCE_TYPE = "manual_research";
+const DCA_NOT_CONFIGURED_ERROR = "DCA credentials not configured";
+
+function inferLicenseTypeCode(licenseNumber, credentials) {
+  const number = String(licenseNumber || "")
+    .toUpperCase()
+    .trim();
+  if (number.startsWith("PSY")) return "5002";
+  if (number.startsWith("MFT") || number.startsWith("MFC")) return "2001";
+  if (number.startsWith("LCSW") || number.startsWith("ASW")) return "2002";
+  if (number.startsWith("LPCC") || number.startsWith("APCC")) return "2005";
+  if (number.startsWith("LEP")) return "2003";
+
+  const creds = String(credentials || "")
+    .toUpperCase()
+    .trim();
+  if (/\bMD\b|\bDO\b/.test(creds)) return "8002";
+  if (/\bLMFT\b|\bMFT\b/.test(creds)) return "2001";
+  if (/\bLCSW\b/.test(creds)) return "2002";
+  if (/\bLPCC\b/.test(creds)) return "2005";
+  if (/\bPSY(D|\.?D)?\b|PHD\b/.test(creds) && /PSYCH/.test(creds)) return "5002";
+  if (/\bPSYD\b/.test(creds)) return "5002";
+  return null;
+}
+
+function normalizeNameTokens(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/[,.]/g, " ")
+    .replace(/\b(dr|doctor|prof|professor|mr|mrs|ms|mx)\b/g, "")
+    .replace(/\b(phd|psyd|edd|mscp|lmft|mft|lcsw|lpcc|lep|md|do|ms|ma)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+}
+
+function namesProbablyMatch(ingestedName, dcaName) {
+  if (!dcaName || (!dcaName.firstName && !dcaName.lastName)) return null;
+  const ingested = normalizeNameTokens(ingestedName);
+  const dcaFirst = String(dcaName.firstName || "")
+    .toLowerCase()
+    .trim();
+  const dcaLast = String(dcaName.lastName || "")
+    .toLowerCase()
+    .trim();
+  if (!dcaLast || !ingested.length) return null;
+
+  const lastMatches = ingested.some(function (token) {
+    return token === dcaLast;
+  });
+  if (!lastMatches) return false;
+
+  if (!dcaFirst) return true;
+  const firstMatches = ingested.some(function (token) {
+    return token === dcaFirst || token.startsWith(dcaFirst) || dcaFirst.startsWith(token);
+  });
+  return firstMatches;
+}
 const ALLOWED_SOURCE_TYPES = new Set([
   "practice_website",
   "directory_profile",
@@ -226,6 +284,7 @@ export async function handleCandidateIngestRoutes(context) {
     isAuthorized,
     parseBody,
     sendJson,
+    verifyLicense,
   } = deps;
 
   if (!(request.method === "POST" && routePath === "/candidates/ingest")) {
@@ -323,6 +382,61 @@ export async function handleCandidateIngestRoutes(context) {
       const existing = await client.getDocument(candidateId);
       const isUpdate = existing && existing._type === "therapistCandidate" ? true : false;
 
+      let verification = { attempted: false };
+      let licensureVerification = null;
+      let confidenceAdjustment = 0;
+      let verificationNote = "";
+      if (verifyLicense && normalized.licenseState === "CA" && normalized.licenseNumber) {
+        const typeCode = inferLicenseTypeCode(normalized.licenseNumber, normalized.credentials);
+        if (typeCode) {
+          const result = await verifyLicense(config, typeCode, normalized.licenseNumber);
+          if (result && result.verified) {
+            licensureVerification = result.licensureVerification || null;
+            const nameCheck = namesProbablyMatch(normalized.name, result.name);
+            if (nameCheck === true) {
+              verification = {
+                attempted: true,
+                ok: true,
+                status: result.isActive ? "active" : "verified_inactive",
+                nameMatch: "match",
+              };
+              confidenceAdjustment = 0.4;
+            } else if (nameCheck === false) {
+              const dcaName = [result.name?.firstName, result.name?.lastName]
+                .filter(Boolean)
+                .join(" ");
+              verificationNote = `DCA name mismatch: license ${normalized.licenseNumber} is registered to "${dcaName}" (ingested as "${normalized.name}")`;
+              verification = {
+                attempted: true,
+                ok: false,
+                status: "name_mismatch",
+                dcaName,
+              };
+              confidenceAdjustment = -0.3;
+            } else {
+              verification = {
+                attempted: true,
+                ok: true,
+                status: result.isActive ? "active" : "verified_inactive",
+                nameMatch: "indeterminate",
+              };
+              confidenceAdjustment = 0.2;
+            }
+          } else {
+            const error = result && result.error ? result.error : "verification failed";
+            if (error === DCA_NOT_CONFIGURED_ERROR) {
+              verification = { attempted: false, reason: "dca_not_configured" };
+            } else {
+              verificationNote = `DCA verification failed: ${error}`;
+              verification = { attempted: true, ok: false, status: "lookup_failed", error };
+              confidenceAdjustment = -0.2;
+            }
+          }
+        } else {
+          verification = { attempted: false, reason: "license_type_unknown" };
+        }
+      }
+
       const dedupeSignal =
         duplicateMatch && duplicateMatch.kind === "candidate"
           ? {
@@ -330,6 +444,11 @@ export async function handleCandidateIngestRoutes(context) {
               dedupeReasons: duplicateMatch.reasons,
             }
           : { dedupeStatus: "unreviewed", dedupeReasons: [] };
+
+      const baseConfidence =
+        normalized.extractionConfidence == null ? 0.5 : normalized.extractionConfidence;
+      const adjustedConfidence = Math.max(0, Math.min(1, baseConfidence + confidenceAdjustment));
+      const mergedNotes = [normalized.notes, verificationNote].filter(Boolean).join("\n\n");
 
       const docFields = {
         _type: "therapistCandidate",
@@ -364,13 +483,16 @@ export async function handleCandidateIngestRoutes(context) {
         rawSourceSnapshot: normalized.rawSourceSnapshot,
         extractedAt: now,
         extractionVersion: EXTRACTION_VERSION,
-        extractionConfidence:
-          normalized.extractionConfidence == null ? 0.5 : normalized.extractionConfidence,
-        notes: normalized.notes,
+        extractionConfidence: adjustedConfidence,
+        notes: mergedNotes,
         reviewStatus: "queued",
         publishRecommendation: "",
         ...dedupeSignal,
       };
+
+      if (licensureVerification) {
+        docFields.licensureVerification = licensureVerification;
+      }
 
       if (typeof normalized.acceptsTelehealth === "boolean") {
         docFields.acceptsTelehealth = normalized.acceptsTelehealth;
@@ -399,6 +521,7 @@ export async function handleCandidateIngestRoutes(context) {
         dedupeStatus: docFields.dedupeStatus,
         possibleDuplicate:
           duplicateMatch && duplicateMatch.kind === "candidate" ? duplicateMatch : null,
+        verification,
       };
 
       const transaction = client.transaction();
