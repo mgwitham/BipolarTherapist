@@ -230,6 +230,21 @@ export function getZipDistanceMiles(fromZip, toZip) {
   return haversine(from.lat, from.lng, to.lat, to.lng);
 }
 
+// Proximity bonus for in-person ranking. Distances beyond realistic commute
+// range (>60mi) return a large negative so far-away listings effectively drop
+// out of in-person results.
+export function getInPersonProximityBonus(miles) {
+  if (!Number.isFinite(miles)) return 0;
+  if (miles <= 1) return 60;
+  if (miles <= 3) return 50;
+  if (miles <= 5) return 40;
+  if (miles <= 10) return 25;
+  if (miles <= 20) return 10;
+  if (miles <= 35) return -15;
+  if (miles <= 60) return -60;
+  return -500;
+}
+
 function haversine(lat1, lng1, lat2, lng2) {
   var R = 3959;
   var dLat = ((lat2 - lat1) * Math.PI) / 180;
