@@ -445,6 +445,30 @@ export const therapistCandidateType = defineType({
       },
     }),
     defineField({
+      name: "bipolarEvidenceQuote",
+      title: "Bipolar evidence quote",
+      description:
+        "Verbatim sentence from the clinician's own site proving bipolar specialization. Captured at discovery time; makes reviewer spot-check trivial.",
+      type: "text",
+      rows: 3,
+      group: "review",
+    }),
+    defineField({
+      name: "sourcingConfidence",
+      title: "Sourcing confidence",
+      description:
+        "Discovery-time confidence rating from the LLM sourcing pass. Use this to triage review order — low-confidence rows first.",
+      type: "string",
+      group: "review",
+      options: {
+        list: [
+          { title: "High", value: "high" },
+          { title: "Medium", value: "medium" },
+          { title: "Low", value: "low" },
+        ],
+      },
+    }),
+    defineField({
       name: "rejectionReason",
       title: "Rejection reason",
       description:
