@@ -72,8 +72,7 @@ function escapeHtml(value) {
 
 function triggerDecision(card, decision) {
   if (!card) return false;
-  const selector =
-    '[data-candidate-decision][data-candidate-next="' + decision + '"]';
+  const selector = '[data-candidate-decision][data-candidate-next="' + decision + '"]';
   const btn = card.querySelector(selector);
   if (!btn) return false;
   btn.click();

@@ -7,10 +7,7 @@ import {
 
 import { createActionFlashStore } from "./admin-action-flash.js";
 import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
-import {
-  reapplyFocusAfterRender,
-  toggleFocusMode,
-} from "./admin-triage-focus.js";
+import { reapplyFocusAfterRender, toggleFocusMode } from "./admin-triage-focus.js";
 
 export { toggleFocusMode as toggleTriageFocusMode } from "./admin-triage-focus.js";
 
