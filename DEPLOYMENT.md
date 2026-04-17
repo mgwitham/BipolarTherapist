@@ -10,7 +10,7 @@ This project is set up for a Vercel-style deployment where:
 
 - Frontend host: Vercel
 - CMS/content backend: Sanity
-- Custom domain later: `polsia.com`
+- Custom domain later: `bipolartherapyhub.com`
 
 ## Before You Deploy
 
@@ -68,7 +68,7 @@ SANITY_API_TOKEN=your-write-enabled-sanity-token
 REVIEW_API_ADMIN_USERNAME=admin
 REVIEW_API_ADMIN_PASSWORD=replace-this-with-a-strong-password
 REVIEW_API_SESSION_SECRET=replace-this-with-a-long-random-secret
-REVIEW_API_ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app,https://polsia.com,https://www.polsia.com
+REVIEW_API_ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app,https://bipolartherapyhub.com,https://www.bipolartherapyhub.com
 REVIEW_API_SESSION_TTL_MS=43200000
 REVIEW_API_LOGIN_WINDOW_MS=900000
 REVIEW_API_LOGIN_MAX_ATTEMPTS=10
@@ -93,8 +93,8 @@ In Sanity Manage:
 Typical origins to allow:
 
 - `https://your-vercel-domain.vercel.app`
-- `https://polsia.com`
-- `https://www.polsia.com`
+- `https://bipolartherapyhub.com`
+- `https://www.bipolartherapyhub.com`
 
 ## Post-Deploy Smoke Test
 
