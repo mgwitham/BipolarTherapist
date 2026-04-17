@@ -67,7 +67,12 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
+import {
+  getZipMarketStatus,
+  getZipDistanceMiles,
+  getInPersonProximityBonus,
+  preloadZipcodes,
+} from "./zip-lookup.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
@@ -503,15 +508,11 @@ function applyZipAwareOrdering(entries, profile) {
     var aDistance = getZipDistance(requestedZip, aZip);
     var bDistance = getZipDistance(requestedZip, bZip);
 
-    // For in-person: proximity adds bonus points to score
-    // ≤1mi: +60, ≤3mi: +50, ≤5mi: +40, ≤10mi: +25, >10mi: +15
+    // In-person: proximity bonus decays continuously and goes sharply negative
+    // past realistic commute range so far-away listings sink to the bottom.
     if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
-      var aProx =
-        aDistance <= 1 ? 60 : aDistance <= 3 ? 50 : aDistance <= 5 ? 40 : aDistance <= 10 ? 25 : 15;
-      var bProx =
-        bDistance <= 1 ? 60 : bDistance <= 3 ? 50 : bDistance <= 5 ? 40 : bDistance <= 10 ? 25 : 15;
-      var aAdjusted = aScore + aProx;
-      var bAdjusted = bScore + bProx;
+      var aAdjusted = aScore + getInPersonProximityBonus(aDistance);
+      var bAdjusted = bScore + getInPersonProximityBonus(bDistance);
       if (aAdjusted !== bAdjusted) {
         return bAdjusted - aAdjusted;
       }
