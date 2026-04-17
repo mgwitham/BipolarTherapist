@@ -5216,18 +5216,40 @@
       }
       .mx-hero-photo {
         min-height: 280px;
-        background: linear-gradient(135deg, #d4e4e9 0%, #b8d1d8 100%);
         position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
+      }
+      .mx-hero-photo-fill {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* background + color applied inline per therapist via buildAvatarStyle */
+      }
+      .mx-hero-photo-fill::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          120% 90% at 50% 100%,
+          rgba(15, 31, 40, 0.08) 0%,
+          rgba(15, 31, 40, 0) 60%
+        );
+        pointer-events: none;
       }
       .mx-hero-photo-initials {
+        position: relative;
         font-family: "Fraunces", "Inter", serif;
-        font-size: 3.6rem;
-        font-weight: 500;
-        color: #155f70;
-        opacity: 0.7;
+        font-size: 4.25rem;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        opacity: 0.78;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+        user-select: none;
       }
       .mx-hero-photo img {
         position: absolute;
@@ -5429,17 +5451,27 @@
         width: 52px;
         height: 52px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #d4e4e9 0%, #b8d1d8 100%);
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #155f70;
-        font-family: "Fraunces", "Inter", serif;
-        font-size: 1.2rem;
-        font-weight: 500;
         overflow: hidden;
         position: relative;
+        box-shadow: inset 0 0 0 1px rgba(15, 31, 40, 0.05);
+      }
+      .mx-card-photo-fill {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Fraunces", "Inter", serif;
+        font-size: 1.15rem;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        opacity: 0.82;
+        user-select: none;
+        /* background + color applied inline per therapist via buildAvatarStyle */
       }
       .mx-card-photo img {
         position: absolute;
