@@ -97,38 +97,61 @@
         </button>
 
         <div class="dir-vb-chips" id="dirVbChips">
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="accepting" />
+          <button type="button" class="dir-vb-chip" data-chip-for="accepting" aria-pressed="false">
             <span id="acceptingLabelText">Accepting new</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="telehealth" />
+          </button>
+          <button type="button" class="dir-vb-chip" data-chip-for="telehealth" aria-pressed="false">
             <span id="telehealthLabelText">Telehealth</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="in_person" />
+          </button>
+          <button type="button" class="dir-vb-chip" data-chip-for="in_person" aria-pressed="false">
             <span id="inPersonLabelText">In-person</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="therapist" />
+          </button>
+          <button type="button" class="dir-vb-chip" data-chip-for="therapist" aria-pressed="false">
             <span>Therapist</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="psychiatrist" />
+          </button>
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="psychiatrist"
+            aria-pressed="false"
+          >
             <span>Psychiatrist</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="medication_management" />
+          </button>
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="medication_management"
+            aria-pressed="false"
+          >
             <span>Medication mgmt</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="responsive_contact" />
+          </button>
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="responsive_contact"
+            aria-pressed="false"
+          >
             <span>Easy to contact</span>
-          </label>
-          <label class="dir-vb-chip">
-            <input type="checkbox" id="recently_confirmed" />
+          </button>
+          <button
+            type="button"
+            class="dir-vb-chip"
+            data-chip-for="recently_confirmed"
+            aria-pressed="false"
+          >
             <span>Recently updated</span>
-          </label>
+          </button>
+        </div>
+        <!-- Hidden checkboxes backing the chips; directory.js reads .checked off these by id. -->
+        <div class="dir-vb-hidden-inputs" aria-hidden="true">
+          <input type="checkbox" id="accepting" />
+          <input type="checkbox" id="telehealth" />
+          <input type="checkbox" id="in_person" />
+          <input type="checkbox" id="therapist" />
+          <input type="checkbox" id="psychiatrist" />
+          <input type="checkbox" id="medication_management" />
+          <input type="checkbox" id="responsive_contact" />
+          <input type="checkbox" id="recently_confirmed" />
         </div>
       </div>
     </div>
@@ -359,26 +382,38 @@
         var applyBtn = document.getElementById("applyFiltersButton");
         if (applyBtn) applyBtn.addEventListener("click", close);
 
-        // Chip active-state sync — reflect checkbox state on the chip label
-        // so users see the filled teal pill even if :has() lags or loses.
-        function syncChipActive(chip) {
-          var input = chip.querySelector('input[type="checkbox"]');
-          if (!input) return;
+        // Chip buttons toggle their backing hidden checkbox and dispatch
+        // the change event directory.js is already listening for. Also
+        // keeps aria-pressed + .is-active in lockstep with the checkbox.
+        function syncChipFromInput(chip, input) {
+          var pressed = input.checked ? "true" : "false";
+          chip.setAttribute("aria-pressed", pressed);
           chip.classList.toggle("is-active", input.checked);
         }
         var chips = document.querySelectorAll(".dir-vb-chip");
         chips.forEach(function (chip) {
-          var input = chip.querySelector('input[type="checkbox"]');
+          var id = chip.getAttribute("data-chip-for");
+          var input = id ? document.getElementById(id) : null;
           if (!input) return;
-          syncChipActive(chip);
+          syncChipFromInput(chip, input);
+          chip.addEventListener("click", function () {
+            input.checked = !input.checked;
+            syncChipFromInput(chip, input);
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          // If something else flips the checkbox (reset, URL restore,
+          // deep link), keep the chip visual in sync.
           input.addEventListener("change", function () {
-            syncChipActive(chip);
+            syncChipFromInput(chip, input);
           });
         });
-        // After directory.js has had a tick to sync controls from state,
-        // re-sync the visual state (default filters may set CA, etc.).
+        // Re-sync once directory.js has applied default state (state=CA).
         setTimeout(function () {
-          chips.forEach(syncChipActive);
+          chips.forEach(function (chip) {
+            var id = chip.getAttribute("data-chip-for");
+            var input = id ? document.getElementById(id) : null;
+            if (input) syncChipFromInput(chip, input);
+          });
         }, 300);
       })();
     </script>
