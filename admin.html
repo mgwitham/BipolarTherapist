@@ -4103,6 +4103,27 @@
           <div class="subtle" id="reviewAttentionQueueScope" style="margin-bottom: 0.7rem"></div>
           <div id="reviewAttentionQueue"></div>
         </div>
+        <div class="panel" id="reviewerWorkloadPanel" style="margin: 0.85rem 0 0">
+          <h2>Assigned work</h2>
+          <p class="subtle" style="margin-top: 0">
+            Shared review follow-ups grouped by assignee. Filter by scope or slice the queue to your
+            own work.
+          </p>
+          <div class="toolbar" style="margin-bottom: 0.8rem">
+            <button type="button" class="btn-secondary" id="reviewerMyQueueToggle">My work</button>
+            <select id="reviewerWorkloadFilter" aria-label="Filter by reviewer"></select>
+            <select id="reviewerWorkloadSlice" aria-label="Slice assigned work">
+              <option value="">All follow-ups</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Due today</option>
+              <option value="this_week">Due this week</option>
+              <option value="stale">Stale</option>
+              <option value="blocked">Blocked</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+          </div>
+          <div id="reviewerWorkload"></div>
+        </div>
       </section>
 
       <div class="auth-gate" id="adminAuthGate" style="display: none">

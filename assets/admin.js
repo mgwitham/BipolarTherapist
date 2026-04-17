@@ -8030,6 +8030,30 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
   });
 })();
 
+(function wireReviewerWorkloadToolbar() {
+  const myQueueBtn = document.getElementById("reviewerMyQueueToggle");
+  const filterEl = document.getElementById("reviewerWorkloadFilter");
+  const sliceEl = document.getElementById("reviewerWorkloadSlice");
+  if (myQueueBtn) {
+    myQueueBtn.addEventListener("click", function () {
+      reviewerWorkspace.setReviewerMyQueueMode(!reviewerWorkspaceUi.myQueueMode);
+      renderAll();
+    });
+  }
+  if (filterEl) {
+    filterEl.addEventListener("change", function (event) {
+      reviewerWorkspaceUi.workloadFilter = event.target.value || "";
+      renderAll();
+    });
+  }
+  if (sliceEl) {
+    sliceEl.addEventListener("change", function (event) {
+      reviewerWorkspaceUi.workloadSlice = event.target.value || "";
+      renderAll();
+    });
+  }
+})();
+
 var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
 if (conciergeStatusFilterEl) {
   conciergeStatusFilterEl.addEventListener("change", function (event) {
