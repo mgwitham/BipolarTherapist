@@ -1,14 +1,18 @@
 import {
   bindCandidateDecisionButtons,
   findCandidateMergeTarget,
-  renderCandidateMergePreview,
-  renderCandidateMergeWorkbench,
   renderCandidatePublishPacket,
   renderCandidateTrustChips,
 } from "./admin-candidate-review.js";
 
 import { createActionFlashStore } from "./admin-action-flash.js";
 import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
+import {
+  reapplyFocusAfterRender,
+  toggleFocusMode,
+} from "./admin-triage-focus.js";
+
+export { toggleFocusMode as toggleTriageFocusMode } from "./admin-triage-focus.js";
 
 let sharedCompareModal = null;
 
@@ -70,7 +74,7 @@ function getCandidateDecisionOutcome(decision) {
     case "needs_review":
       return "Sent to review.";
     case "archive":
-      return "Deleted.";
+      return "Archived.";
     case "reject_duplicate":
       return "Marked as duplicate.";
     case "mark_unique":
@@ -121,22 +125,9 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
   const isDefiniteDuplicate = item.dedupe_status === "definite_duplicate";
   const isPossibleDuplicate = item.dedupe_status === "possible_duplicate";
   const isDuplicateFlagged = isDefiniteDuplicate || isPossibleDuplicate;
-  const mergeWorkbenchHtml = renderCandidateMergeWorkbench(item, {
+  const hasMergeTarget = !!findCandidateMergeTarget(item, {
     therapists: therapists,
     applications: applications,
-    escapeHtml: options.escapeHtml,
-  });
-  const mergeWorkbench = mergeWorkbenchHtml
-    ? '<div data-candidate-merge-workbench="' +
-      options.escapeHtml(item.id) +
-      '">' +
-      mergeWorkbenchHtml +
-      "</div>"
-    : "";
-  const mergePreview = renderCandidateMergePreview(item, {
-    therapists: therapists,
-    applications: applications,
-    escapeHtml: options.escapeHtml,
   });
   const dedupeReasons = Array.isArray(item.dedupe_reasons) ? item.dedupe_reasons : [];
   const dedupeReasonChipsHtml =
@@ -184,9 +175,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
     }) +
     renderCandidateTrustChips(trustSummary, 4, {
       escapeHtml: options.escapeHtml,
-    }) +
-    mergeWorkbench +
-    mergePreview;
+    });
 
   const matchedLabel = item.matched_therapist_slug || item.matched_application_id || "";
   const duplicateBanner = isDuplicateFlagged
@@ -198,36 +187,36 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
       ". Check the match before publishing.</span></div>"
     : "";
 
-  // Primary actions — review mode drops "Send to Review" since the card is already there
+  // Primary actions — review mode drops "Needs more work" since the card is already parked there
   const primaryActions = isReviewMode
     ? '<button class="btn-primary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
       '" data-candidate-next="publish">Publish</button>' +
       '<button class="btn-danger-quiet" data-candidate-decision="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>'
+      '" data-candidate-confirm="Archive this listing? It will be removed from the queue." data-candidate-next="archive">Archive</button>'
     : '<button class="btn-primary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
       '" data-candidate-next="publish">Publish</button>' +
       '<button class="btn-secondary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-next="needs_review">Send to Review</button>' +
+      '" data-candidate-next="needs_review">Needs more work</button>' +
       '<button class="btn-danger-quiet" data-candidate-decision="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-confirm="Delete this listing? This archives it and removes it from the queue." data-candidate-next="archive">Delete</button>';
+      '" data-candidate-confirm="Archive this listing? It will be removed from the queue." data-candidate-next="archive">Archive</button>';
 
   // Conditional duplicate action row — only when a duplicate has been flagged
   const duplicateActions = isDuplicateFlagged
     ? '<div class="queue-duplicate-action">' +
       '<button class="btn-secondary" data-candidate-compare="' +
       options.escapeHtml(item.id) +
-      '">Compare side-by-side</button>' +
+      '">Compare</button>' +
       '<button class="btn-secondary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-next="mark_unique">Keep as unique</button>' +
+      '" data-candidate-next="mark_unique">Not a duplicate</button>' +
       '<button class="btn-secondary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
-      '" data-candidate-next="reject_duplicate">Mark as duplicate</button>' +
+      '" data-candidate-next="reject_duplicate">Is a duplicate</button>' +
       "</div>"
     : "";
 
@@ -243,6 +232,11 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
     '<button type="button" data-edit-candidate-id="' +
     options.escapeHtml(item.id) +
     '">Edit profile</button>' +
+    (hasMergeTarget && !isDuplicateFlagged
+      ? '<button type="button" data-candidate-compare="' +
+        options.escapeHtml(item.id) +
+        '">Compare possible match</button>'
+      : "") +
     (expandedDetails && !isReviewMode
       ? '<button type="button" data-queue-card-toggle-details="' +
         options.escapeHtml(item.id) +
@@ -481,4 +475,9 @@ export function renderCandidateQueuePanel(options) {
       compareModal.open(item, matchTarget, item.dedupe_reasons || [], button);
     });
   });
+
+  // If focus mode was active before this re-render (e.g. after a decision),
+  // restore the HUD and re-select the same position so keyboard flow survives
+  // data reloads.
+  reapplyFocusAfterRender(root);
 }

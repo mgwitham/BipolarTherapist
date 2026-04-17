@@ -823,7 +823,7 @@ export function createAdminReviewModels(dependencies) {
   function getCandidateTrustRecommendation(item, summary) {
     var trust = summary || getCandidateTrustSummary(item);
     if (item.dedupe_status === "definite_duplicate")
-      return "This candidate matches an existing record on license and name. Mark as duplicate or merge before doing any publish work.";
+      return "This candidate matches an existing record on license and name. Flag it as a duplicate or merge before doing any publish work.";
     if (item.dedupe_status === "possible_duplicate")
       return "Compare with the possible match before doing any publish or confirmation work.";
     if (trust.attention.includes("Source trail") && trust.attention.includes("Contact path")) {
