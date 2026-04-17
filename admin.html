@@ -1865,25 +1865,28 @@
           background-color 180ms ease;
       }
       /* Triage focus mode — one-card-at-a-time keyboard review. */
-      #candidateQueueFocusToggle.is-active {
+      #candidateQueueFocusToggle.is-active,
+      #applicationsFocusToggle.is-active {
         background: #1a7a8f;
         color: #fff;
         border-color: #1a7a8f;
       }
-      #candidateQueue.is-triage-focus-active {
+      .is-focus-mode-active {
         position: relative;
       }
-      #candidateQueue.is-triage-focus-active .queue-card {
+      .is-focus-mode-active .queue-card,
+      .is-focus-mode-active .application-card {
         display: none;
       }
-      #candidateQueue.is-triage-focus-active .queue-card.is-focus-current {
+      .is-focus-mode-active .queue-card.is-focus-current,
+      .is-focus-mode-active .application-card.is-focus-current {
         display: block;
         margin: 0 auto 1rem;
         max-width: 900px;
         border-color: #1a7a8f;
         box-shadow: 0 18px 40px rgba(29, 58, 74, 0.14);
       }
-      #candidateQueue.is-triage-focus-active .queue-insights {
+      #candidateQueue.is-focus-mode-active .queue-insights {
         display: none;
       }
       .triage-focus-hud {
@@ -4620,6 +4623,15 @@
                         </select>
                         <button type="button" class="btn-secondary" id="applicationClearFilters">
                           Clear filters
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-secondary"
+                          id="applicationsFocusToggle"
+                          style="margin-left: auto"
+                          title="One-at-a-time keyboard review. Press F to toggle."
+                        >
+                          Focus mode
                         </button>
                       </div>
                     </div>

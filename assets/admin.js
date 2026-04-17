@@ -7984,6 +7984,47 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
   renderApplications();
 });
 
+(function wireApplicationsFocusMode() {
+  const toggleBtn = document.getElementById("applicationsFocusToggle");
+  const listRoot = document.getElementById("applicationsList");
+  if (!toggleBtn || !listRoot) return;
+
+  function toggle() {
+    import("./admin-triage-focus.js").then(function (mod) {
+      mod.toggleFocusMode(listRoot, mod.SIGNUPS_CONFIG);
+      toggleBtn.classList.toggle("is-active", listRoot.classList.contains("is-focus-mode-active"));
+    });
+  }
+
+  toggleBtn.addEventListener("click", toggle);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key !== "f" && event.key !== "F") return;
+    const target = event.target;
+    if (target && target.tagName) {
+      const tag = target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (target.isContentEditable) return;
+    }
+    const rect = listRoot.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    // Only handle F here if the candidate queue isn't currently visible, so the
+    // two panels don't fight for the same shortcut.
+    const candidateQueue = document.getElementById("candidateQueue");
+    if (candidateQueue) {
+      const cqRect = candidateQueue.getBoundingClientRect();
+      const cqVisible = cqRect.width > 0 && cqRect.height > 0;
+      // If both are visible in viewport, prefer the one closer to the top of the screen.
+      if (cqVisible && Math.abs(cqRect.top) < Math.abs(rect.top)) {
+        return;
+      }
+    }
+    event.preventDefault();
+    toggle();
+  });
+})();
+
 var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
 if (conciergeStatusFilterEl) {
   conciergeStatusFilterEl.addEventListener("change", function (event) {
@@ -8213,10 +8254,7 @@ document.getElementById("candidateDedupeStatusFilter").addEventListener("change"
   function toggle() {
     withLazyAdminModule("./admin-candidate-queue.js", function (module) {
       module.toggleTriageFocusMode(queueRoot);
-      toggleBtn.classList.toggle(
-        "is-active",
-        queueRoot.classList.contains("is-triage-focus-active"),
-      );
+      toggleBtn.classList.toggle("is-active", queueRoot.classList.contains("is-focus-mode-active"));
     });
   }
 
