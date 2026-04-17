@@ -3336,6 +3336,11 @@ body.dir-vb .dir-vb-modal-scrim {
   z-index: 80;
 }
 
+body.dir-vb .dir-vb-modal-scrim[hidden],
+body.dir-vb .dir-vb-modal[hidden] {
+  display: none !important;
+}
+
 body.dir-vb .dir-vb-modal-scrim[data-open="true"] {
   opacity: 1;
 }
