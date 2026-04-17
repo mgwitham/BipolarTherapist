@@ -333,6 +333,59 @@
       .admin-today-header {
         margin: 0 0 0.55rem 0.15rem;
       }
+      .admin-today-header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .admin-signups-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .admin-signups-pill.is-empty {
+        background: rgba(26, 122, 143, 0.06);
+        color: #4a6570;
+        border-color: rgba(26, 122, 143, 0.1);
+      }
+      .admin-signups-pill.is-active {
+        background: #1a8a5f;
+        color: #fff;
+        border-color: #156f4b;
+        box-shadow: 0 0 0 4px rgba(26, 138, 95, 0.16);
+      }
+      .admin-signups-pill.is-active::before {
+        content: "";
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: #d7fbe6;
+        box-shadow: 0 0 0 3px rgba(215, 251, 230, 0.25);
+      }
+      .admin-signups-pill-count {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .admin-signups-pill.is-empty .admin-signups-pill-count {
+        background: rgba(26, 122, 143, 0.14);
+      }
       .admin-today-title {
         font-size: 1.35rem;
         margin: 0 0 0.1rem;
@@ -3976,10 +4029,18 @@
 
       <section class="admin-today" id="todayRegion" style="display: none">
         <header class="admin-today-header">
-          <h2 class="admin-today-title">Today</h2>
-          <p class="admin-today-subtitle">
-            What needs your attention right now. Start at the top and work down.
-          </p>
+          <div class="admin-today-header-row">
+            <div>
+              <h2 class="admin-today-title">Today</h2>
+              <p class="admin-today-subtitle">
+                What needs your attention right now. Start at the top and work down.
+              </p>
+            </div>
+            <a class="admin-signups-pill is-empty" id="adminSignupsPill" href="#applicationsPanel">
+              <span class="admin-signups-pill-label">Therapist signups</span>
+              <span class="admin-signups-pill-count" id="adminSignupsPillCount">0</span>
+            </a>
+          </div>
         </header>
         <section class="admin-now" id="adminStats"></section>
         <div class="panel" id="reviewAttentionQueuePanel" style="margin: 0.85rem 0 0">

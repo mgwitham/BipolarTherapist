@@ -5517,6 +5517,25 @@ function updateNavCounts(counts) {
   });
 }
 
+function updateSignupsPill(pendingCount) {
+  var pill = document.getElementById("adminSignupsPill");
+  var countNode = document.getElementById("adminSignupsPillCount");
+  if (!pill || !countNode) return;
+  var count = Number(pendingCount) || 0;
+  countNode.textContent = String(count);
+  pill.classList.toggle("is-active", count > 0);
+  pill.classList.toggle("is-empty", count === 0);
+  pill.setAttribute(
+    "title",
+    count > 0
+      ? count +
+          " therapist" +
+          (count === 1 ? "" : "s") +
+          " submitted a signup and is waiting on review"
+      : "No live signups pending. This updates when a therapist submits through the signup form.",
+  );
+}
+
 var sopNotesCollapsed = false;
 function collapseRegionSopNotes() {
   if (sopNotesCollapsed) return;
@@ -5628,6 +5647,7 @@ function renderStats() {
     const pendingApplicationsCount = applications.filter(function (item) {
       return item.status === "pending";
     }).length;
+    updateSignupsPill(pendingApplicationsCount);
     const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
     const candidateReviewCount = candidateQueueItems.filter(function (item) {
       return (
