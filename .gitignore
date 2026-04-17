@@ -18,3 +18,4 @@ data/import/generated-*.json
 !data/import/therapists-template.csv
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv
+scripts/*-ingest-batch-*.json
