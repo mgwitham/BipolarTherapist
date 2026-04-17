@@ -529,6 +529,10 @@ function buildCandidateDocument(row, context, index) {
     readinessScore: readinessScore,
     publishRecommendation: row.publishRecommendation || (hasDuplicate ? "hold" : ""),
     notes: row.notes || "",
+    bipolarEvidenceQuote: row.bipolarEvidenceQuote || "",
+    sourcingConfidence: (row.sourcingConfidence || "").toLowerCase() || "",
+    rejectionReason: row.rejectionReason || "",
+    rejectionNotes: row.rejectionNotes || "",
   };
 }
 

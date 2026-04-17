@@ -445,6 +445,58 @@ export const therapistCandidateType = defineType({
       },
     }),
     defineField({
+      name: "bipolarEvidenceQuote",
+      title: "Bipolar evidence quote",
+      description:
+        "Verbatim sentence from the clinician's own site proving bipolar specialization. Captured at discovery time; makes reviewer spot-check trivial.",
+      type: "text",
+      rows: 3,
+      group: "review",
+    }),
+    defineField({
+      name: "sourcingConfidence",
+      title: "Sourcing confidence",
+      description:
+        "Discovery-time confidence rating from the LLM sourcing pass. Use this to triage review order — low-confidence rows first.",
+      type: "string",
+      group: "review",
+      options: {
+        list: [
+          { title: "High", value: "high" },
+          { title: "Medium", value: "medium" },
+          { title: "Low", value: "low" },
+        ],
+      },
+    }),
+    defineField({
+      name: "rejectionReason",
+      title: "Rejection reason",
+      description:
+        "Required when publishRecommendation is 'reject'. Feeds the discovery prompt tuning loop.",
+      type: "string",
+      group: "review",
+      options: {
+        list: [
+          { title: "Not a true bipolar specialist", value: "not_a_specialist" },
+          { title: "Dead or abandoned website", value: "dead_site" },
+          { title: "Group practice, no individual profile", value: "group_practice" },
+          { title: "Aggregator URL (PT, Headway, etc.)", value: "aggregator_url" },
+          { title: "Out of California", value: "out_of_state" },
+          { title: "License unverifiable or inactive", value: "license_unverifiable" },
+          { title: "Duplicate of existing clinician", value: "duplicate" },
+          { title: "Other (see notes)", value: "other" },
+        ],
+      },
+    }),
+    defineField({
+      name: "rejectionNotes",
+      title: "Rejection notes",
+      description: "Optional free-text detail on why this candidate was rejected.",
+      type: "text",
+      rows: 2,
+      group: "review",
+    }),
+    defineField({
       name: "notes",
       title: "Internal notes",
       type: "text",
