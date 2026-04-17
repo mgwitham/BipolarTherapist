@@ -67,12 +67,11 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
+import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
 import {
-  getZipMarketStatus,
-  getZipDistanceMiles,
-  getInPersonProximityBonus,
-  preloadZipcodes,
-} from "./zip-lookup.js";
+  applyMatchPriorityProminence as applyMatchPriorityProminenceBase,
+  applyZipAwareOrdering as applyZipAwareOrderingBase,
+} from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
@@ -454,28 +453,6 @@ function normalizePrioritySlugs(siteSettings) {
     : [];
 }
 
-function applyMatchPriorityProminence(entries) {
-  var prioritySet = new Set(MATCH_PRIORITY_SLUGS);
-  return (entries || []).slice().sort(function (a, b) {
-    var aPriority = prioritySet.has(a && a.therapist ? a.therapist.slug : "");
-    var bPriority = prioritySet.has(b && b.therapist ? b.therapist.slug : "");
-    var scoreDiff = Math.abs(
-      (Number(a?.evaluation?.score) || 0) - (Number(b?.evaluation?.score) || 0),
-    );
-
-    if (aPriority !== bPriority && scoreDiff <= 12) {
-      return Number(bPriority) - Number(aPriority);
-    }
-
-    return (
-      (Number(b?.evaluation?.score) || 0) - (Number(a?.evaluation?.score) || 0) ||
-      (Number(b?.evaluation?.confidence_score) || 0) -
-        (Number(a?.evaluation?.confidence_score) || 0) ||
-      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || ""))
-    );
-  });
-}
-
 function getRequestedZip(profile) {
   var raw = normalizeLocationQuery((profile && profile.location_query) || "");
   return /^\d{5}$/.test(raw) ? raw : "";
@@ -491,57 +468,14 @@ function getZipDistance(fromZip, toZip) {
 }
 
 function applyZipAwareOrdering(entries, profile) {
-  var requestedZip = getRequestedZip(profile);
-  if (!requestedZip) {
-    return (entries || []).slice();
-  }
-
-  var isInPerson =
-    profile && (profile.care_format === "In-Person" || profile.care_format === "In-person");
-
-  return (entries || []).slice().sort(function (a, b) {
-    var aScore = Number(a?.evaluation?.score) || 0;
-    var bScore = Number(b?.evaluation?.score) || 0;
-    var scoreDiff = Math.abs(aScore - bScore);
-    var aZip = getTherapistZipValue(a && a.therapist);
-    var bZip = getTherapistZipValue(b && b.therapist);
-    var aDistance = getZipDistance(requestedZip, aZip);
-    var bDistance = getZipDistance(requestedZip, bZip);
-
-    // In-person: proximity bonus decays continuously and goes sharply negative
-    // past realistic commute range so far-away listings sink to the bottom.
-    if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
-      var aAdjusted = aScore + getInPersonProximityBonus(aDistance);
-      var bAdjusted = bScore + getInPersonProximityBonus(bDistance);
-      if (aAdjusted !== bAdjusted) {
-        return bAdjusted - aAdjusted;
-      }
-      return aDistance - bDistance;
-    }
-
-    // For telehealth or no format: lighter proximity weight (original behavior)
-    var aExact = aZip === requestedZip;
-    var bExact = bZip === requestedZip;
-
-    if (aExact !== bExact && scoreDiff <= 18) {
-      return Number(bExact) - Number(aExact);
-    }
-
-    if (
-      aDistance !== bDistance &&
-      Number.isFinite(aDistance) &&
-      Number.isFinite(bDistance) &&
-      scoreDiff <= 14
-    ) {
-      return aDistance - bDistance;
-    }
-
-    if (Number.isFinite(aDistance) !== Number.isFinite(bDistance) && scoreDiff <= 10) {
-      return Number(Number.isFinite(aDistance)) - Number(Number.isFinite(bDistance));
-    }
-
-    return 0;
+  return applyZipAwareOrderingBase(entries, {
+    locationQuery: getRequestedZip(profile),
+    careFormat: profile && profile.care_format,
   });
+}
+
+function applyMatchPriorityProminence(entries) {
+  return applyMatchPriorityProminenceBase(entries, MATCH_PRIORITY_SLUGS);
 }
 
 function orderMatchEntries(entries, profile) {
