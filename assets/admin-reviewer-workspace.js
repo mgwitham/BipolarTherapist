@@ -1465,13 +1465,19 @@ export function createReviewerWorkspace(dependencies) {
         }
       });
 
-    document.getElementById("applicationsList").addEventListener("click", function (event) {
-      handleReviewEntityTaskAction(event);
-    });
+    var applicationsListEl = document.getElementById("applicationsList");
+    if (applicationsListEl) {
+      applicationsListEl.addEventListener("click", function (event) {
+        handleReviewEntityTaskAction(event);
+      });
+    }
 
-    document.getElementById("candidateQueue").addEventListener("click", function (event) {
-      handleReviewEntityTaskAction(event);
-    });
+    var candidateQueueEl = document.getElementById("candidateQueue");
+    if (candidateQueueEl) {
+      candidateQueueEl.addEventListener("click", function (event) {
+        handleReviewEntityTaskAction(event);
+      });
+    }
 
     ["confirmationQueue", "confirmationSprint", "importBlockerSprint", "refreshQueue"].forEach(
       function (id) {
@@ -1483,9 +1489,9 @@ export function createReviewerWorkspace(dependencies) {
       },
     );
 
-    document
-      .getElementById("reviewAttentionQueue")
-      .addEventListener("click", async function (event) {
+    var reviewAttentionQueueEl = document.getElementById("reviewAttentionQueue");
+    if (reviewAttentionQueueEl) {
+      reviewAttentionQueueEl.addEventListener("click", async function (event) {
         var openButton = event.target.closest("[data-attention-open]");
         if (openButton) {
           openAttentionRecord(
@@ -1523,6 +1529,7 @@ export function createReviewerWorkspace(dependencies) {
           });
         }
       });
+    }
   }
 
   return {
