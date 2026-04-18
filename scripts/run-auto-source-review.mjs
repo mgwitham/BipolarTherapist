@@ -34,6 +34,29 @@ const FETCH_TIMEOUT_MS = 15000;
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
+// Hosts that cannot be auto-fetched and diffed: either edge bot
+// protection (LifeStance) or JavaScript-rendered SPAs that return an
+// empty shell to a static fetcher (DCA). For these we skip the fetch
+// entirely and surface the therapist for manual reconfirmation rather
+// than logging a misleading "unreachable" each run.
+const SKIP_AUTO_REVIEW_HOSTS = new Set([
+  "lifestance.com",
+  "search.dca.ca.gov",
+  "iservices.dca.ca.gov",
+]);
+
+function shouldSkipHost(sourceUrl) {
+  try {
+    const host = new URL(sourceUrl).hostname.toLowerCase();
+    for (const skip of SKIP_AUTO_REVIEW_HOSTS) {
+      if (host === skip || host.endsWith(`.${skip}`)) return skip;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
   return fs
@@ -225,6 +248,21 @@ async function logDrift(client, therapist, reasons, dryRun) {
   return { action: "drift_flagged", reasons };
 }
 
+async function logSkippedHost(client, therapist, host, dryRun) {
+  const reason = `source host ${host} is not auto-fetchable; manual reconfirmation required`;
+  const notes = `Auto-source-review: ${reason}.`;
+  if (dryRun) return { action: "dry_run_skipped_host", reason };
+  await client.create(
+    buildTherapistOpsEvent(therapist, {
+      eventType: "therapist_review_auto_skipped_host",
+      decision: "auto_source_review",
+      notes,
+      changedFields: [],
+    }),
+  );
+  return { action: "skipped_unsupported_host", reason };
+}
+
 async function logFetchFailure(client, therapist, reason, dryRun) {
   const notes = `Auto-source-review: source unreachable (${reason}).`;
   if (dryRun) return { action: "dry_run_unreachable", reason };
@@ -250,7 +288,7 @@ function buildCsv(rows) {
 function buildMarkdown(rows, summary) {
   const lines = ["# Auto Source Review", ""];
   lines.push(
-    `Processed ${summary.total} therapist(s): ${summary.autoReviewed} auto-reviewed, ${summary.drifted} flagged for human review, ${summary.unreachable} unreachable.`,
+    `Processed ${summary.total} therapist(s): ${summary.autoReviewed} auto-reviewed, ${summary.drifted} flagged for human review, ${summary.unreachable} unreachable, ${summary.skipped} skipped (unsupported host).`,
     "",
   );
   if (!rows.length) return lines.join("\n");
@@ -286,7 +324,13 @@ async function main() {
     limit: options.limit,
     therapistId: options.therapistId,
   });
-  const summary = { total: therapists.length, autoReviewed: 0, drifted: 0, unreachable: 0 };
+  const summary = {
+    total: therapists.length,
+    autoReviewed: 0,
+    drifted: 0,
+    unreachable: 0,
+    skipped: 0,
+  };
   const rows = [];
 
   if (options.verbose || options.dryRun) {
@@ -296,12 +340,34 @@ async function main() {
   }
 
   for (const [index, therapist] of therapists.entries()) {
+    let action;
+    let reasons = "";
+
+    const skippedHost = shouldSkipHost(therapist.sourceUrl);
+    if (skippedHost) {
+      const info = await logSkippedHost(client, therapist, skippedHost, options.dryRun);
+      action = info.action;
+      reasons = info.reason;
+      summary.skipped += 1;
+      const row = {
+        therapist_id: therapist._id,
+        name: therapist.name || "",
+        city: therapist.city || "",
+        source_url: therapist.sourceUrl || "",
+        action,
+        reasons,
+      };
+      rows.push(row);
+      if (options.verbose) {
+        console.log(`  ${row.action}\t${therapist.name || therapist._id}\t${reasons}`);
+      }
+      continue;
+    }
+
     if (index > 0) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     const fetchResult = await fetchSource(therapist.sourceUrl);
-    let action;
-    let reasons = "";
 
     if (!fetchResult.ok) {
       const info = await logFetchFailure(client, therapist, fetchResult.reason, options.dryRun);
@@ -344,7 +410,7 @@ async function main() {
   }
 
   console.log(
-    `Auto-source-review${options.dryRun ? " (dry run)" : ""}: ${summary.autoReviewed} auto-reviewed, ${summary.drifted} flagged, ${summary.unreachable} unreachable (of ${summary.total} due).`,
+    `Auto-source-review${options.dryRun ? " (dry run)" : ""}: ${summary.autoReviewed} auto-reviewed, ${summary.drifted} flagged, ${summary.unreachable} unreachable, ${summary.skipped} skipped (of ${summary.total} due).`,
   );
   if (!options.dryRun) {
     console.log(`Reports: ${path.relative(ROOT, OUTPUT_CSV)} · ${path.relative(ROOT, OUTPUT_MD)}`);
