@@ -31,7 +31,8 @@ const OUTPUT_CSV = path.join(ROOT, "data", "import", "generated-auto-source-revi
 const OUTPUT_MD = path.join(ROOT, "data", "import", "generated-auto-source-review.md");
 const DEFAULT_LIMIT = 50;
 const FETCH_TIMEOUT_MS = 15000;
-const USER_AGENT = "BipolarTherapyHubOpsBot/1.0 (+auto source review)";
+const USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -150,6 +151,7 @@ async function fetchSource(sourceUrl) {
       headers: {
         "user-agent": USER_AGENT,
         accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
       },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
@@ -293,7 +295,10 @@ async function main() {
     );
   }
 
-  for (const therapist of therapists) {
+  for (const [index, therapist] of therapists.entries()) {
+    if (index > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     const fetchResult = await fetchSource(therapist.sourceUrl);
     let action;
     let reasons = "";
