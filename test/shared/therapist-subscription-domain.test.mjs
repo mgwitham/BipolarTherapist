@@ -114,16 +114,22 @@ test("mergeSubscriptionDocuments preserves existing fields not in next", () => {
   assert.equal(merged.preservedExtra, "keep-me");
 });
 
-test("FEATURED_PLAN_CODES exports the four supported plan codes", () => {
+test("FEATURED_PLAN_CODES exports the canonical paid_monthly plus legacy tier codes", () => {
   assert.deepEqual(FEATURED_PLAN_CODES.slice().sort(), [
     "founding_annual",
     "founding_monthly",
+    "paid_monthly",
     "regular_annual",
     "regular_monthly",
   ]);
 });
 
 test("parsePlanCode derives tier and interval for each supported code", () => {
+  assert.deepEqual(parsePlanCode("paid_monthly"), {
+    plan: "paid_monthly",
+    tier: "paid",
+    interval: "month",
+  });
   assert.deepEqual(parsePlanCode("founding_monthly"), {
     plan: "founding_monthly",
     tier: "founding",
@@ -154,11 +160,17 @@ test("parsePlanCode returns null for unknown codes", () => {
 
 test("resolveFeaturedPriceId maps plan codes to configured price ids", () => {
   const config = {
+    stripePaidMonthlyPriceId: "price_paid",
     stripeFeaturedFoundingMonthlyPriceId: "price_fm",
     stripeFeaturedFoundingAnnualPriceId: "price_fa",
     stripeFeaturedRegularMonthlyPriceId: "price_rm",
     stripeFeaturedRegularAnnualPriceId: "price_ra",
   };
+  assert.deepEqual(resolveFeaturedPriceId(config, "paid_monthly"), {
+    priceId: "price_paid",
+    tier: "paid",
+    interval: "month",
+  });
   assert.deepEqual(resolveFeaturedPriceId(config, "founding_monthly"), {
     priceId: "price_fm",
     tier: "founding",
@@ -168,6 +180,15 @@ test("resolveFeaturedPriceId maps plan codes to configured price ids", () => {
     priceId: "price_ra",
     tier: "regular",
     interval: "year",
+  });
+});
+
+test("resolveFeaturedPriceId falls back to stripeFeaturedPriceId for paid_monthly when the dedicated env is unset", () => {
+  const config = { stripeFeaturedPriceId: "price_legacy" };
+  assert.deepEqual(resolveFeaturedPriceId(config, "paid_monthly"), {
+    priceId: "price_legacy",
+    tier: "paid",
+    interval: "month",
   });
 });
 

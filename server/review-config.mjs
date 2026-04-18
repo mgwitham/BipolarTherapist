@@ -118,6 +118,12 @@ export function getReviewApiConfig() {
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:
       process.env.STRIPE_FEATURED_PRICE_ID || rootEnv.STRIPE_FEATURED_PRICE_ID || "",
+    // Price ID for the current single-tier $19/month plan. Set this env
+    // to the Stripe price created for the new pricing model (PR #172).
+    // If unset, resolveFeaturedPriceId falls back to stripeFeaturedPriceId
+    // so existing deployments keep working during the migration.
+    stripePaidMonthlyPriceId:
+      process.env.STRIPE_PAID_MONTHLY_PRICE_ID || rootEnv.STRIPE_PAID_MONTHLY_PRICE_ID || "",
     stripeFeaturedFoundingMonthlyPriceId:
       process.env.STRIPE_FEATURED_FOUNDING_MONTHLY_PRICE_ID ||
       rootEnv.STRIPE_FEATURED_FOUNDING_MONTHLY_PRICE_ID ||
