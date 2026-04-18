@@ -4,7 +4,6 @@ const BASE_RUNTIME_STATE = {
   remoteCandidates: [],
   remotePortalRequests: [],
   remoteReviewEvents: [],
-  remoteReviewerRoster: [],
   reviewActivityItems: [],
   reviewActivityNextCursor: "",
   reviewActivityLoading: false,

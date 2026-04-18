@@ -39,7 +39,6 @@ import {
   signOutAdmin,
   updateTherapistApplication,
   updateTherapistCandidate,
-  updateTherapistReviewers,
   updateTherapistPortalRequest,
 } from "./review-api.js";
 import {
@@ -121,7 +120,6 @@ let remoteApplications = [];
 let remoteCandidates = [];
 let remotePortalRequests = [];
 let remoteReviewEvents = [];
-let remoteReviewerRoster = [];
 let reviewActivityItems = [];
 let reviewActivityNextCursor = "";
 let reviewActivityLoading = false;
@@ -192,44 +190,18 @@ let reviewFilters = {
   dedupe_status: "",
 };
 const reviewerWorkspace = createReviewerWorkspace({
-  applicationFilters: applicationFilters,
-  candidateFilters: candidateFilters,
   escapeHtml: escapeHtml,
   formatDate: formatDate,
-  getAdminActorId: getAdminActorId,
-  getAdminActorName: getAdminActorName,
-  getApplications: getApplications,
   getPublishedTherapists: function () {
     return dataMode === "sanity" ? publishedTherapists : getTherapists();
   },
   getRuntimeState: function () {
     return {
-      authRequired: authRequired,
       dataMode: dataMode,
       remoteApplications: remoteApplications,
       remoteCandidates: remoteCandidates,
-      remoteReviewerRoster: remoteReviewerRoster,
     };
   },
-  loadData: loadData,
-  renderApplications: function () {
-    renderApplications();
-  },
-  renderCandidateQueue: function () {
-    renderCandidateQueue();
-  },
-  renderTherapistOpsQueues: function () {
-    renderRefreshQueue();
-    renderImportBlockerSprint();
-    renderConfirmationSprint();
-    renderConfirmationQueue();
-  },
-  setRemoteReviewerRoster: function (nextRoster) {
-    remoteReviewerRoster = nextRoster;
-  },
-  updateTherapistApplication: updateTherapistApplication,
-  updateTherapistCandidate: updateTherapistCandidate,
-  updateTherapistReviewers: updateTherapistReviewers,
 });
 const reviewModels = createAdminReviewModels({
   applicationFilters: applicationFilters,
@@ -904,9 +876,6 @@ function applyAdminRuntimeState(nextState) {
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "remoteReviewEvents")) {
     remoteReviewEvents = nextState.remoteReviewEvents;
-  }
-  if (Object.prototype.hasOwnProperty.call(nextState, "remoteReviewerRoster")) {
-    remoteReviewerRoster = nextState.remoteReviewerRoster;
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityItems")) {
     reviewActivityItems = nextState.reviewActivityItems;
@@ -7459,7 +7428,6 @@ async function loadData() {
           ? remoteSnapshot.portalRequests
           : [],
         remoteReviewEvents: remoteSnapshot.reviewEvents,
-        remoteReviewerRoster: remoteSnapshot.reviewers,
         reviewActivityItems: [],
         reviewActivityNextCursor: "",
         publishedTherapists: remoteSnapshot.therapists,

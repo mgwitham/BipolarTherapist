@@ -68,12 +68,8 @@ export function createAdminRouteHealthActions(config) {
     var currentTask = reviewerWorkspace.getReviewEntityTask("therapist", therapistId) || {
       status: "open",
       note: "",
-      assignee: "",
-      assignee_name: "",
-      assignee_id: "",
       due_at: "",
     };
-    var preferredReviewer = reviewerWorkspace.getPreferredReviewer();
     var noteLine = "";
     var flashMessage = "";
     if (actionKey === "website_unavailable") {
@@ -95,9 +91,6 @@ export function createAdminRouteHealthActions(config) {
     await reviewerWorkspace.saveWorkItem("therapist", therapistId, {
       status: "open",
       note: appendUniqueFollowUpNote(currentTask.note, noteLine),
-      assignee_name: currentTask.assignee_name || currentTask.assignee || preferredReviewer || "",
-      assignee: currentTask.assignee_name || currentTask.assignee || preferredReviewer || "",
-      assignee_id: currentTask.assignee_id || "",
       due_at: currentTask.due_at || "",
     });
     renderListings();
