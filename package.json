@@ -94,11 +94,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@sanity/client": "^7.11.1",
-    "eslint": "^10.2.0",
+    "@sanity/client": "^7.21.0",
+    "eslint": "^10.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "vite": "^8.0.8"
   },
   "dependencies": {
