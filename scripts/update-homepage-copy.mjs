@@ -6,20 +6,6 @@ import { createClient } from "@sanity/client";
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const HOMEPAGE_ID = "homePage";
-const LAUNCH_PROFILE_CONTROLS_PATH = path.join(
-  ROOT,
-  "data",
-  "import",
-  "launch-profile-controls.json",
-);
-const HOMEPAGE_FEATURED_FALLBACK_SLUGS = [
-  "dr-stacia-mills-pasadena-ca",
-  "dr-sylvia-cartwright-la-jolla-ca",
-  "dr-kalen-flynn-los-angeles-ca",
-  "dr-mike-mah-los-angeles-ca",
-  "dr-daniel-kaushansky-los-angeles-ca",
-  "dr-je-ko-los-angeles-ca",
-];
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -90,49 +76,12 @@ function getClient(config) {
   });
 }
 
-function getHomepageFeaturedSlugs() {
-  if (!fs.existsSync(LAUNCH_PROFILE_CONTROLS_PATH)) {
-    return HOMEPAGE_FEATURED_FALLBACK_SLUGS;
-  }
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(LAUNCH_PROFILE_CONTROLS_PATH, "utf8"));
-    const slugs = Array.isArray(parsed?.homepageFeaturedSlugs)
-      ? parsed.homepageFeaturedSlugs.map((value) => String(value || "").trim()).filter(Boolean)
-      : [];
-
-    return slugs.length ? slugs : HOMEPAGE_FEATURED_FALLBACK_SLUGS;
-  } catch (error) {
-    throw new Error(
-      `Could not read homepage featured slugs from ${LAUNCH_PROFILE_CONTROLS_PATH}: ${error.message || error}`,
-    );
-  }
-}
-
 async function main() {
   const config = getConfig();
   const client = getClient(config);
-  const homepageFeaturedSlugs = getHomepageFeaturedSlugs();
 
   const existing = await client.fetch(`*[_type == "homePage" && _id == $id][0]{_id, sections}`, {
     id: HOMEPAGE_ID,
-  });
-  const featuredTherapists = await client.fetch(
-    `*[_type == "therapist" && slug.current in $slugs]{
-      _id,
-      "slug": slug.current
-    }`,
-    { slugs: homepageFeaturedSlugs },
-  );
-  const featuredTherapistRefs = homepageFeaturedSlugs.map((slug) => {
-    const match = (featuredTherapists || []).find((item) => item?.slug === slug);
-    if (!match?._id) {
-      throw new Error(`Missing therapist document for slug "${slug}".`);
-    }
-    return {
-      _type: "reference",
-      _ref: match._id,
-    };
   });
 
   const updatedSections = Array.isArray(existing?.sections)
@@ -166,16 +115,6 @@ async function main() {
           };
         }
 
-        if (section?._type === "featuredTherapistsSection") {
-          return {
-            ...section,
-            title: "Start with a few reviewed specialists",
-            description:
-              "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
-            therapists: featuredTherapistRefs,
-          };
-        }
-
         return section;
       })
     : undefined;
@@ -186,10 +125,6 @@ async function main() {
     locationLabel: "Location",
     locationPlaceholder: "Los Angeles, Pasadena, Telehealth",
     searchButtonLabel: "Start matching →",
-    featuredTitle: "Start with a few reviewed specialists",
-    featuredDescription:
-      "These profiles rise because they combine stronger reviewed trust signals, clearer contact paths, and next-step detail that is easier to actually use.",
-    featuredTherapists: featuredTherapistRefs,
     whyTitle: "Built to make the first good decision easier",
     whyDescription:
       "The goal is not to overwhelm you with profiles. It is to help you narrow the field, trust what you are seeing, and know what to do next.",
@@ -198,7 +133,7 @@ async function main() {
 
   await client.patch(HOMEPAGE_ID).set(patch).commit();
   console.log(
-    `Updated homepage copy and featured therapist set in Sanity dataset "${config.dataset}" for document "${HOMEPAGE_ID}" using ${homepageFeaturedSlugs.length} slug(s) from ${LAUNCH_PROFILE_CONTROLS_PATH}.`,
+    `Updated homepage copy in Sanity dataset "${config.dataset}" for document "${HOMEPAGE_ID}".`,
   );
 }
 

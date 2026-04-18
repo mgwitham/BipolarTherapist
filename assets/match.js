@@ -1,8 +1,4 @@
-// Featured-therapist rotation and badges removed 2026-04-18 per the
-// match-over-merchandise thesis. fetchActiveFeaturedSlugs /
-// rotateFeaturedFirst imports are gone from match. See
-// assets/admin-listings-workspace.js for the matching admin-side change.
-import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
+import { fetchPublicTherapists } from "./cms.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -72,17 +68,10 @@ import {
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
-import {
-  applyMatchPriorityProminence as applyMatchPriorityProminenceBase,
-  applyZipAwareOrdering as applyZipAwareOrderingBase,
-} from "./match-ordering.js";
+import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
-// featuredSlugSet is retained as an always-empty Set so legacy code paths
-// that read it (e.g. ranking integrations) see "no featured profiles" and
-// short-circuit cleanly. Will be deleted in the followup cleanup PR.
-var featuredSlugSet = new Set();
 var latestProfile = null;
 var latestEntries = [];
 var latestLearningSignals = null;
@@ -137,7 +126,6 @@ var directoryEntryMode = new URLSearchParams(window.location.search).get("entry"
 var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
 var PRIMARY_SHORTLIST_LIMIT = 6;
 var SHORTLIST_QUEUE_LIMIT = 24;
-var MATCH_PRIORITY_SLUGS = [];
 var US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
@@ -451,16 +439,6 @@ function scrollToTopMatches() {
   return scrollToTopMatchesBase();
 }
 
-function normalizePrioritySlugs(siteSettings) {
-  return Array.isArray(siteSettings && siteSettings.matchPrioritySlugs)
-    ? siteSettings.matchPrioritySlugs
-        .map(function (value) {
-          return String(value || "").trim();
-        })
-        .filter(Boolean)
-    : [];
-}
-
 function getRequestedZip(profile) {
   var raw = normalizeLocationQuery((profile && profile.location_query) || "");
   return /^\d{5}$/.test(raw) ? raw : "";
@@ -475,19 +453,11 @@ function getZipDistance(fromZip, toZip) {
   return getZipDistanceMiles(fromZip, toZip);
 }
 
-function applyZipAwareOrdering(entries, profile) {
-  return applyZipAwareOrderingBase(entries, {
+function orderMatchEntries(entries, profile) {
+  return orderMatchEntriesBase(entries, {
     locationQuery: getRequestedZip(profile),
     careFormat: profile && profile.care_format,
   });
-}
-
-function applyMatchPriorityProminence(entries) {
-  return applyMatchPriorityProminenceBase(entries, MATCH_PRIORITY_SLUGS);
-}
-
-function orderMatchEntries(entries, profile) {
-  return applyMatchPriorityProminence(applyZipAwareOrdering(entries, profile));
 }
 
 function getMatchAvailabilityBonus(therapist) {
@@ -4404,14 +4374,6 @@ function renderLeadResultCard(entry, _backupName, options) {
       "Best match for you" +
       "</span>"
     : "";
-  var featuredBadgeHtml = featuredSlugSet.has(
-    String(therapist.slug || "")
-      .trim()
-      .toLowerCase(),
-  )
-    ? '<span class="badge-featured" aria-label="Featured placement">Featured</span>'
-    : "";
-
   return (
     '<article class="mx-hero">' +
     '<div class="mx-hero-photo">' +
@@ -4423,7 +4385,6 @@ function renderLeadResultCard(entry, _backupName, options) {
     "<div>" +
     '<h3 class="mx-hero-name">' +
     escapeHtml(therapist.name || "") +
-    featuredBadgeHtml +
     "</h3>" +
     (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
@@ -4502,14 +4463,6 @@ function renderSupportingResultCard(entry, _rank, options) {
             ? "Visit"
             : "Reach out";
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
-  var featuredBadgeHtml = featuredSlugSet.has(
-    String(therapist.slug || "")
-      .trim()
-      .toLowerCase(),
-  )
-    ? '<span class="badge-featured" aria-label="Featured placement">Featured</span>'
-    : "";
-
   var metaParts = [];
   if (availabilityLabel) {
     metaParts.push('<span class="mx-avail">● ' + escapeHtml(availabilityLabel) + "</span>");
@@ -4531,7 +4484,6 @@ function renderSupportingResultCard(entry, _rank, options) {
     '<div class="mx-card-ident">' +
     '<h3 class="mx-card-name">' +
     escapeHtml(therapist.name || "") +
-    featuredBadgeHtml +
     "</h3>" +
     (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
@@ -5007,12 +4959,8 @@ function refreshIntakeUiFromForm() {
 
 (async function init() {
   initValuePillPopover();
-  var siteSettings = await fetchPublicSiteSettings();
-  MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
   await preloadZipcodes();
   therapists = await fetchPublicTherapists();
-  // featuredSlugSet intentionally left as the empty default from module
-  // init — no therapist is ever featured in match results.
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
   trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {

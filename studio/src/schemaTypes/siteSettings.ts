@@ -52,17 +52,6 @@ export const siteSettingsType = defineType({
       initialValue: "Guided bipolar-specialist matching with trust, clarity, and follow-through",
     }),
     defineField({
-      name: "matchPrioritySlugs",
-      title: "Match priority slugs",
-      type: "array",
-      description:
-        "Therapist slugs that can receive a light editorial prominence boost in close match/directory rankings.",
-      of: [defineArrayMember({ type: "string" })],
-      options: {
-        layout: "tags",
-      },
-    }),
-    defineField({
       name: "reviewerDirectory",
       title: "Reviewer directory",
       type: "array",

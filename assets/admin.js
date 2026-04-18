@@ -38,7 +38,6 @@ import {
   setAdminSessionToken,
   signInAdmin,
   signOutAdmin,
-  updateLaunchProfileControls,
   updateTherapistApplication,
   updateTherapistCandidate,
   updateTherapistPortalRequest,
@@ -334,7 +333,6 @@ const confirmationWorkspace = createConfirmationWorkspace({
   },
 });
 const listingsWorkspace = createListingsWorkspace({
-  copyText: copyText,
   escapeHtml: escapeHtml,
   formatDate: formatDate,
   getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
@@ -359,16 +357,6 @@ const listingsWorkspace = createListingsWorkspace({
     return queueRouteHealthFollowUp(therapistId, actionKey);
   },
   getTherapists: getTherapists,
-  homepageFeaturedFallbackSlugs: [],
-  launchProfileControlsKey: "bth_launch_profile_controls_v1",
-  saveMatchPrioritySlugs: function (slugs) {
-    return updateLaunchProfileControls({ matchPrioritySlugs: slugs });
-  },
-  launchStateOptions: ["standard", "launch_ready", "featured"],
-  readFunnelEvents: readFunnelEvents,
-  spotlightSection: function (target) {
-    spotlightSection(target);
-  },
 });
 const savedReviewActivityView = readReviewActivityView();
 if (savedReviewActivityView && typeof savedReviewActivityView.filter === "string") {

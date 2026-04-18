@@ -1,8 +1,3 @@
-// Featured-therapist rotation removed 2026-04-18: the product thesis is
-// match-over-merchandise, so no profile is ranked or badged as "featured"
-// in the directory. The fetchActiveFeaturedSlugs / rotateFeaturedFirst
-// plumbing stays dormant elsewhere until a followup cleanup, but the
-// call sites in this file are gone.
 import { fetchDirectoryPageContent } from "./cms.js";
 import {
   readFunnelEvents,
@@ -21,11 +16,7 @@ import {
   changeDirectorySortAction,
   resetDirectoryFiltersAction,
 } from "./directory-controller.js";
-import {
-  compareTherapistsWithFilters,
-  getMatchScore,
-  matchesDirectoryFilters,
-} from "./directory-logic.js";
+import { compareTherapistsWithFilters, matchesDirectoryFilters } from "./directory-logic.js";
 
 var DIRECTORY_LIST_LIMIT = 50;
 import {
@@ -42,13 +33,6 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
-  var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
-    ? content.siteSettings.matchPrioritySlugs
-        .map(function (value) {
-          return String(value || "").trim();
-        })
-        .filter(Boolean)
-    : [];
   var directoryPage = content.directoryPage || null;
   var siteSettings = content.siteSettings || null;
   var currentPage = 1;
@@ -107,29 +91,6 @@ import { initValuePillPopover } from "./therapist-pills.js";
         return key + ":" + String(filterState[key] || "");
       })
       .join("|");
-  }
-
-  function applyDirectoryPriorityProminence(list, filterState) {
-    var prioritySet = new Set(matchPrioritySlugs);
-    var activeFilterCount = countActiveFilters(filterState || {});
-
-    return (Array.isArray(list) ? list.slice() : []).sort(function (a, b) {
-      var aPriority = prioritySet.has(a && a.slug ? a.slug : "");
-      var bPriority = prioritySet.has(b && b.slug ? b.slug : "");
-      var aBase = getMatchScore(filterState, a);
-      var bBase = getMatchScore(filterState, b);
-      var scoreDiff = Math.abs(bBase - aBase);
-      var canUseBoost =
-        activeFilterCount <= 1 &&
-        (!filterState.sortBy || filterState.sortBy === "best_match") &&
-        scoreDiff <= 12;
-
-      if (canUseBoost && aPriority !== bPriority) {
-        return Number(bPriority) - Number(aPriority);
-      }
-
-      return compareTherapistsWithFilters(filterState, a, b);
-    });
   }
 
   function incrementCount(map, key) {
@@ -612,12 +573,13 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return filteredResultsCache;
     }
 
-    filteredResultsCache = applyDirectoryPriorityProminence(
-      therapists.filter(function (therapist) {
+    filteredResultsCache = therapists
+      .filter(function (therapist) {
         return matchesDirectoryFilters(filterState, therapist);
-      }),
-      filterState,
-    );
+      })
+      .sort(function (a, b) {
+        return compareTherapistsWithFilters(filterState, a, b);
+      });
     filteredResultsCacheKey = cacheKey;
     return filteredResultsCache;
   }
@@ -661,7 +623,6 @@ import { initValuePillPopover } from "./therapist-pills.js";
         filters: filters,
         shortlist: shortlist,
         isShortlisted: isShortlisted,
-        isFeatured: false,
       }),
     });
   }

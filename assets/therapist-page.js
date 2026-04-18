@@ -1,5 +1,3 @@
-// fetchActiveFeaturedSlugs removed 2026-04-18 along with the rest of the
-// homepage/directory featured rotation.
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import {
   getDataFreshnessSummary,
@@ -104,7 +102,6 @@ var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var DIRECTORY_LIST_LIMIT = 6;
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
-var featuredSlugSet = new Set();
 
 function escapeHtml(value) {
   return String(value || "")
@@ -1657,8 +1654,6 @@ async function resolveTherapistForProfile(slugValue) {
 
     var therapist = await resolveTherapistForProfile(slug);
     var therapistDirectory = await fetchPublicTherapists();
-    // featuredSlugSet stays as the empty default; no profile is ever
-    // badged as "featured" on the therapist page.
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
@@ -1868,14 +1863,6 @@ function renderProfile(t, therapistDirectory) {
     t.verification_status === "editorially_verified" && t.license_number
       ? '<span class="status-badge badge-verified">&#10003; License verified</span>'
       : "";
-
-  var featuredBadge = featuredSlugSet.has(
-    String((t && t.slug) || "")
-      .trim()
-      .toLowerCase(),
-  )
-    ? '<span class="status-badge badge-featured" aria-label="Featured placement">Featured</span>'
-    : "";
 
   var heroBipolarQuote = "";
   if (t.care_approach && /bipolar/i.test(t.care_approach)) {
@@ -2669,12 +2656,8 @@ function renderProfile(t, therapistDirectory) {
     escapeHtml(t.state) +
     (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
-    (bipolarSpecialistBadge || licenseVerifiedBadge || featuredBadge
-      ? '<div class="hero-badge-row">' +
-        featuredBadge +
-        bipolarSpecialistBadge +
-        licenseVerifiedBadge +
-        "</div>"
+    (bipolarSpecialistBadge || licenseVerifiedBadge
+      ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
       : "") +
     heroBipolarQuote +
     heroTelehealthLine +

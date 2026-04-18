@@ -747,7 +747,7 @@ function defaultSectionsFromLegacy(homePage) {
   ];
 }
 
-function renderPageSections(homePage, _featuredTherapists) {
+function renderPageSections(homePage) {
   var root = document.getElementById("pageSections");
   if (!root) {
     return;
@@ -998,7 +998,7 @@ function initHomeSearchForm() {
       surface: "homepage",
     });
     applyAdaptiveHomepageMode();
-    renderPageSections(content.homePage, content.featuredTherapists || []);
+    renderPageSections(content.homePage);
   } catch (error) {
     console.error("Failed to initialize homepage content.", error);
     activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [

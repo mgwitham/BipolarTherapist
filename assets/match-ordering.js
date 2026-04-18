@@ -80,19 +80,10 @@ export function applyZipAwareOrdering(entries, options) {
   });
 }
 
-export function applyMatchPriorityProminence(entries, prioritySlugs) {
-  var prioritySet = new Set(Array.isArray(prioritySlugs) ? prioritySlugs : []);
+function sortByRankScore(entries) {
   return (entries || []).slice().sort(function (a, b) {
     var aScore = getEntryRankScore(a);
     var bScore = getEntryRankScore(b);
-    var aPriority = prioritySet.has(a && a.therapist ? a.therapist.slug : "");
-    var bPriority = prioritySet.has(b && b.therapist ? b.therapist.slug : "");
-    var scoreDiff = Math.abs(aScore - bScore);
-
-    if (aPriority !== bPriority && scoreDiff <= 12) {
-      return Number(bPriority) - Number(aPriority);
-    }
-
     return (
       bScore - aScore ||
       (Number(b?.evaluation?.confidence_score) || 0) -
@@ -103,6 +94,5 @@ export function applyMatchPriorityProminence(entries, prioritySlugs) {
 }
 
 export function orderMatchEntries(entries, options) {
-  var opts = options || {};
-  return applyMatchPriorityProminence(applyZipAwareOrdering(entries, opts), opts.prioritySlugs);
+  return sortByRankScore(applyZipAwareOrdering(entries, options || {}));
 }

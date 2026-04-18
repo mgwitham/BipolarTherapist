@@ -23,16 +23,7 @@ function normalizeSiteSettings(doc) {
     return null;
   }
 
-  return {
-    ...doc,
-    matchPrioritySlugs: Array.isArray(doc.matchPrioritySlugs)
-      ? doc.matchPrioritySlugs
-          .map(function (value) {
-            return String(value || "").trim();
-          })
-          .filter(Boolean)
-      : [],
-  };
+  return { ...doc };
 }
 
 const therapistProjection = `{
@@ -421,10 +412,6 @@ export async function fetchFoundingSpotsRemaining() {
   }
 }
 
-// fetchActiveFeaturedSlugs removed 2026-04-18 along with the directory
-// and match-page featured rotation. Reviving featuring would need a new
-// product decision, not a one-line restore.
-
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {
     return getTherapistBySlug(slug);
@@ -451,11 +438,6 @@ export async function fetchHomePageContent() {
     setCmsState("seed", null);
     return {
       therapists: therapists,
-      featuredTherapists: therapists
-        .filter(function (item) {
-          return item.accepting_new_patients;
-        })
-        .slice(0, 3),
       stats: getLocalStats(),
       homePage: null,
       siteSettings: null,
@@ -519,8 +501,7 @@ export async function fetchHomePageContent() {
         ctaPrimaryLabel,
         ctaPrimaryUrl,
         ctaSecondaryLabel,
-        ctaSecondaryUrl,
-        featuredTherapists[]->${therapistProjection}
+        ctaSecondaryUrl
       },
       "siteSettings": *[_type == "siteSettings"][0]{
         siteTitle,
@@ -528,8 +509,7 @@ export async function fetchHomePageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline,
-        matchPrioritySlugs
+        footerTagline
       }
     }`);
 
@@ -538,18 +518,8 @@ export async function fetchHomePageContent() {
       result && result.siteSettings ? result.siteSettings : null,
     );
 
-    const featuredTherapists =
-      doc && Array.isArray(doc.featuredTherapists) && doc.featuredTherapists.length
-        ? doc.featuredTherapists.map(normalizeTherapist)
-        : therapists
-            .filter(function (item) {
-              return item.accepting_new_patients;
-            })
-            .slice(0, 3);
-
     return {
       therapists: therapists,
-      featuredTherapists: featuredTherapists,
       stats: deriveStats(therapists),
       homePage: doc,
       siteSettings: siteSettings,
@@ -559,7 +529,6 @@ export async function fetchHomePageContent() {
     setCmsState("error", error);
     return {
       therapists: therapists,
-      featuredTherapists: [],
       stats: deriveStats(therapists),
       homePage: null,
       siteSettings: null,
@@ -618,8 +587,7 @@ export async function fetchDirectoryPageContent() {
         browseLabel,
         therapistCtaLabel,
         therapistCtaUrl,
-        footerTagline,
-        matchPrioritySlugs
+        footerTagline
       }
     }`);
 
@@ -658,8 +626,7 @@ export async function fetchPublicSiteSettings() {
       browseLabel,
       therapistCtaLabel,
       therapistCtaUrl,
-      footerTagline,
-      matchPrioritySlugs
+      footerTagline
     }`);
     setCmsState("sanity", null);
     return normalizeSiteSettings(doc || null);
