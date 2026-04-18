@@ -25,6 +25,8 @@ export function createListingsWorkspace(options) {
   var readFunnelEvents = options.readFunnelEvents;
   var spotlightSection = options.spotlightSection;
   var launchProfileControlsKey = options.launchProfileControlsKey;
+  var saveMatchPrioritySlugs =
+    typeof options.saveMatchPrioritySlugs === "function" ? options.saveMatchPrioritySlugs : null;
   var launchStateOptions = Array.isArray(options.launchStateOptions)
     ? options.launchStateOptions.slice()
     : [];
@@ -246,6 +248,41 @@ export function createListingsWorkspace(options) {
       updated_at: new Date().toISOString(),
     };
     writeLaunchProfileControlsState(all);
+    if (updates && Object.prototype.hasOwnProperty.call(updates, "match_priority")) {
+      scheduleMatchPrioritySync();
+    }
+  }
+
+  var matchPrioritySyncTimer = null;
+  function scheduleMatchPrioritySync() {
+    if (!saveMatchPrioritySlugs) {
+      return;
+    }
+    if (matchPrioritySyncTimer) {
+      window.clearTimeout(matchPrioritySyncTimer);
+    }
+    matchPrioritySyncTimer = window.setTimeout(function () {
+      matchPrioritySyncTimer = null;
+      var runtimeState = getRuntimeState();
+      var therapists =
+        runtimeState.dataMode === "sanity" ? runtimeState.publishedTherapists : getTherapists();
+      var rows = getLaunchControlRows(therapists || []);
+      var slugs = rows
+        .filter(function (row) {
+          return row.control.match_priority;
+        })
+        .map(function (row) {
+          return String((row.item && row.item.slug) || "").trim();
+        })
+        .filter(Boolean);
+      Promise.resolve(saveMatchPrioritySlugs(slugs)).catch(function (error) {
+        setLaunchControlFlashMessage(
+          "Could not sync match-priority slugs: " +
+            (error && error.message ? error.message : "request failed."),
+        );
+        renderListings();
+      });
+    }, 400);
   }
 
   function setLaunchControlFlashMessage(message) {

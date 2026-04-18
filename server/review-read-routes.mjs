@@ -661,6 +661,63 @@ export async function handleReadRoutes(context) {
     return true;
   }
 
+  if (request.method === "GET" && routePath === "/launch-profile-controls") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const siteSettings = await client.getDocument("siteSettings");
+    const matchPrioritySlugs = Array.isArray(siteSettings && siteSettings.matchPrioritySlugs)
+      ? siteSettings.matchPrioritySlugs
+          .map(function (value) {
+            return String(value || "").trim();
+          })
+          .filter(Boolean)
+      : [];
+
+    sendJson(response, 200, { matchPrioritySlugs }, origin, config);
+    return true;
+  }
+
+  if (request.method === "PATCH" && routePath === "/launch-profile-controls") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const body = await deps.parseBody(request);
+    const incoming = Array.isArray(body && body.matchPrioritySlugs) ? body.matchPrioritySlugs : [];
+    const matchPrioritySlugs = Array.from(
+      new Set(
+        incoming
+          .map(function (value) {
+            return String(value || "")
+              .trim()
+              .toLowerCase();
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    const existing = (await client.getDocument("siteSettings")) || {
+      _id: "siteSettings",
+      _type: "siteSettings",
+    };
+    await client
+      .transaction()
+      .createOrReplace({
+        ...existing,
+        _id: "siteSettings",
+        _type: "siteSettings",
+        matchPrioritySlugs,
+      })
+      .commit();
+
+    sendJson(response, 200, { matchPrioritySlugs }, origin, config);
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/events/export") {
     if (!isAuthorized(request, config)) {
       sendJson(response, 401, { error: "Unauthorized." }, origin, config);

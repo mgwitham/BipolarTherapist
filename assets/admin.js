@@ -38,6 +38,7 @@ import {
   setAdminSessionToken,
   signInAdmin,
   signOutAdmin,
+  updateLaunchProfileControls,
   updateTherapistApplication,
   updateTherapistCandidate,
   updateTherapistPortalRequest,
@@ -367,6 +368,9 @@ const listingsWorkspace = createListingsWorkspace({
     "dr-je-ko-los-angeles-ca",
   ],
   launchProfileControlsKey: "bth_launch_profile_controls_v1",
+  saveMatchPrioritySlugs: function (slugs) {
+    return updateLaunchProfileControls({ matchPrioritySlugs: slugs });
+  },
   launchStateOptions: ["standard", "launch_ready", "featured"],
   readFunnelEvents: readFunnelEvents,
   spotlightSection: function (target) {
