@@ -29,6 +29,10 @@ const CONFIRM_SEND_ID = "claimConfirmSend";
 const CONFIRM_CHANGE_ID = "claimConfirmChange";
 const CONFIRM_USE_OTHER_ID = "claimConfirmUseOther";
 const CONFIRM_STATUS_ID = "claimConfirmStatus";
+const QUICK_RESEND_ID = "quickClaimResend";
+const QUICK_RESEND_LINK_ID = "quickClaimResendLink";
+const CONFIRM_RESEND_ID = "claimConfirmResend";
+const CONFIRM_RESEND_LINK_ID = "claimConfirmResendLink";
 
 function setStatus(element, tone, title, body) {
   if (!element) {
@@ -277,6 +281,87 @@ function initQuickClaim() {
   const emailInput = form.querySelector('input[name="email"]');
   const licenseInput = form.querySelector('input[name="license_number"]');
 
+  const quickResend = document.getElementById(QUICK_RESEND_ID);
+  const quickResendLink = document.getElementById(QUICK_RESEND_LINK_ID);
+  const confirmResend = document.getElementById(CONFIRM_RESEND_ID);
+  const confirmResendLink = document.getElementById(CONFIRM_RESEND_LINK_ID);
+
+  let lastSend = null;
+
+  function showResend(target) {
+    if (target === "quick" && quickResend) {
+      quickResend.hidden = false;
+      if (quickResendLink) {
+        quickResendLink.removeAttribute("aria-disabled");
+        quickResendLink.textContent = "resend the link";
+      }
+    }
+    if (target === "confirm" && confirmResend) {
+      confirmResend.hidden = false;
+      if (confirmResendLink) {
+        confirmResendLink.removeAttribute("aria-disabled");
+        confirmResendLink.textContent = "resend the link";
+      }
+    }
+  }
+
+  function hideResend() {
+    if (quickResend) quickResend.hidden = true;
+    if (confirmResend) confirmResend.hidden = true;
+  }
+
+  async function replayLastSend() {
+    if (!lastSend) {
+      return;
+    }
+    const link = lastSend.target === "quick" ? quickResendLink : confirmResendLink;
+    if (link) {
+      link.setAttribute("aria-disabled", "true");
+      link.textContent = "sending...";
+    }
+    try {
+      if (lastSend.kind === "slug") {
+        await sendClaimLinkToSlug(lastSend.slug);
+      } else if (lastSend.kind === "quick") {
+        await requestTherapistQuickClaim(lastSend.payload);
+      }
+      if (link) {
+        link.textContent = "sent again — check your inbox";
+        window.setTimeout(function () {
+          link.removeAttribute("aria-disabled");
+          link.textContent = "resend the link";
+        }, 4000);
+      }
+    } catch (error) {
+      if (link) {
+        link.removeAttribute("aria-disabled");
+        link.textContent = "resend the link";
+      }
+      const target = lastSend.target === "quick" ? status : null;
+      if (target) {
+        setStatus(
+          target,
+          "warn",
+          "Couldn't resend.",
+          (error && error.message) || "Try again in a moment.",
+        );
+      }
+    }
+  }
+
+  if (quickResendLink) {
+    quickResendLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      replayLastSend();
+    });
+  }
+  if (confirmResendLink) {
+    confirmResendLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      replayLastSend();
+    });
+  }
+
   const confirmPanel = document.getElementById(CONFIRM_PANEL_ID);
   const confirmName = document.getElementById(CONFIRM_NAME_ID);
   const confirmMeta = document.getElementById(CONFIRM_META_ID);
@@ -370,6 +455,7 @@ function initQuickClaim() {
     const originalLabel = confirmSend.textContent;
     confirmSend.textContent = "Sending...";
     setConfirmStatus("", "");
+    hideResend();
     try {
       const result = await sendClaimLinkToSlug(pickedResult.slug);
       const hint = (result && result.email_hint) || pickedResult.email_hint || "your inbox";
@@ -383,6 +469,8 @@ function initQuickClaim() {
         therapist_slug: pickedResult.slug,
         method: "slug_picked",
       });
+      lastSend = { kind: "slug", slug: pickedResult.slug, target: "confirm" };
+      showResend("confirm");
       const trialSlug = (result && result.therapist_slug) || pickedResult.slug;
       const trialEmailHint = (result && result.email_hint) || pickedResult.email_hint || "";
       if (trialSlug) {
@@ -469,6 +557,7 @@ function initQuickClaim() {
     event.preventDefault();
     clearStatus(status);
     hideFallback(fallbackLink);
+    hideResend();
 
     const formData = new FormData(form);
     const payload = {
@@ -503,8 +592,10 @@ function initQuickClaim() {
         "Check your inbox.",
         verifiedByDomain
           ? "Your email matched your practice website's domain, so we verified ownership automatically and sent a one-time sign-in link."
-          : "We sent a one-time link that signs you into your profile for the next 30 minutes.",
+          : "We sent a one-time link that signs you into your profile for the next 24 hours.",
       );
+      lastSend = { kind: "quick", payload: { ...payload }, target: "quick" };
+      showResend("quick");
       const slugForTrial = result && result.therapist_slug ? result.therapist_slug : "";
       if (slugForTrial) {
         showTrialOffer(slugForTrial, payload.email);

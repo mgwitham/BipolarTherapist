@@ -102,6 +102,6 @@ export async function sendPortalClaimLink(
 <p>Hi ${therapist.name},</p>
 <p>Use the secure link below to access your lightweight profile portal.</p>
 <p><a href="${manageUrl}">${manageUrl}</a></p>
-<p>This link expires in 30 minutes.</p>`,
+<p>This link expires in 24 hours.</p>`,
   });
 }
