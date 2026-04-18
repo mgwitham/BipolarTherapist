@@ -359,14 +359,7 @@ const listingsWorkspace = createListingsWorkspace({
     return queueRouteHealthFollowUp(therapistId, actionKey);
   },
   getTherapists: getTherapists,
-  homepageFeaturedFallbackSlugs: [
-    "dr-stacia-mills-pasadena-ca",
-    "dr-sylvia-cartwright-la-jolla-ca",
-    "dr-kalen-flynn-los-angeles-ca",
-    "dr-mike-mah-los-angeles-ca",
-    "dr-daniel-kaushansky-los-angeles-ca",
-    "dr-je-ko-los-angeles-ca",
-  ],
+  homepageFeaturedFallbackSlugs: [],
   launchProfileControlsKey: "bth_launch_profile_controls_v1",
   saveMatchPrioritySlugs: function (slugs) {
     return updateLaunchProfileControls({ matchPrioritySlugs: slugs });

@@ -701,24 +701,6 @@ export function createListingsWorkspace(options) {
     return lines.join("\n");
   }
 
-  function buildHomepageFeaturedSlugSnippet(rows) {
-    var featuredSlugs = (rows || [])
-      .filter(function (row) {
-        return row.control.homepage_featured;
-      })
-      .map(function (row) {
-        return row.item.slug;
-      });
-
-    return JSON.stringify(
-      {
-        homepageFeaturedSlugs: featuredSlugs,
-      },
-      null,
-      2,
-    );
-  }
-
   function buildMatchPrioritySlugSnippet(rows) {
     var prioritySlugs = (rows || [])
       .filter(function (row) {
@@ -952,7 +934,7 @@ export function createListingsWorkspace(options) {
       escapeHtml(
         getLaunchRecommendationSummary(underperformingFeaturedRows, promotionCandidateRows),
       ) +
-      '</div><div class="queue-actions"><button class="btn-secondary" data-launch-export="packet">Copy launch packet</button><button class="btn-secondary" data-launch-export="homepage">Copy homepage featured slugs</button><button class="btn-secondary" data-launch-export="match">Copy match-priority slugs</button>' +
+      '</div><div class="queue-actions"><button class="btn-secondary" data-launch-export="packet">Copy launch packet</button><button class="btn-secondary" data-launch-export="match">Copy match-priority slugs</button>' +
       (launchProfileFilters.state || launchProfileFilters.lane || rankingRiskFilter
         ? '<button class="btn-secondary" data-clear-launch-filters>Clear listing filters</button>'
         : "") +
@@ -1144,7 +1126,6 @@ export function createListingsWorkspace(options) {
             '</div><div class="tag-row"><span class="tag">' +
             escapeHtml(getLaunchStateLabel(control.launch_state)) +
             "</span>" +
-            (control.homepage_featured ? '<span class="tag">Homepage featured</span>' : "") +
             (control.match_priority ? '<span class="tag">Match priority</span>' : "") +
             '</div><div class="subtle">' +
             escapeHtml(quality.label) +
@@ -1207,9 +1188,6 @@ export function createListingsWorkspace(options) {
                 escapeHtml(item.slug) +
                 '" data-launch-quick-mode="promote_launch_ready">Mark ready to feature</button></div></div><div class="queue-actions secondary-actions">'
               : '<div class="queue-actions" style="margin-top:0.75rem">') +
-            '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
-            escapeHtml(item.slug) +
-            '" data-launch-quick-mode="feature_homepage">Feature on homepage</button>' +
             (isStartHere
               ? ""
               : '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
@@ -1239,11 +1217,7 @@ export function createListingsWorkspace(options) {
                 );
               })
               .join("") +
-            '</select><label class="launch-checkbox"><input type="checkbox" data-launch-homepage="' +
-            escapeHtml(item.slug) +
-            '"' +
-            (control.homepage_featured ? " checked" : "") +
-            '> Homepage featured</label><label class="launch-checkbox"><input type="checkbox" data-launch-match="' +
+            '</select><label class="launch-checkbox"><input type="checkbox" data-launch-match="' +
             escapeHtml(item.slug) +
             '"' +
             (control.match_priority ? " checked" : "") +
@@ -1300,25 +1274,19 @@ export function createListingsWorkspace(options) {
       button.addEventListener("click", async function () {
         var mode = button.getAttribute("data-launch-export");
         var text =
-          mode === "homepage"
-            ? buildHomepageFeaturedSlugSnippet(launchRows)
-            : mode === "match"
-              ? buildMatchPrioritySlugSnippet(launchRows)
-              : buildLaunchProfilePacket(launchRows);
+          mode === "match"
+            ? buildMatchPrioritySlugSnippet(launchRows)
+            : buildLaunchProfilePacket(launchRows);
         var success = await copyText(text);
         var status = root.querySelector("#launchControlStatus");
         if (status) {
           status.textContent = success
-            ? mode === "homepage"
-              ? "Homepage featured slug snippet copied."
-              : mode === "match"
-                ? "Match-priority slugs copied."
-                : "Launch profile packet copied."
-            : mode === "homepage"
-              ? "Could not copy homepage featured slug snippet."
-              : mode === "match"
-                ? "Could not copy match-priority slugs."
-                : "Could not copy launch profile packet.";
+            ? mode === "match"
+              ? "Match-priority slugs copied."
+              : "Launch profile packet copied."
+            : mode === "match"
+              ? "Could not copy match-priority slugs."
+              : "Could not copy launch profile packet.";
         }
       });
     });
@@ -1329,20 +1297,6 @@ export function createListingsWorkspace(options) {
           launch_state: select.value,
         });
         setLaunchControlFlashMessage("Updated launch state for the selected profile.");
-        renderListings();
-      });
-    });
-
-    root.querySelectorAll("[data-launch-homepage]").forEach(function (input) {
-      input.addEventListener("change", function () {
-        updateLaunchProfileControlEntry(input.getAttribute("data-launch-homepage"), {
-          homepage_featured: input.checked,
-        });
-        setLaunchControlFlashMessage(
-          input.checked
-            ? "Added profile to homepage featured lane."
-            : "Removed profile from homepage featured lane.",
-        );
         renderListings();
       });
     });
@@ -1368,20 +1322,7 @@ export function createListingsWorkspace(options) {
         if (!slug || !mode) {
           return;
         }
-        if (mode === "feature_homepage") {
-          updateLaunchProfileControlEntry(slug, {
-            launch_state: "featured",
-            homepage_featured: true,
-            match_priority: true,
-          });
-          setLaunchControlFlashMessage(
-            "Completed: profile promoted into featured homepage rotation.",
-          );
-          setLaunchControlFlashHistory(
-            slug,
-            "Completed: profile promoted into featured homepage rotation.",
-          );
-        } else if (mode === "promote_launch_ready") {
+        if (mode === "promote_launch_ready") {
           updateLaunchProfileControlEntry(slug, {
             launch_state: "launch_ready",
             homepage_featured: false,
