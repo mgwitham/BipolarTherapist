@@ -162,7 +162,7 @@ export function renderRefreshQueuePanel(options) {
               options.escapeHtml(options.getConfirmationGraceWindowNote(item)) +
               '</div><div class="queue-insight-action"><a href="therapist.html?slug=' +
               encodeURIComponent(item.slug) +
-              '">Open profile</a></div></div>'
+              '" target="bth-profile" rel="noopener">Open profile</a></div></div>'
             );
           })
           .join("") +
@@ -296,11 +296,11 @@ export function renderRefreshQueuePanel(options) {
             primaryActionHtml:
               '<a class="btn-primary btn-inline" href="therapist.html?slug=' +
               encodeURIComponent(item.slug) +
-              '">Open profile and review fields</a>',
+              '" target="bth-profile" rel="noopener">Open profile and review fields</a>',
             secondaryActionHtml: sourceReference.href
               ? '<a class="btn-secondary btn-inline" href="' +
                 options.escapeHtml(sourceReference.href) +
-                '" target="_blank" rel="noopener">' +
+                '" target="bth-source" rel="noopener">' +
                 options.escapeHtml(sourceReference.shortLabel) +
                 "</a>"
               : "",
