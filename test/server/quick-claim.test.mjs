@@ -256,6 +256,54 @@ test("quick-claim: rejects aggregator-domain websites for auto-verify", async ()
   assert.equal(response.payload.reason, "email_mismatch");
 });
 
+test("claim-by-slug: sends link to on-file email when slug matches", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.verification_method, "email_on_file");
+  assert.equal(response.payload.therapist_slug, "jamie-rivera");
+  assert.equal(emailsSent.length, 1);
+  assert.equal(emailsSent[0].email, "jamie@example.com");
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("claim-by-slug: returns 409 no_email_on_file when profile has no email", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { email: "" }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "no_email_on_file");
+});
+
+test("claim-by-slug: returns 404 when slug is unknown", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "nobody-here" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.payload.reason, "not_found");
+});
+
 test("quick-claim: normalizes name and email to case-insensitive compare", async () => {
   const { client } = createMemoryClient({
     "therapist-LMFT12345": seedTherapist("LMFT12345"),

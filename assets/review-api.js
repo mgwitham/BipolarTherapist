@@ -367,6 +367,13 @@ export async function searchTherapistQuickClaim(query) {
   });
 }
 
+export async function sendClaimLinkToSlug(slug) {
+  return request("/portal/claim-by-slug", {
+    method: "POST",
+    body: JSON.stringify({ slug }),
+  });
+}
+
 export async function fetchTherapistClaimSession(token) {
   return request(`/portal/claim-session?token=${encodeURIComponent(token)}`, {
     method: "GET",

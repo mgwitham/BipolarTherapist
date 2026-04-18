@@ -2,6 +2,7 @@ import {
   createStripeFeaturedCheckoutSession,
   requestTherapistQuickClaim,
   searchTherapistQuickClaim,
+  sendClaimLinkToSlug,
 } from "./review-api.js";
 import { fetchFoundingSpotsRemaining } from "./cms.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
@@ -20,6 +21,14 @@ const TRIAL_STANDARD_ID = "claimTrialStandard";
 const TRIAL_DISMISS_ID = "claimTrialDismiss";
 const TRIAL_FEEDBACK_ID = "claimTrialFeedback";
 const TRIAL_FOUNDING_NOTE_SELECTOR = "[data-claim-founding-note]";
+const CONFIRM_PANEL_ID = "claimConfirmPanel";
+const CONFIRM_NAME_ID = "claimConfirmName";
+const CONFIRM_META_ID = "claimConfirmMeta";
+const CONFIRM_EMAIL_ID = "claimConfirmEmail";
+const CONFIRM_SEND_ID = "claimConfirmSend";
+const CONFIRM_CHANGE_ID = "claimConfirmChange";
+const CONFIRM_USE_OTHER_ID = "claimConfirmUseOther";
+const CONFIRM_STATUS_ID = "claimConfirmStatus";
 
 function setStatus(element, tone, title, body) {
   if (!element) {
@@ -268,7 +277,74 @@ function initQuickClaim() {
   const emailInput = form.querySelector('input[name="email"]');
   const licenseInput = form.querySelector('input[name="license_number"]');
 
+  const confirmPanel = document.getElementById(CONFIRM_PANEL_ID);
+  const confirmName = document.getElementById(CONFIRM_NAME_ID);
+  const confirmMeta = document.getElementById(CONFIRM_META_ID);
+  const confirmEmail = document.getElementById(CONFIRM_EMAIL_ID);
+  const confirmSend = document.getElementById(CONFIRM_SEND_ID);
+  const confirmChange = document.getElementById(CONFIRM_CHANGE_ID);
+  const confirmUseOther = document.getElementById(CONFIRM_USE_OTHER_ID);
+  const confirmStatus = document.getElementById(CONFIRM_STATUS_ID);
+
+  let pickedResult = null;
+
+  function setConfirmStatus(tone, message) {
+    if (!confirmStatus) {
+      return;
+    }
+    if (!message) {
+      confirmStatus.hidden = true;
+      confirmStatus.innerHTML = "";
+      delete confirmStatus.dataset.tone;
+      return;
+    }
+    confirmStatus.hidden = false;
+    confirmStatus.dataset.tone = tone;
+    confirmStatus.innerHTML = message;
+  }
+
+  function showConfirmPanel(result) {
+    pickedResult = result;
+    if (!confirmPanel) {
+      return;
+    }
+    if (confirmName) {
+      const credentialBit = result.credentials ? ", " + result.credentials : "";
+      confirmName.textContent = (result.name || "") + credentialBit;
+    }
+    if (confirmMeta) {
+      const location = [result.city, result.state].filter(Boolean).join(", ");
+      const licenseBit = result.license_number ? " · License " + result.license_number : "";
+      confirmMeta.textContent = location + licenseBit;
+    }
+    if (confirmEmail) {
+      confirmEmail.textContent = result.email_hint || "the email on your listing";
+    }
+    if (confirmSend) {
+      confirmSend.disabled = !result.has_email;
+      confirmSend.textContent = result.has_email
+        ? "Send sign-in link"
+        : "No email on file — use form below";
+    }
+    setConfirmStatus("", "");
+    confirmPanel.hidden = false;
+    form.hidden = true;
+  }
+
+  function hideConfirmPanel() {
+    pickedResult = null;
+    if (confirmPanel) {
+      confirmPanel.hidden = true;
+      setConfirmStatus("", "");
+    }
+    form.hidden = false;
+  }
+
   function applyPickedResult(result) {
+    clearSearchResults(searchResults);
+    if (searchInput) {
+      searchInput.value = result.name || "";
+    }
     if (fullNameInput) {
       fullNameInput.value = result.name || "";
     }
@@ -276,13 +352,85 @@ function initQuickClaim() {
       licenseInput.value = result.license_number || "";
     }
     setEmailHint(emailHint, result.email_hint || "");
-    clearSearchResults(searchResults);
-    if (searchInput) {
-      searchInput.value = result.name || "";
+    if (result.has_email && confirmPanel) {
+      showConfirmPanel(result);
+    } else {
+      hideConfirmPanel();
+      if (emailInput) {
+        emailInput.focus();
+      }
     }
-    if (emailInput) {
-      emailInput.focus();
+  }
+
+  async function handleConfirmSend() {
+    if (!pickedResult || !pickedResult.slug || !confirmSend) {
+      return;
     }
+    confirmSend.disabled = true;
+    const originalLabel = confirmSend.textContent;
+    confirmSend.textContent = "Sending...";
+    setConfirmStatus("", "");
+    try {
+      const result = await sendClaimLinkToSlug(pickedResult.slug);
+      const hint = (result && result.email_hint) || pickedResult.email_hint || "your inbox";
+      setConfirmStatus(
+        "success",
+        "<strong>Link sent.</strong> Check " +
+          escapeHtml(hint) +
+          " for your one-time sign-in link.",
+      );
+      trackFunnelEvent("quick_claim_sent", {
+        therapist_slug: pickedResult.slug,
+        method: "slug_picked",
+      });
+      const trialSlug = (result && result.therapist_slug) || pickedResult.slug;
+      const trialEmailHint = (result && result.email_hint) || pickedResult.email_hint || "";
+      if (trialSlug) {
+        showTrialOffer(trialSlug, trialEmailHint);
+      }
+    } catch (error) {
+      const reason = (error && error.payload && error.payload.reason) || "";
+      confirmSend.disabled = false;
+      confirmSend.textContent = originalLabel;
+      if (reason === "no_email_on_file") {
+        setConfirmStatus(
+          "warn",
+          "No email is on file for this profile. Use the form below to verify ownership another way.",
+        );
+        hideConfirmPanel();
+        if (emailInput) {
+          emailInput.focus();
+        }
+      } else {
+        setConfirmStatus(
+          "warn",
+          (error && error.message) || "We couldn't send the link. Try again in a moment.",
+        );
+      }
+    }
+  }
+
+  if (confirmSend) {
+    confirmSend.addEventListener("click", handleConfirmSend);
+  }
+  if (confirmChange) {
+    confirmChange.addEventListener("click", function (event) {
+      event.preventDefault();
+      hideConfirmPanel();
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+  }
+  if (confirmUseOther) {
+    confirmUseOther.addEventListener("click", function (event) {
+      event.preventDefault();
+      hideConfirmPanel();
+      if (emailInput) {
+        emailInput.focus();
+      }
+    });
   }
 
   const runSearch = debounce(async function (query) {
