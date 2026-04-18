@@ -1,3 +1,58 @@
+import { inject, track as vercelTrack } from "@vercel/analytics";
+
+var vercelAnalyticsInjected = false;
+function ensureVercelAnalyticsInjected() {
+  if (vercelAnalyticsInjected || typeof window === "undefined") {
+    return;
+  }
+  vercelAnalyticsInjected = true;
+  try {
+    inject();
+  } catch (_error) {
+    // analytics is best-effort
+  }
+}
+ensureVercelAnalyticsInjected();
+
+function flattenEventPayloadForVercel(payload) {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+  var flat = {};
+  var keys = Object.keys(payload);
+  var count = 0;
+  for (var i = 0; i < keys.length && count < 10; i += 1) {
+    var key = keys[i];
+    var value = payload[key];
+    if (value === null || value === undefined) {
+      continue;
+    }
+    var kind = typeof value;
+    if (kind === "string") {
+      flat[key] = value.length > 200 ? value.slice(0, 200) : value;
+      count += 1;
+    } else if (kind === "number" && Number.isFinite(value)) {
+      flat[key] = value;
+      count += 1;
+    } else if (kind === "boolean") {
+      flat[key] = value;
+      count += 1;
+    }
+  }
+  return count > 0 ? flat : undefined;
+}
+
+function forwardEventToVercel(type, payload) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    vercelTrack(type, flattenEventPayloadForVercel(payload));
+  } catch (_error) {
+    // best-effort
+  }
+}
+
 var FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
 var EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
 var EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
@@ -39,8 +94,10 @@ export function trackFunnelEvent(type, payload) {
   try {
     window.localStorage.setItem(FUNNEL_EVENTS_KEY, JSON.stringify(funnelEventsCache));
   } catch (_error) {
-    return;
+    // localStorage may fail; still forward to Vercel Analytics below
   }
+
+  forwardEventToVercel(String(type), payload);
 }
 
 function readTherapistContactRouteMemory() {

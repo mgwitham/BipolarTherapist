@@ -1,3 +1,4 @@
+import "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
