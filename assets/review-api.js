@@ -398,22 +398,6 @@ export async function createStripeFeaturedCheckoutSession(payload) {
   });
 }
 
-export async function createStripeFoundingMonthlyCheckout(payload) {
-  return createStripeFeaturedCheckoutSession({ ...(payload || {}), plan: "founding_monthly" });
-}
-
-export async function createStripeFoundingAnnualCheckout(payload) {
-  return createStripeFeaturedCheckoutSession({ ...(payload || {}), plan: "founding_annual" });
-}
-
-export async function createStripeRegularMonthlyCheckout(payload) {
-  return createStripeFeaturedCheckoutSession({ ...(payload || {}), plan: "regular_monthly" });
-}
-
-export async function createStripeRegularAnnualCheckout(payload) {
-  return createStripeFeaturedCheckoutSession({ ...(payload || {}), plan: "regular_annual" });
-}
-
 export async function createStripeBillingPortalSession(payload) {
   return request("/stripe/portal-session", {
     method: "POST",
