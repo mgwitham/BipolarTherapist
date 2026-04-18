@@ -5,7 +5,7 @@ const LICENSE_TYPE_MAP = {
   LCSW: "2002",
   LPCC: "2005",
   LEP: "2003",
-  Psychologist: "5002",
+  Psychologist: "6001",
   "Psychiatrist (MD)": "8002",
 };
 
@@ -14,7 +14,7 @@ const BOARD_NAME_MAP = {
   2002: "California Board of Behavioral Sciences",
   2003: "California Board of Behavioral Sciences",
   2005: "California Board of Behavioral Sciences",
-  5002: "Board of Psychology",
+  6001: "Board of Psychology",
   8002: "Medical Board of California",
 };
 
@@ -23,7 +23,7 @@ const LICENSE_LABEL_MAP = {
   2002: "Licensed Clinical Social Worker",
   2003: "Licensed Educational Psychologist",
   2005: "Licensed Professional Clinical Counselor",
-  5002: "Psychologist",
+  6001: "Psychologist",
   8002: "Physician and Surgeon",
 };
 

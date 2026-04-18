@@ -7,7 +7,7 @@ function inferLicenseTypeCode(licenseNumber, credentials) {
   const number = String(licenseNumber || "")
     .toUpperCase()
     .trim();
-  if (number.startsWith("PSY")) return "5002";
+  if (number.startsWith("PSY")) return "6001";
   if (number.startsWith("MFT") || number.startsWith("MFC")) return "2001";
   if (number.startsWith("LCSW") || number.startsWith("ASW")) return "2002";
   if (number.startsWith("LPCC") || number.startsWith("APCC")) return "2005";
@@ -20,8 +20,8 @@ function inferLicenseTypeCode(licenseNumber, credentials) {
   if (/\bLMFT\b|\bMFT\b/.test(creds)) return "2001";
   if (/\bLCSW\b/.test(creds)) return "2002";
   if (/\bLPCC\b/.test(creds)) return "2005";
-  if (/\bPSY(D|\.?D)?\b|PHD\b/.test(creds) && /PSYCH/.test(creds)) return "5002";
-  if (/\bPSYD\b/.test(creds)) return "5002";
+  if (/\bPSY(D|\.?D)?\b|PHD\b/.test(creds) && /PSYCH/.test(creds)) return "6001";
+  if (/\bPSYD\b/.test(creds)) return "6001";
   return null;
 }
 

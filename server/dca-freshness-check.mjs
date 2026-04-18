@@ -16,7 +16,7 @@ var LICENSE_TYPE_CODES = {
   "Licensed Clinical Social Worker": "2002",
   "Licensed Professional Clinical Counselor": "2005",
   "Licensed Educational Psychologist": "2003",
-  Psychologist: "5002",
+  Psychologist: "6001",
   "Physician and Surgeon": "8002",
   LMFT: "2001",
   LCSW: "2002",
