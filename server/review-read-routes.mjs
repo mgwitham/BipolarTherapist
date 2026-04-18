@@ -687,14 +687,14 @@ export async function handleReadRoutes(context) {
     }
 
     const body = await deps.parseBody(request);
-    const incoming = Array.isArray(body && body.matchPrioritySlugs)
-      ? body.matchPrioritySlugs
-      : [];
+    const incoming = Array.isArray(body && body.matchPrioritySlugs) ? body.matchPrioritySlugs : [];
     const matchPrioritySlugs = Array.from(
       new Set(
         incoming
           .map(function (value) {
-            return String(value || "").trim().toLowerCase();
+            return String(value || "")
+              .trim()
+              .toLowerCase();
           })
           .filter(Boolean),
       ),
