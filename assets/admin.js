@@ -72,7 +72,6 @@ import { createListingsWorkspace } from "./admin-listings-workspace.js";
 import { getNextBestAdminActions } from "./admin-priority-actions.js";
 import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
 import { createAdminDashboardCardBuilders } from "./admin-dashboard-cards.js";
-import { createAdminWorkQueueHelpers } from "./admin-work-queue.js";
 import { createAdminRouteHealthActions } from "./admin-route-health-actions.js";
 import { getSourceReferenceMeta } from "./admin-source-reference.js";
 import {
@@ -139,11 +138,6 @@ let licensureQueueFilter = "";
 let licensureActivityFilter = "";
 let reviewActivityFilter = "";
 let reviewActivitySavedViewId = "";
-const reviewerWorkspaceUi = {
-  workloadFilter: "",
-  workloadSlice: "all",
-  myQueueMode: false,
-};
 let adminWorkflowUrlParamsApplied = false;
 let conciergeFilters = {
   status: "",
@@ -233,7 +227,6 @@ const reviewerWorkspace = createReviewerWorkspace({
   setRemoteReviewerRoster: function (nextRoster) {
     remoteReviewerRoster = nextRoster;
   },
-  uiState: reviewerWorkspaceUi,
   updateTherapistApplication: updateTherapistApplication,
   updateTherapistCandidate: updateTherapistCandidate,
   updateTherapistReviewers: updateTherapistReviewers,
@@ -418,10 +411,6 @@ if (typeof window !== "undefined") {
   if (typeof reviewActivityLaneParam === "string") {
     reviewActivityFilter = reviewActivityLaneParam;
   }
-}
-var savedReviewerPreference = reviewerWorkspace.getSavedPreference();
-if (savedReviewerPreference && typeof savedReviewerPreference.my_queue_mode === "boolean") {
-  reviewerWorkspaceUi.myQueueMode = savedReviewerPreference.my_queue_mode;
 }
 applyAdminWorkflowUrlParams();
 
@@ -644,10 +633,6 @@ function applyAdminWorkflowUrlParams() {
     return;
   }
   var params = readAdminWorkflowUrlParams();
-  if (params.owner) {
-    reviewerWorkspaceUi.workloadFilter = params.owner;
-    reviewerWorkspaceUi.myQueueMode = false;
-  }
   if (
     params.ticketId &&
     (params.ticketKind === "candidate" || params.ticketKind === "application")
@@ -1301,44 +1286,9 @@ function formatFieldLabel(value) {
     });
 }
 
-const {
-  buildWorkItemSummary,
-  getWorkItemLaneLabel,
-  getWorkItemTriageLabel,
-  getWorkItemTypeLabel,
-  getWorkQueueActionFlash,
-  setWorkQueueActionFlash,
-} = createAdminWorkQueueHelpers({
-  formatDate: formatDate,
-  getLaneScopeState: function () {
-    return [
-      {
-        node: document.getElementById("importBlockerSprint"),
-        label: "Fix Missing Listing Details",
-      },
-      {
-        node: document.getElementById("confirmationQueue"),
-        label: "Confirm Listing Details",
-      },
-      {
-        node: document.getElementById("confirmationSprint"),
-        label: "Send Confirmation Requests",
-      },
-      {
-        node: document.getElementById("refreshQueue"),
-        label: "Review Listing Updates",
-      },
-    ];
-  },
-});
-
 const { buildActionStatCard, buildOperatorGuideCard, buildPriorityActionRow, wrapStatsGroup } =
   createAdminDashboardCardBuilders({
     escapeHtml: escapeHtml,
-    getWorkItemTriageLabel: getWorkItemTriageLabel,
-    buildWorkItemSummary: buildWorkItemSummary,
-    getWorkItemLaneLabel: getWorkItemLaneLabel,
-    getWorkItemTypeLabel: getWorkItemTypeLabel,
   });
 
 const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
@@ -4068,13 +4018,6 @@ function renderExecutiveCommandDeck(context) {
     return;
   }
 
-  var urgentWorkCount =
-    (context.workQueueSnapshot && context.workQueueSnapshot.dueToday
-      ? context.workQueueSnapshot.dueToday.length
-      : 0) +
-    (context.workQueueSnapshot && context.workQueueSnapshot.unassigned
-      ? context.workQueueSnapshot.unassigned.length
-      : 0);
   var inboundSupplyCount = context.pendingApplicationsCount + context.candidateReviewCount;
   var trustDebtCount =
     context.strictImportBlockerCount +
@@ -4134,11 +4077,6 @@ function renderExecutiveCommandDeck(context) {
     escapeHtml(mandate.copy) +
     '</div><div class="executive-metrics">' +
     [
-      {
-        value: urgentWorkCount,
-        label: "Urgent work",
-        note: "Overdue, due-today, and ownerless work that can stall momentum fastest.",
-      },
       {
         value: inboundSupplyCount,
         label: "Inbound supply",
@@ -4381,10 +4319,6 @@ function renderWorkflowLaneGuidance(rootId, config) {
 }
 
 function renderAdminWorkflowGuidance(context) {
-  var snapshot = (context && context.workQueueSnapshot) || {};
-  var unassigned = Array.isArray(snapshot.unassigned) ? snapshot.unassigned : [];
-  var dueToday = Array.isArray(snapshot.dueToday) ? snapshot.dueToday : [];
-  var doneRecently = Array.isArray(snapshot.doneRecently) ? snapshot.doneRecently : [];
   var candidateReviewCount = Number((context && context.candidateReviewCount) || 0);
   var candidateReadyCount = Number((context && context.candidateReadyCount) || 0);
   var candidateDuplicateCount = Number((context && context.candidateDuplicateCount) || 0);
@@ -4399,7 +4333,6 @@ function renderAdminWorkflowGuidance(context) {
   var openPortalRequestCount = Number((context && context.openPortalRequestCount) || 0);
   var profilesNeedingRefresh = Number((context && context.profilesNeedingRefresh) || 0);
   var strictImportBlockerCount = Number((context && context.strictImportBlockerCount) || 0);
-  var preferredReviewer = snapshot.preferredReviewer || "your team";
 
   renderWorkflowLaneGuidance("candidateQueueGuidance", {
     kicker: "Supply conversion",
@@ -4738,8 +4671,6 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
 }
 
 function getCommandPaletteCommands() {
-  var preferredReviewer = reviewerWorkspace.getPreferredReviewer();
-  var reviewerRoster = reviewerWorkspace.getReviewerRoster().slice(0, 8);
   var commands = [
     {
       id: "goto-control",
@@ -5572,18 +5503,6 @@ function renderStats() {
       console.error("Admin next-best actions failed to render:", error);
       nextBestActions = [];
     }
-    let workQueueSnapshot = {
-      preferredReviewer: "",
-      myTasks: [],
-      unassigned: [],
-      dueToday: [],
-      doneRecently: [],
-    };
-    try {
-      workQueueSnapshot = reviewerWorkspace.getHumanWorkQueueSnapshot(4) || workQueueSnapshot;
-    } catch (error) {
-      console.error("Admin work queue failed to render:", error);
-    }
     renderExecutiveCommandDeck({
       candidateReviewCount: candidateReviewCount,
       funnelSummary: funnelSummary,
@@ -5596,7 +5515,6 @@ function renderStats() {
       profilesNeedingConfirmation: profilesNeedingConfirmation,
       profilesNeedingRefresh: profilesNeedingRefresh,
       strictImportBlockerCount: strictImportBlockerCount,
-      workQueueSnapshot: workQueueSnapshot,
       bookedConsultCount: bookedConsultCount,
     });
     renderAdminWorkflowGuidance({
@@ -5612,7 +5530,6 @@ function renderStats() {
       publishReadyApplicationsCount: publishReadyApplicationsCount,
       reviewingApplicationsCount: reviewingApplicationsCount,
       strictImportBlockerCount: strictImportBlockerCount,
-      workQueueSnapshot: workQueueSnapshot,
     });
 
     var topActions = nextBestActions.slice(0, 3);
@@ -5679,11 +5596,6 @@ function renderStats() {
     ];
 
     document.getElementById("adminStats").innerHTML =
-      (getWorkQueueActionFlash()
-        ? '<div class="mini-status"><strong>Update:</strong> ' +
-          escapeHtml(getWorkQueueActionFlash()) +
-          "</div>"
-        : "") +
       nowSectionHtml +
       '<div><div class="admin-now-title">At a glance</div>' +
       '<div class="admin-now-scorecard">' +
@@ -5772,120 +5684,6 @@ function renderStats() {
             workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
           });
         }
-      });
-    });
-
-    document.querySelectorAll("[data-work-queue-bucket]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var bucket = button.getAttribute("data-work-queue-bucket") || "";
-        var item =
-          bucket === "my_tasks"
-            ? workQueueSnapshot.myTasks[0]
-            : bucket === "unassigned"
-              ? workQueueSnapshot.unassigned[0]
-              : bucket === "due_today"
-                ? workQueueSnapshot.dueToday[0]
-                : workQueueSnapshot.doneRecently[0];
-        if (!item) {
-          return;
-        }
-        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
-      });
-    });
-
-    document.querySelectorAll("[data-work-queue-item]").forEach(function (button) {
-      button.addEventListener("click", function (event) {
-        event.stopPropagation();
-        var bucket = button.getAttribute("data-work-queue-item") || "";
-        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-        var items =
-          bucket === "my_tasks"
-            ? workQueueSnapshot.myTasks
-            : bucket === "unassigned"
-              ? workQueueSnapshot.unassigned
-              : bucket === "due_today"
-                ? workQueueSnapshot.dueToday
-                : workQueueSnapshot.doneRecently;
-        var item = Array.isArray(items) ? items[index] : null;
-        if (!item) {
-          return;
-        }
-        reviewerWorkspace.openWorkItem(item.entity_type, item.id);
-      });
-    });
-
-    document.querySelectorAll("[data-work-queue-claim]").forEach(function (button) {
-      button.addEventListener("click", async function (event) {
-        event.stopPropagation();
-        var bucket = button.getAttribute("data-work-queue-claim") || "";
-        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-        var items =
-          bucket === "my_tasks"
-            ? workQueueSnapshot.myTasks
-            : bucket === "unassigned"
-              ? workQueueSnapshot.unassigned
-              : bucket === "due_today"
-                ? workQueueSnapshot.dueToday
-                : workQueueSnapshot.doneRecently;
-        var item = Array.isArray(items) ? items[index] : null;
-        if (!item) {
-          return;
-        }
-        await reviewerWorkspace.claimWorkItem(item.entity_type, item.id);
-        setWorkQueueActionFlash(
-          (item.assignee ? "Reassigned " : "Claimed ") +
-            item.name +
-            " in " +
-            getWorkItemTypeLabel(item.entity_type) +
-            ".",
-        );
-        renderStats();
-      });
-    });
-
-    document.querySelectorAll("[data-work-queue-waiting]").forEach(function (button) {
-      button.addEventListener("click", async function (event) {
-        event.stopPropagation();
-        var bucket = button.getAttribute("data-work-queue-waiting") || "";
-        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-        var items =
-          bucket === "my_tasks"
-            ? workQueueSnapshot.myTasks
-            : bucket === "unassigned"
-              ? workQueueSnapshot.unassigned
-              : bucket === "due_today"
-                ? workQueueSnapshot.dueToday
-                : workQueueSnapshot.doneRecently;
-        var item = Array.isArray(items) ? items[index] : null;
-        if (!item) {
-          return;
-        }
-        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "waiting");
-        setWorkQueueActionFlash("Moved " + item.name + " to waiting.");
-        renderStats();
-      });
-    });
-
-    document.querySelectorAll("[data-work-queue-done]").forEach(function (button) {
-      button.addEventListener("click", async function (event) {
-        event.stopPropagation();
-        var bucket = button.getAttribute("data-work-queue-done") || "";
-        var index = Number(button.getAttribute("data-work-queue-item-index") || "0");
-        var items =
-          bucket === "my_tasks"
-            ? workQueueSnapshot.myTasks
-            : bucket === "unassigned"
-              ? workQueueSnapshot.unassigned
-              : bucket === "due_today"
-                ? workQueueSnapshot.dueToday
-                : workQueueSnapshot.doneRecently;
-        var item = Array.isArray(items) ? items[index] : null;
-        if (!item) {
-          return;
-        }
-        await reviewerWorkspace.updateWorkItemStatus(item.entity_type, item.id, "done");
-        setWorkQueueActionFlash("Marked " + item.name + " done.");
-        renderStats();
       });
     });
   } catch (error) {
@@ -7672,16 +7470,6 @@ async function loadData() {
         profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
       }),
     );
-    if (
-      remoteSnapshot.session &&
-      remoteSnapshot.session.actorName &&
-      !reviewerWorkspace.getSavedPreference().reviewer
-    ) {
-      reviewerWorkspace.setPreferredReviewer(
-        remoteSnapshot.session.actorName,
-        remoteSnapshot.session.actorId || "",
-      );
-    }
     await loadReviewActivityFeed({ reset: true, limit: 12 });
   } catch (_error) {
     if (reviewApiAvailable || getAdminSessionToken()) {
@@ -7764,19 +7552,6 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
       username: username,
       password: value,
     });
-    if (username) {
-      reviewerWorkspace.setPreferredReviewer(username, result.actorId || username);
-      reviewerWorkspace.writeReviewerDirectory(
-        Array.from(new Set(reviewerWorkspace.getReviewerRoster().concat([username]))).sort(
-          function (a, b) {
-            return a.localeCompare(b);
-          },
-        ),
-      );
-      if (!reviewerWorkspaceUi.myQueueMode) {
-        reviewerWorkspace.setReviewerMyQueueMode(true);
-      }
-    }
     setAdminSessionToken(result.sessionToken);
     authRequired = false;
     error.style.display = "none";
@@ -8071,7 +7846,6 @@ document.addEventListener("click", function (event) {
   }
 });
 
-reviewerWorkspace.bindEventHandlers();
 bindCandidateEditDrawer();
 
 document.addEventListener("click", function (event) {
