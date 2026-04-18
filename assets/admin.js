@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import {
   approveApplication,
   getApplications,
@@ -13,6 +14,9 @@ import {
   loadGeneratedAdminArtifacts,
   loadRemoteAdminSnapshot,
 } from "./admin-data.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 import { createAdminReviewModels } from "./admin-review-models.js";
 import { promptForRejectionReason } from "./admin-rejection-reason-picker.js";
 import { createReviewerWorkspace } from "./admin-reviewer-workspace.js";

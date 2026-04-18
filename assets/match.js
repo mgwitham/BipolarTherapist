@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import {
   clearRenderedMatchPanels,
@@ -73,6 +74,9 @@ import {
   applyZipAwareOrdering as applyZipAwareOrderingBase,
 } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 var therapists = [];
 var latestProfile = null;

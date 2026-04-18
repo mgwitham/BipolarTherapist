@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug, cmsEnabled } from "./cms.js";
 import {
@@ -12,6 +13,9 @@ import {
   submitApplication,
 } from "./store.js";
 import { getTherapistConfirmationAgenda, getTherapistMatchReadiness } from "./matching-model.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 let revisionApplicationId = "";
 let revisionBaseline = null;

@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import { fetchDirectoryPageContent } from "./cms.js";
 import {
   readFunnelEvents,
@@ -31,6 +32,9 @@ import {
 } from "./directory-render.js";
 import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 (async function () {
   initValuePillPopover();

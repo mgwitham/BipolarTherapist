@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import {
   getDataFreshnessSummary,
@@ -23,6 +24,9 @@ import {
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 function detectProfileViewSource() {
   try {

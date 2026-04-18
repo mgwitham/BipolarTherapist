@@ -1,3 +1,4 @@
+import { initAnalytics } from "./analytics.js";
 import { fetchHomePageContent } from "./cms.js";
 import {
   getExperimentVariant,
@@ -7,6 +8,9 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 var activeHomeExperimentVariant = "control";
 
