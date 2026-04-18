@@ -1,4 +1,5 @@
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
+import { hasActiveFeatured } from "../shared/therapist-subscription-domain.mjs";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
 const env = (import.meta && import.meta.env) || {};
@@ -214,6 +215,11 @@ function normalizeTherapist(doc) {
     listing_active: doc.listingActive !== false,
     status: doc.status || "active",
     slug: doc.slug || "",
+    // Default to false. The caller (e.g. fetchPublicTherapistBySlug)
+    // can overwrite this when it has looked up the therapist's
+    // subscription document. Used by the therapist-page renderer to
+    // unlock the enhanced-profile treatment for paid subscribers.
+    has_paid_subscription: false,
   };
 }
 
@@ -423,7 +429,30 @@ export async function fetchPublicTherapistBySlug(slug) {
       { slug: slug },
     );
     setCmsState("sanity", null);
-    return doc ? normalizeTherapist(doc) : null;
+    if (!doc) {
+      return null;
+    }
+    // Pull the subscription document for this therapist so the page
+    // renderer can gate enhanced-profile treatment (e.g. full-bio
+    // presentation) on an active paid subscription. We use the
+    // deterministic subscription id to avoid a scanning query.
+    const subscriptionId = `therapistSubscription-${String(slug || "")
+      .trim()
+      .toLowerCase()}`;
+    let subscription = null;
+    try {
+      subscription = await fetchFromSanity(`*[_id == $id][0]{_id, plan, status}`, {
+        id: subscriptionId,
+      });
+    } catch (_error) {
+      // Subscription lookup is optional — if it fails, fall back to
+      // treating the therapist as non-paid. Better to render the
+      // standard collapsed bio than to fail the whole profile load.
+      subscription = null;
+    }
+    const normalized = normalizeTherapist(doc);
+    normalized.has_paid_subscription = hasActiveFeatured(subscription);
+    return normalized;
   } catch (error) {
     console.error("Failed to load therapist profile from Sanity.", error);
     setCmsState("error", error);

@@ -2621,10 +2621,42 @@ function renderProfile(t, therapistDirectory) {
     "</div>";
   void contactBtns;
 
+  // Paid subscribers get an enhanced bio presentation: paragraph breaks
+  // preserved, expanded by default, no "Read full bio" collapse. Free
+  // listings keep the collapse-and-expand behavior. The source text is
+  // identical either way — we're only changing presentation — so there's
+  // no migration or data gate beyond the subscription flag.
+  var hasPaidSubscription = Boolean(t.has_paid_subscription);
+
+  function renderBioParagraphs(rawBio) {
+    if (!rawBio) {
+      return '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>';
+    }
+    // Split on blank lines so therapists who write multi-paragraph bios
+    // see them rendered as paragraphs. Collapsed view used the whole
+    // string in one <p> which lost structure.
+    var paragraphs = String(rawBio)
+      .split(/\n\s*\n+/)
+      .map(function (chunk) {
+        return chunk.trim();
+      })
+      .filter(Boolean);
+    if (!paragraphs.length) {
+      return '<p class="profile-bio-paragraph">' + escapeHtml(String(rawBio).trim()) + "</p>";
+    }
+    return paragraphs
+      .map(function (paragraph) {
+        return '<p class="profile-bio-paragraph">' + escapeHtml(paragraph) + "</p>";
+      })
+      .join("");
+  }
+
   var bioBodyHtml =
-    (t.bio
-      ? '<p class="profile-bio-paragraph">' + escapeHtml(t.bio) + "</p>"
-      : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
+    (hasPaidSubscription
+      ? renderBioParagraphs(t.bio)
+      : t.bio
+        ? '<p class="profile-bio-paragraph">' + escapeHtml(t.bio) + "</p>"
+        : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
     (t.care_approach
       ? '<p class="profile-bio-paragraph profile-bio-approach">' +
         escapeHtml(t.care_approach) +
@@ -2708,15 +2740,24 @@ function renderProfile(t, therapistDirectory) {
       : "") +
     "</div>" +
     "</div>" +
-    '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
-    '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
-    '<span class="profile-bio-toggle-label">Read full bio</span>' +
-    '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
-    "</button>" +
-    '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
-    bioBodyHtml +
-    "</div>" +
-    "</div>" +
+    (hasPaidSubscription
+      ? // Paid presentation: full bio always visible, no toggle. Wrapper
+        // keeps the same id/class hooks so any JS reading #profileBioPanel
+        // still works; the is-collapsed modifier is intentionally absent.
+        '<div class="profile-bio-enhanced">' +
+        '<div class="profile-bio-panel" id="profileBioPanel">' +
+        bioBodyHtml +
+        "</div>" +
+        "</div>"
+      : '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
+        '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
+        '<span class="profile-bio-toggle-label">Read full bio</span>' +
+        '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
+        "</button>" +
+        '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+        bioBodyHtml +
+        "</div>" +
+        "</div>") +
     '<div class="profile-summary-strip">' +
     summaryStats +
     "</div>" +
