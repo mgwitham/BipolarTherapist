@@ -30,6 +30,32 @@ export const therapistSubscriptionType = defineType({
         ],
       },
     }),
+    defineField({
+      name: "tier",
+      title: "Pricing tier",
+      type: "string",
+      group: "identity",
+      description:
+        "Rate this subscriber signed up at. Founding members keep their rate for 24 months.",
+      options: {
+        list: [
+          { title: "Founding", value: "founding" },
+          { title: "Regular", value: "regular" },
+        ],
+      },
+    }),
+    defineField({
+      name: "interval",
+      title: "Billing interval",
+      type: "string",
+      group: "identity",
+      options: {
+        list: [
+          { title: "Monthly", value: "month" },
+          { title: "Annual", value: "year" },
+        ],
+      },
+    }),
 
     defineField({
       name: "stripeCustomerId",

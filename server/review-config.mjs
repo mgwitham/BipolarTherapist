@@ -118,6 +118,22 @@ export function getReviewApiConfig() {
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:
       process.env.STRIPE_FEATURED_PRICE_ID || rootEnv.STRIPE_FEATURED_PRICE_ID || "",
+    stripeFeaturedFoundingMonthlyPriceId:
+      process.env.STRIPE_FEATURED_FOUNDING_MONTHLY_PRICE_ID ||
+      rootEnv.STRIPE_FEATURED_FOUNDING_MONTHLY_PRICE_ID ||
+      "",
+    stripeFeaturedFoundingAnnualPriceId:
+      process.env.STRIPE_FEATURED_FOUNDING_ANNUAL_PRICE_ID ||
+      rootEnv.STRIPE_FEATURED_FOUNDING_ANNUAL_PRICE_ID ||
+      "",
+    stripeFeaturedRegularMonthlyPriceId:
+      process.env.STRIPE_FEATURED_REGULAR_MONTHLY_PRICE_ID ||
+      rootEnv.STRIPE_FEATURED_REGULAR_MONTHLY_PRICE_ID ||
+      "",
+    stripeFeaturedRegularAnnualPriceId:
+      process.env.STRIPE_FEATURED_REGULAR_ANNUAL_PRICE_ID ||
+      rootEnv.STRIPE_FEATURED_REGULAR_ANNUAL_PRICE_ID ||
+      "",
     stripeTrialDays: Number(process.env.STRIPE_TRIAL_DAYS || rootEnv.STRIPE_TRIAL_DAYS || 14),
     stripeReturnUrlBase:
       process.env.STRIPE_RETURN_URL_BASE ||

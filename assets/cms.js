@@ -402,6 +402,25 @@ export async function fetchPublicTherapists() {
   }
 }
 
+export const FOUNDING_SLOT_CAP = 50;
+
+export async function fetchFoundingSpotsRemaining() {
+  if (!cmsEnabled) {
+    return { cap: FOUNDING_SLOT_CAP, claimed: 0, remaining: FOUNDING_SLOT_CAP };
+  }
+  try {
+    const result = await fetchFromSanity(
+      `count(*[_type == "therapistSubscription" && tier == "founding" && status in ["trialing", "active"]])`,
+    );
+    const claimed = Number.isFinite(result) ? result : Number(result) || 0;
+    const remaining = Math.max(0, FOUNDING_SLOT_CAP - claimed);
+    return { cap: FOUNDING_SLOT_CAP, claimed, remaining };
+  } catch (error) {
+    console.error("Failed to load founding spot count from Sanity.", error);
+    return { cap: FOUNDING_SLOT_CAP, claimed: 0, remaining: FOUNDING_SLOT_CAP };
+  }
+}
+
 export async function fetchActiveFeaturedSlugs() {
   if (!cmsEnabled) {
     return [];

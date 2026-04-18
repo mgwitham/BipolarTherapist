@@ -135,6 +135,7 @@ export async function handleStripeRoutes(context) {
 
     const therapistSlug = String((body && body.therapist_slug) || "").trim();
     const email = String((body && body.email) || "").trim();
+    const plan = String((body && body.plan) || "").trim();
     if (!therapistSlug) {
       sendJson(response, 400, { error: "therapist_slug is required." }, origin, config);
       return true;
@@ -145,8 +146,21 @@ export async function handleStripeRoutes(context) {
         therapistSlug,
         customerEmail: email,
         returnPath: body && body.return_path ? String(body.return_path) : undefined,
+        plan: plan || undefined,
       });
-      sendJson(response, 200, { ok: true, id: session.id, url: session.url }, origin, config);
+      sendJson(
+        response,
+        200,
+        {
+          ok: true,
+          id: session.id,
+          url: session.url,
+          tier: session.tier,
+          interval: session.interval,
+        },
+        origin,
+        config,
+      );
     } catch (error) {
       sendJson(
         response,

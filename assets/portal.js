@@ -5,7 +5,6 @@ import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
   createStripeBillingPortalSession,
-  createStripeFeaturedCheckoutSession,
   fetchTherapistClaimSession,
   fetchTherapistSubscription,
   requestTherapistClaimLink,
@@ -790,10 +789,8 @@ function renderFeaturedCard(subscription) {
   }
 }
 
-async function handleFeaturedUpgradeClick(event) {
+function handleFeaturedUpgradeClick(event) {
   var card = document.getElementById("portalFeaturedCard");
-  var feedback = document.getElementById("portalFeaturedFeedback");
-  var button = event.currentTarget;
   if (!card) {
     return;
   }
@@ -802,28 +799,15 @@ async function handleFeaturedUpgradeClick(event) {
   if (!slug) {
     return;
   }
-  button.disabled = true;
-  if (feedback) {
-    feedback.textContent = "Opening secure checkout...";
+  var params = new URLSearchParams();
+  params.set("slug", slug);
+  if (email) {
+    params.set("email", email);
   }
-  try {
-    var result = await createStripeFeaturedCheckoutSession({
-      therapist_slug: slug,
-      email: email,
-      return_path: "/portal.html?slug=" + encodeURIComponent(slug),
-    });
-    if (result && result.url) {
-      window.location.href = result.url;
-      return;
-    }
-    throw new Error("No checkout URL returned.");
-  } catch (error) {
-    button.disabled = false;
-    if (feedback) {
-      feedback.textContent =
-        (error && error.message) || "We could not start checkout. Try again in a moment.";
-    }
+  if (event && event.preventDefault) {
+    event.preventDefault();
   }
+  window.location.href = "/pricing.html?" + params.toString();
 }
 
 async function handleFeaturedBillingClick(event) {

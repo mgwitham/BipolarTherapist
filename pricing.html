@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Featured Placement Pricing — BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="Join BipolarTherapyHub as a Featured therapist. Priority placement in match results and a badge on your profile. Founding rate for the first 50 CA therapists."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      body {
+        background: #f7fbfc;
+      }
+      .pricing-wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+      }
+      .pricing-hero {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .pricing-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.1;
+        margin: 0.5rem 0;
+      }
+      .pricing-hero p {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.6;
+        max-width: 620px;
+        margin: 0 auto;
+      }
+      .pricing-eyebrow {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--teal);
+      }
+      .pricing-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem;
+        border-radius: 999px;
+        background: #eef5f6;
+        margin: 1.5rem auto 2rem;
+      }
+      .pricing-toggle button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 0.5rem 1.1rem;
+        border-radius: 999px;
+        font: inherit;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .pricing-toggle button.is-active {
+        background: #fff;
+        color: var(--navy);
+        box-shadow: 0 2px 6px rgba(15, 65, 78, 0.08);
+      }
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+      }
+      .pricing-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.75rem;
+        box-shadow: 0 12px 30px rgba(15, 65, 78, 0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .pricing-card.is-founding {
+        border: 2px solid #fde68a;
+        background: linear-gradient(180deg, #fffbeb 0%, #fff 70%);
+      }
+      .pricing-card h2 {
+        font-family: "Lora", serif;
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      .pricing-price {
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.1;
+      }
+      .pricing-price-unit {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--muted);
+        margin-left: 0.35rem;
+      }
+      .pricing-note {
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.6;
+      }
+      .pricing-features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .pricing-features li {
+        padding-left: 1.4rem;
+        position: relative;
+        color: var(--navy);
+        font-size: 0.94rem;
+        line-height: 1.5;
+      }
+      .pricing-features li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .pricing-cta {
+        appearance: none;
+        border: 0;
+        padding: 0.9rem 1.2rem;
+        border-radius: 12px;
+        background: var(--teal);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .pricing-cta:disabled {
+        background: #b8c7cb;
+        cursor: not-allowed;
+      }
+      .pricing-cta-secondary {
+        background: #fff;
+        color: var(--teal);
+        border: 1px solid var(--teal);
+      }
+      .pricing-tag {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 0.25rem 0.7rem;
+        border-radius: 999px;
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .pricing-spots {
+        font-size: 0.82rem;
+        color: #92400e;
+        font-weight: 600;
+      }
+      .pricing-feedback {
+        min-height: 1.2rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .pricing-footnote {
+        text-align: center;
+        margin-top: 2rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .pricing-footnote a {
+        color: var(--teal);
+      }
+      @media (max-width: 720px) {
+        .pricing-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <div class="nav-icon">🧠</div>
+        <div class="nav-name">BipolarTherapy<span>Hub</span></div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="directory.html">Directory</a></li>
+        <li><a href="match.html">Get matched</a></li>
+        <li><a href="signup.html" class="nav-cta">Join as a therapist</a></li>
+      </ul>
+    </nav>
+    <main class="pricing-wrap">
+      <header class="pricing-hero">
+        <p class="pricing-eyebrow">Featured placement</p>
+        <h1>Get priority placement in a niche directory built for bipolar care</h1>
+        <p>
+          Featured therapists rotate into top positions in match results and the directory, and
+          carry a Featured badge on their profile. Cancel anytime from your portal.
+        </p>
+        <div class="pricing-toggle" role="tablist" aria-label="Billing interval">
+          <button type="button" data-interval="month" class="is-active" role="tab">Monthly</button>
+          <button type="button" data-interval="year" role="tab">
+            Annual <span aria-hidden="true">· save 2 months</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="pricing-grid" id="pricingGrid">
+        <article class="pricing-card is-founding" data-plan-card="founding">
+          <span class="pricing-tag">Founding rate · First 50</span>
+          <h2>Founding member</h2>
+          <div>
+            <span class="pricing-price" data-founding-price>$19</span>
+            <span class="pricing-price-unit" data-founding-unit>/ month</span>
+          </div>
+          <p class="pricing-note">
+            Your rate is locked for 24 months. After that, it rolls to the standard rate.
+          </p>
+          <p class="pricing-spots" data-founding-spots>Checking how many spots are left...</p>
+          <ul class="pricing-features">
+            <li>Priority placement in match results and directory</li>
+            <li>Featured badge on your profile</li>
+            <li>14-day free trial</li>
+            <li>Cancel anytime</li>
+          </ul>
+          <button
+            type="button"
+            class="pricing-cta"
+            data-checkout-plan="founding_monthly"
+            data-founding-cta
+          >
+            Start 14-day free trial
+          </button>
+          <div class="pricing-feedback" data-feedback="founding"></div>
+        </article>
+
+        <article class="pricing-card" data-plan-card="regular">
+          <h2>Standard</h2>
+          <div>
+            <span class="pricing-price" data-regular-price>$39</span>
+            <span class="pricing-price-unit" data-regular-unit>/ month</span>
+          </div>
+          <p class="pricing-note">Always available. No commitment.</p>
+          <ul class="pricing-features">
+            <li>Priority placement in match results and directory</li>
+            <li>Featured badge on your profile</li>
+            <li>14-day free trial</li>
+            <li>Cancel anytime</li>
+          </ul>
+          <button
+            type="button"
+            class="pricing-cta pricing-cta-secondary"
+            data-checkout-plan="regular_monthly"
+            data-regular-cta
+          >
+            Start 14-day free trial
+          </button>
+          <div class="pricing-feedback" data-feedback="regular"></div>
+        </article>
+      </section>
+
+      <p class="pricing-footnote">
+        You need a claimed profile to start a subscription.
+        <a href="signup.html">Claim your profile first</a> if you haven't yet.
+      </p>
+    </main>
+    <script type="module" src="assets/pricing.js"></script>
+  </body>
+</html>

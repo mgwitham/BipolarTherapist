@@ -23,6 +23,7 @@ export default defineConfig({
         signup: resolve(rootDir, "signup.html"),
         admin: resolve(rootDir, "admin.html"),
         portal: resolve(rootDir, "portal.html"),
+        pricing: resolve(rootDir, "pricing.html"),
       },
     },
   },
