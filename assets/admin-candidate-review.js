@@ -109,6 +109,24 @@ export function findCandidateMergeTarget(item, context) {
 
   const therapists = Array.isArray(context.therapists) ? context.therapists : [];
   const applications = Array.isArray(context.applications) ? context.applications : [];
+  const candidates = Array.isArray(context.candidates) ? context.candidates : [];
+
+  if (item.matched_candidate_id) {
+    const matchedCandidate = candidates.find(function (entry) {
+      return (
+        entry &&
+        entry.id !== item.id &&
+        (entry.id === item.matched_candidate_id || entry._id === item.matched_candidate_id)
+      );
+    });
+    if (matchedCandidate) {
+      return {
+        kind: "candidate",
+        label: "Existing candidate",
+        record: matchedCandidate,
+      };
+    }
+  }
 
   if (item.matched_therapist_slug) {
     const therapist = therapists.find(function (entry) {

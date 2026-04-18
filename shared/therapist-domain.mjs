@@ -52,7 +52,11 @@ export function normalizeKeySegment(value) {
 }
 
 export function normalizeEmail(value) {
-  return normalizeLower(value);
+  const lowered = normalizeLower(value);
+  if (!lowered.includes("@")) {
+    return "";
+  }
+  return lowered;
 }
 
 export function normalizePhone(value) {
