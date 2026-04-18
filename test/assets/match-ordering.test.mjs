@@ -28,10 +28,6 @@ function makeEntry(overrides) {
 }
 
 test("orderMatchEntries — in-person 94941 search ranks local therapist above higher-scoring LA therapist", () => {
-  // Regression: before the fix, applyMatchPriorityProminence re-sorted by raw
-  // evaluation.score after applyZipAwareOrdering, so a Pasadena therapist with
-  // a higher base score (simulating stronger profile completeness) outranked a
-  // Mill Valley therapist on a 94941 in-person search.
   var entries = [
     makeEntry({ slug: "valone-pasadena", zip: "91105", score: 140 }),
     makeEntry({ slug: "kokoska-mill-valley", zip: "94941", score: 90 }),
@@ -40,7 +36,6 @@ test("orderMatchEntries — in-person 94941 search ranks local therapist above h
   var ordered = orderMatchEntries(entries, {
     locationQuery: "94941",
     careFormat: "In-Person",
-    prioritySlugs: [],
   });
 
   assert.equal(
@@ -49,22 +44,6 @@ test("orderMatchEntries — in-person 94941 search ranks local therapist above h
     "nearby Mill Valley therapist should outrank Pasadena on a 94941 in-person search",
   );
   assert.equal(ordered[1].therapist.slug, "valone-pasadena");
-});
-
-test("orderMatchEntries — priority slug still wins within the close-score band", () => {
-  // Priority swap should still engage when adjusted scores are within 12.
-  var entries = [
-    makeEntry({ slug: "priority-local", zip: "94941", score: 80 }),
-    makeEntry({ slug: "nonpriority-local", zip: "94901", score: 88 }),
-  ];
-
-  var ordered = orderMatchEntries(entries, {
-    locationQuery: "94941",
-    careFormat: "In-Person",
-    prioritySlugs: ["priority-local"],
-  });
-
-  assert.equal(ordered[0].therapist.slug, "priority-local");
 });
 
 test("applyZipAwareOrdering — stamps ordering_score used by prominence pass", () => {
@@ -93,7 +72,6 @@ test("orderMatchEntries — telehealth search preserves evaluation.score orderin
   var ordered = orderMatchEntries(entries, {
     locationQuery: "94941",
     careFormat: "Telehealth",
-    prioritySlugs: [],
   });
 
   assert.equal(

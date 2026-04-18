@@ -55,20 +55,6 @@ export const homePageType = defineType({
       initialValue: "Search →",
     }),
     defineField({
-      name: "featuredTherapists",
-      title: "Legacy featured therapists",
-      type: "array",
-      of: [
-        defineArrayMember({
-          type: "reference",
-          to: [{ type: "therapist" }],
-        }),
-      ],
-      description:
-        "Legacy fallback featured therapist list. New section-based content should use Homepage sections below.",
-      hidden: true,
-    }),
-    defineField({
       name: "sections",
       title: "Homepage sections",
       type: "array",
@@ -177,46 +163,6 @@ export const homePageType = defineType({
             prepare(selection) {
               return {
                 title: selection.title || "Steps section",
-                subtitle: selection.subtitle || "Homepage section",
-              };
-            },
-          },
-        }),
-        defineArrayMember({
-          name: "featuredTherapistsSection",
-          title: "Featured Therapists Section",
-          type: "object",
-          fields: [
-            defineField({
-              name: "sectionKey",
-              title: "Internal section key",
-              type: "string",
-            }),
-            defineField({ name: "eyebrow", title: "Eyebrow", type: "string" }),
-            defineField({ name: "title", title: "Title", type: "string" }),
-            defineField({ name: "description", title: "Description", type: "text", rows: 3 }),
-            defineField({ name: "buttonLabel", title: "Button label", type: "string" }),
-            defineField({ name: "buttonUrl", title: "Button URL", type: "string" }),
-            defineField({
-              name: "therapists",
-              title: "Featured therapists",
-              type: "array",
-              of: [
-                defineArrayMember({
-                  type: "reference",
-                  to: [{ type: "therapist" }],
-                }),
-              ],
-            }),
-          ],
-          preview: {
-            select: {
-              title: "title",
-              subtitle: "sectionKey",
-            },
-            prepare(selection) {
-              return {
-                title: selection.title || "Featured therapists section",
                 subtitle: selection.subtitle || "Homepage section",
               };
             },
