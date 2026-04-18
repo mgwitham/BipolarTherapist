@@ -63,6 +63,29 @@ export async function createFeaturedCheckoutSession(config, options) {
   return { id: session.id, url: session.url };
 }
 
+export async function createBillingPortalSession(config, options) {
+  const { customerId, returnPath } = options || {};
+  if (!customerId) {
+    throw new Error("customerId is required to create a billing portal session.");
+  }
+  if (!config || !config.stripeSecretKey) {
+    throw new Error("Stripe is not configured.");
+  }
+
+  const stripe = await getStripeClient(config);
+  const base = String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+  const returnUrl = returnPath
+    ? `${base}${String(returnPath).startsWith("/") ? returnPath : `/${returnPath}`}`
+    : `${base}/portal.html`;
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
+
+  return { id: session.id, url: session.url };
+}
+
 export async function verifyAndParseWebhook(config, rawBody, signature) {
   if (!hasStripeWebhookConfig(config)) {
     throw new Error("Stripe webhook is not configured.");

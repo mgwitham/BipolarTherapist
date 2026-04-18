@@ -378,6 +378,28 @@ export async function acceptTherapistClaim(token) {
   return result;
 }
 
+export async function createStripeFeaturedCheckoutSession(payload) {
+  return request("/stripe/checkout-session", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function createStripeBillingPortalSession(payload) {
+  return request("/stripe/portal-session", {
+    method: "POST",
+    headers: getTherapistHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function fetchTherapistSubscription() {
+  return request("/stripe/subscription", {
+    method: "GET",
+    headers: getTherapistHeaders(),
+  });
+}
+
 export async function fetchTherapistApplicationRevision(applicationId) {
   return sanitizeApplication(
     await request(`/applications/${encodeURIComponent(applicationId)}/revision`, {

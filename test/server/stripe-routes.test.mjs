@@ -315,3 +315,168 @@ test("webhook: missing therapist_slug in metadata returns handled=false", async 
   assert.equal(response.payload.handled, false);
   assert.equal(response.payload.reason, "no-therapist-slug");
 });
+
+test("subscription GET returns 401 when no therapist session is attached", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/stripe/subscription",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => null,
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => null,
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 401);
+});
+
+test("subscription GET returns shaped subscription for authed therapist", async () => {
+  const { client } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      plan: "featured",
+      status: "active",
+      stripeCustomerId: "cus_authed",
+      currentPeriodEndsAt: "2027-01-01T00:00:00.000Z",
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+    },
+  });
+
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/stripe/subscription",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => ({ slug: "jamie-rivera" }),
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => null,
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.subscription.plan, "featured");
+  assert.equal(response.payload.subscription.status, "active");
+  assert.equal(response.payload.subscription.has_active_featured, true);
+  assert.equal(response.payload.subscription.current_period_ends_at, "2027-01-01T00:00:00.000Z");
+  assert.equal(response.payload.subscription.cancel_at_period_end, false);
+});
+
+test("subscription GET returns plan=none shape when no doc exists", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/stripe/subscription",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => ({ slug: "unknown-therapist" }),
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => null,
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.subscription.plan, "none");
+  assert.equal(response.payload.subscription.has_active_featured, false);
+});
+
+test("portal-session returns Stripe billing portal URL for authed therapist with customer", async () => {
+  const { client } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      plan: "featured",
+      status: "active",
+      stripeCustomerId: "cus_portal_789",
+    },
+  });
+
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/portal-session",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => ({ slug: "jamie-rivera" }),
+      parseBody: async () => ({ return_path: "/portal.html" }),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async (_config, options) => {
+        assert.equal(options.customerId, "cus_portal_789");
+        assert.equal(options.returnPath, "/portal.html");
+        return { id: "bps_1", url: "https://billing.stripe.test/bps_1" };
+      },
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.url, "https://billing.stripe.test/bps_1");
+});
+
+test("portal-session returns 404 when therapist has no Stripe customer on file", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/portal-session",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => ({ slug: "jamie-rivera" }),
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => {
+        throw new Error("should not be called");
+      },
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 404);
+});
+
+test("portal-session returns 401 for unauthed requests", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/portal-session",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => null,
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => null,
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 401);
+});
