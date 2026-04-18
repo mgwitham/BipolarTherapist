@@ -1,3 +1,39 @@
+function normalizeNameForMatch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/^(dr|mr|mrs|ms|mx|prof)\.?\s+/i, "")
+    .split(",")[0]
+    .replace(/[^a-z\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeLicenseForMatch(value) {
+  return String(value || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .replace(/^[a-z]+/i, "")
+    .trim();
+}
+
+function maskEmail(email) {
+  const trimmed = String(email || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  const at = trimmed.indexOf("@");
+  if (at < 1) {
+    return trimmed.slice(0, 1) + "***";
+  }
+  const local = trimmed.slice(0, at);
+  const domain = trimmed.slice(at + 1);
+  const dot = domain.lastIndexOf(".");
+  const domainHead = dot > 0 ? domain.slice(0, dot) : domain;
+  const domainTail = dot > 0 ? domain.slice(dot) : "";
+  const maskLocal = local.slice(0, 1) + "***";
+  const maskDomain = (domainHead ? domainHead.slice(0, 1) + "***" : "***") + domainTail;
+  return maskLocal + "@" + maskDomain;
+}
+
 export async function handleAuthAndPortalRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
@@ -157,15 +193,54 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  if (request.method === "GET" && routePath === "/portal/quick-claim/search") {
+    const query = String((url && url.searchParams.get("q")) || "").trim();
+    if (query.length < 2) {
+      sendJson(response, 200, { results: [] }, origin, config);
+      return true;
+    }
+
+    const normalizedLicense = normalizeLicenseForMatch(query);
+    const normalizedName = normalizeNameForMatch(query);
+    const nameMatcher = normalizedName ? `*${normalizedName.split(" ").join("*")}*` : "";
+
+    const docs = await client.fetch(
+      `*[_type == "therapist" && listingActive == true && defined(slug.current) && (
+        ($license != "" && licenseNumber match $license) ||
+        ($nameMatcher != "" && name match $nameMatcher)
+      )] | order(name asc) [0...8]{
+        _id, name, email, city, state, credentials, licenseNumber, claimStatus, "slug": slug.current
+      }`,
+      { license: normalizedLicense || "__none__", nameMatcher: nameMatcher || "__none__" },
+    );
+
+    const results = (docs || []).map(function (doc) {
+      return {
+        slug: doc.slug,
+        name: doc.name || "",
+        city: doc.city || "",
+        state: doc.state || "",
+        credentials: doc.credentials || "",
+        license_number: doc.licenseNumber || "",
+        email_hint: maskEmail(doc.email),
+        has_email: Boolean(doc.email),
+        claim_status: doc.claimStatus || "unclaimed",
+      };
+    });
+
+    sendJson(response, 200, { results }, origin, config);
+    return true;
+  }
+
   if (request.method === "POST" && routePath === "/portal/quick-claim") {
     const body = await parseBody(request);
-    const fullName = String(body.full_name || "")
-      .trim()
-      .toLowerCase();
-    const requesterEmail = String(body.email || "")
-      .trim()
-      .toLowerCase();
-    const licenseNumber = String(body.license_number || "").trim();
+    const rawFullName = String(body.full_name || "").trim();
+    const rawEmail = String(body.email || "").trim();
+    const rawLicense = String(body.license_number || "").trim();
+
+    const fullName = normalizeNameForMatch(rawFullName);
+    const requesterEmail = rawEmail.toLowerCase();
+    const licenseNumber = normalizeLicenseForMatch(rawLicense);
 
     if (!fullName || !requesterEmail || !licenseNumber) {
       sendJson(
@@ -179,10 +254,10 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const therapist = await client.fetch(
-      `*[_type == "therapist" && licenseNumber == $license][0]{
+      `*[_type == "therapist" && licenseNumber match $license][0]{
         _id, name, email, claimStatus, "slug": slug
       }`,
-      { license: licenseNumber },
+      { license: `*${licenseNumber}*` },
     );
 
     if (!therapist || !therapist.slug || !therapist.slug.current) {
@@ -200,17 +275,18 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
-    const profileName = String(therapist.name || "")
-      .trim()
-      .toLowerCase();
+    const profileName = normalizeNameForMatch(therapist.name);
     if (!profileName || profileName !== fullName) {
       sendJson(
         response,
         403,
         {
           error:
-            "The name does not match the profile for that license. Contact us if you believe this is a mistake.",
+            "The name you entered doesn't match the profile for that license. Double-check spelling, or use the search above to find your listing.",
           reason: "name_mismatch",
+          name_hint: therapist.name
+            ? therapist.name.charAt(0) + "***" + therapist.name.slice(-1)
+            : "",
         },
         origin,
         config,
@@ -227,8 +303,9 @@ export async function handleAuthAndPortalRoutes(context) {
         403,
         {
           error:
-            "That email does not match the public contact email on your profile. Use the contact form so we can verify ownership.",
+            "That email doesn't match the contact email on your profile. Use the email on file, or contact us if you no longer have access to it.",
           reason: "email_mismatch",
+          email_hint: maskEmail(therapist.email),
         },
         origin,
         config,

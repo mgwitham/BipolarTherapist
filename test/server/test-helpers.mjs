@@ -179,15 +179,18 @@ export function createMemoryClient(initialDocuments) {
         }
 
         if (
-          query.includes(`*[_type == "therapist" && licenseNumber == $license][0]`) &&
+          (query.includes(`*[_type == "therapist" && licenseNumber == $license][0]`) ||
+            query.includes(`*[_type == "therapist" && licenseNumber match $license][0]`)) &&
           params &&
           typeof params.license === "string"
         ) {
+          const rawLicense = params.license.replace(/^\*|\*$/g, "");
           const match = Array.from(state.documents.values()).find(function (document) {
-            return (
-              document._type === "therapist" &&
-              String(document.licenseNumber || "") === params.license
-            );
+            if (document._type !== "therapist") {
+              return false;
+            }
+            const stored = String(document.licenseNumber || "");
+            return stored === params.license || stored.includes(rawLicense);
           });
           return match ? deepClone(match) : null;
         }
