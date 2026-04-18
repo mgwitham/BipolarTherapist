@@ -22,6 +22,7 @@ export default defineConfig({
         therapist: resolve(rootDir, "therapist.html"),
         signup: resolve(rootDir, "signup.html"),
         admin: resolve(rootDir, "admin.html"),
+        portal: resolve(rootDir, "portal.html"),
       },
     },
   },
