@@ -115,44 +115,52 @@ export function openTherapistEditDrawer(therapist, onSaved) {
 
   setDrawerTitle("Edit therapist profile");
 
-  // Identity — therapist uses camelCase
-  setVal("editName", therapist.name);
-  setVal("editCredentials", therapist.credentials);
-  setVal("editTitle", therapist.title);
-  setVal("editPracticeName", therapist.practiceName);
+  // fetchPublicTherapists emits snake_case; fall back to camelCase for any
+  // caller still passing a raw Sanity doc.
+  const read = (snake, camel) =>
+    therapist[snake] !== undefined ? therapist[snake] : therapist[camel];
+
+  // Identity
+  setVal("editName", read("name", "name"));
+  setVal("editCredentials", read("credentials", "credentials"));
+  setVal("editTitle", read("title", "title"));
+  setVal("editPracticeName", read("practice_name", "practiceName"));
 
   // Location
-  setVal("editCity", therapist.city);
-  setVal("editState", therapist.state);
-  setVal("editZip", therapist.zip);
+  setVal("editCity", read("city", "city"));
+  setVal("editState", read("state", "state"));
+  setVal("editZip", read("zip", "zip"));
 
   // License
-  setVal("editLicenseState", therapist.licenseState);
-  setVal("editLicenseNumber", therapist.licenseNumber);
+  setVal("editLicenseState", read("license_state", "licenseState"));
+  setVal("editLicenseNumber", read("license_number", "licenseNumber"));
 
   // Contact
-  setVal("editEmail", therapist.email);
-  setVal("editPhone", therapist.phone);
-  setVal("editWebsite", therapist.website);
-  setVal("editBookingUrl", therapist.bookingUrl);
+  setVal("editEmail", read("email", "email"));
+  setVal("editPhone", read("phone", "phone"));
+  setVal("editWebsite", read("website", "website"));
+  setVal("editBookingUrl", read("booking_url", "bookingUrl"));
 
   // Care
-  setVal("editCareApproach", therapist.careApproach);
-  setVal("editSpecialties", arrayToTags(therapist.specialties));
-  setVal("editTreatmentModalities", arrayToTags(therapist.treatmentModalities));
-  setVal("editClientPopulations", arrayToTags(therapist.clientPopulations));
-  setVal("editInsuranceAccepted", arrayToTags(therapist.insuranceAccepted));
+  setVal("editCareApproach", read("care_approach", "careApproach"));
+  setVal("editSpecialties", arrayToTags(read("specialties", "specialties")));
+  setVal(
+    "editTreatmentModalities",
+    arrayToTags(read("treatment_modalities", "treatmentModalities")),
+  );
+  setVal("editClientPopulations", arrayToTags(read("client_populations", "clientPopulations")));
+  setVal("editInsuranceAccepted", arrayToTags(read("insurance_accepted", "insuranceAccepted")));
 
   // Availability
-  setVal("editAcceptsTelehealth", therapist.acceptsTelehealth !== false);
-  setVal("editAcceptsInPerson", therapist.acceptsInPerson !== false);
-  setVal("editAcceptingNewPatients", therapist.acceptingNewPatients);
-  setVal("editSlidingScale", therapist.slidingScale);
-  setVal("editSessionFeeMin", therapist.sessionFeeMin);
-  setVal("editSessionFeeMax", therapist.sessionFeeMax);
+  setVal("editAcceptsTelehealth", read("accepts_telehealth", "acceptsTelehealth") !== false);
+  setVal("editAcceptsInPerson", read("accepts_in_person", "acceptsInPerson") !== false);
+  setVal("editAcceptingNewPatients", read("accepting_new_patients", "acceptingNewPatients"));
+  setVal("editSlidingScale", read("sliding_scale", "slidingScale"));
+  setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
+  setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
 
   // Notes
-  setVal("editNotes", therapist.notes || "");
+  setVal("editNotes", read("notes", "notes") || "");
 
   const statusEl = drawer.querySelector(".edit-save-status");
   if (statusEl) statusEl.textContent = "";
