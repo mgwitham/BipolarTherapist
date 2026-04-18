@@ -1,5 +1,5 @@
 import "./funnel-analytics.js";
-import { fetchPublicTherapistBySlug, cmsEnabled } from "./cms.js";
+import { fetchPublicTherapistBySlug, cmsEnabled, fetchFoundingSpotsRemaining } from "./cms.js";
 import {
   fetchTherapistApplicationRevision,
   submitTherapistApplication,
@@ -4800,12 +4800,40 @@ function initSignupFormUi() {
   runSignupRenderStep("workspace", refreshSignupWorkspace);
 }
 
+async function renderFoundingSpotsIndicator() {
+  var label = document.querySelector("[data-founding-spots]");
+  if (!label) {
+    return;
+  }
+  try {
+    var spots = await fetchFoundingSpotsRemaining();
+    if (!spots || !Number.isFinite(spots.remaining)) {
+      label.textContent = "Spots available.";
+      return;
+    }
+    if (spots.remaining <= 0) {
+      label.textContent = "Founding rate is fully claimed. Standard rate applies.";
+      var cta = document.querySelector("[data-founding-cta]");
+      if (cta) {
+        cta.textContent = "Founding spots full";
+        cta.setAttribute("aria-disabled", "true");
+      }
+      return;
+    }
+    label.textContent =
+      spots.remaining + " of " + spots.cap + " founding spots left. Lock in $19/mo.";
+  } catch (_error) {
+    label.textContent = "Spots available.";
+  }
+}
+
 var fullProfileDisclosure = document.getElementById("fullProfileDetails");
 if (fullProfileDisclosure) {
   fullProfileDisclosure.addEventListener("toggle", syncFullProfileDisclosure);
   syncFullProfileDisclosure();
 }
 initSignupPage();
+renderFoundingSpotsIndicator();
 
 window.addEventListener("beforeunload", saveSignupDraft);
 document.addEventListener("visibilitychange", function () {
