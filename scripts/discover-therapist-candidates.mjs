@@ -217,22 +217,53 @@ function inferEmail(text, html) {
   return textMatch ? textMatch[0] : "";
 }
 
+// City names that indicate aggregator/nav contamination rather than a real
+// clinician practice city. If the regex surfaces one of these, ignore it.
+// The leading-word check is intentional: "Psychology Today Los Angeles" is
+// the most common failure mode, where PT nav text leaks into the city field.
+const CITY_CONTAMINATION_PREFIXES = [
+  "Psychology Today",
+  "Therapy Den",
+  "Good Therapy",
+  "Grow Therapy",
+  "Head Way",
+  "Zoc Doc",
+];
+
+function isContaminatedCity(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return false;
+  return CITY_CONTAMINATION_PREFIXES.some((prefix) =>
+    trimmed.toLowerCase().startsWith(prefix.toLowerCase()),
+  );
+}
+
 function inferAddress(text, seed) {
+  // Prefer explicit seed values. The seed CSV is human-curated; the regex
+  // below is a best-effort fallback that has historically misfired on
+  // aggregator pages (e.g. matching "Psychology Today Los Angeles, CA
+  // 90025" as city="Psychology Today Los Angeles"). Only fall back to
+  // regex extraction when a given field is blank in the seed.
+  const seedCity = String(seed.city || "").trim();
+  const seedState = String(seed.state || "").trim();
+  const seedZip = String(seed.zip || "").trim();
+
+  if (seedCity && seedState && seedZip) {
+    return { city: seedCity, state: seedState, zip: seedZip };
+  }
+
   const zipMatch = String(text || "").match(
     /\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*([A-Z]{2})\s*(\d{5})\b/,
   );
-  if (zipMatch) {
-    return {
-      city: zipMatch[1],
-      state: zipMatch[2],
-      zip: zipMatch[3],
-    };
-  }
+
+  const regexCity = zipMatch && !isContaminatedCity(zipMatch[1]) ? zipMatch[1] : "";
+  const regexState = zipMatch ? zipMatch[2] : "";
+  const regexZip = zipMatch ? zipMatch[3] : "";
 
   return {
-    city: seed.city || "",
-    state: seed.state || "",
-    zip: seed.zip || "",
+    city: seedCity || regexCity,
+    state: seedState || regexState,
+    zip: seedZip || regexZip,
   };
 }
 
