@@ -22,7 +22,7 @@ function writeStoredView(view) {
   }
 }
 
-function setActiveView(view) {
+export function setActiveView(view) {
   const normalized = VALID_VIEWS.indexOf(view) === -1 ? DEFAULT_VIEW : view;
   document.body.setAttribute("data-admin-view", normalized);
   writeStoredView(normalized);
