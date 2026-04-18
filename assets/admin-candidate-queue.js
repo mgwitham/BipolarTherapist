@@ -102,7 +102,7 @@ function getDedupeReasonLabel(reason) {
   }
 }
 
-function renderCandidateCardHtml(item, index, options, therapists, applications, mode) {
+function renderCandidateCardHtml(item, index, options, therapists, applications, candidates, mode) {
   const isReviewMode = mode === "review";
   const location = [item.city, item.state, item.zip]
     .filter(Boolean)
@@ -125,6 +125,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
   const hasMergeTarget = !!findCandidateMergeTarget(item, {
     therapists: therapists,
     applications: applications,
+    candidates: candidates,
   });
   const dedupeReasons = Array.isArray(item.dedupe_reasons) ? item.dedupe_reasons : [];
   const dedupeReasonChipsHtml =
@@ -407,7 +408,15 @@ export function renderCandidateQueuePanel(options) {
 
   root.innerHTML =
     (firstFiltered
-      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications, mode)
+      ? renderCandidateCardHtml(
+          firstFiltered,
+          0,
+          options,
+          therapists,
+          applications,
+          candidates,
+          mode,
+        )
       : "") +
     (recentFlashes.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
@@ -427,7 +436,15 @@ export function renderCandidateQueuePanel(options) {
     (filtered.length ? "" : '<div class="empty">No listings match the current filters.</div>') +
     remainingFiltered
       .map(function (item, index) {
-        return renderCandidateCardHtml(item, index + 1, options, therapists, applications, mode);
+        return renderCandidateCardHtml(
+          item,
+          index + 1,
+          options,
+          therapists,
+          applications,
+          candidates,
+          mode,
+        );
       })
       .join("");
 
@@ -468,6 +485,7 @@ export function renderCandidateQueuePanel(options) {
       const matchTarget = findCandidateMergeTarget(item, {
         therapists: therapists,
         applications: applications,
+        candidates: candidates,
       });
       compareModal.open(item, matchTarget, item.dedupe_reasons || [], button);
     });

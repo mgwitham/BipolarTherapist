@@ -355,6 +355,13 @@ export const therapistCandidateType = defineType({
       group: "review",
     }),
     defineField({
+      name: "matchedCandidateId",
+      title: "Matched candidate ID",
+      type: "string",
+      group: "review",
+      description: "Set when dedupe matched against another pending candidate.",
+    }),
+    defineField({
       name: "publishedTherapistId",
       title: "Published therapist ID",
       type: "string",

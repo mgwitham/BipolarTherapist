@@ -442,6 +442,7 @@ export async function handleCandidateIngestRoutes(context) {
           ? {
               dedupeStatus: "possible_duplicate",
               dedupeReasons: duplicateMatch.reasons,
+              matchedCandidateId: duplicateMatch.id || "",
             }
           : { dedupeStatus: "unreviewed", dedupeReasons: [] };
 
