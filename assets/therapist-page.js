@@ -1823,9 +1823,92 @@ function renderProfile(t, therapistDirectory) {
     ? '<img src="' + escapeHtml(t.photo_url) + '" alt="' + escapeHtml(t.name) + '" />'
     : escapeHtml(initials);
 
-  var acceptingBadge = t.accepting_new_patients
-    ? '<span class="status-badge badge-accepting">Accepting new patients</span>'
-    : '<span class="status-badge badge-waitlist">Waitlist only</span>';
+  function isRealEmail(email) {
+    var value = String(email || "").trim();
+    if (!value) return false;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return false;
+    if (/@example\.(com|org|net)$/i.test(value)) return false;
+    if (
+      /^(contact|info|hello|admin|therapist|yourname|email)@/i.test(value) &&
+      /example\./i.test(value)
+    )
+      return false;
+    return true;
+  }
+
+  var acceptingBadge =
+    t.accepting_new_patients === true
+      ? '<span class="status-badge badge-accepting">Accepting new patients</span>'
+      : t.accepting_new_patients === false && t.estimated_wait_time
+        ? '<span class="status-badge badge-wait-known">' +
+          escapeHtml(String(t.estimated_wait_time).toLowerCase()) +
+          " wait</span>"
+        : "";
+
+  var specialtyList = Array.isArray(t.specialties) ? t.specialties : [];
+  var mentionsBipolarSpecialty = specialtyList.some(function (s) {
+    return /bipolar/i.test(String(s || ""));
+  });
+  var bipolarYears = Number(t.bipolar_years_experience || 0);
+  var bipolarSpecialistBadge =
+    bipolarYears >= 5
+      ? '<span class="status-badge badge-specialist">' +
+        escapeHtml(bipolarYears + "+ years treating bipolar") +
+        "</span>"
+      : bipolarYears >= 1 || mentionsBipolarSpecialty
+        ? '<span class="status-badge badge-specialist">Bipolar specialist</span>'
+        : "";
+
+  var licenseVerifiedBadge =
+    t.verification_status === "editorially_verified" && t.license_number
+      ? '<span class="status-badge badge-verified">&#10003; License verified</span>'
+      : "";
+
+  var heroBipolarQuote = "";
+  if (t.care_approach && /bipolar/i.test(t.care_approach)) {
+    var sentences = String(t.care_approach)
+      .replace(/\s+/g, " ")
+      .match(/[^.!?]+[.!?]+/g) || [String(t.care_approach)];
+    var bipolarSentence = sentences.find(function (s) {
+      return /bipolar/i.test(s);
+    });
+    if (bipolarSentence) {
+      var trimmed = bipolarSentence.trim().replace(/^["']|["']$/g, "");
+      if (trimmed.length > 220) {
+        trimmed = trimmed.slice(0, 217).replace(/\s+\S*$/, "") + "\u2026";
+      }
+      heroBipolarQuote =
+        '<p class="hero-bipolar-quote">' +
+        escapeHtml(trimmed) +
+        '<span class="hero-bipolar-quote-source">From their stated care approach</span>' +
+        "</p>";
+    }
+  }
+
+  var telehealthStatesList = Array.isArray(t.telehealth_states)
+    ? t.telehealth_states.filter(Boolean)
+    : [];
+  var heroTelehealthLine = "";
+  if (telehealthStatesList.length) {
+    var shown = telehealthStatesList.slice(0, 6).join(", ");
+    var extra =
+      telehealthStatesList.length > 6 ? " +" + (telehealthStatesList.length - 6) + " more" : "";
+    heroTelehealthLine =
+      '<div class="hero-telehealth-line"><strong>Telehealth:</strong> ' +
+      escapeHtml(shown + extra) +
+      "</div>";
+  }
+
+  var fallbackSourceUrl =
+    (t.source_url && String(t.source_url).trim()) ||
+    (Array.isArray(t.supporting_source_urls)
+      ? t.supporting_source_urls.filter(Boolean)[0] || ""
+      : "");
+  var primaryActionFallback = fallbackSourceUrl
+    ? '<a href="' +
+      escapeHtml(fallbackSourceUrl) +
+      '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="source_url" data-profile-contact-priority="primary">Visit their practice site \u2192</a>'
+    : '<a href="directory.html" class="btn-contact">Back to directory</a>';
 
   var trustPills = renderValuePillRow(t, "value-pill");
 
@@ -1889,7 +1972,7 @@ function renderProfile(t, therapistDirectory) {
         "</a>"
       );
     }
-    if (t.email && t.email !== "contact@example.com") {
+    if (isRealEmail(t.email)) {
       return (
         '<a href="mailto:' +
         escapeHtml(t.email) +
@@ -1915,7 +1998,7 @@ function renderProfile(t, therapistDirectory) {
       escapeHtml(t.phone) +
       "</a>";
   }
-  if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
+  if (isRealEmail(t.email) && t.preferred_contact_method !== "email") {
     contactBtns +=
       '<a href="mailto:' +
       escapeHtml(t.email) +
@@ -2476,7 +2559,7 @@ function renderProfile(t, therapistDirectory) {
     secondaryButtons +=
       '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
   }
-  if (t.email && t.email !== "contact@example.com" && t.preferred_contact_method !== "email") {
+  if (isRealEmail(t.email) && t.preferred_contact_method !== "email") {
     secondaryButtons +=
       '<a href="mailto:' + escapeHtml(t.email) + '" class="btn-website">Email</a>';
   }
@@ -2528,7 +2611,7 @@ function renderProfile(t, therapistDirectory) {
     contactPrepCardsHtml +
     "</div>" +
     '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div>" +
@@ -2573,6 +2656,11 @@ function renderProfile(t, therapistDirectory) {
     escapeHtml(t.state) +
     (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
+    (bipolarSpecialistBadge || licenseVerifiedBadge
+      ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
+      : "") +
+    heroBipolarQuote +
+    heroTelehealthLine +
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
@@ -2581,31 +2669,39 @@ function renderProfile(t, therapistDirectory) {
     (t.phone
       ? '<a href="tel:' +
         escapeHtml(t.phone) +
-        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
+        '" class="profile-contact-row" aria-label="Call ' +
+        escapeHtml(t.name) +
+        '"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
         escapeHtml(t.phone) +
         "</span></a>"
       : "") +
-    (t.email && t.email !== "contact@example.com"
+    (isRealEmail(t.email)
       ? '<a href="mailto:' +
         escapeHtml(t.email) +
-        '" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
+        '" class="profile-contact-row" aria-label="Email ' +
+        escapeHtml(t.name) +
+        '"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
         escapeHtml(t.email) +
         "</span></a>"
       : "") +
     (t.website && websiteHealthy
       ? '<a href="' +
         escapeHtml(t.website) +
-        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
+        '" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Visit ' +
+        escapeHtml(t.name) +
+        '\u2019s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
         escapeHtml(t.website.replace(/^https?:\/\//, "")) +
         "</span></a>"
       : "") +
     (t.booking_url && bookingHealthy
       ? '<a href="' +
         escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
+        '" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Book with ' +
+        escapeHtml(t.name) +
+        '"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
       : "") +
     (!t.phone &&
-    (!t.email || t.email === "contact@example.com") &&
+    !isRealEmail(t.email) &&
     !(t.website && websiteHealthy) &&
     !(t.booking_url && bookingHealthy)
       ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
@@ -2628,7 +2724,7 @@ function renderProfile(t, therapistDirectory) {
     credentialStats +
     "</div>" +
     '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
-    (primaryButton || '<a href="directory.html" class="btn-contact">Back to directory</a>') +
+    (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div>" +
@@ -2638,9 +2734,7 @@ function renderProfile(t, therapistDirectory) {
     "<div>" +
     (function () {
       var hasTextChannel =
-        (t.email && t.email !== "contact@example.com") ||
-        (t.website && websiteHealthy) ||
-        (t.booking_url && bookingHealthy);
+        isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
       var hasPhone = Boolean(t.phone);
       var callScript = hasPhone ? buildCallScript(t) : null;
 
