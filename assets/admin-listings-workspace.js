@@ -38,6 +38,67 @@ export function createListingsWorkspace(options) {
     state: "",
     lane: "",
   };
+
+  function scoreListingForSearch(item, tokens) {
+    if (!item || !tokens.length) {
+      return { matches: true, score: 0 };
+    }
+    var name = String(item.name || "").toLowerCase();
+    var slug = String(item.slug || "").toLowerCase();
+    var city = String(item.city || "").toLowerCase();
+    var state = String(item.state || "").toLowerCase();
+    var otherParts = [
+      item.credentials,
+      item.title,
+      item.practice_name,
+      item.zip,
+      item.email,
+      item.phone,
+      item.license_state,
+      item.license_number,
+      item.bio_preview || item.bio,
+      item.care_approach,
+      Array.isArray(item.specialties) ? item.specialties.join(" ") : "",
+      Array.isArray(item.treatment_modalities) ? item.treatment_modalities.join(" ") : "",
+      Array.isArray(item.client_populations) ? item.client_populations.join(" ") : "",
+      Array.isArray(item.insurance_accepted) ? item.insurance_accepted.join(" ") : "",
+      Array.isArray(item.languages) ? item.languages.join(" ") : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    var haystack = [name, slug, city, state, otherParts].join(" ");
+    var score = 0;
+    for (var i = 0; i < tokens.length; i += 1) {
+      var token = tokens[i];
+      if (!haystack.includes(token)) {
+        return { matches: false, score: 0 };
+      }
+      if (name === token) {
+        score += 200;
+      } else if (name.startsWith(token)) {
+        score += 120;
+      } else if (name.includes(token)) {
+        score += 70;
+      } else if (slug.includes(token)) {
+        score += 40;
+      } else if (city.includes(token) || state.includes(token)) {
+        score += 25;
+      } else {
+        score += 5;
+      }
+    }
+    return { matches: true, score: score };
+  }
+
+  function parseSearchTokens(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
   var launchControlFlashMessage = "";
   var launchControlFlashHistory = {};
   var LAUNCH_CONTROL_FLASH_TTL_MS = 10 * 60 * 1000;
@@ -721,41 +782,64 @@ export function createListingsWorkspace(options) {
       .slice(0, 4);
 
     var normalizedSearch = listingsSearchQuery.trim().toLowerCase();
-    var visibleRows = launchRows.filter(function (row) {
-      if (rankingRiskFilter && !getRankingRiskMatches(row.item)[rankingRiskFilter]) {
-        return false;
-      }
-      if (launchProfileFilters.state && row.control.launch_state !== launchProfileFilters.state) {
-        return false;
-      }
-      if (launchProfileFilters.lane === "homepage" && !row.control.homepage_featured) {
-        return false;
-      }
-      if (launchProfileFilters.lane === "match" && !row.control.match_priority) {
-        return false;
-      }
-      if (launchProfileFilters.lane === "featured" && row.control.launch_state !== "featured") {
-        return false;
-      }
-      if (normalizedSearch) {
-        var item = row.item || {};
-        var haystack = [item.name, item.slug, item.city, item.state, item.credentials]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(normalizedSearch)) {
-          return false;
+    var searchTokens = parseSearchTokens(listingsSearchQuery);
+    var isSearching = searchTokens.length > 0;
+    var visibleRows;
+    if (isSearching) {
+      // When searching, bypass launch/risk filters entirely so the user
+      // finds the listing regardless of which lane it lives in.
+      var scored = [];
+      for (var rowIndex = 0; rowIndex < launchRows.length; rowIndex += 1) {
+        var row = launchRows[rowIndex];
+        var match = scoreListingForSearch(row.item, searchTokens);
+        if (match.matches) {
+          scored.push({ row: row, score: match.score });
         }
       }
-      return true;
-    });
+      scored.sort(function (a, b) {
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+        return String(a.row.item.name || "").localeCompare(String(b.row.item.name || ""));
+      });
+      visibleRows = scored.map(function (entry) {
+        return entry.row;
+      });
+    } else {
+      visibleRows = launchRows.filter(function (row) {
+        if (rankingRiskFilter && !getRankingRiskMatches(row.item)[rankingRiskFilter]) {
+          return false;
+        }
+        if (launchProfileFilters.state && row.control.launch_state !== launchProfileFilters.state) {
+          return false;
+        }
+        if (launchProfileFilters.lane === "homepage" && !row.control.homepage_featured) {
+          return false;
+        }
+        if (launchProfileFilters.lane === "match" && !row.control.match_priority) {
+          return false;
+        }
+        if (launchProfileFilters.lane === "featured" && row.control.launch_state !== "featured") {
+          return false;
+        }
+        return true;
+      });
+    }
     var topVisibleRow = visibleRows.length ? visibleRows[0] : null;
     var recentLaunchFlashes = getRecentLaunchControlFlashes(3);
 
     root.innerHTML =
-      '<div class="listings-search" style="margin-bottom:1rem"><label for="publishedListingsSearch" class="queue-select-label" style="display:block;margin-bottom:0.35rem">Find a published therapist</label><input type="search" id="publishedListingsSearch" class="queue-select" style="width:100%;max-width:420px" placeholder="Search by name, city, or slug" value="' +
+      '<div class="listings-search" style="margin-bottom:1rem"><label for="publishedListingsSearch" class="queue-select-label" style="display:block;margin-bottom:0.35rem">Find a published therapist</label><input type="search" id="publishedListingsSearch" class="queue-select" style="width:100%;max-width:420px" placeholder="Name, city, credential, specialty, license, email..." value="' +
       escapeHtml(listingsSearchQuery) +
-      '" autocomplete="off"><div class="subtle" style="margin-top:0.3rem;font-size:0.85rem">Find a live listing to edit its details (name, city, bio, etc.).</div></div>' +
+      '" autocomplete="off"><div class="subtle" style="margin-top:0.3rem;font-size:0.85rem">' +
+      (isSearching
+        ? escapeHtml(
+            visibleRows.length +
+              (visibleRows.length === 1 ? " match" : " matches") +
+              " (filters bypassed while searching).",
+          )
+        : "Find a live listing to edit. Searches name, city, credentials, specialties, license, bio, and contact.") +
+      "</div></div>" +
       '<div class="queue-insights"><div class="queue-insights-title">Visibility control</div><div class="subtle" style="margin-bottom:0.7rem">Use visibility state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
       [
         {
