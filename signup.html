@@ -1483,6 +1483,85 @@
         font-size: 0.8rem;
         color: var(--muted);
       }
+      .claim-trial-offer {
+        margin-top: 0.85rem;
+        background: var(--white);
+        border: 1px solid var(--teal);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        display: grid;
+        gap: 0.9rem;
+        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
+      }
+      .claim-trial-offer-header h3 {
+        margin: 0 0 0.25rem;
+        color: var(--navy);
+        font-size: 1.05rem;
+      }
+      .claim-trial-offer-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .claim-trial-offer-plans {
+        display: grid;
+        gap: 0.6rem;
+      }
+      .claim-trial-cta {
+        display: grid;
+        gap: 0.2rem;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font-family: inherit;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .claim-trial-cta-primary {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: var(--white);
+      }
+      .claim-trial-cta-primary:hover {
+        background: var(--teal-dark);
+      }
+      .claim-trial-cta-secondary {
+        background: var(--white);
+        color: var(--navy);
+      }
+      .claim-trial-cta-secondary:hover {
+        border-color: var(--teal);
+        background: rgba(47, 110, 128, 0.05);
+      }
+      .claim-trial-cta:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .claim-trial-cta-title {
+        font-weight: 700;
+        font-size: 0.98rem;
+      }
+      .claim-trial-cta-price {
+        font-size: 0.82rem;
+        opacity: 0.9;
+      }
+      .claim-trial-dismiss {
+        margin: 0;
+        text-align: center;
+        font-size: 0.85rem;
+      }
+      .claim-trial-dismiss a {
+        color: var(--muted);
+      }
+      .claim-trial-feedback {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+        min-height: 1rem;
+      }
       .quick-claim-form label {
         display: grid;
         gap: 0.4rem;
@@ -2003,6 +2082,41 @@
             Create a new listing instead →
           </a>
         </form>
+        <div class="claim-trial-offer" id="claimTrialOffer" hidden>
+          <div class="claim-trial-offer-header">
+            <h3>Start your 14-day trial while you wait</h3>
+            <p>
+              No charge today. Cancel anytime. Locks your priority placement the moment you sign in.
+            </p>
+          </div>
+          <div class="claim-trial-offer-plans">
+            <button
+              type="button"
+              class="claim-trial-cta claim-trial-cta-primary"
+              id="claimTrialFounding"
+              data-plan="founding_monthly"
+            >
+              <span class="claim-trial-cta-title">Start Founding trial</span>
+              <span class="claim-trial-cta-price"
+                >$19/mo after trial ·
+                <span data-claim-founding-note>rate locked 24 months</span></span
+              >
+            </button>
+            <button
+              type="button"
+              class="claim-trial-cta claim-trial-cta-secondary"
+              id="claimTrialStandard"
+              data-plan="regular_monthly"
+            >
+              <span class="claim-trial-cta-title">Start Standard trial</span>
+              <span class="claim-trial-cta-price">$39/mo after trial · cancel anytime</span>
+            </button>
+          </div>
+          <p class="claim-trial-dismiss">
+            <a href="#" id="claimTrialDismiss">I'll decide later →</a>
+          </p>
+          <p class="claim-trial-feedback" id="claimTrialFeedback" aria-live="polite"></p>
+        </div>
       </div>
     </section>
 

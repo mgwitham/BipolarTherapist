@@ -1,4 +1,10 @@
-import { requestTherapistQuickClaim, searchTherapistQuickClaim } from "./review-api.js";
+import {
+  createStripeFeaturedCheckoutSession,
+  requestTherapistQuickClaim,
+  searchTherapistQuickClaim,
+} from "./review-api.js";
+import { fetchFoundingSpotsRemaining } from "./cms.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const FORM_ID = "quickClaimForm";
 const STATUS_ID = "quickClaimStatus";
@@ -8,6 +14,12 @@ const FULL_FORM_ANCHOR_ID = "formCard";
 const SEARCH_INPUT_ID = "quickClaimSearchInput";
 const SEARCH_RESULTS_ID = "quickClaimSearchResults";
 const EMAIL_HINT_ID = "quickClaimEmailHint";
+const TRIAL_OFFER_ID = "claimTrialOffer";
+const TRIAL_FOUNDING_ID = "claimTrialFounding";
+const TRIAL_STANDARD_ID = "claimTrialStandard";
+const TRIAL_DISMISS_ID = "claimTrialDismiss";
+const TRIAL_FEEDBACK_ID = "claimTrialFeedback";
+const TRIAL_FOUNDING_NOTE_SELECTOR = "[data-claim-founding-note]";
 
 function setStatus(element, tone, title, body) {
   if (!element) {
@@ -140,6 +152,104 @@ function debounce(fn, wait) {
   };
 }
 
+async function showTrialOffer(slug, email) {
+  const offer = document.getElementById(TRIAL_OFFER_ID);
+  if (!offer || !slug) {
+    return;
+  }
+  offer.hidden = false;
+  offer.dataset.slug = slug;
+  offer.dataset.email = email || "";
+
+  const foundingButton = document.getElementById(TRIAL_FOUNDING_ID);
+  const foundingNote = offer.querySelector(TRIAL_FOUNDING_NOTE_SELECTOR);
+
+  try {
+    const spots = await fetchFoundingSpotsRemaining();
+    if (!spots || !Number.isFinite(spots.remaining)) {
+      return;
+    }
+    if (spots.remaining <= 0) {
+      if (foundingButton) {
+        foundingButton.disabled = true;
+        const title = foundingButton.querySelector(".claim-trial-cta-title");
+        if (title) {
+          title.textContent = "Founding spots full";
+        }
+      }
+      if (foundingNote) {
+        foundingNote.textContent = "standard rate applies";
+      }
+    } else if (foundingNote) {
+      foundingNote.textContent =
+        spots.remaining + " of " + spots.cap + " spots left · rate locked 24 months";
+    }
+  } catch (_error) {
+    // leave defaults
+  }
+}
+
+function hideTrialOffer() {
+  const offer = document.getElementById(TRIAL_OFFER_ID);
+  if (offer) {
+    offer.hidden = true;
+  }
+}
+
+function setTrialFeedback(message) {
+  const node = document.getElementById(TRIAL_FEEDBACK_ID);
+  if (node) {
+    node.textContent = message || "";
+  }
+}
+
+async function handleTrialCheckout(button) {
+  const offer = document.getElementById(TRIAL_OFFER_ID);
+  if (!offer) {
+    return;
+  }
+  const slug = offer.dataset.slug || "";
+  const email = offer.dataset.email || "";
+  const plan = button.getAttribute("data-plan") || "";
+  if (!slug || !plan) {
+    return;
+  }
+  setTrialFeedback("");
+  button.disabled = true;
+  const title = button.querySelector(".claim-trial-cta-title");
+  const originalTitle = title ? title.textContent : "";
+  if (title) {
+    title.textContent = "Opening secure checkout...";
+  }
+  try {
+    trackFunnelEvent("pricing_checkout_clicked", {
+      therapist_slug: slug,
+      plan,
+      tier: plan.indexOf("founding") === 0 ? "founding" : "regular",
+      source: "claim_success",
+    });
+    const result = await createStripeFeaturedCheckoutSession({
+      therapist_slug: slug,
+      email,
+      plan,
+      return_path: "/portal.html?slug=" + encodeURIComponent(slug),
+    });
+    if (result && result.url) {
+      window.location.href = result.url;
+      return;
+    }
+    throw new Error("No checkout URL returned.");
+  } catch (error) {
+    button.disabled = false;
+    if (title) {
+      title.textContent = originalTitle;
+    }
+    setTrialFeedback(
+      (error && error.message) || "We could not start checkout. Try again in a moment.",
+    );
+  }
+}
+
 function initQuickClaim() {
   const form = document.getElementById(FORM_ID);
   if (!form) {
@@ -247,6 +357,12 @@ function initQuickClaim() {
           ? "Your email matched your practice website's domain, so we verified ownership automatically and sent a one-time sign-in link."
           : "We sent a one-time link that signs you into your profile for the next 30 minutes.",
       );
+      const slugForTrial = result && result.therapist_slug ? result.therapist_slug : "";
+      if (slugForTrial) {
+        showTrialOffer(slugForTrial, payload.email);
+      } else {
+        hideTrialOffer();
+      }
       form.reset();
       setEmailHint(emailHint, "");
       if (searchInput) {
@@ -297,6 +413,23 @@ function initQuickClaim() {
       }
     }
   });
+
+  [TRIAL_FOUNDING_ID, TRIAL_STANDARD_ID].forEach(function (id) {
+    const button = document.getElementById(id);
+    if (button) {
+      button.addEventListener("click", function () {
+        handleTrialCheckout(button);
+      });
+    }
+  });
+
+  const dismissLink = document.getElementById(TRIAL_DISMISS_ID);
+  if (dismissLink) {
+    dismissLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      hideTrialOffer();
+    });
+  }
 }
 
 if (document.readyState === "loading") {
