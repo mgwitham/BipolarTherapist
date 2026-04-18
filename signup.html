@@ -1483,6 +1483,88 @@
         font-size: 0.8rem;
         color: var(--muted);
       }
+      .claim-confirm-panel {
+        background: var(--white);
+        border: 1px solid var(--teal);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 0.85rem;
+        display: grid;
+        gap: 0.6rem;
+        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
+      }
+      .claim-confirm-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .claim-confirm-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal);
+      }
+      .claim-confirm-header a {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .claim-confirm-name {
+        margin: 0;
+        color: var(--navy);
+        font-size: 1.05rem;
+      }
+      .claim-confirm-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .claim-confirm-destination {
+        margin: 0.4rem 0 0;
+        font-size: 0.92rem;
+        color: var(--navy);
+      }
+      .claim-confirm-send {
+        margin-top: 0.25rem;
+        background: var(--teal);
+        color: var(--white);
+        border: none;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        font-weight: 700;
+        font-size: 0.98rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .claim-confirm-send:hover {
+        background: var(--teal-dark);
+      }
+      .claim-confirm-send:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .claim-confirm-alt {
+        margin: 0;
+        text-align: center;
+        font-size: 0.85rem;
+      }
+      .claim-confirm-alt a {
+        color: var(--muted);
+      }
+      .claim-confirm-status {
+        padding: 0.65rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.88rem;
+      }
+      .claim-confirm-status[data-tone="success"] {
+        background: rgba(47, 110, 128, 0.08);
+        color: var(--navy);
+      }
+      .claim-confirm-status[data-tone="warn"] {
+        background: rgba(146, 64, 14, 0.08);
+        color: #92400e;
+      }
       .claim-trial-offer {
         margin-top: 0.85rem;
         background: var(--white);
@@ -2038,8 +2120,34 @@
             hidden
           ></div>
           <p class="quick-claim-search-hint">
-            Not sure what email we have on file? Search for your name or license to see a hint.
+            Start typing your name or license number. Pick your listing and we'll send a sign-in
+            link to the email we have on file.
           </p>
+        </div>
+        <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
+          <div class="claim-confirm-header">
+            <span class="claim-confirm-label">Found your listing</span>
+            <a href="#" id="claimConfirmChange">Change →</a>
+          </div>
+          <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
+          <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
+          <p class="claim-confirm-destination">
+            We'll email a one-time sign-in link to
+            <strong id="claimConfirmEmail"></strong>.
+          </p>
+          <button type="button" id="claimConfirmSend" class="claim-confirm-send">
+            Send sign-in link
+          </button>
+          <p class="claim-confirm-alt">
+            <a href="#" id="claimConfirmUseOther">Use a different email →</a>
+          </p>
+          <div
+            class="claim-confirm-status"
+            id="claimConfirmStatus"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
         </div>
         <form id="quickClaimForm" class="quick-claim-form" novalidate>
           <label>

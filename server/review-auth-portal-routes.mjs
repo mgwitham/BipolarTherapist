@@ -315,6 +315,93 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  if (request.method === "POST" && routePath === "/portal/claim-by-slug") {
+    const body = await parseBody(request);
+    const slug = String(body.slug || "").trim();
+
+    if (!slug) {
+      sendJson(response, 400, { error: "Slug is required." }, origin, config);
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, email, claimStatus, "slug": slug
+      }`,
+      { slug },
+    );
+
+    const resolvedSlug =
+      (therapist && therapist.slug && therapist.slug.current) ||
+      (therapist && typeof therapist.slug === "string" ? therapist.slug : "");
+
+    if (!therapist || !resolvedSlug) {
+      sendJson(
+        response,
+        404,
+        {
+          error: "We couldn't find that profile. Try searching again.",
+          reason: "not_found",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const onFileEmail = String(therapist.email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!onFileEmail) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "No email is on file for this profile. Use the form below to verify ownership another way.",
+          reason: "no_email_on_file",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapistForEmail = {
+      ...therapist,
+      slug: { current: resolvedSlug },
+    };
+
+    await sendPortalClaimLink(
+      config,
+      therapistForEmail,
+      onFileEmail,
+      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+    );
+
+    const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
+    await client
+      .patch(therapist._id)
+      .set({ claimStatus: claimStatusUpdate })
+      .commit({ visibility: "sync" });
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        message: "Claim link sent. Check your inbox.",
+        therapist_slug: resolvedSlug,
+        email_hint: maskEmail(therapist.email),
+        verification_method: "email_on_file",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (request.method === "POST" && routePath === "/portal/quick-claim") {
     const body = await parseBody(request);
     const rawFullName = String(body.full_name || "").trim();
