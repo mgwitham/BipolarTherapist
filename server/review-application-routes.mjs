@@ -320,6 +320,20 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
+    if (!String(application.licenseNumber || "").trim()) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "This application has no license number. Collect a verified license number before approving.",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const slug =
       application.submittedSlug ||
       slugify([application.name, application.city, application.state].filter(Boolean).join(" "));

@@ -173,6 +173,8 @@ test("workflow: candidate publish creates therapist and records candidate review
       credentials: "LCSW",
       city: "Seattle",
       state: "WA",
+      licenseState: "WA",
+      licenseNumber: "LCSW98765",
       sourceUrl: "https://example.com/casey",
       supportingSourceUrls: ["https://example.com/casey/profile"],
       careApproach: "Structured and skills-based bipolar care.",
@@ -220,7 +222,7 @@ test("workflow: candidate publish creates therapist and records candidate review
 
   assert.equal(therapist._type, "therapist");
   assert.equal(therapist.name, "Dr. Casey North");
-  assert.equal(therapist.licenseState, "");
+  assert.equal(therapist.licenseState, "WA");
   assert.equal(therapist.verificationStatus, "under_review");
   assert.deepEqual(therapist.supportingSourceUrls, ["https://example.com/casey/profile"]);
 
@@ -249,4 +251,66 @@ test("workflow: candidate publish creates therapist and records candidate review
     undefined,
     "Published candidate should not appear in editorial_review/queued selection",
   );
+});
+
+test("workflow: candidate publish is blocked without a license number", async function () {
+  const { client } = createMemoryClient({
+    "candidate-no-license": {
+      _id: "candidate-no-license",
+      _type: "therapistCandidate",
+      name: "Dr. No License",
+      credentials: "LMFT",
+      city: "San Francisco",
+      state: "CA",
+      sourceUrl: "https://example.com/no-license",
+      reviewStatus: "queued",
+      publishRecommendation: "",
+      dedupeStatus: "unreviewed",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { decision: "publish" },
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/candidates/candidate-no-license/decision",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.match(response.payload.error, /license number/i);
+});
+
+test("workflow: application approval is blocked without a license number", async function () {
+  const { client } = createMemoryClient({
+    "application-no-license": {
+      _id: "application-no-license",
+      _type: "therapistApplication",
+      name: "Dr. No License App",
+      email: "nolicense@example.com",
+      city: "Oakland",
+      state: "CA",
+      submittedSlug: "dr-no-license-app-oakland-ca",
+      status: "pending",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: {},
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/applications/application-no-license/approve",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.match(response.payload.error, /license number/i);
 });

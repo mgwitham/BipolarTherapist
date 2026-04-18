@@ -280,6 +280,19 @@ export async function handleCandidateRoutes(context) {
     eventType = "candidate_merged";
     changedFields.push("matchedTherapistId", "dedupeStatus");
   } else if (decision === "publish") {
+    if (!String(candidate.licenseNumber || "").trim()) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "This candidate has no license number. Add a verified license number before publishing.",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
     const nextTherapist = buildTherapistDocumentFromCandidate(
       candidate,
       candidate.matchedTherapistId,
