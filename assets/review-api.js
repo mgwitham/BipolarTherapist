@@ -361,6 +361,12 @@ export async function requestTherapistQuickClaim(payload) {
   });
 }
 
+export async function searchTherapistQuickClaim(query) {
+  return request("/portal/quick-claim/search?q=" + encodeURIComponent(query || ""), {
+    method: "GET",
+  });
+}
+
 export async function fetchTherapistClaimSession(token) {
   return request(`/portal/claim-session?token=${encodeURIComponent(token)}`, {
     method: "GET",
