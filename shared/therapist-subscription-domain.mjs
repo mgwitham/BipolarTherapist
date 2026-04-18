@@ -1,7 +1,16 @@
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 const LAPSED_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
 
+// Plan codes the system recognizes.
+//
+// - "paid_monthly" is the CANONICAL plan for the current single-tier
+//   pricing ($19/month, 14-day trial) introduced in PR #172.
+// - The four founding/regular tier codes predate the pricing rewrite
+//   and stay on this list so legacy Stripe subscriptions created under
+//   the old tiering continue to round-trip through parsing and the
+//   webhook handler. New signup flows should send "paid_monthly".
 export const FEATURED_PLAN_CODES = Object.freeze([
+  "paid_monthly",
   "founding_monthly",
   "founding_annual",
   "regular_monthly",
@@ -15,6 +24,8 @@ export function parsePlanCode(value) {
   if (!FEATURED_PLAN_CODES.includes(plan)) {
     return null;
   }
+  // "paid_monthly" uses "paid" as the tier label. Legacy codes keep
+  // their existing founding/regular tier + monthly/annual interval.
   const [tier, intervalKey] = plan.split("_");
   const interval = intervalKey === "annual" ? "year" : "month";
   return { plan, tier, interval };
@@ -23,17 +34,24 @@ export function parsePlanCode(value) {
 export function resolveFeaturedPriceId(config, planCode) {
   const parsed = parsePlanCode(planCode);
   if (!parsed) {
+    // Unknown plan code — fall back to the legacy generic price id if
+    // the env is configured. Preserves the original behavior for any
+    // callers still passing an empty/unknown plan.
     if (config && config.stripeFeaturedPriceId) {
       return { priceId: config.stripeFeaturedPriceId, tier: "regular", interval: "month" };
     }
     return null;
   }
   const lookup = {
+    paid_monthly: config && config.stripePaidMonthlyPriceId,
     founding_monthly: config && config.stripeFeaturedFoundingMonthlyPriceId,
     founding_annual: config && config.stripeFeaturedFoundingAnnualPriceId,
     regular_monthly: config && config.stripeFeaturedRegularMonthlyPriceId,
     regular_annual: config && config.stripeFeaturedRegularAnnualPriceId,
   };
+  // Prefer the plan-specific env var. Fall back to the legacy
+  // stripeFeaturedPriceId for any plan whose env is unset — useful
+  // while migrating between the old and new plan models.
   const priceId = lookup[parsed.plan] || (config && config.stripeFeaturedPriceId) || "";
   if (!priceId) {
     return null;

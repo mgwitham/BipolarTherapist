@@ -122,6 +122,41 @@ test("checkout-session endpoint forwards plan code to stripe-client", async () =
   assert.equal(response.payload.interval, "year");
 });
 
+test("checkout-session endpoint forwards the new paid_monthly plan code", async () => {
+  const { client } = createMemoryClient();
+  let observedPlan = null;
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/checkout-session",
+    client,
+    deps: {
+      parseBody: async () => ({
+        therapist_slug: "jamie-rivera",
+        email: "jamie@example.com",
+        plan: "paid_monthly",
+      }),
+      parseRawBody: async () => Buffer.alloc(0),
+      createFeaturedCheckoutSession: async (_config, options) => {
+        observedPlan = options.plan;
+        return {
+          id: "cs_test_paid",
+          url: "https://checkout.stripe.test/cs_test_paid",
+          tier: "paid",
+          interval: "month",
+        };
+      },
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(observedPlan, "paid_monthly");
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.tier, "paid");
+  assert.equal(response.payload.interval, "month");
+});
+
 test("checkout-session endpoint rejects missing therapist_slug", async () => {
   const { client } = createMemoryClient();
   const { response, context } = buildContext({
