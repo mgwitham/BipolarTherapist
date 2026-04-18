@@ -1,3 +1,4 @@
+import "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug, cmsEnabled } from "./cms.js";
 import {
   fetchTherapistApplicationRevision,
