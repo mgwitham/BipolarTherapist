@@ -21,6 +21,7 @@ import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
 import {
+  createBillingPortalSession,
   createFeaturedCheckoutSession,
   retrieveSubscription,
   verifyAndParseWebhook,
@@ -505,7 +506,9 @@ function createReviewRouteModules() {
     {
       handler: handleStripeRoutes,
       deps: {
+        createBillingPortalSession,
         createFeaturedCheckoutSession,
+        getAuthorizedTherapist,
         parseBody,
         parseRawBody,
         retrieveSubscription,

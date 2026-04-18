@@ -4,7 +4,10 @@ import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
+  createStripeBillingPortalSession,
+  createStripeFeaturedCheckoutSession,
   fetchTherapistClaimSession,
+  fetchTherapistSubscription,
   requestTherapistClaimLink,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -726,6 +729,170 @@ function renderLookupState() {
   });
 }
 
+function describeFeaturedStatus(subscription) {
+  if (!subscription || subscription.plan === "none" || !subscription.status) {
+    return "You're on the free listing. Upgrade to Featured to get a badge and priority placement in match results.";
+  }
+  if (subscription.has_active_featured) {
+    var endDate = formatDate(subscription.current_period_ends_at);
+    if (subscription.status === "trialing") {
+      var trialEnd = formatDate(subscription.trial_ends_at);
+      return (
+        "Featured is active (free trial)." +
+        (trialEnd ? " Trial ends " + trialEnd + "." : "") +
+        " Card on file will be charged when the trial ends."
+      );
+    }
+    if (subscription.cancel_at_period_end) {
+      return (
+        "Featured is active but set to end" +
+        (endDate ? " on " + endDate : "") +
+        ". You can resume anytime from billing."
+      );
+    }
+    return "Featured is active." + (endDate ? " Renews " + endDate + "." : "");
+  }
+  if (subscription.status === "past_due" || subscription.status === "unpaid") {
+    return "Featured billing needs attention. Open billing to fix your payment method.";
+  }
+  return "Featured is inactive. Upgrade again to restore your badge and priority placement.";
+}
+
+function renderFeaturedCard(subscription) {
+  var body = document.getElementById("portalFeaturedBody");
+  var actions = document.getElementById("portalFeaturedActions");
+  if (!body || !actions) {
+    return;
+  }
+  body.textContent = describeFeaturedStatus(subscription);
+  var hasCustomer = Boolean(
+    subscription && subscription.plan && subscription.plan !== "none" && subscription.status,
+  );
+  var showUpgrade = !subscription || !subscription.has_active_featured;
+  var buttons = "";
+  if (showUpgrade) {
+    buttons +=
+      '<button class="btn-primary" type="button" id="portalFeaturedUpgradeButton">Upgrade to Featured</button>';
+  }
+  if (hasCustomer) {
+    buttons +=
+      '<button class="btn-secondary" type="button" id="portalFeaturedBillingButton">Manage billing</button>';
+  }
+  actions.innerHTML = buttons;
+
+  var upgradeButton = document.getElementById("portalFeaturedUpgradeButton");
+  if (upgradeButton) {
+    upgradeButton.addEventListener("click", handleFeaturedUpgradeClick);
+  }
+  var billingButton = document.getElementById("portalFeaturedBillingButton");
+  if (billingButton) {
+    billingButton.addEventListener("click", handleFeaturedBillingClick);
+  }
+}
+
+async function handleFeaturedUpgradeClick(event) {
+  var card = document.getElementById("portalFeaturedCard");
+  var feedback = document.getElementById("portalFeaturedFeedback");
+  var button = event.currentTarget;
+  if (!card) {
+    return;
+  }
+  var slug = card.getAttribute("data-therapist-slug") || "";
+  var email = card.getAttribute("data-therapist-email") || "";
+  if (!slug) {
+    return;
+  }
+  button.disabled = true;
+  if (feedback) {
+    feedback.textContent = "Opening secure checkout...";
+  }
+  try {
+    var result = await createStripeFeaturedCheckoutSession({
+      therapist_slug: slug,
+      email: email,
+      return_path: "/portal.html?slug=" + encodeURIComponent(slug),
+    });
+    if (result && result.url) {
+      window.location.href = result.url;
+      return;
+    }
+    throw new Error("No checkout URL returned.");
+  } catch (error) {
+    button.disabled = false;
+    if (feedback) {
+      feedback.textContent =
+        (error && error.message) || "We could not start checkout. Try again in a moment.";
+    }
+  }
+}
+
+async function handleFeaturedBillingClick(event) {
+  var feedback = document.getElementById("portalFeaturedFeedback");
+  var button = event.currentTarget;
+  button.disabled = true;
+  if (feedback) {
+    feedback.textContent = "Opening billing...";
+  }
+  try {
+    var result = await createStripeBillingPortalSession({
+      return_path: "/portal.html",
+    });
+    if (result && result.url) {
+      window.location.href = result.url;
+      return;
+    }
+    throw new Error("No billing portal URL returned.");
+  } catch (error) {
+    button.disabled = false;
+    if (feedback) {
+      feedback.textContent =
+        (error && error.message) || "We could not open billing. Try again in a moment.";
+    }
+  }
+}
+
+async function loadSubscriptionIntoFeaturedCard() {
+  if (!document.getElementById("portalFeaturedCard")) {
+    return;
+  }
+  try {
+    var result = await fetchTherapistSubscription();
+    renderFeaturedCard((result && result.subscription) || null);
+  } catch (_error) {
+    var body = document.getElementById("portalFeaturedBody");
+    if (body) {
+      body.textContent = "Featured status is unavailable right now. Refresh to try again.";
+    }
+  }
+}
+
+function renderStripeReturnBanner() {
+  var params = new URLSearchParams(window.location.search);
+  var state = params.get("stripe");
+  if (!state) {
+    return;
+  }
+  var shell = document.getElementById("portalShell");
+  if (!shell) {
+    return;
+  }
+  var message =
+    state === "success"
+      ? "Checkout complete. Featured placement activates within a minute of Stripe confirming the subscription."
+      : state === "cancel"
+        ? "Checkout canceled. No charge was made. You can try again anytime."
+        : "";
+  if (!message) {
+    return;
+  }
+  shell.insertAdjacentHTML(
+    "afterbegin",
+    '<section class="portal-card" style="margin-bottom:1rem"><p class="portal-subtle">' +
+      escapeHtml(message) +
+      "</p></section>",
+  );
+}
+
 function renderPortal(therapist, options) {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -977,6 +1144,13 @@ function renderPortal(therapist, options) {
     escapeHtml(verifiedClaim ? "Send managed request" : "Send request") +
     '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form></article>' +
     '<article class="portal-card"><h2>Account controls</h2><div class="portal-list"><div><strong>Pause listing:</strong> Request a temporary pause instead of deleting your profile.</div><div><strong>Remove listing:</strong> Request permanent removal if you no longer want to appear in the directory.</div><div><strong>Headshot and profile updates:</strong> Use the update flow above. Your edits still go through review before they replace the live profile.</div></div></article>' +
+    (verifiedClaim
+      ? '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
+        escapeHtml(therapist.slug) +
+        '" data-therapist-email="' +
+        escapeHtml(claimedEmail) +
+        '"><h2>Featured placement</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your featured status...</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>'
+      : "") +
     "</section>";
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
@@ -1007,6 +1181,10 @@ function renderPortal(therapist, options) {
     }
   });
 
+  if (verifiedClaim) {
+    loadSubscriptionIntoFeaturedCard();
+  }
+
   if (sessionMode === "claim_token") {
     document.getElementById("acceptClaimButton").addEventListener("click", async function () {
       var feedback = document.getElementById("claimAcceptFeedback");
@@ -1036,6 +1214,8 @@ function renderPortal(therapist, options) {
 }
 
 (async function init() {
+  renderStripeReturnBanner();
+
   if (token) {
     try {
       var session = await fetchTherapistClaimSession(token);

@@ -1,9 +1,31 @@
 import {
   buildSubscriptionId,
   deriveSubscriptionDocumentFromStripe,
+  hasActiveFeatured,
   mergeSubscriptionDocuments,
   shouldApplyEvent,
 } from "../shared/therapist-subscription-domain.mjs";
+
+function shapeSubscriptionForClient(document) {
+  if (!document) {
+    return {
+      plan: "none",
+      status: null,
+      has_active_featured: false,
+      current_period_ends_at: null,
+      trial_ends_at: null,
+      cancel_at_period_end: false,
+    };
+  }
+  return {
+    plan: document.plan || "none",
+    status: document.status || null,
+    has_active_featured: hasActiveFeatured(document),
+    current_period_ends_at: document.currentPeriodEndsAt || null,
+    trial_ends_at: document.trialEndsAt || null,
+    cancel_at_period_end: Boolean(document.cancelAtPeriodEnd),
+  };
+}
 
 const SUBSCRIPTION_EVENTS = new Set([
   "customer.subscription.created",
@@ -31,13 +53,76 @@ function extractTherapistSlug(stripeSubscription, eventObject) {
 export async function handleStripeRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
   const {
+    createBillingPortalSession,
     createFeaturedCheckoutSession,
+    getAuthorizedTherapist,
     parseBody,
     parseRawBody,
     sendJson,
     verifyAndParseWebhook,
     retrieveSubscription,
   } = deps;
+
+  if (request.method === "GET" && routePath === "/stripe/subscription") {
+    const session = getAuthorizedTherapist ? getAuthorizedTherapist(request, config) : null;
+    if (!session || !session.slug) {
+      sendJson(response, 401, { error: "Therapist session required." }, origin, config);
+      return true;
+    }
+    const doc = await client.getDocument(buildSubscriptionId(session.slug));
+    sendJson(
+      response,
+      200,
+      { ok: true, subscription: shapeSubscriptionForClient(doc) },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  if (request.method === "POST" && routePath === "/stripe/portal-session") {
+    const session = getAuthorizedTherapist ? getAuthorizedTherapist(request, config) : null;
+    if (!session || !session.slug) {
+      sendJson(response, 401, { error: "Therapist session required." }, origin, config);
+      return true;
+    }
+
+    let body = {};
+    try {
+      body = (await parseBody(request)) || {};
+    } catch (_error) {
+      // portal-session takes no required body
+    }
+
+    const subscription = await client.getDocument(buildSubscriptionId(session.slug));
+    if (!subscription || !subscription.stripeCustomerId) {
+      sendJson(
+        response,
+        404,
+        { error: "No Stripe customer on file for this profile." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    try {
+      const portal = await createBillingPortalSession(config, {
+        customerId: subscription.stripeCustomerId,
+        returnPath: body && body.return_path ? String(body.return_path) : undefined,
+      });
+      sendJson(response, 200, { ok: true, url: portal.url }, origin, config);
+    } catch (error) {
+      sendJson(
+        response,
+        500,
+        { error: error.message || "Failed to create billing portal session." },
+        origin,
+        config,
+      );
+    }
+    return true;
+  }
 
   if (request.method === "POST" && routePath === "/stripe/checkout-session") {
     let body;
