@@ -421,32 +421,9 @@ export async function fetchFoundingSpotsRemaining() {
   }
 }
 
-export async function fetchActiveFeaturedSlugs() {
-  if (!cmsEnabled) {
-    return [];
-  }
-  try {
-    const docs = await fetchFromSanity(
-      `*[_type == "therapistSubscription" && plan == "featured" && status in ["trialing", "active"]]{therapistSlug}`,
-    );
-    const slugs = [];
-    const seen = new Set();
-    (docs || []).forEach((entry) => {
-      const slug = String((entry && entry.therapistSlug) || "")
-        .trim()
-        .toLowerCase();
-      if (!slug || seen.has(slug)) {
-        return;
-      }
-      seen.add(slug);
-      slugs.push(slug);
-    });
-    return slugs;
-  } catch (error) {
-    console.error("Failed to load active featured subscriptions from Sanity.", error);
-    return [];
-  }
-}
+// fetchActiveFeaturedSlugs removed 2026-04-18 along with the directory
+// and match-page featured rotation. Reviving featuring would need a new
+// product decision, not a one-line restore.
 
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {

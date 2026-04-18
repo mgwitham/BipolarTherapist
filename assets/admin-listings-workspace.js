@@ -1183,45 +1183,15 @@ export function createListingsWorkspace(options) {
                 " profile opens",
             ) +
             "</div>" +
-            (isStartHere
-              ? '<div class="recommended-action-bar"><div class="recommended-action-label">Recommended action</div><div class="recommended-action-row"><button class="btn-primary btn-inline" data-launch-quick-action="' +
-                escapeHtml(item.slug) +
-                '" data-launch-quick-mode="promote_launch_ready">Mark ready to feature</button></div></div><div class="queue-actions secondary-actions">'
-              : '<div class="queue-actions" style="margin-top:0.75rem">') +
-            (isStartHere
-              ? ""
-              : '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
-                escapeHtml(item.slug) +
-                '" data-launch-quick-mode="promote_launch_ready">Mark ready to feature</button>') +
-            '<button class="btn-secondary btn-inline" data-launch-quick-action="' +
-            escapeHtml(item.slug) +
-            '" data-launch-quick-mode="set_standard">Keep standard</button>' +
+            // Launch-state controls (Mark ready to feature, Keep standard,
+            // Launch state dropdown, Match priority checkbox) were removed
+            // 2026-04-18: the product thesis is match-over-merchandise, so
+            // no therapist is featured or ranked higher than fit warrants.
+            // The underlying launch-profile-controls plumbing is being
+            // cleaned up in a followup.
             "</div>" +
-            '</div><div class="launch-card-controls"><label class="queue-select-label" for="launch-state-' +
-            escapeHtml(item.slug) +
-            '">Launch state</label><select class="queue-select" id="launch-state-' +
-            escapeHtml(item.slug) +
-            '" data-launch-state="' +
-            escapeHtml(item.slug) +
-            '">' +
-            launchStateOptions
-              .map(function (option) {
-                return (
-                  '<option value="' +
-                  escapeHtml(option) +
-                  '"' +
-                  (control.launch_state === option ? " selected" : "") +
-                  ">" +
-                  escapeHtml(getLaunchStateLabel(option)) +
-                  "</option>"
-                );
-              })
-              .join("") +
-            '</select><label class="launch-checkbox"><input type="checkbox" data-launch-match="' +
-            escapeHtml(item.slug) +
-            '"' +
-            (control.match_priority ? " checked" : "") +
-            '> Match priority</label><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
+            '<div class="launch-card-controls">' +
+            '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
             encodeURIComponent(item.slug) +
             '">Open profile</a>' +
             '<button type="button" class="btn-secondary btn-inline" data-edit-therapist-id="' +

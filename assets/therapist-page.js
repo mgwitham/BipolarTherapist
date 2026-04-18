@@ -1,8 +1,6 @@
-import {
-  fetchActiveFeaturedSlugs,
-  fetchPublicTherapistBySlug,
-  fetchPublicTherapists,
-} from "./cms.js";
+// fetchActiveFeaturedSlugs removed 2026-04-18 along with the rest of the
+// homepage/directory featured rotation.
+import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import {
   getDataFreshnessSummary,
   getEditoriallyVerifiedOperationalCount,
@@ -1659,11 +1657,8 @@ async function resolveTherapistForProfile(slugValue) {
 
     var therapist = await resolveTherapistForProfile(slug);
     var therapistDirectory = await fetchPublicTherapists();
-    try {
-      featuredSlugSet = new Set(await fetchActiveFeaturedSlugs());
-    } catch (_error) {
-      featuredSlugSet = new Set();
-    }
+    // featuredSlugSet stays as the empty default; no profile is ever
+    // badged as "featured" on the therapist page.
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
