@@ -48,6 +48,7 @@ export function buildCardViewModel(options) {
     acceptanceTone: therapist.accepting_new_patients ? "accepting" : "accepting not-acc",
     feeSummary: formatDirectoryFeeLabel(therapist, "Fees to confirm"),
     valuePillHtml: renderValuePillRow(therapist, "value-pill"),
+    isFeatured: Boolean(options.isFeatured),
   };
 }
 

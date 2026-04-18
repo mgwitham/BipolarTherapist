@@ -1,4 +1,8 @@
-import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
+import { fetchActiveFeaturedSlugs, fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
+import {
+  getOrCreateSessionSeed,
+  rotateFeaturedFirst,
+} from "../shared/featured-placement-domain.mjs";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -75,6 +79,7 @@ import {
 import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
+var featuredSlugSet = new Set();
 var latestProfile = null;
 var latestEntries = [];
 var latestLearningSignals = null;
@@ -1035,7 +1040,12 @@ function executeMatch(profile, options) {
   }
 
   activeSecondPassMode = getAdaptiveSecondPassMode(profile);
-  var entries = rankEntriesForProfile(profile);
+  var entries = rotateFeaturedFirst(rankEntriesForProfile(profile), featuredSlugSet, {
+    seed: getOrCreateSessionSeed(),
+    getSlug: function (entry) {
+      return entry && entry.therapist && entry.therapist.slug;
+    },
+  });
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
     care_intent: profile.care_intent,
@@ -4396,6 +4406,13 @@ function renderLeadResultCard(entry, _backupName, options) {
       "Best match for you" +
       "</span>"
     : "";
+  var featuredBadgeHtml = featuredSlugSet.has(
+    String(therapist.slug || "")
+      .trim()
+      .toLowerCase(),
+  )
+    ? '<span class="badge-featured" aria-label="Featured placement">Featured</span>'
+    : "";
 
   return (
     '<article class="mx-hero">' +
@@ -4408,6 +4425,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     "<div>" +
     '<h3 class="mx-hero-name">' +
     escapeHtml(therapist.name || "") +
+    featuredBadgeHtml +
     "</h3>" +
     (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
@@ -4486,6 +4504,13 @@ function renderSupportingResultCard(entry, _rank, options) {
             ? "Visit"
             : "Reach out";
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
+  var featuredBadgeHtml = featuredSlugSet.has(
+    String(therapist.slug || "")
+      .trim()
+      .toLowerCase(),
+  )
+    ? '<span class="badge-featured" aria-label="Featured placement">Featured</span>'
+    : "";
 
   var metaParts = [];
   if (availabilityLabel) {
@@ -4508,6 +4533,7 @@ function renderSupportingResultCard(entry, _rank, options) {
     '<div class="mx-card-ident">' +
     '<h3 class="mx-card-name">' +
     escapeHtml(therapist.name || "") +
+    featuredBadgeHtml +
     "</h3>" +
     (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
@@ -4987,6 +5013,11 @@ function refreshIntakeUiFromForm() {
   MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
   await preloadZipcodes();
   therapists = await fetchPublicTherapists();
+  try {
+    featuredSlugSet = new Set(await fetchActiveFeaturedSlugs());
+  } catch (_error) {
+    featuredSlugSet = new Set();
+  }
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
   trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {

@@ -3599,3 +3599,27 @@ body.dir-vb .dir-vb-modal-apply {
     text-align: center;
   }
 }
+
+.badge-featured,
+.status-badge.badge-featured {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  margin-left: 0.5rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.status-badge.badge-featured {
+  margin-left: 0;
+}
