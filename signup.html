@@ -1404,6 +1404,85 @@
         display: grid;
         gap: 0.9rem;
       }
+      .quick-claim-search {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.75rem;
+        margin-bottom: 0.85rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .quick-claim-search label {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .quick-claim-search label span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .quick-claim-search input {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        color: var(--navy);
+        background: var(--white);
+      }
+      .quick-claim-search input:focus {
+        outline: 2px solid var(--teal);
+        outline-offset: 1px;
+        border-color: var(--teal);
+      }
+      .quick-claim-search-results {
+        display: grid;
+        gap: 0.35rem;
+        max-height: 18rem;
+        overflow-y: auto;
+      }
+      .quick-claim-search-result {
+        display: grid;
+        gap: 0.15rem;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--white);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        color: var(--navy);
+      }
+      .quick-claim-search-result:hover,
+      .quick-claim-search-result:focus {
+        border-color: var(--teal);
+        background: rgba(47, 110, 128, 0.05);
+        outline: none;
+      }
+      .quick-claim-search-result .result-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .quick-claim-search-result .result-meta {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .quick-claim-search-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0;
+      }
+      .quick-claim-search-empty {
+        font-size: 0.85rem;
+        color: var(--muted);
+        padding: 0.4rem 0;
+      }
+      .quick-claim-field-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
       .quick-claim-form label {
         display: grid;
         gap: 0.4rem;
@@ -1721,6 +1800,12 @@
       .pricing-cta-secondary:hover {
         background: var(--teal-faint);
       }
+      .pricing-spots {
+        font-size: 0.82rem;
+        color: #92400e;
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+      }
       .pricing-trust {
         display: grid;
         gap: 0.35rem;
@@ -1857,6 +1942,26 @@
             <li>Unlock Featured placement anytime later</li>
           </ul>
         </div>
+        <div class="quick-claim-search" id="quickClaimSearch">
+          <label>
+            <span>Find your listing</span>
+            <input
+              type="search"
+              id="quickClaimSearchInput"
+              autocomplete="off"
+              placeholder="Search by last name or license number"
+            />
+          </label>
+          <div
+            class="quick-claim-search-results"
+            id="quickClaimSearchResults"
+            role="listbox"
+            hidden
+          ></div>
+          <p class="quick-claim-search-hint">
+            Not sure what email we have on file? Search for your name or license to see a hint.
+          </p>
+        </div>
         <form id="quickClaimForm" class="quick-claim-form" novalidate>
           <label>
             <span>Full name</span>
@@ -1864,13 +1969,14 @@
               type="text"
               name="full_name"
               autocomplete="name"
-              placeholder="Dr. Jamie Rivera"
+              placeholder="Jamie Rivera"
               required
             />
           </label>
           <label>
             <span>Email on your current listing</span>
             <input type="email" name="email" autocomplete="email" required />
+            <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
           </label>
           <label>
             <span>CA license number</span>
@@ -1878,7 +1984,7 @@
               type="text"
               name="license_number"
               autocomplete="off"
-              placeholder="e.g. LMFT12345"
+              placeholder="e.g. 109462"
               required
             />
           </label>
@@ -2002,13 +2108,14 @@
                 ><span class="pricing-cadence">per month</span>
               </div>
             </header>
+            <p class="pricing-spots" data-founding-spots>Checking how many spots are left...</p>
             <ul class="pricing-features">
               <li>Priority placement in match results and directory</li>
               <li>Featured badge on your profile</li>
               <li>Rate locked for 24 months</li>
               <li>14-day free trial, cancel anytime</li>
             </ul>
-            <a href="pricing.html" class="pricing-cta pricing-cta-primary"
+            <a href="pricing.html" class="pricing-cta pricing-cta-primary" data-founding-cta
               >Start 14-day free trial</a
             >
             <div class="pricing-trust">

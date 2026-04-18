@@ -189,6 +189,73 @@ test("quick-claim: already-claimed profile keeps its claimed status", async () =
   assert.equal(updated.claimStatus, "claimed");
 });
 
+test("quick-claim: accepts email at the same domain as the practice website", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      website: "https://rivercounselingla.com",
+    }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@rivercounselingla.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.verification_method, "email_domain_match");
+  assert.equal(emailsSent.length, 1);
+  assert.equal(emailsSent[0].email, "jamie@rivercounselingla.com");
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.lastClaimVerificationMethod, "email_domain_match");
+});
+
+test("quick-claim: rejects free-email domains even when website shares the name", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      website: "https://gmail.com",
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "impostor@gmail.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.payload.reason, "email_mismatch");
+});
+
+test("quick-claim: rejects aggregator-domain websites for auto-verify", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      website: "https://www.psychologytoday.com/us/therapists/jamie-rivera",
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@psychologytoday.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.payload.reason, "email_mismatch");
+});
+
 test("quick-claim: normalizes name and email to case-insensitive compare", async () => {
   const { client } = createMemoryClient({
     "therapist-LMFT12345": seedTherapist("LMFT12345"),
