@@ -4,6 +4,9 @@ import {
   formatMergeLocation,
   formatMergeSource,
 } from "./admin-candidate-review.js";
+import { promptForRejectionReason } from "./admin-rejection-reason-picker.js";
+
+const DECISIONS_REQUIRING_REASON = new Set(["archive", "reject_duplicate"]);
 
 const REASON_LABELS = {
   license: "License number match",
@@ -358,6 +361,27 @@ export function createCandidateCompareModal(config) {
     if (!currentItemId || !decideTherapistCandidate) {
       return;
     }
+
+    let decisionPayload = { decision: decision };
+    if (DECISIONS_REQUIRING_REASON.has(decision)) {
+      const pickerResult = await promptForRejectionReason({
+        headline:
+          decision === "reject_duplicate"
+            ? "Why mark this as a duplicate?"
+            : "Why archive this candidate?",
+        confirmLabel: decision === "reject_duplicate" ? "Mark duplicate" : "Archive",
+      });
+      if (!pickerResult) {
+        return;
+      }
+      decisionPayload = {
+        decision: decision,
+        rejection_reason: pickerResult.reason,
+        rejection_notes: pickerResult.notes,
+        notes: pickerResult.notes,
+      };
+    }
+
     const siblings = modalRoot ? modalRoot.querySelectorAll("[data-compare-decision]") : [];
     siblings.forEach(function (node) {
       node.disabled = true;
@@ -369,7 +393,7 @@ export function createCandidateCompareModal(config) {
       errorSlotNode.textContent = "";
     }
     try {
-      await decideTherapistCandidate(currentItemId, { decision: decision });
+      await decideTherapistCandidate(currentItemId, decisionPayload);
       onDecisionComplete(currentItemId, decision);
       close();
       await loadData();

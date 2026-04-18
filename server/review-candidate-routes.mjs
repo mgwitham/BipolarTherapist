@@ -190,6 +190,26 @@ export async function handleCandidateRoutes(context) {
     return true;
   }
 
+  const REJECTION_REASON_VALUES = new Set([
+    "not_a_specialist",
+    "dead_site",
+    "group_practice",
+    "aggregator_url",
+    "out_of_state",
+    "license_unverifiable",
+    "duplicate",
+    "other",
+  ]);
+  const rejectionReason = String(body.rejection_reason || "").trim();
+  const rejectionNotes = String(body.rejection_notes || "").trim();
+  const decisionCapturesRejection = decision === "archive" || decision === "reject_duplicate";
+  if (rejectionReason && !REJECTION_REASON_VALUES.has(rejectionReason)) {
+    sendJson(response, 400, { error: "Unsupported rejection reason." }, origin, config);
+    return true;
+  }
+  const appliedRejectionReason = decisionCapturesRejection ? rejectionReason : "";
+  const appliedRejectionNotes = decisionCapturesRejection ? rejectionNotes : "";
+
   const now = new Date().toISOString();
   const actorName = getAuthorizedActor(request, config) || "admin";
   const historyEntry = {
@@ -418,6 +438,13 @@ export async function handleCandidateRoutes(context) {
     });
   }
 
+  if (decisionCapturesRejection && appliedRejectionReason) {
+    changedFields.push("rejectionReason");
+    if (appliedRejectionNotes) {
+      changedFields.push("rejectionNotes");
+    }
+  }
+
   transaction.patch(candidateId, function (patch) {
     return patch
       .set({
@@ -430,6 +457,12 @@ export async function handleCandidateRoutes(context) {
         lastReviewedAt: now,
         notes,
         sourceReviewedAt: candidate.sourceReviewedAt || now,
+        ...(decisionCapturesRejection && appliedRejectionReason
+          ? {
+              rejectionReason: appliedRejectionReason,
+              rejectionNotes: appliedRejectionNotes,
+            }
+          : {}),
         ...(therapistId
           ? {
               matchedTherapistId: therapistId,
@@ -447,6 +480,16 @@ export async function handleCandidateRoutes(context) {
       .append("reviewHistory", [historyEntry]);
   });
 
+  const eventRationale = appliedRejectionReason
+    ? [
+        "rejection_reason=" + appliedRejectionReason,
+        appliedRejectionNotes,
+        notes && notes !== appliedRejectionNotes ? notes : "",
+      ]
+        .filter(Boolean)
+        .join(" | ")
+    : notes;
+
   transaction.create(
     buildCandidateReviewEvent(candidate, {
       eventType,
@@ -456,8 +499,8 @@ export async function handleCandidateRoutes(context) {
       reviewStatus,
       publishRecommendation,
       actorName,
-      rationale: notes,
-      notes,
+      rationale: eventRationale,
+      notes: eventRationale,
       changedFields,
     }),
   );
