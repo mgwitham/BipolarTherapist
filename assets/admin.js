@@ -5706,7 +5706,7 @@ function renderStats() {
       return getClaimFollowUpUrgency(item).level === "due_now";
     }).length;
     const publishReadyApplicationsCount = applications.filter(function (item) {
-      return reviewModels.getApplicationReviewFocus(item) === "publish_ready";
+      return reviewModels.getApplicationReviewSnapshot(item).focus === "publish_ready";
     }).length;
     const readyToApplyCount = confirmationQueue.filter(function (entry) {
       var status = entry && entry.workflow ? entry.workflow.status : "not_started";
@@ -6102,7 +6102,12 @@ function renderIngestionScorecard() {
       latestAutomationRun: latestAutomationRun,
       licensureRefreshQueue: licensureRefreshQueue,
       licensureActivityFeed: licensureActivityFeed,
-      buildCoverageInsights: buildCoverageInsights,
+      buildCoverageInsights: function (therapists) {
+        return buildCoverageInsights(therapists, {
+          inferCoverageRole: inferCoverageRole,
+          getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+        });
+      },
       getDataFreshnessSummary: getDataFreshnessSummary,
       getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
       escapeHtml: escapeHtml,
