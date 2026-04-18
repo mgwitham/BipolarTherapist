@@ -1,3 +1,5 @@
+import { resolveFeaturedPriceId } from "../shared/therapist-subscription-domain.mjs";
+
 let stripeModulePromise = null;
 
 async function loadStripe() {
@@ -10,7 +12,16 @@ async function loadStripe() {
 }
 
 export function hasStripeConfig(config) {
-  return Boolean(config && config.stripeSecretKey && config.stripeFeaturedPriceId);
+  if (!config || !config.stripeSecretKey) {
+    return false;
+  }
+  return Boolean(
+    config.stripeFeaturedPriceId ||
+    config.stripeFeaturedFoundingMonthlyPriceId ||
+    config.stripeFeaturedFoundingAnnualPriceId ||
+    config.stripeFeaturedRegularMonthlyPriceId ||
+    config.stripeFeaturedRegularAnnualPriceId,
+  );
 }
 
 export function hasStripeWebhookConfig(config) {
@@ -26,12 +37,21 @@ async function getStripeClient(config) {
 }
 
 export async function createFeaturedCheckoutSession(config, options) {
-  const { therapistSlug, customerEmail, returnPath } = options || {};
+  const { therapistSlug, customerEmail, returnPath, plan } = options || {};
   if (!therapistSlug) {
     throw new Error("therapistSlug is required to create a checkout session.");
   }
   if (!hasStripeConfig(config)) {
     throw new Error("Stripe is not configured (missing secret key or featured price id).");
+  }
+
+  const resolution =
+    resolveFeaturedPriceId(config, plan) ||
+    (config.stripeFeaturedPriceId
+      ? { priceId: config.stripeFeaturedPriceId, tier: "regular", interval: "month" }
+      : null);
+  if (!resolution) {
+    throw new Error("Requested featured plan is not configured on this Stripe account.");
   }
 
   const stripe = await getStripeClient(config);
@@ -45,22 +65,27 @@ export async function createFeaturedCheckoutSession(config, options) {
   const cancelUrl = `${returnBase}${returnBase.includes("?") ? "&" : "?"}stripe=cancel&slug=${encodeURIComponent(slug)}`;
 
   const trialDays = Number.isFinite(config.stripeTrialDays) ? config.stripeTrialDays : 14;
+  const metadata = {
+    therapist_slug: slug,
+    tier: resolution.tier,
+    interval: resolution.interval,
+  };
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    line_items: [{ price: config.stripeFeaturedPriceId, quantity: 1 }],
+    line_items: [{ price: resolution.priceId, quantity: 1 }],
     subscription_data: {
       trial_period_days: trialDays > 0 ? trialDays : undefined,
-      metadata: { therapist_slug: slug },
+      metadata,
     },
     customer_email: customerEmail || undefined,
     allow_promotion_codes: true,
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata: { therapist_slug: slug },
+    metadata,
   });
 
-  return { id: session.id, url: session.url };
+  return { id: session.id, url: session.url, tier: resolution.tier, interval: resolution.interval };
 }
 
 export async function createBillingPortalSession(config, options) {

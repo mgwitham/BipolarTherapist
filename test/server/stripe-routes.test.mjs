@@ -87,6 +87,41 @@ test("checkout-session endpoint returns the checkout URL from Stripe", async () 
   assert.equal(response.payload.url, "https://checkout.stripe.test/cs_test_1");
 });
 
+test("checkout-session endpoint forwards plan code to stripe-client", async () => {
+  const { client } = createMemoryClient();
+  let observedPlan = null;
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/checkout-session",
+    client,
+    deps: {
+      parseBody: async () => ({
+        therapist_slug: "jamie-rivera",
+        email: "jamie@example.com",
+        plan: "founding_annual",
+      }),
+      parseRawBody: async () => Buffer.alloc(0),
+      createFeaturedCheckoutSession: async (_config, options) => {
+        observedPlan = options.plan;
+        return {
+          id: "cs_test_2",
+          url: "https://checkout.stripe.test/cs_test_2",
+          tier: "founding",
+          interval: "year",
+        };
+      },
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(observedPlan, "founding_annual");
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.tier, "founding");
+  assert.equal(response.payload.interval, "year");
+});
+
 test("checkout-session endpoint rejects missing therapist_slug", async () => {
   const { client } = createMemoryClient();
   const { response, context } = buildContext({

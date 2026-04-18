@@ -1,6 +1,46 @@
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 const LAPSED_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
 
+export const FEATURED_PLAN_CODES = Object.freeze([
+  "founding_monthly",
+  "founding_annual",
+  "regular_monthly",
+  "regular_annual",
+]);
+
+export function parsePlanCode(value) {
+  const plan = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!FEATURED_PLAN_CODES.includes(plan)) {
+    return null;
+  }
+  const [tier, intervalKey] = plan.split("_");
+  const interval = intervalKey === "annual" ? "year" : "month";
+  return { plan, tier, interval };
+}
+
+export function resolveFeaturedPriceId(config, planCode) {
+  const parsed = parsePlanCode(planCode);
+  if (!parsed) {
+    if (config && config.stripeFeaturedPriceId) {
+      return { priceId: config.stripeFeaturedPriceId, tier: "regular", interval: "month" };
+    }
+    return null;
+  }
+  const lookup = {
+    founding_monthly: config && config.stripeFeaturedFoundingMonthlyPriceId,
+    founding_annual: config && config.stripeFeaturedFoundingAnnualPriceId,
+    regular_monthly: config && config.stripeFeaturedRegularMonthlyPriceId,
+    regular_annual: config && config.stripeFeaturedRegularAnnualPriceId,
+  };
+  const priceId = lookup[parsed.plan] || (config && config.stripeFeaturedPriceId) || "";
+  if (!priceId) {
+    return null;
+  }
+  return { priceId, tier: parsed.tier, interval: parsed.interval };
+}
+
 function normalizeSlug(value) {
   return String(value || "")
     .trim()
@@ -56,13 +96,32 @@ export function deriveSubscriptionDocumentFromStripe(options) {
   }
 
   const status = String(stripeSubscription.status || "").toLowerCase();
-  const priceId =
-    (stripeSubscription.items &&
-      stripeSubscription.items.data &&
-      stripeSubscription.items.data[0] &&
-      stripeSubscription.items.data[0].price &&
-      stripeSubscription.items.data[0].price.id) ||
+  const firstItem =
+    stripeSubscription.items && stripeSubscription.items.data && stripeSubscription.items.data[0];
+  const priceId = (firstItem && firstItem.price && firstItem.price.id) || "";
+  const recurringInterval =
+    (firstItem &&
+      firstItem.price &&
+      firstItem.price.recurring &&
+      firstItem.price.recurring.interval) ||
     "";
+  const metadataTier = String(
+    (stripeSubscription.metadata && stripeSubscription.metadata.tier) || "",
+  )
+    .trim()
+    .toLowerCase();
+  const metadataInterval = String(
+    (stripeSubscription.metadata && stripeSubscription.metadata.interval) || "",
+  )
+    .trim()
+    .toLowerCase();
+  const tier = metadataTier === "founding" || metadataTier === "regular" ? metadataTier : "";
+  const interval =
+    metadataInterval === "year" || metadataInterval === "month"
+      ? metadataInterval
+      : recurringInterval === "year" || recurringInterval === "month"
+        ? recurringInterval
+        : "";
 
   return {
     _id: buildSubscriptionId(slug),
@@ -72,6 +131,8 @@ export function deriveSubscriptionDocumentFromStripe(options) {
     stripeSubscriptionId: String(stripeSubscription.id || ""),
     stripePriceId: priceId,
     plan: status && !LAPSED_STATUSES.has(status) ? "featured" : "none",
+    tier,
+    interval,
     status,
     trialEndsAt: toIsoFromSeconds(stripeSubscription.trial_end),
     currentPeriodEndsAt: toIsoFromSeconds(stripeSubscription.current_period_end),

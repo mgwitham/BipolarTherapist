@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  FEATURED_PLAN_CODES,
   buildSubscriptionId,
   deriveSubscriptionDocumentFromStripe,
   hasActiveFeatured,
   isLapsedFeatured,
   mergeSubscriptionDocuments,
+  parsePlanCode,
+  resolveFeaturedPriceId,
   shouldApplyEvent,
 } from "../../shared/therapist-subscription-domain.mjs";
 
@@ -109,4 +112,119 @@ test("mergeSubscriptionDocuments preserves existing fields not in next", () => {
   assert.equal(merged.stripeCustomerId, "cus_new");
   assert.equal(merged.lastEventId, "evt_new");
   assert.equal(merged.preservedExtra, "keep-me");
+});
+
+test("FEATURED_PLAN_CODES exports the four supported plan codes", () => {
+  assert.deepEqual(FEATURED_PLAN_CODES.slice().sort(), [
+    "founding_annual",
+    "founding_monthly",
+    "regular_annual",
+    "regular_monthly",
+  ]);
+});
+
+test("parsePlanCode derives tier and interval for each supported code", () => {
+  assert.deepEqual(parsePlanCode("founding_monthly"), {
+    plan: "founding_monthly",
+    tier: "founding",
+    interval: "month",
+  });
+  assert.deepEqual(parsePlanCode("founding_annual"), {
+    plan: "founding_annual",
+    tier: "founding",
+    interval: "year",
+  });
+  assert.deepEqual(parsePlanCode("regular_monthly"), {
+    plan: "regular_monthly",
+    tier: "regular",
+    interval: "month",
+  });
+  assert.deepEqual(parsePlanCode("regular_annual"), {
+    plan: "regular_annual",
+    tier: "regular",
+    interval: "year",
+  });
+});
+
+test("parsePlanCode returns null for unknown codes", () => {
+  assert.equal(parsePlanCode(""), null);
+  assert.equal(parsePlanCode("vip"), null);
+  assert.equal(parsePlanCode(null), null);
+});
+
+test("resolveFeaturedPriceId maps plan codes to configured price ids", () => {
+  const config = {
+    stripeFeaturedFoundingMonthlyPriceId: "price_fm",
+    stripeFeaturedFoundingAnnualPriceId: "price_fa",
+    stripeFeaturedRegularMonthlyPriceId: "price_rm",
+    stripeFeaturedRegularAnnualPriceId: "price_ra",
+  };
+  assert.deepEqual(resolveFeaturedPriceId(config, "founding_monthly"), {
+    priceId: "price_fm",
+    tier: "founding",
+    interval: "month",
+  });
+  assert.deepEqual(resolveFeaturedPriceId(config, "regular_annual"), {
+    priceId: "price_ra",
+    tier: "regular",
+    interval: "year",
+  });
+});
+
+test("resolveFeaturedPriceId falls back to legacy stripeFeaturedPriceId when plan is missing", () => {
+  const config = { stripeFeaturedPriceId: "price_legacy" };
+  assert.deepEqual(resolveFeaturedPriceId(config, ""), {
+    priceId: "price_legacy",
+    tier: "regular",
+    interval: "month",
+  });
+});
+
+test("resolveFeaturedPriceId returns null when no price is configured for the requested plan", () => {
+  assert.equal(resolveFeaturedPriceId({}, "founding_monthly"), null);
+  assert.equal(resolveFeaturedPriceId({}, "not-a-plan"), null);
+});
+
+test("deriveSubscriptionDocumentFromStripe extracts tier and interval from subscription metadata", () => {
+  const document = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: {
+      id: "sub_x",
+      status: "trialing",
+      customer: "cus_x",
+      current_period_end: 1_800_000_000,
+      trial_end: 1_700_000_000,
+      cancel_at_period_end: false,
+      metadata: { therapist_slug: "jamie-rivera", tier: "founding", interval: "month" },
+      items: {
+        data: [{ price: { id: "price_fm", recurring: { interval: "month" } } }],
+      },
+    },
+    eventId: "evt_1",
+    eventCreatedAt: "2026-04-18T00:00:00.000Z",
+  });
+  assert.equal(document.tier, "founding");
+  assert.equal(document.interval, "month");
+  assert.equal(document.stripePriceId, "price_fm");
+});
+
+test("deriveSubscriptionDocumentFromStripe infers interval from recurring.interval when metadata is absent", () => {
+  const document = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: {
+      id: "sub_x",
+      status: "active",
+      customer: "cus_x",
+      current_period_end: 1_800_000_000,
+      cancel_at_period_end: false,
+      metadata: {},
+      items: {
+        data: [{ price: { id: "price_ra", recurring: { interval: "year" } } }],
+      },
+    },
+    eventId: "evt_2",
+    eventCreatedAt: "2026-04-18T00:00:00.000Z",
+  });
+  assert.equal(document.interval, "year");
+  assert.equal(document.tier, "");
 });
