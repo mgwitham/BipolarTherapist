@@ -420,6 +420,7 @@ function ensureWorkflowSectionRendered(sectionId) {
 const workflowNavigator = createAdminWorkflowNavigator({
   escapeHtml: escapeHtml,
   ensureSectionRendered: ensureWorkflowSectionRendered,
+  setActiveView: setActiveAdminView,
   getGrid: function () {
     return document.querySelector("#adminApp .grid");
   },
