@@ -4089,21 +4089,13 @@ function renderExecutiveCommandDeck(context) {
     kicker: "Executive Mandate",
     title: "Turn today’s most leveraged operational bottleneck into movement.",
     copy: "This admin should tell a first-time operator what matters right now, why it matters to the business, and which lane creates the highest-value movement next.",
-    targetId: "reviewAttentionQueuePanel",
-    actionLabel: "Open needs-action queue",
-    secondaryTargetId: "applicationsPanel",
-    secondaryActionLabel: "Open supply review",
+    targetId: "applicationsPanel",
+    actionLabel: "Open supply review",
+    secondaryTargetId: "candidateQueuePanel",
+    secondaryActionLabel: "Open candidate lane",
   };
 
-  if (urgentWorkCount >= Math.max(inboundSupplyCount, 3)) {
-    mandate.title = "Stabilize the active queue before adding more work into the system.";
-    mandate.copy =
-      "The fastest business win right now is clearing overdue, unassigned, and stale work so decisions stop getting trapped in operational limbo.";
-    mandate.targetId = "reviewAttentionQueuePanel";
-    mandate.actionLabel = "Triage urgent work";
-    mandate.secondaryTargetId = "reviewerWorkloadPanel";
-    mandate.secondaryActionLabel = "Open assigned work";
-  } else if (inboundSupplyCount >= Math.max(trustDebtCount, 4)) {
+  if (inboundSupplyCount >= Math.max(trustDebtCount, 4)) {
     mandate.title = "Convert inbound supply into trusted live listings while momentum is there.";
     mandate.copy =
       "The business has enough incoming supply to create visible growth, but only if we make clear publish, approve, and merge decisions instead of letting submissions wait.";
@@ -4177,21 +4169,6 @@ function renderExecutiveCommandDeck(context) {
   mandateRoot.hidden = false;
 
   var sessionSteps = [
-    {
-      title: urgentWorkCount ? "Clear the immediate queue first" : "Start with the top guided lane",
-      copy: urgentWorkCount
-        ? "Handle work that is overdue, ownerless, or going stale so the rest of the session compounds instead of creating more drift."
-        : "Use the guided lane that has the strongest count and clearest business leverage right now.",
-      meta: urgentWorkCount
-        ? urgentWorkCount + " urgent work items are visible across the main lanes."
-        : "The queue is stable enough to start directly in the highest-value lane.",
-      targetId: "reviewAttentionQueuePanel",
-      destination: "Needs Action Now",
-      firstStep: "Open the top item and make the next state explicit.",
-      nextStep: "Either assign it, move it forward, or record why it is blocked.",
-      done: "The item is no longer sitting in a stale or ownerless state.",
-      actionLabel: "Open urgent queue",
-    },
     {
       title:
         context.pendingApplicationsCount >= context.candidateReviewCount
@@ -4405,7 +4382,6 @@ function renderWorkflowLaneGuidance(rootId, config) {
 
 function renderAdminWorkflowGuidance(context) {
   var snapshot = (context && context.workQueueSnapshot) || {};
-  var myTasks = Array.isArray(snapshot.myTasks) ? snapshot.myTasks : [];
   var unassigned = Array.isArray(snapshot.unassigned) ? snapshot.unassigned : [];
   var dueToday = Array.isArray(snapshot.dueToday) ? snapshot.dueToday : [];
   var doneRecently = Array.isArray(snapshot.doneRecently) ? snapshot.doneRecently : [];
@@ -4522,68 +4498,6 @@ function renderAdminWorkflowGuidance(context) {
       openPortalRequestCount + openConciergeCount > 0
         ? "Human demand and therapist requests are both active, so this inbox is the bridge between growth work and service work."
         : "When request pressure is low, the inbox should bias toward trust maintenance and supply conversion.",
-  });
-
-  renderWorkflowLaneGuidance("reviewAttentionQueueGuidance", {
-    kicker: "Triage board",
-    title:
-      dueToday.length + unassigned.length > 0
-        ? "Clear drift before it compounds"
-        : "Urgent work is contained",
-    copy: "This is the fastest lane for restoring control. It should answer what is on fire, who should touch it, and what must move today.",
-    badge:
-      dueToday.length > 0
-        ? dueToday.length + " due now"
-        : unassigned.length > 0
-          ? unassigned.length + " ownerless"
-          : "No immediate escalations",
-    metrics: [
-      { label: "My queue", value: String(myTasks.length) },
-      { label: "Due now", value: String(dueToday.length) },
-      { label: "Unassigned", value: String(unassigned.length) },
-      { label: "Recently done", value: String(doneRecently.length) },
-    ],
-    steps: [
-      "Work overdue or due-today items before starting fresh queue browsing.",
-      "Assign ownerless work immediately so it stops leaking accountability.",
-      "Use this lane to regain flow, then drop back into supply conversion work.",
-    ],
-    success: [
-      "Overdue work decreases session by session.",
-      "No critical record is sitting without an owner.",
-      "Review sessions start from the hottest items instead of intuition.",
-    ],
-    callout:
-      myTasks.length > 0
-        ? "A named owner exists for part of the work, which means the next gain comes from shrinking overdue and unassigned items."
-        : "If no personal queue is active, the risk is diffusion of responsibility rather than lack of work.",
-  });
-
-  renderWorkflowLaneGuidance("reviewerWorkloadGuidance", {
-    kicker: "Team management",
-    title: "Balance ownership like an operating system",
-    copy: "This panel should make capacity, blockage, and urgency visible enough that a new operator can tell who owns what without asking around.",
-    badge: preferredReviewer ? "Focused on " + preferredReviewer : "Shared team queue",
-    metrics: [
-      { label: "Owned by me", value: String(myTasks.length) },
-      { label: "Unassigned", value: String(unassigned.length) },
-      { label: "Due now", value: String(dueToday.length) },
-      { label: "Recently done", value: String(doneRecently.length) },
-    ],
-    steps: [
-      "Use My queue when operating solo, then switch to the full board when balancing team load.",
-      "Assign follow-up with clear owners and dates so the board reflects actual commitments.",
-      "Use blocked and overdue slices to surface managerial attention, not just work volume.",
-    ],
-    success: [
-      "Ownership is clear across candidates and applications.",
-      "Due dates create a real service cadence instead of vague intent.",
-      "The board supports daily standup, handoff, and intervention in one place.",
-    ],
-    callout:
-      unassigned.length > 0
-        ? "The main management drag right now is ownerless work. Assigning it is usually a faster win than adding more process."
-        : "With ownership mostly in place, the board becomes a throughput tool: remove blockers and clear due work before adding more queue.",
   });
 }
 
@@ -4882,88 +4796,7 @@ function getCommandPaletteCommands() {
         focusAdminAnchorTarget("intelligenceRegion");
       },
     },
-    {
-      id: "shortcut-my-queue",
-      key: "shortcut-my-queue",
-      title: preferredReviewer ? "Open My Queue" : "Open Owned Work",
-      kicker: "Operator shortcut",
-      copy: preferredReviewer
-        ? "Focus the workload board on " + preferredReviewer + " plus any unassigned work."
-        : "Turn on personal queue mode so owned and unassigned work becomes the default view.",
-      priority: 1,
-      run: function () {
-        reviewerWorkspace.setReviewerMyQueueMode(true);
-        reviewerWorkspaceUi.workloadFilter = "";
-        renderAll();
-        focusAdminAnchorTarget("reviewerWorkloadPanel");
-      },
-    },
-    {
-      id: "shortcut-my-overdue",
-      key: "shortcut-my-overdue",
-      title: preferredReviewer ? "Show My Overdue Work" : "Show Overdue Work",
-      kicker: "Operator shortcut",
-      copy: preferredReviewer
-        ? "Pull up overdue follow-up assigned to " + preferredReviewer + " plus unassigned risk."
-        : "Filter the workload board to the overdue slice for faster triage.",
-      priority: 0,
-      run: function () {
-        if (preferredReviewer) {
-          reviewerWorkspace.setReviewerMyQueueMode(true);
-          reviewerWorkspaceUi.workloadFilter = "";
-        }
-        reviewerWorkspaceUi.workloadSlice = "overdue";
-        renderAll();
-        focusAdminAnchorTarget("reviewerWorkloadPanel");
-      },
-    },
-    {
-      id: "shortcut-blocked-work",
-      key: "shortcut-blocked-work",
-      title: "Show Blocked Work",
-      kicker: "Operator shortcut",
-      copy: "Surface work that needs managerial intervention instead of more queue browsing.",
-      priority: 2,
-      run: function () {
-        reviewerWorkspaceUi.workloadSlice = "blocked";
-        renderAll();
-        focusAdminAnchorTarget("reviewerWorkloadPanel");
-      },
-    },
-    {
-      id: "shortcut-unassigned-work",
-      key: "shortcut-unassigned-work",
-      title: "Show Unassigned Work",
-      kicker: "Operator shortcut",
-      copy: "Find tasks that are leaking accountability before they go stale.",
-      priority: 3,
-      run: function () {
-        reviewerWorkspace.setReviewerMyQueueMode(false);
-        reviewerWorkspaceUi.workloadFilter = "";
-        reviewerWorkspaceUi.workloadSlice = "unassigned";
-        renderAll();
-        focusAdminAnchorTarget("reviewerWorkloadPanel");
-      },
-    },
   ];
-
-  reviewerRoster.forEach(function (reviewerName, index) {
-    commands.push({
-      id: "reviewer-" + reviewerName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      key: "reviewer-" + reviewerName,
-      title: "Open " + reviewerName + "'s Queue",
-      kicker: "Reviewer shortcut",
-      copy: "Focus the workload board on " + reviewerName + "'s owned work.",
-      priority: 4 + index,
-      run: function () {
-        reviewerWorkspace.setReviewerMyQueueMode(false);
-        reviewerWorkspaceUi.workloadFilter = reviewerName;
-        reviewerWorkspaceUi.workloadSlice = "all";
-        renderAll();
-        focusAdminAnchorTarget("reviewerWorkloadPanel");
-      },
-    });
-  });
 
   var selected = getSelectedInspectorRecord();
   if (selected && selected.item) {
@@ -7711,8 +7544,6 @@ function renderAll() {
   renderAdminSection("concierge queue", renderConciergeQueue);
   renderAdminSection("portal requests queue", renderPortalRequestsQueue);
   renderAdminSection("review activity", renderReviewActivity);
-  renderAdminSection("needs action now", reviewerWorkspace.renderAttentionQueue);
-  renderAdminSection("assigned work", reviewerWorkspace.renderReviewerWorkload);
   renderAdminSection("add new listings", renderCandidateQueue);
   renderAdminSection("review parked listings", renderReviewQueue);
   renderAdminSection("review applications", renderApplications);
@@ -8055,30 +7886,6 @@ document.getElementById("applicationClearFilters").addEventListener("click", fun
     event.preventDefault();
     toggle();
   });
-})();
-
-(function wireReviewerWorkloadToolbar() {
-  const myQueueBtn = document.getElementById("reviewerMyQueueToggle");
-  const filterEl = document.getElementById("reviewerWorkloadFilter");
-  const sliceEl = document.getElementById("reviewerWorkloadSlice");
-  if (myQueueBtn) {
-    myQueueBtn.addEventListener("click", function () {
-      reviewerWorkspace.setReviewerMyQueueMode(!reviewerWorkspaceUi.myQueueMode);
-      renderAll();
-    });
-  }
-  if (filterEl) {
-    filterEl.addEventListener("change", function (event) {
-      reviewerWorkspaceUi.workloadFilter = event.target.value || "";
-      renderAll();
-    });
-  }
-  if (sliceEl) {
-    sliceEl.addEventListener("change", function (event) {
-      reviewerWorkspaceUi.workloadSlice = event.target.value || "";
-      renderAll();
-    });
-  }
 })();
 
 var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
