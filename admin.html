@@ -4134,6 +4134,119 @@
         color: var(--muted);
         margin-top: 0.2rem;
       }
+
+      /* Refresh-queue card: compact-by-default header with
+         expandable detail. Keeps the queue scannable instead of
+         one-tall-stack-per-card. First card is rendered pre-expanded. */
+      .refresh-card-toggle {
+        appearance: none;
+        background: none;
+        border: 0;
+        padding: 0;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.9rem;
+        padding-bottom: 0.35rem;
+      }
+      .refresh-card-toggle-name {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .refresh-card-toggle-name strong {
+        font-size: 1.02rem;
+      }
+      .refresh-card-toggle-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-shrink: 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .queue-priority-chip {
+        background: rgba(26, 122, 143, 0.1);
+        color: #0f5a6b;
+        border-radius: 999px;
+        padding: 0.18rem 0.55rem;
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+      }
+      .refresh-card-toggle-freshness {
+        max-width: 18rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .refresh-card-toggle-indicator::before {
+        content: "▾";
+        display: inline-block;
+        transform: rotate(-90deg);
+        transition: transform 140ms ease;
+        opacity: 0.6;
+      }
+      .mini-card.is-expanded .refresh-card-toggle-indicator::before {
+        transform: rotate(0deg);
+      }
+      .refresh-card-detail {
+        display: none;
+        margin-top: 0.55rem;
+        padding-top: 0.6rem;
+        border-top: 1px solid var(--border);
+      }
+      .mini-card.is-expanded .refresh-card-detail {
+        display: block;
+      }
+      @media (max-width: 640px) {
+        .refresh-card-toggle {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.35rem;
+        }
+        .refresh-card-toggle-freshness {
+          max-width: 100%;
+        }
+      }
+
+      /* Floating back-to-top button. Admin pages can grow very long
+         (multi-workspace layout); this gives a one-click return. */
+      #backToTopFab {
+        position: fixed;
+        right: 1.4rem;
+        bottom: 1.4rem;
+        width: 2.85rem;
+        height: 2.85rem;
+        border-radius: 999px;
+        background: var(--primary, #1a7a8f);
+        color: #fff;
+        border: 0;
+        font-size: 1.1rem;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(16, 62, 74, 0.26);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 40;
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease;
+      }
+      #backToTopFab.is-visible {
+        display: flex;
+      }
+      #backToTopFab:hover {
+        transform: translateY(-2px);
+      }
+      #backToTopFab:focus-visible {
+        outline: 3px solid rgba(26, 122, 143, 0.45);
+        outline-offset: 3px;
+      }
     </style>
   </head>
   <body>
@@ -5119,5 +5232,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Floating back-to-top button. Visible only after scrolling past
+         a threshold; smooth-scrolls to the top of the page. Admin pages
+         are long because every workspace renders stacked on one surface;
+         this gives a one-tap escape hatch. -->
+    <button id="backToTopFab" type="button" aria-label="Back to top" title="Back to top">↑</button>
+    <script>
+      (function setupBackToTopFab() {
+        const fab = document.getElementById("backToTopFab");
+        if (!fab) return;
+        const THRESHOLD = 600;
+        function sync() {
+          const y = window.scrollY || window.pageYOffset || 0;
+          fab.classList.toggle("is-visible", y > THRESHOLD);
+        }
+        window.addEventListener("scroll", sync, { passive: true });
+        fab.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        sync();
+      })();
+    </script>
   </body>
 </html>
