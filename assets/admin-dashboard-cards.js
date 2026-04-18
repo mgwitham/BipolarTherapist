@@ -5,11 +5,6 @@ export function createAdminDashboardCardBuilders(config) {
     function (value) {
       return String(value || "");
     };
-  const getWorkItemTriageLabel = options.getWorkItemTriageLabel || function () {};
-  const buildWorkItemSummary = options.buildWorkItemSummary || function () {};
-  const getWorkItemLaneLabel = options.getWorkItemLaneLabel || function () {};
-  const getWorkItemTypeLabel = options.getWorkItemTypeLabel || function () {};
-
   function buildPassiveStatCard(value, label, meta) {
     return (
       '<div class="stat-card is-passive"><div class="stat-value">' +
@@ -261,91 +256,6 @@ export function createAdminDashboardCardBuilders(config) {
     );
   }
 
-  function buildWorkQueueCard(config) {
-    var item = config || {};
-    var topItem = item.topItem || null;
-    var previewItems = Array.isArray(item.items) ? item.items.slice(0, 3) : [];
-
-    function buildPreviewActions(previewItem, index) {
-      return (
-        '<div class="queue-actions" style="margin-top:0.45rem">' +
-        '<button class="btn-secondary btn-inline" type="button" data-work-queue-item="' +
-        escapeHtml(item.bucket || "") +
-        '" data-work-queue-item-index="' +
-        escapeHtml(String(index)) +
-        '">Open</button>' +
-        '<button class="btn-secondary btn-inline" type="button" data-work-queue-claim="' +
-        escapeHtml(item.bucket || "") +
-        '" data-work-queue-item-index="' +
-        escapeHtml(String(index)) +
-        '">' +
-        escapeHtml(previewItem.assignee ? "Reassign" : "Claim") +
-        '</button><button class="btn-secondary btn-inline" type="button" data-work-queue-waiting="' +
-        escapeHtml(item.bucket || "") +
-        '" data-work-queue-item-index="' +
-        escapeHtml(String(index)) +
-        '">Mark waiting</button><button class="btn-secondary btn-inline" type="button" data-work-queue-done="' +
-        escapeHtml(item.bucket || "") +
-        '" data-work-queue-item-index="' +
-        escapeHtml(String(index)) +
-        '">Done</button></div>'
-      );
-    }
-
-    return (
-      '<div class="stat-card" style="text-align:left"><div class="stat-value">' +
-      escapeHtml(String(item.count || 0)) +
-      '</div><div class="stat-label">' +
-      escapeHtml(item.label || "Work") +
-      "</div>" +
-      (item.meta ? '<div class="stat-meta">' + escapeHtml(item.meta) + "</div>" : "") +
-      (topItem
-        ? '<div class="stat-context-label">Start With</div><div class="stat-context-copy">' +
-          escapeHtml(topItem.name) +
-          '</div><div class="mini-status" style="margin-top:0.35rem"><strong>' +
-          escapeHtml(getWorkItemTriageLabel(topItem) || "Next up") +
-          ":</strong> " +
-          escapeHtml(buildWorkItemSummary(topItem)) +
-          "</div>"
-        : '<div class="stat-context-copy">No items in this bucket right now.</div>') +
-      (previewItems.length
-        ? '<div class="stat-context-label">Top Tasks</div><div style="display:grid;gap:0.6rem;margin-top:0.45rem">' +
-          previewItems
-            .map(function (previewItem, index) {
-              return (
-                '<div class="mini-card" style="padding:0.7rem 0.8rem"><div style="font-weight:700;color:var(--navy)">' +
-                escapeHtml(previewItem.name) +
-                '</div><div class="subtle" style="margin-top:0.25rem">' +
-                escapeHtml(buildWorkItemSummary(previewItem)) +
-                '</div><div class="mini-status" style="margin-top:0.45rem"><strong>' +
-                escapeHtml(getWorkItemTriageLabel(previewItem) || "Next up") +
-                ":</strong> " +
-                escapeHtml(
-                  item.bucket === "done_recently"
-                    ? "Recently completed work item."
-                    : "Recommended next work item.",
-                ) +
-                '</div><div class="subtle" style="margin-top:0.35rem"><strong>Lives in:</strong> ' +
-                escapeHtml(
-                  getWorkItemLaneLabel(previewItem) ||
-                    getWorkItemTypeLabel(previewItem.entity_type),
-                ) +
-                "</div>" +
-                buildPreviewActions(previewItem, index) +
-                "</div>"
-              );
-            })
-            .join("") +
-          "</div>"
-        : "") +
-      '<div class="queue-actions" style="margin-top:0.75rem"><button class="btn-secondary btn-inline" type="button" data-work-queue-bucket="' +
-      escapeHtml(item.bucket || "") +
-      '">' +
-      escapeHtml(item.actionLabel || "Open first item") +
-      "</button></div></div>"
-    );
-  }
-
   function buildPriorityActionRow(action, index) {
     var item = action || {};
     var attrs = [
@@ -405,7 +315,6 @@ export function createAdminDashboardCardBuilders(config) {
     buildPassiveStatCard,
     buildPriorityActionCard,
     buildPriorityActionRow,
-    buildWorkQueueCard,
     wrapStatsGroup,
   };
 }
