@@ -324,6 +324,138 @@
       .admin-quick-nav-links a[aria-current="true"] .nav-count {
         background: rgba(26, 122, 143, 0.22);
       }
+      .admin-tabs {
+        display: flex;
+        gap: 0.35rem;
+        margin: 0 0 1rem;
+        padding: 0.35rem;
+        border-radius: 14px;
+        background: rgba(26, 122, 143, 0.07);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+      }
+      .admin-tab {
+        flex: 1 1 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        min-height: 2.45rem;
+        padding: 0.55rem 1rem;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: #4a6570;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: -0.005em;
+        cursor: pointer;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .admin-tab:hover {
+        color: #0f3f4a;
+        background: rgba(255, 255, 255, 0.55);
+      }
+      .admin-tab.is-active {
+        background: #fff;
+        color: #0f3f4a;
+        border-color: rgba(26, 122, 143, 0.22);
+        box-shadow: 0 4px 10px rgba(29, 58, 74, 0.06);
+      }
+      .admin-tab-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.4rem;
+        height: 1.15rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.14);
+        color: var(--teal-dark);
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+      .admin-tab-count:empty {
+        display: none;
+      }
+      .admin-tab.is-active .admin-tab-count {
+        background: rgba(26, 122, 143, 0.22);
+      }
+      body:not([data-admin-view="today"]) [data-view-group="today"],
+      body:not([data-admin-view="listings"]) [data-view-group="listings"],
+      body:not([data-admin-view="reports"]) [data-view-group="reports"] {
+        display: none !important;
+      }
+      .panel-intro {
+        margin: 0 0 0.85rem;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        color: #4a6570;
+      }
+      .panel-intro strong {
+        color: #0f3f4a;
+        font-weight: 700;
+      }
+      .admin-start-here {
+        margin: 0 0 0.9rem;
+        padding: 1rem 1.1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        background: linear-gradient(180deg, #ffffff 0%, #f0f9fb 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        box-shadow: 0 6px 14px rgba(29, 58, 74, 0.05);
+      }
+      .admin-start-here-copy {
+        flex: 1 1 20rem;
+        min-width: 0;
+      }
+      .admin-start-here-kicker {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #628192;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.2rem;
+      }
+      .admin-start-here-headline {
+        margin: 0 0 0.15rem;
+        font-size: 1.1rem;
+        color: #0f3f4a;
+        letter-spacing: -0.01em;
+      }
+      .admin-start-here-sub {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #4a6570;
+      }
+      .admin-start-here-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.65rem 1.15rem;
+        border-radius: 10px;
+        background: #1a7a8f;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid #16677a;
+        box-shadow: 0 4px 10px rgba(26, 122, 143, 0.25);
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition:
+          background-color 160ms ease,
+          transform 160ms ease;
+      }
+      .admin-start-here-action:hover {
+        background: #156c7f;
+        transform: translateY(-1px);
+      }
       .admin-today {
         margin-bottom: 1rem;
       }
@@ -4041,28 +4173,45 @@
         </div>
       </div>
 
-      <div class="admin-quick-nav" id="adminQuickNav" style="display: none">
-        <div class="admin-quick-nav-label">Jump to</div>
-        <div class="admin-quick-nav-links">
-          <a href="#todayRegion" class="admin-quick-nav-today">Today</a>
-          <a href="#supplyReviewRegion"
-            >Triage<span class="nav-count" id="navCountCandidates"></span
-          ></a>
-          <a href="#confirmationRegion"
-            >Confirmations<span class="nav-count" id="navCountConfirmations"></span
-          ></a>
-          <a href="#liveListingsRegion">Live<span class="nav-count" id="navCountLive"></span></a>
-          <a href="#requestsRegion"
-            >Requests<span class="nav-count" id="navCountRequests"></span
-          ></a>
-          <a href="#reviewRegion" class="admin-quick-nav-secondary"
-            >Parked<span class="nav-count" id="navCountReview"></span
-          ></a>
-          <a href="#intelligenceRegion" class="admin-quick-nav-secondary">Reports</a>
-        </div>
+      <div
+        class="admin-tabs"
+        id="adminQuickNav"
+        role="tablist"
+        aria-label="Admin views"
+        style="display: none"
+      >
+        <button
+          type="button"
+          class="admin-tab is-active"
+          data-admin-tab="today"
+          role="tab"
+          aria-selected="true"
+        >
+          Today
+          <span class="admin-tab-count" id="navCountCandidates"></span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="listings"
+          role="tab"
+          aria-selected="false"
+        >
+          Listings
+          <span class="admin-tab-count" id="navCountLive"></span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="reports"
+          role="tab"
+          aria-selected="false"
+        >
+          Reports
+        </button>
       </div>
 
-      <section class="admin-today" id="todayRegion" style="display: none">
+      <section class="admin-today" id="todayRegion" data-view-group="today" style="display: none">
         <header class="admin-today-header">
           <div class="admin-today-header-row">
             <div>
@@ -4077,6 +4226,18 @@
             </a>
           </div>
         </header>
+        <div class="admin-start-here" id="adminStartHere">
+          <div class="admin-start-here-copy">
+            <div class="admin-start-here-kicker">Start here</div>
+            <h3 class="admin-start-here-headline" id="adminStartHereHeadline">
+              Review new therapist candidates
+            </h3>
+            <p class="admin-start-here-sub" id="adminStartHereSub">
+              New scraped profiles waiting for a Publish, Hold, or Delete decision.
+            </p>
+          </div>
+          <a class="admin-start-here-action" href="#candidateQueuePanel"> Start reviewing → </a>
+        </div>
         <section class="admin-now" id="adminStats"></section>
         <div class="panel" id="reviewAttentionQueuePanel" style="margin: 0.85rem 0 0">
           <h2>Needs Action Now</h2>
@@ -4152,126 +4313,35 @@
 
       <div id="adminApp" class="admin-stack" style="display: none">
         <div class="grid" style="grid-template-columns: 1fr">
-          <aside class="admin-region sidebar-panel" id="liveListingsRegion">
+          <aside
+            class="admin-region sidebar-panel"
+            id="liveListingsRegion"
+            data-view-group="listings"
+          >
             <header class="admin-live-header">
-              <h2 class="admin-live-title">Live</h2>
-              <p class="admin-live-subtitle">Keep published listings trustworthy and current.</p>
+              <h2 class="admin-live-title">Live listings</h2>
+              <p class="admin-live-subtitle">Keep published profiles trustworthy and current.</p>
               <nav class="admin-live-chips" aria-label="Live sections">
                 <a href="#publishedListingsSection">All listings</a>
-                <a href="#refreshQueueSection">Refresh</a>
+                <a href="#refreshQueueSection">Update check</a>
                 <a href="#licensureQueueSection">Licensure</a>
                 <a href="#licensureSprintSection">Sprint</a>
                 <a href="#deferredLicensureQueueSection">Deferred</a>
               </nav>
             </header>
             <section class="admin-region-shell workflow-section" id="publishedListingsSection">
-              <h2>Listings</h2>
-              <div class="sop-note">
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Purpose</div>
-                  <div class="sop-note-copy">
-                    Decide which live listings should be spotlighted, kept standard, or sent for
-                    update work once they are already public.
-                  </div>
-                </div>
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Use This When</div>
-                  <div class="sop-note-copy">
-                    You are deciding which listings should be featured, marked ready to feature,
-                    refreshed, or left alone.
-                  </div>
-                </div>
-                <div class="sop-note-row">
-                  <div class="sop-note-label">Done Means</div>
-                  <div class="sop-note-copy">
-                    The listing has the right visibility level and is not missing obvious trust or
-                    freshness work.
-                  </div>
-                </div>
-                <details class="playbook">
-                  <summary>Operator Playbook</summary>
-                  <div class="playbook-body">
-                    <div class="playbook-section">
-                      <div class="playbook-label">Good First Move</div>
-                      <div class="playbook-copy">
-                        Start with listings that are already close to ready-to-feature or are
-                        carrying a visible freshness risk. Avoid tinkering with stable listings that
-                        do not need a decision today.
-                      </div>
-                    </div>
-                    <div class="playbook-section">
-                      <div class="playbook-label">Strong Decision Example</div>
-                      <div class="playbook-copy">
-                        If a listing has strong profile depth, current trust signals, and no obvious
-                        blocker, promote it. If the profile is aging or missing important
-                        operational detail, send it into refresh or confirmation instead of
-                        featuring it.
-                      </div>
-                    </div>
-                    <div class="playbook-section">
-                      <div class="playbook-label">Avoid</div>
-                      <div class="playbook-copy">
-                        Do not feature or elevate a listing just because the profile sounds good.
-                        The operator standard is live trust, not intuition.
-                      </div>
-                    </div>
-                  </div>
-                </details>
-              </div>
+              <h2>All listings</h2>
+              <p class="panel-intro">
+                Every published therapist. <strong>Feature</strong> the ones ready to spotlight,
+                send aging ones to <strong>Update check</strong>, or leave stable listings alone.
+              </p>
               <div id="publishedListings"></div>
               <div class="workflow-section" id="refreshQueueSection" style="margin-top: 1.2rem">
-                <h2>Refresh</h2>
-                <div class="sop-note">
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Purpose</div>
-                    <div class="sop-note-copy">
-                      Work live listings whose operational truth is aging or whose trust fields need
-                      attention.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Use This When</div>
-                    <div class="sop-note-copy">
-                      A listing is already public but should not stay untouched because freshness or
-                      trust quality is slipping.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Done Means</div>
-                    <div class="sop-note-copy">
-                      The listing has been refreshed, confirmed, or consciously deferred with a
-                      clear reason.
-                    </div>
-                  </div>
-                  <details class="playbook">
-                    <summary>Operator Playbook</summary>
-                    <div class="playbook-body">
-                      <div class="playbook-section">
-                        <div class="playbook-label">Good First Move</div>
-                        <div class="playbook-copy">
-                          Open the oldest or riskiest listing first, confirm what is stale, and
-                          decide whether you can refresh from a source, need therapist confirmation,
-                          or should defer with a reason.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Strong Decision Example</div>
-                        <div class="playbook-copy">
-                          If a website clearly shows updated insurance, telehealth, or availability,
-                          refresh the profile directly. If the source is unclear for a
-                          trust-critical field, move it into confirmation instead of guessing.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Avoid</div>
-                        <div class="playbook-copy">
-                          Do not leave a listing sitting in refresh just because you cannot finish
-                          it in one pass. Either update it, defer it, or push it to confirmation.
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-                </div>
+                <h2>Update check</h2>
+                <p class="panel-intro">
+                  Published profiles whose details are aging. Refresh from source, ask the therapist
+                  to confirm, or defer with a reason.
+                </p>
                 <div id="refreshQueue"></div>
               </div>
             </section>
@@ -4313,20 +4383,25 @@
             </details>
             <section class="admin-region-shell workflow-section" id="confirmationRegion">
               <header class="admin-live-header">
-                <h2 class="admin-live-title">Confirmations</h2>
+                <h2 class="admin-live-title">Awaiting therapist reply</h2>
                 <p class="admin-live-subtitle">
-                  Turn incomplete or aging profile data into trusted live information.
+                  Listings with missing details. Send outreach, track responses, apply answers back
+                  to the live profile.
                 </p>
                 <nav class="admin-live-chips" aria-label="Confirmation sections">
                   <a href="#importBlockerSprintSection">Missing details</a>
                   <a href="#californiaPriorityConfirmationWaveSection">California priority</a>
-                  <a href="#confirmationSprintSection">Sprint</a>
-                  <a href="#confirmationQueueSection">Queue</a>
+                  <a href="#confirmationSprintSection">Send outreach</a>
+                  <a href="#confirmationQueueSection">Reply tracker</a>
                 </nav>
               </header>
               <div class="workflow-section" id="importBlockerSprintSection" style="margin-top: 0">
                 <h2>Missing details</h2>
-                <div class="sop-note">
+                <p class="panel-intro">
+                  Fix the highest-value missing fields — license, insurance, wait time, bipolar
+                  experience — so the profile earns a trusted-live badge.
+                </p>
+                <div class="sop-note" hidden>
                   <div class="sop-note-row">
                     <div class="sop-note-label">Purpose</div>
                     <div class="sop-note-copy">
@@ -4393,12 +4468,12 @@
                 id="confirmationSprintSection"
                 style="margin-top: 1.2rem"
               >
-                <h2>Send Confirmation Requests</h2>
-                <p class="subtle" style="margin-top: 0">
-                  This is the next focused outreach packet for live listings that need therapist
-                  confirmation.
+                <h2>Send outreach</h2>
+                <p class="panel-intro">
+                  The next small batch of therapists to email. Work top-to-bottom, update each row's
+                  status, and stop once every profile has a clear next step.
                 </p>
-                <div class="sop-note">
+                <div class="sop-note" hidden>
                   <div class="sop-note-row">
                     <div class="sop-note-label">Purpose</div>
                     <div class="sop-note-copy">
@@ -4456,8 +4531,12 @@
                 id="confirmationQueueSection"
                 style="margin-top: 1.2rem"
               >
-                <h2>Queue</h2>
-                <div class="sop-note">
+                <h2>Reply tracker</h2>
+                <p class="panel-intro">
+                  Track therapist responses. Filter by status, apply confirmed values back to the
+                  live profile, keep waiting rows honest.
+                </p>
+                <div class="sop-note" hidden>
                   <div class="sop-note-row">
                     <div class="sop-note-label">Purpose</div>
                     <div class="sop-note-copy">
@@ -4526,16 +4605,16 @@
           </aside>
 
           <main class="admin-region">
-            <section class="admin-region-shell" id="supplyReviewRegion">
+            <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="today">
               <header class="admin-live-header">
-                <h2 class="admin-live-title">Triage</h2>
+                <h2 class="admin-live-title">New candidates</h2>
                 <p class="admin-live-subtitle">
-                  Review new supply and take an action. Scraped candidates and therapist-submitted
-                  signups both land here.
+                  Scraped profiles and therapist signups waiting for a decision. For each:
+                  <strong>Publish</strong>, <strong>Hold</strong>, or <strong>Delete</strong>.
                 </p>
-                <nav class="admin-live-chips" aria-label="Triage sections">
+                <nav class="admin-live-chips" aria-label="New candidate sections">
                   <a href="#candidateQueuePanel">Scraped</a>
-                  <a href="#applicationsPanel">Signups</a>
+                  <a href="#applicationsPanel">Therapist signups</a>
                 </nav>
               </header>
               <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
@@ -4578,13 +4657,14 @@
                       <div id="candidateQueue"></div>
                     </div>
                     <div class="panel" id="applicationsPanel" style="display: none">
-                      <h2>Application Tickets</h2>
-                      <p class="subtle" style="margin-top: 0">
-                        Tickets for therapist-submitted profiles and updates that still need a
-                        review decision.
+                      <h2>Therapist signups</h2>
+                      <p class="panel-intro">
+                        Profiles submitted directly by therapists. Decide:
+                        <strong>Approve</strong>, <strong>Request changes</strong>, or
+                        <strong>Reject</strong>.
                       </p>
                       <div id="applicationsGuidance"></div>
-                      <div class="sop-note">
+                      <div class="sop-note" hidden>
                         <div class="sop-note-row">
                           <div class="sop-note-label">Purpose</div>
                           <div class="sop-note-copy">
@@ -4693,11 +4773,11 @@
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="reviewRegion">
+            <section class="admin-region-shell" id="reviewRegion" data-view-group="listings">
               <header class="admin-live-header">
-                <h2 class="admin-live-title">Parked</h2>
+                <h2 class="admin-live-title">On hold</h2>
                 <p class="admin-live-subtitle">
-                  Listings parked for investigation. Fix what's missing, then publish or archive.
+                  Candidates parked for investigation. Fix what's missing, then publish or delete.
                 </p>
               </header>
               <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
@@ -4728,11 +4808,11 @@
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="requestsRegion">
+            <section class="admin-region-shell" id="requestsRegion" data-view-group="listings">
               <header class="admin-live-header">
-                <h2 class="admin-live-title">Requests</h2>
+                <h2 class="admin-live-title">Inbox</h2>
                 <p class="admin-live-subtitle">
-                  Handle ops actions and therapist-portal requests without losing the publish flow.
+                  Ops actions and therapist-portal requests. Resolve or route each item.
                 </p>
                 <nav class="admin-live-chips" aria-label="Request sections">
                   <a href="#opsInboxPanel">Ops inbox</a>
@@ -4764,11 +4844,11 @@
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="intelligenceRegion">
+            <section class="admin-region-shell" id="intelligenceRegion" data-view-group="reports">
               <header class="admin-live-header">
                 <h2 class="admin-live-title">Reports</h2>
                 <p class="admin-live-subtitle">
-                  Readouts that support decisions. Use for weekly check-ins, not daily work.
+                  Weekly readouts on pipeline health, coverage gaps, and source performance.
                 </p>
               </header>
               <div class="admin-region-grid two-column">
@@ -4808,6 +4888,7 @@
             </section>
             <details
               class="admin-collapsible-group"
+              data-view-group="reports"
               style="margin-top: 1.5rem; margin-bottom: 1.5rem"
             >
               <summary>
@@ -4900,6 +4981,7 @@
       </div>
     </div>
 
+    <script type="module" src="assets/admin-view-tabs.js"></script>
     <script type="module" src="assets/admin.js"></script>
 
     <!-- Edit profile drawer -->
