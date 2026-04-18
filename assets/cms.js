@@ -402,6 +402,33 @@ export async function fetchPublicTherapists() {
   }
 }
 
+export async function fetchActiveFeaturedSlugs() {
+  if (!cmsEnabled) {
+    return [];
+  }
+  try {
+    const docs = await fetchFromSanity(
+      `*[_type == "therapistSubscription" && plan == "featured" && status in ["trialing", "active"]]{therapistSlug}`,
+    );
+    const slugs = [];
+    const seen = new Set();
+    (docs || []).forEach((entry) => {
+      const slug = String((entry && entry.therapistSlug) || "")
+        .trim()
+        .toLowerCase();
+      if (!slug || seen.has(slug)) {
+        return;
+      }
+      seen.add(slug);
+      slugs.push(slug);
+    });
+    return slugs;
+  } catch (error) {
+    console.error("Failed to load active featured subscriptions from Sanity.", error);
+    return [];
+  }
+}
+
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {
     return getTherapistBySlug(slug);

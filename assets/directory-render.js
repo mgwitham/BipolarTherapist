@@ -151,6 +151,9 @@ export function renderCardMarkup(options) {
     headerStatus +
     '</div><div class="t-info"><div class="t-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
+    (model.isFeatured
+      ? ' <span class="badge-featured" aria-label="Featured placement">Featured</span>'
+      : "") +
     '</div><div class="t-creds">' +
     escapeHtml(therapist.credentials) +
     (therapist.title ? " " + escapeHtml(therapist.title) : "") +

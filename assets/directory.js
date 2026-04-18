@@ -1,4 +1,8 @@
-import { fetchDirectoryPageContent } from "./cms.js";
+import { fetchActiveFeaturedSlugs, fetchDirectoryPageContent } from "./cms.js";
+import {
+  getOrCreateSessionSeed,
+  rotateFeaturedFirst,
+} from "../shared/featured-placement-domain.mjs";
 import {
   readFunnelEvents,
   trackFunnelEvent,
@@ -37,6 +41,13 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
+  var featuredSlugSet = new Set();
+  try {
+    featuredSlugSet = new Set(await fetchActiveFeaturedSlugs());
+  } catch (_error) {
+    featuredSlugSet = new Set();
+  }
+  var featuredRotationSeed = getOrCreateSessionSeed();
   var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
     ? content.siteSettings.matchPrioritySlugs
         .map(function (value) {
@@ -607,11 +618,20 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return filteredResultsCache;
     }
 
-    filteredResultsCache = applyDirectoryPriorityProminence(
-      therapists.filter(function (therapist) {
-        return matchesDirectoryFilters(filterState, therapist);
-      }),
-      filterState,
+    filteredResultsCache = rotateFeaturedFirst(
+      applyDirectoryPriorityProminence(
+        therapists.filter(function (therapist) {
+          return matchesDirectoryFilters(filterState, therapist);
+        }),
+        filterState,
+      ),
+      featuredSlugSet,
+      {
+        seed: featuredRotationSeed,
+        getSlug: function (therapist) {
+          return therapist && therapist.slug;
+        },
+      },
     );
     filteredResultsCacheKey = cacheKey;
     return filteredResultsCache;
@@ -656,6 +676,11 @@ import { initValuePillPopover } from "./therapist-pills.js";
         filters: filters,
         shortlist: shortlist,
         isShortlisted: isShortlisted,
+        isFeatured: featuredSlugSet.has(
+          String((therapist && therapist.slug) || "")
+            .trim()
+            .toLowerCase(),
+        ),
       }),
     });
   }
