@@ -1,3 +1,19 @@
+import { promptForRejectionReason } from "./admin-rejection-reason-picker.js";
+
+const REASONS_REQUIRING_PICKER = new Set(["archive", "reject_duplicate"]);
+
+function getCandidateNameForPrompt(root, id) {
+  if (!root || !id) return "";
+  const card =
+    root.querySelector('[data-queue-card-id="' + id + '"]') ||
+    root.querySelector('[data-candidate-id="' + id + '"]');
+  if (card) {
+    const nameEl = card.querySelector(".queue-card-name, .queue-card-title, h3, h4");
+    if (nameEl && nameEl.textContent) return nameEl.textContent.trim();
+  }
+  return "";
+}
+
 export function renderCandidatePublishPacket(packet, helpers) {
   if (!packet) {
     return "";
@@ -180,9 +196,32 @@ export function bindCandidateDecisionButtons(root, handlers) {
         return;
       }
 
-      const confirmMessage = button.getAttribute("data-candidate-confirm");
-      if (confirmMessage && !window.confirm(confirmMessage)) {
-        return;
+      let decisionPayload = { decision: decision };
+
+      if (REASONS_REQUIRING_PICKER.has(decision)) {
+        const candidateName = getCandidateNameForPrompt(root, id);
+        const pickerResult = await promptForRejectionReason({
+          candidateName: candidateName,
+          headline:
+            decision === "reject_duplicate"
+              ? "Why mark this as a duplicate?"
+              : "Why archive this candidate?",
+          confirmLabel: decision === "reject_duplicate" ? "Mark duplicate" : "Archive",
+        });
+        if (!pickerResult) {
+          return;
+        }
+        decisionPayload = {
+          decision: decision,
+          rejection_reason: pickerResult.reason,
+          rejection_notes: pickerResult.notes,
+          notes: pickerResult.notes,
+        };
+      } else {
+        const confirmMessage = button.getAttribute("data-candidate-confirm");
+        if (confirmMessage && !window.confirm(confirmMessage)) {
+          return;
+        }
       }
 
       const prior = button.textContent;
@@ -192,7 +231,7 @@ export function bindCandidateDecisionButtons(root, handlers) {
       button.textContent = decision === "publish" ? "Publishing..." : "Saving...";
 
       try {
-        await handlers.decideTherapistCandidate(id, { decision: decision });
+        await handlers.decideTherapistCandidate(id, decisionPayload);
         if (typeof handlers.onDecisionComplete === "function") {
           handlers.onDecisionComplete(id, decision);
         }

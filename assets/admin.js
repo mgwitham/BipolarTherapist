@@ -14,6 +14,7 @@ import {
   loadRemoteAdminSnapshot,
 } from "./admin-data.js";
 import { createAdminReviewModels } from "./admin-review-models.js";
+import { promptForRejectionReason } from "./admin-rejection-reason-picker.js";
 import { createReviewerWorkspace } from "./admin-reviewer-workspace.js";
 import {
   approveTherapistApplication,
@@ -4720,13 +4721,34 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
       await decideTherapistCandidate(inspectorId, { decision: "needs_review" });
       adminInspectorActionStatus = "Candidate sent to review.";
     } else if (inspectorAction === "candidate_delete") {
-      if (!window.confirm("Delete this listing? This archives it and removes it from the queue.")) {
+      const deletePicker = await promptForRejectionReason({
+        headline: "Why archive this candidate?",
+        confirmLabel: "Archive",
+      });
+      if (!deletePicker) {
         return;
       }
-      await decideTherapistCandidate(inspectorId, { decision: "archive" });
+      await decideTherapistCandidate(inspectorId, {
+        decision: "archive",
+        rejection_reason: deletePicker.reason,
+        rejection_notes: deletePicker.notes,
+        notes: deletePicker.notes,
+      });
       adminInspectorActionStatus = "Candidate deleted.";
     } else if (inspectorAction === "candidate_duplicate") {
-      await decideTherapistCandidate(inspectorId, { decision: "reject_duplicate" });
+      const dupPicker = await promptForRejectionReason({
+        headline: "Why mark this as a duplicate?",
+        confirmLabel: "Mark duplicate",
+      });
+      if (!dupPicker) {
+        return;
+      }
+      await decideTherapistCandidate(inspectorId, {
+        decision: "reject_duplicate",
+        rejection_reason: dupPicker.reason,
+        rejection_notes: dupPicker.notes,
+        notes: dupPicker.notes,
+      });
       adminInspectorActionStatus = "Candidate marked as duplicate.";
     }
     await loadData();
