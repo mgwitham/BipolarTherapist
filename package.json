@@ -46,6 +46,7 @@
     "cms:generate:ingestion-ops-queue": "node scripts/generate-ingestion-ops-queue.mjs",
     "cms:run:source-health-checks": "node scripts/run-source-health-checks.mjs",
     "cms:run:operational-drift-checks": "node scripts/run-operational-drift-checks.mjs",
+    "cms:run:auto-source-review": "node scripts/run-auto-source-review.mjs",
     "cms:generate:source-domain-health-report": "node scripts/generate-source-domain-health-report.mjs",
     "cms:generate:provider-field-observations-preview": "node scripts/generate-provider-field-observations-preview.mjs",
     "cms:generate:provider-id-backfill-preview": "node scripts/generate-provider-id-backfill-preview.mjs",
