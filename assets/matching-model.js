@@ -550,25 +550,36 @@ function getFeeFloor(therapist) {
 }
 
 function getCompletenessScore(therapist) {
-  var fields = [
-    therapist.license_number,
-    therapist.care_approach,
-    therapist.treatment_modalities && therapist.treatment_modalities.length,
-    therapist.client_populations && therapist.client_populations.length,
-    therapist.languages && therapist.languages.length,
-    therapist.insurance_accepted && therapist.insurance_accepted.length,
-    therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale,
-    therapist.telehealth_states && therapist.telehealth_states.length,
-    therapist.bipolar_years_experience,
+  var weightedFields = [
+    { value: therapist.phone, weight: 20 },
+    { value: therapist.email, weight: 20 },
+    { value: therapist.website, weight: 15 },
+    { value: therapist.license_number, weight: 15 },
+    { value: therapist.care_approach, weight: 10 },
+    { value: therapist.treatment_modalities && therapist.treatment_modalities.length, weight: 5 },
+    { value: therapist.client_populations && therapist.client_populations.length, weight: 5 },
+    { value: therapist.insurance_accepted && therapist.insurance_accepted.length, weight: 5 },
+    { value: therapist.bipolar_years_experience, weight: 5 },
   ];
 
-  var present = fields.filter(Boolean).length;
-  return Math.round((present / fields.length) * 100);
+  var score = weightedFields.reduce(function (sum, f) {
+    return sum + (f.value ? f.weight : 0);
+  }, 0);
+  return Math.round(score);
 }
 
 function getMissingReadinessItems(therapist) {
   var items = [];
 
+  if (!therapist.phone) {
+    items.push("Add a public phone number so patients can reach out.");
+  }
+  if (!therapist.email) {
+    items.push("Add a public email address so patients can reach out.");
+  }
+  if (!therapist.website) {
+    items.push("Add a website URL to build trust and allow independent verification.");
+  }
   if (!therapist.license_number) {
     items.push("Add license number for trust verification.");
   }
@@ -584,20 +595,8 @@ function getMissingReadinessItems(therapist) {
   if (!(therapist.insurance_accepted && therapist.insurance_accepted.length)) {
     items.push("Add insurance or self-pay details to reduce practical mismatches.");
   }
-  if (!(therapist.languages && therapist.languages.length)) {
-    items.push("Add languages offered to improve access and fit.");
-  }
-  if (
-    therapist.accepts_telehealth &&
-    !(therapist.telehealth_states && therapist.telehealth_states.length)
-  ) {
-    items.push("List telehealth states so virtual care eligibility is clear.");
-  }
   if (!therapist.bipolar_years_experience) {
     items.push("Add bipolar-specific years of experience for specialization trust.");
-  }
-  if (!therapist.session_fee_min && !therapist.session_fee_max && !therapist.sliding_scale) {
-    items.push("Add fee range or sliding-scale details for budget matching.");
   }
 
   return items;
