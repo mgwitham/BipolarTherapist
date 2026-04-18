@@ -8,6 +8,7 @@ import {
   updateApplicationReviewMetadata,
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
+import { setActiveView as setActiveAdminView } from "./admin-view-tabs.js";
 import {
   checkAdminReviewApiAvailability,
   loadGeneratedAdminArtifacts,
@@ -533,11 +534,25 @@ function focusAdminAnchorTarget(targetId, options) {
   if (!target) {
     return;
   }
-  if (options && options.useWorkflowMode) {
-    applyWorkflowFocusMode(target);
-    spotlightSection(target);
+  var viewHost = target.closest("[data-view-group]");
+  var targetGroup = viewHost ? viewHost.getAttribute("data-view-group") : "";
+  var currentView = document.body.getAttribute("data-admin-view") || "today";
+  var needsViewSwitch = targetGroup && targetGroup !== currentView;
+  if (needsViewSwitch) {
+    setActiveAdminView(targetGroup);
   }
-  scrollToElementWithOffset(target, "start");
+  var runFocus = function () {
+    if (options && options.useWorkflowMode) {
+      applyWorkflowFocusMode(target);
+      spotlightSection(target);
+    }
+    scrollToElementWithOffset(target, "start");
+  };
+  if (needsViewSwitch && typeof window !== "undefined") {
+    window.requestAnimationFrame(runFocus);
+  } else {
+    runFocus();
+  }
   if (typeof window !== "undefined") {
     var nextHash = "#" + targetId;
     if (window.location.hash !== nextHash) {
