@@ -1,8 +1,9 @@
-import { fetchActiveFeaturedSlugs, fetchDirectoryPageContent } from "./cms.js";
-import {
-  getOrCreateSessionSeed,
-  rotateFeaturedFirst,
-} from "../shared/featured-placement-domain.mjs";
+// Featured-therapist rotation removed 2026-04-18: the product thesis is
+// match-over-merchandise, so no profile is ranked or badged as "featured"
+// in the directory. The fetchActiveFeaturedSlugs / rotateFeaturedFirst
+// plumbing stays dormant elsewhere until a followup cleanup, but the
+// call sites in this file are gone.
+import { fetchDirectoryPageContent } from "./cms.js";
 import {
   readFunnelEvents,
   trackFunnelEvent,
@@ -41,13 +42,6 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
-  var featuredSlugSet = new Set();
-  try {
-    featuredSlugSet = new Set(await fetchActiveFeaturedSlugs());
-  } catch (_error) {
-    featuredSlugSet = new Set();
-  }
-  var featuredRotationSeed = getOrCreateSessionSeed();
   var matchPrioritySlugs = Array.isArray(content.siteSettings?.matchPrioritySlugs)
     ? content.siteSettings.matchPrioritySlugs
         .map(function (value) {
@@ -618,20 +612,11 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return filteredResultsCache;
     }
 
-    filteredResultsCache = rotateFeaturedFirst(
-      applyDirectoryPriorityProminence(
-        therapists.filter(function (therapist) {
-          return matchesDirectoryFilters(filterState, therapist);
-        }),
-        filterState,
-      ),
-      featuredSlugSet,
-      {
-        seed: featuredRotationSeed,
-        getSlug: function (therapist) {
-          return therapist && therapist.slug;
-        },
-      },
+    filteredResultsCache = applyDirectoryPriorityProminence(
+      therapists.filter(function (therapist) {
+        return matchesDirectoryFilters(filterState, therapist);
+      }),
+      filterState,
     );
     filteredResultsCacheKey = cacheKey;
     return filteredResultsCache;
@@ -676,11 +661,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
         filters: filters,
         shortlist: shortlist,
         isShortlisted: isShortlisted,
-        isFeatured: featuredSlugSet.has(
-          String((therapist && therapist.slug) || "")
-            .trim()
-            .toLowerCase(),
-        ),
+        isFeatured: false,
       }),
     });
   }

@@ -1,8 +1,8 @@
-import { fetchActiveFeaturedSlugs, fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
-import {
-  getOrCreateSessionSeed,
-  rotateFeaturedFirst,
-} from "../shared/featured-placement-domain.mjs";
+// Featured-therapist rotation and badges removed 2026-04-18 per the
+// match-over-merchandise thesis. fetchActiveFeaturedSlugs /
+// rotateFeaturedFirst imports are gone from match. See
+// assets/admin-listings-workspace.js for the matching admin-side change.
+import { fetchPublicSiteSettings, fetchPublicTherapists } from "./cms.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -79,6 +79,9 @@ import {
 import { initValuePillPopover } from "./therapist-pills.js";
 
 var therapists = [];
+// featuredSlugSet is retained as an always-empty Set so legacy code paths
+// that read it (e.g. ranking integrations) see "no featured profiles" and
+// short-circuit cleanly. Will be deleted in the followup cleanup PR.
 var featuredSlugSet = new Set();
 var latestProfile = null;
 var latestEntries = [];
@@ -1040,12 +1043,7 @@ function executeMatch(profile, options) {
   }
 
   activeSecondPassMode = getAdaptiveSecondPassMode(profile);
-  var entries = rotateFeaturedFirst(rankEntriesForProfile(profile), featuredSlugSet, {
-    seed: getOrCreateSessionSeed(),
-    getSlug: function (entry) {
-      return entry && entry.therapist && entry.therapist.slug;
-    },
-  });
+  var entries = rankEntriesForProfile(profile);
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
     care_intent: profile.care_intent,
@@ -5013,11 +5011,8 @@ function refreshIntakeUiFromForm() {
   MATCH_PRIORITY_SLUGS = normalizePrioritySlugs(siteSettings);
   await preloadZipcodes();
   therapists = await fetchPublicTherapists();
-  try {
-    featuredSlugSet = new Set(await fetchActiveFeaturedSlugs());
-  } catch (_error) {
-    featuredSlugSet = new Set();
-  }
+  // featuredSlugSet intentionally left as the empty default from module
+  // init — no therapist is ever featured in match results.
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
   trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {
