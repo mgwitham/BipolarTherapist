@@ -408,7 +408,15 @@ export function renderCandidateQueuePanel(options) {
 
   root.innerHTML =
     (firstFiltered
-      ? renderCandidateCardHtml(firstFiltered, 0, options, therapists, applications, candidates, mode)
+      ? renderCandidateCardHtml(
+          firstFiltered,
+          0,
+          options,
+          therapists,
+          applications,
+          candidates,
+          mode,
+        )
       : "") +
     (recentFlashes.length
       ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
@@ -428,7 +436,15 @@ export function renderCandidateQueuePanel(options) {
     (filtered.length ? "" : '<div class="empty">No listings match the current filters.</div>') +
     remainingFiltered
       .map(function (item, index) {
-        return renderCandidateCardHtml(item, index + 1, options, therapists, applications, candidates, mode);
+        return renderCandidateCardHtml(
+          item,
+          index + 1,
+          options,
+          therapists,
+          applications,
+          candidates,
+          mode,
+        );
       })
       .join("");
 
