@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  resolveLicenseTypeCode,
-  getLicenseTypeOptions,
-} from "../../server/dca-license-client.mjs";
+import { resolveLicenseTypeCode, getLicenseTypeOptions } from "../../server/dca-license-client.mjs";
 
 test("resolveLicenseTypeCode: Psychologist maps to 6001 (DCA licType for Board of Psychology)", function () {
   assert.equal(resolveLicenseTypeCode("Psychologist"), "6001");
