@@ -1461,6 +1461,25 @@
       .profile-bio-panel.is-collapsed {
         display: none;
       }
+      /* Paid subscribers get the enhanced bio treatment: the panel is
+         always visible (no collapse), and the wrapper has a subtle
+         "About" label above the content. */
+      .profile-bio-enhanced {
+        margin-top: 0.4rem;
+      }
+      .profile-bio-enhanced > .profile-bio-panel {
+        margin-top: 0;
+      }
+      .profile-bio-enhanced::before {
+        content: "About";
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+        margin-bottom: 0.35rem;
+      }
       .profile-bio-paragraph {
         font-size: 0.94rem;
         line-height: 1.68;
