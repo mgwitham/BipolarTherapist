@@ -225,12 +225,56 @@ export function renderRefreshQueuePanel(options) {
           deferPath:
             "Defer only when the profile is not urgent enough to review now and you want it to come back later with a clear date.",
         };
+        // Split the card into a compact summary header (always visible)
+        // and an expandable detail section. One card expanded at a time —
+        // the first card in the queue is expanded by default so the
+        // primary "START HERE" context is on-screen without a click.
+        const isExpanded = index === 0;
+        const compactBadgesHtml =
+          cues.length || routeHealthWarnings.length
+            ? '<div class="queue-badge-row">' +
+              cues
+                .map(function (cue) {
+                  return '<span class="queue-badge">' + options.escapeHtml(cue) + "</span>";
+                })
+                .join("") +
+              routeHealthWarnings
+                .map(function (warning) {
+                  return '<span class="queue-badge">' + options.escapeHtml(warning) + "</span>";
+                })
+                .join("") +
+              "</div>"
+            : "";
         return (
           '<div class="mini-card' +
           (index === 0 ? " is-start-here" : "") +
+          (isExpanded ? " is-expanded" : "") +
+          '" data-refresh-card="' +
+          options.escapeHtml(therapistId || String(index)) +
           '"' +
           (index === 0 ? ' id="refreshQueueStartHere"' : "") +
           "><div>" +
+          // Compact header — clickable strip that toggles this card open
+          // and collapses others. Shows just enough to pick a card at a
+          // glance: name, priority score pill, staleness cues.
+          '<button type="button" class="refresh-card-toggle" data-toggle-refresh-card="' +
+          options.escapeHtml(therapistId || String(index)) +
+          '">' +
+          '<span class="refresh-card-toggle-name"><strong>' +
+          options.escapeHtml(item.name) +
+          "</strong></span>" +
+          '<span class="refresh-card-toggle-meta">' +
+          '<span class="queue-priority-chip">Priority ' +
+          options.escapeHtml(String(priorityMeta.priorityScore || 0)) +
+          "</span>" +
+          '<span class="refresh-card-toggle-freshness">' +
+          options.escapeHtml(freshness.label) +
+          "</span>" +
+          '<span class="refresh-card-toggle-indicator" aria-hidden="true"></span>' +
+          "</span>" +
+          "</button>" +
+          compactBadgesHtml +
+          '<div class="refresh-card-detail">' +
           renderActionFirstIntro({
             active: index === 0,
             title:
@@ -239,27 +283,6 @@ export function renderRefreshQueuePanel(options) {
               "Do this now: open the profile, review the stale fields, and decide whether you can update them directly or need therapist confirmation.",
             escapeHtml: options.escapeHtml,
           }) +
-          "<strong>" +
-          options.escapeHtml(item.name) +
-          "</strong>" +
-          (cues.length
-            ? '<div class="queue-badge-row">' +
-              cues
-                .map(function (cue) {
-                  return '<span class="queue-badge">' + options.escapeHtml(cue) + "</span>";
-                })
-                .join("") +
-              "</div>"
-            : "") +
-          (routeHealthWarnings.length
-            ? '<div class="queue-badge-row">' +
-              routeHealthWarnings
-                .map(function (warning) {
-                  return '<span class="queue-badge">' + options.escapeHtml(warning) + "</span>";
-                })
-                .join("") +
-              "</div>"
-            : "") +
           (routeHealthActions.length
             ? '<div class="queue-actions secondary-actions" style="margin-top:0.55rem">' +
               routeHealthActions
@@ -277,11 +300,7 @@ export function renderRefreshQueuePanel(options) {
                 .join("") +
               "</div>"
             : "") +
-          '<div class="subtle">Priority score: ' +
-          options.escapeHtml(String(priorityMeta.priorityScore || 0)) +
-          '</div><div class="subtle">' +
-          options.escapeHtml(freshness.label) +
-          '</div><div class="subtle">' +
+          '<div class="subtle">' +
           options.escapeHtml(freshness.note) +
           '</div><div class="subtle">Next move: ' +
           options.escapeHtml(nextMove) +
@@ -335,18 +354,31 @@ export function renderRefreshQueuePanel(options) {
           (therapistId ? options.renderReviewEntityTaskHtml("therapist", therapistId) : "") +
           '<div class="review-coach-status" data-refresh-status-id="' +
           options.escapeHtml(therapistId) +
-          '"></div></div>' +
-          (index !== 0 && sourceReference.href
-            ? '<a class="btn-secondary btn-inline" href="' +
-              options.escapeHtml(sourceReference.href) +
-              '" target="_blank" rel="noopener">' +
-              options.escapeHtml(sourceReference.shortLabel) +
-              "</a>"
-            : "") +
+          '"></div>' +
+          "</div>" + // close .refresh-card-detail
+          "</div>" + // close inner wrapper
           "</div>"
         );
       })
       .join("");
+
+  // Card-collapse toggle: clicking a compact card header expands that
+  // card and collapses the others, so only one card is "active" at a
+  // time. Prevents the whole queue rendering as a wall of full-detail
+  // cards. The first card is rendered pre-expanded server-side.
+  root.querySelectorAll("[data-toggle-refresh-card]").forEach(function (toggle) {
+    toggle.addEventListener("click", function () {
+      const card = toggle.closest(".mini-card");
+      if (!card) return;
+      const wasExpanded = card.classList.contains("is-expanded");
+      root.querySelectorAll(".mini-card.is-expanded").forEach(function (expanded) {
+        expanded.classList.remove("is-expanded");
+      });
+      if (!wasExpanded) {
+        card.classList.add("is-expanded");
+      }
+    });
+  });
 
   root.querySelectorAll("[data-refresh-ops]").forEach(function (button) {
     button.addEventListener("click", async function () {
