@@ -237,12 +237,15 @@ function initQuickClaim() {
     }
 
     try {
-      await requestTherapistQuickClaim(payload);
+      const result = await requestTherapistQuickClaim(payload);
+      const verifiedByDomain = result && result.verification_method === "email_domain_match";
       setStatus(
         status,
         "success",
         "Check your inbox.",
-        "We sent a one-time link that signs you into your profile for the next 30 minutes.",
+        verifiedByDomain
+          ? "Your email matched your practice website's domain, so we verified ownership automatically and sent a one-time sign-in link."
+          : "We sent a one-time link that signs you into your profile for the next 30 minutes.",
       );
       form.reset();
       setEmailHint(emailHint, "");

@@ -15,6 +15,85 @@ function normalizeLicenseForMatch(value) {
     .trim();
 }
 
+const AGGREGATOR_DOMAINS = new Set([
+  "psychologytoday.com",
+  "goodtherapy.org",
+  "therapyden.com",
+  "rula.com",
+  "headway.co",
+  "growtherapy.com",
+  "zencare.co",
+  "alma.com",
+  "helloalma.com",
+  "betterhelp.com",
+  "talkspace.com",
+  "lifestance.com",
+  "linkedin.com",
+  "facebook.com",
+  "instagram.com",
+  "yelp.com",
+  "healthgrades.com",
+  "wellsheet.com",
+  "mentalhealthmatch.com",
+]);
+
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "ymail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "protonmail.com",
+  "proton.me",
+  "comcast.net",
+  "sbcglobal.net",
+  "att.net",
+  "verizon.net",
+  "cox.net",
+]);
+
+function extractRegistrableDomain(value) {
+  let host = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!host) {
+    return "";
+  }
+  host = host.replace(/^https?:\/\//, "").replace(/^www\./, "");
+  host = host.split("/")[0].split("?")[0].split("#")[0].split(":")[0];
+  host = host.replace(/\.+$/, "");
+  if (!host || !host.includes(".")) {
+    return "";
+  }
+  const parts = host.split(".");
+  if (parts.length >= 3 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+}
+
+function emailDomainMatchesWebsite(email, website) {
+  const emailDomain = extractRegistrableDomain(String(email || "").split("@")[1] || "");
+  const siteDomain = extractRegistrableDomain(website);
+  if (!emailDomain || !siteDomain) {
+    return false;
+  }
+  if (AGGREGATOR_DOMAINS.has(emailDomain) || AGGREGATOR_DOMAINS.has(siteDomain)) {
+    return false;
+  }
+  if (FREE_EMAIL_DOMAINS.has(emailDomain)) {
+    return false;
+  }
+  return emailDomain === siteDomain;
+}
+
 function maskEmail(email) {
   const trimmed = String(email || "").trim();
   if (!trimmed) {
@@ -255,7 +334,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && licenseNumber match $license][0]{
-        _id, name, email, claimStatus, "slug": slug
+        _id, name, email, website, claimStatus, "slug": slug
       }`,
       { license: `*${licenseNumber}*` },
     );
@@ -297,7 +376,11 @@ export async function handleAuthAndPortalRoutes(context) {
     const profileEmail = String(therapist.email || "")
       .trim()
       .toLowerCase();
-    if (!profileEmail || profileEmail !== requesterEmail) {
+    const emailMatches = profileEmail && profileEmail === requesterEmail;
+    const domainVerified =
+      !emailMatches && emailDomainMatchesWebsite(requesterEmail, therapist.website);
+
+    if (!emailMatches && !domainVerified) {
       sendJson(
         response,
         403,
@@ -320,20 +403,29 @@ export async function handleAuthAndPortalRoutes(context) {
       `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
     );
 
-    await client
+    const claimStatusUpdate =
+      therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
+    const patchBuilder = client
       .patch(therapist._id)
-      .set({
-        claimStatus: therapist.claimStatus === "claimed" ? "claimed" : "claim_requested",
-      })
-      .commit({ visibility: "sync" });
+      .set({ claimStatus: claimStatusUpdate });
+    if (domainVerified) {
+      patchBuilder.set({
+        lastClaimVerificationMethod: "email_domain_match",
+        lastClaimVerificationAt: new Date().toISOString(),
+      });
+    }
+    await patchBuilder.commit({ visibility: "sync" });
 
     sendJson(
       response,
       200,
       {
         ok: true,
-        message: "Claim link sent. Check your inbox.",
+        message: domainVerified
+          ? "Claim link sent. We verified ownership via your practice website domain."
+          : "Claim link sent. Check your inbox.",
         therapist_slug: therapist.slug.current,
+        verification_method: domainVerified ? "email_domain_match" : "email_on_file",
       },
       origin,
       config,
