@@ -126,3 +126,106 @@ test("/portal/me returns 401 without a session token", async () => {
 
   assert.equal(response.statusCode, 401);
 });
+
+test("/portal/analytics returns current-month engagement summary for the authenticated therapist", async () => {
+  const now = new Date();
+  const periodKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const nowIso = now.toISOString();
+
+  const { client } = createMemoryClient({
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      name: "Jamie Rivera",
+      email: "jamie@example.com",
+      slug: { current: "jamie-rivera" },
+      claimStatus: "claimed",
+    },
+    [`therapistEngagementSummary-jamie-rivera-${periodKey}`]: {
+      _id: `therapistEngagementSummary-jamie-rivera-${periodKey}`,
+      _type: "therapistEngagementSummary",
+      therapistSlug: "jamie-rivera",
+      periodKey: periodKey,
+      periodYear: now.getUTCFullYear(),
+      periodMonth: now.getUTCMonth() + 1,
+      profileViewsTotal: 27,
+      profileViewsDirectory: 15,
+      profileViewsMatch: 10,
+      profileViewsDirect: 2,
+      profileViewsEmail: 0,
+      profileViewsSearch: 0,
+      profileViewsOther: 0,
+      ctaClicksTotal: 4,
+      ctaClicksEmail: 1,
+      ctaClicksPhone: 2,
+      ctaClicksBooking: 1,
+      ctaClicksWebsite: 0,
+      ctaClicksOther: 0,
+      firstEventAt: nowIso,
+      lastEventAt: nowIso,
+    },
+  });
+  const config = createTestApiConfig();
+  const handler = createReviewApiHandler(config, client);
+
+  const sessionToken = createTherapistSession(config, {
+    slug: "jamie-rivera",
+    email: "jamie@example.com",
+  });
+
+  const response = await runHandlerRequest(handler, {
+    headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+    method: "GET",
+    url: "/portal/analytics",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.slug, "jamie-rivera");
+  assert.equal(response.payload.current_period_key, periodKey);
+  assert.ok(response.payload.current, "current summary should be present");
+  assert.equal(response.payload.current.profileViewsTotal, 27);
+  assert.equal(response.payload.current.profileViewsMatch, 10);
+  assert.equal(response.payload.current.profileViewsDirectory, 15);
+  assert.equal(response.payload.current.ctaClicksTotal, 4);
+});
+
+test("/portal/analytics returns null current summary when no engagement has been recorded", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      slug: { current: "jamie-rivera" },
+    },
+  });
+  const config = createTestApiConfig();
+  const handler = createReviewApiHandler(config, client);
+
+  const sessionToken = createTherapistSession(config, {
+    slug: "jamie-rivera",
+    email: "jamie@example.com",
+  });
+
+  const response = await runHandlerRequest(handler, {
+    headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+    method: "GET",
+    url: "/portal/analytics",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.current, null);
+});
+
+test("/portal/analytics returns 401 without a therapist session token", async () => {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    headers: standardHeaders(),
+    method: "GET",
+    url: "/portal/analytics",
+  });
+
+  assert.equal(response.statusCode, 401);
+});

@@ -429,6 +429,17 @@ export async function fetchTherapistSubscription() {
   });
 }
 
+// Portal analytics V0 — returns the authenticated therapist's
+// engagement summary for the current calendar month plus the prior
+// month. Server endpoint is read-only and requires a therapist session
+// token (getTherapistHeaders supplies it from localStorage).
+export async function fetchPortalAnalytics() {
+  return request("/portal/analytics", {
+    method: "GET",
+    headers: getTherapistHeaders(),
+  });
+}
+
 export async function fetchTherapistApplicationRevision(applicationId) {
   return sanitizeApplication(
     await request(`/applications/${encodeURIComponent(applicationId)}/revision`, {

@@ -5,6 +5,7 @@ import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
   createStripeBillingPortalSession,
+  fetchPortalAnalytics,
   fetchTherapistClaimSession,
   fetchTherapistSubscription,
   requestTherapistClaimLink,
@@ -835,6 +836,103 @@ async function handleFeaturedBillingClick(event) {
   }
 }
 
+// Portal analytics V0 — render five numbers summarizing this month's
+// engagement: profile views total, contact intents (CTA clicks), views
+// from match results, views from directory search, and a period label.
+// Numbers come from the therapistEngagementSummary Sanity document for
+// the current calendar month, populated in real time by /engagement/view
+// and /engagement/cta-click endpoints.
+//
+// If there's no summary for the current month yet, render a gentle
+// empty state instead of zeroes — a new listing literally has no data,
+// and "0 views" in big type reads worse than "No activity yet."
+function formatAnalyticsPeriodLabel(periodKey) {
+  if (!periodKey) return "This month";
+  const parts = String(periodKey).split("-");
+  if (parts.length !== 2) return "This month";
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  if (!year || !month) return "This month";
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return months[month - 1] + " " + year;
+}
+
+function renderAnalyticsBlock(payload) {
+  const card = document.getElementById("portalAnalyticsCard");
+  const body = document.getElementById("portalAnalyticsBody");
+  const grid = document.getElementById("portalAnalyticsGrid");
+  if (!card || !body || !grid) return;
+
+  const current = payload && payload.current;
+  const label = formatAnalyticsPeriodLabel(
+    (current && current.periodKey) || (payload && payload.current_period_key),
+  );
+  if (!current) {
+    body.textContent =
+      "No patient activity recorded for " +
+      label +
+      " yet. Views and contact clicks will appear here as patients interact with your profile.";
+    grid.hidden = true;
+    return;
+  }
+  const views = Number(current.profileViewsTotal || 0);
+  const viewsDirectory = Number(current.profileViewsDirectory || 0);
+  const viewsMatch = Number(current.profileViewsMatch || 0);
+  const ctaClicks = Number(current.ctaClicksTotal || 0);
+
+  body.textContent = label + " · updated " + formatDate(current.lastEventAt || "");
+
+  grid.hidden = false;
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(140px, 1fr))";
+  grid.style.gap = "0.85rem";
+  grid.style.marginTop = "0.65rem";
+
+  function renderStat(number, label) {
+    return (
+      '<div style="padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd"><div style="font-size:1.55rem;font-weight:700;color:var(--navy);line-height:1.1">' +
+      escapeHtml(String(number)) +
+      '</div><div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem">' +
+      escapeHtml(label) +
+      "</div></div>"
+    );
+  }
+
+  grid.innerHTML =
+    renderStat(views, "Profile views") +
+    renderStat(ctaClicks, "Contact clicks") +
+    renderStat(viewsMatch, "From match results") +
+    renderStat(viewsDirectory, "From directory search");
+}
+
+async function loadAnalyticsIntoPortal() {
+  if (!document.getElementById("portalAnalyticsCard")) {
+    return;
+  }
+  try {
+    const result = await fetchPortalAnalytics();
+    renderAnalyticsBlock(result || {});
+  } catch (_error) {
+    const body = document.getElementById("portalAnalyticsBody");
+    if (body) {
+      body.textContent = "Profile activity is unavailable right now. Refresh to try again.";
+    }
+  }
+}
+
 async function loadSubscriptionIntoFeaturedCard() {
   if (!document.getElementById("portalFeaturedCard")) {
     return;
@@ -1129,6 +1227,9 @@ function renderPortal(therapist, options) {
     '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form></article>' +
     '<article class="portal-card"><h2>Account controls</h2><div class="portal-list"><div><strong>Pause listing:</strong> Request a temporary pause instead of deleting your profile.</div><div><strong>Remove listing:</strong> Request permanent removal if you no longer want to appear in the directory.</div><div><strong>Headshot and profile updates:</strong> Use the update flow above. Your edits still go through review before they replace the live profile.</div></div></article>' +
     (verifiedClaim
+      ? '<article class="portal-card" id="portalAnalyticsCard"><h2>This month at a glance</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity...</p><div id="portalAnalyticsGrid" hidden></div></article>'
+      : "") +
+    (verifiedClaim
       ? '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
         escapeHtml(therapist.slug) +
         '" data-therapist-email="' +
@@ -1166,6 +1267,7 @@ function renderPortal(therapist, options) {
   });
 
   if (verifiedClaim) {
+    loadAnalyticsIntoPortal();
     loadSubscriptionIntoFeaturedCard();
   }
 
