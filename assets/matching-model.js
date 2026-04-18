@@ -1409,6 +1409,9 @@ export function rankTherapistsForUser(therapists, userProfile, learningSignals) 
       return (
         b.evaluation.score - a.evaluation.score ||
         b.evaluation.confidence_score - a.evaluation.confidence_score ||
+        Number(b.therapist.bipolar_years_experience || 0) -
+          Number(a.therapist.bipolar_years_experience || 0) ||
+        b.evaluation.completeness_score - a.evaluation.completeness_score ||
         a.therapist.name.localeCompare(b.therapist.name)
       );
     });
