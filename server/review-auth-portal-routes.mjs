@@ -735,5 +735,74 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // GET /portal/analytics — V0 portal analytics dashboard. Returns
+  // the authenticated therapist's engagement summary for the current
+  // calendar month (and the prior month for context, not yet rendered
+  // in the UI but useful for an eventual 30-day rolling window).
+  //
+  // Data source: therapistEngagementSummary Sanity documents, which
+  // are written by the /engagement/view and /engagement/cta-click
+  // endpoints when patients view or interact with profiles. This
+  // endpoint is read-only.
+  //
+  // Gating: any authenticated claimed therapist can hit this. When
+  // paid-tier subscriptions go live, free vs paid response payloads
+  // can diverge (free = total-only, paid = full breakdown). V0
+  // returns the full breakdown to every caller; the client chooses
+  // what to render.
+  if (request.method === "GET" && routePath === "/portal/analytics") {
+    const session = getAuthorizedTherapist(request, config);
+    if (!session) {
+      sendJson(response, 401, { error: "Not signed in." }, origin, config);
+      return true;
+    }
+
+    const summaries = await client.fetch(
+      `*[_type == "therapistEngagementSummary" && therapistSlug == $slug] | order(periodKey desc) [0...3]{
+        _id,
+        periodKey,
+        periodYear,
+        periodMonth,
+        profileViewsTotal,
+        profileViewsDirect,
+        profileViewsDirectory,
+        profileViewsMatch,
+        profileViewsEmail,
+        profileViewsSearch,
+        profileViewsOther,
+        ctaClicksTotal,
+        ctaClicksEmail,
+        ctaClicksPhone,
+        ctaClicksBooking,
+        ctaClicksWebsite,
+        ctaClicksOther,
+        firstEventAt,
+        lastEventAt
+      }`,
+      { slug: session.slug },
+    );
+
+    const now = new Date();
+    const currentPeriodKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const list = Array.isArray(summaries) ? summaries : [];
+    const current = list.find((s) => s.periodKey === currentPeriodKey) || null;
+    const previous = list.find((s) => s.periodKey !== currentPeriodKey) || null;
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        slug: session.slug,
+        current_period_key: currentPeriodKey,
+        current: current,
+        previous: previous,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   return false;
 }

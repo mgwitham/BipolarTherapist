@@ -243,6 +243,23 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (query.includes(`therapistEngagementSummary`)) {
+          const slugFilter = (params && params.slug) || null;
+          return Array.from(state.documents.values())
+            .filter(function (document) {
+              if (document._type !== "therapistEngagementSummary") {
+                return false;
+              }
+              if (slugFilter && document.therapistSlug !== slugFilter) {
+                return false;
+              }
+              return true;
+            })
+            .sort(function (a, b) {
+              return String(b.periodKey || "").localeCompare(String(a.periodKey || ""));
+            });
+        }
+
         return [];
       },
       async create(document) {
