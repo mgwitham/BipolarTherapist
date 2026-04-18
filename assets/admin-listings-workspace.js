@@ -33,6 +33,7 @@ export function createListingsWorkspace(options) {
     : [];
 
   var rankingRiskFilter = "";
+  var listingsSearchQuery = "";
   var launchProfileFilters = {
     state: "",
     lane: "",
@@ -719,6 +720,7 @@ export function createListingsWorkspace(options) {
       })
       .slice(0, 4);
 
+    var normalizedSearch = listingsSearchQuery.trim().toLowerCase();
     var visibleRows = launchRows.filter(function (row) {
       if (rankingRiskFilter && !getRankingRiskMatches(row.item)[rankingRiskFilter]) {
         return false;
@@ -735,12 +737,25 @@ export function createListingsWorkspace(options) {
       if (launchProfileFilters.lane === "featured" && row.control.launch_state !== "featured") {
         return false;
       }
+      if (normalizedSearch) {
+        var item = row.item || {};
+        var haystack = [item.name, item.slug, item.city, item.state, item.credentials]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(normalizedSearch)) {
+          return false;
+        }
+      }
       return true;
     });
     var topVisibleRow = visibleRows.length ? visibleRows[0] : null;
     var recentLaunchFlashes = getRecentLaunchControlFlashes(3);
 
     root.innerHTML =
+      '<div class="listings-search" style="margin-bottom:1rem"><label for="publishedListingsSearch" class="queue-select-label" style="display:block;margin-bottom:0.35rem">Find a published therapist</label><input type="search" id="publishedListingsSearch" class="queue-select" style="width:100%;max-width:420px" placeholder="Search by name, city, or slug" value="' +
+      escapeHtml(listingsSearchQuery) +
+      '" autocomplete="off"><div class="subtle" style="margin-top:0.3rem;font-size:0.85rem">Find a live listing to edit its details (name, city, bio, etc.).</div></div>' +
       '<div class="queue-insights"><div class="queue-insights-title">Visibility control</div><div class="subtle" style="margin-bottom:0.7rem">Use visibility state and featured-lane flags to decide which live profiles are safe to promote on homepage and inside the match flow.</div><div class="queue-insights-grid">' +
       [
         {
@@ -1113,13 +1128,38 @@ export function createListingsWorkspace(options) {
             (control.match_priority ? " checked" : "") +
             '> Match priority</label><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
             encodeURIComponent(item.slug) +
-            '">Open profile</a></div></div>'
+            '">Open profile</a>' +
+            '<button type="button" class="btn-secondary btn-inline" data-edit-therapist-id="' +
+            escapeHtml(String(item.id || item._id || "")) +
+            '">Edit</button></div></div>'
           );
         })
         .join("") +
       (!visibleRows.length
-        ? '<div class="empty">No live profiles match the current launch or risk filters.</div>'
+        ? '<div class="empty">' +
+          (normalizedSearch
+            ? 'No published therapists match "' + escapeHtml(listingsSearchQuery) + '".'
+            : "No live profiles match the current launch or risk filters.") +
+          "</div>"
         : "");
+
+    var searchInput = root.querySelector("#publishedListingsSearch");
+    if (searchInput) {
+      searchInput.addEventListener("input", function (event) {
+        listingsSearchQuery = event.target.value || "";
+        renderListings();
+        var again = document.getElementById("publishedListingsSearch");
+        if (again) {
+          again.focus();
+          var len = again.value.length;
+          try {
+            again.setSelectionRange(len, len);
+          } catch (_error) {
+            /* noop */
+          }
+        }
+      });
+    }
 
     root
       .querySelectorAll("[data-launch-filter-state], [data-launch-filter-lane]")
