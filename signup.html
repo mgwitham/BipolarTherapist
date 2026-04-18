@@ -1565,6 +1565,23 @@
         background: rgba(146, 64, 14, 0.08);
         color: #92400e;
       }
+      .quick-claim-resend,
+      .claim-confirm-resend {
+        margin: 0.35rem 0 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+        text-align: center;
+      }
+      .quick-claim-resend a,
+      .claim-confirm-resend a {
+        color: var(--teal);
+        font-weight: 600;
+      }
+      .quick-claim-resend a[aria-disabled="true"],
+      .claim-confirm-resend a[aria-disabled="true"] {
+        color: var(--muted);
+        pointer-events: none;
+      }
       .claim-trial-offer {
         margin-top: 0.85rem;
         background: var(--white);
@@ -2092,16 +2109,11 @@
       <div class="quick-claim-inner">
         <div class="quick-claim-copy">
           <span class="quick-claim-kicker">Already listed on Bipolar Therapy Hub?</span>
-          <h1>Take your page in 60 seconds</h1>
+          <h1>Claim your page in one click</h1>
           <p>
-            Confirm three details and we email you a one-time link. No password to remember. Free
-            forever.
+            Find your listing, confirm it's you, and we email a one-time sign-in link. No password.
+            Free forever.
           </p>
-          <ul class="quick-claim-benefits">
-            <li>Own your profile and control what patients see</li>
-            <li>Stay logged in for 30 days after you claim</li>
-            <li>Start a 14-day trial of analytics + enhanced profile anytime later</li>
-          </ul>
         </div>
         <div class="quick-claim-search" id="quickClaimSearch">
           <label>
@@ -2148,6 +2160,10 @@
             aria-live="polite"
             hidden
           ></div>
+          <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
+            Didn't see it in 2 min? Check your spam folder or
+            <a href="#" id="claimConfirmResendLink">resend the link</a>.
+          </p>
         </div>
         <form id="quickClaimForm" class="quick-claim-form" novalidate>
           <label>
@@ -2186,6 +2202,10 @@
             aria-live="polite"
             hidden
           ></div>
+          <p class="quick-claim-resend" id="quickClaimResend" hidden>
+            Didn't see it in 2 min? Check your spam folder or
+            <a href="#" id="quickClaimResendLink">resend the link</a>.
+          </p>
           <a href="#formCard" class="quick-claim-fallback" id="quickClaimCreateNew" hidden>
             Create a new listing instead →
           </a>

@@ -406,7 +406,7 @@ function buildPortalClaimToken(config, therapist, requesterEmail) {
       sub: "therapist-portal",
       slug: therapist.slug.current,
       email: requesterEmail,
-      exp: Date.now() + 1000 * 60 * 30,
+      exp: Date.now() + 1000 * 60 * 60 * 24,
       nonce: crypto.randomBytes(12).toString("hex"),
     },
     config.sessionSecret,
