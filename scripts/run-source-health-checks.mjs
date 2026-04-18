@@ -464,8 +464,10 @@ async function checkSourceUrl(sourceUrl) {
       method: "GET",
       redirect: "follow",
       headers: {
-        "user-agent": "BipolarTherapyHubOpsBot/1.0 (+source health check)",
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
         accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
       },
       signal: AbortSignal.timeout(12000),
     });
