@@ -416,6 +416,21 @@ export async function fetchTherapistSubscription() {
   });
 }
 
+export async function fetchLaunchProfileControls() {
+  return request("/launch-profile-controls", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function updateLaunchProfileControls(payload) {
+  return request("/launch-profile-controls", {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function fetchTherapistApplicationRevision(applicationId) {
   return sanitizeApplication(
     await request(`/applications/${encodeURIComponent(applicationId)}/revision`, {
