@@ -6,6 +6,7 @@ export function createAdminWorkflowNavigator(config) {
       return String(value || "");
     };
   const ensureSectionRendered = options.ensureSectionRendered || function () {};
+  const setActiveView = options.setActiveView || null;
   const getGrid =
     options.getGrid ||
     function () {
@@ -340,6 +341,12 @@ export function createAdminWorkflowNavigator(config) {
     const workflowDone = config.workflowDone || "";
     const workflowPrimaryActionLabel = config.workflowPrimaryActionLabel || "";
     const workflowPrimaryActionTargetId = config.workflowPrimaryActionTargetId || "";
+    const viewHost = sectionTarget ? sectionTarget.closest("[data-view-group]") : null;
+    const targetGroup = viewHost ? viewHost.getAttribute("data-view-group") : "";
+    const currentView = document.body.getAttribute("data-admin-view") || "";
+    if (targetGroup && targetGroup !== currentView && typeof setActiveView === "function") {
+      setActiveView(targetGroup);
+    }
     let attempts = 0;
     const maxAttempts = 8;
 
