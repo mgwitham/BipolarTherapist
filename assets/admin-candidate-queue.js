@@ -58,10 +58,30 @@ function getRecentCandidateActionFlashes(candidates, limit) {
     return {
       id: entry.id,
       name: item && item.name ? item.name : entry.id,
+      slug: item && item.slug ? item.slug : "",
       message: entry.message,
       createdAt: entry.createdAt,
     };
   });
+}
+
+function findTherapistForFlash(entry, therapists) {
+  if (!entry || !Array.isArray(therapists) || !therapists.length) {
+    return null;
+  }
+  if (entry.slug) {
+    const bySlug = therapists.find(function (t) {
+      return t && t.slug === entry.slug;
+    });
+    if (bySlug) return bySlug;
+  }
+  if (entry.name) {
+    const byName = therapists.find(function (t) {
+      return t && t.name === entry.name;
+    });
+    if (byName) return byName;
+  }
+  return null;
 }
 
 function getCandidateDecisionOutcome(decision) {
@@ -422,13 +442,26 @@ export function renderCandidateQueuePanel(options) {
       ? '<div class="queue-insights"><div class="queue-insights-title">Done Recently</div><div class="queue-insights-grid">' +
         recentFlashes
           .map(function (entry) {
-            return (
-              '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+            const therapist = findTherapistForFlash(entry, therapists);
+            const therapistId = therapist ? therapist.id || therapist._id : "";
+            const innerHtml =
+              '<div class="queue-insight-label"><strong>' +
               options.escapeHtml(entry.name) +
-              '</strong></div><div class="queue-insight-note">' +
+              "</strong></div>" +
+              '<div class="queue-insight-note">' +
               options.escapeHtml(entry.message) +
-              "</div></div>"
-            );
+              "</div>" +
+              (therapistId ? '<div class="queue-insight-note subtle">Click to edit</div>' : "");
+            if (therapistId) {
+              return (
+                '<button type="button" class="queue-insight-card" style="text-align:left;cursor:pointer;font:inherit" data-edit-therapist-id="' +
+                options.escapeHtml(String(therapistId)) +
+                '">' +
+                innerHtml +
+                "</button>"
+              );
+            }
+            return '<div class="queue-insight-card">' + innerHtml + "</div>";
           })
           .join("") +
         "</div></div>"
