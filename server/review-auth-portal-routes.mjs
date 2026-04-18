@@ -73,7 +73,11 @@ function extractRegistrableDomain(value) {
     return "";
   }
   const parts = host.split(".");
-  if (parts.length >= 3 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
+  if (
+    parts.length >= 3 &&
+    parts[parts.length - 2].length <= 3 &&
+    parts[parts.length - 1].length <= 3
+  ) {
     return parts.slice(-3).join(".");
   }
   return parts.slice(-2).join(".");
@@ -403,11 +407,8 @@ export async function handleAuthAndPortalRoutes(context) {
       `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
     );
 
-    const claimStatusUpdate =
-      therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
-    const patchBuilder = client
-      .patch(therapist._id)
-      .set({ claimStatus: claimStatusUpdate });
+    const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
+    const patchBuilder = client.patch(therapist._id).set({ claimStatus: claimStatusUpdate });
     if (domainVerified) {
       patchBuilder.set({
         lastClaimVerificationMethod: "email_domain_match",
