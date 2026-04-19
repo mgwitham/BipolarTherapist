@@ -169,47 +169,6 @@ export function getNextBestAdminActions(options) {
     });
   }
 
-  var refreshCandidate = therapists
-    .map(function (item) {
-      return {
-        item: item,
-        freshness: getDataFreshnessSummary(item),
-        trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
-      };
-    })
-    .filter(function (entry) {
-      return entry.freshness.status === "aging" || entry.trustAttentionCount > 0;
-    })
-    .sort(function (a, b) {
-      return (
-        Number(b.freshness.status === "aging") - Number(a.freshness.status === "aging") ||
-        (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0) ||
-        (b.freshness.needs_reconfirmation_fields || []).length -
-          (a.freshness.needs_reconfirmation_fields || []).length
-      );
-    })[0];
-
-  if (refreshCandidate) {
-    pushAction({
-      score: refreshCandidate.freshness.status === "aging" ? 820 : 785,
-      headline:
-        refreshCandidate.freshness.status === "aging"
-          ? "Refresh an aging live profile"
-          : "Tighten trust on a live profile",
-      title: refreshCandidate.item.name,
-      detail:
-        refreshCandidate.trustAttentionCount > 0
-          ? "Trust or freshness issues are starting to weaken this listing."
-          : "Operational details are aging enough to justify a refresh pass.",
-      firstStep:
-        "Open the listing, verify what is stale from source material, and either refresh it or move it into confirmation.",
-      whyNow: "Refreshing before drift gets worse protects listing quality and conversion trust.",
-      successState: "The listing is refreshed, queued for confirmation, or deferred with a reason.",
-      actionLabel: "Open refresh queue",
-      targetId: "refreshQueueSection",
-    });
-  }
-
   var launchCandidate = therapists
     .map(function (item) {
       var readiness = getTherapistMatchReadiness(item);

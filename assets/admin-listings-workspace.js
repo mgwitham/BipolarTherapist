@@ -126,13 +126,13 @@ export function createListingsWorkspace(options) {
       },
       aging_data: {
         note: "These profiles are already losing some ranking strength because their operational data is aging.",
-        action: "Open refresh queue",
-        target: "refreshQueue",
+        action: "Filter listings",
+        target: "publishedListings",
       },
       refresh_soon: {
         note: "These profiles are not in trouble yet, but they are the next best refresh candidates.",
-        action: "Open refresh queue",
-        target: "refreshQueue",
+        action: "Filter listings",
+        target: "publishedListings",
       },
     };
 
@@ -168,10 +168,6 @@ export function createListingsWorkspace(options) {
     var runtimeState = getRuntimeState();
     if (runtimeState.authRequired) {
       document.getElementById("publishedListings").innerHTML = "";
-      var refreshRoot = document.getElementById("refreshQueue");
-      if (refreshRoot) {
-        refreshRoot.innerHTML = "";
-      }
       return;
     }
 
