@@ -408,13 +408,18 @@ export function renderRefreshQueuePanel(options) {
           setRefreshActionFlash(therapistId, message);
         }
         await options.loadData();
-      } catch (_error) {
+      } catch (error) {
+        const detail =
+          (error && error.status ? "[" + error.status + "] " : "") +
+          (error && error.message ? error.message : "Request failed.");
+        const message = "Could not update this refresh item. " + detail;
         if (status) {
-          status.textContent = "Could not update this refresh item.";
+          status.textContent = message;
         }
-        setRefreshActionFlash(therapistId, "Could not update this refresh item.");
+        setRefreshActionFlash(therapistId, message);
         button.disabled = false;
         button.textContent = prior;
+        console.error("decideTherapistOps failed", error);
       }
     });
   });
