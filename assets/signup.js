@@ -785,7 +785,7 @@ function getSuccessReturnHref(context, returnTarget, application) {
   }
 
   if (context.isConfirmation && confirmationTherapistSlug) {
-    return "signup.html?confirm=" + encodeURIComponent(confirmationTherapistSlug) + focusSuffix;
+    return "claim.html?confirm=" + encodeURIComponent(confirmationTherapistSlug) + focusSuffix;
   }
 
   if (
@@ -795,7 +795,7 @@ function getSuccessReturnHref(context, returnTarget, application) {
     application.target_therapist_slug !== application.slug
   ) {
     return (
-      "signup.html?confirm=" + encodeURIComponent(application.target_therapist_slug) + focusSuffix
+      "claim.html?confirm=" + encodeURIComponent(application.target_therapist_slug) + focusSuffix
     );
   }
 

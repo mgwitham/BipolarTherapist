@@ -281,6 +281,23 @@ function initQuickClaim() {
   const emailInput = form.querySelector('input[name="email"]');
   const licenseInput = form.querySelector('input[name="license_number"]');
 
+  // If the page was reached from a "claim this listing" link on a
+  // therapist profile, the slug arrives in ?confirm=<slug>. Prefill
+  // the search input with the last-name portion of the slug and let
+  // the existing search flow surface the match.
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const confirmSlug = (params.get("confirm") || "").trim();
+    if (confirmSlug && searchInput && !searchInput.value) {
+      const namePart = confirmSlug.split("-").filter(Boolean).slice(0, 2).join(" ");
+      if (namePart) {
+        searchInput.value = namePart;
+      }
+    }
+  } catch (_error) {
+    // noop — prefill is best-effort
+  }
+
   const quickResend = document.getElementById(QUICK_RESEND_ID);
   const quickResendLink = document.getElementById(QUICK_RESEND_LINK_ID);
   const confirmResend = document.getElementById(CONFIRM_RESEND_ID);
@@ -403,7 +420,8 @@ function initQuickClaim() {
       confirmMeta.textContent = location + licenseBit;
     }
     if (confirmEmail) {
-      confirmEmail.textContent = result.email_hint || "the email on your listing";
+      const hint = typeof result.email_hint === "string" ? result.email_hint.trim() : "";
+      confirmEmail.textContent = hint || "the email on your listing";
     }
     if (confirmSend) {
       confirmSend.disabled = !result.has_email;

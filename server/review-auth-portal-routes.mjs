@@ -925,7 +925,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     function redirect(status) {
       response.statusCode = 302;
-      response.setHeader("Location", `${returnBase}/signup?removed=${status}`);
+      response.setHeader("Location", `${returnBase}/claim?removed=${status}`);
       response.end();
       return true;
     }
