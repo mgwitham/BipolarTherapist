@@ -337,10 +337,17 @@ export function getCmsState() {
   };
 }
 
-async function fetchFromSanity(query, params) {
+// Non-CDN client cache — the Sanity CDN can serve up-to-60s stale
+// reads, which causes the admin "Mark reviewed" flow to appear to
+// revert on hard refresh. Admin reads request fresh: true to bypass.
+let freshClientPromise = null;
+
+async function fetchFromSanity(query, params, options) {
   if (!cmsEnabled) {
     throw new Error("Sanity client not configured");
   }
+
+  const fresh = Boolean(options && options.fresh);
 
   if (!sanityClientModulePromise) {
     sanityClientModulePromise = import("@sanity/client")
@@ -353,7 +360,30 @@ async function fetchFromSanity(query, params) {
       });
   }
 
-  if (!clientPromise) {
+  if (fresh && !freshClientPromise) {
+    freshClientPromise = Promise.resolve()
+      .then(function () {
+        return sanityClientModulePromise;
+      })
+      .then(function (createClient) {
+        if (typeof createClient !== "function") {
+          throw new Error("Sanity client could not be loaded.");
+        }
+        return createClient({
+          projectId: projectId,
+          dataset: dataset,
+          apiVersion: apiVersion,
+          useCdn: false,
+          perspective: "published",
+        });
+      })
+      .catch(function (error) {
+        freshClientPromise = null;
+        throw error;
+      });
+  }
+
+  if (!fresh && !clientPromise) {
     clientPromise = Promise.resolve()
       .then(function () {
         return sanityClientModulePromise;
@@ -376,12 +406,13 @@ async function fetchFromSanity(query, params) {
       });
   }
 
-  const client = await clientPromise;
+  const client = await (fresh ? freshClientPromise : clientPromise);
   return client.fetch(query, params || {});
 }
 
 export async function fetchPublicTherapists(options) {
   const strict = Boolean(options && options.strict);
+  const fresh = Boolean(options && options.fresh);
   if (!cmsEnabled) {
     if (strict) {
       throw new Error("Sanity CMS is not enabled in this build.");
@@ -393,6 +424,8 @@ export async function fetchPublicTherapists(options) {
   try {
     const docs = await fetchFromSanity(
       `*[_type == "therapist" && listingActive == true && status == "active"] | order(name asc) ${therapistProjection}`,
+      null,
+      { fresh },
     );
     setCmsState("sanity", null);
     return docs.map(normalizeTherapist);
