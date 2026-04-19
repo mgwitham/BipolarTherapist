@@ -401,13 +401,19 @@ function buildPortalRequestDocument(input) {
   };
 }
 
-function buildPortalClaimToken(config, therapist, requesterEmail) {
+function buildPortalClaimToken(config, therapist, requesterEmail, options) {
+  // Default 24h TTL for quick-claim flows. Callers (e.g. the
+  // application-approval email) can pass { ttlMs: N } to extend for
+  // cases where the user may not check email immediately.
+  const defaultTtl = 1000 * 60 * 60 * 24;
+  const ttlMs =
+    options && Number.isFinite(options.ttlMs) && options.ttlMs > 0 ? options.ttlMs : defaultTtl;
   return createSignedPayload(
     {
       sub: "therapist-portal",
       slug: therapist.slug.current,
       email: requesterEmail,
-      exp: Date.now() + 1000 * 60 * 60 * 24,
+      exp: Date.now() + ttlMs,
       nonce: crypto.randomBytes(12).toString("hex"),
     },
     config.sessionSecret,
@@ -569,6 +575,7 @@ function createReviewRouteModules() {
         },
         buildAppliedFieldReviewStatePatch,
         buildApplicationReviewEvent,
+        buildPortalClaimToken,
         buildRevisionFieldUpdates: function buildRevisionFieldUpdatesForRoute(
           client,
           input,
@@ -597,6 +604,10 @@ function createReviewRouteModules() {
         updateApplicationFields,
         validateRevisionInput,
       },
+      // Expose the request URL so the approval email can build a
+      // portal magic link pointing at the same host the request
+      // came from.
+      includeUrl: true,
     },
     {
       handler: handleCandidateIngestRoutes,

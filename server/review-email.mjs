@@ -47,25 +47,45 @@ export async function notifyAdminOfSubmission(config, application) {
   });
 }
 
-export async function notifyApplicantOfDecision(config, application, decision) {
+export async function notifyApplicantOfDecision(config, application, decision, options) {
   if (!config.resendApiKey || !config.emailFrom || !application.email) {
     return;
   }
+
+  // If the caller supplied a portalBaseUrl + token builder + therapist,
+  // include a magic link so the approved therapist can go straight
+  // into the portal to finish their profile. This is the primary
+  // closure on the short-form signup flow: intake → admin approves →
+  // therapist gets an email with one link that signs them in.
+  const magicLink = buildApprovalMagicLink(config, application, options);
 
   const subject =
     decision === "approved"
       ? "Your BipolarTherapyHub application was approved"
       : "Your BipolarTherapyHub application was reviewed";
-  const html =
-    decision === "approved"
-      ? `<h2>Your listing was approved</h2>
+
+  const approvedHtml = magicLink
+    ? `<h2>Your listing was approved</h2>
+<p>Hi ${application.name},</p>
+<p>Your BipolarTherapyHub application has been approved and your listing is live. One
+last step: complete your full profile so patients see what makes your practice a fit.</p>
+<p><a href="${magicLink}">${magicLink}</a></p>
+<p>That link signs you into your portal with no password — just click and start editing
+your bio, specialties, insurance, telehealth states, and contact details. Takes about
+10 minutes.</p>
+<p>The link expires in 7 days. If it expires before you finish, visit the signup page
+and use "Manage my existing listing" to request a fresh one.</p>`
+    : `<h2>Your listing was approved</h2>
 <p>Hi ${application.name},</p>
 <p>Your BipolarTherapyHub application has been approved and your listing is now live.</p>
-<p>Thank you for joining the directory.</p>`
-      : `<h2>Your application was reviewed</h2>
+<p>Thank you for joining the directory.</p>`;
+
+  const rejectedHtml = `<h2>Your application was reviewed</h2>
 <p>Hi ${application.name},</p>
 <p>Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
 <p>You can reply to this email if you want to follow up with updated details later.</p>`;
+
+  const html = decision === "approved" ? approvedHtml : rejectedHtml;
 
   await sendEmail(config, {
     from: config.emailFrom,
@@ -74,6 +94,30 @@ export async function notifyApplicantOfDecision(config, application, decision) {
     subject: subject,
     html: html,
   });
+}
+
+// Builds the portal magic link (or returns "" if we don't have
+// enough info). Uses a 7-day TTL for the approval token vs the 24h
+// default on claim links — approved therapists may not check email
+// immediately, and expiring their first onboarding link at 24h would
+// waste the approval effort.
+function buildApprovalMagicLink(config, application, options) {
+  const therapist = options && options.therapist;
+  const portalBaseUrl = String((options && options.portalBaseUrl) || "").trim();
+  const buildPortalClaimToken = options && options.buildPortalClaimToken;
+  if (!therapist || !portalBaseUrl || typeof buildPortalClaimToken !== "function") {
+    return "";
+  }
+  if (!therapist.slug || !therapist.slug.current) {
+    return "";
+  }
+  try {
+    const ttlMs = 7 * 24 * 60 * 60 * 1000;
+    const token = buildPortalClaimToken(config, therapist, application.email, { ttlMs });
+    return `${portalBaseUrl.replace(/\/+$/, "")}/portal.html?token=${encodeURIComponent(token)}`;
+  } catch (_error) {
+    return "";
+  }
 }
 
 export async function sendPortalClaimLink(

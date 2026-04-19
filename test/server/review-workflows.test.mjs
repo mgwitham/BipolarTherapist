@@ -429,3 +429,81 @@ test("intake: duplicate license (existing therapist) returns 409 with claim guid
   assert.equal(response.payload.recommended_intake_type, "claim_existing");
   assert.match(response.payload.error, /claim/i);
 });
+
+test("approval: emits a portal magic link to the applicant so they can finish their profile", async function () {
+  // Spy on Resend sends by wrapping fetch — the email helper calls
+  // api.resend.com directly, so intercepting fetch is the simplest
+  // way to assert on outgoing email bodies without mocking deep into
+  // the helper graph.
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("api.resend.com")) {
+      let body = {};
+      try {
+        body = JSON.parse(String((init && init.body) || "{}"));
+      } catch (_error) {
+        /* ignore */
+      }
+      calls.push(body);
+      return new Response(JSON.stringify({ id: "email_test" }), { status: 200 });
+    }
+    return originalFetch(url, init);
+  };
+
+  try {
+    const { client } = createMemoryClient();
+    const config = {
+      ...createTestApiConfig(),
+      resendApiKey: "re_test_key",
+      emailFrom: "noreply@bipolartherapyhub.example",
+      notificationTo: "admin@bipolartherapyhub.example",
+    };
+    const handler = createReviewApiHandler(config, client);
+
+    const submitResponse = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Avery Approval",
+        credentials: "LMFT",
+        email: "avery@example.com",
+        city: "San Francisco",
+        state: "CA",
+        bio: "I help adults with bipolar disorder build stable routines.",
+        license_state: "CA",
+        license_number: "LMFT90001",
+        care_approach: "Practical and relapse-prevention oriented.",
+      },
+      headers: { host: "localhost:8787" },
+      method: "POST",
+      url: "/applications",
+    });
+    assert.equal(submitResponse.statusCode, 201);
+    const applicationId = submitResponse.payload.id;
+
+    const sessionToken = await loginAsAdmin(handler);
+    const approveResponse = await runHandlerRequest(handler, {
+      body: {},
+      headers: {
+        authorization: `Bearer ${sessionToken}`,
+        host: "localhost:8787",
+      },
+      method: "POST",
+      url: `/applications/${applicationId}/approve`,
+    });
+    assert.equal(approveResponse.statusCode, 200);
+
+    // The approval email goes to the applicant. Filter by recipient
+    // to skip the admin notification (which was sent at submit time
+    // to a different address).
+    const approvalCall = calls.find(
+      (call) => Array.isArray(call.to) && call.to.includes("avery@example.com"),
+    );
+    assert.ok(approvalCall, "approval email should be sent to the applicant");
+    assert.match(approvalCall.subject, /approved/i);
+    // Magic link points at /portal.html with a signed token in the
+    // URL param — that's the "complete your profile" hop.
+    assert.match(approvalCall.html, /portal\.html\?token=/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
