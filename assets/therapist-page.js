@@ -1806,10 +1806,10 @@ function renderProfile(t, therapistDirectory) {
   var navClaimLink = document.getElementById("navClaimLink");
   var footerClaimLink = document.getElementById("footerClaimLink");
   if (navClaimLink) {
-    navClaimLink.href = "signup.html?confirm=" + encodeURIComponent(t.slug);
+    navClaimLink.href = "claim.html?confirm=" + encodeURIComponent(t.slug);
   }
   if (footerClaimLink) {
-    footerClaimLink.href = "signup.html?confirm=" + encodeURIComponent(t.slug);
+    footerClaimLink.href = "claim.html?confirm=" + encodeURIComponent(t.slug);
   }
 
   var initials = (t.name || "")

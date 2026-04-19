@@ -12,12 +12,11 @@
       gtag("config", "G-Q22R5G7VB5");
     </script>
     <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>List Your Practice — BipolarTherapyHub</title>
+    <title>Claim your listing — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Create a high-trust bipolar-specialist profile on BipolarTherapyHub and appear in guided matching, shortlist, and outreach flows."
+      content="Already listed on BipolarTherapyHub? Claim your page in one click. Search, confirm, and we email a one-time sign-in link. No password. Free forever."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2524,19 +2523,59 @@
         }
       }
 
-      /* Signup page: small "already listed? claim →" hint bar below nav.
-         Low-emphasis so the new-listing CTA keeps the page. */
-      .signup-alt-path {
-        max-width: 820px;
-        margin: 1.5rem auto 0;
+      /* Claim page: alt-path link and buried remove-listing details.
+         The remove-listing form is intentionally de-emphasized as a
+         <details> block with a plain-text summary so the primary
+         claim CTA wins by default. */
+      .claim-alt-path {
+        max-width: 720px;
+        margin: 2rem auto 0;
         padding: 0 1.5rem;
         text-align: center;
         color: var(--muted);
         font-size: 0.95rem;
       }
-      .signup-alt-path a {
+      .claim-alt-path a {
         color: var(--teal);
         font-weight: 600;
+      }
+      .claim-remove-details {
+        max-width: 720px;
+        margin: 2.5rem auto 3rem;
+        padding: 0 1.5rem;
+      }
+      .claim-remove-details > summary {
+        list-style: none;
+        cursor: pointer;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.88rem;
+        padding: 0.5rem 0;
+      }
+      .claim-remove-details > summary::-webkit-details-marker {
+        display: none;
+      }
+      .claim-remove-details > summary:hover,
+      .claim-remove-details > summary:focus-visible {
+        color: var(--navy);
+      }
+      .claim-remove-details > summary > span::after {
+        content: " →";
+        color: var(--teal);
+      }
+      .claim-remove-body {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem 1.25rem;
+        margin-top: 0.75rem;
+      }
+      .claim-remove-intro {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+        margin-top: 0;
+        margin-bottom: 1.25rem;
       }
     </style>
   </head>
@@ -2558,1322 +2597,215 @@
       </ul>
     </nav>
 
-    <section class="signup-alt-path" aria-label="Already listed">
-      <p>
-        Already listed on BipolarTherapyHub?
-        <a href="claim.html">Claim your listing →</a>
-      </p>
-    </section>
-
-    <section class="authority-strip" aria-label="Why this directory">
-      <p>
-        Built around bipolar-specialist therapists verified in California. Patients find you through
-        intent-matched searches, not generic directory browsing.
-      </p>
-    </section>
-
-    <section class="unlock-ladder" aria-label="How your profile grows">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">How your profile grows</span>
-          <h2>Four steps to a listing that converts</h2>
+    <section
+      id="quickClaimSection"
+      class="quick-claim-hero"
+      aria-label="Claim your existing profile"
+    >
+      <div class="quick-claim-inner">
+        <div class="quick-claim-copy">
+          <span class="quick-claim-kicker">Already listed on Bipolar Therapy Hub?</span>
+          <h1>Claim your page in one click</h1>
           <p>
-            Every therapist starts at Listed. You unlock the next step by filling in what matters to
-            patients. Paid unlocks analytics and richer profile tools, not higher placement.
+            Find your listing, confirm it's you, and we email a one-time sign-in link. No password.
+            Free forever.
           </p>
-        </header>
-        <ol class="unlock-steps">
-          <li class="unlock-step">
-            <div class="unlock-step-index">1</div>
-            <div class="unlock-step-body">
-              <h3>Listed</h3>
-              <p>Your profile appears in the directory.</p>
-              <span class="unlock-step-criteria">Unlocks with: free claim</span>
-            </div>
-          </li>
-          <li class="unlock-step">
-            <div class="unlock-step-index">2</div>
-            <div class="unlock-step-body">
-              <h3>Searchable</h3>
-              <p>
-                Patients can filter by insurance, session format, and telehealth state to find you.
-              </p>
-              <span class="unlock-step-criteria"
-                >Unlocks with: insurance, format, telehealth states</span
-              >
-            </div>
-          </li>
-          <li class="unlock-step">
-            <div class="unlock-step-index">3</div>
-            <div class="unlock-step-body">
-              <h3>Match-ready</h3>
-              <p>
-                Your profile has the depth match results need: bipolar-specific experience, care
-                approach, bio, and photo.
-              </p>
-              <span class="unlock-step-criteria"
-                >Unlocks with: bio, care approach, bipolar years, photo</span
-              >
-            </div>
-          </li>
-          <li class="unlock-step unlock-step-paid">
-            <div class="unlock-step-index">4</div>
-            <div class="unlock-step-body">
-              <h3>Insights + longer bio</h3>
-              <p>
-                Analytics dashboard with view counts, filter breakdowns, and drop-off reasons. Room
-                for a longer bio so you can tell patients how you actually work.
-              </p>
-              <span class="unlock-step-criteria">Unlocks with: paid upgrade ($19/mo)</span>
-            </div>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="pricing-section" id="pricing" aria-label="Pricing">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">Pricing</span>
-          <h2>Listed free. $19 for intel on your own profile.</h2>
-          <p>
-            Every therapist is listed and matched by fit for free. Paid unlocks analytics and richer
-            profile tools — not higher placement. Patient match results are ranked by fit, not by
-            who pays.
-          </p>
-        </header>
-        <div class="pricing-grid">
-          <article class="pricing-card">
-            <header class="pricing-card-header">
-              <h3>Free</h3>
-              <div class="pricing-card-price">
-                <span class="pricing-amount">$0</span><span class="pricing-cadence">forever</span>
-              </div>
-            </header>
-            <ul class="pricing-features">
-              <li>Listed in the directory</li>
-              <li>Ranked in match results by fit, same as everyone</li>
-              <li>Unlimited profile edits</li>
-              <li>Monthly view count</li>
-            </ul>
-            <a href="#quickClaimForm" class="pricing-cta pricing-cta-secondary"
-              >Claim your profile</a
-            >
-            <p class="pricing-fineprint">No credit card. Free claim stays free forever.</p>
-          </article>
-
-          <article class="pricing-card pricing-card-featured">
-            <span class="pricing-badge-featured">14-day free trial</span>
-            <header class="pricing-card-header">
-              <h3>Paid</h3>
-              <div class="pricing-card-price">
-                <span class="pricing-amount">$19</span
-                ><span class="pricing-cadence">per month</span>
-              </div>
-            </header>
-            <ul class="pricing-features">
-              <li>
-                <strong>Profile analytics</strong> — views, filter breakdowns, where viewers drop
-                off, which filters brought them to you
-              </li>
-              <li>
-                <strong>Longer bio</strong> — room to explain how you actually work with bipolar
-                clients, not just a specialty bullet
-              </li>
-              <li>Monthly insights email with actionable suggestions</li>
-              <li>14-day free trial, cancel anytime from your dashboard</li>
-            </ul>
-            <a href="#quickClaimForm" class="pricing-cta pricing-cta-primary"
-              >Start 14-day free trial</a
-            >
-            <div class="pricing-trust">
-              <span>No charge until day 15</span>
-              <span>Cancel from your dashboard in one click</span>
-            </div>
-          </article>
         </div>
-        <p class="pricing-tie-breaker">
-          <strong>Paid does not buy placement.</strong> Match results are always ranked by fit to
-          the patient. Paid unlocks intel about who viewed you and tools to convert them better —
-          not a higher spot in the list.
-        </p>
-      </div>
-    </section>
-
-    <section class="faq-section" aria-label="Common questions">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">Common questions</span>
-          <h2>Answers to what therapists ask first</h2>
-        </header>
-        <div class="faq-grid">
-          <details class="faq-item">
-            <summary>How do patients actually reach me?</summary>
-            <p>
-              Patients click your profile's contact button, which opens whichever channel you
-              prefer: email, phone, or your booking link. You receive the inquiry directly. We do
-              not gate, relay, or delay messages.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>What if a matched patient is not a good fit?</summary>
-            <p>
-              You are never obligated to take a patient. Respond as you would to any inquiry. We
-              track outcomes so matching gets smarter over time, but no one is forcing a referral.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Do I have to use your booking tool?</summary>
-            <p>
-              No. Use whatever booking you already have: SimplePractice, Calendly, your own email.
-              We link to your system.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>How is ranking determined?</summary>
-            <p>
-              Fit to the patient, full stop. Profile completeness, bipolar-specific experience,
-              proximity, insurance match, and availability all feed the match model. Paying does not
-              raise your ranking. Every patient sees the same ranked list regardless of who has
-              upgraded.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Can I pause my listing without deleting it?</summary>
-            <p>
-              Yes. One click from your portal. Your listing goes dark until you reactivate. No data
-              is lost and you can return anytime.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Why focus on bipolar disorder specifically?</summary>
-            <p>
-              Bipolar care is chronic, relapse-prone, and often mistreated. Patients who find a
-              bipolar-informed therapist stay in care longer and get better outcomes. Serving that
-              audience well is the whole point.
-            </p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <!-- New-therapist intake — short-form "list my practice" flow.
-         Five fields: name, email, CA license, city, bipolar-treats
-         confirmation. Submits to /applications/intake which creates a
-         pending therapistApplication with stub values for the
-         fields we don't ask up front. After review + approval, the
-         therapist completes their full profile via the portal. -->
-    <section id="newListingSection" class="new-listing-intake" aria-label="List your practice">
-      <div class="new-listing-inner">
-        <div class="new-listing-copy">
-          <span class="new-listing-kicker">List my practice</span>
-          <h2>Five fields. Sixty seconds.</h2>
-          <p>
-            Start with just enough for us to verify you're a California-licensed clinician who
-            treats bipolar disorder. We review within 2-3 business days. You finish the full profile
-            (bio, specialties, photo, insurance) later via the portal, after approval.
+        <div class="quick-claim-search" id="quickClaimSearch">
+          <label>
+            <span>Find your listing</span>
+            <input
+              type="search"
+              id="quickClaimSearchInput"
+              autocomplete="off"
+              placeholder="Search by last name or license number"
+            />
+          </label>
+          <div
+            class="quick-claim-search-results"
+            id="quickClaimSearchResults"
+            role="listbox"
+            hidden
+          ></div>
+          <p class="quick-claim-search-hint">
+            Start typing your name or license number. Pick your listing and we'll send a sign-in
+            link to the email we have on file.
           </p>
-          <div class="new-listing-timeline">
-            <div class="new-listing-step">
-              <div class="new-listing-step-index">1</div>
-              <div>
-                <strong>Submit these five fields</strong>
-                <p>
-                  No credit card. No long bio yet. Just enough to route your application to the
-                  right reviewer.
-                </p>
-              </div>
-            </div>
-            <div class="new-listing-step">
-              <div class="new-listing-step-index">2</div>
-              <div>
-                <strong>We verify your CA license</strong>
-                <p>
-                  Automated check against the Board of Behavioral Sciences + Board of Psychology
-                  records. If your license doesn't verify we email you so you can clarify.
-                </p>
-              </div>
-            </div>
-            <div class="new-listing-step">
-              <div class="new-listing-step-index">3</div>
-              <div>
-                <strong>Approval email within a few days</strong>
-                <p>
-                  Once approved, you get a magic link to complete your full profile and make your
-                  listing live. Free forever. Paid tier ($19/month for analytics and a longer bio)
-                  is optional, anytime.
-                </p>
-              </div>
-            </div>
+        </div>
+        <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
+          <div class="claim-confirm-header">
+            <span class="claim-confirm-label">Found your listing</span>
+            <a href="#" id="claimConfirmChange">Change →</a>
           </div>
+          <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
+          <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
+          <p class="claim-confirm-destination">
+            We'll email a one-time sign-in link to
+            <strong id="claimConfirmEmail"></strong>.
+          </p>
+          <button type="button" id="claimConfirmSend" class="claim-confirm-send">
+            Send sign-in link
+          </button>
+          <p class="claim-confirm-alt">
+            <a href="#" id="claimConfirmUseOther">Use a different email →</a>
+          </p>
+          <div
+            class="claim-confirm-status"
+            id="claimConfirmStatus"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+          <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
+            Didn't see it in 2 min? Check your spam folder or
+            <a href="#" id="claimConfirmResendLink">resend the link</a>.
+          </p>
         </div>
-        <div class="new-listing-card">
-          <form id="newListingForm" class="new-listing-form" novalidate>
-            <label>
-              <span>Full name</span>
-              <input
-                type="text"
-                name="full_name"
-                autocomplete="name"
-                placeholder="Jamie Rivera"
-                required
-              />
-            </label>
-            <label>
-              <span>Email</span>
-              <input
-                type="email"
-                name="email"
-                autocomplete="email"
-                placeholder="jamie@yourpractice.com"
-                required
-              />
-              <span class="new-listing-field-hint"> We'll email your approval decision here. </span>
-            </label>
-            <label>
-              <span>CA license number</span>
-              <input
-                type="text"
-                name="license_number"
-                autocomplete="off"
-                placeholder="e.g. 109462"
-                required
-              />
-            </label>
-            <label>
-              <span>City or ZIP</span>
-              <input
-                type="text"
-                name="city_or_zip"
-                autocomplete="address-level2"
-                placeholder="Los Angeles or 90025"
-                required
-              />
-            </label>
-            <label class="new-listing-checkbox">
-              <input type="checkbox" name="treats_bipolar" required />
-              <span>
-                I'm a California-licensed clinician and I treat bipolar disorder in my practice.
-              </span>
-            </label>
-            <button type="submit" class="new-listing-submit">Submit application</button>
-            <div
-              class="new-listing-status"
-              id="newListingStatus"
-              role="status"
-              aria-live="polite"
-              hidden
-            ></div>
-            <p class="new-listing-fineprint">
-              No credit card. Free to list. We never charge you to correct details on your own
-              profile.
+        <form id="quickClaimForm" class="quick-claim-form" novalidate hidden>
+          <label>
+            <span>Full name</span>
+            <input
+              type="text"
+              name="full_name"
+              autocomplete="name"
+              placeholder="Jamie Rivera"
+              required
+            />
+          </label>
+          <label>
+            <span>Email on your current listing</span>
+            <input type="email" name="email" autocomplete="email" required />
+            <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
+          </label>
+          <label>
+            <span>CA license number</span>
+            <input
+              type="text"
+              name="license_number"
+              autocomplete="off"
+              placeholder="e.g. 109462"
+              required
+            />
+          </label>
+          <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
+            Send claim link
+          </button>
+          <p class="quick-claim-fineprint">No credit card. Free claim stays free forever.</p>
+          <div
+            class="quick-claim-status"
+            id="quickClaimStatus"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+          <p class="quick-claim-resend" id="quickClaimResend" hidden>
+            Didn't see it in 2 min? Check your spam folder or
+            <a href="#" id="quickClaimResendLink">resend the link</a>.
+          </p>
+          <a href="signup.html" class="quick-claim-fallback" id="quickClaimCreateNew">
+            Create a new listing instead →
+          </a>
+        </form>
+        <div class="claim-trial-offer" id="claimTrialOffer" hidden>
+          <div class="claim-trial-offer-header">
+            <h3>Start your 14-day trial while you wait</h3>
+            <p>
+              No charge today. Cancel anytime. Unlocks analytics and enhanced profile the moment you
+              sign in.
             </p>
-          </form>
+          </div>
+          <div class="claim-trial-offer-plans">
+            <button
+              type="button"
+              class="claim-trial-cta claim-trial-cta-primary"
+              id="claimTrialPaid"
+              data-plan="paid_monthly"
+            >
+              <span class="claim-trial-cta-title">Start 14-day free trial</span>
+              <span class="claim-trial-cta-price">$19/mo after trial · cancel anytime</span>
+            </button>
+          </div>
+          <p class="claim-trial-dismiss">
+            <a href="#" id="claimTrialDismiss">I'll decide later →</a>
+          </p>
+          <p class="claim-trial-feedback" id="claimTrialFeedback" aria-live="polite"></p>
         </div>
       </div>
     </section>
 
-    <!-- Legacy full-form submission path. Kept accessible via an
-         expandable details block for power users or admins who need
-         to submit a complete profile in one go. The primary new-
-         therapist flow above is the intended path for everyone else. -->
-    <details class="legacy-full-form" aria-label="Advanced: submit a full profile in one go">
+    <section class="claim-alt-path" aria-label="Not listed yet">
+      <p>
+        Not listed yet?
+        <a href="signup.html">Sign up for a new listing →</a>
+      </p>
+    </section>
+
+    <details class="claim-remove-details" aria-label="Remove your listing">
       <summary>
-        <span>Advanced: submit a full profile in one go</span>
-        <span class="legacy-full-form-caption">
-          Pre-fill every field now instead of completing after approval. Most therapists should use
-          the short form above.
-        </span>
+        <span>Want to remove your listing instead?</span>
       </summary>
-
-      <div class="wrap">
-        <div class="form-card" id="formCard">
-          <form id="applyForm" novalidate>
-            <input type="hidden" name="submission_intent" value="full_profile" />
-            <div class="claim-note">
-              <h3>Claim first. Pay for growth, not accuracy.</h3>
-              <p>
-                We do not charge therapists to correct factual details. Paid plans are for enhanced
-                presentation, stronger trust and visibility features, and better conversion from
-                profile views to qualified inquiries.
-              </p>
-            </div>
-            <div class="revision-notice" id="revisionNotice">
-              <h3 id="revisionTitle">Revision requested</h3>
-              <p id="revisionMessage">
-                This profile was sent back for revisions. Tighten the requested details and resubmit
-                this version for review.
-              </p>
-              <div class="revision-summary" id="revisionSummary">
-                <div class="revision-summary-grid">
-                  <div class="revision-summary-card">
-                    <h4>Reviewer likely wants tightened</h4>
-                    <div class="revision-summary-list" id="revisionRequestedFields"></div>
-                  </div>
-                  <div class="revision-summary-card">
-                    <h4>What you have improved</h4>
-                    <div class="revision-summary-list" id="revisionImprovedFields"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="funnel-stage">
-              <div class="funnel-stage-kicker">Step 1</div>
-              <h3>Claim your profile basics</h3>
-              <p>
-                Start with the essentials needed to verify ownership: identity, licensure, core
-                contact details, and a few basics that make the profile trustworthy.
-              </p>
-              <p class="field-hint" style="margin: 0.5rem 0 0">
-                For a free claim, you only need the fields in this first section. Open Step 2 when
-                you want to complete the fuller profile for review.
-              </p>
-            </div>
-            <div class="form-section" id="matchReadinessSection">
-              <h2>🧠 Match Readiness</h2>
-              <div class="readiness-header">
-                <div>
-                  <div class="readiness-score-row">
-                    <div class="readiness-score" id="readinessScore">0/100</div>
-                    <div class="readiness-delta" id="readinessDelta" aria-live="polite"></div>
-                  </div>
-                  <div class="readiness-label tone-needs-work" id="readinessLabel">Needs work</div>
-                </div>
-                <div class="readiness-copy">
-                  We use this same score in admin review and matching to judge whether your profile
-                  gives patients enough trust, fit, and next-step clarity to shortlist you with
-                  confidence.
-                </div>
-              </div>
-              <div class="readiness-meter">
-                <div class="readiness-meter-track">
-                  <div class="readiness-meter-fill" id="readinessMeterFill"></div>
-                </div>
-                <div class="readiness-meter-markers">
-                  <span>0-39</span>
-                  <span>40+</span>
-                  <span>65+</span>
-                  <span>85+</span>
-                </div>
-              </div>
-              <div class="readiness-nudge">
-                <div class="readiness-nudge-kicker" id="readinessNudgeKicker">Best next unlock</div>
-                <div class="readiness-nudge-copy" id="readinessNudgeCopy">
-                  Add a few core details and this score will start moving quickly.
-                </div>
-                <div class="readiness-nudge-actions">
-                  <button
-                    type="button"
-                    class="readiness-nudge-button"
-                    id="readinessNudgeButton"
-                    style="display: none"
-                  >
-                    Open next fix
-                  </button>
-                  <div class="readiness-nudge-meta">
-                    <div class="readiness-milestone" id="readinessMilestone">
-                      Complete a few essentials to move this profile toward shortlist-ready.
-                    </div>
-                    <div
-                      class="readiness-celebration"
-                      id="readinessCelebration"
-                      aria-live="polite"
-                    ></div>
-                    <div class="readiness-distance" id="readinessDistance"></div>
-                    <div class="readiness-next-tier" id="readinessNextTier"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="readiness-tier-rail" id="readinessTierRail">
-                <div class="readiness-tier" data-tier-key="needs-work">
-                  <div class="readiness-tier-range">0-39</div>
-                  <div class="readiness-tier-label">Needs work</div>
-                  <div class="readiness-tier-note">Core trust details are still thin.</div>
-                </div>
-                <div class="readiness-tier" data-tier-key="good-start">
-                  <div class="readiness-tier-range">40-64</div>
-                  <div class="readiness-tier-label">Good start</div>
-                  <div class="readiness-tier-note">The profile is starting to feel real.</div>
-                </div>
-                <div class="readiness-tier" data-tier-key="getting-stronger">
-                  <div class="readiness-tier-range">65-84</div>
-                  <div class="readiness-tier-label">Getting stronger</div>
-                  <div class="readiness-tier-note">Shortlist confidence is building.</div>
-                </div>
-                <div class="readiness-tier" data-tier-key="match-ready">
-                  <div class="readiness-tier-range">85+</div>
-                  <div class="readiness-tier-label">Match-ready</div>
-                  <div class="readiness-tier-note">Strong enough to feel shortlist-ready.</div>
-                </div>
-              </div>
-              <div class="readiness-benefit" id="readinessBenefit">
-                <strong>What this tier unlocks:</strong> Patients can start recognizing whether this
-                profile feels credible enough to keep considering.
-              </div>
-              <div class="readiness-snapshot" id="readinessSnapshot"></div>
-              <div class="readiness-dimensions-heading">Where this score is still won or lost</div>
-              <div class="readiness-dimensions" id="readinessDimensions" aria-live="polite"></div>
-              <div class="readiness-group">
-                <h4>Already Strong</h4>
-                <div class="readiness-list" id="readinessStrengths"></div>
-              </div>
-              <div class="readiness-group">
-                <h4>Biggest Score Movers Left</h4>
-                <div class="readiness-list" id="readinessMissing"></div>
-              </div>
-            </div>
-            <div class="form-section">
-              <h2>👤 Your Information</h2>
-              <div class="form-grid">
-                <div class="field">
-                  <label>Full Name *</label
-                  ><input type="text" name="name" placeholder="Dr. Jane Smith" required />
-                </div>
-                <div class="field">
-                  <label>Credentials / License *</label
-                  ><input
-                    type="text"
-                    name="credentials"
-                    placeholder="MD, PhD, LCSW, LPC..."
-                    required
-                  />
-                </div>
-                <div class="field">
-                  <label>Professional Title</label
-                  ><input type="text" name="title" placeholder="Psychiatrist, Therapist..." />
-                </div>
-                <div class="field">
-                  <label>Years of Experience</label
-                  ><input
-                    type="number"
-                    name="years_experience"
-                    placeholder="e.g. 8"
-                    min="0"
-                    max="60"
-                  />
-                </div>
-                <div class="field">
-                  <label>State of Licensure *</label
-                  ><input type="text" name="license_state" placeholder="e.g. CA" maxlength="2" />
-                </div>
-                <div class="field">
-                  <label>License Type *</label>
-                  <select name="license_type">
-                    <option value="">Select license type</option>
-                    <option value="LMFT">LMFT</option>
-                    <option value="LCSW">LCSW</option>
-                    <option value="LPCC">LPCC</option>
-                    <option value="Psychologist">Psychologist</option>
-                    <option value="Psychiatrist (MD)">Psychiatrist (MD)</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>License Number *</label
-                  ><input
-                    type="text"
-                    name="license_number"
-                    placeholder="Shown as a trust signal during editorial review"
-                  />
-                </div>
-                <div class="field">
-                  <label>Years Treating Bipolar Disorder</label
-                  ><input
-                    type="number"
-                    name="bipolar_years_experience"
-                    placeholder="e.g. 5"
-                    min="0"
-                    max="60"
-                  />
-                </div>
-                <div class="field">
-                  <label>Email Address *</label
-                  ><input type="email" name="email" placeholder="you@example.com" required />
-                </div>
-                <div class="field">
-                  <label>Phone Number</label
-                  ><input type="tel" name="phone" placeholder="(555) 123-4567" />
-                </div>
-                <div class="field full">
-                  <label>Languages</label
-                  ><input type="text" name="languages" placeholder="English, Spanish, Mandarin" />
-                </div>
-                <div class="field full">
-                  <label>Headshot</label>
-                  <input
-                    type="file"
-                    name="photo_file"
-                    id="photoFileInput"
-                    accept="image/png,image/jpeg,image/webp"
-                  />
-                  <p class="field-hint">
-                    Preferred: upload the actual therapist or practice-approved headshot you want
-                    used on the live profile. JPG, PNG, or WebP up to 4 MB.
-                  </p>
-                  <div class="form-grid" style="margin-top: 0.75rem">
-                    <div class="field">
-                      <label>Photo source</label>
-                      <select name="photo_source_type">
-                        <option value="">Select source</option>
-                        <option value="therapist_uploaded">Therapist uploaded</option>
-                        <option value="practice_uploaded">Practice uploaded</option>
-                        <option value="public_source">Public-source fallback</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>Photo use permission</label>
-                      <label class="check-label">
-                        <input
-                          type="checkbox"
-                          name="photo_usage_permission_confirmed"
-                          value="true"
-                        />
-                        I confirm this photo can be used on the live profile
-                      </label>
-                    </div>
-                  </div>
-                  <div class="field-example" id="photoUploadStatus">
-                    Uploaded headshots are preferred over public-source images because they are
-                    clearer, easier to trust, and easier to keep current.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <details class="funnel-disclosure" id="fullProfileDetails">
-              <summary>
-                <div class="funnel-disclosure-copy">
-                  <strong>Step 2: Complete your full profile</strong>
-                  <span>
-                    Add the richer trust, fit, pricing, and care details that make your listing more
-                    useful in matching and more compelling to the right clients.
-                  </span>
-                </div>
-                <span class="funnel-disclosure-toggle" id="fullProfileToggleLabel">
-                  Open profile details
-                </span>
-              </summary>
-              <div class="funnel-disclosure-body">
-                <div class="form-section">
-                  <h2>🏥 Practice Details</h2>
-                  <div class="form-grid">
-                    <div class="field full">
-                      <label>Practice Name</label
-                      ><input
-                        type="text"
-                        name="practice_name"
-                        placeholder="e.g. Serenity Psychiatric Associates"
-                      />
-                    </div>
-                    <div class="field">
-                      <label>City *</label
-                      ><input type="text" name="city" placeholder="e.g. San Francisco" required />
-                    </div>
-                    <div class="field">
-                      <label>State *</label>
-                      <select name="state" required>
-                        <option value="">Select State</option>
-                        <option>AL</option>
-                        <option>AK</option>
-                        <option>AZ</option>
-                        <option>AR</option>
-                        <option>CA</option>
-                        <option>CO</option>
-                        <option>CT</option>
-                        <option>DE</option>
-                        <option>FL</option>
-                        <option>GA</option>
-                        <option>HI</option>
-                        <option>ID</option>
-                        <option>IL</option>
-                        <option>IN</option>
-                        <option>IA</option>
-                        <option>KS</option>
-                        <option>KY</option>
-                        <option>LA</option>
-                        <option>ME</option>
-                        <option>MD</option>
-                        <option>MA</option>
-                        <option>MI</option>
-                        <option>MN</option>
-                        <option>MS</option>
-                        <option>MO</option>
-                        <option>MT</option>
-                        <option>NE</option>
-                        <option>NV</option>
-                        <option>NH</option>
-                        <option>NJ</option>
-                        <option>NM</option>
-                        <option>NY</option>
-                        <option>NC</option>
-                        <option>ND</option>
-                        <option>OH</option>
-                        <option>OK</option>
-                        <option>OR</option>
-                        <option>PA</option>
-                        <option>RI</option>
-                        <option>SC</option>
-                        <option>SD</option>
-                        <option>TN</option>
-                        <option>TX</option>
-                        <option>UT</option>
-                        <option>VT</option>
-                        <option>VA</option>
-                        <option>WA</option>
-                        <option>WV</option>
-                        <option>WI</option>
-                        <option>WY</option>
-                        <option>DC</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>ZIP Code</label
-                      ><input type="text" name="zip" placeholder="e.g. 94102" />
-                    </div>
-                    <div class="field">
-                      <label>Website URL</label
-                      ><input type="url" name="website" placeholder="https://yourpractice.com" />
-                    </div>
-                    <div class="field">
-                      <label>Preferred Contact Path</label>
-                      <select name="preferred_contact_method">
-                        <option value="">Choose preferred route</option>
-                        <option value="email">Email me</option>
-                        <option value="phone">Call my practice</option>
-                        <option value="website">Use my website</option>
-                        <option value="booking">Use my booking link</option>
-                      </select>
-                    </div>
-                    <div class="field full">
-                      <label>Primary Contact Button Label</label
-                      ><input
-                        type="text"
-                        name="preferred_contact_label"
-                        maxlength="40"
-                        placeholder="Examples: Book a consultation, Schedule an intro call, Start with a fit consult"
-                      />
-                      <p class="field-hint">
-                        Keep this concrete and calm. Strong labels usually describe the first step,
-                        not a marketing slogan.
-                      </p>
-                    </div>
-                    <div class="field full">
-                      <label>Contact Guidance</label
-                      ><textarea
-                        name="contact_guidance"
-                        rows="3"
-                        maxlength="180"
-                        placeholder="Examples: New clients usually hear back within 1 business day. Please mention your state, whether you are seeking therapy or psychiatry, and any insurance questions."
-                      ></textarea>
-                      <p class="field-hint">
-                        This is where people decide whether reaching out feels manageable. Clarify
-                        response time, what to include, and anything that helps avoid
-                        back-and-forth.
-                      </p>
-                      <div class="field-example">
-                        <strong>Strong example:</strong> New clients usually hear back within one
-                        business day. Please include your state, whether you are looking for therapy
-                        or medication support, and any insurance questions so we can point you to
-                        the right next step.
-                      </div>
-                      <p class="field-coach" id="contactGuidanceCoach"></p>
-                    </div>
-                    <div class="field full">
-                      <label>What Happens After Someone Reaches Out?</label
-                      ><textarea
-                        name="first_step_expectation"
-                        rows="3"
-                        maxlength="220"
-                        placeholder="Examples: I usually start with a 15-minute consult to understand fit, urgency, and whether medication support is needed before booking a full intake."
-                      ></textarea>
-                      <p class="field-hint">
-                        Reduce uncertainty. A strong answer helps someone picture the first contact,
-                        timeline, and what you are evaluating for fit.
-                      </p>
-                      <div class="field-example">
-                        <strong>Strong example:</strong> I usually begin with a 15-minute
-                        consultation to understand your goals, urgency, and whether therapy,
-                        psychiatry, or coordinated care makes the most sense before we schedule a
-                        full intake.
-                      </div>
-                      <p class="field-coach" id="firstStepCoach"></p>
-                    </div>
-                    <div class="field full">
-                      <label>Booking URL</label
-                      ><input
-                        type="url"
-                        name="booking_url"
-                        placeholder="https://yourpractice.com/book"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>📝 About Your Practice</h2>
-                  <div class="form-grid">
-                    <div class="field full">
-                      <label>Professional Bio *</label
-                      ><textarea
-                        name="bio"
-                        placeholder="Tell potential patients about your background, bipolar-related experience, and the kind of care you provide. This should help someone understand why they may trust you. (Minimum 100 characters)"
-                        required
-                        minlength="50"
-                      ></textarea>
-                      <p class="field-hint">
-                        Focus on credibility and relevance: your training, who you help, and why
-                        bipolar clients or families may trust your care.
-                      </p>
-                    </div>
-                    <div class="field full">
-                      <label>How You Help Bipolar Clients *</label
-                      ><textarea
-                        name="care_approach"
-                        placeholder="Describe your approach in a concise, concrete way. Focus on the practical and clinical details a patient would compare before reaching out."
-                        required
-                        minlength="40"
-                      ></textarea>
-                      <p class="field-hint">
-                        The strongest answers combine who you help, how you work, and what makes
-                        your bipolar-specific care distinct in practice.
-                      </p>
-                      <div class="field-example">
-                        <strong>Strong example:</strong> I work with adults living with Bipolar I
-                        and II using CBT, psychoeducation, and relapse-prevention planning. I help
-                        clients track sleep and mood patterns, strengthen routines, coordinate with
-                        psychiatry when needed, and build early-warning plans for mood shifts.
-                      </div>
-                      <p class="field-coach" id="careApproachCoach"></p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>🎯 Specialties</h2>
-                  <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-                    Select all that apply to your practice
-                  </p>
-                  <div class="checkbox-grid">
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Bipolar I" /> Bipolar
-                      I</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Bipolar II" /> Bipolar
-                      II</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Bipolar NOS" /> Bipolar
-                      NOS</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Cyclothymia" />
-                      Cyclothymia</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Rapid Cycling" /> Rapid
-                      Cycling</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Mixed Episodes" /> Mixed
-                      Episodes</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Mood Disorders" /> Mood
-                      Disorders</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Depression" />
-                      Depression</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Anxiety" /> Anxiety</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Psychosis" />
-                      Psychosis</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Dual Diagnosis" /> Dual
-                      Diagnosis</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Adolescent Bipolar" />
-                      Adolescent Bipolar</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Family Therapy" /> Family
-                      Therapy</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="specialties" value="Medication Management" />
-                      Medication Management</label
-                    >
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>🧭 Clinical Fit</h2>
-                  <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-                    These details make the profile far more useful in matching, shortlist decisions,
-                    and first-contact planning.
-                  </p>
-                  <div class="form-grid">
-                    <div class="field full">
-                      <label>Treatment Modalities *</label>
-                      <div class="checkbox-grid">
-                        <label class="check-label"
-                          ><input type="checkbox" name="treatment_modalities" value="CBT" />
-                          CBT</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="treatment_modalities" value="DBT" />
-                          DBT</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="treatment_modalities" value="IPSRT" />
-                          IPSRT</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="treatment_modalities" value="ACT" />
-                          ACT</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="treatment_modalities"
-                            value="Mindfulness-based therapy"
-                          />
-                          Mindfulness-based</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="treatment_modalities"
-                            value="Family therapy"
-                          />
-                          Family therapy</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="treatment_modalities"
-                            value="Medication management"
-                          />
-                          Medication management</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="treatment_modalities"
-                            value="Psychoeducation"
-                          />
-                          Psychoeducation</label
-                        >
-                      </div>
-                    </div>
-                    <div class="field full">
-                      <label>Populations Served</label>
-                      <div class="checkbox-grid">
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Adults" />
-                          Adults</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Young adults" />
-                          Young adults</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Adolescents" />
-                          Adolescents</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Couples" />
-                          Couples</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Families" />
-                          Families</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="LGBTQ+" />
-                          LGBTQ+</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="client_populations"
-                            value="College students"
-                          />
-                          College students</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="client_populations" value="Professionals" />
-                          Professionals</label
-                        >
-                      </div>
-                    </div>
-                    <div class="field">
-                      <label>Typical Wait Time</label>
-                      <select name="estimated_wait_time">
-                        <option value="">Select wait time</option>
-                        <option>Immediate availability</option>
-                        <option>Within 1 week</option>
-                        <option>Within 2 weeks</option>
-                        <option>2-4 weeks</option>
-                        <option>1-2 months</option>
-                        <option>Waitlist only</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>Telehealth States</label
-                      ><input type="text" name="telehealth_states" placeholder="CA, NY, TX" />
-                    </div>
-                    <div class="field full">
-                      <label class="check-label" style="border: none; padding: 0"
-                        ><input type="checkbox" name="medication_management" value="true" /> I
-                        provide medication management or prescribing support</label
-                      >
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>🛡️ Trust & Source Clarity</h2>
-                  <div class="form-grid">
-                    <div class="field full">
-                      <label>Which of these details are you directly confirming?</label>
-                      <p class="field-hint">
-                        Some details are hard to verify from public sources alone. This lets us
-                        distinguish specialist-confirmed operational details from editorially
-                        reviewed facts.
-                      </p>
-                      <div class="checkbox-grid">
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="estimated_wait_time"
-                            checked
-                          />
-                          Estimated wait time</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="bipolar_years_experience"
-                            checked
-                          />
-                          Years treating bipolar disorder</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="insurance_accepted"
-                            checked
-                          />
-                          Insurance details</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="telehealth_states"
-                            checked
-                          />
-                          Telehealth states</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="contact_guidance"
-                            checked
-                          />
-                          Contact guidance</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="first_step_expectation"
-                            checked
-                          />
-                          What happens after outreach</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="therapist_reported_fields"
-                            value="session_pricing"
-                            checked
-                          />
-                          Session pricing</label
-                        >
-                      </div>
-                    </div>
-                    <div class="field">
-                      <label for="therapist_reported_confirmed_at">Last confirmed by you</label>
-                      <input
-                        type="date"
-                        id="therapist_reported_confirmed_at"
-                        name="therapist_reported_confirmed_at"
-                      />
-                    </div>
-                    <div class="field">
-                      <label>Why this matters</label>
-                      <div class="field-example">
-                        <strong>Trust model:</strong> we treat time-sensitive operational details
-                        differently from facts we can verify independently. That makes the product
-                        more honest and keeps your listing more credible.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>💳 Insurance & Fees</h2>
-                  <div class="form-grid">
-                    <div class="field full">
-                      <label>Insurance Accepted (select all that apply)</label>
-                      <p class="field-hint">
-                        If you are out-of-network or self-pay, clear pricing and process details
-                        matter even more for matching and conversion.
-                      </p>
-                      <div class="checkbox-grid">
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Aetna" />
-                          Aetna</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="insurance_accepted"
-                            value="Blue Cross Blue Shield"
-                          />
-                          Blue Cross Blue Shield</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Cigna" />
-                          Cigna</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="insurance_accepted"
-                            value="United Healthcare"
-                          />
-                          United Healthcare</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Humana" />
-                          Humana</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Medicaid" />
-                          Medicaid</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Medicare" />
-                          Medicare</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Tricare" />
-                          Tricare</label
-                        >
-                        <label class="check-label"
-                          ><input
-                            type="checkbox"
-                            name="insurance_accepted"
-                            value="Out-of-Network"
-                          />
-                          Out-of-Network</label
-                        >
-                        <label class="check-label"
-                          ><input type="checkbox" name="insurance_accepted" value="Self-Pay" />
-                          Self-Pay Only</label
-                        >
-                      </div>
-                    </div>
-                    <div class="field">
-                      <label>Session Fee (min $)</label
-                      ><input type="number" name="session_fee_min" placeholder="e.g. 150" min="0" />
-                    </div>
-                    <div class="field">
-                      <label>Session Fee (max $)</label
-                      ><input type="number" name="session_fee_max" placeholder="e.g. 250" min="0" />
-                    </div>
-                    <div class="field full">
-                      <div class="field-example">
-                        <strong>Pricing guidance:</strong> A clear range helps users self-screen
-                        quickly. If your rate varies by intake, therapy type, or med-management
-                        follow-up, use the typical range and clarify the nuance in your contact
-                        guidance.
-                      </div>
-                      <p class="field-coach" id="pricingCoach"></p>
-                    </div>
-                    <div class="field full">
-                      <label class="check-label" style="border: none; padding: 0"
-                        ><input type="checkbox" name="sliding_scale" value="true" /> I offer a
-                        sliding scale fee</label
-                      >
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2>📍 Session Format</h2>
-                  <div class="checkbox-grid">
-                    <label class="check-label"
-                      ><input type="checkbox" name="accepts_telehealth" value="true" /> Telehealth /
-                      Virtual Sessions</label
-                    >
-                    <label class="check-label"
-                      ><input type="checkbox" name="accepts_in_person" value="true" checked />
-                      In-Person Sessions</label
-                    >
-                  </div>
-                </div>
-              </div>
-            </details>
-
-            <div
-              id="formError"
-              style="
-                display: none;
-                background: #fff5f5;
-                border: 1px solid #feb2b2;
-                border-radius: 8px;
-                padding: 0.9rem 1.25rem;
-                margin: 1rem 1.75rem;
-                color: var(--red);
-                font-size: 0.875rem;
-              "
-            ></div>
-
-            <div class="form-submit">
-              <div class="submit-note">
-                Save a free claim now, or submit the fuller profile when you are ready. Paid plans
-                come later, after review, when you want visibility and growth features.
-              </div>
-              <div class="submit-actions">
-                <button
-                  type="submit"
-                  class="btn-submit btn-submit-secondary"
-                  id="claimBtn"
-                  data-submit-intent="claim"
-                >
-                  Save Free Claim
-                </button>
-                <button type="submit" class="btn-submit" id="submitBtn" data-submit-intent="full">
-                  Submit Full Profile
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <div class="sidebar">
-          <div class="sidebar-card">
-            <h3>Choose Your Starting Point</h3>
-            <div class="plan-grid">
-              <div class="plan-card">
-                <div class="plan-kicker">Free</div>
-                <h4>Claim your profile</h4>
-                <div class="plan-price">$0 <span>to take ownership</span></div>
-                <div class="plan-copy">
-                  Best for correcting details, confirming information, and making your profile
-                  accurate.
-                </div>
-                <div class="plan-list">
-                  <div class="feature-item">
-                    <span class="check">✓</span> Verify identity and ownership
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Correct core profile details
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Add headshot, bio, and specialties
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Keep your listing current
-                  </div>
-                </div>
-              </div>
-              <div class="plan-card featured">
-                <div class="plan-kicker">Paid · 14-day free trial</div>
-                <h4>Insights + enhanced profile</h4>
-                <div class="plan-price">$19<span>/month</span></div>
-                <div class="plan-copy">
-                  For therapists who treat their listing as a growth channel. See who viewed, what
-                  filters brought them, and where they dropped off. Use a longer bio to convert
-                  those viewers.
-                </div>
-                <div class="plan-list">
-                  <div class="feature-item">
-                    <span class="check">✓</span> Profile analytics dashboard
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Filter breakdowns and drop-off reasons
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Longer bio to explain how you work with bipolar
-                    clients
-                  </div>
-                  <div class="feature-item">
-                    <span class="check">✓</span> Monthly insights email with actionable suggestions
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="trust-card">
-            <h3>🔒 Why Strong Profiles Perform Better Here</h3>
-            <div class="trust-item">
-              🎯
-              <span>Focused audience: people specifically looking for bipolar-specialist care</span>
-            </div>
-            <div class="trust-item">
-              🧭 <span>Guided matching and shortlist tools that help patients actually decide</span>
-            </div>
-            <div class="trust-item">
-              ✅
-              <span>Trust signals that reward clearer licensure, fit, and next-step details</span>
-            </div>
-            <div class="trust-item">
-              📞
-              <span
-                >Direct outreach to your preferred route, not a generic booking marketplace</span
-              >
-            </div>
-          </div>
-
-          <div class="sidebar-card" style="background: var(--teal-faint)">
-            <h3 style="color: var(--teal-dark)">Questions?</h3>
-            <p style="font-size: 0.83rem; color: var(--slate); line-height: 1.6">
-              Need help or have questions about your listing? Direct email support is not live yet,
-              but you can still submit your application and we can use it as the starting point for
-              a claim or listing update flow.
-            </p>
-          </div>
-        </div>
+      <div class="claim-remove-body">
+        <p class="claim-remove-intro">
+          We added California therapists to this directory based on verified license and public
+          bipolar-specialty indicators. If you'd rather not be listed, we send a one-time
+          confirmation link to the email on your listing and your page goes dark the moment you
+          click it.
+        </p>
+        <form id="listingRemovalForm" class="listing-removal-form" novalidate>
+          <label>
+            <span>Full name</span>
+            <input
+              type="text"
+              name="full_name"
+              autocomplete="name"
+              placeholder="Jamie Rivera"
+              required
+            />
+          </label>
+          <label>
+            <span>CA license number</span>
+            <input
+              type="text"
+              name="license_number"
+              autocomplete="off"
+              placeholder="e.g. 109462"
+              required
+            />
+          </label>
+          <label>
+            <span>Email on your listing</span>
+            <input type="email" name="email" autocomplete="email" required />
+            <span class="listing-removal-field-hint">
+              We send the confirmation link to the email we have on file, not to a different
+              address. This prevents someone else from removing you.
+            </span>
+          </label>
+          <button type="submit" class="listing-removal-submit">
+            Send removal confirmation link
+          </button>
+          <div
+            class="listing-removal-status"
+            id="listingRemovalStatus"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+        </form>
       </div>
     </details>
 
     <footer>
       <p>
-        <strong style="color: white">BipolarTherapyHub</strong> — Listing your practice takes 2
-        minutes
+        <strong style="color: white">BipolarTherapyHub</strong> — Claim your listing in under a
+        minute
       </p>
       <p style="margin-top: 0.4rem">
         <a href="directory.html">Browse the directory</a> · <a href="index.html">Home</a>
       </p>
     </footer>
 
-    <script type="module" src="assets/signup-new-listing.js"></script>
-    <script type="module" src="assets/signup.js"></script>
+    <script type="module" src="assets/signup-quick-claim.js"></script>
+    <script type="module" src="assets/signup-listing-removal.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

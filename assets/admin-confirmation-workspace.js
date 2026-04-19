@@ -282,7 +282,7 @@ export function createConfirmationWorkspace(options) {
 
   function buildConfirmationLink(slug) {
     return new URL(
-      "signup.html?confirm=" + encodeURIComponent(slug),
+      "claim.html?confirm=" + encodeURIComponent(slug),
       window.location.href,
     ).toString();
   }

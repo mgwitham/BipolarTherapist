@@ -228,7 +228,7 @@ test("listing-removal request: already-removed listing silently succeeds without
   assert.equal(emailsSent.length, 0);
 });
 
-test("listing-removal confirm: valid token flips listingActive to false and redirects to ?removed=ok", async () => {
+test("listing-removal confirm: valid token flips listingActive to false and redirects to /claim?removed=ok", async () => {
   const { client, state } = createMemoryClient({
     "therapist-jamie": seedTherapist(),
   });
@@ -249,7 +249,7 @@ test("listing-removal confirm: valid token flips listingActive to false and redi
 
   // Redirect went out
   assert.equal(ctxWrap.httpResponse.statusCode, 302);
-  assert.equal(ctxWrap.httpResponse.headers.Location, "http://localhost:8787/signup?removed=ok");
+  assert.equal(ctxWrap.httpResponse.headers.Location, "http://localhost:8787/claim?removed=ok");
 
   // Therapist doc was flipped
   const updated = state.documents.get("therapist-jamie");
@@ -271,7 +271,7 @@ test("listing-removal confirm: invalid token redirects to ?removed=expired", asy
   assert.equal(ctxWrap.httpResponse.statusCode, 302);
   assert.equal(
     ctxWrap.httpResponse.headers.Location,
-    "http://localhost:8787/signup?removed=expired",
+    "http://localhost:8787/claim?removed=expired",
   );
 });
 
@@ -287,7 +287,7 @@ test("listing-removal confirm: missing token redirects to ?removed=invalid", asy
   assert.equal(ctxWrap.httpResponse.statusCode, 302);
   assert.equal(
     ctxWrap.httpResponse.headers.Location,
-    "http://localhost:8787/signup?removed=invalid",
+    "http://localhost:8787/claim?removed=invalid",
   );
 });
 
@@ -311,7 +311,7 @@ test("listing-removal confirm: idempotent — second click on same token still s
   });
   await handleAuthAndPortalRoutes(ctxWrap.context);
   assert.equal(ctxWrap.httpResponse.statusCode, 302);
-  assert.equal(ctxWrap.httpResponse.headers.Location, "http://localhost:8787/signup?removed=ok");
+  assert.equal(ctxWrap.httpResponse.headers.Location, "http://localhost:8787/claim?removed=ok");
   // Listing stays removed, original stamp preserved (we don't
   // overwrite the first removal timestamp on idempotent retry).
   const updated = state.documents.get("therapist-jamie");

@@ -378,7 +378,7 @@ function getPortalSignupHref(therapist, application, focusField) {
   }
 
   if (targetSlug) {
-    return "signup.html?confirm=" + encodeURIComponent(targetSlug) + focusSuffix;
+    return "claim.html?confirm=" + encodeURIComponent(targetSlug) + focusSuffix;
   }
 
   return "signup.html" + (focusField ? "?focus=" + encodeURIComponent(focusField) : "");
@@ -1059,7 +1059,7 @@ function renderPortal(therapist, options) {
         ? "Currently marked not accepting"
         : "Currently marked accepting or open to inquiry",
     ) +
-    '</div></div><div class="portal-actions"><a class="btn-secondary" href="signup.html?confirm=' +
+    '</div></div><div class="portal-actions"><a class="btn-secondary" href="claim.html?confirm=' +
     encodeURIComponent(therapist.slug) +
     '">Confirm or update profile</a><a class="btn-secondary" href="therapist.html?slug=' +
     encodeURIComponent(therapist.slug) +

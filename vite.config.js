@@ -21,6 +21,7 @@ export default defineConfig({
         directory: resolve(rootDir, "directory.html"),
         therapist: resolve(rootDir, "therapist.html"),
         signup: resolve(rootDir, "signup.html"),
+        claim: resolve(rootDir, "claim.html"),
         admin: resolve(rootDir, "admin.html"),
         portal: resolve(rootDir, "portal.html"),
         pricing: resolve(rootDir, "pricing.html"),
