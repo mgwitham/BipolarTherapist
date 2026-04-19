@@ -7440,7 +7440,27 @@ async function loadData() {
       }),
     );
     await loadReviewActivityFeed({ reset: true, limit: 12 });
-  } catch (_error) {
+  } catch (error) {
+    const message = error && error.message ? String(error.message) : "";
+    const isStaleChunk =
+      /dynamically imported module|Failed to fetch dynamically|Importing a module script failed|ChunkLoadError/i.test(
+        message,
+      );
+    if (isStaleChunk) {
+      if (typeof window !== "undefined" && window.confirm) {
+        const reload = window.confirm(
+          "Admin assets are out of date (a cached chunk is pointing at a file that no longer exists). Reload now to pick up the current build?",
+        );
+        if (reload) {
+          window.location.reload();
+          return;
+        }
+      }
+      console.error(
+        "Admin snapshot failed to load because of a stale cached chunk. Hard-reload (Cmd+Shift+R) to fix.",
+        error,
+      );
+    }
     if (reviewApiAvailable || getAdminSessionToken()) {
       applyAdminRuntimeState(
         createRemoteAuthRequiredState({

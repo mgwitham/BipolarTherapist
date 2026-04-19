@@ -380,8 +380,12 @@ async function fetchFromSanity(query, params) {
   return client.fetch(query, params || {});
 }
 
-export async function fetchPublicTherapists() {
+export async function fetchPublicTherapists(options) {
+  const strict = Boolean(options && options.strict);
   if (!cmsEnabled) {
+    if (strict) {
+      throw new Error("Sanity CMS is not enabled in this build.");
+    }
     setCmsState("seed", null);
     return getTherapists();
   }
@@ -395,6 +399,9 @@ export async function fetchPublicTherapists() {
   } catch (error) {
     console.error("Failed to load therapists from Sanity.", error);
     setCmsState("error", error);
+    if (strict) {
+      throw error;
+    }
     return getTherapists();
   }
 }

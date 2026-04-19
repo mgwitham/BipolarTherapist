@@ -65,7 +65,7 @@ export async function loadRemoteAdminSnapshot(dependencies) {
       fetchReviewEvents({ limit: 50 }),
       fetchTherapistReviewers(),
       fetchAdminSession(),
-      fetchPublicTherapists(),
+      fetchPublicTherapists({ strict: true }),
     ]);
 
   return {
