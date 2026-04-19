@@ -288,6 +288,27 @@ export async function fetchAdminSession() {
   return payload;
 }
 
+export async function saveSignupDraft(payload) {
+  return request("/signup/draft", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function verifySignupLicense(payload) {
+  return request("/signup/verify-license", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function completeSignup(payload) {
+  return request("/signup/complete", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function submitTherapistApplication(application) {
   return sanitizeApplication(
     await request("/applications", {

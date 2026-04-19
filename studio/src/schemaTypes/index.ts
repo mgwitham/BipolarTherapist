@@ -10,6 +10,7 @@ import { therapistCandidateType } from "./therapistCandidate";
 import { therapistEngagementSummaryType } from "./therapistEngagementSummary";
 import { therapistPublishEventType } from "./therapistPublishEvent";
 import { therapistPortalRequestType } from "./therapistPortalRequest";
+import { therapistSignupDraftType } from "./therapistSignupDraft";
 import { therapistSubscriptionType } from "./therapistSubscription";
 import { therapistType } from "./therapist";
 import { zipOutreachTaskType } from "./zipOutreachTask";
@@ -27,6 +28,7 @@ export const schemaTypes = [
   therapistApplicationType,
   therapistPublishEventType,
   therapistPortalRequestType,
+  therapistSignupDraftType,
   therapistEngagementSummaryType,
   therapistSubscriptionType,
   zipOutreachTaskType,

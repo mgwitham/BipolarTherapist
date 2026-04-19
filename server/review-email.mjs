@@ -76,6 +76,28 @@ export async function notifyApplicantOfDecision(config, application, decision) {
   });
 }
 
+export async function sendSignupAcknowledgment(config, applicant) {
+  if (!hasEmailConfig(config) || !applicant || !applicant.email) {
+    return { skipped: true };
+  }
+
+  const greeting = applicant.name ? `Hi ${applicant.name},` : "Hi,";
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [applicant.email],
+    reply_to: config.notificationTo,
+    subject: "We received your BipolarTherapyHub signup",
+    html: `<h2>Thanks for signing up</h2>
+<p>${greeting}</p>
+<p>We received your signup and verified your California license. A reviewer will look at your
+submission within 1 business day. If everything checks out, we will email you a link to finish
+your profile.</p>
+<p>If you have questions, reply to this email.</p>`,
+  });
+  return { ok: true };
+}
+
 export async function sendPortalClaimLink(
   config,
   therapist,

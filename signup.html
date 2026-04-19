@@ -1,3772 +1,429 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-Q22R5G7VB5");
-    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>List Your Practice — BipolarTherapyHub</title>
+    <title>Join BipolarTherapyHub — California therapist signup</title>
     <meta
       name="description"
-      content="Create a high-trust bipolar-specialist profile on BipolarTherapyHub and appear in guided matching, shortlist, and outreach flows."
+      content="Join California's directory built for bipolar care. Takes 60 seconds. Licensed LMFT, LCSW, LPCC, LEP, or PSY."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="assets/styles.css" />
     <style>
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      :root {
-        --teal: #1a7a8f;
-        --teal-light: #2a9cb3;
-        --teal-dark: #155f70;
-        --teal-faint: #e8f5f8;
-        --navy: #1d3a4a;
-        --slate: #4a6572;
-        --muted: #6b8290;
-        --border: #d4e4e9;
-        --bg: #f7fbfc;
-        --white: #ffffff;
-        --green: #3aaa7a;
-        --red: #e53e3e;
-      }
       body {
-        font-family: "Inter", sans-serif;
-        background: var(--bg);
-        color: var(--navy);
-        line-height: 1.6;
+        background: #f7fbfc;
+        min-height: 100vh;
       }
-      nav {
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
-        padding: 0 1.5rem;
-        height: 64px;
+      .wizard-shell {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 4rem;
+      }
+      .wizard-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        margin-bottom: 1.5rem;
+        font-size: 0.86rem;
+        color: var(--muted);
       }
-      .nav-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-      }
-      .nav-icon {
-        width: 34px;
-        height: 34px;
-        background: var(--teal);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-      }
-      .nav-name {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #000;
-      }
-      .nav-name span {
-        color: var(--teal);
-      }
-      .nav-links {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        list-style: none;
-      }
-      .nav-links a {
-        text-decoration: none;
-        color: var(--slate);
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition: color 0.2s;
-      }
-      .nav-links a:hover {
-        color: var(--teal);
-      }
-      .nav-shortlist {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-      }
-      .nav-shortlist-count {
-        min-width: 1.25rem;
-        height: 1.25rem;
+      .wizard-progress-bar {
+        position: relative;
+        height: 6px;
+        background: #e3edef;
         border-radius: 999px;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0 0.35rem;
+        overflow: hidden;
+        margin-bottom: 2rem;
       }
-      .signup-hero {
-        background: linear-gradient(135deg, #0e4d5f, #1a7a8f);
-        padding: 3.5rem 1.5rem;
-        text-align: center;
-        color: white;
+      .wizard-progress-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: var(--teal);
+        border-radius: 999px;
+        transition: width 260ms ease;
       }
-      .signup-hero h1 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.6rem, 3vw, 2.2rem);
-        font-weight: 600;
-        margin-bottom: 0.6rem;
-      }
-      .signup-hero p {
-        opacity: 0.88;
-        max-width: 500px;
-        margin: 0 auto;
-        font-size: 0.95rem;
-      }
-      .pricing-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 0.5rem 1.25rem;
-        border-radius: 100px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin-bottom: 1.25rem;
-      }
-      .offer-strip {
-        max-width: 960px;
-        margin: -1.35rem auto 0;
-        padding: 0 1.5rem;
-      }
-      .offer-card {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        background: var(--white);
+      .wizard-card {
+        background: #fff;
         border: 1px solid var(--border);
         border-radius: 18px;
-        padding: 1rem 1.1rem;
-        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.08);
+        padding: 2.25rem 1.75rem;
+        box-shadow: 0 16px 40px rgba(15, 65, 78, 0.06);
       }
-      .offer-block h3 {
-        font-size: 0.82rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--muted);
-        margin-bottom: 0.35rem;
-      }
-      .offer-block p {
-        font-size: 0.85rem;
-        color: var(--slate);
-        line-height: 1.6;
-      }
-      .offer-block strong {
-        color: var(--navy);
-      }
-      .wrap {
-        max-width: 960px;
-        margin: 2rem auto;
-        padding: 0 1.5rem;
-        display: grid;
-        grid-template-columns: 1fr 300px;
-        gap: 1.5rem;
-        align-items: start;
-      }
-      .form-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        overflow: hidden;
-      }
-      .form-section {
-        padding: 1.5rem 1.75rem;
-        border-bottom: 1px solid var(--bg);
-      }
-      .form-section:last-child {
-        border-bottom: none;
-      }
-      .form-section h2 {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-      }
-      .field-hint {
+      .wizard-eyebrow {
+        margin: 0 0 0.5rem;
         font-size: 0.78rem;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-      .field-example {
-        margin-top: 0.15rem;
-        padding: 0.7rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fbfdfe;
-        font-size: 0.77rem;
-        color: var(--slate);
-        line-height: 1.5;
-      }
-      .field-example strong {
-        color: var(--navy);
-      }
-      .field-coach {
-        margin-top: 0.2rem;
-        font-size: 0.76rem;
-        color: var(--slate);
-        min-height: 1.2rem;
-      }
-      .field-coach.strong {
-        color: #246b4d;
-      }
-      .field-coach.warn {
-        color: #9b2c2c;
-      }
-      .field.full {
-        grid-column: 1/-1;
-      }
-      .revision-notice {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        background: linear-gradient(180deg, #f5fbfc 0%, #ffffff 100%);
-        display: none;
-      }
-      .revision-notice h3 {
-        font-size: 0.95rem;
-        margin-bottom: 0.35rem;
-      }
-      .revision-notice p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .claim-note {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.16);
-        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
-      }
-      .claim-note h3 {
-        font-size: 0.95rem;
-        margin-bottom: 0.25rem;
-      }
-      .claim-note p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .revision-summary {
-        margin-top: 0.9rem;
-        display: grid;
-        gap: 0.85rem;
-      }
-      .revision-summary-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-      }
-      .revision-summary-card {
-        padding: 0.85rem 0.9rem;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.9);
-      }
-      .revision-summary-card h4 {
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.45rem;
-      }
-      .revision-summary-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      .revision-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.42rem 0.62rem;
-        border-radius: 999px;
-        font-size: 0.76rem;
-        line-height: 1.4;
-        border: 1px solid var(--border);
-        background: #fff;
-        color: var(--slate);
-      }
-      .revision-pill.requested {
-        background: #fff7ed;
-        border-color: rgba(229, 83, 62, 0.18);
-        color: #9b2c2c;
-      }
-      .revision-pill.improved {
-        background: rgba(58, 170, 122, 0.1);
-        border-color: rgba(58, 170, 122, 0.2);
-        color: #246b4d;
-      }
-      .revision-empty {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      .field.field-requested {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: rgba(255, 247, 237, 0.8);
-        outline: 1px solid rgba(229, 83, 62, 0.14);
-      }
-      .field.field-improved {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: rgba(58, 170, 122, 0.08);
-        outline: 1px solid rgba(58, 170, 122, 0.14);
-      }
-      .field.field-top-priority {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.82), rgba(255, 255, 255, 0.98));
-        outline: 1px solid rgba(26, 122, 143, 0.16);
-        box-shadow: 0 10px 24px rgba(26, 122, 143, 0.08);
-      }
-      .field.field-top-priority label {
-        color: var(--teal-dark);
-      }
-      .field-label-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-      }
-      .field-priority-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.18rem 0.5rem;
-        border-radius: 999px;
-        background: rgba(232, 245, 248, 0.95);
-        color: var(--teal-dark);
-        font-size: 0.64rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-      label {
-        font-size: 0.76rem;
-        font-weight: 600;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
-      input[type="text"],
-      input[type="email"],
-      input[type="tel"],
-      input[type="number"],
-      input[type="url"],
-      select,
-      textarea {
-        width: 100%;
-        padding: 0.6rem 0.85rem;
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        font-size: 0.875rem;
-        color: var(--navy);
-        background: var(--white);
-        font-family: inherit;
-        outline: none;
-        transition: border-color 0.2s;
-        -webkit-appearance: none;
-      }
-      input:focus,
-      select:focus,
-      textarea:focus {
-        border-color: var(--teal);
-      }
-      textarea {
-        resize: vertical;
-        min-height: 110px;
-      }
-      .checkbox-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-      }
-      .check-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        color: var(--slate);
-        cursor: pointer;
-        padding: 0.4rem 0.6rem;
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        transition: all 0.2s;
-      }
-      .check-label:hover {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .check-label input {
-        accent-color: var(--teal);
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-      }
-      .check-label.checked-style {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .funnel-stage {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(14, 77, 95, 0.12);
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-      }
-      .funnel-stage + .funnel-stage {
-        margin-top: 0.9rem;
-      }
-      .funnel-stage-kicker {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--teal-dark);
-        margin-bottom: 0.25rem;
-      }
-      .funnel-stage h3 {
-        font-size: 1rem;
-        margin-bottom: 0.25rem;
-      }
-      .funnel-stage p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .funnel-disclosure {
-        margin: 1rem 1.75rem 0;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: #fff;
-        overflow: hidden;
-      }
-      .funnel-disclosure summary {
-        list-style: none;
-        cursor: pointer;
-        padding: 1rem 1.1rem;
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: center;
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-      }
-      .funnel-disclosure summary::-webkit-details-marker {
-        display: none;
-      }
-      .funnel-disclosure-copy strong {
-        display: block;
-        font-size: 0.96rem;
-        color: var(--navy);
-      }
-      .funnel-disclosure-copy span {
-        display: block;
-        margin-top: 0.18rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-      }
-      .funnel-disclosure-toggle {
-        color: var(--teal);
-        font-size: 0.82rem;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .funnel-disclosure-body {
-        border-top: 1px solid var(--bg);
-      }
-      .form-submit {
-        padding: 1.5rem 1.75rem;
-        background: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .submit-note {
-        font-size: 0.8rem;
-        color: var(--muted);
-      }
-      .submit-actions {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-      }
-      .btn-submit {
-        background: var(--teal);
-        color: white;
-        border: none;
-        padding: 0.85rem 2rem;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition:
-          background 0.2s,
-          transform 0.1s;
-        font-family: inherit;
-      }
-      .btn-submit-secondary {
-        background: transparent;
-        color: var(--teal-dark);
-        border: 1.5px solid rgba(26, 122, 143, 0.24);
-      }
-      .btn-submit:hover {
-        background: var(--teal-dark);
-        transform: translateY(-1px);
-      }
-      .btn-submit-secondary:hover {
-        background: var(--teal-faint);
-      }
-      .btn-submit:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-      .success-state {
-        text-align: center;
-        padding: 3rem 2rem;
-      }
-      .success-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-      .success-state h2 {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 0.6rem;
-      }
-      .success-state p {
-        color: var(--slate);
-        font-size: 0.9rem;
-        line-height: 1.7;
-        margin-bottom: 1.5rem;
-        max-width: 420px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .btn-pay {
-        display: inline-block;
-        background: var(--teal);
-        color: white;
-        padding: 1rem 2.5rem;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 1rem;
-        text-decoration: none;
-        transition: background 0.2s;
-        margin-bottom: 0.75rem;
-      }
-      .btn-pay:hover {
-        background: var(--teal-dark);
-      }
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-      }
-      .sidebar-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.35rem;
-      }
-      .sidebar-card h3 {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 0.9rem;
-      }
-      .plan-grid {
-        display: grid;
-        gap: 0.9rem;
-      }
-      .plan-card {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1rem;
-        background: #fff;
-      }
-      .plan-card.featured {
-        border-color: rgba(26, 122, 143, 0.3);
-        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
-      }
-      .plan-kicker {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--muted);
-      }
-      .plan-card h4 {
-        font-size: 1rem;
-        margin-top: 0.2rem;
-      }
-      .plan-price {
-        margin-top: 0.2rem;
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: var(--navy);
-      }
-      .plan-price span {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--muted);
-      }
-      .plan-copy {
-        margin-top: 0.4rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        line-height: 1.55;
-      }
-      .plan-list {
-        margin-top: 0.75rem;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .plan-list .feature-item {
-        font-size: 0.82rem;
-      }
-      .price-display {
-        display: flex;
-        align-items: baseline;
-        gap: 0.3rem;
-        margin-bottom: 0.5rem;
-      }
-      .price-num {
-        font-size: 2rem;
-        font-weight: 800;
-        color: var(--navy);
-      }
-      .price-per {
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      .price-note {
-        font-size: 0.8rem;
-        color: var(--slate);
-        margin-bottom: 1rem;
-      }
-      .feature-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .feature-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-        font-size: 0.83rem;
-        color: var(--slate);
-      }
-      .feature-item .check {
-        color: var(--green);
-        font-weight: 700;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-      }
-      .trust-card {
-        background: var(--teal-faint);
-        border: 1px solid rgba(26, 122, 143, 0.2);
-        border-radius: 14px;
-        padding: 1.25rem;
-      }
-      .trust-card h3 {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-        margin-bottom: 0.75rem;
-      }
-      .trust-item {
-        display: flex;
-        gap: 0.5rem;
-        align-items: flex-start;
-        font-size: 0.82rem;
-        color: var(--slate);
-        margin-bottom: 0.5rem;
-      }
-      .trust-item:last-child {
-        margin-bottom: 0;
-      }
-      .readiness-card {
-        background: linear-gradient(180deg, #ffffff, #f3fafb);
-        border: 1px solid var(--border);
-      }
-      .readiness-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 0.75rem;
-        margin-bottom: 0.9rem;
-      }
-      .readiness-score {
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: var(--navy);
-        line-height: 1;
-      }
-      .readiness-score-row {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-      }
-      .readiness-delta {
-        display: none;
-        padding: 0.18rem 0.5rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        background: rgba(58, 170, 122, 0.12);
-        color: #246b4d;
-      }
-      .readiness-delta.negative {
-        background: rgba(229, 62, 62, 0.1);
-        color: #9b2c2c;
-      }
-      .readiness-label {
-        display: inline-flex;
-        margin-top: 0.35rem;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.74rem;
-        font-weight: 700;
-        background: var(--bg);
-        color: var(--slate);
-      }
-      .readiness-label.tone-match-ready {
-        background: rgba(58, 170, 122, 0.14);
-        color: #246b4d;
-      }
-      .readiness-label.tone-getting-stronger {
-        background: rgba(26, 122, 143, 0.12);
-        color: var(--teal-dark);
-      }
-      .readiness-label.tone-good-start {
-        background: rgba(29, 58, 74, 0.08);
-        color: var(--navy);
-      }
-      .readiness-label.tone-close {
-        background: rgba(26, 122, 143, 0.12);
-        color: var(--teal-dark);
-      }
-      .readiness-label.tone-needs-work {
-        background: rgba(229, 62, 62, 0.1);
-        color: #9b2c2c;
-      }
-      .readiness-copy {
-        font-size: 0.8rem;
-        color: var(--slate);
-      }
-      .readiness-meter {
-        margin-top: 0.85rem;
-      }
-      .readiness-meter-track {
-        position: relative;
-        height: 12px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #f3d6d6 0%, #eef4f6 45%, #e0f1f5 70%, #daf3e6 100%);
-        overflow: hidden;
-        border: 1px solid rgba(29, 58, 74, 0.08);
-      }
-      .readiness-meter-fill {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #d96b6b 0%, #1a7a8f 65%, #3aaa7a 100%);
-        transition: width 180ms ease;
-      }
-      .readiness-meter-markers {
-        display: grid;
-        grid-template-columns: 40fr 25fr 20fr 15fr;
-        gap: 0.35rem;
-        margin-top: 0.45rem;
-        font-size: 0.68rem;
-        color: var(--muted);
-      }
-      .readiness-meter-markers span {
-        text-align: left;
-      }
-      .readiness-nudge {
-        margin-top: 0.95rem;
-        padding: 0.85rem 0.95rem;
-        border: 1px solid rgba(26, 122, 143, 0.14);
-        border-radius: 12px;
-        background: linear-gradient(180deg, #fbfdfe 0%, #f6fbfc 100%);
-      }
-      .readiness-nudge-kicker {
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--teal-dark);
-      }
-      .readiness-nudge-copy {
-        margin-top: 0.28rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        line-height: 1.6;
-      }
-      .readiness-nudge-actions {
-        display: grid;
-        gap: 0.65rem;
-        margin-top: 0.7rem;
-      }
-      .readiness-nudge-meta {
-        display: grid;
-        gap: 0.38rem;
-        justify-items: start;
-      }
-      .readiness-nudge-button {
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        background: rgba(232, 245, 248, 0.88);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        padding: 0.48rem 0.75rem;
-        font: inherit;
-        font-size: 0.78rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .readiness-nudge-button:hover {
-        background: rgba(232, 245, 248, 1);
-      }
-      .readiness-nudge-button:focus-visible,
-      .readiness-pill:focus-visible,
-      .readiness-dimension:focus-visible {
-        outline: 3px solid rgba(26, 122, 143, 0.22);
-        outline-offset: 2px;
-      }
-      .readiness-milestone {
-        font-size: 0.77rem;
-        color: var(--muted);
-      }
-      .readiness-distance {
-        font-size: 0.76rem;
-        color: var(--teal-dark);
-        font-weight: 600;
-      }
-      .readiness-next-tier {
-        font-size: 0.76rem;
-        color: var(--slate);
-      }
-      .readiness-celebration {
-        display: none;
-        margin-top: 0.45rem;
-        padding: 0.58rem 0.72rem;
-        border-radius: 12px;
-        border: 1px solid rgba(58, 170, 122, 0.18);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.12), rgba(232, 245, 248, 0.75));
-        color: #246b4d;
-        font-size: 0.78rem;
-        line-height: 1.5;
-      }
-      .readiness-celebration.stronger {
-        border-color: rgba(26, 122, 143, 0.18);
-        background: linear-gradient(180deg, rgba(26, 122, 143, 0.1), rgba(232, 245, 248, 0.75));
-        color: var(--teal-dark);
-      }
-      .readiness-celebration.critical {
-        border-color: rgba(229, 62, 62, 0.16);
-        background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 255, 255, 0.95));
-        color: #9b2c2c;
-      }
-      .readiness-tier-rail {
-        margin-top: 0.9rem;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.45rem;
-      }
-      .readiness-tier {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 0.55rem 0.6rem;
-        background: #fff;
-      }
-      .readiness-tier.active {
-        border-color: rgba(26, 122, 143, 0.24);
-        background: rgba(232, 245, 248, 0.7);
-      }
-      .readiness-tier.complete {
-        border-color: rgba(58, 170, 122, 0.2);
-        background: rgba(58, 170, 122, 0.08);
-      }
-      .readiness-tier-range {
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .readiness-tier-label {
-        margin-top: 0.18rem;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-tier-note {
-        margin-top: 0.15rem;
-        font-size: 0.73rem;
-        color: var(--slate);
-        line-height: 1.45;
-      }
-      .readiness-benefit {
-        margin-top: 0.7rem;
-        padding: 0.7rem 0.8rem;
-        border-radius: 12px;
-        background: #fbfdfe;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        font-size: 0.8rem;
-        color: var(--slate);
-        line-height: 1.55;
-      }
-      .readiness-benefit strong {
-        color: var(--navy);
-      }
-      .readiness-snapshot {
-        margin-top: 0.75rem;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.55rem;
-      }
-      .readiness-snapshot-card {
-        width: 100%;
-        padding: 0.72rem 0.76rem;
-        border-radius: 12px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: #fbfdfe;
-        text-align: left;
-        appearance: none;
-        font: inherit;
-      }
-      .readiness-snapshot-card.helping {
-        border-color: rgba(58, 170, 122, 0.14);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.05), #fbfefd);
-      }
-      .readiness-snapshot-card.blocker {
-        border-color: rgba(26, 122, 143, 0.14);
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.72), #fbfdfe);
-      }
-      .readiness-snapshot-card.is-button {
-        cursor: pointer;
-        transition:
-          border-color 0.18s ease,
-          background 0.18s ease,
-          transform 0.18s ease;
-      }
-      .readiness-snapshot-card.is-button:hover {
-        border-color: rgba(26, 122, 143, 0.22);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-snapshot-card.is-button:focus-visible {
-        outline: 3px solid rgba(26, 122, 143, 0.22);
-        outline-offset: 2px;
-      }
-      .readiness-snapshot-kicker {
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--muted);
-      }
-      .readiness-snapshot-title {
-        margin-top: 0.22rem;
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-snapshot-copy {
-        margin-top: 0.2rem;
-        font-size: 0.74rem;
-        line-height: 1.5;
-        color: var(--slate);
-        max-width: 30ch;
-      }
-      .readiness-snapshot-meta {
-        margin-top: 0.42rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.34rem;
-        padding: 0.24rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.69rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .readiness-snapshot-card.helping .readiness-snapshot-meta {
-        background: rgba(58, 170, 122, 0.1);
-        color: #246b4d;
-      }
-      .readiness-snapshot-card.blocker .readiness-snapshot-meta {
-        background: rgba(232, 245, 248, 0.9);
-        color: var(--teal-dark);
-      }
-      .readiness-snapshot-action {
-        margin-top: 0.42rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-      }
-      .readiness-dimensions {
-        margin-top: 0.8rem;
-        display: grid;
-        gap: 0.55rem;
-      }
-      .readiness-dimensions.mode-compact {
-        gap: 0.45rem;
-      }
-      .readiness-dimensions.mode-compact .readiness-dimension {
-        padding: 0.6rem 0.68rem;
-      }
-      .readiness-dimensions.mode-compact .readiness-dimension-copy,
-      .readiness-dimensions.mode-compact .readiness-dimension-notes {
-        margin-top: 0.28rem;
-      }
-      .readiness-dimensions.mode-balanced .readiness-dimension-notes {
-        gap: 0.18rem;
-      }
-      .readiness-dimensions-heading {
-        margin-top: 0.9rem;
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--muted);
-      }
-      .readiness-dimensions.is-strong .readiness-dimension {
-        border-color: rgba(58, 170, 122, 0.16);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.06), #fbfefd);
-      }
-      .readiness-dimension {
-        width: 100%;
-        padding: 0.68rem 0.75rem;
-        border-radius: 12px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: #fbfdfe;
-        appearance: none;
-        transition:
-          border-color 0.18s ease,
-          background 0.18s ease,
-          transform 0.18s ease;
-      }
-      .readiness-dimension:hover {
-        border-color: rgba(26, 122, 143, 0.22);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-dimension:focus-visible {
-        border-color: rgba(26, 122, 143, 0.28);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-dimension.state-strong {
-        border-color: rgba(58, 170, 122, 0.16);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.05), #fbfefd);
-      }
-      .readiness-dimension.state-thin {
-        border-color: rgba(26, 122, 143, 0.14);
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.6), #fbfdfe);
-      }
-      .readiness-dimension.is-priority {
-        box-shadow: 0 8px 20px rgba(26, 122, 143, 0.08);
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .readiness-meter-fill,
-        .readiness-snapshot-card.is-button,
-        .readiness-dimension,
-        .readiness-dimension-fill {
-          transition: none;
-        }
-      }
-      @media (max-width: 720px) {
-        .readiness-tier-rail {
-          grid-template-columns: 1fr 1fr;
-        }
-        .readiness-snapshot {
-          grid-template-columns: 1fr;
-        }
-        .readiness-nudge-actions {
-          align-items: stretch;
-        }
-        .readiness-nudge-button {
-          justify-content: center;
-          width: 100%;
-        }
-        .readiness-dimension-header {
-          align-items: flex-start;
-        }
-        .readiness-dimension-points {
-          font-size: 0.64rem;
-        }
-      }
-      .readiness-dimension-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.75rem;
-        align-items: baseline;
-      }
-      .readiness-dimension-label {
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-dimension-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.3rem;
-        align-items: center;
-      }
-      .readiness-dimension-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.15rem 0.45rem;
-        border-radius: 999px;
-        font-size: 0.64rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-      }
-      .readiness-dimension-badge.priority {
-        background: rgba(232, 245, 248, 0.95);
-        color: var(--teal-dark);
-      }
-      .readiness-dimension-badge.strongest {
-        background: rgba(58, 170, 122, 0.1);
-        color: #246b4d;
-      }
-      .readiness-dimension-state {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-      }
-      .readiness-dimension.state-strong .readiness-dimension-state {
-        color: #246b4d;
-      }
-      .readiness-dimension.state-building .readiness-dimension-state {
-        color: var(--teal-dark);
-      }
-      .readiness-dimension.state-thin .readiness-dimension-state {
-        color: #9b2c2c;
-      }
-      .readiness-dimension-points {
-        font-size: 0.67rem;
-        color: var(--muted);
-        font-weight: 600;
-      }
-      .readiness-dimension-bar {
-        margin-top: 0.42rem;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(29, 58, 74, 0.08);
-        overflow: hidden;
-      }
-      .readiness-dimension-fill {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #d96b6b 0%, #1a7a8f 70%, #3aaa7a 100%);
-        transition: width 180ms ease;
-      }
-      .readiness-dimension.state-strong .readiness-dimension-fill {
-        background: linear-gradient(90deg, #2f9f6b, #3aaa7a);
-      }
-      .readiness-dimension.state-building .readiness-dimension-fill {
-        background: linear-gradient(90deg, #1a7a8f, #2a9cb3);
-      }
-      .readiness-dimension.state-thin .readiness-dimension-fill {
-        background: linear-gradient(90deg, #d96b6b, #e9a2a2);
-      }
-      .readiness-dimension-copy {
-        margin-top: 0.38rem;
-        font-size: 0.75rem;
-        color: var(--slate);
-        line-height: 1.5;
-        max-width: 48ch;
-      }
-      .readiness-dimension-next {
-        margin-top: 0.42rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.32rem;
-        padding: 0.26rem 0.55rem;
-        border-radius: 999px;
-        background: rgba(232, 245, 248, 0.9);
-        color: var(--teal-dark);
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .readiness-dimension-notes {
-        display: grid;
-        gap: 0.22rem;
-        margin-top: 0.38rem;
-      }
-      .readiness-dimension-note {
-        font-size: 0.72rem;
-        line-height: 1.45;
-      }
-      .readiness-dimension-note strong {
-        color: var(--navy);
-      }
-      .readiness-dimension-note.helping strong {
-        color: #246b4d;
-      }
-      .readiness-dimension-note.blocker strong {
-        color: var(--teal-dark);
-      }
-      .readiness-group {
-        margin-top: 1rem;
-      }
-      .readiness-group h4 {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: var(--muted);
-        margin-bottom: 0.55rem;
-      }
-      .readiness-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      .readiness-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.42rem 0.62rem;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: var(--white);
-        font-size: 0.77rem;
-        color: var(--slate);
-        line-height: 1.4;
-      }
-      .readiness-pill.positive {
-        background: rgba(58, 170, 122, 0.1);
-        border-color: rgba(58, 170, 122, 0.2);
-        color: #246b4d;
-      }
-      .readiness-pill.readiness-pill-summary {
-        background: rgba(29, 58, 74, 0.04);
-        border-style: dashed;
-        color: var(--muted);
-      }
-      .readiness-empty {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      footer {
-        background: var(--navy);
-        color: rgba(255, 255, 255, 0.7);
-        padding: 2rem 1.5rem;
-        text-align: center;
-        margin-top: 2rem;
-      }
-      footer p {
-        font-size: 0.78rem;
-      }
-      footer a {
-        color: rgba(255, 255, 255, 0.5);
-        text-decoration: none;
-      }
-      @media (max-width: 720px) {
-        .offer-card {
-          grid-template-columns: 1fr;
-        }
-        .funnel-disclosure summary {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-        .wrap {
-          grid-template-columns: 1fr;
-        }
-        .form-grid {
-          grid-template-columns: 1fr;
-        }
-        .checkbox-grid {
-          grid-template-columns: 1fr;
-        }
-        .revision-summary-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      /* Signup chooser — the 3-card picker shown above the quick-claim
-         hero. Full width, equal weight cards, each linking to the
-         section below that matches the visitor's situation. */
-      .signup-chooser {
-        background: linear-gradient(180deg, #f7fbfc 0%, var(--white) 100%);
-        padding: 2.5rem 1.5rem 1.5rem;
-      }
-      .signup-chooser-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-      }
-      .signup-chooser-note {
-        max-width: 720px;
-        margin: 0 auto 1.25rem;
-        text-align: center;
-        color: var(--muted);
-        font-size: 0.94rem;
-        line-height: 1.6;
-      }
-      .signup-chooser-title {
-        text-align: center;
-        font-family: "Lora", serif;
-        font-size: clamp(1.4rem, 2.5vw, 2rem);
-        margin: 0 0 1.4rem;
-        color: var(--navy);
-      }
-      .signup-chooser-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-      }
-      .signup-chooser-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        padding: 1.25rem 1.2rem 1.15rem;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          border-color 160ms ease,
-          box-shadow 160ms ease,
-          transform 160ms ease;
-      }
-      .signup-chooser-card:hover,
-      .signup-chooser-card:focus-visible {
-        border-color: var(--teal);
-        box-shadow: 0 10px 24px rgba(26, 122, 143, 0.08);
-        transform: translateY(-1px);
-        outline: none;
-      }
-      .signup-chooser-card-kicker {
-        font-size: 0.74rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--teal);
       }
-      .signup-chooser-card h2 {
+      .wizard-question {
         font-family: "Lora", serif;
-        font-size: 1.2rem;
-        margin: 0;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        line-height: 1.2;
+        margin: 0 0 0.75rem;
         color: var(--navy);
       }
-      .signup-chooser-card p {
-        margin: 0;
-        font-size: 0.9rem;
+      .wizard-help {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+        font-size: 0.96rem;
         line-height: 1.55;
-        color: var(--ink-soft);
-        flex: 1;
       }
-      .signup-chooser-card-cta {
-        font-weight: 600;
-        color: var(--teal-dark);
-        font-size: 0.92rem;
-        margin-top: 0.25rem;
-      }
-      .signup-chooser-card-muted {
-        background: #fafcfc;
-      }
-      .signup-chooser-card-muted .signup-chooser-card-kicker {
-        color: var(--muted);
-      }
-      @media (max-width: 820px) {
-        .signup-chooser-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* Listing removal section — mirrors the quick-claim layout so it
-         reads as a sibling path, not a buried option. Uses a muted
-         palette (less emphatic than claim or new-listing) because it's
-         an off-ramp, not a conversion target. */
-      .listing-removal {
-        background: #fbfbfb;
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
-        padding: 2.5rem 1.5rem;
-      }
-      .listing-removal-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 380px;
-        gap: 2rem;
-        align-items: start;
-      }
-      .listing-removal-kicker {
-        display: inline-block;
-        padding: 0.3rem 0.75rem;
-        background: rgba(100, 116, 139, 0.12);
-        color: #475569;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-      .listing-removal-copy h2 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.4rem, 2vw, 1.9rem);
-        margin: 0.6rem 0 0.7rem;
-        color: var(--navy);
-      }
-      .listing-removal-copy p {
-        color: var(--ink-soft);
-        line-height: 1.65;
-        margin: 0 0 0.9rem;
-      }
-      .listing-removal-steps {
-        padding-left: 1.2rem;
-        color: var(--ink-soft);
-        line-height: 1.65;
-        margin: 0 0 0.9rem;
-      }
-      .listing-removal-steps li {
-        margin-bottom: 0.25rem;
-      }
-      .listing-removal-assurance {
-        font-size: 0.9rem;
-        color: var(--muted);
-        font-style: italic;
-      }
-      .listing-removal-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.3rem;
-      }
-      .listing-removal-form {
-        display: grid;
-        gap: 0.85rem;
-      }
-      .listing-removal-form label {
-        display: grid;
-        gap: 0.3rem;
-        font-size: 0.84rem;
-        font-weight: 600;
-        color: var(--navy);
-      }
-      .listing-removal-form input {
-        padding: 0.7rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font: inherit;
-        color: var(--navy);
-      }
-      .listing-removal-field-hint {
-        font-size: 0.78rem;
-        font-weight: 400;
-        color: var(--muted);
-        line-height: 1.45;
-      }
-      .listing-removal-submit {
-        padding: 0.85rem 1rem;
-        background: #475569;
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 140ms ease;
-      }
-      .listing-removal-submit:hover,
-      .listing-removal-submit:focus-visible {
-        background: #334155;
-      }
-      .listing-removal-submit:disabled {
-        background: #94a3b8;
-        cursor: not-allowed;
-      }
-      .listing-removal-status {
-        padding: 0.75rem 0.85rem;
-        border-radius: 10px;
-        font-size: 0.88rem;
-      }
-      .listing-removal-status.is-success {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-      }
-      .listing-removal-status.is-error {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-      }
-      @media (max-width: 820px) {
-        .listing-removal-inner {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* Toast banner at top of /signup shown when the user lands via
-         the removal confirmation link (?removed=ok or ?removed=error).
-         One-shot — reading the URL param, rendering, and then we keep
-         the param so the page is refresh-safe. */
-      .signup-toast {
-        max-width: 1080px;
-        margin: 1.2rem auto 0;
-        padding: 0.9rem 1.1rem;
-        border-radius: 14px;
-        font-weight: 500;
-      }
-      .signup-toast.is-success {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-      }
-      .signup-toast.is-error {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-      }
-
-      .quick-claim-hero {
-        background: linear-gradient(135deg, var(--teal-faint) 0%, var(--white) 100%);
-        border-bottom: 1px solid var(--border);
-        padding: 3rem 1.5rem 2.5rem;
-      }
-      .quick-claim-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-        gap: 3rem;
-        align-items: center;
-      }
-      .quick-claim-copy .quick-claim-kicker {
-        display: inline-block;
-        background: var(--white);
-        color: var(--teal-dark);
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 0.35rem 0.9rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        margin-bottom: 1rem;
-      }
-      .quick-claim-copy h1 {
-        font-size: clamp(1.8rem, 3vw, 2.4rem);
-        line-height: 1.15;
-        color: var(--navy);
-        margin-bottom: 0.9rem;
-        font-weight: 700;
-      }
-      .quick-claim-copy > p {
-        color: var(--slate);
-        max-width: 46ch;
+      .wizard-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         margin-bottom: 1.25rem;
       }
-      .quick-claim-benefits {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .quick-claim-benefits li {
-        position: relative;
-        padding-left: 1.5rem;
-        color: var(--navy);
-        font-weight: 500;
-      }
-      .quick-claim-benefits li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-      }
-      .quick-claim-form {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.75rem;
-        box-shadow: 0 10px 30px rgba(29, 58, 74, 0.08);
-        display: grid;
-        gap: 0.9rem;
-      }
-      .quick-claim-search {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.25rem 1.75rem;
-        margin-bottom: 0.85rem;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .quick-claim-search label {
-        display: grid;
-        gap: 0.35rem;
-      }
-      .quick-claim-search label span {
-        font-size: 0.85rem;
+      .wizard-field label {
         font-weight: 600;
+        font-size: 0.86rem;
         color: var(--navy);
       }
-      .quick-claim-search input {
-        width: 100%;
-        padding: 0.6rem 0.85rem;
+      .wizard-input,
+      .wizard-select {
+        appearance: none;
         border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        color: var(--navy);
-        background: var(--white);
-      }
-      .quick-claim-search input:focus {
-        outline: 2px solid var(--teal);
-        outline-offset: 1px;
-        border-color: var(--teal);
-      }
-      .quick-claim-search-results {
-        display: grid;
-        gap: 0.35rem;
-        max-height: 18rem;
-        overflow-y: auto;
-      }
-      .quick-claim-search-result {
-        display: grid;
-        gap: 0.15rem;
-        padding: 0.65rem 0.85rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--white);
-        cursor: pointer;
-        text-align: left;
-        font-family: inherit;
-        color: var(--navy);
-      }
-      .quick-claim-search-result:hover,
-      .quick-claim-search-result:focus {
-        border-color: var(--teal);
-        background: rgba(47, 110, 128, 0.05);
-        outline: none;
-      }
-      .quick-claim-search-result .result-name {
-        font-weight: 700;
-        font-size: 0.95rem;
-      }
-      .quick-claim-search-result .result-meta {
-        font-size: 0.82rem;
-        color: var(--muted);
-      }
-      .quick-claim-search-hint {
-        font-size: 0.8rem;
-        color: var(--muted);
-        margin: 0;
-      }
-      .quick-claim-search-empty {
-        font-size: 0.85rem;
-        color: var(--muted);
-        padding: 0.4rem 0;
-      }
-      .quick-claim-field-hint {
-        font-size: 0.8rem;
-        color: var(--muted);
-      }
-      .claim-confirm-panel {
-        background: var(--white);
-        border: 1px solid var(--teal);
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 0.85rem;
-        display: grid;
-        gap: 0.6rem;
-        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
-      }
-      .claim-confirm-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .claim-confirm-label {
-        font-size: 0.78rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--teal);
-      }
-      .claim-confirm-header a {
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      .claim-confirm-name {
-        margin: 0;
-        color: var(--navy);
-        font-size: 1.05rem;
-      }
-      .claim-confirm-meta {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.88rem;
-      }
-      .claim-confirm-destination {
-        margin: 0.4rem 0 0;
-        font-size: 0.92rem;
-        color: var(--navy);
-      }
-      .claim-confirm-send {
-        margin-top: 0.25rem;
-        background: var(--teal);
-        color: var(--white);
-        border: none;
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 0.85rem 1rem;
-        font-weight: 700;
-        font-size: 0.98rem;
-        cursor: pointer;
-        transition: background 0.15s ease;
-      }
-      .claim-confirm-send:hover {
-        background: var(--teal-dark);
-      }
-      .claim-confirm-send:disabled {
-        background: var(--muted);
-        cursor: not-allowed;
-      }
-      .claim-confirm-alt {
-        margin: 0;
-        text-align: center;
-        font-size: 0.85rem;
-      }
-      .claim-confirm-alt a {
-        color: var(--muted);
-      }
-      .claim-confirm-status {
-        padding: 0.65rem 0.85rem;
-        border-radius: 8px;
-        font-size: 0.88rem;
-      }
-      .claim-confirm-status[data-tone="success"] {
-        background: rgba(47, 110, 128, 0.08);
-        color: var(--navy);
-      }
-      .claim-confirm-status[data-tone="warn"] {
-        background: rgba(146, 64, 14, 0.08);
-        color: #92400e;
-      }
-      .quick-claim-resend,
-      .claim-confirm-resend {
-        margin: 0.35rem 0 0;
-        font-size: 0.82rem;
-        color: var(--muted);
-        text-align: center;
-      }
-      .quick-claim-resend a,
-      .claim-confirm-resend a {
-        color: var(--teal);
-        font-weight: 600;
-      }
-      .quick-claim-resend a[aria-disabled="true"],
-      .claim-confirm-resend a[aria-disabled="true"] {
-        color: var(--muted);
-        pointer-events: none;
-      }
-      .claim-trial-offer {
-        margin-top: 0.85rem;
-        background: var(--white);
-        border: 1px solid var(--teal);
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        display: grid;
-        gap: 0.9rem;
-        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
-      }
-      .claim-trial-offer-header h3 {
-        margin: 0 0 0.25rem;
-        color: var(--navy);
-        font-size: 1.05rem;
-      }
-      .claim-trial-offer-header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.88rem;
-      }
-      .claim-trial-offer-plans {
-        display: grid;
-        gap: 0.6rem;
-      }
-      .claim-trial-cta {
-        display: grid;
-        gap: 0.2rem;
-        padding: 0.85rem 1rem;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        font-family: inherit;
-        cursor: pointer;
-        text-align: left;
-        transition:
-          background 0.15s ease,
-          border-color 0.15s ease;
-      }
-      .claim-trial-cta-primary {
-        background: var(--teal);
-        border-color: var(--teal);
-        color: var(--white);
-      }
-      .claim-trial-cta-primary:hover {
-        background: var(--teal-dark);
-      }
-      .claim-trial-cta-secondary {
-        background: var(--white);
-        color: var(--navy);
-      }
-      .claim-trial-cta-secondary:hover {
-        border-color: var(--teal);
-        background: rgba(47, 110, 128, 0.05);
-      }
-      .claim-trial-cta:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-      .claim-trial-cta-title {
-        font-weight: 700;
-        font-size: 0.98rem;
-      }
-      .claim-trial-cta-price {
-        font-size: 0.82rem;
-        opacity: 0.9;
-      }
-      .claim-trial-dismiss {
-        margin: 0;
-        text-align: center;
-        font-size: 0.85rem;
-      }
-      .claim-trial-dismiss a {
-        color: var(--muted);
-      }
-      .claim-trial-feedback {
-        margin: 0;
-        font-size: 0.82rem;
-        color: var(--muted);
-        min-height: 1rem;
-      }
-      .quick-claim-form label {
-        display: grid;
-        gap: 0.4rem;
-      }
-      .quick-claim-form label span {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--navy);
-      }
-      .quick-claim-form input {
-        width: 100%;
-        padding: 0.65rem 0.85rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        color: var(--navy);
-        background: var(--white);
-      }
-      .quick-claim-form input:focus {
-        outline: 2px solid var(--teal);
-        outline-offset: 1px;
-        border-color: var(--teal);
-      }
-      .quick-claim-submit {
-        margin-top: 0.35rem;
-        background: var(--teal);
-        color: var(--white);
-        border: none;
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
-        font-weight: 700;
-        font-size: 0.98rem;
-        cursor: pointer;
-        transition: background 0.15s ease;
-      }
-      .quick-claim-submit:hover {
-        background: var(--teal-dark);
-      }
-      .quick-claim-submit:disabled {
-        background: var(--muted);
-        cursor: not-allowed;
-      }
-      .quick-claim-fineprint {
-        font-size: 0.8rem;
-        color: var(--muted);
-        text-align: center;
-      }
-      .quick-claim-status {
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
-        font-size: 0.9rem;
-        line-height: 1.5;
-      }
-      .quick-claim-status[data-tone="success"] {
-        background: rgba(58, 170, 122, 0.1);
-        color: #1f6f4a;
-        border: 1px solid rgba(58, 170, 122, 0.35);
-      }
-      .quick-claim-status[data-tone="info"] {
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border: 1px solid var(--border);
-      }
-      .quick-claim-status[data-tone="warn"] {
-        background: #fff4e5;
-        color: #8a4a00;
-        border: 1px solid #f0c38a;
-      }
-      .quick-claim-fallback {
-        text-align: center;
-        color: var(--teal-dark);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 0.9rem;
-      }
-      .quick-claim-fallback:hover {
-        text-decoration: underline;
-      }
-      @media (max-width: 760px) {
-        .quick-claim-hero {
-          padding: 2rem 1rem 1.75rem;
-        }
-        .quick-claim-inner {
-          grid-template-columns: 1fr;
-          gap: 1.75rem;
-        }
-      }
-
-      /* Authority strip */
-      .authority-strip {
-        background: var(--navy);
-        color: var(--white);
-        text-align: center;
-        padding: 1rem 1.5rem;
-      }
-      .authority-strip p {
-        max-width: 760px;
-        margin: 0 auto;
-        font-size: 0.95rem;
-        line-height: 1.5;
-      }
-
-      /* Generic section containers */
-      .section-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 4rem 1.5rem;
-      }
-      .section-header {
-        text-align: center;
-        max-width: 640px;
-        margin: 0 auto 2.5rem;
-      }
-      .section-kicker {
-        display: inline-block;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        padding: 0.3rem 0.85rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 1rem;
-      }
-      .section-header h2 {
-        font-size: clamp(1.6rem, 2.5vw, 2rem);
-        line-height: 1.2;
-        color: var(--navy);
-        margin-bottom: 0.75rem;
-        font-weight: 700;
-      }
-      .section-header p {
-        color: var(--slate);
+        font: inherit;
         font-size: 1rem;
+        background: #fff;
+        color: var(--navy);
+        width: 100%;
+        box-sizing: border-box;
       }
-
-      /* Unlock ladder */
-      .unlock-ladder {
-        background: var(--white);
+      .wizard-input:focus,
+      .wizard-select:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(15, 118, 139, 0.15);
       }
-      .unlock-steps {
-        list-style: none;
-        padding: 0;
-        margin: 0;
+      .wizard-choice-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1rem;
+        gap: 0.6rem;
+        margin-bottom: 1.25rem;
       }
-      .unlock-step {
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.5rem 1.25rem;
-        position: relative;
-        display: grid;
-        gap: 0.75rem;
-      }
-      .unlock-step-index {
-        width: 2rem;
-        height: 2rem;
-        border-radius: 50%;
-        background: var(--teal);
-        color: var(--white);
-        font-weight: 700;
+      .wizard-choice {
+        appearance: none;
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-size: 0.95rem;
-      }
-      .unlock-step-body h3 {
-        font-size: 1.1rem;
-        color: var(--navy);
-        margin-bottom: 0.4rem;
-      }
-      .unlock-step-body p {
-        color: var(--slate);
-        font-size: 0.92rem;
-        line-height: 1.5;
-        margin-bottom: 0.7rem;
-      }
-      .unlock-step-criteria {
-        display: block;
-        font-size: 0.78rem;
-        color: var(--muted);
-        font-weight: 600;
-        letter-spacing: 0.01em;
-      }
-      .unlock-step-paid {
-        background: var(--teal-faint);
-        border-color: var(--teal-light);
-      }
-      .unlock-step-paid .unlock-step-index {
-        background: var(--navy);
-      }
-      .unlock-step-paid h3 {
-        color: var(--teal-dark);
-      }
-
-      /* Pricing */
-      .pricing-section {
-        background: var(--bg);
-      }
-      .pricing-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1.25rem;
-        align-items: stretch;
-      }
-      .pricing-card {
-        background: var(--white);
+        justify-content: space-between;
+        padding: 1rem 1.1rem;
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.75rem 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        position: relative;
+        border-radius: 12px;
+        background: #fff;
+        font: inherit;
+        font-size: 1rem;
+        color: var(--navy);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          border-color 120ms ease,
+          background 120ms ease,
+          transform 80ms ease;
       }
-      .pricing-card-featured {
+      .wizard-choice:hover {
         border-color: var(--teal);
-        box-shadow: 0 14px 40px rgba(26, 122, 143, 0.18);
-        transform: translateY(-8px);
+        background: #f0f9fa;
       }
-      .pricing-card-waitlist {
-        opacity: 0.92;
+      .wizard-choice:active {
+        transform: scale(0.98);
       }
-      .pricing-badge-featured,
-      .pricing-badge-waitlist {
-        position: absolute;
-        top: -0.65rem;
-        left: 1.5rem;
+      .wizard-choice-arrow {
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .wizard-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+      .wizard-btn {
+        appearance: none;
+        border: 0;
+        padding: 0.95rem 1.4rem;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        min-width: 8rem;
+        background: var(--teal);
+        color: #fff;
+      }
+      .wizard-btn:disabled {
+        background: #b8c7cb;
+        cursor: not-allowed;
+      }
+      .wizard-btn-ghost {
+        background: transparent;
+        color: var(--muted);
+        font-weight: 500;
+        min-width: 0;
+        padding: 0.95rem 0.75rem;
+      }
+      .wizard-btn-ghost:hover {
+        color: var(--navy);
+      }
+      .wizard-error {
+        min-height: 1.3rem;
+        color: #b42318;
+        font-size: 0.88rem;
+        margin: -0.5rem 0 0.75rem;
+      }
+      .wizard-hint {
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin-top: -0.25rem;
+      }
+      .identity-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem;
+        background: #f7fbfc;
+        margin-bottom: 1.25rem;
+      }
+      .identity-card-name {
+        font-family: "Lora", serif;
+        font-size: 1.3rem;
+        margin: 0 0 0.4rem;
+        color: var(--navy);
+      }
+      .identity-card-meta {
+        margin: 0.25rem 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .identity-card-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
         font-size: 0.72rem;
         font-weight: 700;
-        letter-spacing: 0.08em;
         text-transform: uppercase;
-        padding: 0.3rem 0.75rem;
-        border-radius: 999px;
+        letter-spacing: 0.04em;
+        margin-top: 0.5rem;
       }
-      .pricing-badge-featured {
-        background: var(--teal);
-        color: var(--white);
+      .identity-card-badge.is-active {
+        background: #dcfce7;
+        color: #15803d;
       }
-      .pricing-badge-waitlist {
-        background: var(--muted);
-        color: var(--white);
+      .identity-card-badge.is-inactive {
+        background: #fee2e2;
+        color: #b42318;
       }
-      .pricing-card-header h3 {
-        color: var(--navy);
-        font-size: 1.2rem;
-        margin-bottom: 0.4rem;
-      }
-      .pricing-card-price {
-        display: flex;
-        align-items: baseline;
-        gap: 0.4rem;
-      }
-      .pricing-amount {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .pricing-cadence {
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-      .pricing-features {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 0.55rem;
-        flex: 1;
-      }
-      .pricing-features li {
-        position: relative;
-        padding-left: 1.4rem;
-        color: var(--navy);
-        font-size: 0.92rem;
-        line-height: 1.5;
-      }
-      .pricing-features li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-      }
-      .pricing-features li strong {
-        color: var(--navy);
-      }
-      .pricing-cta {
-        display: block;
+      .done-illustration {
+        font-size: 3rem;
         text-align: center;
-        padding: 0.85rem 1rem;
-        border-radius: 10px;
-        font-weight: 700;
-        text-decoration: none;
-        transition: background 0.15s ease;
+        margin-bottom: 0.5rem;
       }
-      .pricing-cta-primary {
-        background: var(--teal);
-        color: var(--white);
-      }
-      .pricing-cta-primary:hover {
-        background: var(--teal-dark);
-      }
-      .pricing-cta-secondary {
-        background: var(--white);
-        color: var(--teal-dark);
-        border: 1px solid var(--teal);
-      }
-      .pricing-cta-secondary:hover {
-        background: var(--teal-faint);
-      }
-      .pricing-spots {
-        font-size: 0.82rem;
-        color: #92400e;
-        font-weight: 600;
-        margin: 0 0 0.75rem;
-      }
-      .pricing-trust {
-        display: grid;
-        gap: 0.35rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        text-align: center;
-      }
-      .pricing-fineprint {
-        font-size: 0.8rem;
-        color: var(--muted);
-        text-align: center;
-      }
-      .pricing-tie-breaker {
-        margin-top: 2.5rem;
-        text-align: center;
-        color: var(--slate);
-        font-size: 0.98rem;
-        max-width: 680px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      /* FAQ */
-      .faq-section {
-        background: var(--white);
-      }
-      .faq-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem 2rem;
-        max-width: 960px;
-        margin: 0 auto;
-      }
-      .faq-item {
-        border-bottom: 1px solid var(--border);
-        padding: 1rem 0;
-      }
-      .faq-item summary {
-        cursor: pointer;
-        font-weight: 600;
+      .done-next {
+        background: #f0f9fa;
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin: 1.25rem 0 0.5rem;
         color: var(--navy);
-        font-size: 1rem;
-        list-style: none;
-        padding-right: 1.5rem;
-        position: relative;
-      }
-      .faq-item summary::-webkit-details-marker {
-        display: none;
-      }
-      .faq-item summary::after {
-        content: "+";
-        position: absolute;
-        right: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-        font-size: 1.2rem;
-      }
-      .faq-item[open] summary::after {
-        content: "−";
-      }
-      .faq-item p {
-        margin-top: 0.7rem;
-        color: var(--slate);
-        font-size: 0.93rem;
+        font-size: 0.94rem;
         line-height: 1.55;
       }
-
-      /* New-listing lead-in */
-      .new-listing-leadin {
-        background: var(--bg);
-        border-top: 1px solid var(--border);
+      .done-next strong {
+        color: var(--navy);
       }
-      .new-listing-leadin .section-inner {
-        padding-top: 3rem;
-        padding-bottom: 1rem;
+      .wizard-step {
+        display: none;
       }
-
-      @media (max-width: 960px) {
-        .unlock-steps {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .pricing-grid {
-          grid-template-columns: 1fr;
-        }
-        .pricing-card-featured {
-          transform: none;
-        }
-        .faq-grid {
-          grid-template-columns: 1fr;
-          gap: 0;
-        }
+      .wizard-step.is-active {
+        display: block;
       }
-      @media (max-width: 600px) {
-        .unlock-steps {
-          grid-template-columns: 1fr;
-        }
-        .section-inner {
-          padding: 3rem 1rem;
-        }
+      .wizard-footer-note {
+        margin-top: 1.5rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .wizard-footer-note a {
+        color: var(--teal);
       }
     </style>
   </head>
   <body>
     <nav>
       <a href="index.html" class="nav-logo">
-        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+        <div class="nav-icon">🧠</div>
+        <div class="nav-name">BipolarTherapy<span>Hub</span></div>
       </a>
       <ul class="nav-links">
-        <li>
-          <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
-          >
-        </li>
-        <li><a href="directory.html">Find a Therapist</a></li>
-        <li>
-          <a href="signup.html" style="color: var(--teal); font-weight: 600">List Your Practice</a>
-        </li>
+        <li><a href="directory.html">Directory</a></li>
+        <li><a href="match.html">Get matched</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
       </ul>
     </nav>
 
-    <!-- Signup chooser — shown first so every visitor picks a path before
-         seeing any forms. Three equal-weight cards: claim existing listing,
-         list a new practice, or remove a listing we added without asking.
-         Each card is an anchor link that scrolls to the corresponding
-         section below. -->
-    <section class="signup-chooser" aria-label="Choose your signup path">
-      <div class="signup-chooser-inner">
-        <p class="signup-chooser-note">
-          We added California therapists to this directory based on verified license and public
-          bipolar-specialty indicators. That was our choice, not yours. This page gives you three
-          ways to respond — no account, no credit card required.
-        </p>
-        <h1 class="signup-chooser-title">Which best describes you?</h1>
-        <div class="signup-chooser-grid">
-          <a href="#quickClaimSection" class="signup-chooser-card">
-            <span class="signup-chooser-card-kicker">Already listed</span>
-            <h2>Manage my existing listing</h2>
-            <p>
-              Take control of what patients see. Edit your bio, pause or remove your listing, start
-              a free trial of paid tools. Free forever.
-            </p>
-            <span class="signup-chooser-card-cta">Claim my listing →</span>
-          </a>
-          <a href="#newListingSection" class="signup-chooser-card">
-            <span class="signup-chooser-card-kicker">New here</span>
-            <h2>List my practice</h2>
-            <p>
-              You're not in our directory yet. Submit a short application and we review it before
-              going live. Free to list.
-            </p>
-            <span class="signup-chooser-card-cta">Start new listing →</span>
-          </a>
-          <a href="#removalSection" class="signup-chooser-card signup-chooser-card-muted">
-            <span class="signup-chooser-card-kicker">No thanks</span>
-            <h2>Remove my listing</h2>
-            <p>
-              We added you without asking. Remove your listing anytime, no questions. Takes about a
-              minute and a verification email.
-            </p>
-            <span class="signup-chooser-card-cta">Remove me →</span>
-          </a>
-        </div>
+    <main class="wizard-shell">
+      <div class="wizard-header">
+        <span>Join BipolarTherapyHub</span>
+        <span id="stepCounter">Step 1 of 4</span>
       </div>
-    </section>
 
-    <section
-      id="quickClaimSection"
-      class="quick-claim-hero"
-      aria-label="Quick claim your existing profile"
-    >
-      <div class="quick-claim-inner">
-        <div class="quick-claim-copy">
-          <span class="quick-claim-kicker">Already listed on Bipolar Therapy Hub?</span>
-          <h1>Claim your page in one click</h1>
-          <p>
-            Find your listing, confirm it's you, and we email a one-time sign-in link. No password.
-            Free forever.
+      <div
+        class="wizard-progress-bar"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+        id="progressBar"
+      >
+        <div class="wizard-progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="wizard-card">
+        <section class="wizard-step is-active" data-step="1">
+          <p class="wizard-eyebrow">Get started</p>
+          <h1 class="wizard-question">What email should we use?</h1>
+          <p class="wizard-help">
+            We will send your claim link here. CA licensed therapists only. Takes 60 seconds.
           </p>
-        </div>
-        <div class="quick-claim-search" id="quickClaimSearch">
-          <label>
-            <span>Find your listing</span>
+          <form class="wizard-field" id="emailForm" novalidate>
+            <label for="emailInput">Work email</label>
             <input
-              type="search"
-              id="quickClaimSearchInput"
-              autocomplete="off"
-              placeholder="Search by last name or license number"
-            />
-          </label>
-          <div
-            class="quick-claim-search-results"
-            id="quickClaimSearchResults"
-            role="listbox"
-            hidden
-          ></div>
-          <p class="quick-claim-search-hint">
-            Start typing your name or license number. Pick your listing and we'll send a sign-in
-            link to the email we have on file.
-          </p>
-        </div>
-        <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
-          <div class="claim-confirm-header">
-            <span class="claim-confirm-label">Found your listing</span>
-            <a href="#" id="claimConfirmChange">Change →</a>
-          </div>
-          <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
-          <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
-          <p class="claim-confirm-destination">
-            We'll email a one-time sign-in link to
-            <strong id="claimConfirmEmail"></strong>.
-          </p>
-          <button type="button" id="claimConfirmSend" class="claim-confirm-send">
-            Send sign-in link
-          </button>
-          <p class="claim-confirm-alt">
-            <a href="#" id="claimConfirmUseOther">Use a different email →</a>
-          </p>
-          <div
-            class="claim-confirm-status"
-            id="claimConfirmStatus"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-          <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
-            Didn't see it in 2 min? Check your spam folder or
-            <a href="#" id="claimConfirmResendLink">resend the link</a>.
-          </p>
-        </div>
-        <form id="quickClaimForm" class="quick-claim-form" novalidate>
-          <label>
-            <span>Full name</span>
-            <input
-              type="text"
-              name="full_name"
-              autocomplete="name"
-              placeholder="Jamie Rivera"
+              class="wizard-input"
+              type="email"
+              id="emailInput"
+              name="email"
+              autocomplete="email"
+              inputmode="email"
+              placeholder="you@practice.com"
               required
             />
-          </label>
-          <label>
-            <span>Email on your current listing</span>
-            <input type="email" name="email" autocomplete="email" required />
-            <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
-          </label>
-          <label>
-            <span>CA license number</span>
+          </form>
+          <p class="wizard-error" data-error="1"></p>
+          <div class="wizard-actions">
+            <span></span>
+            <button type="button" class="wizard-btn" data-next="1">Continue</button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="2">
+          <p class="wizard-eyebrow">License</p>
+          <h1 class="wizard-question">What is your California license?</h1>
+          <p class="wizard-help">
+            We verify this against the California DCA so patients can trust every listing.
+          </p>
+          <div class="wizard-field">
+            <label for="licenseTypeSelect">License type</label>
+            <select class="wizard-select" id="licenseTypeSelect" name="license_type" required>
+              <option value="">Select license type</option>
+              <option value="LMFT">LMFT — Marriage and Family Therapist</option>
+              <option value="LCSW">LCSW — Clinical Social Worker</option>
+              <option value="LPCC">LPCC — Professional Clinical Counselor</option>
+              <option value="LEP">LEP — Educational Psychologist</option>
+              <option value="Psychologist">PSY — Psychologist</option>
+            </select>
+          </div>
+          <div class="wizard-field">
+            <label for="licenseNumberInput">License number</label>
             <input
+              class="wizard-input"
               type="text"
+              id="licenseNumberInput"
               name="license_number"
               autocomplete="off"
-              placeholder="e.g. 109462"
+              placeholder="e.g. 12345"
               required
             />
-          </label>
-          <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
-            Send claim link
-          </button>
-          <p class="quick-claim-fineprint">No credit card. Free claim stays free forever.</p>
-          <div
-            class="quick-claim-status"
-            id="quickClaimStatus"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-          <p class="quick-claim-resend" id="quickClaimResend" hidden>
-            Didn't see it in 2 min? Check your spam folder or
-            <a href="#" id="quickClaimResendLink">resend the link</a>.
-          </p>
-          <a href="#formCard" class="quick-claim-fallback" id="quickClaimCreateNew" hidden>
-            Create a new listing instead →
-          </a>
-        </form>
-        <div class="claim-trial-offer" id="claimTrialOffer" hidden>
-          <div class="claim-trial-offer-header">
-            <h3>Start your 14-day trial while you wait</h3>
-            <p>
-              No charge today. Cancel anytime. Unlocks analytics and enhanced profile the moment you
-              sign in.
-            </p>
+            <span class="wizard-hint">Numbers only, no prefix.</span>
           </div>
-          <div class="claim-trial-offer-plans">
-            <button
-              type="button"
-              class="claim-trial-cta claim-trial-cta-primary"
-              id="claimTrialPaid"
-              data-plan="paid_monthly"
-            >
-              <span class="claim-trial-cta-title">Start 14-day free trial</span>
-              <span class="claim-trial-cta-price">$19/mo after trial · cancel anytime</span>
+          <p class="wizard-error" data-error="2"></p>
+          <div class="wizard-actions">
+            <button type="button" class="wizard-btn-ghost wizard-btn" data-back="2">Back</button>
+            <button type="button" class="wizard-btn" data-next="2">Verify license</button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="3">
+          <p class="wizard-eyebrow">Confirm</p>
+          <h1 class="wizard-question">Is this you?</h1>
+          <p class="wizard-help">Pulled live from the California DCA.</p>
+          <div class="identity-card" id="identityCard">
+            <h2 class="identity-card-name" id="identityName">—</h2>
+            <p class="identity-card-meta" id="identityLicense">—</p>
+            <p class="identity-card-meta" id="identityLocation">—</p>
+            <span class="identity-card-badge" id="identityStatus"></span>
+          </div>
+          <p class="wizard-error" data-error="3"></p>
+          <div class="wizard-actions">
+            <button type="button" class="wizard-btn-ghost wizard-btn" data-back="3">
+              Not me, go back
+            </button>
+            <button type="button" class="wizard-btn" data-next="3">Yes, that is me</button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="4">
+          <p class="wizard-eyebrow">Fit check</p>
+          <h1 class="wizard-question">Do you actively treat bipolar clients?</h1>
+          <p class="wizard-help">This is our one quality gate. Honest answers only.</p>
+          <div class="wizard-choice-grid" id="bipolarChoices">
+            <button type="button" class="wizard-choice" data-bipolar="yes">
+              <span>Yes, it is a focus area</span>
+              <span class="wizard-choice-arrow">→</span>
+            </button>
+            <button type="button" class="wizard-choice" data-bipolar="sometimes">
+              <span>Sometimes, alongside related work</span>
+              <span class="wizard-choice-arrow">→</span>
+            </button>
+            <button type="button" class="wizard-choice" data-bipolar="no">
+              <span>No, not currently</span>
+              <span class="wizard-choice-arrow">→</span>
             </button>
           </div>
-          <p class="claim-trial-dismiss">
-            <a href="#" id="claimTrialDismiss">I'll decide later →</a>
-          </p>
-          <p class="claim-trial-feedback" id="claimTrialFeedback" aria-live="polite"></p>
-        </div>
-      </div>
-    </section>
+          <p class="wizard-error" data-error="4"></p>
+          <div class="wizard-actions">
+            <button type="button" class="wizard-btn-ghost wizard-btn" data-back="4">Back</button>
+            <span></span>
+          </div>
+        </section>
 
-    <!-- Listing removal — the ethics-first opt-out path. We listed
-         therapists without explicit consent; this section gives them a
-         verified way to opt out. Verification is email-on-file: we send
-         a one-time confirmation link to the email we have, not to
-         whatever the submitter types, to prevent third-party attacks. -->
-    <section id="removalSection" class="listing-removal" aria-label="Remove your listing">
-      <div class="listing-removal-inner">
-        <div class="listing-removal-copy">
-          <span class="listing-removal-kicker">Don't want to be listed?</span>
-          <h2>Remove your listing</h2>
-          <p>
-            We added California therapists to this directory based on verified license and public
-            bipolar-specialty indicators — without asking you first. If that's not something you
-            want, remove your listing in about a minute.
+        <section class="wizard-step" data-step="5">
+          <div class="done-illustration" aria-hidden="true">✉️</div>
+          <p class="wizard-eyebrow">All set</p>
+          <h1 class="wizard-question" id="doneHeadline">Check your email</h1>
+          <p class="wizard-help" id="doneDescription">
+            We sent your next steps to the email you provided.
           </p>
-          <ul class="listing-removal-steps">
-            <li>Enter your name, CA license number, and email on file</li>
-            <li>We email a one-time confirmation link to the address on your listing</li>
-            <li>Click the link and your listing goes dark immediately</li>
-          </ul>
-          <p class="listing-removal-assurance">
-            No follow-up emails. No retention attempts. Your listing is gone from the directory
-            within minutes of clicking the link.
-          </p>
-        </div>
-        <div class="listing-removal-card">
-          <form id="listingRemovalForm" class="listing-removal-form" novalidate>
-            <label>
-              <span>Full name</span>
-              <input
-                type="text"
-                name="full_name"
-                autocomplete="name"
-                placeholder="Jamie Rivera"
-                required
-              />
-            </label>
-            <label>
-              <span>CA license number</span>
-              <input
-                type="text"
-                name="license_number"
-                autocomplete="off"
-                placeholder="e.g. 109462"
-                required
-              />
-            </label>
-            <label>
-              <span>Email on your listing</span>
-              <input type="email" name="email" autocomplete="email" required />
-              <span class="listing-removal-field-hint">
-                We send the confirmation link to the email we have on file for your listing, not to
-                a different address. This prevents someone else from removing you.
-              </span>
-            </label>
-            <button type="submit" class="listing-removal-submit">
-              Send removal confirmation link
-            </button>
-            <div
-              class="listing-removal-status"
-              id="listingRemovalStatus"
-              role="status"
-              aria-live="polite"
-              hidden
-            ></div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <section class="authority-strip" aria-label="Why this directory">
-      <p>
-        Built around bipolar-specialist therapists verified in California. Patients find you through
-        intent-matched searches, not generic directory browsing.
-      </p>
-    </section>
-
-    <section class="unlock-ladder" aria-label="How your profile grows">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">How your profile grows</span>
-          <h2>Four steps to a listing that converts</h2>
-          <p>
-            Every therapist starts at Listed. You unlock the next step by filling in what matters to
-            patients. Paid unlocks analytics and richer profile tools, not higher placement.
-          </p>
-        </header>
-        <ol class="unlock-steps">
-          <li class="unlock-step">
-            <div class="unlock-step-index">1</div>
-            <div class="unlock-step-body">
-              <h3>Listed</h3>
-              <p>Your profile appears in the directory.</p>
-              <span class="unlock-step-criteria">Unlocks with: free claim</span>
-            </div>
-          </li>
-          <li class="unlock-step">
-            <div class="unlock-step-index">2</div>
-            <div class="unlock-step-body">
-              <h3>Searchable</h3>
-              <p>
-                Patients can filter by insurance, session format, and telehealth state to find you.
-              </p>
-              <span class="unlock-step-criteria"
-                >Unlocks with: insurance, format, telehealth states</span
-              >
-            </div>
-          </li>
-          <li class="unlock-step">
-            <div class="unlock-step-index">3</div>
-            <div class="unlock-step-body">
-              <h3>Match-ready</h3>
-              <p>
-                Your profile has the depth match results need: bipolar-specific experience, care
-                approach, bio, and photo.
-              </p>
-              <span class="unlock-step-criteria"
-                >Unlocks with: bio, care approach, bipolar years, photo</span
-              >
-            </div>
-          </li>
-          <li class="unlock-step unlock-step-paid">
-            <div class="unlock-step-index">4</div>
-            <div class="unlock-step-body">
-              <h3>Insights + longer bio</h3>
-              <p>
-                Analytics dashboard with view counts, filter breakdowns, and drop-off reasons. Room
-                for a longer bio so you can tell patients how you actually work.
-              </p>
-              <span class="unlock-step-criteria">Unlocks with: paid upgrade ($19/mo)</span>
-            </div>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="pricing-section" id="pricing" aria-label="Pricing">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">Pricing</span>
-          <h2>Listed free. $19 for intel on your own profile.</h2>
-          <p>
-            Every therapist is listed and matched by fit for free. Paid unlocks analytics and richer
-            profile tools — not higher placement. Patient match results are ranked by fit, not by
-            who pays.
-          </p>
-        </header>
-        <div class="pricing-grid">
-          <article class="pricing-card">
-            <header class="pricing-card-header">
-              <h3>Free</h3>
-              <div class="pricing-card-price">
-                <span class="pricing-amount">$0</span><span class="pricing-cadence">forever</span>
-              </div>
-            </header>
-            <ul class="pricing-features">
-              <li>Listed in the directory</li>
-              <li>Ranked in match results by fit, same as everyone</li>
-              <li>Unlimited profile edits</li>
-              <li>Monthly view count</li>
-            </ul>
-            <a href="#quickClaimForm" class="pricing-cta pricing-cta-secondary"
-              >Claim your profile</a
+          <div class="done-next">
+            <strong>What happens next:</strong>
+            <span id="doneNextBody">A reviewer looks at your signup within one business day.</span>
+          </div>
+          <div class="wizard-actions">
+            <span></span>
+            <a href="directory.html" class="wizard-btn" style="text-decoration: none"
+              >See the directory</a
             >
-            <p class="pricing-fineprint">No credit card. Free claim stays free forever.</p>
-          </article>
-
-          <article class="pricing-card pricing-card-featured">
-            <span class="pricing-badge-featured">14-day free trial</span>
-            <header class="pricing-card-header">
-              <h3>Paid</h3>
-              <div class="pricing-card-price">
-                <span class="pricing-amount">$19</span
-                ><span class="pricing-cadence">per month</span>
-              </div>
-            </header>
-            <ul class="pricing-features">
-              <li>
-                <strong>Profile analytics</strong> — views, filter breakdowns, where viewers drop
-                off, which filters brought them to you
-              </li>
-              <li>
-                <strong>Longer bio</strong> — room to explain how you actually work with bipolar
-                clients, not just a specialty bullet
-              </li>
-              <li>Monthly insights email with actionable suggestions</li>
-              <li>14-day free trial, cancel anytime from your dashboard</li>
-            </ul>
-            <a href="#quickClaimForm" class="pricing-cta pricing-cta-primary"
-              >Start 14-day free trial</a
-            >
-            <div class="pricing-trust">
-              <span>No charge until day 15</span>
-              <span>Cancel from your dashboard in one click</span>
-            </div>
-          </article>
-        </div>
-        <p class="pricing-tie-breaker">
-          <strong>Paid does not buy placement.</strong> Match results are always ranked by fit to
-          the patient. Paid unlocks intel about who viewed you and tools to convert them better —
-          not a higher spot in the list.
-        </p>
-      </div>
-    </section>
-
-    <section class="faq-section" aria-label="Common questions">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">Common questions</span>
-          <h2>Answers to what therapists ask first</h2>
-        </header>
-        <div class="faq-grid">
-          <details class="faq-item">
-            <summary>How do patients actually reach me?</summary>
-            <p>
-              Patients click your profile's contact button, which opens whichever channel you
-              prefer: email, phone, or your booking link. You receive the inquiry directly. We do
-              not gate, relay, or delay messages.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>What if a matched patient is not a good fit?</summary>
-            <p>
-              You are never obligated to take a patient. Respond as you would to any inquiry. We
-              track outcomes so matching gets smarter over time, but no one is forcing a referral.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Do I have to use your booking tool?</summary>
-            <p>
-              No. Use whatever booking you already have: SimplePractice, Calendly, your own email.
-              We link to your system.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>How is ranking determined?</summary>
-            <p>
-              Fit to the patient, full stop. Profile completeness, bipolar-specific experience,
-              proximity, insurance match, and availability all feed the match model. Paying does not
-              raise your ranking. Every patient sees the same ranked list regardless of who has
-              upgraded.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Can I pause my listing without deleting it?</summary>
-            <p>
-              Yes. One click from your portal. Your listing goes dark until you reactivate. No data
-              is lost and you can return anytime.
-            </p>
-          </details>
-          <details class="faq-item">
-            <summary>Why focus on bipolar disorder specifically?</summary>
-            <p>
-              Bipolar care is chronic, relapse-prone, and often mistreated. Patients who find a
-              bipolar-informed therapist stay in care longer and get better outcomes. Serving that
-              audience well is the whole point.
-            </p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section id="newListingSection" class="new-listing-leadin" aria-label="Create a new listing">
-      <div class="section-inner">
-        <header class="section-header">
-          <span class="section-kicker">Not listed yet?</span>
-          <h2>Create a new profile below</h2>
-          <p>
-            We review new applications within a few business days. Once approved, your profile goes
-            live and you can claim it with the same email you submitted.
-          </p>
-        </header>
-      </div>
-    </section>
-
-    <div class="wrap">
-      <div class="form-card" id="formCard">
-        <form id="applyForm" novalidate>
-          <input type="hidden" name="submission_intent" value="full_profile" />
-          <div class="claim-note">
-            <h3>Claim first. Pay for growth, not accuracy.</h3>
-            <p>
-              We do not charge therapists to correct factual details. Paid plans are for enhanced
-              presentation, stronger trust and visibility features, and better conversion from
-              profile views to qualified inquiries.
-            </p>
           </div>
-          <div class="revision-notice" id="revisionNotice">
-            <h3 id="revisionTitle">Revision requested</h3>
-            <p id="revisionMessage">
-              This profile was sent back for revisions. Tighten the requested details and resubmit
-              this version for review.
-            </p>
-            <div class="revision-summary" id="revisionSummary">
-              <div class="revision-summary-grid">
-                <div class="revision-summary-card">
-                  <h4>Reviewer likely wants tightened</h4>
-                  <div class="revision-summary-list" id="revisionRequestedFields"></div>
-                </div>
-                <div class="revision-summary-card">
-                  <h4>What you have improved</h4>
-                  <div class="revision-summary-list" id="revisionImprovedFields"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="funnel-stage">
-            <div class="funnel-stage-kicker">Step 1</div>
-            <h3>Claim your profile basics</h3>
-            <p>
-              Start with the essentials needed to verify ownership: identity, licensure, core
-              contact details, and a few basics that make the profile trustworthy.
-            </p>
-            <p class="field-hint" style="margin: 0.5rem 0 0">
-              For a free claim, you only need the fields in this first section. Open Step 2 when you
-              want to complete the fuller profile for review.
-            </p>
-          </div>
-          <div class="form-section" id="matchReadinessSection">
-            <h2>🧠 Match Readiness</h2>
-            <div class="readiness-header">
-              <div>
-                <div class="readiness-score-row">
-                  <div class="readiness-score" id="readinessScore">0/100</div>
-                  <div class="readiness-delta" id="readinessDelta" aria-live="polite"></div>
-                </div>
-                <div class="readiness-label tone-needs-work" id="readinessLabel">Needs work</div>
-              </div>
-              <div class="readiness-copy">
-                We use this same score in admin review and matching to judge whether your profile
-                gives patients enough trust, fit, and next-step clarity to shortlist you with
-                confidence.
-              </div>
-            </div>
-            <div class="readiness-meter">
-              <div class="readiness-meter-track">
-                <div class="readiness-meter-fill" id="readinessMeterFill"></div>
-              </div>
-              <div class="readiness-meter-markers">
-                <span>0-39</span>
-                <span>40+</span>
-                <span>65+</span>
-                <span>85+</span>
-              </div>
-            </div>
-            <div class="readiness-nudge">
-              <div class="readiness-nudge-kicker" id="readinessNudgeKicker">Best next unlock</div>
-              <div class="readiness-nudge-copy" id="readinessNudgeCopy">
-                Add a few core details and this score will start moving quickly.
-              </div>
-              <div class="readiness-nudge-actions">
-                <button
-                  type="button"
-                  class="readiness-nudge-button"
-                  id="readinessNudgeButton"
-                  style="display: none"
-                >
-                  Open next fix
-                </button>
-                <div class="readiness-nudge-meta">
-                  <div class="readiness-milestone" id="readinessMilestone">
-                    Complete a few essentials to move this profile toward shortlist-ready.
-                  </div>
-                  <div
-                    class="readiness-celebration"
-                    id="readinessCelebration"
-                    aria-live="polite"
-                  ></div>
-                  <div class="readiness-distance" id="readinessDistance"></div>
-                  <div class="readiness-next-tier" id="readinessNextTier"></div>
-                </div>
-              </div>
-            </div>
-            <div class="readiness-tier-rail" id="readinessTierRail">
-              <div class="readiness-tier" data-tier-key="needs-work">
-                <div class="readiness-tier-range">0-39</div>
-                <div class="readiness-tier-label">Needs work</div>
-                <div class="readiness-tier-note">Core trust details are still thin.</div>
-              </div>
-              <div class="readiness-tier" data-tier-key="good-start">
-                <div class="readiness-tier-range">40-64</div>
-                <div class="readiness-tier-label">Good start</div>
-                <div class="readiness-tier-note">The profile is starting to feel real.</div>
-              </div>
-              <div class="readiness-tier" data-tier-key="getting-stronger">
-                <div class="readiness-tier-range">65-84</div>
-                <div class="readiness-tier-label">Getting stronger</div>
-                <div class="readiness-tier-note">Shortlist confidence is building.</div>
-              </div>
-              <div class="readiness-tier" data-tier-key="match-ready">
-                <div class="readiness-tier-range">85+</div>
-                <div class="readiness-tier-label">Match-ready</div>
-                <div class="readiness-tier-note">Strong enough to feel shortlist-ready.</div>
-              </div>
-            </div>
-            <div class="readiness-benefit" id="readinessBenefit">
-              <strong>What this tier unlocks:</strong> Patients can start recognizing whether this
-              profile feels credible enough to keep considering.
-            </div>
-            <div class="readiness-snapshot" id="readinessSnapshot"></div>
-            <div class="readiness-dimensions-heading">Where this score is still won or lost</div>
-            <div class="readiness-dimensions" id="readinessDimensions" aria-live="polite"></div>
-            <div class="readiness-group">
-              <h4>Already Strong</h4>
-              <div class="readiness-list" id="readinessStrengths"></div>
-            </div>
-            <div class="readiness-group">
-              <h4>Biggest Score Movers Left</h4>
-              <div class="readiness-list" id="readinessMissing"></div>
-            </div>
-          </div>
-          <div class="form-section">
-            <h2>👤 Your Information</h2>
-            <div class="form-grid">
-              <div class="field">
-                <label>Full Name *</label
-                ><input type="text" name="name" placeholder="Dr. Jane Smith" required />
-              </div>
-              <div class="field">
-                <label>Credentials / License *</label
-                ><input
-                  type="text"
-                  name="credentials"
-                  placeholder="MD, PhD, LCSW, LPC..."
-                  required
-                />
-              </div>
-              <div class="field">
-                <label>Professional Title</label
-                ><input type="text" name="title" placeholder="Psychiatrist, Therapist..." />
-              </div>
-              <div class="field">
-                <label>Years of Experience</label
-                ><input
-                  type="number"
-                  name="years_experience"
-                  placeholder="e.g. 8"
-                  min="0"
-                  max="60"
-                />
-              </div>
-              <div class="field">
-                <label>State of Licensure *</label
-                ><input type="text" name="license_state" placeholder="e.g. CA" maxlength="2" />
-              </div>
-              <div class="field">
-                <label>License Type *</label>
-                <select name="license_type">
-                  <option value="">Select license type</option>
-                  <option value="LMFT">LMFT</option>
-                  <option value="LCSW">LCSW</option>
-                  <option value="LPCC">LPCC</option>
-                  <option value="Psychologist">Psychologist</option>
-                  <option value="Psychiatrist (MD)">Psychiatrist (MD)</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>License Number *</label
-                ><input
-                  type="text"
-                  name="license_number"
-                  placeholder="Shown as a trust signal during editorial review"
-                />
-              </div>
-              <div class="field">
-                <label>Years Treating Bipolar Disorder</label
-                ><input
-                  type="number"
-                  name="bipolar_years_experience"
-                  placeholder="e.g. 5"
-                  min="0"
-                  max="60"
-                />
-              </div>
-              <div class="field">
-                <label>Email Address *</label
-                ><input type="email" name="email" placeholder="you@example.com" required />
-              </div>
-              <div class="field">
-                <label>Phone Number</label
-                ><input type="tel" name="phone" placeholder="(555) 123-4567" />
-              </div>
-              <div class="field full">
-                <label>Languages</label
-                ><input type="text" name="languages" placeholder="English, Spanish, Mandarin" />
-              </div>
-              <div class="field full">
-                <label>Headshot</label>
-                <input
-                  type="file"
-                  name="photo_file"
-                  id="photoFileInput"
-                  accept="image/png,image/jpeg,image/webp"
-                />
-                <p class="field-hint">
-                  Preferred: upload the actual therapist or practice-approved headshot you want used
-                  on the live profile. JPG, PNG, or WebP up to 4 MB.
-                </p>
-                <div class="form-grid" style="margin-top: 0.75rem">
-                  <div class="field">
-                    <label>Photo source</label>
-                    <select name="photo_source_type">
-                      <option value="">Select source</option>
-                      <option value="therapist_uploaded">Therapist uploaded</option>
-                      <option value="practice_uploaded">Practice uploaded</option>
-                      <option value="public_source">Public-source fallback</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label>Photo use permission</label>
-                    <label class="check-label">
-                      <input type="checkbox" name="photo_usage_permission_confirmed" value="true" />
-                      I confirm this photo can be used on the live profile
-                    </label>
-                  </div>
-                </div>
-                <div class="field-example" id="photoUploadStatus">
-                  Uploaded headshots are preferred over public-source images because they are
-                  clearer, easier to trust, and easier to keep current.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <details class="funnel-disclosure" id="fullProfileDetails">
-            <summary>
-              <div class="funnel-disclosure-copy">
-                <strong>Step 2: Complete your full profile</strong>
-                <span>
-                  Add the richer trust, fit, pricing, and care details that make your listing more
-                  useful in matching and more compelling to the right clients.
-                </span>
-              </div>
-              <span class="funnel-disclosure-toggle" id="fullProfileToggleLabel">
-                Open profile details
-              </span>
-            </summary>
-            <div class="funnel-disclosure-body">
-              <div class="form-section">
-                <h2>🏥 Practice Details</h2>
-                <div class="form-grid">
-                  <div class="field full">
-                    <label>Practice Name</label
-                    ><input
-                      type="text"
-                      name="practice_name"
-                      placeholder="e.g. Serenity Psychiatric Associates"
-                    />
-                  </div>
-                  <div class="field">
-                    <label>City *</label
-                    ><input type="text" name="city" placeholder="e.g. San Francisco" required />
-                  </div>
-                  <div class="field">
-                    <label>State *</label>
-                    <select name="state" required>
-                      <option value="">Select State</option>
-                      <option>AL</option>
-                      <option>AK</option>
-                      <option>AZ</option>
-                      <option>AR</option>
-                      <option>CA</option>
-                      <option>CO</option>
-                      <option>CT</option>
-                      <option>DE</option>
-                      <option>FL</option>
-                      <option>GA</option>
-                      <option>HI</option>
-                      <option>ID</option>
-                      <option>IL</option>
-                      <option>IN</option>
-                      <option>IA</option>
-                      <option>KS</option>
-                      <option>KY</option>
-                      <option>LA</option>
-                      <option>ME</option>
-                      <option>MD</option>
-                      <option>MA</option>
-                      <option>MI</option>
-                      <option>MN</option>
-                      <option>MS</option>
-                      <option>MO</option>
-                      <option>MT</option>
-                      <option>NE</option>
-                      <option>NV</option>
-                      <option>NH</option>
-                      <option>NJ</option>
-                      <option>NM</option>
-                      <option>NY</option>
-                      <option>NC</option>
-                      <option>ND</option>
-                      <option>OH</option>
-                      <option>OK</option>
-                      <option>OR</option>
-                      <option>PA</option>
-                      <option>RI</option>
-                      <option>SC</option>
-                      <option>SD</option>
-                      <option>TN</option>
-                      <option>TX</option>
-                      <option>UT</option>
-                      <option>VT</option>
-                      <option>VA</option>
-                      <option>WA</option>
-                      <option>WV</option>
-                      <option>WI</option>
-                      <option>WY</option>
-                      <option>DC</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label>ZIP Code</label><input type="text" name="zip" placeholder="e.g. 94102" />
-                  </div>
-                  <div class="field">
-                    <label>Website URL</label
-                    ><input type="url" name="website" placeholder="https://yourpractice.com" />
-                  </div>
-                  <div class="field">
-                    <label>Preferred Contact Path</label>
-                    <select name="preferred_contact_method">
-                      <option value="">Choose preferred route</option>
-                      <option value="email">Email me</option>
-                      <option value="phone">Call my practice</option>
-                      <option value="website">Use my website</option>
-                      <option value="booking">Use my booking link</option>
-                    </select>
-                  </div>
-                  <div class="field full">
-                    <label>Primary Contact Button Label</label
-                    ><input
-                      type="text"
-                      name="preferred_contact_label"
-                      maxlength="40"
-                      placeholder="Examples: Book a consultation, Schedule an intro call, Start with a fit consult"
-                    />
-                    <p class="field-hint">
-                      Keep this concrete and calm. Strong labels usually describe the first step,
-                      not a marketing slogan.
-                    </p>
-                  </div>
-                  <div class="field full">
-                    <label>Contact Guidance</label
-                    ><textarea
-                      name="contact_guidance"
-                      rows="3"
-                      maxlength="180"
-                      placeholder="Examples: New clients usually hear back within 1 business day. Please mention your state, whether you are seeking therapy or psychiatry, and any insurance questions."
-                    ></textarea>
-                    <p class="field-hint">
-                      This is where people decide whether reaching out feels manageable. Clarify
-                      response time, what to include, and anything that helps avoid back-and-forth.
-                    </p>
-                    <div class="field-example">
-                      <strong>Strong example:</strong> New clients usually hear back within one
-                      business day. Please include your state, whether you are looking for therapy
-                      or medication support, and any insurance questions so we can point you to the
-                      right next step.
-                    </div>
-                    <p class="field-coach" id="contactGuidanceCoach"></p>
-                  </div>
-                  <div class="field full">
-                    <label>What Happens After Someone Reaches Out?</label
-                    ><textarea
-                      name="first_step_expectation"
-                      rows="3"
-                      maxlength="220"
-                      placeholder="Examples: I usually start with a 15-minute consult to understand fit, urgency, and whether medication support is needed before booking a full intake."
-                    ></textarea>
-                    <p class="field-hint">
-                      Reduce uncertainty. A strong answer helps someone picture the first contact,
-                      timeline, and what you are evaluating for fit.
-                    </p>
-                    <div class="field-example">
-                      <strong>Strong example:</strong> I usually begin with a 15-minute consultation
-                      to understand your goals, urgency, and whether therapy, psychiatry, or
-                      coordinated care makes the most sense before we schedule a full intake.
-                    </div>
-                    <p class="field-coach" id="firstStepCoach"></p>
-                  </div>
-                  <div class="field full">
-                    <label>Booking URL</label
-                    ><input
-                      type="url"
-                      name="booking_url"
-                      placeholder="https://yourpractice.com/book"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>📝 About Your Practice</h2>
-                <div class="form-grid">
-                  <div class="field full">
-                    <label>Professional Bio *</label
-                    ><textarea
-                      name="bio"
-                      placeholder="Tell potential patients about your background, bipolar-related experience, and the kind of care you provide. This should help someone understand why they may trust you. (Minimum 100 characters)"
-                      required
-                      minlength="50"
-                    ></textarea>
-                    <p class="field-hint">
-                      Focus on credibility and relevance: your training, who you help, and why
-                      bipolar clients or families may trust your care.
-                    </p>
-                  </div>
-                  <div class="field full">
-                    <label>How You Help Bipolar Clients *</label
-                    ><textarea
-                      name="care_approach"
-                      placeholder="Describe your approach in a concise, concrete way. Focus on the practical and clinical details a patient would compare before reaching out."
-                      required
-                      minlength="40"
-                    ></textarea>
-                    <p class="field-hint">
-                      The strongest answers combine who you help, how you work, and what makes your
-                      bipolar-specific care distinct in practice.
-                    </p>
-                    <div class="field-example">
-                      <strong>Strong example:</strong> I work with adults living with Bipolar I and
-                      II using CBT, psychoeducation, and relapse-prevention planning. I help clients
-                      track sleep and mood patterns, strengthen routines, coordinate with psychiatry
-                      when needed, and build early-warning plans for mood shifts.
-                    </div>
-                    <p class="field-coach" id="careApproachCoach"></p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>🎯 Specialties</h2>
-                <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-                  Select all that apply to your practice
-                </p>
-                <div class="checkbox-grid">
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Bipolar I" /> Bipolar I</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Bipolar II" /> Bipolar
-                    II</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Bipolar NOS" /> Bipolar
-                    NOS</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Cyclothymia" />
-                    Cyclothymia</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Rapid Cycling" /> Rapid
-                    Cycling</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Mixed Episodes" /> Mixed
-                    Episodes</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Mood Disorders" /> Mood
-                    Disorders</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Depression" />
-                    Depression</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Anxiety" /> Anxiety</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Psychosis" /> Psychosis</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Dual Diagnosis" /> Dual
-                    Diagnosis</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Adolescent Bipolar" />
-                    Adolescent Bipolar</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Family Therapy" /> Family
-                    Therapy</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="specialties" value="Medication Management" />
-                    Medication Management</label
-                  >
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>🧭 Clinical Fit</h2>
-                <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.9rem">
-                  These details make the profile far more useful in matching, shortlist decisions,
-                  and first-contact planning.
-                </p>
-                <div class="form-grid">
-                  <div class="field full">
-                    <label>Treatment Modalities *</label>
-                    <div class="checkbox-grid">
-                      <label class="check-label"
-                        ><input type="checkbox" name="treatment_modalities" value="CBT" />
-                        CBT</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="treatment_modalities" value="DBT" />
-                        DBT</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="treatment_modalities" value="IPSRT" />
-                        IPSRT</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="treatment_modalities" value="ACT" />
-                        ACT</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="treatment_modalities"
-                          value="Mindfulness-based therapy"
-                        />
-                        Mindfulness-based</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="treatment_modalities"
-                          value="Family therapy"
-                        />
-                        Family therapy</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="treatment_modalities"
-                          value="Medication management"
-                        />
-                        Medication management</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="treatment_modalities"
-                          value="Psychoeducation"
-                        />
-                        Psychoeducation</label
-                      >
-                    </div>
-                  </div>
-                  <div class="field full">
-                    <label>Populations Served</label>
-                    <div class="checkbox-grid">
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Adults" />
-                        Adults</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Young adults" />
-                        Young adults</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Adolescents" />
-                        Adolescents</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Couples" />
-                        Couples</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Families" />
-                        Families</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="LGBTQ+" />
-                        LGBTQ+</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="client_populations"
-                          value="College students"
-                        />
-                        College students</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="client_populations" value="Professionals" />
-                        Professionals</label
-                      >
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label>Typical Wait Time</label>
-                    <select name="estimated_wait_time">
-                      <option value="">Select wait time</option>
-                      <option>Immediate availability</option>
-                      <option>Within 1 week</option>
-                      <option>Within 2 weeks</option>
-                      <option>2-4 weeks</option>
-                      <option>1-2 months</option>
-                      <option>Waitlist only</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label>Telehealth States</label
-                    ><input type="text" name="telehealth_states" placeholder="CA, NY, TX" />
-                  </div>
-                  <div class="field full">
-                    <label class="check-label" style="border: none; padding: 0"
-                      ><input type="checkbox" name="medication_management" value="true" /> I provide
-                      medication management or prescribing support</label
-                    >
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>🛡️ Trust & Source Clarity</h2>
-                <div class="form-grid">
-                  <div class="field full">
-                    <label>Which of these details are you directly confirming?</label>
-                    <p class="field-hint">
-                      Some details are hard to verify from public sources alone. This lets us
-                      distinguish specialist-confirmed operational details from editorially reviewed
-                      facts.
-                    </p>
-                    <div class="checkbox-grid">
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="estimated_wait_time"
-                          checked
-                        />
-                        Estimated wait time</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="bipolar_years_experience"
-                          checked
-                        />
-                        Years treating bipolar disorder</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="insurance_accepted"
-                          checked
-                        />
-                        Insurance details</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="telehealth_states"
-                          checked
-                        />
-                        Telehealth states</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="contact_guidance"
-                          checked
-                        />
-                        Contact guidance</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="first_step_expectation"
-                          checked
-                        />
-                        What happens after outreach</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="therapist_reported_fields"
-                          value="session_pricing"
-                          checked
-                        />
-                        Session pricing</label
-                      >
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="therapist_reported_confirmed_at">Last confirmed by you</label>
-                    <input
-                      type="date"
-                      id="therapist_reported_confirmed_at"
-                      name="therapist_reported_confirmed_at"
-                    />
-                  </div>
-                  <div class="field">
-                    <label>Why this matters</label>
-                    <div class="field-example">
-                      <strong>Trust model:</strong> we treat time-sensitive operational details
-                      differently from facts we can verify independently. That makes the product
-                      more honest and keeps your listing more credible.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>💳 Insurance & Fees</h2>
-                <div class="form-grid">
-                  <div class="field full">
-                    <label>Insurance Accepted (select all that apply)</label>
-                    <p class="field-hint">
-                      If you are out-of-network or self-pay, clear pricing and process details
-                      matter even more for matching and conversion.
-                    </p>
-                    <div class="checkbox-grid">
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Aetna" />
-                        Aetna</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="insurance_accepted"
-                          value="Blue Cross Blue Shield"
-                        />
-                        Blue Cross Blue Shield</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Cigna" />
-                        Cigna</label
-                      >
-                      <label class="check-label"
-                        ><input
-                          type="checkbox"
-                          name="insurance_accepted"
-                          value="United Healthcare"
-                        />
-                        United Healthcare</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Humana" />
-                        Humana</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Medicaid" />
-                        Medicaid</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Medicare" />
-                        Medicare</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Tricare" />
-                        Tricare</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Out-of-Network" />
-                        Out-of-Network</label
-                      >
-                      <label class="check-label"
-                        ><input type="checkbox" name="insurance_accepted" value="Self-Pay" />
-                        Self-Pay Only</label
-                      >
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label>Session Fee (min $)</label
-                    ><input type="number" name="session_fee_min" placeholder="e.g. 150" min="0" />
-                  </div>
-                  <div class="field">
-                    <label>Session Fee (max $)</label
-                    ><input type="number" name="session_fee_max" placeholder="e.g. 250" min="0" />
-                  </div>
-                  <div class="field full">
-                    <div class="field-example">
-                      <strong>Pricing guidance:</strong> A clear range helps users self-screen
-                      quickly. If your rate varies by intake, therapy type, or med-management
-                      follow-up, use the typical range and clarify the nuance in your contact
-                      guidance.
-                    </div>
-                    <p class="field-coach" id="pricingCoach"></p>
-                  </div>
-                  <div class="field full">
-                    <label class="check-label" style="border: none; padding: 0"
-                      ><input type="checkbox" name="sliding_scale" value="true" /> I offer a sliding
-                      scale fee</label
-                    >
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h2>📍 Session Format</h2>
-                <div class="checkbox-grid">
-                  <label class="check-label"
-                    ><input type="checkbox" name="accepts_telehealth" value="true" /> Telehealth /
-                    Virtual Sessions</label
-                  >
-                  <label class="check-label"
-                    ><input type="checkbox" name="accepts_in_person" value="true" checked />
-                    In-Person Sessions</label
-                  >
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <div
-            id="formError"
-            style="
-              display: none;
-              background: #fff5f5;
-              border: 1px solid #feb2b2;
-              border-radius: 8px;
-              padding: 0.9rem 1.25rem;
-              margin: 1rem 1.75rem;
-              color: var(--red);
-              font-size: 0.875rem;
-            "
-          ></div>
-
-          <div class="form-submit">
-            <div class="submit-note">
-              Save a free claim now, or submit the fuller profile when you are ready. Paid plans
-              come later, after review, when you want visibility and growth features.
-            </div>
-            <div class="submit-actions">
-              <button
-                type="submit"
-                class="btn-submit btn-submit-secondary"
-                id="claimBtn"
-                data-submit-intent="claim"
-              >
-                Save Free Claim
-              </button>
-              <button type="submit" class="btn-submit" id="submitBtn" data-submit-intent="full">
-                Submit Full Profile
-              </button>
-            </div>
-          </div>
-        </form>
+        </section>
       </div>
 
-      <div class="sidebar">
-        <div class="sidebar-card">
-          <h3>Choose Your Starting Point</h3>
-          <div class="plan-grid">
-            <div class="plan-card">
-              <div class="plan-kicker">Free</div>
-              <h4>Claim your profile</h4>
-              <div class="plan-price">$0 <span>to take ownership</span></div>
-              <div class="plan-copy">
-                Best for correcting details, confirming information, and making your profile
-                accurate.
-              </div>
-              <div class="plan-list">
-                <div class="feature-item">
-                  <span class="check">✓</span> Verify identity and ownership
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Correct core profile details
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Add headshot, bio, and specialties
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Keep your listing current
-                </div>
-              </div>
-            </div>
-            <div class="plan-card featured">
-              <div class="plan-kicker">Paid · 14-day free trial</div>
-              <h4>Insights + enhanced profile</h4>
-              <div class="plan-price">$19<span>/month</span></div>
-              <div class="plan-copy">
-                For therapists who treat their listing as a growth channel. See who viewed, what
-                filters brought them, and where they dropped off. Use a longer bio to convert those
-                viewers.
-              </div>
-              <div class="plan-list">
-                <div class="feature-item">
-                  <span class="check">✓</span> Profile analytics dashboard
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Filter breakdowns and drop-off reasons
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Longer bio to explain how you work with bipolar
-                  clients
-                </div>
-                <div class="feature-item">
-                  <span class="check">✓</span> Monthly insights email with actionable suggestions
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="trust-card">
-          <h3>🔒 Why Strong Profiles Perform Better Here</h3>
-          <div class="trust-item">
-            🎯
-            <span>Focused audience: people specifically looking for bipolar-specialist care</span>
-          </div>
-          <div class="trust-item">
-            🧭 <span>Guided matching and shortlist tools that help patients actually decide</span>
-          </div>
-          <div class="trust-item">
-            ✅ <span>Trust signals that reward clearer licensure, fit, and next-step details</span>
-          </div>
-          <div class="trust-item">
-            📞
-            <span>Direct outreach to your preferred route, not a generic booking marketplace</span>
-          </div>
-        </div>
-
-        <div class="sidebar-card" style="background: var(--teal-faint)">
-          <h3 style="color: var(--teal-dark)">Questions?</h3>
-          <p style="font-size: 0.83rem; color: var(--slate); line-height: 1.6">
-            Need help or have questions about your listing? Direct email support is not live yet,
-            but you can still submit your application and we can use it as the starting point for a
-            claim or listing update flow.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <footer>
-      <p>
-        <strong style="color: white">BipolarTherapyHub</strong> — Listing your practice takes 2
-        minutes
+      <p class="wizard-footer-note">
+        Questions? Read the <a href="pricing.html">pricing page</a> or email
+        <a href="mailto:hello@bipolartherapyhub.com">hello@bipolartherapyhub.com</a>.
       </p>
-      <p style="margin-top: 0.4rem">
-        <a href="directory.html">Browse the directory</a> · <a href="index.html">Home</a>
-      </p>
-    </footer>
+    </main>
 
-    <script type="module" src="assets/signup-quick-claim.js"></script>
-    <script type="module" src="assets/signup-listing-removal.js"></script>
     <script type="module" src="assets/signup.js"></script>
-    <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

@@ -15,7 +15,7 @@ import { handleApplicationRoutes } from "./review-application-routes.mjs";
 import { handleAuthAndPortalRoutes } from "./review-auth-portal-routes.mjs";
 import { handleCandidateIngestRoutes } from "./review-candidate-ingest-routes.mjs";
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
-import { verifyLicense } from "./dca-license-client.mjs";
+import { resolveLicenseTypeCode, verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
@@ -32,6 +32,7 @@ import {
   notifyApplicantOfDecision,
   sendListingRemovalLink as sendListingRemovalLinkEmail,
   sendPortalClaimLink as sendPortalClaimLinkEmail,
+  sendSignupAcknowledgment,
 } from "./review-email.mjs";
 import {
   canAttemptLogin,
@@ -54,6 +55,7 @@ import {
 } from "./review-http-auth.mjs";
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
+import { handleSignupRoutes } from "./review-signup-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
   annotateMatchOutcomeForDisplay,
@@ -531,6 +533,18 @@ function createReviewRouteModules() {
       deps: {
         parseBody,
         sendJson,
+      },
+    },
+    {
+      handler: handleSignupRoutes,
+      deps: {
+        notifyAdminOfSubmission,
+        parseBody,
+        resolveLicenseTypeCode,
+        sendJson,
+        sendPortalClaimLink,
+        sendSignupAcknowledgment,
+        verifyLicense,
       },
     },
     {
