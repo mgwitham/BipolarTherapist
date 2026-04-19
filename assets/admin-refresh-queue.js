@@ -119,8 +119,36 @@ export function renderRefreshQueuePanel(options) {
         priorityMeta: null,
       };
     })
+    // Only surface cards for signals an admin can actually close from a
+    // source check: source-age staleness and source-health issues.
+    // Per-field operational trust (insurance, wait time, telehealth
+    // states) is intentionally excluded — those are therapist-only
+    // fields that a reviewer cannot verify from a public source, and
+    // the data stays alive on the therapist doc for the upcoming
+    // automated outreach pipeline. See fieldTrustMeta.
     .filter(function (entry) {
-      return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
+      const item = entry.item || {};
+      const sourceReviewedAt = item.source_reviewed_at || "";
+      const sourceHealthStatus = item.source_health_status || "";
+
+      if (
+        sourceHealthStatus &&
+        sourceHealthStatus !== "healthy" &&
+        sourceHealthStatus !== "redirected"
+      ) {
+        return true;
+      }
+
+      if (!sourceReviewedAt) {
+        return true;
+      }
+
+      const reviewedMs = Date.parse(sourceReviewedAt);
+      if (Number.isNaN(reviewedMs)) {
+        return true;
+      }
+      const daysSinceReviewed = Math.floor((Date.now() - reviewedMs) / (1000 * 60 * 60 * 24));
+      return daysSinceReviewed > 90;
     })
     .map(function (entry) {
       entry.priorityMeta = getRefreshPriorityMeta(entry, options);
@@ -196,7 +224,17 @@ export function renderRefreshQueuePanel(options) {
         const freshness = entry.freshness;
         const priorityMeta = entry.priorityMeta || {};
         const trustSummary = options.getTherapistFieldTrustSummary(item);
-        const nextMove = options.getTherapistTrustRecommendation(item, freshness, trustSummary);
+        // Refresh-queue-specific "next move" guidance. Intentionally
+        // source-focused: the queue only surfaces source-verifiable
+        // cards, so the guidance should only reference things a
+        // reviewer can actually close. Operational-field nudges
+        // (insurance, wait time, telehealth states) are handled by
+        // the therapist-outreach pipeline, not here.
+        const sourceHealth = item && item.source_health_status;
+        const nextMove =
+          sourceHealth && !["healthy", "redirected"].includes(sourceHealth)
+            ? "Check the source URL — status is " + sourceHealth + ". Fix or replace it."
+            : "Open the source, confirm the profile still matches, and mark reviewed.";
         const therapistId = getTherapistId(item);
         const sourceReference = options.getSourceReferenceMeta
           ? options.getSourceReferenceMeta(item)
@@ -326,8 +364,6 @@ export function renderRefreshQueuePanel(options) {
           options.escapeHtml(freshness.note) +
           '</div><div class="subtle">Next move: ' +
           options.escapeHtml(nextMove) +
-          '</div><div class="subtle">Trust: ' +
-          options.escapeHtml(trustSummary.headline) +
           "</div>" +
           (evidence ? '<div class="subtle">' + options.escapeHtml(evidence) + "</div>" : "") +
           renderRecommendedActionBar({
