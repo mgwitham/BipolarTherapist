@@ -680,6 +680,21 @@ function initQuickClaim() {
     }
   });
 
+  const trialOfferEl = document.getElementById(TRIAL_OFFER_ID);
+  if (trialOfferEl) {
+    trialOfferEl.addEventListener("click", function (event) {
+      const button = event.target.closest(".claim-trial-cta[data-plan]");
+      if (!button || !trialOfferEl.contains(button)) {
+        return;
+      }
+      if (button.id === TRIAL_FOUNDING_ID || button.id === TRIAL_STANDARD_ID) {
+        return;
+      }
+      event.preventDefault();
+      handleTrialCheckout(button);
+    });
+  }
+
   const dismissLink = document.getElementById(TRIAL_DISMISS_ID);
   if (dismissLink) {
     dismissLink.addEventListener("click", function (event) {
