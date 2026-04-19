@@ -7389,11 +7389,41 @@ async function loadData() {
         error,
       );
     }
-    if (reviewApiAvailable || getAdminSessionToken()) {
+    // Only bounce to the login gate if the server actually rejected our
+    // session (401). Non-auth errors — stale chunk, network blip, Sanity
+    // CDN hiccup — must not flip authRequired to true, otherwise a user
+    // who just signed in successfully gets booted back to the login
+    // screen with a misleading "credentials not accepted" banner.
+    const status = error && typeof error.status === "number" ? error.status : 0;
+    const isAuthError = status === 401;
+    const hasSessionToken = Boolean(getAdminSessionToken());
+
+    if (isAuthError || (reviewApiAvailable && !hasSessionToken)) {
       applyAdminRuntimeState(
         createRemoteAuthRequiredState({
           ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
           licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+          profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
+        }),
+      );
+    } else if (hasSessionToken) {
+      // Signed in but the dashboard data load failed for a non-auth
+      // reason. Keep the reviewer logged in with empty remote lists —
+      // they can retry via a hard refresh without re-typing credentials.
+      applyAdminRuntimeState(
+        createRemoteSignedInState({
+          remoteApplications: [],
+          remoteCandidates: [],
+          remotePortalRequests: [],
+          remoteReviewEvents: [],
+          remoteReviewerRoster: [],
+          reviewActivityItems: [],
+          reviewActivityNextCursor: "",
+          publishedTherapists: [],
+          ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
+          licensureRefreshQueue: generatedArtifacts.licensureRefreshQueue,
+          deferredLicensureQueue: generatedArtifacts.deferredLicensureQueue,
+          licensureActivityFeed: generatedArtifacts.licensureActivityFeed,
           profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
         }),
       );
@@ -7476,7 +7506,12 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     await loadData();
 
     if (authRequired) {
-      error.textContent = "Those operator credentials were not accepted.";
+      // signInAdmin just returned a valid session token. If loadData
+      // still flipped us to auth-required, it's a real 401 on a
+      // downstream call (token rejected by the session check). Don't
+      // claim the typed credentials were wrong — the password already
+      // passed the login endpoint.
+      error.textContent = "Signed in, but the session was rejected. Try again.";
       error.style.display = "block";
       authErrorVisible = true;
     } else {
