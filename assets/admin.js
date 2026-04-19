@@ -392,9 +392,6 @@ function ensureWorkflowSectionRendered(sectionId) {
     case "confirmationSprintSection":
       renderConfirmationSprint();
       break;
-    case "refreshQueueSection":
-      renderRefreshQueue();
-      break;
     case "publishedListingsSection":
       renderListings();
       break;
@@ -415,7 +412,6 @@ const workflowNavigator = createAdminWorkflowNavigator({
     importBlockerStartHere: "importBlockerSprintSection",
     confirmationQueueStartHere: "confirmationQueueSection",
     confirmationSprintStartHere: "confirmationSprintSection",
-    refreshQueueStartHere: "refreshQueueSection",
     publishedListingsStartHere: "publishedListingsSection",
   },
 });
@@ -961,21 +957,6 @@ function renderFallbackStats() {
       focusTargetId: "importBlockerStartHere",
       targetSummary: "Fix Missing Listing Details -> first listing row",
     }),
-    buildOperatorGuideCard({
-      kicker: "Publish And Maintain",
-      title: "Review Listing Updates",
-      copy: "Refresh aging or trust-risk listings so live profiles stay operationally current and trustworthy.",
-      steps: [
-        "Open the listing-updates lane and start with the highest-risk listing.",
-        "Review the stale or trust-risk fields and decide the next action.",
-      ],
-      done: "The listing has a clear maintenance decision recorded.",
-      actionLabel: "Open listing-updates overview",
-      directActionLabel: "Start with first refresh task",
-      targetId: "refreshQueueSection",
-      focusTargetId: "refreshQueueStartHere",
-      targetSummary: "Review Listing Updates -> first listing task",
-    }),
   ];
   statsRoot.innerHTML =
     '<div class="mini-status" style="margin-bottom:1rem"><strong>Admin note:</strong> Showing the resilient workflow launcher while the full dashboard reloads.</div>' +
@@ -1002,7 +983,6 @@ const adminLazyModuleLoaders = import.meta.glob([
   "./admin-import-blocker-sprint.js",
   "./admin-sourcing-intelligence.js",
   "./admin-ingestion-scorecard.js",
-  "./admin-refresh-queue.js",
   "./admin-licensure-queue.js",
   "./admin-licensure-sprint.js",
   "./admin-licensure-deferred-queue.js",
@@ -1033,7 +1013,6 @@ function getAdminPrefetchModulesForTarget(targetId) {
       "./admin-confirmation-queue.js",
     ],
     intelligenceRegion: ["./admin-sourcing-intelligence.js", "./admin-ingestion-scorecard.js"],
-    liveListingsRegion: ["./admin-refresh-queue.js"],
   };
   return map[targetId] || [];
 }
@@ -1272,9 +1251,6 @@ const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRoute
   reviewerWorkspace: reviewerWorkspace,
   renderListings: function () {
     renderListings();
-  },
-  renderRefreshQueue: function () {
-    renderRefreshQueue();
   },
 });
 
@@ -4026,14 +4002,8 @@ function renderExecutiveCommandDeck(context) {
     mandate.title = "Reduce trust debt on live supply so conversion quality stays defensible.";
     mandate.copy =
       "Right now the business risk is not lack of work. It is that live listings are aging or incomplete, which quietly weakens conversion quality and trust.";
-    mandate.targetId =
-      context.strictImportBlockerCount >= context.profilesNeedingRefresh
-        ? "importBlockerSprintSection"
-        : "refreshQueueSection";
-    mandate.actionLabel =
-      context.strictImportBlockerCount >= context.profilesNeedingRefresh
-        ? "Fix missing details"
-        : "Review listing updates";
+    mandate.targetId = "importBlockerSprintSection";
+    mandate.actionLabel = "Fix missing details";
     mandate.secondaryTargetId = "confirmationQueueSection";
     mandate.secondaryActionLabel = "Open confirmation work";
   }
@@ -4122,21 +4092,12 @@ function renderExecutiveCommandDeck(context) {
           ? context.strictImportBlockerCount + " listings still have trust-critical missing fields."
           : context.profilesNeedingRefresh +
             " live listings need refresh or reconfirmation attention.",
-      targetId:
-        context.strictImportBlockerCount >= context.profilesNeedingRefresh
-          ? "importBlockerSprintSection"
-          : "refreshQueueSection",
-      destination:
-        context.strictImportBlockerCount >= context.profilesNeedingRefresh
-          ? "Fix Missing Listing Details"
-          : "Review Listing Updates",
+      targetId: "importBlockerSprintSection",
+      destination: "Fix Missing Listing Details",
       firstStep: "Take the top listing and verify the single highest-leverage field first.",
       nextStep: "If you cannot prove it, move it into confirmation instead of guessing.",
       done: "The listing is more trustworthy than when the session started.",
-      actionLabel:
-        context.strictImportBlockerCount >= context.profilesNeedingRefresh
-          ? "Open trust debt lane"
-          : "Open update lane",
+      actionLabel: "Open trust debt lane",
     },
   ];
 
@@ -5399,7 +5360,6 @@ function renderStats() {
           (a.freshness.needs_reconfirmation_fields || []).length
         );
       });
-    const topRefreshProfile = refreshQueue.length ? refreshQueue[0].item.name : "";
     const confirmationQueueState = readConfirmationQueueState();
     const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
       var entry = confirmationQueueState[slug];
@@ -5555,11 +5515,7 @@ function renderStats() {
         "Live listings to maintain",
         "liveListingsRegion",
         {
-          meta: strictImportBlockerCount
-            ? strictImportBlockerCount + " blocked on details"
-            : topRefreshProfile
-              ? "Top: " + topRefreshProfile
-              : "",
+          meta: strictImportBlockerCount ? strictImportBlockerCount + " blocked on details" : "",
           actionLabel: "Open maintenance",
         },
       ),
@@ -6344,34 +6300,6 @@ function renderFunnelInsights() {
 
 function renderListings() {
   listingsWorkspace.renderListings();
-}
-
-function renderRefreshQueue() {
-  withLazyAdminModule("./admin-refresh-queue.js", function (module) {
-    module.renderRefreshQueuePanel({
-      authRequired: authRequired,
-      dataMode: dataMode,
-      publishedTherapists: publishedTherapists,
-      getTherapists: getTherapists,
-      getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-      getDataFreshnessSummary: getDataFreshnessSummary,
-      getTherapistMatchReadiness: getTherapistMatchReadiness,
-      getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
-      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-      getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-      getTherapistTrustRecommendation: getTherapistTrustRecommendation,
-      getRouteHealthWarnings: getRouteHealthWarnings,
-      getRouteHealthActionItems: getRouteHealthActionItems,
-      queueRouteHealthFollowUp: queueRouteHealthFollowUp,
-      getSourceReferenceMeta: getSourceReferenceMeta,
-      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-      escapeHtml: escapeHtml,
-      formatDate: formatDate,
-      decideTherapistOps: decideTherapistOps,
-      loadData: loadData,
-      rerender: renderRefreshQueue,
-    });
-  });
 }
 
 function renderLicensureQueue() {
@@ -7298,7 +7226,6 @@ function renderAll() {
   renderAdminSection("source performance", renderSourcePerformance);
   renderAdminSection("funnel insights", renderFunnelInsights);
   renderAdminSection("listings", renderListings);
-  renderAdminSection("refresh queue", renderRefreshQueue);
   renderAdminSection("licensure queue", renderLicensureQueue);
   renderAdminSection("licensure sprint", renderLicensureSprint);
   renderAdminSection("deferred licensure queue", renderDeferredLicensureQueue);

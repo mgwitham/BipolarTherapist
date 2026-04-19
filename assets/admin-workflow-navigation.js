@@ -215,7 +215,7 @@ export function createAdminWorkflowNavigator(config) {
       return null;
     }
     const stableStartTarget = sectionTarget.querySelector(
-      "#candidateQueueStartHere, #applicationReviewStartHere, #importBlockerStartHere, #confirmationQueueStartHere, #confirmationSprintStartHere, #refreshQueueStartHere, #publishedListingsStartHere",
+      "#candidateQueueStartHere, #applicationReviewStartHere, #importBlockerStartHere, #confirmationQueueStartHere, #confirmationSprintStartHere, #publishedListingsStartHere",
     );
     if (stableStartTarget) {
       return stableStartTarget;
