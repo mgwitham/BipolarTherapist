@@ -314,3 +314,118 @@ test("workflow: application approval is blocked without a license number", async
   assert.equal(response.statusCode, 409);
   assert.match(response.payload.error, /license number/i);
 });
+
+// --- /applications/intake (short-form new-therapist signup) ---
+
+test("intake: short-form submission creates a pending application with stub bio/care_approach", async function () {
+  const { client, state } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+      city: "Los Angeles",
+      state: "CA",
+      treats_bipolar: true,
+      intake_source: "signup_short_form",
+    },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/intake",
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.payload.ok, true);
+  assert.equal(typeof response.payload.id, "string");
+
+  const created = state.documents.get(response.payload.id);
+  assert.ok(created, "application should have been created in Sanity");
+  assert.equal(created._type, "therapistApplication");
+  assert.equal(created.status, "pending");
+  assert.equal(created.name, "Dr. Jamie Rivera");
+  assert.equal(created.email, "jamie@example.com");
+  assert.equal(created.licenseNumber, "LMFT12345");
+  assert.equal(created.licenseState, "CA");
+  // Stub values populate so the admin review queue renders and the
+  // Sanity schema accepts the doc.
+  assert.match(created.bio, /Pending/i);
+  assert.match(created.careApproach, /Pending/i);
+});
+
+test("intake: missing fields returns 400", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      name: "Dr. Jamie Rivera",
+      // missing email + license_number
+      treats_bipolar: true,
+    },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/intake",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /required/i);
+});
+
+test("intake: missing treats_bipolar checkbox returns 400", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+      city: "Los Angeles",
+      treats_bipolar: false,
+    },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/intake",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /bipolar/i);
+});
+
+test("intake: duplicate license (existing therapist) returns 409 with claim guidance", async function () {
+  const { client } = createMemoryClient({
+    "therapist-existing": {
+      _id: "therapist-existing",
+      _type: "therapist",
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      licenseNumber: "LMFT12345",
+      licenseState: "CA",
+      state: "CA",
+      slug: { current: "dr-jamie-rivera-los-angeles-ca", _type: "slug" },
+      listingActive: true,
+      status: "active",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+      city: "Los Angeles",
+      state: "CA",
+      treats_bipolar: true,
+    },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/intake",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.recommended_intake_type, "claim_existing");
+  assert.match(response.payload.error, /claim/i);
+});

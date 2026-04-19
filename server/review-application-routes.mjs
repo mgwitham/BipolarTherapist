@@ -23,6 +23,119 @@ export async function handleApplicationRoutes(context) {
     validateRevisionInput,
   } = deps;
 
+  // POST /applications/intake — short-form intake for the new-therapist
+  // signup flow. Accepts only 5 fields (name, email, CA license,
+  // city/ZIP, bipolar confirmation) and fills in stub values for the
+  // fields the full-form endpoint normally requires (bio, credentials,
+  // care_approach). Those are completed by the therapist via the
+  // portal after approval.
+  //
+  // Review queue routing is identical to the full-form /applications
+  // endpoint — dup check, admin notification, async DCA license
+  // verification. The only difference is the stubbed fields, which
+  // admins see flagged in the review queue as "intake_source:
+  // signup_short_form" so they know to expect a partial profile.
+  if (request.method === "POST" && routePath === "/applications/intake") {
+    const body = await parseBody(request);
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim();
+    const licenseNumber = String(body.license_number || "").trim();
+    const treatsBipolar =
+      body.treats_bipolar === true || body.treats_bipolar === "true" || body.treats_bipolar === 1;
+
+    if (!name || !email || !licenseNumber) {
+      sendJson(
+        response,
+        400,
+        { error: "Full name, email, and CA license number are all required." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (!treatsBipolar) {
+      sendJson(
+        response,
+        400,
+        {
+          error:
+            "Please confirm you treat bipolar disorder. This directory is specifically for bipolar-specialist care.",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Normalize intake body into the shape buildApplicationDocument
+    // expects. Stub fields ("Pending — completed after approval") keep
+    // the Sanity schema happy and give admins a visible marker that
+    // this is a short-form submission needing profile completion.
+    const STUB_VALUE = "Pending — completed after approval.";
+    const intakeBody = {
+      name: name,
+      email: email,
+      license_number: licenseNumber,
+      license_state: "CA",
+      state: "CA",
+      city: String(body.city || "").trim(),
+      zip: String(body.zip || "").trim(),
+      credentials: String(body.credentials || "").trim() || "Pending",
+      bio: STUB_VALUE,
+      care_approach: STUB_VALUE,
+      intake_source: "signup_short_form",
+      submission_intent: "intake",
+    };
+
+    const duplicate = await findDuplicateTherapistEntity(client, intakeBody);
+    if (duplicate) {
+      const responsePayload =
+        duplicate.kind === "therapist"
+          ? {
+              error:
+                "A listing already exists for this license number. Use 'Manage my existing listing' above to claim it.",
+              duplicate_kind: duplicate.kind,
+              duplicate_slug: duplicate.slug,
+              duplicate_name: duplicate.name,
+              recommended_intake_type: "claim_existing",
+            }
+          : {
+              error:
+                "An application is already in progress for this therapist. We'll email the address on file about next steps.",
+              duplicate_kind: duplicate.kind,
+              duplicate_slug: duplicate.slug,
+              duplicate_name: duplicate.name,
+              duplicate_status: duplicate.status,
+              recommended_intake_type: "update_existing",
+            };
+      sendJson(response, 409, responsePayload, origin, config);
+      return true;
+    }
+
+    const document = await buildApplicationDocument(client, intakeBody);
+    const created = await client.create(document);
+    try {
+      await notifyAdminOfSubmission(config, created);
+    } catch (error) {
+      console.error("Failed to send new-intake email.", error);
+    }
+    runDcaVerification(client, config, created, intakeBody).catch(function (err) {
+      console.error("DCA license verification failed for " + created._id, err);
+    });
+    sendJson(
+      response,
+      201,
+      {
+        ok: true,
+        id: created._id,
+        message: "Application received. We'll email you within 2-3 business days with next steps.",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (request.method === "POST" && routePath === "/applications") {
     const body = await parseBody(request);
     const duplicate = await findDuplicateTherapistEntity(client, body);
