@@ -25,6 +25,12 @@ export function createListingsWorkspace(options) {
   var rankingRiskFilter = "";
   var listingsSearchQuery = "";
   var statusMessage = "";
+  // The full-catalog card list is hidden by default so the Listings
+  // tab reads as a "find a therapist" tool instead of a 60+ card
+  // wall. Search results and risk-filtered views always expand
+  // regardless of this flag; the toggle only controls the browse-all
+  // case.
+  var showFullCatalog = false;
 
   function scoreListingForSearch(item, tokens) {
     if (!item || !tokens.length) {
@@ -323,7 +329,7 @@ export function createListingsWorkspace(options) {
             .join("") +
           "</div></div>"
         : "") +
-      (visibleRows.length
+      (visibleRows.length && (isSearching || rankingRiskFilter || showFullCatalog)
         ? '<div class="mini-status" style="margin-bottom:0.75rem">Showing ' +
           escapeHtml(visibleRows.length) +
           " of " +
@@ -332,7 +338,17 @@ export function createListingsWorkspace(options) {
           (listingRows.length === 1 ? "" : "s") +
           ".</div>"
         : "") +
-      visibleRows
+      (!isSearching && !rankingRiskFilter && !showFullCatalog
+        ? '<div class="listings-collapsed" style="margin-top:0.5rem"><button type="button" class="btn-secondary" data-show-full-catalog>Show all ' +
+          escapeHtml(listingRows.length) +
+          " live profile" +
+          (listingRows.length === 1 ? "" : "s") +
+          "</button></div>"
+        : "") +
+      (showFullCatalog && !isSearching && !rankingRiskFilter
+        ? '<div class="listings-collapsed" style="margin-bottom:0.5rem"><button type="button" class="btn-secondary" data-hide-full-catalog>Hide list</button></div>'
+        : "") +
+      (!isSearching && !rankingRiskFilter && !showFullCatalog ? [] : visibleRows)
         .map(function (row) {
           var item = row.item;
           var readiness = row.readiness;
@@ -504,6 +520,22 @@ export function createListingsWorkspace(options) {
       clearButton.addEventListener("click", function () {
         rankingRiskFilter = "";
         statusMessage = "";
+        renderListings();
+      });
+    }
+
+    var showFullCatalogButton = root.querySelector("[data-show-full-catalog]");
+    if (showFullCatalogButton) {
+      showFullCatalogButton.addEventListener("click", function () {
+        showFullCatalog = true;
+        renderListings();
+      });
+    }
+
+    var hideFullCatalogButton = root.querySelector("[data-hide-full-catalog]");
+    if (hideFullCatalogButton) {
+      hideFullCatalogButton.addEventListener("click", function () {
+        showFullCatalog = false;
         renderListings();
       });
     }
