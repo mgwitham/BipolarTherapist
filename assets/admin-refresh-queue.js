@@ -7,6 +7,24 @@ import { createActionFlashStore } from "./admin-action-flash.js";
 
 const refreshActionFlash = createActionFlashStore();
 const EXPIRING_SOON_DAYS = 14;
+// Therapist ids that were just actioned by a reviewer. The public Sanity
+// CDN lags for ~60s, so without client-side suppression the just-actioned
+// therapist stays at the top of the refresh queue after re-render. We drop
+// them from the rendered queue until the next server snapshot confirms the
+// change, giving reviewers smooth card-to-card advancement.
+const suppressedTherapistIds = new Set();
+
+function suppressTherapistInRefreshQueue(therapistId) {
+  if (therapistId) {
+    suppressedTherapistIds.add(therapistId);
+  }
+}
+
+function clearRefreshQueueSuppressions() {
+  suppressedTherapistIds.clear();
+}
+
+export { suppressTherapistInRefreshQueue, clearRefreshQueueSuppressions };
 
 function toTimestamp(value) {
   if (!value) {
@@ -88,6 +106,10 @@ export function renderRefreshQueuePanel(options) {
     })
     .slice(0, 4);
   const queue = therapists
+    .filter(function (item) {
+      const id = item && (item.id || item._id) ? item.id || item._id : "";
+      return !id || !suppressedTherapistIds.has(id);
+    })
     .map(function (item) {
       const freshness = options.getDataFreshnessSummary(item);
       return {
@@ -315,11 +337,11 @@ export function renderRefreshQueuePanel(options) {
             primaryActionHtml:
               '<a class="btn-primary btn-inline" href="therapist.html?slug=' +
               encodeURIComponent(item.slug) +
-              '" target="bth-profile" rel="noopener">Open profile and review fields</a>',
+              '" target="_blank" rel="noopener">Open profile and review fields</a>',
             secondaryActionHtml: sourceReference.href
               ? '<a class="btn-secondary btn-inline" href="' +
                 options.escapeHtml(sourceReference.href) +
-                '" target="bth-source" rel="noopener">' +
+                '" target="_blank" rel="noopener">' +
                 options.escapeHtml(sourceReference.shortLabel) +
                 "</a>"
               : "",
@@ -397,17 +419,26 @@ export function renderRefreshQueuePanel(options) {
 
       try {
         await options.decideTherapistOps(therapistId, { decision: decision });
+        var message =
+          decision === "mark_reviewed"
+            ? "Completed: refresh review saved. Next card queued."
+            : decision === "snooze_30d"
+              ? "Deferred: this refresh item is snoozed for 30 days."
+              : "Deferred: this refresh item is snoozed for 7 days.";
         if (status) {
-          var message =
-            decision === "mark_reviewed"
-              ? "Completed: refresh review saved and removed from the active queue on reload."
-              : decision === "snooze_30d"
-                ? "Deferred: this refresh item is snoozed for 30 days."
-                : "Deferred: this refresh item is snoozed for 7 days.";
           status.textContent = message;
-          setRefreshActionFlash(therapistId, message);
         }
-        await options.loadData();
+        setRefreshActionFlash(therapistId, message);
+        // Drop this therapist from the local queue so the next card
+        // auto-expands without waiting for the Sanity CDN to catch up.
+        suppressTherapistInRefreshQueue(therapistId);
+        if (typeof options.rerender === "function") {
+          options.rerender();
+        }
+        // Kick off a background sync; don't await so the UI stays
+        // responsive and the next card is interactable immediately.
+        Promise.resolve(options.loadData()).catch(function () {});
+        return;
       } catch (error) {
         const detail =
           (error && error.status ? "[" + error.status + "] " : "") +
