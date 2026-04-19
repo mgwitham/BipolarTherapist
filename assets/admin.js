@@ -6369,6 +6369,7 @@ function renderRefreshQueue() {
       formatDate: formatDate,
       decideTherapistOps: decideTherapistOps,
       loadData: loadData,
+      rerender: renderRefreshQueue,
     });
   });
 }
