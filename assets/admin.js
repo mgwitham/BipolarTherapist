@@ -7368,6 +7368,13 @@ async function loadData() {
       }),
     );
     await loadReviewActivityFeed({ reset: true, limit: 12 });
+    // Clear the stale-chunk reload flag on a successful snapshot so a
+    // future genuine stale-chunk situation can still prompt.
+    try {
+      window.sessionStorage.removeItem("bth_admin_chunk_reload_v1");
+    } catch (_storageError) {
+      /* noop */
+    }
   } catch (error) {
     const message = error && error.message ? String(error.message) : "";
     const isStaleChunk =
@@ -7375,17 +7382,42 @@ async function loadData() {
         message,
       );
     if (isStaleChunk) {
-      if (typeof window !== "undefined" && window.confirm) {
+      // One-shot reload with cache-busting query param. Plain
+      // location.reload() does not bypass the browser's HTML cache,
+      // so on a deploy the browser can keep serving stale admin.html
+      // with references to chunk files that no longer exist, causing
+      // the prompt to loop on every reload. We set a session flag
+      // before reloading — if the error recurs after we already
+      // tried, we stop prompting and tell the reviewer to clear
+      // site data manually.
+      const RELOAD_FLAG = "bth_admin_chunk_reload_v1";
+      let alreadyReloaded = false;
+      try {
+        alreadyReloaded = Boolean(window.sessionStorage.getItem(RELOAD_FLAG));
+      } catch (_storageError) {
+        alreadyReloaded = false;
+      }
+
+      if (!alreadyReloaded && typeof window !== "undefined" && window.confirm) {
         const reload = window.confirm(
           "Admin assets are out of date (a cached chunk is pointing at a file that no longer exists). Reload now to pick up the current build?",
         );
         if (reload) {
-          window.location.reload();
+          try {
+            window.sessionStorage.setItem(RELOAD_FLAG, "1");
+          } catch (_storageError) {
+            /* noop */
+          }
+          const url = new URL(window.location.href);
+          url.searchParams.set("_cb", String(Date.now()));
+          window.location.replace(url.toString());
           return;
         }
       }
       console.error(
-        "Admin snapshot failed to load because of a stale cached chunk. Hard-reload (Cmd+Shift+R) to fix.",
+        alreadyReloaded
+          ? "Admin assets are still stale after a reload. Hard-reload (Cmd+Shift+R) or clear site data for this domain."
+          : "Admin snapshot failed to load because of a stale cached chunk. Hard-reload (Cmd+Shift+R) to fix.",
         error,
       );
     }
