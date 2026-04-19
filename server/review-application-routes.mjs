@@ -1,10 +1,11 @@
 export async function handleApplicationRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath } = context;
+  const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
     buildApplicationDocument,
     buildAppliedFieldReviewStatePatch,
     buildApplicationReviewEvent,
+    buildPortalClaimToken,
     buildRevisionFieldUpdates,
     buildTherapistApplicationFieldPatch,
     buildTherapistDocument,
@@ -483,8 +484,26 @@ export async function handleApplicationRoutes(context) {
 
     await transaction.commit({ visibility: "sync" });
 
+    // Send the applicant an approval email with a portal magic link
+    // so they can finish their profile without hunting for the portal
+    // themselves. Uses the just-created therapist doc to build the
+    // token, 7-day TTL, bound to the applicant's email. Same token
+    // flow as /portal/quick-claim — the portal treats either path
+    // identically once the token is verified.
     try {
-      await notifyApplicantOfDecision(config, application, "approved");
+      const portalBaseUrl =
+        url && url.protocol && url.host
+          ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
+          : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+      // buildTherapistDocument returns the doc we just wrote; read
+      // it back from Sanity so the email has the canonical slug
+      // structure the token builder expects.
+      const approvedTherapist = await client.getDocument(therapistId);
+      await notifyApplicantOfDecision(config, application, "approved", {
+        therapist: approvedTherapist,
+        portalBaseUrl,
+        buildPortalClaimToken,
+      });
     } catch (error) {
       console.error("Failed to send approval email.", error);
     }
