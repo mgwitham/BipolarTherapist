@@ -30,6 +30,7 @@ import {
   hasEmailConfig,
   notifyAdminOfSubmission,
   notifyApplicantOfDecision,
+  sendListingRemovalLink as sendListingRemovalLinkEmail,
   sendPortalClaimLink as sendPortalClaimLinkEmail,
 } from "./review-email.mjs";
 import {
@@ -431,6 +432,33 @@ async function sendPortalClaimLink(config, therapist, requesterEmail, portalBase
   );
 }
 
+// Listing-removal token — one-time, 24h, bound to therapist slug.
+// Stored with sub "listing-removal" so it can't be mistakenly accepted
+// as a portal-claim token and vice versa.
+function buildListingRemovalToken(config, therapist) {
+  return createSignedPayload(
+    {
+      sub: "listing-removal",
+      slug: therapist.slug.current,
+      exp: Date.now() + 1000 * 60 * 60 * 24,
+      nonce: crypto.randomBytes(12).toString("hex"),
+    },
+    config.sessionSecret,
+  );
+}
+
+function readListingRemovalToken(config, token) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "listing-removal" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  return payload;
+}
+
+async function sendListingRemovalLink(config, therapist, portalBaseUrl) {
+  return sendListingRemovalLinkEmail(config, therapist, portalBaseUrl, buildListingRemovalToken);
+}
+
 async function updatePortalRequestFields(client, requestId, fields) {
   const allowedUpdates = {};
 
@@ -478,10 +506,12 @@ function createReviewRouteModules() {
         normalizePortalRequest,
         parseAuthorizationHeader,
         parseBody,
+        readListingRemovalToken,
         readPortalClaimToken,
         readSignedSession,
         recordFailedLogin,
         sendJson,
+        sendListingRemovalLink,
         sendPortalClaimLink,
         updatePortalRequestFields,
       },

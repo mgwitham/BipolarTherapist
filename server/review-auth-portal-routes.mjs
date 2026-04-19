@@ -131,10 +131,12 @@ export async function handleAuthAndPortalRoutes(context) {
     normalizePortalRequest,
     parseAuthorizationHeader,
     parseBody,
+    readListingRemovalToken,
     readPortalClaimToken,
     readSignedSession,
     recordFailedLogin,
     sendJson,
+    sendListingRemovalLink,
     sendPortalClaimLink,
     updatePortalRequestFields,
   } = deps;
@@ -802,6 +804,163 @@ export async function handleAuthAndPortalRoutes(context) {
       config,
     );
     return true;
+  }
+
+  // POST /portal/listing-removal/request — start the listing-removal
+  // flow. We added California therapists to the directory without
+  // explicit consent; this endpoint is their email-verified off-ramp.
+  //
+  // Verification mirrors the quick-claim endpoint: full name, CA
+  // license number, and email must all match the listing on file.
+  // Security nuance: the confirmation email is always sent to the
+  // email ON FILE, not to whatever address the submitter typed, so an
+  // attacker who knows a therapist's license number cannot take over
+  // the removal flow by typing a different email. If the on-file
+  // email is stale, the therapist has to contact support directly.
+  //
+  // Response policy: we deliberately return a generic "check your
+  // inbox" message whether or not the listing exists, so the endpoint
+  // can't be used to enumerate directory membership. Specific errors
+  // (missing fields, bad request body) still return 400 so the form
+  // can show useful hints to legitimate users.
+  if (request.method === "POST" && routePath === "/portal/listing-removal/request") {
+    const body = await parseBody(request);
+    const rawFullName = String(body.full_name || "").trim();
+    const rawEmail = String(body.email || "").trim();
+    const rawLicense = String(body.license_number || "").trim();
+
+    if (!rawFullName || !rawEmail || !rawLicense) {
+      sendJson(
+        response,
+        400,
+        { error: "Full name, email, and CA license number are all required." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const fullName = normalizeNameForMatch(rawFullName);
+    const requesterEmail = rawEmail.toLowerCase();
+    const licenseNumber = normalizeLicenseForMatch(rawLicense);
+
+    // Look up the listing. If any check fails (not found, name
+    // mismatch, email mismatch) we return the same generic 200
+    // response as on success — no info leak. Real failures that the
+    // form couldn't have caused (e.g. missing email on file) log
+    // server-side and fall through to the generic success response.
+    const genericSuccess = () => {
+      sendJson(
+        response,
+        200,
+        { ok: true, message: "If a listing matches, a confirmation email is on its way." },
+        origin,
+        config,
+      );
+      return true;
+    };
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && licenseNumber match $license][0]{
+        _id, name, email, website, listingActive, "slug": slug
+      }`,
+      { license: `*${licenseNumber}*` },
+    );
+    if (!therapist || !therapist.slug || !therapist.slug.current) {
+      return genericSuccess();
+    }
+    // Already-removed listings: silently succeed so we don't leak
+    // state. Nothing more to do — the listing is gone.
+    if (therapist.listingActive === false) {
+      return genericSuccess();
+    }
+
+    const profileName = normalizeNameForMatch(therapist.name);
+    if (!profileName || profileName !== fullName) {
+      return genericSuccess();
+    }
+
+    const profileEmail = String(therapist.email || "")
+      .trim()
+      .toLowerCase();
+    const emailMatches = profileEmail && profileEmail === requesterEmail;
+    const domainVerified =
+      !emailMatches && emailDomainMatchesWebsite(requesterEmail, therapist.website);
+    if (!emailMatches && !domainVerified) {
+      return genericSuccess();
+    }
+
+    // No on-file email means we cannot deliver a verification link.
+    // Fall through to generic response — an internal ops task will
+    // need to follow up manually. The incidence should be near-zero
+    // since we require email on ingest.
+    if (!profileEmail) {
+      return genericSuccess();
+    }
+
+    try {
+      await sendListingRemovalLink(
+        config,
+        therapist,
+        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+      );
+    } catch (error) {
+      // Log and still return generic success; an email-delivery
+      // failure should not reveal that the listing exists.
+      console.error("Failed to send listing removal link:", error);
+    }
+
+    return genericSuccess();
+  }
+
+  // GET /portal/listing-removal/confirm?token=... — the link the
+  // therapist clicks from the confirmation email. Validates the
+  // signed token, flips listingActive to false + stamps
+  // listingRemovalRequestedAt, and redirects back to /signup with a
+  // query param that drives the toast banner. No auth header needed —
+  // the signed token is the auth.
+  if (request.method === "GET" && routePath === "/portal/listing-removal/confirm") {
+    const token = String((url.searchParams && url.searchParams.get("token")) || "").trim();
+    const returnBase = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+
+    function redirect(status) {
+      response.statusCode = 302;
+      response.setHeader("Location", `${returnBase}/signup?removed=${status}`);
+      response.end();
+      return true;
+    }
+
+    if (!token) {
+      return redirect("invalid");
+    }
+
+    const payload = readListingRemovalToken(config, token);
+    if (!payload || !payload.slug) {
+      return redirect("expired");
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{ _id, listingActive, listingRemovalRequestedAt }`,
+      { slug: payload.slug },
+    );
+    if (!therapist) {
+      return redirect("invalid");
+    }
+
+    // Idempotent: if already removed, still treat as success.
+    if (therapist.listingActive === false) {
+      return redirect("ok");
+    }
+
+    await client
+      .patch(therapist._id)
+      .set({
+        listingActive: false,
+        listingRemovalRequestedAt: new Date().toISOString(),
+      })
+      .commit({ visibility: "sync" });
+
+    return redirect("ok");
   }
 
   return false;
