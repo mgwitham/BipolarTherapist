@@ -105,3 +105,49 @@ export async function sendPortalClaimLink(
 <p>This link expires in 24 hours.</p>`,
   });
 }
+
+// Listing-removal email. Sent to the email ON FILE for the listing,
+// not to whatever address the submitter typed, so a third party can't
+// remove a therapist by guessing their license number. If the email
+// on file is stale, the therapist has to contact support directly —
+// that's rare but the right tradeoff vs. allowing someone else to
+// delete a listing.
+export async function sendListingRemovalLink(
+  config,
+  therapist,
+  portalBaseUrl,
+  buildListingRemovalToken,
+) {
+  if (!hasEmailConfig(config)) {
+    throw new Error("Email delivery is not configured for listing removal yet.");
+  }
+
+  const onFileEmail = String(therapist.email || "")
+    .trim()
+    .toLowerCase();
+  if (!onFileEmail) {
+    throw new Error("Therapist has no email on file; cannot send removal link.");
+  }
+
+  const token = buildListingRemovalToken(config, therapist);
+  const confirmUrl =
+    String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "") +
+    "/api/review/portal/listing-removal/confirm?token=" +
+    encodeURIComponent(token);
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [onFileEmail],
+    reply_to: config.notificationTo,
+    subject: `Confirm removal of your Bipolar Therapy Hub listing`,
+    html: `<h2>Confirm your listing removal</h2>
+<p>Hi ${therapist.name || "there"},</p>
+<p>Someone asked to remove your Bipolar Therapy Hub listing. If that was you, click the
+secure link below to confirm. Your listing goes dark immediately after you click.</p>
+<p><a href="${confirmUrl}">${confirmUrl}</a></p>
+<p>If you did not request this, you can ignore this email and your listing stays active.
+The link expires in 24 hours.</p>
+<p>Once removed, you can create a new listing any time if you change your mind —
+visit the signup page and choose "List my practice".</p>`,
+  });
+}
