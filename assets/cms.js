@@ -11,9 +11,6 @@ const useCdn = env.VITE_SANITY_USE_CDN !== "false";
 export const cmsEnabled = Boolean(projectId && dataset);
 export const cmsStudioUrl = env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
 
-let clientPromise = null;
-let sanityClientModulePromise = null;
-
 const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
   error: null,
@@ -337,77 +334,46 @@ export function getCmsState() {
   };
 }
 
-// Non-CDN client cache — the Sanity CDN can serve up-to-60s stale
-// reads, which causes the admin "Mark reviewed" flow to appear to
-// revert on hard refresh. Admin reads request fresh: true to bypass.
-let freshClientPromise = null;
-
+// Direct HTTP fetch against Sanity's public query API — avoids
+// dynamic-importing @sanity/client, which some browser extensions
+// block. Reads are unauthenticated and restricted to the "published"
+// perspective by default for public datasets.
+//
+// fresh=true routes through the non-CDN host (api.sanity.io) because
+// apicdn.sanity.io can serve up-to-60s stale reads, which causes the
+// admin "Mark reviewed" flow to appear to revert on hard refresh.
 async function fetchFromSanity(query, params, options) {
   if (!cmsEnabled) {
     throw new Error("Sanity client not configured");
   }
 
   const fresh = Boolean(options && options.fresh);
+  const host = fresh || !useCdn ? "api.sanity.io" : "apicdn.sanity.io";
+  const base = `https://${projectId}.${host}/v${apiVersion}/data/query/${dataset}`;
 
-  if (!sanityClientModulePromise) {
-    sanityClientModulePromise = import("@sanity/client")
-      .then(function (module) {
-        return module && typeof module.createClient === "function" ? module.createClient : null;
-      })
-      .catch(function (error) {
-        sanityClientModulePromise = null;
-        throw error;
-      });
+  const url = new URL(base);
+  url.searchParams.set("query", query);
+  url.searchParams.set("perspective", "published");
+  if (params && typeof params === "object") {
+    for (const key of Object.keys(params)) {
+      url.searchParams.set(`$${key}`, JSON.stringify(params[key]));
+    }
   }
 
-  if (fresh && !freshClientPromise) {
-    freshClientPromise = Promise.resolve()
-      .then(function () {
-        return sanityClientModulePromise;
-      })
-      .then(function (createClient) {
-        if (typeof createClient !== "function") {
-          throw new Error("Sanity client could not be loaded.");
-        }
-        return createClient({
-          projectId: projectId,
-          dataset: dataset,
-          apiVersion: apiVersion,
-          useCdn: false,
-          perspective: "published",
-        });
-      })
-      .catch(function (error) {
-        freshClientPromise = null;
-        throw error;
-      });
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(function () {
+      return "";
+    });
+    throw new Error(`Sanity query failed: ${response.status} ${text}`);
   }
 
-  if (!fresh && !clientPromise) {
-    clientPromise = Promise.resolve()
-      .then(function () {
-        return sanityClientModulePromise;
-      })
-      .then(function (createClient) {
-        if (typeof createClient !== "function") {
-          throw new Error("Sanity client could not be loaded.");
-        }
-        return createClient({
-          projectId: projectId,
-          dataset: dataset,
-          apiVersion: apiVersion,
-          useCdn: useCdn,
-          perspective: "published",
-        });
-      })
-      .catch(function (error) {
-        clientPromise = null;
-        throw error;
-      });
-  }
-
-  const client = await (fresh ? freshClientPromise : clientPromise);
-  return client.fetch(query, params || {});
+  const payload = await response.json();
+  return payload && "result" in payload ? payload.result : payload;
 }
 
 export async function fetchPublicTherapists(options) {
