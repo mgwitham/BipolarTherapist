@@ -515,6 +515,35 @@ function initQuickClaim() {
     form.hidden = false;
   }
 
+  // Updates the fallback form's email-section copy based on why the
+  // user is seeing the form:
+  //   "on_file_missing" → no email on file at all for this listing
+  //   "use_different"   → user clicked "Use a different email →"
+  //   "default"         → generic fallback (license-based quick claim)
+  function setFormMode(mode, result) {
+    const banner = document.getElementById("quickClaimFormBanner");
+    const emailLabel = document.getElementById("quickClaimEmailLabel");
+    if (!banner || !emailLabel) return;
+    if (mode === "on_file_missing") {
+      const therapistName = (result && result.name) || "this listing";
+      banner.hidden = false;
+      banner.innerHTML =
+        "<strong>No email on file.</strong> We don't have a contact address for " +
+        escapeHtml(therapistName) +
+        " yet. Enter the email you want to use — we'll send the activation link there and save it as your on-file email.";
+      emailLabel.textContent = "Your email address";
+    } else if (mode === "use_different") {
+      banner.hidden = false;
+      banner.innerHTML =
+        "<strong>Using a different email.</strong> We'll send the activation link to the address you enter below instead of the one we have on file. After you click the link, we'll update your on-file email to match.";
+      emailLabel.textContent = "Email you can receive at";
+    } else {
+      banner.hidden = true;
+      banner.innerHTML = "";
+      emailLabel.textContent = "Email on your current listing";
+    }
+  }
+
   function applyPickedResult(result) {
     trackFunnelEvent("claim_listing_picked", {
       therapist_slug: result && result.slug,
@@ -533,8 +562,12 @@ function initQuickClaim() {
     }
     setEmailHint(emailHint, result.email_hint || "");
     if (result.has_email && confirmPanel) {
+      setFormMode("default", result);
       showConfirmPanel(result);
     } else {
+      // No on-file email — show the form with a clear banner so the
+      // user understands why they're being asked to type an email.
+      setFormMode("on_file_missing", result);
       hideConfirmPanel();
       if (emailInput) {
         emailInput.focus();
@@ -662,8 +695,13 @@ function initQuickClaim() {
   if (confirmUseOther) {
     confirmUseOther.addEventListener("click", function (event) {
       event.preventDefault();
+      setFormMode("use_different", pickedResult);
       hideConfirmPanel();
+      // Clear the auto-populated email from the on-file hint flow so
+      // the user isn't staring at a pre-filled value they're trying
+      // to replace.
       if (emailInput) {
+        emailInput.value = "";
         emailInput.focus();
       }
     });

@@ -362,6 +362,21 @@
       .quick-claim-form[hidden] {
         display: none;
       }
+      .quick-claim-form-banner {
+        background: var(--teal-faint);
+        border: 1px solid var(--teal);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        color: var(--navy);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .quick-claim-form-banner[hidden] {
+        display: none;
+      }
+      .quick-claim-form-banner strong {
+        color: var(--teal-dark);
+      }
       .quick-claim-form label {
         display: grid;
         gap: 0.35rem;
@@ -764,6 +779,7 @@
            via "Use a different email →" in the confirm panel, or as a
            fallback when they have no email on file. -->
       <form id="quickClaimForm" class="quick-claim-form" novalidate hidden>
+        <div class="quick-claim-form-banner" id="quickClaimFormBanner" hidden></div>
         <label>
           <span>Full name</span>
           <input
@@ -775,7 +791,7 @@
           />
         </label>
         <label>
-          <span>Email on your current listing</span>
+          <span id="quickClaimEmailLabel">Email on your current listing</span>
           <input type="email" name="email" autocomplete="email" required />
           <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
         </label>
