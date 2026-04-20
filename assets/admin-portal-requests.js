@@ -44,13 +44,20 @@ export function renderPortalRequestsQueuePanel(options) {
     .map(function (item) {
       var canMarkInReview = item.status !== "in_review";
       var canResolve = item.status !== "resolved";
+      var priorityBadge = item.is_priority
+        ? '<span class="tag" style="background:#fde68a;color:#78350f;font-weight:700" title="Paid-tier therapist — same-day edit review">PRIORITY</span>'
+        : "";
       return (
-        '<article class="queue-card"><div class="queue-head"><div><h3>' +
+        '<article class="queue-card"' +
+        (item.is_priority ? ' style="border-left:3px solid #f59e0b;background:#fffbeb"' : "") +
+        '><div class="queue-head"><div><h3>' +
         options.escapeHtml(item.therapist_name || item.therapist_slug) +
         '</h3><div class="subtle">' +
         options.escapeHtml(item.requester_name || "Unknown requester") +
         (item.requester_email ? " · " + options.escapeHtml(item.requester_email) : "") +
-        '</div></div><div class="queue-head-actions"><span class="tag">' +
+        '</div></div><div class="queue-head-actions">' +
+        priorityBadge +
+        '<span class="tag">' +
         options.escapeHtml(options.formatPortalRequestType(item.request_type)) +
         '</span><span class="tag">' +
         options.escapeHtml(String(item.status || "open").replace(/_/g, " ")) +
