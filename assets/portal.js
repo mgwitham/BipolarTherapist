@@ -5,6 +5,7 @@ import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,
   createStripeBillingPortalSession,
+  createStripeFeaturedCheckoutSession,
   fetchPortalAnalytics,
   fetchTherapistClaimSession,
   fetchTherapistSubscription,
@@ -821,12 +822,33 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
   var cta = document.getElementById("portalWelcomeUpsellCta");
   if (cta && !cta.dataset.wired) {
     cta.dataset.wired = "1";
-    cta.addEventListener("click", function (event) {
+    cta.addEventListener("click", async function (event) {
       if (event && event.preventDefault) event.preventDefault();
-      var params = new URLSearchParams();
-      if (therapistSlug) params.set("slug", therapistSlug);
-      if (therapistEmail) params.set("email", therapistEmail);
-      window.location.href = "/pricing.html?" + params.toString();
+      if (!therapistSlug) return;
+      var originalLabel = cta.textContent;
+      cta.disabled = true;
+      cta.textContent = "Opening secure checkout...";
+      try {
+        var result = await createStripeFeaturedCheckoutSession({
+          therapist_slug: therapistSlug,
+          email: therapistEmail || "",
+          plan: "paid_monthly",
+          return_path: "/portal.html?slug=" + encodeURIComponent(therapistSlug),
+        });
+        if (result && result.url) {
+          window.location.href = result.url;
+          return;
+        }
+        throw new Error("No checkout URL returned.");
+      } catch (_error) {
+        // Fall back to /pricing so the user still has a path forward.
+        cta.disabled = false;
+        cta.textContent = originalLabel;
+        var params = new URLSearchParams();
+        params.set("slug", therapistSlug);
+        if (therapistEmail) params.set("email", therapistEmail);
+        window.location.href = "/pricing.html?" + params.toString();
+      }
     });
   }
 }
