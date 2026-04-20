@@ -98,6 +98,30 @@ function emailDomainMatchesWebsite(email, website) {
   return emailDomain === siteDomain;
 }
 
+// Rate-limit window for claim-link requests: max 3 fresh links per
+// slug per hour. Stored as an array of ISO timestamps on the therapist
+// doc so limiting survives across Vercel serverless cold starts (which
+// would reset any in-memory counter). Filter window, check count,
+// append timestamp, persist — cheap patch alongside the claimStatus
+// update we were already doing.
+const CLAIM_LINK_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const CLAIM_LINK_MAX_PER_WINDOW = 3;
+const CLAIM_LINK_HISTORY_CAP = 10;
+
+function evaluateClaimLinkRateLimit(requestHistory) {
+  const history = Array.isArray(requestHistory) ? requestHistory : [];
+  const cutoff = Date.now() - CLAIM_LINK_WINDOW_MS;
+  const recent = history.filter(function (iso) {
+    const t = new Date(iso).getTime();
+    return Number.isFinite(t) && t >= cutoff;
+  });
+  return {
+    exceeded: recent.length >= CLAIM_LINK_MAX_PER_WINDOW,
+    recentCount: recent.length,
+    nextHistory: recent.concat(new Date().toISOString()).slice(-CLAIM_LINK_HISTORY_CAP),
+  };
+}
+
 function maskEmail(email) {
   const trimmed = String(email || "").trim();
   if (!trimmed) {
@@ -388,7 +412,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, claimStatus, "slug": slug
+        _id, name, email, claimStatus, claimLinkRequests, "slug": slug
       }`,
       { slug },
     );
@@ -430,6 +454,23 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Rate limit: max 3 claim-link emails per slug per hour.
+    const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests);
+    if (rate.exceeded) {
+      sendJson(
+        response,
+        429,
+        {
+          error:
+            "Too many claim link requests for this listing. Try again in an hour or contact support.",
+          reason: "rate_limited",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const therapistForEmail = {
       ...therapist,
       slug: { current: resolvedSlug },
@@ -445,7 +486,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
     await client
       .patch(therapist._id)
-      .set({ claimStatus: claimStatusUpdate })
+      .set({ claimStatus: claimStatusUpdate, claimLinkRequests: rate.nextHistory })
       .commit({ visibility: "sync" });
 
     sendJson(
@@ -494,7 +535,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, claimStatus, "slug": slug
+        _id, name, email, claimStatus, claimLinkRequests, "slug": slug
       }`,
       { slug },
     );
@@ -534,6 +575,25 @@ export async function handleAuthAndPortalRoutes(context) {
           error:
             "No email is on file for this profile. Provide an email at checkout so we can send the activation link.",
           reason: "no_email_on_file",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Rate limit: max 3 claim-link emails per slug per hour. Shared
+    // counter with /portal/claim-by-slug so trials + free claims
+    // together can't spam a therapist's inbox.
+    const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests);
+    if (rate.exceeded) {
+      sendJson(
+        response,
+        429,
+        {
+          error:
+            "Too many claim link requests for this listing. Try again in an hour or contact support.",
+          reason: "rate_limited",
         },
         origin,
         config,
@@ -594,12 +654,13 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     // Mark the claim as requested so admin views reflect the trial-start
-    // intent even before verification lands.
+    // intent even before verification lands. Append rate-limit history
+    // here too so /portal/claim-trial counts toward the per-slug window.
     const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
     try {
       await client
         .patch(therapist._id)
-        .set({ claimStatus: claimStatusUpdate })
+        .set({ claimStatus: claimStatusUpdate, claimLinkRequests: rate.nextHistory })
         .commit({ visibility: "sync" });
     } catch (_error) {
       // Non-fatal: claim status is derived admin state, checkout already created
@@ -863,7 +924,9 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const therapist = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{ _id, name, "slug": slug.current }`,
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, "slug": slug.current, usedClaimTokenNonces
+      }`,
       { slug: payload.slug },
     );
     if (!therapist) {
@@ -871,7 +934,31 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // One-time-use: if this token's nonce has already been consumed to
+    // claim the profile, reject. Prevents replay of leaked / forwarded
+    // magic links after the first legitimate use.
+    const usedNonces = Array.isArray(therapist.usedClaimTokenNonces)
+      ? therapist.usedClaimTokenNonces
+      : [];
+    if (payload.nonce && usedNonces.indexOf(payload.nonce) !== -1) {
+      sendJson(
+        response,
+        401,
+        {
+          error: "This claim link has already been used. Request a fresh one from the claim page.",
+          reason: "token_already_used",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const now = new Date().toISOString();
+    // Append used nonce, trim to last 20 (plenty of headroom given
+    // 24h TTL + rate limit of 3 fresh tokens per hour).
+    const nextUsedNonces = payload.nonce ? usedNonces.concat(payload.nonce).slice(-20) : usedNonces;
+
     await client
       .patch(therapist._id)
       .set({
@@ -879,6 +966,7 @@ export async function handleAuthAndPortalRoutes(context) {
         claimedByEmail: payload.email,
         claimedAt: now,
         portalLastSeenAt: now,
+        usedClaimTokenNonces: nextUsedNonces,
       })
       .commit({ visibility: "sync" });
 
