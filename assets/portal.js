@@ -1756,6 +1756,29 @@ function renderPortal(therapist, options) {
     return;
   }
 
+  // If the user has an authenticated therapist session AND it matches
+  // the slug we were given, use /portal/me instead of the public CDN
+  // fetch. The public fetch filters on listingActive=true + status=active,
+  // which would lock a paused/inactive therapist out of their own portal.
+  // /portal/me is session-authed and doesn't apply those visibility
+  // filters, so a claimed therapist always reaches their own dashboard.
+  var meTherapist = null;
+  if (getTherapistSessionToken()) {
+    try {
+      var meResp = await fetchTherapistMe();
+      if (meResp && meResp.therapist && meResp.therapist.slug === slug) {
+        meTherapist = meResp.therapist;
+      }
+    } catch (_error) {
+      // Session probably expired; fall through to public path.
+    }
+  }
+
+  if (meTherapist) {
+    renderPortal(meTherapist, { sessionMode: "claimed" });
+    return;
+  }
+
   var therapist = await fetchPublicTherapistBySlug(slug);
   if (!therapist) {
     renderLookupState();
