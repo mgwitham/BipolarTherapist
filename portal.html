@@ -200,6 +200,27 @@
         <li><a href="signup.html">List Your Practice</a></li>
       </ul>
     </nav>
+    <!-- Two post-checkout banners. Which one shows depends on whether
+         the user already has a therapist session (i.e. claimed + in
+         the dashboard before subscribing). The claimed path gets a
+         short success toast; the unclaimed path still needs the
+         "activate your listing" prompt + resend button. -->
+    <aside
+      class="checkout-success"
+      id="checkoutSuccessClaimed"
+      role="status"
+      aria-live="polite"
+      hidden
+    >
+      <button type="button" class="checkout-success-dismiss" id="checkoutSuccessClaimedDismiss">
+        Dismiss
+      </button>
+      <h2>Payment received — 14-day trial active</h2>
+      <p>
+        Your paid features are live. You won't be charged until day 15. Cancel anytime from the
+        Subscription card below.
+      </p>
+    </aside>
     <aside class="checkout-success" id="checkoutSuccess" role="status" aria-live="polite" hidden>
       <button type="button" class="checkout-success-dismiss" id="checkoutSuccessDismiss">
         Dismiss
@@ -226,8 +247,22 @@
         try {
           var params = new URLSearchParams(window.location.search);
           var slug = params.get("slug") || "";
+          // Detect whether the user already has a therapist session. If
+          // they do, they claimed and authenticated BEFORE subscribing —
+          // no need for the "activate your listing / click the email
+          // link" prompt, because they're already in the authenticated
+          // dashboard. Show a brief success toast instead and let them
+          // get on with it. Key matches setTherapistSessionToken() in
+          // assets/review-api.js.
+          var hasTherapistSession = false;
+          try {
+            hasTherapistSession = Boolean(window.localStorage.getItem("bt_therapist_session_v1"));
+          } catch (_err) {
+            hasTherapistSession = false;
+          }
           if (params.get("stripe") === "success") {
-            var banner = document.getElementById("checkoutSuccess");
+            var bannerId = hasTherapistSession ? "checkoutSuccessClaimed" : "checkoutSuccess";
+            var banner = document.getElementById(bannerId);
             if (banner) {
               banner.hidden = false;
               // Stash the slug on the banner so the Resend button can use it.
@@ -246,6 +281,13 @@
           if (dismiss) {
             dismiss.addEventListener("click", function () {
               var b = document.getElementById("checkoutSuccess");
+              if (b) b.hidden = true;
+            });
+          }
+          var claimedDismiss = document.getElementById("checkoutSuccessClaimedDismiss");
+          if (claimedDismiss) {
+            claimedDismiss.addEventListener("click", function () {
+              var b = document.getElementById("checkoutSuccessClaimed");
               if (b) b.hidden = true;
             });
           }
