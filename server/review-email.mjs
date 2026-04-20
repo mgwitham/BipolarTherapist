@@ -173,11 +173,13 @@ export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
   if (!onFileEmail) {
     return;
   }
-  const endDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }) : "day 15 of your trial";
+  const endDate = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "day 15 of your trial";
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
@@ -219,10 +221,14 @@ export async function sendUnverifiedTrialCanceledNotice(config, therapist, activ
 <p>Your 14-day trial started but we never received your activation click, so we couldn't
 confirm you own this listing. We've canceled your subscription. <strong>Your card was not
 charged.</strong></p>
-${activationUrl ? `<p>If you meant to activate, here's a fresh link (expires in 24 hours):</p>
+${
+  activationUrl
+    ? `<p>If you meant to activate, here's a fresh link (expires in 24 hours):</p>
 <p style="margin:1.25rem 0;"><a href="${activationUrl}" style="background:#2f6e80;color:#fff;
 padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;">Activate my
-listing →</a></p>` : ""}
+listing →</a></p>`
+    : ""
+}
 <p style="font-size:13px;color:#666;">If you didn't start this trial, ignore this email. No
 further action needed — nothing was charged.</p>`,
   });
