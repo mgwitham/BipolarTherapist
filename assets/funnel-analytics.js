@@ -98,6 +98,135 @@ export function trackFunnelEvent(type, payload) {
   }
 
   forwardEventToVercel(String(type), payload);
+  queueEventForServer(String(type), payload);
+}
+
+// =============================================================
+// Server-side event forwarding for the admin funnel dashboard.
+// Events batch locally and POST to /api/review/analytics/events
+// every 2 seconds (or on page hide). Best-effort — if the post
+// fails, events still exist in localStorage + Vercel Analytics.
+// =============================================================
+
+var SERVER_BATCH_MAX = 30;
+var SERVER_BATCH_FLUSH_MS = 2000;
+var serverEventBatch = [];
+var serverFlushTimer = null;
+var serverFlushHandlersBound = false;
+var serverSessionId = null;
+
+function getSessionId() {
+  if (serverSessionId) {
+    return serverSessionId;
+  }
+  var key = "bth_funnel_session_id_v1";
+  try {
+    var existing = window.sessionStorage.getItem(key);
+    if (existing) {
+      serverSessionId = existing;
+      return serverSessionId;
+    }
+    var bytes = new Uint8Array(8);
+    (window.crypto || window.msCrypto).getRandomValues(bytes);
+    var id = Array.from(bytes)
+      .map(function (b) {
+        return b.toString(16).padStart(2, "0");
+      })
+      .join("");
+    window.sessionStorage.setItem(key, id);
+    serverSessionId = id;
+  } catch (_error) {
+    serverSessionId = "anon-" + Math.random().toString(36).slice(2, 10);
+  }
+  return serverSessionId;
+}
+
+function getAnalyticsEndpoint() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  var hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return "http://localhost:8787/analytics/events";
+  }
+  return "/api/review/analytics/events";
+}
+
+function flushServerBatch() {
+  if (serverFlushTimer) {
+    window.clearTimeout(serverFlushTimer);
+    serverFlushTimer = null;
+  }
+  if (!serverEventBatch.length) {
+    return;
+  }
+  var endpoint = getAnalyticsEndpoint();
+  if (!endpoint) {
+    return;
+  }
+  var payload = { events: serverEventBatch.slice(0, SERVER_BATCH_MAX) };
+  serverEventBatch = [];
+  var body = JSON.stringify(payload);
+  // Prefer sendBeacon so events flush on page unload. Fall back to fetch
+  // with keepalive for anything longer than the beacon size cap.
+  try {
+    if (navigator && typeof navigator.sendBeacon === "function" && body.length < 60000) {
+      var blob = new window.Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(endpoint, blob)) {
+        return;
+      }
+    }
+  } catch (_error) {
+    // fall through
+  }
+  try {
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body,
+      keepalive: true,
+    }).catch(function () {});
+  } catch (_error) {
+    // best-effort
+  }
+}
+
+function bindServerFlushHandlers() {
+  if (serverFlushHandlersBound || typeof window === "undefined") {
+    return;
+  }
+  serverFlushHandlersBound = true;
+  try {
+    window.addEventListener("pagehide", flushServerBatch);
+    window.addEventListener("beforeunload", flushServerBatch);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") {
+        flushServerBatch();
+      }
+    });
+  } catch (_error) {
+    // best-effort
+  }
+}
+
+function queueEventForServer(type, payload) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  bindServerFlushHandlers();
+  serverEventBatch.push({
+    type: type,
+    occurredAt: new Date().toISOString(),
+    sessionId: getSessionId(),
+    payload: flattenEventPayloadForVercel(payload) || {},
+  });
+  if (serverEventBatch.length >= SERVER_BATCH_MAX) {
+    flushServerBatch();
+    return;
+  }
+  if (!serverFlushTimer) {
+    serverFlushTimer = window.setTimeout(flushServerBatch, SERVER_BATCH_FLUSH_MS);
+  }
 }
 
 function readTherapistContactRouteMemory() {

@@ -386,8 +386,145 @@
       }
       body:not([data-admin-view="today"]) [data-view-group="today"],
       body:not([data-admin-view="listings"]) [data-view-group="listings"],
-      body:not([data-admin-view="reports"]) [data-view-group="reports"] {
+      body:not([data-admin-view="reports"]) [data-view-group="reports"],
+      body:not([data-admin-view="funnel"]) [data-view-group="funnel"] {
         display: none !important;
+      }
+      .admin-funnel-section {
+        background: var(--surface-alt, #fff);
+        border: 1px solid var(--border, #d4e4e9);
+        border-radius: 12px;
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1rem;
+      }
+      .admin-funnel-section h3 {
+        margin: 0 0 0.8rem;
+        font-size: 1rem;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-funnel-headline-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+      .admin-funnel-headline-card {
+        background: #f7fbfc;
+        border: 1px solid #e4edf0;
+        border-radius: 10px;
+        padding: 0.9rem 1rem;
+      }
+      .admin-funnel-headline-card-title {
+        margin: 0 0 0.55rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark, #155f70);
+      }
+      .admin-funnel-headline-stats {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.2rem 0.8rem;
+        margin: 0;
+        font-size: 0.88rem;
+      }
+      .admin-funnel-headline-stats dt {
+        color: var(--slate, #4a6572);
+      }
+      .admin-funnel-headline-stats dd {
+        margin: 0;
+        font-weight: 700;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-funnel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+      .admin-funnel-table th,
+      .admin-funnel-table td {
+        padding: 0.55rem 0.6rem;
+        border-bottom: 1px solid #eef4f6;
+        text-align: left;
+      }
+      .admin-funnel-table th.r,
+      .admin-funnel-table td.r {
+        text-align: right;
+      }
+      .admin-funnel-table thead th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted, #6b8290);
+      }
+      .admin-funnel-step {
+        font-weight: 600;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-funnel-dropoff {
+        color: #c44a4a;
+        font-weight: 600;
+      }
+      .admin-funnel-caption {
+        margin: 0.5rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted, #6b8290);
+      }
+      .admin-funnel-recent {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.3rem;
+      }
+      .admin-funnel-recent-item {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 0.5rem 1rem;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #eef4f6;
+        font-size: 0.86rem;
+      }
+      .admin-funnel-recent-time {
+        color: var(--muted, #6b8290);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.8rem;
+      }
+      .admin-funnel-recent-type {
+        font-weight: 600;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-funnel-recent-payload {
+        grid-column: 2;
+        color: var(--slate, #4a6572);
+        font-size: 0.82rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .admin-funnel-empty {
+        color: var(--muted, #6b8290);
+        font-style: italic;
+        font-size: 0.92rem;
+      }
+      .admin-funnel-meta {
+        text-align: right;
+        color: var(--muted, #6b8290);
+        font-size: 0.78rem;
+      }
+      .admin-funnel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .admin-funnel-status {
+        color: var(--muted, #6b8290);
+        font-size: 0.88rem;
+      }
+      @media (max-width: 800px) {
+        .admin-funnel-headline-grid {
+          grid-template-columns: 1fr;
+        }
       }
       .panel-intro {
         margin: 0 0 0.85rem;
@@ -4322,6 +4459,15 @@
         >
           Reports
         </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="funnel"
+          role="tab"
+          aria-selected="false"
+        >
+          Funnel
+        </button>
       </div>
 
       <section class="admin-today" id="todayRegion" data-view-group="today" style="display: none">
@@ -5023,6 +5169,35 @@
                 </div>
               </div>
             </details>
+            <section
+              class="admin-region-shell"
+              id="funnelRegion"
+              data-view-group="funnel"
+              style="margin-top: 1.5rem"
+            >
+              <header class="admin-funnel-header">
+                <div>
+                  <h2 style="margin: 0">Signup + claim funnel</h2>
+                  <p class="subtle" style="margin: 0.25rem 0 0">
+                    Live event log from /signup and /claim. Last 500 events held in a ring buffer.
+                    Events auto-flush from the browser every 2 seconds or on page hide.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center">
+                  <span
+                    class="admin-funnel-status"
+                    id="adminFunnelStatus"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                  ></span>
+                  <button type="button" class="btn-secondary" id="adminFunnelRefresh">
+                    Refresh
+                  </button>
+                </div>
+              </header>
+              <div id="adminFunnelDashboard"></div>
+            </section>
           </main>
         </div>
       </div>
@@ -5055,6 +5230,7 @@
     </div>
 
     <script type="module" src="assets/admin-view-tabs.js"></script>
+    <script type="module" src="assets/admin-funnel.js"></script>
     <script type="module" src="assets/admin.js"></script>
 
     <!-- Edit profile drawer -->

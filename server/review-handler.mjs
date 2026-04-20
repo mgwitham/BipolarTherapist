@@ -17,6 +17,7 @@ import { handleCandidateIngestRoutes } from "./review-candidate-ingest-routes.mj
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
 import { verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
+import { handleAnalyticsRoutes } from "./review-analytics-routes.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
@@ -536,6 +537,15 @@ function createReviewRouteModules() {
     {
       handler: handleEngagementRoutes,
       deps: {
+        parseBody,
+        sendJson,
+      },
+    },
+    {
+      handler: handleAnalyticsRoutes,
+      deps: {
+        getAuthorizedActor,
+        isAuthorized,
         parseBody,
         sendJson,
       },
