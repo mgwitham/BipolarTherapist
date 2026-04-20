@@ -112,6 +112,9 @@ export function getReviewApiConfig() {
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
+    portalBaseUrl:
+      process.env.PORTAL_BASE_URL || rootEnv.PORTAL_BASE_URL || "https://www.bipolartherapyhub.com",
+    cronSecret: process.env.CRON_SECRET || rootEnv.CRON_SECRET || "",
     dcaAppId: process.env.DCA_APP_ID || rootEnv.DCA_APP_ID || "",
     dcaAppKey: process.env.DCA_APP_KEY || rootEnv.DCA_APP_KEY || "",
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
