@@ -367,6 +367,15 @@ export async function searchTherapistQuickClaim(query) {
   });
 }
 
+// Single-result lookup by slug — used for /claim?slug=X deep-links
+// so clicking a listing on /signup drops the therapist straight into
+// the confirm panel without another search.
+export async function lookupTherapistBySlug(slug) {
+  return request("/portal/quick-claim/lookup?slug=" + encodeURIComponent(slug || ""), {
+    method: "GET",
+  });
+}
+
 export async function sendClaimLinkToSlug(slug) {
   return request("/portal/claim-by-slug", {
     method: "POST",
