@@ -8,7 +8,9 @@ import {
   createStripeFeaturedCheckoutSession,
   fetchPortalAnalytics,
   fetchTherapistClaimSession,
+  fetchTherapistMe,
   fetchTherapistSubscription,
+  getTherapistSessionToken,
   requestTherapistClaimLink,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -1725,6 +1727,31 @@ function renderPortal(therapist, options) {
   }
 
   if (!slug) {
+    // Try to auto-resolve the therapist from an existing session before
+    // falling back to the generic lookup form. This covers:
+    //   - Return from Stripe billing portal (session was created with a
+    //     stale return_url missing the slug)
+    //   - Bookmarks of bare /portal
+    //   - Any page load after a prior successful claim
+    if (getTherapistSessionToken()) {
+      try {
+        var me = await fetchTherapistMe();
+        var mySlug =
+          (me && me.therapist && me.therapist.slug) || (me && me.session && me.session.slug) || "";
+        if (mySlug) {
+          // Preserve any stripe=managed / stripe=success query so the
+          // portal's existing stripe-return UI can light up appropriately.
+          var pass = new URLSearchParams(window.location.search);
+          pass.set("slug", mySlug);
+          window.location.replace(
+            window.location.pathname + "?" + pass.toString() + window.location.hash,
+          );
+          return;
+        }
+      } catch (_error) {
+        // Session token invalid / expired — fall through to lookup.
+      }
+    }
     renderLookupState();
     return;
   }
