@@ -243,6 +243,20 @@ function buildPortalProgressData(application) {
 
 function buildPortalNextAction(therapist, application) {
   if (!application) {
+    // Two shapes of "no application doc" therapist:
+    //   1. Already claimed — typically a CMS-discovery-pipeline ingest
+    //      who never went through the public signup form. They don't
+    //      need to "claim first"; they need tools to update.
+    //   2. Not yet claimed — public visitor or stub state; the original
+    //      copy is still right here.
+    if (therapist && therapist.claim_status === "claimed") {
+      return {
+        title: "You're all set",
+        body: "Use 'Confirm or update profile' to submit any edits to your bio, headshot, accepting-status, or contact routes. We review and publish within a business day.",
+        ctaLabel: "",
+        href: "",
+      };
+    }
     return {
       title: "Claim your profile first",
       body: "Once your claim is verified, this portal can show your exact progress and next step.",
@@ -1328,7 +1342,15 @@ function renderPortal(therapist, options) {
     '<section class="portal-grid">' +
     '<article class="portal-card"><h2>Profile status</h2><div class="portal-list">' +
     "<div><strong>Live listing:</strong> " +
-    escapeHtml(therapist.status === "active" ? "Live" : therapist.status || "Unknown") +
+    escapeHtml(
+      therapist.listing_active === false
+        ? "Paused (hidden from directory)"
+        : therapist.status === "active"
+          ? "Live"
+          : therapist.status
+            ? therapist.status.charAt(0).toUpperCase() + therapist.status.slice(1)
+            : "Not yet published",
+    ) +
     "</div>" +
     "<div><strong>Claim status:</strong> " +
     escapeHtml(claimStatus) +
