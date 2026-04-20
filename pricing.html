@@ -157,6 +157,15 @@
         color: var(--muted);
         font-size: 0.86rem;
       }
+      .pricing-note-small {
+        margin-top: 0.55rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .pricing-note-small a {
+        color: var(--teal);
+      }
       .pricing-disclaimer {
         margin: 2rem auto 0;
         max-width: 680px;
@@ -243,10 +252,11 @@
             <li>Monthly insights email with actionable suggestions</li>
             <li>Cancel anytime from your dashboard in one click</li>
           </ul>
-          <button type="button" class="pricing-cta" data-checkout-plan="paid_monthly" data-paid-cta>
-            Start 14-day free trial
-          </button>
-          <div class="pricing-feedback" data-feedback="paid"></div>
+          <a href="claim.html" class="pricing-cta" data-paid-cta>Start my 14-day trial</a>
+          <p class="pricing-note-small">
+            You'll pick your listing on the next page. If you're not listed yet,
+            <a href="signup.html">sign up here first</a>.
+          </p>
         </article>
       </section>
 
