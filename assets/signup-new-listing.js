@@ -91,19 +91,30 @@ async function submitIntake(form, status) {
       body: JSON.stringify(payload),
     });
     if (response.status === 409) {
-      // Duplicate detected — server returned guidance on which path to
-      // take instead. Link them to claim if they're already listed.
       let data = {};
       try {
         data = await response.json();
       } catch (_error) {
         /* ignore */
       }
+      if (data && data.recommended_intake_type === "claim_existing" && data.duplicate_slug) {
+        trackFunnelEvent("signup_duplicate_redirect_to_claim", {
+          duplicate_slug: data.duplicate_slug,
+        });
+        setStatus(
+          status,
+          "Looks like you're already listed. Taking you to claim your profile...",
+          "success",
+        );
+        const target = "/claim?slug=" + encodeURIComponent(data.duplicate_slug);
+        window.setTimeout(function () {
+          window.location.href = target;
+        }, 900);
+        return;
+      }
       const msg =
-        data && data.error
-          ? data.error +
-            " If you're already listed, use 'Manage my existing listing' at the top of this page."
-          : "A record for this therapist already exists. Use the claim flow above.";
+        (data && data.error) ||
+        "A record for this therapist already exists. Try the claim flow instead.";
       setStatus(status, msg, "error");
       return;
     }
