@@ -1278,8 +1278,18 @@ function renderPortal(therapist, options) {
       "</section>"
     : "";
 
+  // Hero eyebrow adapts to the user's actual state so we don't keep
+  // saying "claim and manage" to someone who already claimed.
+  var heroEyebrow = verifiedClaim
+    ? "Your profile dashboard"
+    : sessionMode === "claim_token"
+      ? "Welcome to your dashboard"
+      : "Claim and manage your profile";
+
   shell.innerHTML =
-    '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">Claim and manage your profile</p><h1>' +
+    '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
+    escapeHtml(heroEyebrow) +
+    "</p><h1>" +
     escapeHtml(therapist.name) +
     '</h1><p class="portal-subtle">' +
     escapeHtml(therapist.city + ", " + therapist.state) +
@@ -1584,6 +1594,24 @@ function renderPortal(therapist, options) {
   renderStripeReturnBanner();
 
   if (token) {
+    // Auto-accept on magic-link arrival. Email receipt is already proof
+    // of ownership — making the user click an additional "Claim this
+    // profile" button is ceremony, and created a failure mode where
+    // replayed / used tokens dead-ended the user with no recovery.
+    // The server's claim-accept is now idempotent for already-claimed
+    // same-email docs (see server/review-auth-portal-routes.mjs), so
+    // refresh / back-button / Stripe-return all land cleanly. Accept
+    // result is discarded; we always read the full therapist payload
+    // via claim-session below.
+    try {
+      await acceptTherapistClaim(token);
+    } catch (_acceptError) {
+      // Non-fatal at this stage — if the token is invalid/expired we'll
+      // surface it below via claim-session; if it's the rare
+      // not-yet-covered failure mode, the "Verify claim" fallback will
+      // still render.
+    }
+
     try {
       var session = await fetchTherapistClaimSession(token);
       claimSessionState = session;

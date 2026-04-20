@@ -960,13 +960,28 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
-    // One-time-use: if this token's nonce has already been consumed to
-    // claim the profile, reject. Prevents replay of leaked / forwarded
-    // magic links after the first legitimate use.
+    // One-time-use: if this token's nonce has already been consumed,
+    // reject — EXCEPT when the doc is already claimed by the same email
+    // this token represents. That case is a legitimate re-entry (user
+    // refreshed the page, went back, or clicked the link twice). Issuing
+    // a fresh session is safe because (a) the token is still signed + not
+    // expired, and (b) the claim is already complete — there's no new
+    // state change to guard against replay of. Prevents the classic
+    // "This claim link has already been used" dead-end where a user
+    // can't get back into their own portal.
     const usedNonces = Array.isArray(therapist.usedClaimTokenNonces)
       ? therapist.usedClaimTokenNonces
       : [];
-    if (payload.nonce && usedNonces.indexOf(payload.nonce) !== -1) {
+    const nonceAlreadyUsed = Boolean(payload.nonce && usedNonces.indexOf(payload.nonce) !== -1);
+    const alreadyClaimedBySameEmail =
+      therapist.claimStatus === "claimed" &&
+      String(therapist.claimedByEmail || "")
+        .trim()
+        .toLowerCase() ===
+        String(payload.email || "")
+          .trim()
+          .toLowerCase();
+    if (nonceAlreadyUsed && !alreadyClaimedBySameEmail) {
       sendJson(
         response,
         401,
