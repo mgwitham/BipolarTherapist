@@ -306,6 +306,54 @@ test("claim-by-slug: returns 409 no_email_on_file when profile has no email", as
   assert.equal(response.payload.reason, "no_email_on_file");
 });
 
+test("quick-claim/lookup: returns single therapist by slug", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/portal/quick-claim/lookup",
+    client,
+  });
+  // Override URL to include the slug query param.
+  context.url = new URL("http://localhost:8787/portal/quick-claim/lookup?slug=jamie-rivera");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.ok(response.payload.result);
+  assert.equal(response.payload.result.slug, "jamie-rivera");
+  assert.equal(response.payload.result.name, "Jamie Rivera");
+  assert.equal(response.payload.result.has_email, true);
+  // Email is returned as masked hint, not raw
+  assert.ok(/\*/.test(response.payload.result.email_hint));
+});
+
+test("quick-claim/lookup: returns 404 for unknown slug", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/portal/quick-claim/lookup",
+    client,
+  });
+  context.url = new URL("http://localhost:8787/portal/quick-claim/lookup?slug=nobody-here");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.payload.reason, "not_found");
+});
+
+test("quick-claim/lookup: returns 400 when slug missing", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/portal/quick-claim/lookup",
+    client,
+  });
+  context.url = new URL("http://localhost:8787/portal/quick-claim/lookup");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+});
+
 test("claim-trial: sends activation link AND creates Stripe session", async () => {
   const { client, state } = createMemoryClient({
     "therapist-LMFT12345": seedTherapist("LMFT12345"),

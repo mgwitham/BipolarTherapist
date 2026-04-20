@@ -1,5 +1,6 @@
 import {
   createStripeFeaturedCheckoutSession,
+  lookupTherapistBySlug,
   requestTherapistQuickClaim,
   searchTherapistQuickClaim,
   sendClaimLinkToSlug,
@@ -284,21 +285,38 @@ function initQuickClaim() {
   const emailInput = form.querySelector('input[name="email"]');
   const licenseInput = form.querySelector('input[name="license_number"]');
 
-  // If the page was reached from a "claim this listing" link on a
-  // therapist profile, the slug arrives in ?confirm=<slug>. Prefill
-  // the search input with the last-name portion of the slug and let
-  // the existing search flow surface the match.
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const confirmSlug = (params.get("confirm") || "").trim();
-    if (confirmSlug && searchInput && !searchInput.value) {
-      const namePart = confirmSlug.split("-").filter(Boolean).slice(0, 2).join(" ");
-      if (namePart) {
-        searchInput.value = namePart;
+  // Deep-link auto-pick. Two URL params trigger this:
+  //   ?slug=X  — signup search result click, directory "claim this
+  //              listing" banner, outbound email CTAs
+  //   ?confirm=X — legacy path from older therapist-profile links
+  //
+  // If either is present, fetch the therapist server-side and call
+  // applyPickedResult directly — skipping the search step entirely.
+  // Falls back silently to the search UI if the lookup fails.
+  async function autoPickFromQueryParam() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const directSlug = (params.get("slug") || params.get("confirm") || "").trim();
+      if (!directSlug) {
+        return;
       }
+      trackFunnelEvent("claim_deep_link_opened", { therapist_slug: directSlug });
+      const response = await lookupTherapistBySlug(directSlug);
+      const result = response && response.result;
+      if (result && result.slug) {
+        applyPickedResult(result);
+        return;
+      }
+      // Not found — leave the search UI free for the user to find themselves.
+      if (searchInput && !searchInput.value) {
+        const namePart = directSlug.split("-").filter(Boolean).slice(0, 2).join(" ");
+        if (namePart) {
+          searchInput.value = namePart;
+        }
+      }
+    } catch (_error) {
+      // Best-effort — fall back to search UI.
     }
-  } catch (_error) {
-    // noop — prefill is best-effort
   }
 
   const quickResend = document.getElementById(QUICK_RESEND_ID);
@@ -644,6 +662,10 @@ function initQuickClaim() {
       }
     });
   }
+
+  // Kick off deep-link auto-pick after applyPickedResult and search
+  // handlers are wired up. Runs async — best-effort, no blocking.
+  autoPickFromQueryParam();
 
   form.addEventListener("submit", async function handleSubmit(event) {
     event.preventDefault();

@@ -279,6 +279,49 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // GET /portal/quick-claim/lookup?slug=X — single-result lookup used
+  // for deep-link flows (e.g. /claim?slug=X from the /signup search
+  // results). Returns the same shape as /portal/quick-claim/search so
+  // the client can call applyPickedResult directly without a second
+  // query.
+  if (request.method === "GET" && routePath === "/portal/quick-claim/lookup") {
+    const lookupSlug = String((url && url.searchParams.get("slug")) || "").trim();
+    if (!lookupSlug) {
+      sendJson(response, 400, { error: "slug is required" }, origin, config);
+      return true;
+    }
+    const doc = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, email, city, state, credentials, licenseNumber, claimStatus, "slug": slug.current
+      }`,
+      { slug: lookupSlug },
+    );
+    if (!doc) {
+      sendJson(response, 404, { error: "not_found", reason: "not_found" }, origin, config);
+      return true;
+    }
+    sendJson(
+      response,
+      200,
+      {
+        result: {
+          slug: doc.slug,
+          name: doc.name || "",
+          city: doc.city || "",
+          state: doc.state || "",
+          credentials: doc.credentials || "",
+          license_number: doc.licenseNumber || "",
+          email_hint: maskEmail(doc.email),
+          has_email: Boolean(doc.email),
+          claim_status: doc.claimStatus || "unclaimed",
+        },
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/portal/quick-claim/search") {
     const query = String((url && url.searchParams.get("q")) || "").trim();
     if (query.length < 2) {
