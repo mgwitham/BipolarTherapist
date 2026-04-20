@@ -597,6 +597,80 @@
         font-size: 0.92rem;
         margin-bottom: 1rem;
       }
+      .listing-removal-search {
+        display: grid;
+        gap: 0.4rem;
+        padding: 0.9rem 1rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 0.9rem;
+      }
+      .listing-removal-search label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+      }
+      .listing-removal-search input {
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 400;
+        background: var(--white);
+      }
+      .listing-removal-search-results {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .listing-removal-search-results[hidden] {
+        display: none;
+      }
+      .listing-removal-search-result {
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 0.2rem;
+        padding: 0.65rem 0.8rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        text-align: left;
+        font: inherit;
+        color: var(--navy);
+        cursor: pointer;
+      }
+      .listing-removal-search-result:hover {
+        border-color: var(--teal);
+        background: var(--teal-faint);
+      }
+      .listing-removal-search-result .result-name {
+        font-weight: 600;
+      }
+      .listing-removal-search-result .result-meta {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .listing-removal-search-empty {
+        padding: 0.6rem 0.8rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-style: italic;
+      }
+      .listing-removal-search-hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: normal;
+      }
+      .listing-removal-email-hint-prefill {
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
       .listing-removal-form {
         display: grid;
         gap: 0.85rem;
@@ -904,6 +978,27 @@
           confirmation link to the email on your listing and your page goes dark the moment you
           click it.
         </p>
+        <div class="listing-removal-search">
+          <label>
+            <span>Find your listing</span>
+            <input
+              type="search"
+              id="listingRemovalSearchInput"
+              autocomplete="off"
+              placeholder="Search your name or CA license number"
+            />
+          </label>
+          <div
+            class="listing-removal-search-results"
+            id="listingRemovalSearchResults"
+            role="listbox"
+            hidden
+          ></div>
+          <p class="listing-removal-search-hint">
+            Pick your listing to autofill the form below. We'll show the masked email on file so you
+            know which inbox to type below.
+          </p>
+        </div>
         <form id="listingRemovalForm" class="listing-removal-form" novalidate>
           <label>
             <span>Full name</span>
@@ -928,7 +1023,7 @@
           <label>
             <span>Email on your listing</span>
             <input type="email" name="email" autocomplete="email" required />
-            <span class="listing-removal-field-hint">
+            <span class="listing-removal-field-hint" id="listingRemovalEmailHint">
               We send the confirmation link to the email we have on file, not to a different
               address. This prevents someone else from removing you.
             </span>
