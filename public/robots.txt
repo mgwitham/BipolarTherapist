@@ -1,0 +1,13 @@
+# BipolarTherapyHub robots.txt
+# We want everything indexed except user-specific surfaces and
+# internal admin/API endpoints. See sitemap.xml for the full URL list.
+
+User-agent: *
+Allow: /
+Disallow: /portal
+Disallow: /portal.html
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /api/
+
+Sitemap: https://www.bipolartherapyhub.com/sitemap.xml

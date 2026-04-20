@@ -112,6 +112,122 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so
+// each /therapist.html?slug=X has unique title, description, OG tags,
+// and structured data. Injected client-side after the therapist fetch
+// resolves — Google's crawler executes JS and picks these up.
+function upsertMeta(attr, key, content) {
+  if (!content) return;
+  let node = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if (!node) {
+    node = document.createElement("meta");
+    node.setAttribute(attr, key);
+    document.head.appendChild(node);
+  }
+  node.setAttribute("content", content);
+}
+
+function upsertLinkRel(rel, href) {
+  if (!href) return;
+  let node = document.head.querySelector(`link[rel="${rel}"]`);
+  if (!node) {
+    node = document.createElement("link");
+    node.setAttribute("rel", rel);
+    document.head.appendChild(node);
+  }
+  node.setAttribute("href", href);
+}
+
+function buildTherapistSeoDescription(t) {
+  const name = t.name || "Bipolar therapist";
+  const credentials = t.credentials ? `, ${t.credentials}` : "";
+  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  const bio = String(t.bio || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const snippet = bio ? bio.slice(0, 120) + (bio.length > 120 ? "…" : "") : "";
+  return `${name}${credentials} — bipolar-specialist therapist in ${location}. ${snippet}`.trim();
+}
+
+function buildTherapistJsonLd(t) {
+  const name = t.name || "";
+  const credentials = t.credentials || "";
+  const nameWithCreds = credentials ? `${name}, ${credentials}` : name;
+  const pageUrl = `https://www.bipolartherapyhub.com/therapist.html?slug=${encodeURIComponent(t.slug || "")}`;
+  const address = {
+    "@type": "PostalAddress",
+    addressLocality: t.city || undefined,
+    addressRegion: t.state || "CA",
+    postalCode: t.zip || undefined,
+    addressCountry: "US",
+  };
+  // Both Person (the clinician) and MedicalBusiness (the practice) —
+  // Google picks whichever matches the query intent.
+  const person = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: nameWithCreds,
+    url: pageUrl,
+    jobTitle: t.title || "Therapist",
+    knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
+    address,
+    image: t.photo_url || undefined,
+    telephone: t.phone || undefined,
+    email: t.email || undefined,
+  };
+  const medicalBusiness = {
+    "@context": "https://schema.org",
+    "@type": "MedicalBusiness",
+    name: t.practice_name || nameWithCreds,
+    url: pageUrl,
+    address,
+    telephone: t.phone || undefined,
+    priceRange: "$$",
+    medicalSpecialty: "Psychiatric",
+  };
+  return [person, medicalBusiness];
+}
+
+function applyTherapistSeo(t) {
+  if (!t || typeof document === "undefined") return;
+  const name = t.name || "Therapist";
+  const credentials = t.credentials ? `, ${t.credentials}` : "";
+  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  const seoTitle = `${name}${credentials} — Bipolar Therapist in ${location}`;
+  const seoDescription = buildTherapistSeoDescription(t);
+  const canonicalUrl = `https://www.bipolartherapyhub.com/therapist.html?slug=${encodeURIComponent(t.slug || "")}`;
+
+  document.title = `${seoTitle} — BipolarTherapyHub`;
+  upsertMeta("name", "description", seoDescription);
+  upsertLinkRel("canonical", canonicalUrl);
+
+  // Open Graph + Twitter
+  upsertMeta("property", "og:type", "profile");
+  upsertMeta("property", "og:site_name", "BipolarTherapyHub");
+  upsertMeta("property", "og:url", canonicalUrl);
+  upsertMeta("property", "og:title", seoTitle);
+  upsertMeta("property", "og:description", seoDescription);
+  if (t.photo_url) {
+    upsertMeta("property", "og:image", t.photo_url);
+  }
+  upsertMeta("name", "twitter:card", "summary");
+  upsertMeta("name", "twitter:title", seoTitle);
+  upsertMeta("name", "twitter:description", seoDescription);
+
+  // JSON-LD structured data — remove any previous instance, then inject
+  try {
+    const previous = document.getElementById("therapist-jsonld");
+    if (previous) previous.remove();
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "therapist-jsonld";
+    script.textContent = JSON.stringify(buildTherapistJsonLd(t));
+    document.head.appendChild(script);
+  } catch (_error) {
+    // best-effort
+  }
+}
+
 function renderCompactTagList(items, className, limit, overflowLabel) {
   var safeItems = (items || []).filter(Boolean);
   var visibleItems = safeItems.slice(0, limit || safeItems.length);
@@ -1802,6 +1918,7 @@ function renderProfile(t, therapistDirectory) {
           ? "Reachability is partly clear here: the profile includes availability context, but live openings should still be confirmed directly."
           : "Reachability is decent here: the contact path is clear, even if live timing still needs a quick confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
+  applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
   var navClaimLink = document.getElementById("navClaimLink");
   var footerClaimLink = document.getElementById("footerClaimLink");
