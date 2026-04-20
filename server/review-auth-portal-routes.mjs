@@ -1043,7 +1043,8 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, practiceName, claimStatus, claimedByEmail, claimedAt,
+        _id, name, email, city, state, practiceName, status, listingActive,
+        claimStatus, claimedByEmail, claimedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
         "slug": slug.current
       }`,
@@ -1072,6 +1073,8 @@ export async function handleAuthAndPortalRoutes(context) {
           city: therapist.city || "",
           state: therapist.state || "",
           practice_name: therapist.practiceName || "",
+          status: therapist.status || "",
+          listing_active: therapist.listingActive !== false,
           claim_status: therapist.claimStatus || "unclaimed",
           claimed_by_email: therapist.claimedByEmail || "",
           claimed_at: therapist.claimedAt || "",
