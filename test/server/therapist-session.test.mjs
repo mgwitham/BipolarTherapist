@@ -128,9 +128,8 @@ test("/portal/me returns 401 without a session token", async () => {
 });
 
 test("/portal/analytics returns current-week engagement summary for the authenticated therapist", async () => {
-  const { buildEngagementPeriodKey, buildEngagementPeriodStart } = await import(
-    "../../shared/therapist-engagement-domain.mjs"
-  );
+  const { buildEngagementPeriodKey, buildEngagementPeriodStart } =
+    await import("../../shared/therapist-engagement-domain.mjs");
   const now = new Date();
   const nowIso = now.toISOString();
   const periodKey = buildEngagementPeriodKey(nowIso);
