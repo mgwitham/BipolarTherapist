@@ -1,4 +1,5 @@
 import { directoryPageType } from "./directoryPage";
+import { funnelEventLogType } from "./funnelEventLog";
 import { homePageType } from "./homePage";
 import { licensureRecordType } from "./licensureRecord";
 import { matchOutcomeType } from "./matchOutcome";
@@ -30,4 +31,5 @@ export const schemaTypes = [
   therapistEngagementSummaryType,
   therapistSubscriptionType,
   zipOutreachTaskType,
+  funnelEventLogType,
 ];

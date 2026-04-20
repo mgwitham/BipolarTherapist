@@ -408,6 +408,14 @@ export async function startClaimTrial(payload) {
   });
 }
 
+// Admin-only: read server-stored funnel events for the dashboard.
+export async function fetchFunnelEventLog() {
+  return request("/analytics/events", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 export async function createStripeBillingPortalSession(payload) {
   return request("/stripe/portal-session", {
     method: "POST",

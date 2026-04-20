@@ -270,6 +270,14 @@ export function createMemoryClient(initialDocuments) {
         state.documents.set(created._id, created);
         return created;
       },
+      async createOrReplace(document) {
+        const stored = {
+          ...deepClone(document),
+          _createdAt: document._createdAt || new Date().toISOString(),
+        };
+        state.documents.set(stored._id, stored);
+        return stored;
+      },
       async getDocument(id) {
         return deepClone(state.documents.get(id) || null);
       },
