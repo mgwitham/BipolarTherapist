@@ -158,118 +158,6 @@
       }
 
       /* =========================
-         "Already listed?" search
-         ========================= */
-      .signup-already-listed {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.4rem 1.5rem;
-        box-shadow: 0 4px 14px rgba(15, 65, 78, 0.04);
-        margin-bottom: 1.5rem;
-      }
-      .signup-already-listed h2 {
-        font-size: 0.92rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--teal-dark);
-        margin-bottom: 0.3rem;
-      }
-      .signup-already-listed-intro {
-        color: var(--slate);
-        font-size: 0.94rem;
-        margin-bottom: 0.85rem;
-      }
-      .signup-already-listed-input-wrap {
-        position: relative;
-      }
-      .signup-already-listed-input-wrap input {
-        width: 100%;
-        padding: 0.75rem 0.9rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font: inherit;
-        font-size: 0.98rem;
-        color: var(--navy);
-        background: var(--bg);
-      }
-      .signup-already-listed-input-wrap input:focus {
-        outline: none;
-        border-color: var(--teal);
-        background: var(--white);
-        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
-      }
-      .signup-already-listed-results {
-        margin-top: 0.6rem;
-        display: grid;
-        gap: 0.4rem;
-      }
-      .signup-already-listed-result {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 0.3rem 1rem;
-        padding: 0.75rem 0.9rem;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        text-decoration: none;
-        color: var(--navy);
-        transition:
-          border-color 0.15s ease,
-          background 0.15s ease;
-      }
-      .signup-already-listed-result:hover {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .signup-already-listed-name {
-        font-weight: 600;
-        grid-column: 1;
-      }
-      .signup-already-listed-meta {
-        grid-column: 1;
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-      .signup-already-listed-go {
-        grid-column: 2;
-        grid-row: 1 / span 2;
-        align-self: center;
-        color: var(--teal);
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-      .signup-already-listed-badge {
-        display: inline-block;
-        margin-left: 0.5rem;
-        padding: 0.15rem 0.5rem;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .signup-already-listed-empty {
-        padding: 0.75rem 0.9rem;
-        color: var(--muted);
-        font-size: 0.92rem;
-        font-style: italic;
-      }
-      .signup-already-listed-status {
-        margin-top: 0.5rem;
-        color: var(--red);
-        font-size: 0.88rem;
-      }
-      .signup-already-listed-hint {
-        margin-top: 0.85rem;
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-
-      /* =========================
          New-listing form card
          ========================= */
       .signup-form-card {
@@ -539,32 +427,6 @@
         </div>
 
         <div>
-          <section class="signup-already-listed" aria-label="Check if you're already listed">
-            <h2>Are you already listed?</h2>
-            <p class="signup-already-listed-intro">
-              We auto-added California bipolar-specialist therapists from public records. Check
-              before you fill out the form below.
-            </p>
-            <div class="signup-already-listed-input-wrap">
-              <input
-                type="search"
-                id="signupAlreadyListedInput"
-                placeholder="Search your name or license number"
-                autocomplete="off"
-                aria-label="Search for your existing listing"
-              />
-            </div>
-            <div class="signup-already-listed-results" id="signupAlreadyListedResults" hidden></div>
-            <div
-              class="signup-already-listed-status"
-              id="signupAlreadyListedStatus"
-              role="status"
-              aria-live="polite"
-              hidden
-            ></div>
-            <p class="signup-already-listed-hint">Not listed? Fill the form below. ↓</p>
-          </section>
-
           <section class="signup-form-card" aria-label="List your practice">
             <h2>List your practice</h2>
             <p class="signup-form-card-sub">Five fields. Sixty seconds.</p>
@@ -703,7 +565,6 @@
       <a href="claim.html">Claim your listing →</a>
     </p>
 
-    <script type="module" src="assets/signup-already-listed-search.js"></script>
     <script type="module" src="assets/signup-new-listing.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
