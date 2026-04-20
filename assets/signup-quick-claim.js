@@ -427,6 +427,32 @@ function initQuickClaim() {
     confirmStatus.innerHTML = message;
   }
 
+  // Trust signals — rendered above the "We'll email your activation
+  // link to X" line in the confirm panel. Currently just DCA license
+  // verification; can extend to "X of 50 founding spots left" or
+  // "claimed by N this week" later without changing the call site.
+  function renderTrustSignals(result) {
+    const signals = document.getElementById("claimTrustSignals");
+    if (!signals) {
+      return;
+    }
+    const items = [];
+    if (result && result.license_verified_current) {
+      const licType = (result.credentials || "").trim();
+      const licLabel = licType
+        ? `CA ${escapeHtml(licType)} license verified by the Board`
+        : "CA license verified by the Board";
+      items.push(licLabel);
+    }
+    if (!items.length) {
+      signals.hidden = true;
+      signals.innerHTML = "";
+      return;
+    }
+    signals.hidden = false;
+    signals.innerHTML = items.map((text) => `<li>${text}</li>`).join("");
+  }
+
   function showConfirmPanel(result) {
     pickedResult = result;
     if (!confirmPanel) {
@@ -452,6 +478,7 @@ function initQuickClaim() {
       // see "We'll email your activation link to ." with an empty span.
       confirmEmail.textContent = rawHint || "the email on your listing";
     }
+    renderTrustSignals(result);
     if (confirmSend) {
       // Secondary "just claim free" link. If email is missing, fall back to
       // the form below where they can type one manually.

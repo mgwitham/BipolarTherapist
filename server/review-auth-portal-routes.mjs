@@ -292,7 +292,8 @@ export async function handleAuthAndPortalRoutes(context) {
     }
     const doc = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, credentials, licenseNumber, claimStatus, "slug": slug.current
+        _id, name, email, city, state, credentials, licenseNumber, claimStatus,
+        "slug": slug.current, licensureVerification
       }`,
       { slug: lookupSlug },
     );
@@ -300,6 +301,11 @@ export async function handleAuthAndPortalRoutes(context) {
       sendJson(response, 404, { error: "not_found", reason: "not_found" }, origin, config);
       return true;
     }
+    const verification =
+      (doc.licensureVerification && typeof doc.licensureVerification === "object") || false;
+    const statusStanding = verification
+      ? String(doc.licensureVerification.statusStanding || "")
+      : "";
     sendJson(
       response,
       200,
@@ -314,6 +320,8 @@ export async function handleAuthAndPortalRoutes(context) {
           email_hint: maskEmail(doc.email),
           has_email: Boolean(doc.email),
           claim_status: doc.claimStatus || "unclaimed",
+          license_verified_current: statusStanding === "current",
+          license_verified_at: verification ? doc.licensureVerification.verifiedAt || "" : "",
         },
       },
       origin,
@@ -338,12 +346,18 @@ export async function handleAuthAndPortalRoutes(context) {
         ($license != "" && licenseNumber match $license) ||
         ($nameMatcher != "" && name match $nameMatcher)
       )] | order(name asc) [0...8]{
-        _id, name, email, city, state, credentials, licenseNumber, claimStatus, "slug": slug.current
+        _id, name, email, city, state, credentials, licenseNumber, claimStatus,
+        "slug": slug.current, licensureVerification
       }`,
       { license: normalizedLicense || "__none__", nameMatcher: nameMatcher || "__none__" },
     );
 
     const results = (docs || []).map(function (doc) {
+      const verification =
+        doc.licensureVerification && typeof doc.licensureVerification === "object"
+          ? doc.licensureVerification
+          : null;
+      const statusStanding = verification ? String(verification.statusStanding || "") : "";
       return {
         slug: doc.slug,
         name: doc.name || "",
@@ -354,6 +368,8 @@ export async function handleAuthAndPortalRoutes(context) {
         email_hint: maskEmail(doc.email),
         has_email: Boolean(doc.email),
         claim_status: doc.claimStatus || "unclaimed",
+        license_verified_current: statusStanding === "current",
+        license_verified_at: (verification && verification.verifiedAt) || "",
       };
     });
 

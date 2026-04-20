@@ -263,6 +263,31 @@
         color: var(--navy);
         font-size: 0.94rem;
       }
+      .claim-trust-signals {
+        list-style: none;
+        display: grid;
+        gap: 0.45rem;
+        padding: 0.85rem 0.95rem;
+        margin: 0;
+        background: var(--teal-faint);
+        border-radius: 10px;
+      }
+      .claim-trust-signals[hidden] {
+        display: none;
+      }
+      .claim-trust-signals li {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--navy);
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+      .claim-trust-signals li::before {
+        content: "✓";
+        color: var(--green);
+        font-weight: 700;
+      }
       .claim-confirm-send {
         margin-top: 0.25rem;
         background: var(--teal);
@@ -680,6 +705,7 @@
         </div>
         <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
         <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
+        <ul class="claim-trust-signals" id="claimTrustSignals" hidden></ul>
         <p class="claim-confirm-destination">
           We'll email your activation link to <strong id="claimConfirmEmail"></strong>.
         </p>
