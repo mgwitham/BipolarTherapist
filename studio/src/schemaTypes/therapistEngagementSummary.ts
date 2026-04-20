@@ -20,13 +20,19 @@ export const therapistEngagementSummaryType = defineType({
     }),
     defineField({
       name: "periodKey",
-      title: "Period key (YYYY-MM)",
+      title: "Period key (ISO week, e.g. 2026-W16)",
       type: "string",
       group: "identity",
       validation: (rule) => rule.required(),
     }),
-    defineField({ name: "periodYear", title: "Period year", type: "number", group: "identity" }),
-    defineField({ name: "periodMonth", title: "Period month", type: "number", group: "identity" }),
+    defineField({ name: "periodYear", title: "ISO year", type: "number", group: "identity" }),
+    defineField({ name: "periodWeek", title: "ISO week (1-53)", type: "number", group: "identity" }),
+    defineField({
+      name: "periodStart",
+      title: "Week start (Monday UTC)",
+      type: "datetime",
+      group: "identity",
+    }),
 
     defineField({
       name: "profileViewsTotal",
