@@ -64,13 +64,13 @@ function buildContext(options) {
         canAttemptLogin: () => true,
         clearFailedLogins: () => {},
         createSignedSession: () => "",
-        createTherapistSession: () => "",
+        createTherapistSession: () => "test-session-token",
         getAuthorizedTherapist: () => null,
         getSecurityWarnings: () => [],
         isAuthorized: () => false,
         normalizePortalRequest: (doc) => doc,
         parseAuthorizationHeader: () => "",
-        readPortalClaimToken: () => null,
+        readPortalClaimToken: options.readPortalClaimToken || (() => null),
         readSignedSession: () => null,
         recordFailedLogin: () => {},
         updatePortalRequestFields: async () => null,
@@ -91,6 +91,122 @@ function seedTherapist(licenseNumber, overrides = {}) {
     ...overrides,
   };
 }
+
+test("claim-accept: accepts fresh token and records nonce as used", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-accept",
+    client,
+    body: { token: "valid-token" },
+    readPortalClaimToken: () => ({
+      sub: "therapist-portal",
+      slug: "jamie-rivera",
+      email: "jamie@example.com",
+      exp: Date.now() + 60 * 60 * 1000,
+      nonce: "nonce-fresh-abc123",
+    }),
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimStatus, "claimed");
+  assert.ok(Array.isArray(updated.usedClaimTokenNonces));
+  assert.ok(updated.usedClaimTokenNonces.includes("nonce-fresh-abc123"));
+});
+
+test("claim-accept: rejects token whose nonce was already used", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      usedClaimTokenNonces: ["nonce-already-spent"],
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-accept",
+    client,
+    body: { token: "replay-token" },
+    readPortalClaimToken: () => ({
+      sub: "therapist-portal",
+      slug: "jamie-rivera",
+      email: "jamie@example.com",
+      exp: Date.now() + 60 * 60 * 1000,
+      nonce: "nonce-already-spent",
+    }),
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.payload.reason, "token_already_used");
+});
+
+test("claim-by-slug: rate-limits to 3 requests per slug per hour", async () => {
+  const now = new Date();
+  const recent = [
+    new Date(now.getTime() - 10 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 1 * 60 * 1000).toISOString(),
+  ];
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { claimLinkRequests: recent }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+});
+
+test("claim-by-slug: requests older than 1 hour don't count toward rate limit", async () => {
+  const now = new Date();
+  const old = [
+    new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 90 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 75 * 60 * 1000).toISOString(),
+  ];
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { claimLinkRequests: old }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  const updated = state.documents.get("therapist-LMFT12345");
+  // Old entries filtered out, only the new entry remains
+  assert.equal(updated.claimLinkRequests.length, 1);
+});
+
+test("claim-trial: shares rate-limit counter with claim-by-slug", async () => {
+  const now = new Date();
+  const recent = [
+    new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 20 * 60 * 1000).toISOString(),
+    new Date(now.getTime() - 10 * 60 * 1000).toISOString(),
+  ];
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { claimLinkRequests: recent }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+});
 
 test("quick-claim: missing fields returns 400", async () => {
   const { client } = createMemoryClient();
