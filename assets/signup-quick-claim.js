@@ -3,6 +3,7 @@ import {
   requestTherapistQuickClaim,
   searchTherapistQuickClaim,
   sendClaimLinkToSlug,
+  startClaimTrial,
 } from "./review-api.js";
 import { fetchFoundingSpotsRemaining } from "./cms.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
@@ -26,6 +27,7 @@ const CONFIRM_NAME_ID = "claimConfirmName";
 const CONFIRM_META_ID = "claimConfirmMeta";
 const CONFIRM_EMAIL_ID = "claimConfirmEmail";
 const CONFIRM_SEND_ID = "claimConfirmSend";
+const CONFIRM_TRIAL_ID = "claimStartTrial";
 const CONFIRM_CHANGE_ID = "claimConfirmChange";
 const CONFIRM_USE_OTHER_ID = "claimConfirmUseOther";
 const CONFIRM_STATUS_ID = "claimConfirmStatus";
@@ -268,6 +270,7 @@ function initQuickClaim() {
   if (!form) {
     return;
   }
+  trackFunnelEvent("claim_page_viewed", {});
 
   const status = document.getElementById(STATUS_ID);
   const submitButton = document.getElementById(SUBMIT_BUTTON_ID);
@@ -384,6 +387,7 @@ function initQuickClaim() {
   const confirmMeta = document.getElementById(CONFIRM_META_ID);
   const confirmEmail = document.getElementById(CONFIRM_EMAIL_ID);
   const confirmSend = document.getElementById(CONFIRM_SEND_ID);
+  const confirmTrial = document.getElementById(CONFIRM_TRIAL_ID);
   const confirmChange = document.getElementById(CONFIRM_CHANGE_ID);
   const confirmUseOther = document.getElementById(CONFIRM_USE_OTHER_ID);
   const confirmStatus = document.getElementById(CONFIRM_STATUS_ID);
@@ -424,10 +428,21 @@ function initQuickClaim() {
       confirmEmail.textContent = hint || "the email on your listing";
     }
     if (confirmSend) {
-      confirmSend.disabled = !result.has_email;
+      // Secondary "just claim free" link. If email is missing, fall back to
+      // the form below where they can type one manually.
       confirmSend.textContent = result.has_email
-        ? "Send sign-in link"
+        ? "Just claim free basic controls →"
         : "No email on file — use form below";
+    }
+    if (confirmTrial) {
+      // Primary "Start trial" button. Only usable if we have an on-file
+      // email to pre-fill Stripe with and send the activation link to.
+      confirmTrial.disabled = !result.has_email;
+      if (!result.has_email) {
+        confirmTrial.textContent = "No email on file — use form below";
+      } else {
+        confirmTrial.textContent = "Start 14-day free trial — $0 today";
+      }
     }
     setConfirmStatus("", "");
     confirmPanel.hidden = false;
@@ -445,6 +460,11 @@ function initQuickClaim() {
   }
 
   function applyPickedResult(result) {
+    trackFunnelEvent("claim_listing_picked", {
+      therapist_slug: result && result.slug,
+      has_email: Boolean(result && result.has_email),
+      claim_status: (result && result.claim_status) || "unclaimed",
+    });
     clearSearchResults(searchResults);
     if (searchInput) {
       searchInput.value = result.name || "";
@@ -466,13 +486,17 @@ function initQuickClaim() {
     }
   }
 
-  async function handleConfirmSend() {
+  async function handleConfirmSend(event) {
+    // claimConfirmSend is an <a> now — intercept navigation.
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
     if (!pickedResult || !pickedResult.slug || !confirmSend) {
       return;
     }
-    confirmSend.disabled = true;
     const originalLabel = confirmSend.textContent;
     confirmSend.textContent = "Sending...";
+    confirmSend.setAttribute("aria-disabled", "true");
     setConfirmStatus("", "");
     hideResend();
     try {
@@ -497,7 +521,7 @@ function initQuickClaim() {
       }
     } catch (error) {
       const reason = (error && error.payload && error.payload.reason) || "";
-      confirmSend.disabled = false;
+      confirmSend.removeAttribute("aria-disabled");
       confirmSend.textContent = originalLabel;
       if (reason === "no_email_on_file") {
         setConfirmStatus(
@@ -517,6 +541,55 @@ function initQuickClaim() {
     }
   }
 
+  // One-click trial path: POST /portal/claim-trial fires both the
+  // activation magic link AND creates a Stripe Checkout session. On
+  // success we redirect directly to Stripe. The user returns to the
+  // portal post-payment with the activation email waiting.
+  async function handleStartTrial() {
+    if (!pickedResult || !pickedResult.slug || !confirmTrial) {
+      return;
+    }
+    if (confirmTrial.disabled) {
+      return;
+    }
+    const originalLabel = confirmTrial.textContent;
+    confirmTrial.disabled = true;
+    confirmTrial.textContent = "Opening secure checkout...";
+    setConfirmStatus("", "");
+    try {
+      trackFunnelEvent("claim_trial_clicked", {
+        therapist_slug: pickedResult.slug,
+      });
+      const result = await startClaimTrial({ slug: pickedResult.slug });
+      if (result && result.stripe_url) {
+        trackFunnelEvent("claim_trial_checkout_opened", {
+          therapist_slug: result.therapist_slug || pickedResult.slug,
+        });
+        window.location.href = result.stripe_url;
+        return;
+      }
+      throw new Error("No checkout URL returned.");
+    } catch (error) {
+      const reason = (error && error.payload && error.payload.reason) || "";
+      confirmTrial.disabled = false;
+      confirmTrial.textContent = originalLabel;
+      if (reason === "no_email_on_file") {
+        setConfirmStatus(
+          "warn",
+          "No email is on file for this profile. Use the form below to claim with a different email.",
+        );
+      } else {
+        setConfirmStatus(
+          "warn",
+          (error && error.message) || "We couldn't start your trial. Try again in a moment.",
+        );
+      }
+    }
+  }
+
+  if (confirmTrial) {
+    confirmTrial.addEventListener("click", handleStartTrial);
+  }
   if (confirmSend) {
     confirmSend.addEventListener("click", handleConfirmSend);
   }

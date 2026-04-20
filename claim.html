@@ -1778,6 +1778,12 @@
         background: var(--muted);
         cursor: not-allowed;
       }
+      .claim-trial-subhint {
+        margin: 0.25rem 0 0;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
       .claim-confirm-alt {
         margin: 0;
         text-align: center;
@@ -2643,12 +2649,18 @@
           <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
           <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
           <p class="claim-confirm-destination">
-            We'll email a one-time sign-in link to
+            We'll email your activation link to
             <strong id="claimConfirmEmail"></strong>.
           </p>
-          <button type="button" id="claimConfirmSend" class="claim-confirm-send">
-            Send sign-in link
+          <button type="button" id="claimStartTrial" class="claim-confirm-send">
+            Start 14-day free trial — $0 today
           </button>
+          <p class="claim-trial-subhint">
+            $19/mo after trial · cancel anytime · no charge until day 15
+          </p>
+          <p class="claim-confirm-alt">
+            <a href="#" id="claimConfirmSend">Just claim free basic controls →</a>
+          </p>
           <p class="claim-confirm-alt">
             <a href="#" id="claimConfirmUseOther">Use a different email →</a>
           </p>

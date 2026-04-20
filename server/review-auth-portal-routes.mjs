@@ -124,6 +124,7 @@ export async function handleAuthAndPortalRoutes(context) {
     buildPortalRequestDocument,
     canAttemptLogin,
     clearFailedLogins,
+    createFeaturedCheckoutSession,
     createSignedSession,
     createTherapistSession,
     getAuthorizedTherapist,
@@ -397,6 +398,163 @@ export async function handleAuthAndPortalRoutes(context) {
         therapist_slug: resolvedSlug,
         email_hint: maskEmail(therapist.email),
         verification_method: "email_on_file",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // POST /portal/claim-trial — one-click trial path.
+  // Starts a Stripe Checkout session AND fires the ownership verification
+  // link in parallel, so the user pays first (2 clicks) and activates their
+  // profile whenever they check email. Falls back to /portal/claim-by-slug
+  // semantics for no-email-on-file (errors out) and not-found.
+  if (request.method === "POST" && routePath === "/portal/claim-trial") {
+    const body = await parseBody(request);
+    const slug = String((body && body.slug) || "").trim();
+    const overrideEmail = String((body && body.override_email) || "")
+      .trim()
+      .toLowerCase();
+
+    if (!slug) {
+      sendJson(response, 400, { error: "Slug is required." }, origin, config);
+      return true;
+    }
+
+    if (typeof createFeaturedCheckoutSession !== "function") {
+      sendJson(
+        response,
+        503,
+        { error: "Checkout is not configured on this server." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, email, claimStatus, "slug": slug
+      }`,
+      { slug },
+    );
+
+    const resolvedSlug =
+      (therapist && therapist.slug && therapist.slug.current) ||
+      (therapist && typeof therapist.slug === "string" ? therapist.slug : "");
+
+    if (!therapist || !resolvedSlug) {
+      sendJson(
+        response,
+        404,
+        {
+          error: "We couldn't find that profile. Try searching again.",
+          reason: "not_found",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const onFileEmail = String(therapist.email || "")
+      .trim()
+      .toLowerCase();
+
+    // Use override_email only when no on-file email exists. Never let the
+    // client choose where verification goes when we already have a
+    // trusted address — otherwise an imposter could verify themselves.
+    const verificationEmail = onFileEmail || overrideEmail;
+
+    if (!verificationEmail) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "No email is on file for this profile. Provide an email at checkout so we can send the activation link.",
+          reason: "no_email_on_file",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapistForEmail = {
+      ...therapist,
+      slug: { current: resolvedSlug },
+    };
+
+    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+
+    // Fire verification link first — if email send fails, fail the whole
+    // request so the user doesn't end up paying without a way to activate.
+    try {
+      await sendPortalClaimLink(config, therapistForEmail, verificationEmail, portalBaseUrl);
+    } catch (error) {
+      sendJson(
+        response,
+        500,
+        {
+          error:
+            (error && error.message) ||
+            "We couldn't send the activation link. Try again in a moment.",
+          reason: "email_send_failed",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Create Stripe Checkout session. Pre-fill customer_email so the
+    // therapist doesn't retype it. return_path brings them back to the
+    // portal with ?stripe=success and the success banner fires.
+    let checkoutSession;
+    try {
+      checkoutSession = await createFeaturedCheckoutSession(config, {
+        therapistSlug: resolvedSlug,
+        customerEmail: verificationEmail,
+        plan: "paid_monthly",
+        returnPath: `/portal.html?slug=${encodeURIComponent(resolvedSlug)}`,
+      });
+    } catch (error) {
+      sendJson(
+        response,
+        500,
+        {
+          error: (error && error.message) || "We couldn't open checkout. Try again in a moment.",
+          reason: "checkout_failed",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Mark the claim as requested so admin views reflect the trial-start
+    // intent even before verification lands.
+    const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
+    try {
+      await client
+        .patch(therapist._id)
+        .set({ claimStatus: claimStatusUpdate })
+        .commit({ visibility: "sync" });
+    } catch (_error) {
+      // Non-fatal: claim status is derived admin state, checkout already created
+    }
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        therapist_slug: resolvedSlug,
+        email_hint: maskEmail(verificationEmail),
+        stripe_url: checkoutSession.url,
+        stripe_session_id: checkoutSession.id,
       },
       origin,
       config,

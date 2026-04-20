@@ -141,12 +141,20 @@ export async function sendPortalClaimLink(
     from: config.emailFrom,
     to: [requesterEmail],
     reply_to: config.notificationTo,
-    subject: `Your BipolarTherapyHub manage link for ${therapist.name}`,
-    html: `<h2>Claim or manage your profile</h2>
-<p>Hi ${therapist.name},</p>
-<p>Use the secure link below to access your lightweight profile portal.</p>
-<p><a href="${manageUrl}">${manageUrl}</a></p>
-<p>This link expires in 24 hours.</p>`,
+    subject: `Activate your BipolarTherapyHub listing`,
+    html: `<h2>You're one click away from activating your listing</h2>
+<p>Hi ${therapist.name || "there"},</p>
+<p>Click below to verify your email and unlock your profile controls (editing, analytics,
+accepting-status, bio, headshot).</p>
+<p style="margin: 1.25rem 0;">
+  <a href="${manageUrl}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
+  text-decoration:none;font-weight:600;">Activate my listing →</a>
+</p>
+<p style="font-size:13px;color:#666;">Or copy and paste this link into your browser:<br/>
+<a href="${manageUrl}">${manageUrl}</a></p>
+<p style="font-size:13px;color:#666;">If you didn't just start a trial or request this link,
+ignore this email — your card won't be charged and nothing will happen. The link expires in 24
+hours.</p>`,
   });
 }
 

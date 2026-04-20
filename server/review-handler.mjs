@@ -503,6 +503,7 @@ function createReviewRouteModules() {
         buildPortalRequestDocument,
         canAttemptLogin,
         clearFailedLogins,
+        createFeaturedCheckoutSession,
         createSignedSession,
         createTherapistSession,
         getAuthorizedActor,
