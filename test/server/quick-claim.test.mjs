@@ -325,6 +325,50 @@ test("quick-claim/lookup: returns single therapist by slug", async () => {
   assert.equal(response.payload.result.has_email, true);
   // Email is returned as masked hint, not raw
   assert.ok(/\*/.test(response.payload.result.email_hint));
+  // Trust signals fields present, defaults to false when not verified
+  assert.equal(response.payload.result.license_verified_current, false);
+  assert.equal(response.payload.result.license_verified_at, "");
+});
+
+test("quick-claim/lookup: surfaces license_verified_current when current standing", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      licensureVerification: {
+        statusStanding: "current",
+        verifiedAt: "2026-04-01T00:00:00Z",
+      },
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/portal/quick-claim/lookup",
+    client,
+  });
+  context.url = new URL("http://localhost:8787/portal/quick-claim/lookup?slug=jamie-rivera");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.result.license_verified_current, true);
+  assert.equal(response.payload.result.license_verified_at, "2026-04-01T00:00:00Z");
+});
+
+test("quick-claim/lookup: expired license does NOT mark verified_current", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      licensureVerification: {
+        statusStanding: "expired",
+        verifiedAt: "2026-04-01T00:00:00Z",
+      },
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "GET",
+    routePath: "/portal/quick-claim/lookup",
+    client,
+  });
+  context.url = new URL("http://localhost:8787/portal/quick-claim/lookup?slug=jamie-rivera");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.result.license_verified_current, false);
 });
 
 test("quick-claim/lookup: returns 404 for unknown slug", async () => {
