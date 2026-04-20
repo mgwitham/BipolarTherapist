@@ -38,10 +38,20 @@ async function lookupByLicense(licenseNumber) {
     if (!response.ok) return null;
     const data = await response.json();
     const results = (data && data.results) || [];
-    const hit = results.find(function (r) {
+    // Prefer an exact normalized match, but fall back to the first result
+    // the server returned — the server's `licenseNumber match $q` is what
+    // decides whether the query is a license hit, and we should trust it
+    // for any normalized-digit query. This handles stored values that
+    // include credential prefixes (e.g. "LMFT 109462") that would
+    // otherwise fail strict equality.
+    const exact = results.find(function (r) {
       return normalizeLicense(r.license_number) === normalized;
     });
-    return hit || null;
+    if (exact) return exact;
+    if (/^\d{4,}$/.test(normalized) && results.length > 0) {
+      return results[0];
+    }
+    return null;
   } catch (_error) {
     return null;
   }
