@@ -67,7 +67,7 @@ const client = createClient({
 
 const SMOKE_ID = "therapist-smoke-test";
 const SMOKE_SLUG = "smoke-test-bipolartherapyhub";
-const SMOKE_EMAIL = "mgwitham@asu.edu";
+const SMOKE_EMAIL = "mgwitham@gmail.com";
 
 async function main() {
   const wantDelete = process.argv.includes("--delete");
