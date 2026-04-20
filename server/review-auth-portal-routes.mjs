@@ -361,19 +361,28 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // licenseOnly=1 is used by the /signup duplicate-detection nudge: we
+    // only want license hits there, because fuzzy name matching on a
+    // license string (e.g. "A179040") picks up anyone with an "A" name.
+    const licenseOnly = String((url && url.searchParams.get("licenseOnly")) || "") === "1";
+
     const normalizedLicense = normalizeLicenseForMatch(query);
-    const normalizedName = normalizeNameForMatch(query);
+    const normalizedName = licenseOnly ? "" : normalizeNameForMatch(query);
     const nameMatcher = normalizedName ? `*${normalizedName.split(" ").join("*")}*` : "";
+    // Glob pattern lets "179040" match stored values like "A179040" or
+    // "PSY 179040" — GROQ match on a plain string requires token equality,
+    // which fails on any credential-prefixed stored license.
+    const licenseGlob = normalizedLicense ? `*${normalizedLicense}*` : "";
 
     const docs = await client.fetch(
       `*[_type == "therapist" && listingActive == true && defined(slug.current) && (
-        ($license != "" && licenseNumber match $license) ||
+        ($licenseGlob != "" && licenseNumber match $licenseGlob) ||
         ($nameMatcher != "" && name match $nameMatcher)
       )] | order(name asc) [0...8]{
         _id, name, email, city, state, credentials, licenseNumber, claimStatus,
         "slug": slug.current, licensureVerification
       }`,
-      { license: normalizedLicense || "__none__", nameMatcher: nameMatcher || "__none__" },
+      { licenseGlob: licenseGlob || "__none__", nameMatcher: nameMatcher || "__none__" },
     );
 
     const results = (docs || []).map(function (doc) {

@@ -32,26 +32,22 @@ function normalizeLicense(raw) {
 async function lookupByLicense(licenseNumber) {
   const normalized = normalizeLicense(licenseNumber);
   if (normalized.length < 4) return null;
-  const url = LICENSE_LOOKUP_ENDPOINT + "?q=" + encodeURIComponent(normalized);
+  // licenseOnly=1 keeps the server from falling back to fuzzy name
+  // matching — otherwise "A179040" pulls up anyone named Adam/Amir.
+  const url = LICENSE_LOOKUP_ENDPOINT + "?licenseOnly=1&q=" + encodeURIComponent(normalized);
   try {
     const response = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
     if (!response.ok) return null;
     const data = await response.json();
     const results = (data && data.results) || [];
-    // Prefer an exact normalized match, but fall back to the first result
-    // the server returned — the server's `licenseNumber match $q` is what
-    // decides whether the query is a license hit, and we should trust it
-    // for any normalized-digit query. This handles stored values that
-    // include credential prefixes (e.g. "LMFT 109462") that would
-    // otherwise fail strict equality.
-    const exact = results.find(function (r) {
-      return normalizeLicense(r.license_number) === normalized;
+    // The server glob-matches on the normalized digit suffix, which can
+    // surface partial hits when the query is short. Require the stored
+    // license, once normalized, to contain the normalized query.
+    const hit = results.find(function (r) {
+      const stored = normalizeLicense(r.license_number);
+      return stored && stored.indexOf(normalized) !== -1;
     });
-    if (exact) return exact;
-    if (/^\d{4,}$/.test(normalized) && results.length > 0) {
-      return results[0];
-    }
-    return null;
+    return hit || null;
   } catch (_error) {
     return null;
   }
