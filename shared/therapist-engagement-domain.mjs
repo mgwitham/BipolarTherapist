@@ -25,10 +25,42 @@ function pad2(value) {
   return String(value).padStart(2, "0");
 }
 
+function toUtcMidnight(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+// ISO-8601 week: weeks start Monday, week 1 contains the first Thursday
+// of the year. Return { year, week } where year may differ from the
+// input year near year boundaries (e.g. 2026-01-01 can be "2025-W53").
+function computeIsoWeek(date) {
+  const d = toUtcMidnight(date);
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+// Monday-start ISO date for the week that contains `date`, as an ISO
+// datetime string. Useful for sorting and for rendering "week of ...".
+function computeIsoWeekStart(date) {
+  const d = toUtcMidnight(date);
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 1);
+  return d.toISOString();
+}
+
 export function buildEngagementPeriodKey(isoString) {
   const date = isoString ? new Date(isoString) : new Date();
   const safe = Number.isNaN(date.getTime()) ? new Date() : date;
-  return `${safe.getUTCFullYear()}-${pad2(safe.getUTCMonth() + 1)}`;
+  const { year, week } = computeIsoWeek(safe);
+  return `${year}-W${pad2(week)}`;
+}
+
+export function buildEngagementPeriodStart(isoString) {
+  const date = isoString ? new Date(isoString) : new Date();
+  const safe = Number.isNaN(date.getTime()) ? new Date() : date;
+  return computeIsoWeekStart(safe);
 }
 
 export function buildEngagementSummaryId(slug, periodKey) {
@@ -40,15 +72,22 @@ export function buildEngagementSummaryId(slug, periodKey) {
   return `therapistEngagementSummary-${cleanSlug}-${cleanPeriod}`;
 }
 
+function parseWeekKey(periodKey) {
+  const match = String(periodKey || "").match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return { year: 0, week: 0 };
+  return { year: Number(match[1]), week: Number(match[2]) };
+}
+
 function buildEmptySummaryDocument(slug, periodKey, nowIso) {
-  const [yearPart, monthPart] = periodKey.split("-");
+  const { year, week } = parseWeekKey(periodKey);
   return {
     _id: buildEngagementSummaryId(slug, periodKey),
     _type: "therapistEngagementSummary",
     therapistSlug: normalizeSlug(slug),
     periodKey,
-    periodYear: Number(yearPart) || 0,
-    periodMonth: Number(monthPart) || 0,
+    periodYear: year,
+    periodWeek: week,
+    periodStart: buildEngagementPeriodStart(nowIso),
     profileViewsTotal: 0,
     profileViewsDirect: 0,
     profileViewsDirectory: 0,

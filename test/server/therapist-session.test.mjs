@@ -127,10 +127,15 @@ test("/portal/me returns 401 without a session token", async () => {
   assert.equal(response.statusCode, 401);
 });
 
-test("/portal/analytics returns current-month engagement summary for the authenticated therapist", async () => {
+test("/portal/analytics returns current-week engagement summary for the authenticated therapist", async () => {
+  const { buildEngagementPeriodKey, buildEngagementPeriodStart } =
+    await import("../../shared/therapist-engagement-domain.mjs");
   const now = new Date();
-  const periodKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const nowIso = now.toISOString();
+  const periodKey = buildEngagementPeriodKey(nowIso);
+  const periodStart = buildEngagementPeriodStart(nowIso);
+  const periodYear = Number(periodKey.split("-W")[0]);
+  const periodWeek = Number(periodKey.split("-W")[1]);
 
   const { client } = createMemoryClient({
     "therapist-jamie": {
@@ -146,8 +151,9 @@ test("/portal/analytics returns current-month engagement summary for the authent
       _type: "therapistEngagementSummary",
       therapistSlug: "jamie-rivera",
       periodKey: periodKey,
-      periodYear: now.getUTCFullYear(),
-      periodMonth: now.getUTCMonth() + 1,
+      periodYear: periodYear,
+      periodWeek: periodWeek,
+      periodStart: periodStart,
       profileViewsTotal: 27,
       profileViewsDirectory: 15,
       profileViewsMatch: 10,

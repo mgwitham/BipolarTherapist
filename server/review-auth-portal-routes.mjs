@@ -1,3 +1,5 @@
+import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
+
 function normalizeNameForMatch(value) {
   return String(value || "")
     .toLowerCase()
@@ -1074,11 +1076,12 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const summaries = await client.fetch(
-      `*[_type == "therapistEngagementSummary" && therapistSlug == $slug] | order(periodKey desc) [0...3]{
+      `*[_type == "therapistEngagementSummary" && therapistSlug == $slug] | order(periodKey desc) [0...12]{
         _id,
         periodKey,
         periodYear,
-        periodMonth,
+        periodWeek,
+        periodStart,
         profileViewsTotal,
         profileViewsDirect,
         profileViewsDirectory,
@@ -1098,8 +1101,7 @@ export async function handleAuthAndPortalRoutes(context) {
       { slug: session.slug },
     );
 
-    const now = new Date();
-    const currentPeriodKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const currentPeriodKey = buildEngagementPeriodKey(new Date().toISOString());
     const list = Array.isArray(summaries) ? summaries : [];
     const current = list.find((s) => s.periodKey === currentPeriodKey) || null;
     const previous = list.find((s) => s.periodKey !== currentPeriodKey) || null;

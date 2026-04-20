@@ -850,38 +850,43 @@ async function handleFeaturedBillingClick(event) {
   }
 }
 
-// Portal analytics V0 — render five numbers summarizing this month's
+// Portal analytics V0 — render five numbers summarizing this week's
 // engagement: profile views total, contact intents (CTA clicks), views
 // from match results, views from directory search, and a period label.
 // Numbers come from the therapistEngagementSummary Sanity document for
-// the current calendar month, populated in real time by /engagement/view
+// the current ISO week, populated in real time by /engagement/view
 // and /engagement/cta-click endpoints.
 //
 // If there's no summary for the current month yet, render a gentle
 // empty state instead of zeroes — a new listing literally has no data,
 // and "0 views" in big type reads worse than "No activity yet."
-function formatAnalyticsPeriodLabel(periodKey) {
-  if (!periodKey) return "This month";
-  const parts = String(periodKey).split("-");
-  if (parts.length !== 2) return "This month";
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  if (!year || !month) return "This month";
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  return months[month - 1] + " " + year;
+// Format an ISO-week period key (e.g. "2026-W16") for the analytics card.
+// Prefer "Week of Apr 13" when we have a periodStart datetime from the
+// server; fall back to "Week 16, 2026" if only the key is available.
+function formatAnalyticsPeriodLabel(periodKey, periodStart) {
+  if (periodStart) {
+    const date = new Date(periodStart);
+    if (!Number.isNaN(date.getTime())) {
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      return "Week of " + months[date.getUTCMonth()] + " " + date.getUTCDate();
+    }
+  }
+  const match = String(periodKey || "").match(/^(\d{4})-W(\d{2})$/);
+  if (match) return "Week " + Number(match[2]) + ", " + match[1];
+  return "This week";
 }
 
 function renderAnalyticsBlock(payload) {
@@ -893,6 +898,7 @@ function renderAnalyticsBlock(payload) {
   const current = payload && payload.current;
   const label = formatAnalyticsPeriodLabel(
     (current && current.periodKey) || (payload && payload.current_period_key),
+    current && current.periodStart,
   );
   if (!current) {
     body.textContent =
@@ -1241,7 +1247,7 @@ function renderPortal(therapist, options) {
     '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form></article>' +
     '<article class="portal-card"><h2>Account controls</h2><div class="portal-list"><div><strong>Pause listing:</strong> Request a temporary pause instead of deleting your profile.</div><div><strong>Remove listing:</strong> Request permanent removal if you no longer want to appear in the directory.</div><div><strong>Headshot and profile updates:</strong> Use the update flow above. Your edits still go through review before they replace the live profile.</div></div></article>' +
     (verifiedClaim
-      ? '<article class="portal-card" id="portalAnalyticsCard"><h2>This month at a glance</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity...</p><div id="portalAnalyticsGrid" hidden></div></article>'
+      ? '<article class="portal-card" id="portalAnalyticsCard"><h2>This week at a glance</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity...</p><div id="portalAnalyticsGrid" hidden></div></article>'
       : "") +
     (verifiedClaim
       ? '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
