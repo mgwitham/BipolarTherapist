@@ -22,6 +22,7 @@ import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
 import {
+  cancelSubscriptionImmediately,
   createBillingPortalSession,
   createFeaturedCheckoutSession,
   retrieveSubscription,
@@ -33,6 +34,8 @@ import {
   notifyApplicantOfDecision,
   sendListingRemovalLink as sendListingRemovalLinkEmail,
   sendPortalClaimLink as sendPortalClaimLinkEmail,
+  sendTrialEndingReminder,
+  sendUnverifiedTrialCanceledNotice,
 } from "./review-email.mjs";
 import {
   canAttemptLogin,
@@ -553,6 +556,8 @@ function createReviewRouteModules() {
     {
       handler: handleStripeRoutes,
       deps: {
+        buildPortalClaimToken,
+        cancelSubscriptionImmediately,
         createBillingPortalSession,
         createFeaturedCheckoutSession,
         getAuthorizedTherapist,
@@ -560,8 +565,11 @@ function createReviewRouteModules() {
         parseRawBody,
         retrieveSubscription,
         sendJson,
+        sendTrialEndingReminder,
+        sendUnverifiedTrialCanceledNotice,
         verifyAndParseWebhook,
       },
+      includeUrl: true,
     },
     {
       handler: handleReadRoutes,
