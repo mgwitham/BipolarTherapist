@@ -165,6 +165,7 @@ export async function handleAuthAndPortalRoutes(context) {
     sendJson,
     sendListingRemovalLink,
     sendPortalClaimLink,
+    sendPortalWelcomeEmail,
     updatePortalRequestFields,
   } = deps;
 
@@ -954,7 +955,8 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, "slug": slug.current, usedClaimTokenNonces
+        _id, name, "slug": slug.current, usedClaimTokenNonces,
+        claimStatus, claimedByEmail
       }`,
       { slug: payload.slug },
     );
@@ -1013,6 +1015,23 @@ export async function handleAuthAndPortalRoutes(context) {
         usedClaimTokenNonces: nextUsedNonces,
       })
       .commit({ visibility: "sync" });
+
+    // Welcome email fires only on the unclaimed → claimed transition.
+    // Skips when the doc was already claimed pre-patch (e.g. a second
+    // magic link clicked after the therapist was already onboarded).
+    const wasUnclaimedBeforePatch = therapist.claimStatus !== "claimed";
+    if (wasUnclaimedBeforePatch) {
+      try {
+        await sendPortalWelcomeEmail(
+          config,
+          therapist,
+          payload.email,
+          `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+        );
+      } catch (error) {
+        console.error("Failed to send portal welcome email.", error);
+      }
+    }
 
     const therapistSessionToken = createTherapistSession(config, {
       slug: therapist.slug,

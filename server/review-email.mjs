@@ -158,6 +158,43 @@ hours.</p>`,
   });
 }
 
+// Post-claim welcome. Fires once on the first successful
+// /portal/claim-accept for a therapist (i.e. unclaimed → claimed
+// transition). Re-entries via the same magic link do NOT re-send.
+export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, portalBaseUrl) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const slug =
+    (therapist && therapist.slug && therapist.slug.current) || (therapist && therapist.slug) || "";
+  const base = String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
+  const portalUrl = slug
+    ? `${base}/portal.html?slug=${encodeURIComponent(slug)}`
+    : `${base}/portal.html`;
+  const listingUrl = slug ? `${base}/therapist.html?slug=${encodeURIComponent(slug)}` : "";
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [recipientEmail],
+    reply_to: config.notificationTo,
+    subject: "You're in. Welcome to BipolarTherapyHub.",
+    html: `<h2>Welcome, ${therapist.name || "there"}.</h2>
+<p>Your listing is claimed. Patients looking for bipolar-specialist care in California can find you right now.</p>
+<p style="margin: 1.25rem 0;">
+  <a href="${portalUrl}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
+  text-decoration:none;font-weight:600;">Open my portal →</a>
+</p>
+<p><strong>What you can do from the portal:</strong></p>
+<ul>
+  <li>Edit your bio, headshot, credentials, and contact info</li>
+  <li>Toggle accepting-new-clients on and off</li>
+  <li>See weekly insights on how patients are finding you</li>
+</ul>
+${listingUrl ? `<p>Your public listing: <a href="${listingUrl}">${listingUrl}</a></p>` : ""}
+<p style="font-size:13px;color:#666;">Questions or changes you can't make yourself? Just reply to this email.</p>`,
+  });
+}
+
 // CA AB 390 pre-charge notice. Fires when Stripe's
 // `customer.subscription.trial_will_end` webhook arrives ~3 days
 // before the trial ends. Required by California consumer-subscription

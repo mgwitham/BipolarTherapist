@@ -22,3 +22,4 @@ scripts/*-ingest-batch-*.json
 
 # Generated at build time — see scripts/generate-sitemap.mjs
 public/sitemap.xml
+.vercel

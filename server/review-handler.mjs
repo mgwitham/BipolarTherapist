@@ -34,6 +34,7 @@ import {
   notifyApplicantOfDecision,
   sendListingRemovalLink as sendListingRemovalLinkEmail,
   sendPortalClaimLink as sendPortalClaimLinkEmail,
+  sendPortalWelcomeEmail,
   sendTrialEndingReminder,
   sendUnverifiedTrialCanceledNotice,
 } from "./review-email.mjs";
@@ -527,6 +528,7 @@ function createReviewRouteModules() {
         sendJson,
         sendListingRemovalLink,
         sendPortalClaimLink,
+        sendPortalWelcomeEmail,
         updatePortalRequestFields,
       },
       includeUrl: true,
