@@ -763,6 +763,74 @@ function describeFeaturedStatus(subscription) {
   return "No active subscription. Start a 14-day free trial to unlock analytics and enhanced profile.";
 }
 
+// Welcome-upsell banner reveal. Called once subscription loads. Paid
+// therapists never see it; free-tier therapists see it until they
+// dismiss it (tracked per-slug in localStorage so returning visits
+// don't re-show after explicit dismissal).
+var PORTAL_UPSELL_DISMISS_KEY = "bth_portal_upsell_dismissed_v1";
+
+function isUpsellDismissed(slug) {
+  try {
+    var raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
+    var parsed = JSON.parse(raw);
+    return Boolean(parsed && parsed[String(slug || "")]);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function markUpsellDismissed(slug) {
+  try {
+    var key = String(slug || "");
+    if (!key) return;
+    var raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
+    var parsed = {};
+    try {
+      parsed = JSON.parse(raw) || {};
+    } catch (_error) {
+      parsed = {};
+    }
+    parsed[key] = new Date().toISOString();
+    window.localStorage.setItem(PORTAL_UPSELL_DISMISS_KEY, JSON.stringify(parsed));
+  } catch (_error) {
+    // best-effort; refusing to persist is fine
+  }
+}
+
+function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) {
+  var banner = document.getElementById("portalWelcomeUpsell");
+  if (!banner) return;
+  var isPaid = Boolean(subscription && subscription.has_active_featured);
+  if (isPaid) {
+    banner.hidden = true;
+    return;
+  }
+  if (isUpsellDismissed(therapistSlug)) {
+    banner.hidden = true;
+    return;
+  }
+  banner.hidden = false;
+  var dismiss = document.getElementById("portalWelcomeUpsellDismiss");
+  if (dismiss && !dismiss.dataset.wired) {
+    dismiss.dataset.wired = "1";
+    dismiss.addEventListener("click", function () {
+      markUpsellDismissed(therapistSlug);
+      banner.hidden = true;
+    });
+  }
+  var cta = document.getElementById("portalWelcomeUpsellCta");
+  if (cta && !cta.dataset.wired) {
+    cta.dataset.wired = "1";
+    cta.addEventListener("click", function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      var params = new URLSearchParams();
+      if (therapistSlug) params.set("slug", therapistSlug);
+      if (therapistEmail) params.set("email", therapistEmail);
+      window.location.href = "/pricing.html?" + params.toString();
+    });
+  }
+}
+
 function renderFeaturedCard(subscription) {
   var body = document.getElementById("portalFeaturedBody");
   var actions = document.getElementById("portalFeaturedActions");
@@ -1098,16 +1166,30 @@ async function loadAnalyticsIntoPortal() {
 
 async function loadSubscriptionIntoFeaturedCard() {
   if (!document.getElementById("portalFeaturedCard")) {
+    // Still try to reveal the welcome upsell for cases where only the
+    // unclaimed shell is rendered. No subscription data available here,
+    // so the banner falls back to showing (free-tier assumption). The
+    // banner itself is only injected when verifiedClaim is true, so
+    // this is effectively a no-op for unclaimed states.
+    renderPortalWelcomeUpsell(null, slug, "");
     return;
   }
+  var card = document.getElementById("portalFeaturedCard");
+  var therapistSlug = (card && card.getAttribute("data-therapist-slug")) || slug || "";
+  var therapistEmail = (card && card.getAttribute("data-therapist-email")) || "";
   try {
     var result = await fetchTherapistSubscription();
-    renderFeaturedCard((result && result.subscription) || null);
+    var subscription = (result && result.subscription) || null;
+    renderFeaturedCard(subscription);
+    renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail);
   } catch (_error) {
     var body = document.getElementById("portalFeaturedBody");
     if (body) {
       body.textContent = "Featured status is unavailable right now. Refresh to try again.";
     }
+    // If subscription fetch failed, err on the side of showing the upsell —
+    // worst case a paid therapist sees a prompt they can dismiss.
+    renderPortalWelcomeUpsell(null, therapistSlug, therapistEmail);
   }
 }
 
@@ -1168,6 +1250,30 @@ function renderPortal(therapist, options) {
     : null;
   var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
+  // Welcome-upsell banner. Shown only to free-tier claimed therapists on
+  // first portal visit — they just proved ownership, which is peak intent
+  // for converting to paid. Starts hidden; renderPortalWelcomeUpsell()
+  // decides whether to reveal based on subscription state + a localStorage
+  // dismiss flag. Paid therapists never see it.
+  var welcomeUpsellBanner = verifiedClaim
+    ? '<section class="portal-card" id="portalWelcomeUpsell" hidden style="border:2px solid #1a7a8f;background:linear-gradient(180deg,#ecf7f9 0%,#fff 70%);margin-bottom:1rem">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">' +
+      '<div><p class="portal-eyebrow" style="color:#155f70;margin:0 0 0.35rem">Welcome to your dashboard</p>' +
+      '<h2 style="margin:0 0 0.35rem">Unlock your growth toolkit — 14 days free</h2>' +
+      '<p class="portal-subtle" style="margin:0">' +
+      "$19/mo after trial. Cancel anytime from this dashboard. No charge until day 15." +
+      "</p></div>" +
+      '<button type="button" id="portalWelcomeUpsellDismiss" aria-label="Dismiss" style="background:transparent;border:0;color:#6b8290;font-size:0.85rem;cursor:pointer;padding:0.3rem 0.5rem">Maybe later</button>' +
+      "</div>" +
+      '<ul class="pricing-features" style="list-style:none;padding:0;margin:0.85rem 0 1rem;display:grid;gap:0.5rem">' +
+      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>12-week analytics dashboard</strong> view trend, how patients found you (match flow vs directory vs direct), and which contact methods they actually used.</li>' +
+      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>Monday morning digest email</strong> last week\'s numbers + trend vs prior week, delivered to you automatically.</li>' +
+      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>Same-day profile edit review</strong> changes go live within hours instead of 2-3 business days.</li>' +
+      "</ul>" +
+      '<button type="button" id="portalWelcomeUpsellCta" class="btn-primary" style="background:#1a7a8f;color:#fff;border:0;border-radius:12px;padding:0.85rem 1.2rem;font-weight:700;font-size:0.95rem;cursor:pointer">Start 14-day free trial — $0 today →</button>' +
+      "</section>"
+    : "";
+
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">Claim and manage your profile</p><h1>' +
     escapeHtml(therapist.name) +
@@ -1179,6 +1285,7 @@ function renderPortal(therapist, options) {
     '</span><span class="portal-badge">' +
     escapeHtml(readiness.label + " · " + readiness.score + "/100") +
     "</span></div></section>" +
+    welcomeUpsellBanner +
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
