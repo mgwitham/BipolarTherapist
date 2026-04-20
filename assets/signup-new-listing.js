@@ -53,7 +53,30 @@ async function lookupByLicense(licenseNumber) {
   }
 }
 
-function showDupNudge(match) {
+function normalizeNameForCompare(raw) {
+  return String(raw || "")
+    .toLowerCase()
+    .replace(/^(dr|mr|mrs|ms|mx|prof)\.?\s+/i, "")
+    .replace(/,.*$/, "")
+    .replace(/[^a-z\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function typedNameConflicts(typedName, matchedName) {
+  const typed = normalizeNameForCompare(typedName);
+  const matched = normalizeNameForCompare(matchedName);
+  if (!typed || !matched) return false;
+  if (typed === matched) return false;
+  // Share any whole word (usually last name)? Then treat as non-conflict.
+  const typedTokens = new Set(typed.split(" "));
+  const matchedTokens = matched.split(" ");
+  return !matchedTokens.some(function (tok) {
+    return typedTokens.has(tok);
+  });
+}
+
+function showDupNudge(match, typedName) {
   const box = document.getElementById("newListingDupNudge");
   const body = document.getElementById("newListingDupNudgeBody");
   const cta = document.getElementById("newListingDupNudgeCta");
@@ -64,8 +87,12 @@ function showDupNudge(match) {
   const emailHint = match.email_hint
     ? " The claim link goes to the email on file (" + match.email_hint + ")."
     : "";
-  body.textContent =
-    name + (where ? " — " + where : "") + " matches this license number." + emailHint;
+  const conflictPrefix = typedNameConflicts(typedName, match.name)
+    ? "This license is registered to " + name + ". "
+    : name + (where ? " — " + where : "") + " ";
+  const locationSuffix =
+    typedNameConflicts(typedName, match.name) && where ? " (" + where + ")" : "";
+  body.textContent = conflictPrefix + "matches this license number." + locationSuffix + emailHint;
   cta.setAttribute("href", "/claim?slug=" + encodeURIComponent(match.slug));
   box.hidden = false;
 }
@@ -245,11 +272,13 @@ function bindIntakeForm() {
       const match = await lookupByLicense(licenseInput.value);
       if (normalizeLicense(licenseInput.value) !== normalized) return;
       if (match && match.slug) {
+        const typedName = (form.elements.full_name && form.elements.full_name.value) || "";
         trackFunnelEvent("signup_license_dup_detected", {
           duplicate_slug: match.slug,
           claim_status: match.claim_status || "unclaimed",
+          name_conflict: typedNameConflicts(typedName, match.name),
         });
-        showDupNudge(match);
+        showDupNudge(match, typedName);
       } else {
         hideDupNudge();
       }
