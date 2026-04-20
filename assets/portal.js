@@ -1250,12 +1250,16 @@ function renderPortal(therapist, options) {
     : null;
   var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
-  // Welcome-upsell banner. Shown only to free-tier claimed therapists on
-  // first portal visit — they just proved ownership, which is peak intent
-  // for converting to paid. Starts hidden; renderPortalWelcomeUpsell()
-  // decides whether to reveal based on subscription state + a localStorage
-  // dismiss flag. Paid therapists never see it.
-  var welcomeUpsellBanner = verifiedClaim
+  // Welcome-upsell banner. Shown on any portal state where we know the
+  // therapist's identity — claimed OR claim_token (they arrived via a
+  // magic link, which proves ownership even if they haven't clicked the
+  // ceremonial "Claim this profile" button yet). Letting free-tier users
+  // upgrade before completing the verify ceremony also provides an
+  // escape hatch if they get stuck on a replayed / used token.
+  // Starts hidden; renderPortalWelcomeUpsell() decides whether to reveal
+  // based on subscription state + a localStorage dismiss flag.
+  var welcomeUpsellEligible = verifiedClaim || sessionMode === "claim_token";
+  var welcomeUpsellBanner = welcomeUpsellEligible
     ? '<section class="portal-card" id="portalWelcomeUpsell" hidden style="border:2px solid #1a7a8f;background:linear-gradient(180deg,#ecf7f9 0%,#fff 70%);margin-bottom:1rem">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">' +
       '<div><p class="portal-eyebrow" style="color:#155f70;margin:0 0 0.35rem">Welcome to your dashboard</p>' +
@@ -1539,6 +1543,13 @@ function renderPortal(therapist, options) {
   if (verifiedClaim) {
     loadAnalyticsIntoPortal();
     loadSubscriptionIntoFeaturedCard();
+  } else if (sessionMode === "claim_token") {
+    // Still reveal the welcome-upsell banner on the unverified claim-token
+    // state. The magic-link arrival is itself proof of ownership, so there's
+    // no reason to hide the upgrade CTA behind the ceremonial "Claim this
+    // profile" button — especially when that button can get stuck on
+    // replayed / used tokens and leave the user with no way forward.
+    renderPortalWelcomeUpsell(null, therapist.slug || slug, therapist.email || "");
   }
 
   if (sessionMode === "claim_token") {
