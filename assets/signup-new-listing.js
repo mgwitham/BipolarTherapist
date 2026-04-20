@@ -248,11 +248,30 @@ function bindIntakeForm() {
         hideDupNudge();
       }
     };
+    // Debounce live input so we don't spam the lookup API on every keystroke
+    // while someone is typing. Fires ~220ms after the last edit, which feels
+    // instant but collapses a burst of keys (and paste → input → blur) into
+    // a single request.
+    let inputDebounce = null;
+    const scheduleLookup = function () {
+      if (inputDebounce) window.clearTimeout(inputDebounce);
+      inputDebounce = window.setTimeout(handleLicenseLookup, 220);
+    };
     licenseInput.addEventListener("blur", handleLicenseLookup);
     licenseInput.addEventListener("change", handleLicenseLookup);
     licenseInput.addEventListener("input", function () {
       userHasTyped = true;
-      if (!licenseInput.value.trim()) hideDupNudge();
+      if (!licenseInput.value.trim()) {
+        hideDupNudge();
+        return;
+      }
+      scheduleLookup();
+    });
+    // Paste can fire before the value is set in some browsers; schedule an
+    // extra tick so the debounced lookup runs against the pasted value.
+    licenseInput.addEventListener("paste", function () {
+      userHasTyped = true;
+      window.setTimeout(scheduleLookup, 0);
     });
   }
 }
