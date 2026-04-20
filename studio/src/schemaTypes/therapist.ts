@@ -206,6 +206,12 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "lastWeeklyDigestSentAt",
+      title: "Last weekly digest sent at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
       name: "listingPauseRequestedAt",
       title: "Listing pause requested at",
       type: "datetime",

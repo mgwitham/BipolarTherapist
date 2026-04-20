@@ -279,3 +279,36 @@ The link expires in 24 hours.</p>
 visit the signup page and choose "List my practice".</p>`,
   });
 }
+
+// Send the weekly engagement digest to a single paid therapist. The
+// digest object comes from shared/weekly-digest-domain.mjs; this just
+// adapts it to the email provider shape. Text-only keeps the template
+// simple and improves deliverability for transactional mail.
+export async function sendWeeklyDigestEmail(config, therapist, digest, portalBaseUrl) {
+  if (!hasEmailConfig(config)) {
+    return { skipped: true, reason: "email_not_configured" };
+  }
+  const onFileEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!onFileEmail) {
+    return { skipped: true, reason: "no_email_on_file" };
+  }
+  const { renderWeeklyDigestEmail } = await import("../shared/weekly-digest-domain.mjs");
+  const slug = String((therapist && therapist.slug) || "").trim();
+  const base = String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
+  const portalUrl = slug ? base + "/portal?slug=" + encodeURIComponent(slug) : base;
+  const { subject, text } = renderWeeklyDigestEmail({
+    therapistName: therapist && therapist.name,
+    digest,
+    portalUrl,
+  });
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [onFileEmail],
+    reply_to: config.notificationTo,
+    subject,
+    text,
+  });
+  return { sent: true };
+}
