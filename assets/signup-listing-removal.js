@@ -9,6 +9,8 @@
 // inbox" response so we don't leak which listings exist or which email
 // is on file.
 
+import { searchTherapistQuickClaim } from "./review-api.js";
+
 const REMOVAL_ENDPOINT = "/api/review/portal/listing-removal/request";
 
 function escapeHtml(value) {
@@ -123,6 +125,110 @@ async function submitRemovalRequest(form, status) {
   }
 }
 
+function debounce(fn, wait) {
+  let timer = null;
+  return function (...args) {
+    if (timer) window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      timer = null;
+      fn(...args);
+    }, wait);
+  };
+}
+
+function renderRemovalSearchResults(container, results, onPick) {
+  if (!container) return;
+  if (!results.length) {
+    container.hidden = false;
+    container.innerHTML =
+      '<div class="listing-removal-search-empty">No matches. Type your last name or license number.</div>';
+    return;
+  }
+  container.hidden = false;
+  container.innerHTML = results
+    .slice(0, 5)
+    .map((result, index) => {
+      const location = [result.city, result.state].filter(Boolean).join(", ");
+      const credentialBit = result.credentials ? " · " + escapeHtml(result.credentials) : "";
+      const licenseBit = result.license_number
+        ? " · License " + escapeHtml(result.license_number)
+        : "";
+      const emailBit = result.email_hint
+        ? " · Email: " + escapeHtml(result.email_hint)
+        : " · No email on file";
+      return (
+        '<button type="button" class="listing-removal-search-result" data-result-index="' +
+        index +
+        '">' +
+        '<span class="result-name">' +
+        escapeHtml(result.name || "") +
+        credentialBit +
+        "</span>" +
+        '<span class="result-meta">' +
+        escapeHtml(location) +
+        licenseBit +
+        emailBit +
+        "</span>" +
+        "</button>"
+      );
+    })
+    .join("");
+  container.querySelectorAll(".listing-removal-search-result").forEach((button) => {
+    button.addEventListener("click", () => {
+      const idx = Number(button.getAttribute("data-result-index"));
+      const picked = results[idx];
+      if (picked) onPick(picked);
+    });
+  });
+}
+
+function bindRemovalSearch() {
+  const input = document.getElementById("listingRemovalSearchInput");
+  const resultsEl = document.getElementById("listingRemovalSearchResults");
+  const form = document.getElementById("listingRemovalForm");
+  const emailHint = document.getElementById("listingRemovalEmailHint");
+  if (!input || !resultsEl || !form) return;
+
+  const runSearch = debounce(async (query) => {
+    const trimmed = (query || "").trim();
+    if (trimmed.length < 2) {
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+      return;
+    }
+    try {
+      const payload = await searchTherapistQuickClaim(trimmed);
+      renderRemovalSearchResults(resultsEl, (payload && payload.results) || [], (picked) => {
+        // Auto-fill the form and surface the masked email hint so the
+        // user knows which inbox to type below.
+        form.elements.full_name.value = picked.name || "";
+        form.elements.license_number.value = picked.license_number || "";
+        input.value = picked.name || "";
+        resultsEl.hidden = true;
+        resultsEl.innerHTML = "";
+        if (emailHint) {
+          if (picked.email_hint) {
+            emailHint.innerHTML =
+              'On file: <span class="listing-removal-email-hint-prefill">' +
+              escapeHtml(picked.email_hint) +
+              "</span>. Type the full address so we know it's you. Link still goes to the on-file inbox, never the one you type.";
+          } else {
+            emailHint.textContent =
+              "No email on file for this listing. Contact us directly at hello@bipolartherapyhub.com to remove it.";
+          }
+        }
+        // Focus the email input since name/license are already filled
+        if (form.elements.email) form.elements.email.focus();
+      });
+    } catch (_error) {
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+    }
+  }, 200);
+
+  input.addEventListener("input", () => runSearch(input.value));
+}
+
 function bindRemovalForm() {
   const form = document.getElementById("listingRemovalForm");
   if (!form) return;
@@ -136,10 +242,12 @@ function bindRemovalForm() {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     renderToast();
+    bindRemovalSearch();
     bindRemovalForm();
   });
 } else {
   renderToast();
+  bindRemovalSearch();
   bindRemovalForm();
 }
 
