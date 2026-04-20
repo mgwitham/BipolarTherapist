@@ -398,6 +398,16 @@ export async function createStripeFeaturedCheckoutSession(payload) {
   });
 }
 
+// One-click claim+trial: server looks up the on-file email, sends the
+// activation magic link, and returns a Stripe Checkout URL. The client
+// then redirects the user to Stripe. See /portal/claim-trial handler.
+export async function startClaimTrial(payload) {
+  return request("/portal/claim-trial", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function createStripeBillingPortalSession(payload) {
   return request("/stripe/portal-session", {
     method: "POST",

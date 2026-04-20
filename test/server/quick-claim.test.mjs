@@ -29,9 +29,23 @@ function buildContext(options) {
     emailsSent.push({ slug: therapist && therapist.slug && therapist.slug.current, email });
   };
 
+  const checkoutCalls = [];
+  const createFeaturedCheckoutSession =
+    options.createFeaturedCheckoutSession ||
+    (async (_config, args) => {
+      checkoutCalls.push(args);
+      return {
+        id: "cs_test_123",
+        url: "https://stripe.test/checkout/cs_test_123",
+        tier: "paid",
+        interval: "month",
+      };
+    });
+
   return {
     response,
     emailsSent,
+    checkoutCalls,
     context: {
       client: options.client,
       config: options.config || createTestApiConfig(),
@@ -44,6 +58,7 @@ function buildContext(options) {
         parseBody,
         sendJson,
         sendPortalClaimLink,
+        createFeaturedCheckoutSession,
         // Stubs for deps we don't exercise in these tests
         buildPortalRequestDocument: () => null,
         canAttemptLogin: () => true,
@@ -289,6 +304,106 @@ test("claim-by-slug: returns 409 no_email_on_file when profile has no email", as
   await handleAuthAndPortalRoutes(context);
   assert.equal(response.statusCode, 409);
   assert.equal(response.payload.reason, "no_email_on_file");
+});
+
+test("claim-trial: sends activation link AND creates Stripe session", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, checkoutCalls, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.equal(response.payload.therapist_slug, "jamie-rivera");
+  assert.equal(response.payload.stripe_url, "https://stripe.test/checkout/cs_test_123");
+  // Verification email fired to on-file address
+  assert.equal(emailsSent.length, 1);
+  assert.equal(emailsSent[0].email, "jamie@example.com");
+  // Stripe session created with slug + customer_email
+  assert.equal(checkoutCalls.length, 1);
+  assert.equal(checkoutCalls[0].therapistSlug, "jamie-rivera");
+  assert.equal(checkoutCalls[0].customerEmail, "jamie@example.com");
+  assert.equal(checkoutCalls[0].plan, "paid_monthly");
+  // Claim marked as requested so admin sees trial intent
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("claim-trial: returns 409 when profile has no email and no override provided", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { email: "" }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "no_email_on_file");
+});
+
+test("claim-trial: accepts override_email only when no on-file email exists", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { email: "" }),
+  });
+  const { response, emailsSent, checkoutCalls, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "jamie-rivera", override_email: "new@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent[0].email, "new@example.com");
+  assert.equal(checkoutCalls[0].customerEmail, "new@example.com");
+});
+
+test("claim-trial: ignores override_email when on-file email exists (prevents imposter verification)", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "jamie-rivera", override_email: "imposter@evil.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  // Verification email went to on-file, NOT the override
+  assert.equal(emailsSent[0].email, "jamie@example.com");
+});
+
+test("claim-trial: returns 404 when slug is unknown", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: { slug: "nobody-here" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.payload.reason, "not_found");
+});
+
+test("claim-trial: returns 400 when slug is missing", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-trial",
+    client,
+    body: {},
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
 });
 
 test("claim-by-slug: returns 404 when slug is unknown", async () => {

@@ -150,6 +150,30 @@
         cursor: pointer;
         padding: 0.25rem 0.5rem;
       }
+      .checkout-success-actions {
+        margin: 0.25rem 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.88rem;
+      }
+      .checkout-success-resend {
+        background: var(--teal-dark);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        padding: 0.55rem 0.9rem;
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+      }
+      .checkout-success-resend:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .checkout-success-resend-status {
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -168,14 +192,18 @@
       <button type="button" class="checkout-success-dismiss" id="checkoutSuccessDismiss">
         Dismiss
       </button>
-      <h2>You're in. 14-day trial active.</h2>
+      <h2>Payment received — 14-day trial active</h2>
+      <p>You won't be charged until day 15, and you can cancel anytime from your dashboard.</p>
       <p>
-        Payment confirmed. You won't be charged until day 15, and you can cancel anytime from your
-        dashboard.
+        <strong>One last step: activate your listing.</strong> We sent a link to
+        <span id="checkoutSuccessEmailHint">your inbox</span> — click it to unlock editing,
+        analytics, and accepting-status controls.
       </p>
-      <p class="checkout-success-next">
-        Next: scroll down to confirm your contact info, add a headshot, and polish your bio. Changes
-        go through a quick review before they hit your live listing.
+      <p class="checkout-success-actions">
+        <button type="button" class="checkout-success-resend" id="checkoutSuccessResend">
+          Resend the link
+        </button>
+        <span class="checkout-success-resend-status" id="checkoutSuccessResendStatus"></span>
       </p>
     </aside>
     <main class="portal-wrap">
@@ -185,10 +213,13 @@
       (function () {
         try {
           var params = new URLSearchParams(window.location.search);
+          var slug = params.get("slug") || "";
           if (params.get("stripe") === "success") {
             var banner = document.getElementById("checkoutSuccess");
             if (banner) {
               banner.hidden = false;
+              // Stash the slug on the banner so the Resend button can use it.
+              banner.dataset.slug = slug;
             }
             // Strip stripe params from URL so a reload doesn't re-trigger.
             params.delete("stripe");
@@ -204,6 +235,40 @@
             dismiss.addEventListener("click", function () {
               var b = document.getElementById("checkoutSuccess");
               if (b) b.hidden = true;
+            });
+          }
+          var resend = document.getElementById("checkoutSuccessResend");
+          if (resend) {
+            resend.addEventListener("click", async function () {
+              var b = document.getElementById("checkoutSuccess");
+              var resendSlug = (b && b.dataset && b.dataset.slug) || slug;
+              var status = document.getElementById("checkoutSuccessResendStatus");
+              if (!resendSlug) {
+                if (status) status.textContent = "No listing to resend for.";
+                return;
+              }
+              resend.disabled = true;
+              var original = resend.textContent;
+              resend.textContent = "Sending...";
+              if (status) status.textContent = "";
+              try {
+                // Reuse /portal/claim-by-slug: it already looks up the on-file
+                // email and re-fires the activation link. Good enough for resend.
+                var res = await fetch("/api/review/portal/claim-by-slug", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ slug: resendSlug }),
+                });
+                if (!res.ok) {
+                  throw new Error("Resend failed");
+                }
+                resend.textContent = "Sent ✓";
+                if (status) status.textContent = "Check your inbox in a minute.";
+              } catch (_e) {
+                resend.disabled = false;
+                resend.textContent = original;
+                if (status) status.textContent = "Couldn't resend. Try again shortly.";
+              }
             });
           }
         } catch (_err) {
