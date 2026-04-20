@@ -18,10 +18,14 @@ function parseZip(raw) {
   return match ? match[0] : "";
 }
 
+// Matches the server's normalizeLicenseForMatch: drop non-alnum, strip
+// any leading letters (so "CA A179040" and "A179040" both collapse to
+// "179040" and match cleanly against the stored digit suffix).
 function normalizeLicense(raw) {
   return String(raw || "")
     .trim()
     .replace(/[^a-z0-9]/gi, "")
+    .replace(/^[a-z]+/i, "")
     .toUpperCase();
 }
 
@@ -48,6 +52,7 @@ function showDupNudge(match) {
   const body = document.getElementById("newListingDupNudgeBody");
   const cta = document.getElementById("newListingDupNudgeCta");
   if (!box || !body || !cta) return;
+  if (!match || !match.slug || !match.name) return;
   const name = match.name || "This provider";
   const where = [match.city, match.state].filter(Boolean).join(", ");
   const emailHint = match.email_hint
@@ -217,8 +222,13 @@ function bindIntakeForm() {
 
   const licenseInput = form.elements.license_number;
   if (licenseInput) {
+    // Ensure the nudge starts hidden on load even if a prior render / autofill
+    // left it visible in a cached state.
+    hideDupNudge();
     let lastLookup = "";
+    let userHasTyped = false;
     const handleLicenseLookup = async function () {
+      if (!userHasTyped) return;
       const normalized = normalizeLicense(licenseInput.value);
       if (normalized === lastLookup) return;
       lastLookup = normalized;
@@ -241,6 +251,7 @@ function bindIntakeForm() {
     licenseInput.addEventListener("blur", handleLicenseLookup);
     licenseInput.addEventListener("change", handleLicenseLookup);
     licenseInput.addEventListener("input", function () {
+      userHasTyped = true;
       if (!licenseInput.value.trim()) hideDupNudge();
     });
   }
