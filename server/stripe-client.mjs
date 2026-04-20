@@ -61,8 +61,20 @@ export async function createFeaturedCheckoutSession(config, options) {
     ? `${base}${String(returnPath).startsWith("/") ? returnPath : `/${returnPath}`}`
     : `${base}/portal.html`;
 
-  const successUrl = `${returnBase}${returnBase.includes("?") ? "&" : "?"}stripe=success&slug=${encodeURIComponent(slug)}&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${returnBase}${returnBase.includes("?") ? "&" : "?"}stripe=cancel&slug=${encodeURIComponent(slug)}`;
+  // Build success/cancel URLs via URL API so we don't duplicate params
+  // when returnPath already carries slug (was producing ?slug=x&stripe=...&slug=x).
+  const buildReturnUrl = (stripeStatus, includeSessionId) => {
+    const url = new URL(returnBase);
+    url.searchParams.set("stripe", stripeStatus);
+    url.searchParams.set("slug", slug);
+    let str = url.toString();
+    if (includeSessionId) {
+      str += (str.includes("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
+    }
+    return str;
+  };
+  const successUrl = buildReturnUrl("success", true);
+  const cancelUrl = buildReturnUrl("cancel", false);
 
   const trialDays = Number.isFinite(config.stripeTrialDays) ? config.stripeTrialDays : 14;
   const metadata = {
