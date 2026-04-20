@@ -110,6 +110,46 @@
           display: grid;
         }
       }
+      .checkout-success {
+        max-width: 760px;
+        margin: 1.5rem auto 0;
+        background: linear-gradient(135deg, #e8f7f2 0%, #dff1ef 100%);
+        border: 1px solid #7fc3b4;
+        border-radius: 16px;
+        padding: 1.5rem 1.75rem;
+        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.1);
+        display: grid;
+        gap: 0.5rem;
+      }
+      .checkout-success[hidden] {
+        display: none;
+      }
+      .checkout-success h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        color: var(--navy);
+        font-family: "Lora", serif;
+      }
+      .checkout-success p {
+        margin: 0;
+        color: var(--navy);
+        line-height: 1.5;
+      }
+      .checkout-success .checkout-success-next {
+        margin-top: 0.5rem;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .checkout-success-dismiss {
+        justify-self: end;
+        background: transparent;
+        border: 0;
+        color: var(--teal-dark);
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+      }
     </style>
   </head>
   <body>
@@ -124,9 +164,53 @@
         <li><a href="signup.html" class="nav-cta">Join as a therapist</a></li>
       </ul>
     </nav>
+    <aside class="checkout-success" id="checkoutSuccess" role="status" aria-live="polite" hidden>
+      <button type="button" class="checkout-success-dismiss" id="checkoutSuccessDismiss">
+        Dismiss
+      </button>
+      <h2>You're in. 14-day trial active.</h2>
+      <p>
+        Payment confirmed. You won't be charged until day 15, and you can cancel anytime from your
+        dashboard.
+      </p>
+      <p class="checkout-success-next">
+        Next: scroll down to confirm your contact info, add a headshot, and polish your bio. Changes
+        go through a quick review before they hit your live listing.
+      </p>
+    </aside>
     <main class="portal-wrap">
       <div id="portalShell"></div>
     </main>
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get("stripe") === "success") {
+            var banner = document.getElementById("checkoutSuccess");
+            if (banner) {
+              banner.hidden = false;
+            }
+            // Strip stripe params from URL so a reload doesn't re-trigger.
+            params.delete("stripe");
+            params.delete("session_id");
+            var clean =
+              window.location.pathname +
+              (params.toString() ? "?" + params.toString() : "") +
+              window.location.hash;
+            window.history.replaceState({}, "", clean);
+          }
+          var dismiss = document.getElementById("checkoutSuccessDismiss");
+          if (dismiss) {
+            dismiss.addEventListener("click", function () {
+              var b = document.getElementById("checkoutSuccess");
+              if (b) b.hidden = true;
+            });
+          }
+        } catch (_err) {
+          // swallow — banner is a nice-to-have, must not block portal load
+        }
+      })();
+    </script>
     <script type="module" src="assets/portal.js"></script>
   </body>
 </html>
