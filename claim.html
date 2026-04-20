@@ -12,11 +12,12 @@
       gtag("config", "G-Q22R5G7VB5");
     </script>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Claim your listing — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Already listed on BipolarTherapyHub? Claim your page in one click. Search, confirm, and we email a one-time sign-in link. No password. Free forever."
+      content="Already listed on BipolarTherapyHub? Find your listing, verify it's you, and unlock profile controls and analytics."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -71,17 +72,6 @@
         gap: 0.5rem;
         text-decoration: none;
       }
-      .nav-icon {
-        width: 34px;
-        height: 34px;
-        background: var(--teal);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-      }
       .nav-name {
         font-size: 1rem;
         font-weight: 700;
@@ -97,1681 +87,196 @@
         list-style: none;
       }
       .nav-links a {
+        color: var(--navy);
         text-decoration: none;
-        color: var(--slate);
-        font-size: 0.875rem;
         font-weight: 500;
-        transition: color 0.2s;
+        font-size: 0.95rem;
       }
       .nav-links a:hover {
         color: var(--teal);
       }
-      .nav-shortlist {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-      }
-      .nav-shortlist-count {
-        min-width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 999px;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0 0.35rem;
-      }
-      .signup-hero {
-        background: linear-gradient(135deg, #0e4d5f, #1a7a8f);
-        padding: 3.5rem 1.5rem;
-        text-align: center;
-        color: white;
-      }
-      .signup-hero h1 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.6rem, 3vw, 2.2rem);
-        font-weight: 600;
-        margin-bottom: 0.6rem;
-      }
-      .signup-hero p {
-        opacity: 0.88;
-        max-width: 500px;
-        margin: 0 auto;
-        font-size: 0.95rem;
-      }
-      .pricing-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 0.5rem 1.25rem;
-        border-radius: 100px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin-bottom: 1.25rem;
-      }
-      .offer-strip {
-        max-width: 960px;
-        margin: -1.35rem auto 0;
-        padding: 0 1.5rem;
-      }
-      .offer-card {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
-        box-shadow: 0 14px 28px rgba(14, 77, 95, 0.08);
-      }
-      .offer-block h3 {
-        font-size: 0.82rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--muted);
-        margin-bottom: 0.35rem;
-      }
-      .offer-block p {
-        font-size: 0.85rem;
-        color: var(--slate);
-        line-height: 1.6;
-      }
-      .offer-block strong {
-        color: var(--navy);
-      }
-      .wrap {
-        max-width: 960px;
-        margin: 2rem auto;
-        padding: 0 1.5rem;
-        display: grid;
-        grid-template-columns: 1fr 300px;
-        gap: 1.5rem;
-        align-items: start;
-      }
-      .form-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        overflow: hidden;
-      }
-      .form-section {
-        padding: 1.5rem 1.75rem;
-        border-bottom: 1px solid var(--bg);
-      }
-      .form-section:last-child {
-        border-bottom: none;
-      }
-      .form-section h2 {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-      }
-      .field-hint {
-        font-size: 0.78rem;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-      .field-example {
-        margin-top: 0.15rem;
-        padding: 0.7rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fbfdfe;
-        font-size: 0.77rem;
-        color: var(--slate);
-        line-height: 1.5;
-      }
-      .field-example strong {
-        color: var(--navy);
-      }
-      .field-coach {
-        margin-top: 0.2rem;
-        font-size: 0.76rem;
-        color: var(--slate);
-        min-height: 1.2rem;
-      }
-      .field-coach.strong {
-        color: #246b4d;
-      }
-      .field-coach.warn {
-        color: #9b2c2c;
-      }
-      .field.full {
-        grid-column: 1/-1;
-      }
-      .revision-notice {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        background: linear-gradient(180deg, #f5fbfc 0%, #ffffff 100%);
-        display: none;
-      }
-      .revision-notice h3 {
-        font-size: 0.95rem;
-        margin-bottom: 0.35rem;
-      }
-      .revision-notice p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .claim-note {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.16);
-        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
-      }
-      .claim-note h3 {
-        font-size: 0.95rem;
-        margin-bottom: 0.25rem;
-      }
-      .claim-note p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .revision-summary {
-        margin-top: 0.9rem;
-        display: grid;
-        gap: 0.85rem;
-      }
-      .revision-summary-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-      }
-      .revision-summary-card {
-        padding: 0.85rem 0.9rem;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.9);
-      }
-      .revision-summary-card h4 {
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.45rem;
-      }
-      .revision-summary-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      .revision-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.42rem 0.62rem;
-        border-radius: 999px;
-        font-size: 0.76rem;
-        line-height: 1.4;
-        border: 1px solid var(--border);
-        background: #fff;
-        color: var(--slate);
-      }
-      .revision-pill.requested {
-        background: #fff7ed;
-        border-color: rgba(229, 83, 62, 0.18);
-        color: #9b2c2c;
-      }
-      .revision-pill.improved {
-        background: rgba(58, 170, 122, 0.1);
-        border-color: rgba(58, 170, 122, 0.2);
-        color: #246b4d;
-      }
-      .revision-empty {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      .field.field-requested {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: rgba(255, 247, 237, 0.8);
-        outline: 1px solid rgba(229, 83, 62, 0.14);
-      }
-      .field.field-improved {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: rgba(58, 170, 122, 0.08);
-        outline: 1px solid rgba(58, 170, 122, 0.14);
-      }
-      .field.field-top-priority {
-        padding: 0.75rem;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.82), rgba(255, 255, 255, 0.98));
-        outline: 1px solid rgba(26, 122, 143, 0.16);
-        box-shadow: 0 10px 24px rgba(26, 122, 143, 0.08);
-      }
-      .field.field-top-priority label {
-        color: var(--teal-dark);
-      }
-      .field-label-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-      }
-      .field-priority-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.18rem 0.5rem;
-        border-radius: 999px;
-        background: rgba(232, 245, 248, 0.95);
-        color: var(--teal-dark);
-        font-size: 0.64rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-      label {
-        font-size: 0.76rem;
-        font-weight: 600;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
-      input[type="text"],
-      input[type="email"],
-      input[type="tel"],
-      input[type="number"],
-      input[type="url"],
-      select,
-      textarea {
-        width: 100%;
-        padding: 0.6rem 0.85rem;
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        font-size: 0.875rem;
-        color: var(--navy);
-        background: var(--white);
-        font-family: inherit;
-        outline: none;
-        transition: border-color 0.2s;
-        -webkit-appearance: none;
-      }
-      input:focus,
-      select:focus,
-      textarea:focus {
-        border-color: var(--teal);
-      }
-      textarea {
-        resize: vertical;
-        min-height: 110px;
-      }
-      .checkbox-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-      }
-      .check-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        color: var(--slate);
-        cursor: pointer;
-        padding: 0.4rem 0.6rem;
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        transition: all 0.2s;
-      }
-      .check-label:hover {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .check-label input {
-        accent-color: var(--teal);
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-      }
-      .check-label.checked-style {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .funnel-stage {
-        margin: 1.25rem 1.75rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        border: 1px solid rgba(14, 77, 95, 0.12);
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-      }
-      .funnel-stage + .funnel-stage {
-        margin-top: 0.9rem;
-      }
-      .funnel-stage-kicker {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--teal-dark);
-        margin-bottom: 0.25rem;
-      }
-      .funnel-stage h3 {
-        font-size: 1rem;
-        margin-bottom: 0.25rem;
-      }
-      .funnel-stage p {
-        font-size: 0.84rem;
-        color: var(--slate);
-      }
-      .funnel-disclosure {
-        margin: 1rem 1.75rem 0;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: #fff;
-        overflow: hidden;
-      }
-      .funnel-disclosure summary {
-        list-style: none;
-        cursor: pointer;
-        padding: 1rem 1.1rem;
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: center;
-        background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
-      }
-      .funnel-disclosure summary::-webkit-details-marker {
-        display: none;
-      }
-      .funnel-disclosure-copy strong {
-        display: block;
-        font-size: 0.96rem;
-        color: var(--navy);
-      }
-      .funnel-disclosure-copy span {
-        display: block;
-        margin-top: 0.18rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-      }
-      .funnel-disclosure-toggle {
-        color: var(--teal);
-        font-size: 0.82rem;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .funnel-disclosure-body {
-        border-top: 1px solid var(--bg);
-      }
-      .form-submit {
-        padding: 1.5rem 1.75rem;
-        background: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .submit-note {
-        font-size: 0.8rem;
-        color: var(--muted);
-      }
-      .submit-actions {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-      }
-      .btn-submit {
-        background: var(--teal);
-        color: white;
-        border: none;
-        padding: 0.85rem 2rem;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition:
-          background 0.2s,
-          transform 0.1s;
-        font-family: inherit;
-      }
-      .btn-submit-secondary {
-        background: transparent;
-        color: var(--teal-dark);
-        border: 1.5px solid rgba(26, 122, 143, 0.24);
-      }
-      .btn-submit:hover {
-        background: var(--teal-dark);
-        transform: translateY(-1px);
-      }
-      .btn-submit-secondary:hover {
-        background: var(--teal-faint);
-      }
-      .btn-submit:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-      .success-state {
-        text-align: center;
-        padding: 3rem 2rem;
-      }
-      .success-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-      .success-state h2 {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 0.6rem;
-      }
-      .success-state p {
-        color: var(--slate);
-        font-size: 0.9rem;
-        line-height: 1.7;
-        margin-bottom: 1.5rem;
-        max-width: 420px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .btn-pay {
-        display: inline-block;
-        background: var(--teal);
-        color: white;
-        padding: 1rem 2.5rem;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 1rem;
-        text-decoration: none;
-        transition: background 0.2s;
-        margin-bottom: 0.75rem;
-      }
-      .btn-pay:hover {
-        background: var(--teal-dark);
-      }
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-      }
-      .sidebar-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.35rem;
-      }
-      .sidebar-card h3 {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--navy);
-        margin-bottom: 0.9rem;
-      }
-      .plan-grid {
-        display: grid;
-        gap: 0.9rem;
-      }
-      .plan-card {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1rem;
-        background: #fff;
-      }
-      .plan-card.featured {
-        border-color: rgba(26, 122, 143, 0.3);
-        background: linear-gradient(180deg, #f6fbfc 0%, #ffffff 100%);
-      }
-      .plan-kicker {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--muted);
-      }
-      .plan-card h4 {
-        font-size: 1rem;
-        margin-top: 0.2rem;
-      }
-      .plan-price {
-        margin-top: 0.2rem;
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: var(--navy);
-      }
-      .plan-price span {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--muted);
-      }
-      .plan-copy {
-        margin-top: 0.4rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        line-height: 1.55;
-      }
-      .plan-list {
-        margin-top: 0.75rem;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .plan-list .feature-item {
-        font-size: 0.82rem;
-      }
-      .price-display {
-        display: flex;
-        align-items: baseline;
-        gap: 0.3rem;
-        margin-bottom: 0.5rem;
-      }
-      .price-num {
-        font-size: 2rem;
-        font-weight: 800;
-        color: var(--navy);
-      }
-      .price-per {
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      .price-note {
-        font-size: 0.8rem;
-        color: var(--slate);
-        margin-bottom: 1rem;
-      }
-      .feature-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .feature-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-        font-size: 0.83rem;
-        color: var(--slate);
-      }
-      .feature-item .check {
-        color: var(--green);
-        font-weight: 700;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-      }
-      .trust-card {
-        background: var(--teal-faint);
-        border: 1px solid rgba(26, 122, 143, 0.2);
-        border-radius: 14px;
-        padding: 1.25rem;
-      }
-      .trust-card h3 {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-        margin-bottom: 0.75rem;
-      }
-      .trust-item {
-        display: flex;
-        gap: 0.5rem;
-        align-items: flex-start;
-        font-size: 0.82rem;
-        color: var(--slate);
-        margin-bottom: 0.5rem;
-      }
-      .trust-item:last-child {
-        margin-bottom: 0;
-      }
-      .readiness-card {
-        background: linear-gradient(180deg, #ffffff, #f3fafb);
-        border: 1px solid var(--border);
-      }
-      .readiness-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 0.75rem;
-        margin-bottom: 0.9rem;
-      }
-      .readiness-score {
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: var(--navy);
-        line-height: 1;
-      }
-      .readiness-score-row {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-      }
-      .readiness-delta {
-        display: none;
-        padding: 0.18rem 0.5rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        background: rgba(58, 170, 122, 0.12);
-        color: #246b4d;
-      }
-      .readiness-delta.negative {
-        background: rgba(229, 62, 62, 0.1);
-        color: #9b2c2c;
-      }
-      .readiness-label {
-        display: inline-flex;
-        margin-top: 0.35rem;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.74rem;
-        font-weight: 700;
-        background: var(--bg);
-        color: var(--slate);
-      }
-      .readiness-label.tone-match-ready {
-        background: rgba(58, 170, 122, 0.14);
-        color: #246b4d;
-      }
-      .readiness-label.tone-getting-stronger {
-        background: rgba(26, 122, 143, 0.12);
-        color: var(--teal-dark);
-      }
-      .readiness-label.tone-good-start {
-        background: rgba(29, 58, 74, 0.08);
-        color: var(--navy);
-      }
-      .readiness-label.tone-close {
-        background: rgba(26, 122, 143, 0.12);
-        color: var(--teal-dark);
-      }
-      .readiness-label.tone-needs-work {
-        background: rgba(229, 62, 62, 0.1);
-        color: #9b2c2c;
-      }
-      .readiness-copy {
-        font-size: 0.8rem;
-        color: var(--slate);
-      }
-      .readiness-meter {
-        margin-top: 0.85rem;
-      }
-      .readiness-meter-track {
-        position: relative;
-        height: 12px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #f3d6d6 0%, #eef4f6 45%, #e0f1f5 70%, #daf3e6 100%);
-        overflow: hidden;
-        border: 1px solid rgba(29, 58, 74, 0.08);
-      }
-      .readiness-meter-fill {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #d96b6b 0%, #1a7a8f 65%, #3aaa7a 100%);
-        transition: width 180ms ease;
-      }
-      .readiness-meter-markers {
-        display: grid;
-        grid-template-columns: 40fr 25fr 20fr 15fr;
-        gap: 0.35rem;
-        margin-top: 0.45rem;
-        font-size: 0.68rem;
-        color: var(--muted);
-      }
-      .readiness-meter-markers span {
-        text-align: left;
-      }
-      .readiness-nudge {
-        margin-top: 0.95rem;
-        padding: 0.85rem 0.95rem;
-        border: 1px solid rgba(26, 122, 143, 0.14);
-        border-radius: 12px;
-        background: linear-gradient(180deg, #fbfdfe 0%, #f6fbfc 100%);
-      }
-      .readiness-nudge-kicker {
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--teal-dark);
-      }
-      .readiness-nudge-copy {
-        margin-top: 0.28rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        line-height: 1.6;
-      }
-      .readiness-nudge-actions {
-        display: grid;
-        gap: 0.65rem;
-        margin-top: 0.7rem;
-      }
-      .readiness-nudge-meta {
-        display: grid;
-        gap: 0.38rem;
-        justify-items: start;
-      }
-      .readiness-nudge-button {
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        background: rgba(232, 245, 248, 0.88);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        padding: 0.48rem 0.75rem;
-        font: inherit;
-        font-size: 0.78rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .readiness-nudge-button:hover {
-        background: rgba(232, 245, 248, 1);
-      }
-      .readiness-nudge-button:focus-visible,
-      .readiness-pill:focus-visible,
-      .readiness-dimension:focus-visible {
-        outline: 3px solid rgba(26, 122, 143, 0.22);
-        outline-offset: 2px;
-      }
-      .readiness-milestone {
-        font-size: 0.77rem;
-        color: var(--muted);
-      }
-      .readiness-distance {
-        font-size: 0.76rem;
-        color: var(--teal-dark);
-        font-weight: 600;
-      }
-      .readiness-next-tier {
-        font-size: 0.76rem;
-        color: var(--slate);
-      }
-      .readiness-celebration {
-        display: none;
-        margin-top: 0.45rem;
-        padding: 0.58rem 0.72rem;
-        border-radius: 12px;
-        border: 1px solid rgba(58, 170, 122, 0.18);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.12), rgba(232, 245, 248, 0.75));
-        color: #246b4d;
-        font-size: 0.78rem;
-        line-height: 1.5;
-      }
-      .readiness-celebration.stronger {
-        border-color: rgba(26, 122, 143, 0.18);
-        background: linear-gradient(180deg, rgba(26, 122, 143, 0.1), rgba(232, 245, 248, 0.75));
-        color: var(--teal-dark);
-      }
-      .readiness-celebration.critical {
-        border-color: rgba(229, 62, 62, 0.16);
-        background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 255, 255, 0.95));
-        color: #9b2c2c;
-      }
-      .readiness-tier-rail {
-        margin-top: 0.9rem;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.45rem;
-      }
-      .readiness-tier {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 0.55rem 0.6rem;
-        background: #fff;
-      }
-      .readiness-tier.active {
-        border-color: rgba(26, 122, 143, 0.24);
-        background: rgba(232, 245, 248, 0.7);
-      }
-      .readiness-tier.complete {
-        border-color: rgba(58, 170, 122, 0.2);
-        background: rgba(58, 170, 122, 0.08);
-      }
-      .readiness-tier-range {
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .readiness-tier-label {
-        margin-top: 0.18rem;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-tier-note {
-        margin-top: 0.15rem;
-        font-size: 0.73rem;
-        color: var(--slate);
-        line-height: 1.45;
-      }
-      .readiness-benefit {
-        margin-top: 0.7rem;
-        padding: 0.7rem 0.8rem;
-        border-radius: 12px;
-        background: #fbfdfe;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        font-size: 0.8rem;
-        color: var(--slate);
-        line-height: 1.55;
-      }
-      .readiness-benefit strong {
-        color: var(--navy);
-      }
-      .readiness-snapshot {
-        margin-top: 0.75rem;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.55rem;
-      }
-      .readiness-snapshot-card {
-        width: 100%;
-        padding: 0.72rem 0.76rem;
-        border-radius: 12px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: #fbfdfe;
-        text-align: left;
-        appearance: none;
-        font: inherit;
-      }
-      .readiness-snapshot-card.helping {
-        border-color: rgba(58, 170, 122, 0.14);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.05), #fbfefd);
-      }
-      .readiness-snapshot-card.blocker {
-        border-color: rgba(26, 122, 143, 0.14);
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.72), #fbfdfe);
-      }
-      .readiness-snapshot-card.is-button {
-        cursor: pointer;
-        transition:
-          border-color 0.18s ease,
-          background 0.18s ease,
-          transform 0.18s ease;
-      }
-      .readiness-snapshot-card.is-button:hover {
-        border-color: rgba(26, 122, 143, 0.22);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-snapshot-card.is-button:focus-visible {
-        outline: 3px solid rgba(26, 122, 143, 0.22);
-        outline-offset: 2px;
-      }
-      .readiness-snapshot-kicker {
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--muted);
-      }
-      .readiness-snapshot-title {
-        margin-top: 0.22rem;
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-snapshot-copy {
-        margin-top: 0.2rem;
-        font-size: 0.74rem;
-        line-height: 1.5;
-        color: var(--slate);
-        max-width: 30ch;
-      }
-      .readiness-snapshot-meta {
-        margin-top: 0.42rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.34rem;
-        padding: 0.24rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.69rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .readiness-snapshot-card.helping .readiness-snapshot-meta {
-        background: rgba(58, 170, 122, 0.1);
-        color: #246b4d;
-      }
-      .readiness-snapshot-card.blocker .readiness-snapshot-meta {
-        background: rgba(232, 245, 248, 0.9);
-        color: var(--teal-dark);
-      }
-      .readiness-snapshot-action {
-        margin-top: 0.42rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-      }
-      .readiness-dimensions {
-        margin-top: 0.8rem;
-        display: grid;
-        gap: 0.55rem;
-      }
-      .readiness-dimensions.mode-compact {
-        gap: 0.45rem;
-      }
-      .readiness-dimensions.mode-compact .readiness-dimension {
-        padding: 0.6rem 0.68rem;
-      }
-      .readiness-dimensions.mode-compact .readiness-dimension-copy,
-      .readiness-dimensions.mode-compact .readiness-dimension-notes {
-        margin-top: 0.28rem;
-      }
-      .readiness-dimensions.mode-balanced .readiness-dimension-notes {
-        gap: 0.18rem;
-      }
-      .readiness-dimensions-heading {
-        margin-top: 0.9rem;
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--muted);
-      }
-      .readiness-dimensions.is-strong .readiness-dimension {
-        border-color: rgba(58, 170, 122, 0.16);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.06), #fbfefd);
-      }
-      .readiness-dimension {
-        width: 100%;
-        padding: 0.68rem 0.75rem;
-        border-radius: 12px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: #fbfdfe;
-        appearance: none;
-        transition:
-          border-color 0.18s ease,
-          background 0.18s ease,
-          transform 0.18s ease;
-      }
-      .readiness-dimension:hover {
-        border-color: rgba(26, 122, 143, 0.22);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-dimension:focus-visible {
-        border-color: rgba(26, 122, 143, 0.28);
-        background: #ffffff;
-        transform: translateY(-1px);
-      }
-      .readiness-dimension.state-strong {
-        border-color: rgba(58, 170, 122, 0.16);
-        background: linear-gradient(180deg, rgba(58, 170, 122, 0.05), #fbfefd);
-      }
-      .readiness-dimension.state-thin {
-        border-color: rgba(26, 122, 143, 0.14);
-        background: linear-gradient(180deg, rgba(232, 245, 248, 0.6), #fbfdfe);
-      }
-      .readiness-dimension.is-priority {
-        box-shadow: 0 8px 20px rgba(26, 122, 143, 0.08);
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .readiness-meter-fill,
-        .readiness-snapshot-card.is-button,
-        .readiness-dimension,
-        .readiness-dimension-fill {
-          transition: none;
-        }
-      }
-      @media (max-width: 720px) {
-        .readiness-tier-rail {
-          grid-template-columns: 1fr 1fr;
-        }
-        .readiness-snapshot {
-          grid-template-columns: 1fr;
-        }
-        .readiness-nudge-actions {
-          align-items: stretch;
-        }
-        .readiness-nudge-button {
-          justify-content: center;
-          width: 100%;
-        }
-        .readiness-dimension-header {
-          align-items: flex-start;
-        }
-        .readiness-dimension-points {
-          font-size: 0.64rem;
-        }
-      }
-      .readiness-dimension-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.75rem;
-        align-items: baseline;
-      }
-      .readiness-dimension-label {
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .readiness-dimension-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.3rem;
-        align-items: center;
-      }
-      .readiness-dimension-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.15rem 0.45rem;
-        border-radius: 999px;
-        font-size: 0.64rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-      }
-      .readiness-dimension-badge.priority {
-        background: rgba(232, 245, 248, 0.95);
-        color: var(--teal-dark);
-      }
-      .readiness-dimension-badge.strongest {
-        background: rgba(58, 170, 122, 0.1);
-        color: #246b4d;
-      }
-      .readiness-dimension-state {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--teal-dark);
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-      }
-      .readiness-dimension.state-strong .readiness-dimension-state {
-        color: #246b4d;
-      }
-      .readiness-dimension.state-building .readiness-dimension-state {
-        color: var(--teal-dark);
-      }
-      .readiness-dimension.state-thin .readiness-dimension-state {
-        color: #9b2c2c;
-      }
-      .readiness-dimension-points {
-        font-size: 0.67rem;
-        color: var(--muted);
-        font-weight: 600;
-      }
-      .readiness-dimension-bar {
-        margin-top: 0.42rem;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(29, 58, 74, 0.08);
-        overflow: hidden;
-      }
-      .readiness-dimension-fill {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #d96b6b 0%, #1a7a8f 70%, #3aaa7a 100%);
-        transition: width 180ms ease;
-      }
-      .readiness-dimension.state-strong .readiness-dimension-fill {
-        background: linear-gradient(90deg, #2f9f6b, #3aaa7a);
-      }
-      .readiness-dimension.state-building .readiness-dimension-fill {
-        background: linear-gradient(90deg, #1a7a8f, #2a9cb3);
-      }
-      .readiness-dimension.state-thin .readiness-dimension-fill {
-        background: linear-gradient(90deg, #d96b6b, #e9a2a2);
-      }
-      .readiness-dimension-copy {
-        margin-top: 0.38rem;
-        font-size: 0.75rem;
-        color: var(--slate);
-        line-height: 1.5;
-        max-width: 48ch;
-      }
-      .readiness-dimension-next {
-        margin-top: 0.42rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.32rem;
-        padding: 0.26rem 0.55rem;
-        border-radius: 999px;
-        background: rgba(232, 245, 248, 0.9);
-        color: var(--teal-dark);
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .readiness-dimension-notes {
-        display: grid;
-        gap: 0.22rem;
-        margin-top: 0.38rem;
-      }
-      .readiness-dimension-note {
-        font-size: 0.72rem;
-        line-height: 1.45;
-      }
-      .readiness-dimension-note strong {
-        color: var(--navy);
-      }
-      .readiness-dimension-note.helping strong {
-        color: #246b4d;
-      }
-      .readiness-dimension-note.blocker strong {
-        color: var(--teal-dark);
-      }
-      .readiness-group {
-        margin-top: 1rem;
-      }
-      .readiness-group h4 {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: var(--muted);
-        margin-bottom: 0.55rem;
-      }
-      .readiness-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      .readiness-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.42rem 0.62rem;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: var(--white);
-        font-size: 0.77rem;
-        color: var(--slate);
-        line-height: 1.4;
-      }
-      .readiness-pill.positive {
-        background: rgba(58, 170, 122, 0.1);
-        border-color: rgba(58, 170, 122, 0.2);
-        color: #246b4d;
-      }
-      .readiness-pill.readiness-pill-summary {
-        background: rgba(29, 58, 74, 0.04);
-        border-style: dashed;
-        color: var(--muted);
-      }
-      .readiness-empty {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      footer {
-        background: var(--navy);
-        color: rgba(255, 255, 255, 0.7);
-        padding: 2rem 1.5rem;
-        text-align: center;
-        margin-top: 2rem;
-      }
-      footer p {
-        font-size: 0.78rem;
-      }
-      footer a {
-        color: rgba(255, 255, 255, 0.5);
-        text-decoration: none;
-      }
-      @media (max-width: 720px) {
-        .offer-card {
-          grid-template-columns: 1fr;
-        }
-        .funnel-disclosure summary {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-        .wrap {
-          grid-template-columns: 1fr;
-        }
-        .form-grid {
-          grid-template-columns: 1fr;
-        }
-        .checkbox-grid {
-          grid-template-columns: 1fr;
-        }
-        .revision-summary-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      /* Signup chooser — the 3-card picker shown above the quick-claim
-         hero. Full width, equal weight cards, each linking to the
-         section below that matches the visitor's situation. */
-      .signup-chooser {
-        background: linear-gradient(180deg, #f7fbfc 0%, var(--white) 100%);
-        padding: 2.5rem 1.5rem 1.5rem;
-      }
-      .signup-chooser-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-      }
-      .signup-chooser-note {
+
+      /* =========================
+         Page layout
+         ========================= */
+      .claim-main {
         max-width: 720px;
-        margin: 0 auto 1.25rem;
-        text-align: center;
-        color: var(--muted);
-        font-size: 0.94rem;
-        line-height: 1.6;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 1rem;
       }
-      .signup-chooser-title {
-        text-align: center;
-        font-family: "Lora", serif;
-        font-size: clamp(1.4rem, 2.5vw, 2rem);
-        margin: 0 0 1.4rem;
-        color: var(--navy);
-      }
-      .signup-chooser-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-      }
-      .signup-chooser-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        padding: 1.25rem 1.2rem 1.15rem;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          border-color 160ms ease,
-          box-shadow 160ms ease,
-          transform 160ms ease;
-      }
-      .signup-chooser-card:hover,
-      .signup-chooser-card:focus-visible {
-        border-color: var(--teal);
-        box-shadow: 0 10px 24px rgba(26, 122, 143, 0.08);
-        transform: translateY(-1px);
-        outline: none;
-      }
-      .signup-chooser-card-kicker {
-        font-size: 0.74rem;
+      .claim-kicker {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        border-radius: 999px;
+        font-size: 0.78rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--teal);
+        letter-spacing: 0.06em;
+        margin-bottom: 0.85rem;
       }
-      .signup-chooser-card h2 {
+      .claim-hero h1 {
         font-family: "Lora", serif;
-        font-size: 1.2rem;
-        margin: 0;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1.1;
+        margin-bottom: 0.75rem;
         color: var(--navy);
       }
-      .signup-chooser-card p {
-        margin: 0;
-        font-size: 0.9rem;
-        line-height: 1.55;
-        color: var(--ink-soft);
-        flex: 1;
-      }
-      .signup-chooser-card-cta {
-        font-weight: 600;
-        color: var(--teal-dark);
-        font-size: 0.92rem;
-        margin-top: 0.25rem;
-      }
-      .signup-chooser-card-muted {
-        background: #fafcfc;
-      }
-      .signup-chooser-card-muted .signup-chooser-card-kicker {
-        color: var(--muted);
-      }
-      @media (max-width: 820px) {
-        .signup-chooser-grid {
-          grid-template-columns: 1fr;
-        }
+      .claim-hero p {
+        color: var(--slate);
+        font-size: 1.05rem;
+        max-width: 60ch;
       }
 
-      /* Listing removal section — mirrors the quick-claim layout so it
-         reads as a sibling path, not a buried option. Uses a muted
-         palette (less emphatic than claim or new-listing) because it's
-         an off-ramp, not a conversion target. */
-      .listing-removal {
-        background: #fbfbfb;
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
-        padding: 2.5rem 1.5rem;
-      }
-      .listing-removal-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 380px;
-        gap: 2rem;
-        align-items: start;
-      }
-      .listing-removal-kicker {
-        display: inline-block;
-        padding: 0.3rem 0.75rem;
-        background: rgba(100, 116, 139, 0.12);
-        color: #475569;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-      .listing-removal-copy h2 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.4rem, 2vw, 1.9rem);
-        margin: 0.6rem 0 0.7rem;
-        color: var(--navy);
-      }
-      .listing-removal-copy p {
-        color: var(--ink-soft);
-        line-height: 1.65;
-        margin: 0 0 0.9rem;
-      }
-      .listing-removal-steps {
-        padding-left: 1.2rem;
-        color: var(--ink-soft);
-        line-height: 1.65;
-        margin: 0 0 0.9rem;
-      }
-      .listing-removal-steps li {
-        margin-bottom: 0.25rem;
-      }
-      .listing-removal-assurance {
-        font-size: 0.9rem;
-        color: var(--muted);
-        font-style: italic;
-      }
-      .listing-removal-card {
+      /* =========================
+         Primary search card
+         ========================= */
+      .claim-search-card {
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 1.3rem;
-      }
-      .listing-removal-form {
-        display: grid;
-        gap: 0.85rem;
-      }
-      .listing-removal-form label {
-        display: grid;
-        gap: 0.3rem;
-        font-size: 0.84rem;
-        font-weight: 600;
-        color: var(--navy);
-      }
-      .listing-removal-form input {
-        padding: 0.7rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font: inherit;
-        color: var(--navy);
-      }
-      .listing-removal-field-hint {
-        font-size: 0.78rem;
-        font-weight: 400;
-        color: var(--muted);
-        line-height: 1.45;
-      }
-      .listing-removal-submit {
-        padding: 0.85rem 1rem;
-        background: #475569;
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 140ms ease;
-      }
-      .listing-removal-submit:hover,
-      .listing-removal-submit:focus-visible {
-        background: #334155;
-      }
-      .listing-removal-submit:disabled {
-        background: #94a3b8;
-        cursor: not-allowed;
-      }
-      .listing-removal-status {
-        padding: 0.75rem 0.85rem;
-        border-radius: 10px;
-        font-size: 0.88rem;
-      }
-      .listing-removal-status.is-success {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-      }
-      .listing-removal-status.is-error {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-      }
-      @media (max-width: 820px) {
-        .listing-removal-inner {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* Toast banner at top of /signup shown when the user lands via
-         the removal confirmation link (?removed=ok or ?removed=error).
-         One-shot — reading the URL param, rendering, and then we keep
-         the param so the page is refresh-safe. */
-      .signup-toast {
-        max-width: 1080px;
-        margin: 1.2rem auto 0;
-        padding: 0.9rem 1.1rem;
-        border-radius: 14px;
-        font-weight: 500;
-      }
-      .signup-toast.is-success {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-      }
-      .signup-toast.is-error {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-      }
-
-      .quick-claim-hero {
-        background: linear-gradient(135deg, var(--teal-faint) 0%, var(--white) 100%);
-        border-bottom: 1px solid var(--border);
-        padding: 3rem 1.5rem 2.5rem;
-      }
-      .quick-claim-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-        gap: 3rem;
-        align-items: center;
-      }
-      .quick-claim-copy .quick-claim-kicker {
-        display: inline-block;
-        background: var(--white);
-        color: var(--teal-dark);
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 0.35rem 0.9rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        margin-bottom: 1rem;
-      }
-      .quick-claim-copy h1 {
-        font-size: clamp(1.8rem, 3vw, 2.4rem);
-        line-height: 1.15;
-        color: var(--navy);
-        margin-bottom: 0.9rem;
-        font-weight: 700;
-      }
-      .quick-claim-copy > p {
-        color: var(--slate);
-        max-width: 46ch;
-        margin-bottom: 1.25rem;
-      }
-      .quick-claim-benefits {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .quick-claim-benefits li {
-        position: relative;
-        padding-left: 1.5rem;
-        color: var(--navy);
-        font-weight: 500;
-      }
-      .quick-claim-benefits li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-      }
-      .quick-claim-form {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 14px;
         padding: 1.75rem;
-        box-shadow: 0 10px 30px rgba(29, 58, 74, 0.08);
-        display: grid;
-        gap: 0.9rem;
+        margin-top: 2rem;
+        box-shadow: 0 10px 26px rgba(15, 65, 78, 0.06);
       }
-      .quick-claim-search {
-        background: var(--white);
+      .claim-search-card label {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .claim-search-card label > span {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+      }
+      .claim-search-card input {
+        padding: 0.85rem 1rem;
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.25rem 1.75rem;
-        margin-bottom: 0.85rem;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .quick-claim-search label {
-        display: grid;
-        gap: 0.35rem;
-      }
-      .quick-claim-search label span {
-        font-size: 0.85rem;
-        font-weight: 600;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 1rem;
         color: var(--navy);
+        background: var(--bg);
       }
-      .quick-claim-search input {
-        width: 100%;
-        padding: 0.6rem 0.85rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        color: var(--navy);
-        background: var(--white);
-      }
-      .quick-claim-search input:focus {
-        outline: 2px solid var(--teal);
-        outline-offset: 1px;
+      .claim-search-card input:focus {
+        outline: none;
         border-color: var(--teal);
+        background: var(--white);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .quick-claim-search-hint {
+        margin-top: 0.65rem;
+        font-size: 0.88rem;
+        color: var(--muted);
       }
       .quick-claim-search-results {
+        margin-top: 0.75rem;
         display: grid;
-        gap: 0.35rem;
-        max-height: 18rem;
-        overflow-y: auto;
+        gap: 0.45rem;
       }
       .quick-claim-search-result {
         display: grid;
-        gap: 0.15rem;
-        padding: 0.65rem 0.85rem;
+        grid-template-rows: auto auto;
+        gap: 0.25rem;
+        padding: 0.8rem 0.95rem;
+        background: var(--bg);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--white);
-        cursor: pointer;
+        border-radius: 10px;
         text-align: left;
-        font-family: inherit;
+        font: inherit;
         color: var(--navy);
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease;
       }
-      .quick-claim-search-result:hover,
-      .quick-claim-search-result:focus {
+      .quick-claim-search-result:hover {
         border-color: var(--teal);
-        background: rgba(47, 110, 128, 0.05);
-        outline: none;
+        background: var(--teal-faint);
       }
       .quick-claim-search-result .result-name {
-        font-weight: 700;
-        font-size: 0.95rem;
+        font-weight: 600;
       }
       .quick-claim-search-result .result-meta {
-        font-size: 0.82rem;
         color: var(--muted);
-      }
-      .quick-claim-search-hint {
-        font-size: 0.8rem;
-        color: var(--muted);
-        margin: 0;
+        font-size: 0.85rem;
       }
       .quick-claim-search-empty {
-        font-size: 0.85rem;
+        padding: 0.85rem 0.95rem;
         color: var(--muted);
-        padding: 0.4rem 0;
+        font-size: 0.92rem;
+        font-style: italic;
       }
-      .quick-claim-field-hint {
-        font-size: 0.8rem;
-        color: var(--muted);
-      }
+
+      /* =========================
+         Confirm panel (picked)
+         ========================= */
       .claim-confirm-panel {
         background: var(--white);
-        border: 1px solid var(--teal);
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 0.85rem;
+        border: 2px solid var(--teal);
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin-top: 1.5rem;
+        box-shadow: 0 14px 28px rgba(15, 65, 78, 0.1);
         display: grid;
-        gap: 0.6rem;
-        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
+        gap: 0.9rem;
+      }
+      .claim-confirm-panel[hidden] {
+        display: none;
       }
       .claim-confirm-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 0.5rem;
       }
       .claim-confirm-label {
         font-size: 0.78rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: var(--teal);
+        color: var(--teal-dark);
       }
       .claim-confirm-header a {
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-      .claim-confirm-name {
-        margin: 0;
-        color: var(--navy);
-        font-size: 1.05rem;
-      }
-      .claim-confirm-meta {
-        margin: 0;
         color: var(--muted);
         font-size: 0.88rem;
+        text-decoration: none;
+      }
+      .claim-confirm-header a:hover {
+        color: var(--teal);
+      }
+      .claim-confirm-name {
+        font-family: "Lora", serif;
+        font-size: 1.45rem;
+        line-height: 1.1;
+        color: var(--navy);
+        margin: 0;
+      }
+      .claim-confirm-meta {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin: 0;
       }
       .claim-confirm-destination {
-        margin: 0.4rem 0 0;
-        font-size: 0.92rem;
+        margin: 0;
         color: var(--navy);
+        font-size: 0.94rem;
       }
       .claim-confirm-send {
         margin-top: 0.25rem;
         background: var(--teal);
         color: var(--white);
         border: none;
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        padding: 1rem 1rem;
+        font: inherit;
+        font-size: 1rem;
         font-weight: 700;
-        font-size: 0.98rem;
         cursor: pointer;
         transition: background 0.15s ease;
       }
-      .claim-confirm-send:hover {
+      .claim-confirm-send:hover:not(:disabled) {
         background: var(--teal-dark);
       }
       .claim-confirm-send:disabled {
@@ -1782,809 +287,344 @@
         margin: 0.25rem 0 0;
         text-align: center;
         color: var(--muted);
-        font-size: 0.82rem;
+        font-size: 0.84rem;
       }
       .claim-confirm-alt {
         margin: 0;
         text-align: center;
-        font-size: 0.85rem;
+        font-size: 0.88rem;
       }
       .claim-confirm-alt a {
         color: var(--muted);
       }
+      .claim-confirm-alt a:hover {
+        color: var(--teal);
+      }
       .claim-confirm-status {
-        padding: 0.65rem 0.85rem;
+        padding: 0.7rem 0.85rem;
         border-radius: 8px;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
       }
       .claim-confirm-status[data-tone="success"] {
         background: rgba(47, 110, 128, 0.08);
         color: var(--navy);
       }
       .claim-confirm-status[data-tone="warn"] {
-        background: rgba(146, 64, 14, 0.08);
-        color: #92400e;
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
       }
-      .quick-claim-resend,
       .claim-confirm-resend {
-        margin: 0.35rem 0 0;
-        font-size: 0.82rem;
+        margin: 0;
         color: var(--muted);
-        text-align: center;
+        font-size: 0.86rem;
       }
-      .quick-claim-resend a,
       .claim-confirm-resend a {
-        color: var(--teal);
-        font-weight: 600;
+        color: var(--teal-dark);
       }
-      .quick-claim-resend a[aria-disabled="true"],
-      .claim-confirm-resend a[aria-disabled="true"] {
-        color: var(--muted);
-        pointer-events: none;
-      }
-      .claim-trial-offer {
-        margin-top: 0.85rem;
+
+      /* =========================
+         Fallback form (hidden)
+         ========================= */
+      .quick-claim-form {
         background: var(--white);
-        border: 1px solid var(--teal);
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
         display: grid;
         gap: 0.9rem;
-        box-shadow: 0 8px 24px rgba(47, 110, 128, 0.12);
       }
-      .claim-trial-offer[hidden] {
+      .quick-claim-form[hidden] {
         display: none;
-      }
-      .claim-trial-offer-header h3 {
-        margin: 0 0 0.25rem;
-        color: var(--navy);
-        font-size: 1.05rem;
-      }
-      .claim-trial-offer-header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.88rem;
-      }
-      .claim-trial-offer-plans {
-        display: grid;
-        gap: 0.6rem;
-      }
-      .claim-trial-cta {
-        display: grid;
-        gap: 0.2rem;
-        padding: 0.85rem 1rem;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        font-family: inherit;
-        cursor: pointer;
-        text-align: left;
-        transition:
-          background 0.15s ease,
-          border-color 0.15s ease;
-      }
-      .claim-trial-cta-primary {
-        background: var(--teal);
-        border-color: var(--teal);
-        color: var(--white);
-      }
-      .claim-trial-cta-primary:hover {
-        background: var(--teal-dark);
-      }
-      .claim-trial-cta-secondary {
-        background: var(--white);
-        color: var(--navy);
-      }
-      .claim-trial-cta-secondary:hover {
-        border-color: var(--teal);
-        background: rgba(47, 110, 128, 0.05);
-      }
-      .claim-trial-cta:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-      .claim-trial-cta-title {
-        font-weight: 700;
-        font-size: 0.98rem;
-      }
-      .claim-trial-cta-price {
-        font-size: 0.82rem;
-        opacity: 0.9;
-      }
-      .claim-trial-dismiss {
-        margin: 0;
-        text-align: center;
-        font-size: 0.85rem;
-      }
-      .claim-trial-dismiss a {
-        color: var(--muted);
-      }
-      .claim-trial-feedback {
-        margin: 0;
-        font-size: 0.82rem;
-        color: var(--muted);
-        min-height: 1rem;
       }
       .quick-claim-form label {
         display: grid;
-        gap: 0.4rem;
-      }
-      .quick-claim-form label span {
-        font-size: 0.85rem;
+        gap: 0.35rem;
+        font-size: 0.84rem;
         font-weight: 600;
-        color: var(--navy);
       }
       .quick-claim-form input {
-        width: 100%;
-        padding: 0.65rem 0.85rem;
+        padding: 0.72rem 0.85rem;
         border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        color: var(--navy);
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 400;
         background: var(--white);
       }
       .quick-claim-form input:focus {
-        outline: 2px solid var(--teal);
-        outline-offset: 1px;
+        outline: none;
         border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .quick-claim-field-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 400;
       }
       .quick-claim-submit {
-        margin-top: 0.35rem;
         background: var(--teal);
         color: var(--white);
         border: none;
         border-radius: 10px;
         padding: 0.85rem 1rem;
-        font-weight: 700;
+        font: inherit;
         font-size: 0.98rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: background 0.15s ease;
       }
       .quick-claim-submit:hover {
         background: var(--teal-dark);
       }
-      .quick-claim-submit:disabled {
-        background: var(--muted);
-        cursor: not-allowed;
-      }
       .quick-claim-fineprint {
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         color: var(--muted);
         text-align: center;
       }
       .quick-claim-status {
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 8px;
         font-size: 0.9rem;
-        line-height: 1.5;
       }
       .quick-claim-status[data-tone="success"] {
-        background: rgba(58, 170, 122, 0.1);
-        color: #1f6f4a;
-        border: 1px solid rgba(58, 170, 122, 0.35);
-      }
-      .quick-claim-status[data-tone="info"] {
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border: 1px solid var(--border);
+        background: rgba(47, 110, 128, 0.08);
+        color: var(--navy);
       }
       .quick-claim-status[data-tone="warn"] {
-        background: #fff4e5;
-        color: #8a4a00;
-        border: 1px solid #f0c38a;
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+      }
+      .quick-claim-resend {
+        margin: 0;
+        font-size: 0.84rem;
+        color: var(--muted);
+        text-align: center;
       }
       .quick-claim-fallback {
         text-align: center;
-        color: var(--teal-dark);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 0.9rem;
-      }
-      .quick-claim-fallback:hover {
-        text-decoration: underline;
-      }
-      @media (max-width: 760px) {
-        .quick-claim-hero {
-          padding: 2rem 1rem 1.75rem;
-        }
-        .quick-claim-inner {
-          grid-template-columns: 1fr;
-          gap: 1.75rem;
-        }
-      }
-
-      /* Authority strip */
-      .authority-strip {
-        background: var(--navy);
-        color: var(--white);
-        text-align: center;
-        padding: 1rem 1.5rem;
-      }
-      .authority-strip p {
-        max-width: 760px;
-        margin: 0 auto;
-        font-size: 0.95rem;
-        line-height: 1.5;
-      }
-
-      /* Generic section containers */
-      .section-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 4rem 1.5rem;
-      }
-      .section-header {
-        text-align: center;
-        max-width: 640px;
-        margin: 0 auto 2.5rem;
-      }
-      .section-kicker {
-        display: inline-block;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        padding: 0.3rem 0.85rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 1rem;
-      }
-      .section-header h2 {
-        font-size: clamp(1.6rem, 2.5vw, 2rem);
-        line-height: 1.2;
-        color: var(--navy);
-        margin-bottom: 0.75rem;
-        font-weight: 700;
-      }
-      .section-header p {
-        color: var(--slate);
-        font-size: 1rem;
-      }
-
-      /* Unlock ladder */
-      .unlock-ladder {
-        background: var(--white);
-      }
-      .unlock-steps {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1rem;
-      }
-      .unlock-step {
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.5rem 1.25rem;
-        position: relative;
-        display: grid;
-        gap: 0.75rem;
-      }
-      .unlock-step-index {
-        width: 2rem;
-        height: 2rem;
-        border-radius: 50%;
-        background: var(--teal);
-        color: var(--white);
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.95rem;
-      }
-      .unlock-step-body h3 {
-        font-size: 1.1rem;
-        color: var(--navy);
-        margin-bottom: 0.4rem;
-      }
-      .unlock-step-body p {
-        color: var(--slate);
-        font-size: 0.92rem;
-        line-height: 1.5;
-        margin-bottom: 0.7rem;
-      }
-      .unlock-step-criteria {
-        display: block;
-        font-size: 0.78rem;
+        font-size: 0.88rem;
         color: var(--muted);
-        font-weight: 600;
-        letter-spacing: 0.01em;
-      }
-      .unlock-step-paid {
-        background: var(--teal-faint);
-        border-color: var(--teal-light);
-      }
-      .unlock-step-paid .unlock-step-index {
-        background: var(--navy);
-      }
-      .unlock-step-paid h3 {
-        color: var(--teal-dark);
       }
 
-      /* Pricing */
-      .pricing-section {
-        background: var(--bg);
+      /* Hidden legacy trial-offer element kept so the existing JS can
+         safely reference it if a fallback path fires. No longer shown
+         as a surface since the trial CTA now lives in the confirm
+         panel itself (post #201). */
+      .claim-trial-offer[hidden] {
+        display: none !important;
       }
-      .pricing-grid {
+
+      /* =========================
+         How it works
+         ========================= */
+      .claim-how-it-works {
+        max-width: 960px;
+        margin: 4rem auto 0;
+        padding: 0 1.5rem;
+      }
+      .claim-how-it-works h2 {
+        font-family: "Lora", serif;
+        font-size: 1.65rem;
+        color: var(--navy);
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+      .claim-how-it-works-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1.25rem;
-        align-items: stretch;
       }
-      .pricing-card {
+      .claim-how-it-works-step {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.75rem 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        position: relative;
+        border-radius: 14px;
+        padding: 1.35rem 1.5rem;
       }
-      .pricing-card-featured {
-        border-color: var(--teal);
-        box-shadow: 0 14px 40px rgba(26, 122, 143, 0.18);
-        transform: translateY(-8px);
-      }
-      .pricing-card-waitlist {
-        opacity: 0.92;
-      }
-      .pricing-badge-featured,
-      .pricing-badge-waitlist {
-        position: absolute;
-        top: -0.65rem;
-        left: 1.5rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 0.3rem 0.75rem;
-        border-radius: 999px;
-      }
-      .pricing-badge-featured {
-        background: var(--teal);
-        color: var(--white);
-      }
-      .pricing-badge-waitlist {
-        background: var(--muted);
-        color: var(--white);
-      }
-      .pricing-card-header h3 {
-        color: var(--navy);
-        font-size: 1.2rem;
-        margin-bottom: 0.4rem;
-      }
-      .pricing-card-price {
-        display: flex;
-        align-items: baseline;
-        gap: 0.4rem;
-      }
-      .pricing-amount {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--navy);
-      }
-      .pricing-cadence {
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-      .pricing-features {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 0.55rem;
-        flex: 1;
-      }
-      .pricing-features li {
-        position: relative;
-        padding-left: 1.4rem;
-        color: var(--navy);
-        font-size: 0.92rem;
-        line-height: 1.5;
-      }
-      .pricing-features li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-      }
-      .pricing-features li strong {
-        color: var(--navy);
-      }
-      .pricing-cta {
-        display: block;
-        text-align: center;
-        padding: 0.85rem 1rem;
-        border-radius: 10px;
-        font-weight: 700;
-        text-decoration: none;
-        transition: background 0.15s ease;
-      }
-      .pricing-cta-primary {
-        background: var(--teal);
-        color: var(--white);
-      }
-      .pricing-cta-primary:hover {
-        background: var(--teal-dark);
-      }
-      .pricing-cta-secondary {
-        background: var(--white);
-        color: var(--teal-dark);
-        border: 1px solid var(--teal);
-      }
-      .pricing-cta-secondary:hover {
-        background: var(--teal-faint);
-      }
-      .pricing-spots {
-        font-size: 0.82rem;
-        color: #92400e;
-        font-weight: 600;
-        margin: 0 0 0.75rem;
-      }
-      .pricing-trust {
-        display: grid;
-        gap: 0.35rem;
-        font-size: 0.82rem;
-        color: var(--slate);
-        text-align: center;
-      }
-      .pricing-fineprint {
-        font-size: 0.8rem;
-        color: var(--muted);
-        text-align: center;
-      }
-      .pricing-tie-breaker {
-        margin-top: 2.5rem;
-        text-align: center;
-        color: var(--slate);
-        font-size: 0.98rem;
-        max-width: 680px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      /* FAQ */
-      .faq-section {
-        background: var(--white);
-      }
-      .faq-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem 2rem;
-        max-width: 960px;
-        margin: 0 auto;
-      }
-      .faq-item {
-        border-bottom: 1px solid var(--border);
-        padding: 1rem 0;
-      }
-      .faq-item summary {
-        cursor: pointer;
-        font-weight: 600;
-        color: var(--navy);
-        font-size: 1rem;
-        list-style: none;
-        padding-right: 1.5rem;
-        position: relative;
-      }
-      .faq-item summary::-webkit-details-marker {
-        display: none;
-      }
-      .faq-item summary::after {
-        content: "+";
-        position: absolute;
-        right: 0;
-        top: 0;
-        color: var(--teal);
-        font-weight: 700;
-        font-size: 1.2rem;
-      }
-      .faq-item[open] summary::after {
-        content: "−";
-      }
-      .faq-item p {
-        margin-top: 0.7rem;
-        color: var(--slate);
-        font-size: 0.93rem;
-        line-height: 1.55;
-      }
-
-      /* New-therapist intake — short-form "list my practice" flow.
-         Two-column layout: timeline/copy on the left, 5-field form on
-         the right. Collapses to one column under 820px. */
-      .new-listing-intake {
-        background: linear-gradient(180deg, #f7fbfc 0%, var(--white) 100%);
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
-        padding: 3rem 1.5rem;
-      }
-      .new-listing-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 420px;
-        gap: 2.2rem;
-        align-items: start;
-      }
-      .new-listing-kicker {
-        display: inline-block;
-        padding: 0.3rem 0.8rem;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .new-listing-copy h2 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.7rem, 2.6vw, 2.2rem);
-        margin: 0.75rem 0 0.75rem;
-        color: var(--navy);
-      }
-      .new-listing-copy > p {
-        color: var(--ink-soft);
-        line-height: 1.65;
-        margin: 0 0 1.4rem;
-      }
-      .new-listing-timeline {
-        display: grid;
-        gap: 1rem;
-      }
-      .new-listing-step {
-        display: grid;
-        grid-template-columns: 2.2rem 1fr;
-        gap: 0.85rem;
-        align-items: start;
-      }
-      .new-listing-step-index {
-        width: 2.2rem;
-        height: 2.2rem;
-        border-radius: 999px;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        font-weight: 700;
-        display: flex;
+      .claim-how-it-works-step-index {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1rem;
-      }
-      .new-listing-step strong {
-        display: block;
-        color: var(--navy);
-        margin-bottom: 0.2rem;
-      }
-      .new-listing-step p {
-        margin: 0;
-        color: var(--ink-soft);
-        font-size: 0.93rem;
-        line-height: 1.55;
-      }
-      .new-listing-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1.4rem;
-        box-shadow: 0 12px 30px rgba(15, 65, 78, 0.05);
-      }
-      .new-listing-form {
-        display: grid;
-        gap: 0.85rem;
-      }
-      .new-listing-form label:not(.new-listing-checkbox) {
-        display: grid;
-        gap: 0.3rem;
-        font-size: 0.84rem;
-        font-weight: 600;
-        color: var(--navy);
-      }
-      .new-listing-form input[type="text"],
-      .new-listing-form input[type="email"] {
-        padding: 0.75rem 0.85rem;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font: inherit;
-        color: var(--navy);
-      }
-      .new-listing-field-hint {
-        font-size: 0.78rem;
-        font-weight: 400;
-        color: var(--muted);
-      }
-      .new-listing-checkbox {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 0.6rem;
-        align-items: start;
-        font-size: 0.88rem;
-        color: var(--ink-soft);
-        line-height: 1.5;
-        padding: 0.35rem 0.2rem;
-      }
-      .new-listing-checkbox input {
-        margin-top: 0.2rem;
-        transform: scale(1.15);
-      }
-      .new-listing-submit {
-        padding: 0.9rem 1rem;
+        width: 32px;
+        height: 32px;
         background: var(--teal);
-        color: #fff;
-        border: none;
-        border-radius: 12px;
+        color: var(--white);
+        border-radius: 999px;
         font-weight: 700;
-        font-size: 0.96rem;
-        cursor: pointer;
-        transition: background 140ms ease;
+        margin-bottom: 0.75rem;
       }
-      .new-listing-submit:hover,
-      .new-listing-submit:focus-visible {
-        background: var(--teal-dark);
+      .claim-how-it-works-step h3 {
+        font-size: 1.02rem;
+        color: var(--navy);
+        margin-bottom: 0.3rem;
       }
-      .new-listing-submit:disabled {
-        background: #94a3b8;
-        cursor: not-allowed;
-      }
-      .new-listing-status {
-        padding: 0.75rem 0.85rem;
-        border-radius: 10px;
-        font-size: 0.88rem;
-      }
-      .new-listing-status.is-success {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-      }
-      .new-listing-status.is-error {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-      }
-      .new-listing-fineprint {
-        margin: 0.35rem 0 0;
-        font-size: 0.78rem;
-        color: var(--muted);
-        text-align: center;
-      }
-      @media (max-width: 820px) {
-        .new-listing-inner {
-          grid-template-columns: 1fr;
-        }
+      .claim-how-it-works-step p {
+        color: var(--slate);
+        font-size: 0.94rem;
       }
 
-      /* Legacy full-form wrapper — collapsed by default, clearly
-         labeled "advanced." Most therapists should ignore it. */
-      .legacy-full-form {
-        max-width: 1080px;
-        margin: 2rem auto 3rem;
+      /* =========================
+         FAQ
+         ========================= */
+      .claim-faq {
+        max-width: 780px;
+        margin: 4rem auto 0;
         padding: 0 1.5rem;
       }
-      .legacy-full-form > summary {
-        cursor: pointer;
-        padding: 1rem 1.1rem;
+      .claim-faq h2 {
+        font-family: "Lora", serif;
+        font-size: 1.65rem;
+        color: var(--navy);
+        margin-bottom: 1.25rem;
+        text-align: center;
+      }
+      .claim-faq-item {
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 12px;
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-        color: var(--navy);
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+      }
+      .claim-faq-item summary {
+        padding: 1rem 1.25rem;
         font-weight: 600;
-        transition: border-color 140ms ease;
+        color: var(--navy);
+        cursor: pointer;
+        list-style: none;
+        position: relative;
       }
-      .legacy-full-form > summary:hover,
-      .legacy-full-form > summary:focus-visible {
-        border-color: var(--teal);
-        outline: none;
-      }
-      .legacy-full-form > summary::-webkit-details-marker {
+      .claim-faq-item summary::-webkit-details-marker {
         display: none;
       }
-      .legacy-full-form-caption {
-        font-weight: 400;
-        font-size: 0.86rem;
-        color: var(--muted);
+      .claim-faq-item summary::after {
+        content: "+";
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--teal);
+        font-size: 1.3rem;
+        font-weight: 300;
       }
-      .legacy-full-form[open] > summary {
-        border-bottom: 1px solid var(--border);
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+      .claim-faq-item[open] summary::after {
+        content: "−";
       }
-
-      /* New-listing lead-in (unused after Phase 2 but kept for CSS
-         continuity in case the old class is referenced elsewhere). */
-      .new-listing-leadin {
-        background: var(--bg);
-        border-top: 1px solid var(--border);
-      }
-      .new-listing-leadin .section-inner {
-        padding-top: 3rem;
-        padding-bottom: 1rem;
+      .claim-faq-item p {
+        padding: 0 1.25rem 1.15rem;
+        color: var(--slate);
       }
 
-      @media (max-width: 960px) {
-        .unlock-steps {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .pricing-grid {
-          grid-template-columns: 1fr;
-        }
-        .pricing-card-featured {
-          transform: none;
-        }
-        .faq-grid {
-          grid-template-columns: 1fr;
-          gap: 0;
-        }
-      }
-      @media (max-width: 600px) {
-        .unlock-steps {
-          grid-template-columns: 1fr;
-        }
-        .section-inner {
-          padding: 3rem 1rem;
-        }
-      }
-
-      /* Claim page: alt-path link and buried remove-listing details.
-         The remove-listing form is intentionally de-emphasized as a
-         <details> block with a plain-text summary so the primary
-         claim CTA wins by default. */
-      .claim-alt-path {
+      /* =========================
+         Footer paths
+         ========================= */
+      .claim-footer {
         max-width: 720px;
-        margin: 2rem auto 0;
+        margin: 3rem auto 0;
         padding: 0 1.5rem;
         text-align: center;
+      }
+      .claim-footer-newlisting {
         color: var(--muted);
         font-size: 0.95rem;
       }
-      .claim-alt-path a {
+      .claim-footer-newlisting a {
         color: var(--teal);
         font-weight: 600;
       }
       .claim-remove-details {
         max-width: 720px;
-        margin: 2.5rem auto 3rem;
+        margin: 1.5rem auto 4rem;
         padding: 0 1.5rem;
       }
-      .claim-remove-details > summary {
-        list-style: none;
-        cursor: pointer;
+      .claim-remove-details summary {
         text-align: center;
         color: var(--muted);
-        font-size: 0.88rem;
-        padding: 0.5rem 0;
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0.6rem 0;
       }
-      .claim-remove-details > summary::-webkit-details-marker {
-        display: none;
-      }
-      .claim-remove-details > summary:hover,
-      .claim-remove-details > summary:focus-visible {
+      .claim-remove-details[open] summary {
         color: var(--navy);
-      }
-      .claim-remove-details > summary > span::after {
-        content: " →";
-        color: var(--teal);
+        font-weight: 600;
       }
       .claim-remove-body {
-        background: #fff;
+        margin-top: 0.9rem;
+        background: var(--white);
         border: 1px solid var(--border);
         border-radius: 12px;
-        padding: 1.5rem 1.25rem;
-        margin-top: 0.75rem;
+        padding: 1.35rem;
       }
       .claim-remove-intro {
-        color: var(--muted);
+        color: var(--slate);
         font-size: 0.92rem;
-        line-height: 1.55;
-        margin-top: 0;
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .listing-removal-form {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .listing-removal-form label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+      .listing-removal-form input {
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 400;
+      }
+      .listing-removal-field-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .listing-removal-submit {
+        background: var(--navy);
+        color: var(--white);
+        border: none;
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .listing-removal-submit:hover {
+        background: var(--teal-dark);
+      }
+      .listing-removal-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .listing-removal-status {
+        padding: 0.6rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.88rem;
+      }
+      .listing-removal-status.is-success {
+        background: rgba(58, 170, 122, 0.12);
+        color: var(--green);
+      }
+      .listing-removal-status.is-error {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+      }
+
+      /* =========================
+         Mobile
+         ========================= */
+      @media (max-width: 720px) {
+        .claim-main {
+          padding: 1.75rem 1.25rem 0.5rem;
+        }
+        .claim-search-card,
+        .claim-confirm-panel,
+        .quick-claim-form {
+          padding: 1.25rem;
+        }
+        .claim-how-it-works-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -2594,171 +634,227 @@
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
       <ul class="nav-links">
-        <li>
-          <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >Shortlist <span class="nav-shortlist-count" data-shortlist-count>0</span></a
-          >
-        </li>
         <li><a href="directory.html">Find a Therapist</a></li>
-        <li>
-          <a href="signup.html" style="color: var(--teal); font-weight: 600">List Your Practice</a>
-        </li>
+        <li><a href="signup.html">List Your Practice</a></li>
       </ul>
     </nav>
 
-    <section
-      id="quickClaimSection"
-      class="quick-claim-hero"
-      aria-label="Claim your existing profile"
-    >
-      <div class="quick-claim-inner">
-        <div class="quick-claim-copy">
-          <span class="quick-claim-kicker">Already listed on Bipolar Therapy Hub?</span>
-          <h1>Claim your page in one click</h1>
+    <main class="claim-main">
+      <section class="claim-hero">
+        <span class="claim-kicker">Claim your listing</span>
+        <h1>Your California practice, activated in 2 clicks</h1>
+        <p>
+          Find your listing, confirm the email on file, and unlock editing, analytics, and profile
+          controls. No password. Free basic listing forever.
+        </p>
+      </section>
+
+      <section class="claim-search-card" id="quickClaimSearch">
+        <label>
+          <span>Find your listing</span>
+          <input
+            type="search"
+            id="quickClaimSearchInput"
+            autocomplete="off"
+            placeholder="Search by last name or license number"
+          />
+        </label>
+        <div
+          class="quick-claim-search-results"
+          id="quickClaimSearchResults"
+          role="listbox"
+          hidden
+        ></div>
+        <p class="quick-claim-search-hint">
+          Start typing your name or license number. Pick your listing to continue.
+        </p>
+      </section>
+
+      <!-- Confirm panel: hidden until a result is picked. Auto-shown
+           when /claim?slug=X deep-links from /signup or from a
+           directory-page "claim this listing" banner. -->
+      <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
+        <div class="claim-confirm-header">
+          <span class="claim-confirm-label">Found your listing</span>
+          <a href="#" id="claimConfirmChange">Change →</a>
+        </div>
+        <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
+        <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
+        <p class="claim-confirm-destination">
+          We'll email your activation link to <strong id="claimConfirmEmail"></strong>.
+        </p>
+        <button type="button" id="claimStartTrial" class="claim-confirm-send">
+          Start 14-day free trial — $0 today
+        </button>
+        <p class="claim-trial-subhint">
+          $19/mo after trial · cancel anytime · no charge until day 15
+        </p>
+        <p class="claim-confirm-alt">
+          <a href="#" id="claimConfirmSend">Just claim free basic controls →</a>
+        </p>
+        <p class="claim-confirm-alt">
+          <a href="#" id="claimConfirmUseOther">Use a different email →</a>
+        </p>
+        <div
+          class="claim-confirm-status"
+          id="claimConfirmStatus"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+        <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
+          Didn't see it in 2 min? Check your spam folder or
+          <a href="#" id="claimConfirmResendLink">resend the link</a>.
+        </p>
+      </div>
+
+      <!-- Legacy trial-offer surface kept for JS compatibility. Hidden
+           by default; #201 replaced this path with the primary CTA in
+           the confirm panel above. -->
+      <div class="claim-trial-offer" id="claimTrialOffer" hidden>
+        <button
+          type="button"
+          class="claim-trial-cta"
+          id="claimTrialFounding"
+          data-plan="founding_monthly"
+          hidden
+        >
+          <span class="claim-trial-cta-title"></span>
+        </button>
+        <button
+          type="button"
+          class="claim-trial-cta"
+          id="claimTrialStandard"
+          data-plan="paid_monthly"
+          hidden
+        >
+          <span class="claim-trial-cta-title"></span>
+        </button>
+        <a href="#" id="claimTrialDismiss" hidden>dismiss</a>
+        <p id="claimTrialFeedback" hidden></p>
+      </div>
+
+      <!-- Manual-entry form: hidden by default. Users only see this
+           via "Use a different email →" in the confirm panel, or as a
+           fallback when they have no email on file. -->
+      <form id="quickClaimForm" class="quick-claim-form" novalidate hidden>
+        <label>
+          <span>Full name</span>
+          <input
+            type="text"
+            name="full_name"
+            autocomplete="name"
+            placeholder="Jamie Rivera"
+            required
+          />
+        </label>
+        <label>
+          <span>Email on your current listing</span>
+          <input type="email" name="email" autocomplete="email" required />
+          <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
+        </label>
+        <label>
+          <span>CA license number</span>
+          <input
+            type="text"
+            name="license_number"
+            autocomplete="off"
+            placeholder="e.g. 109462"
+            required
+          />
+        </label>
+        <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
+          Send activation link
+        </button>
+        <p class="quick-claim-fineprint">No credit card. Free claim stays free forever.</p>
+        <div
+          class="quick-claim-status"
+          id="quickClaimStatus"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+        <p class="quick-claim-resend" id="quickClaimResend" hidden>
+          Didn't see it in 2 min? Check your spam folder or
+          <a href="#" id="quickClaimResendLink">resend the link</a>.
+        </p>
+        <a href="signup.html" class="quick-claim-fallback" id="quickClaimCreateNew" hidden>
+          Create a new listing instead →
+        </a>
+      </form>
+      <div id="formCard"></div>
+    </main>
+
+    <section class="claim-how-it-works" aria-label="How it works">
+      <h2>How it works</h2>
+      <div class="claim-how-it-works-grid">
+        <div class="claim-how-it-works-step">
+          <div class="claim-how-it-works-step-index">1</div>
+          <h3>Find your listing</h3>
+          <p>Search your name or license number. We'll show your public listing if we have one.</p>
+        </div>
+        <div class="claim-how-it-works-step">
+          <div class="claim-how-it-works-step-index">2</div>
+          <h3>Verify your email</h3>
           <p>
-            Find your listing, confirm it's you, and we email a one-time sign-in link. No password.
-            Free forever.
+            We email an activation link to the address on your listing. Click it — no password, no
+            form to fill out. If the on-file email is stale, you can request a different one.
           </p>
         </div>
-        <div class="quick-claim-search" id="quickClaimSearch">
-          <label>
-            <span>Find your listing</span>
-            <input
-              type="search"
-              id="quickClaimSearchInput"
-              autocomplete="off"
-              placeholder="Search by last name or license number"
-            />
-          </label>
-          <div
-            class="quick-claim-search-results"
-            id="quickClaimSearchResults"
-            role="listbox"
-            hidden
-          ></div>
-          <p class="quick-claim-search-hint">
-            Start typing your name or license number. Pick your listing and we'll send a sign-in
-            link to the email we have on file.
+        <div class="claim-how-it-works-step">
+          <div class="claim-how-it-works-step-index">3</div>
+          <h3>Unlock your profile</h3>
+          <p>
+            Editing, analytics, a longer bio, and accepting-patients status go live instantly.
+            Optional 14-day free trial unlocks paid features — cancel anytime before day 15.
           </p>
-        </div>
-        <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
-          <div class="claim-confirm-header">
-            <span class="claim-confirm-label">Found your listing</span>
-            <a href="#" id="claimConfirmChange">Change →</a>
-          </div>
-          <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
-          <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
-          <p class="claim-confirm-destination">
-            We'll email your activation link to
-            <strong id="claimConfirmEmail"></strong>.
-          </p>
-          <button type="button" id="claimStartTrial" class="claim-confirm-send">
-            Start 14-day free trial — $0 today
-          </button>
-          <p class="claim-trial-subhint">
-            $19/mo after trial · cancel anytime · no charge until day 15
-          </p>
-          <p class="claim-confirm-alt">
-            <a href="#" id="claimConfirmSend">Just claim free basic controls →</a>
-          </p>
-          <p class="claim-confirm-alt">
-            <a href="#" id="claimConfirmUseOther">Use a different email →</a>
-          </p>
-          <div
-            class="claim-confirm-status"
-            id="claimConfirmStatus"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-          <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
-            Didn't see it in 2 min? Check your spam folder or
-            <a href="#" id="claimConfirmResendLink">resend the link</a>.
-          </p>
-        </div>
-        <form id="quickClaimForm" class="quick-claim-form" novalidate hidden>
-          <label>
-            <span>Full name</span>
-            <input
-              type="text"
-              name="full_name"
-              autocomplete="name"
-              placeholder="Jamie Rivera"
-              required
-            />
-          </label>
-          <label>
-            <span>Email on your current listing</span>
-            <input type="email" name="email" autocomplete="email" required />
-            <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
-          </label>
-          <label>
-            <span>CA license number</span>
-            <input
-              type="text"
-              name="license_number"
-              autocomplete="off"
-              placeholder="e.g. 109462"
-              required
-            />
-          </label>
-          <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
-            Send claim link
-          </button>
-          <p class="quick-claim-fineprint">No credit card. Free claim stays free forever.</p>
-          <div
-            class="quick-claim-status"
-            id="quickClaimStatus"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-          <p class="quick-claim-resend" id="quickClaimResend" hidden>
-            Didn't see it in 2 min? Check your spam folder or
-            <a href="#" id="quickClaimResendLink">resend the link</a>.
-          </p>
-          <a href="signup.html" class="quick-claim-fallback" id="quickClaimCreateNew">
-            Create a new listing instead →
-          </a>
-        </form>
-        <div class="claim-trial-offer" id="claimTrialOffer" hidden>
-          <div class="claim-trial-offer-header">
-            <h3>Start your 14-day trial while you wait</h3>
-            <p>
-              No charge today. Cancel anytime. Unlocks analytics and enhanced profile the moment you
-              sign in.
-            </p>
-          </div>
-          <div class="claim-trial-offer-plans">
-            <button
-              type="button"
-              class="claim-trial-cta claim-trial-cta-primary"
-              id="claimTrialPaid"
-              data-plan="paid_monthly"
-            >
-              <span class="claim-trial-cta-title">Start 14-day free trial</span>
-              <span class="claim-trial-cta-price">$19/mo after trial · cancel anytime</span>
-            </button>
-          </div>
-          <p class="claim-trial-dismiss">
-            <a href="#" id="claimTrialDismiss">I'll decide later →</a>
-          </p>
-          <p class="claim-trial-feedback" id="claimTrialFeedback" aria-live="polite"></p>
         </div>
       </div>
     </section>
 
-    <section class="claim-alt-path" aria-label="Not listed yet">
-      <p>
-        Not listed yet?
-        <a href="signup.html">Sign up for a new listing →</a>
-      </p>
+    <section class="claim-faq" aria-label="Frequently asked questions">
+      <h2>Common questions</h2>
+      <details class="claim-faq-item">
+        <summary>Why am I already listed?</summary>
+        <p>
+          We auto-added California bipolar-specialist therapists from public records (Board of
+          Behavioral Sciences, Board of Psychology, licensed practice directories). Your public
+          profile exists whether you claim or not — claiming just gives you control over it.
+        </p>
+      </details>
+      <details class="claim-faq-item">
+        <summary>Does claiming cost anything?</summary>
+        <p>
+          No. Basic claim is free forever. You can optionally start a 14-day trial for analytics,
+          longer bio, and other paid features — $19/mo after trial, one-click cancel anytime, no
+          charge until day 15.
+        </p>
+      </details>
+      <details class="claim-faq-item">
+        <summary>What if my on-file email is wrong?</summary>
+        <p>
+          Pick your listing, then click "Use a different email →" in the confirm panel. Enter the
+          email you actually have access to. We'll send the activation link there and update your
+          on-file email after you click it.
+        </p>
+      </details>
+      <details class="claim-faq-item">
+        <summary>What if I'm not yet listed?</summary>
+        <p>
+          Use our short signup form instead — takes sixty seconds, no credit card, approval in 2-3
+          business days. <a href="signup.html">Sign up for a new listing →</a>
+        </p>
+      </details>
     </section>
 
+    <div class="claim-footer">
+      <p class="claim-footer-newlisting">
+        Not listed yet? <a href="signup.html">Sign up for a new listing →</a>
+      </p>
+    </div>
+
     <details class="claim-remove-details" aria-label="Remove your listing">
-      <summary>
-        <span>Want to remove your listing instead?</span>
-      </summary>
+      <summary>Want to remove your listing instead?</summary>
       <div class="claim-remove-body">
         <p class="claim-remove-intro">
           We added California therapists to this directory based on verified license and public
@@ -2808,16 +904,6 @@
         </form>
       </div>
     </details>
-
-    <footer>
-      <p>
-        <strong style="color: white">BipolarTherapyHub</strong> — Claim your listing in under a
-        minute
-      </p>
-      <p style="margin-top: 0.4rem">
-        <a href="directory.html">Browse the directory</a> · <a href="index.html">Home</a>
-      </p>
-    </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
     <script type="module" src="assets/signup-listing-removal.js"></script>
