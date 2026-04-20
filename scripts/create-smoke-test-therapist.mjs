@@ -121,7 +121,9 @@ async function main() {
   console.log("");
   console.log("Smoke-test URLs:");
   console.log("  Claim page: https://www.bipolartherapyhub.com/claim?slug=" + SMOKE_SLUG);
-  console.log("  Portal (after claim): https://www.bipolartherapyhub.com/portal?slug=" + SMOKE_SLUG);
+  console.log(
+    "  Portal (after claim): https://www.bipolartherapyhub.com/portal?slug=" + SMOKE_SLUG,
+  );
   console.log("");
   console.log("To remove: node scripts/create-smoke-test-therapist.mjs --delete");
 }
