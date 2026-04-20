@@ -889,53 +889,175 @@ function formatAnalyticsPeriodLabel(periodKey, periodStart) {
   return "This week";
 }
 
-function renderAnalyticsBlock(payload) {
+function renderAnalyticsStat(number, subLabel) {
+  return (
+    '<div style="padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
+    '<div style="font-size:1.55rem;font-weight:700;color:var(--navy);line-height:1.1">' +
+    escapeHtml(String(number)) +
+    "</div>" +
+    '<div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem">' +
+    escapeHtml(subLabel) +
+    "</div></div>"
+  );
+}
+
+// Inline sparkline SVG for weekly trend. Expects an array of 12 weekly
+// counts in chronological order (oldest first). Empty/zero arrays render
+// a flat line without scaling noise.
+function renderAnalyticsSparkline(weeklyCounts) {
+  var counts = Array.isArray(weeklyCounts) ? weeklyCounts.slice(-12) : [];
+  while (counts.length < 12) counts.unshift(0);
+  var max = counts.reduce(function (m, v) {
+    return Math.max(m, Number(v) || 0);
+  }, 0);
+  var w = 280;
+  var h = 48;
+  var step = w / (counts.length - 1 || 1);
+  var points = counts
+    .map(function (v, i) {
+      var y = max > 0 ? h - ((Number(v) || 0) / max) * (h - 6) - 3 : h / 2;
+      return i * step + "," + y.toFixed(1);
+    })
+    .join(" ");
+  var lastIdx = counts.length - 1;
+  var lastY = max > 0 ? h - ((Number(counts[lastIdx]) || 0) / max) * (h - 6) - 3 : h / 2;
+  return (
+    '<svg viewBox="0 0 ' +
+    w +
+    " " +
+    h +
+    '" width="100%" height="' +
+    h +
+    '" preserveAspectRatio="none" style="display:block;margin-top:0.4rem">' +
+    '<polyline fill="none" stroke="var(--teal)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
+    points +
+    '"/>' +
+    '<circle cx="' +
+    (lastIdx * step).toFixed(1) +
+    '" cy="' +
+    lastY.toFixed(1) +
+    '" r="3" fill="var(--teal)"/>' +
+    "</svg>"
+  );
+}
+
+function renderAnalyticsBlock(payload, subscription) {
   const card = document.getElementById("portalAnalyticsCard");
   const body = document.getElementById("portalAnalyticsBody");
   const grid = document.getElementById("portalAnalyticsGrid");
   if (!card || !body || !grid) return;
 
+  const isPaid = Boolean(subscription && subscription.has_active_featured);
   const current = payload && payload.current;
+  const summaries = (payload && Array.isArray(payload.summaries) && payload.summaries) || [];
   const label = formatAnalyticsPeriodLabel(
     (current && current.periodKey) || (payload && payload.current_period_key),
     current && current.periodStart,
   );
+
   if (!current) {
     body.textContent =
       "No patient activity recorded for " +
       label +
       " yet. Views and contact clicks will appear here as patients interact with your profile.";
-    grid.hidden = true;
+    grid.hidden = false;
+    grid.style.display = "block";
+    grid.style.marginTop = "0.65rem";
+    grid.innerHTML = isPaid
+      ? ""
+      : '<p style="font-size:0.86rem;color:var(--muted);margin:0">' +
+        "Once patients start viewing or contacting your profile, you'll see a weekly breakdown here. " +
+        '<a href="#portalFeaturedCard" style="color:var(--teal);font-weight:600;text-decoration:none">Upgrade for the full picture →</a>' +
+        "</p>";
     return;
   }
-  const views = Number(current.profileViewsTotal || 0);
-  const viewsDirectory = Number(current.profileViewsDirectory || 0);
-  const viewsMatch = Number(current.profileViewsMatch || 0);
-  const ctaClicks = Number(current.ctaClicksTotal || 0);
 
   body.textContent = label + " · updated " + formatDate(current.lastEventAt || "");
 
+  const views = Number(current.profileViewsTotal || 0);
+  const ctaClicks = Number(current.ctaClicksTotal || 0);
+
+  // Free tier: headline numbers only + clear upgrade CTA.
+  if (!isPaid) {
+    grid.hidden = false;
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(140px, 1fr))";
+    grid.style.gap = "0.85rem";
+    grid.style.marginTop = "0.65rem";
+    grid.innerHTML =
+      renderAnalyticsStat(views, "Profile views this week") +
+      renderAnalyticsStat(ctaClicks, "Contact clicks this week") +
+      '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8)">' +
+      '<div style="font-weight:700;color:var(--teal-dark, #155f70);margin-bottom:0.25rem">See your full analytics</div>' +
+      '<div style="font-size:0.88rem;color:var(--navy);margin-bottom:0.55rem">' +
+      "12-week trendline, view sources (match flow vs directory vs direct), and which contact methods patients actually use. " +
+      "Start a 14-day free trial to unlock." +
+      "</div>" +
+      '<a href="#portalFeaturedCard" class="btn-primary" style="display:inline-block;padding:0.55rem 0.95rem;border-radius:10px;background:var(--teal);color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">' +
+      "Start 14-day free trial →" +
+      "</a>" +
+      "</div>";
+    return;
+  }
+
+  // Paid tier: full breakdown + sparkline.
   grid.hidden = false;
   grid.style.display = "grid";
   grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(140px, 1fr))";
   grid.style.gap = "0.85rem";
   grid.style.marginTop = "0.65rem";
 
-  function renderStat(number, label) {
-    return (
-      '<div style="padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd"><div style="font-size:1.55rem;font-weight:700;color:var(--navy);line-height:1.1">' +
-      escapeHtml(String(number)) +
-      '</div><div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem">' +
-      escapeHtml(label) +
-      "</div></div>"
-    );
-  }
+  const viewsMatch = Number(current.profileViewsMatch || 0);
+  const viewsDirectory = Number(current.profileViewsDirectory || 0);
+  const viewsDirect = Number(current.profileViewsDirect || 0);
+  const viewsOther =
+    Number(current.profileViewsOther || 0) +
+    Number(current.profileViewsSearch || 0) +
+    Number(current.profileViewsEmail || 0);
+
+  const ctaPhone = Number(current.ctaClicksPhone || 0);
+  const ctaEmail = Number(current.ctaClicksEmail || 0);
+  const ctaBooking = Number(current.ctaClicksBooking || 0);
+  const ctaWebsite = Number(current.ctaClicksWebsite || 0);
+
+  const weeklyViews = summaries
+    .slice()
+    .sort(function (a, b) {
+      return String(a.periodKey || "").localeCompare(String(b.periodKey || ""));
+    })
+    .map(function (s) {
+      return Number(s.profileViewsTotal || 0);
+    });
 
   grid.innerHTML =
-    renderStat(views, "Profile views") +
-    renderStat(ctaClicks, "Contact clicks") +
-    renderStat(viewsMatch, "From match results") +
-    renderStat(viewsDirectory, "From directory search");
+    renderAnalyticsStat(views, "Profile views this week") +
+    renderAnalyticsStat(ctaClicks, "Contact clicks this week") +
+    // 12-week trendline spans the full row so it reads as a trend, not a stat.
+    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:0.82rem;color:var(--muted);font-weight:600">Profile views · last 12 weeks</div>' +
+    '<div style="font-size:0.78rem;color:var(--muted)">peak ' +
+    escapeHtml(String(Math.max.apply(null, weeklyViews.length ? weeklyViews : [0]))) +
+    "/wk</div></div>" +
+    renderAnalyticsSparkline(weeklyViews) +
+    "</div>" +
+    // Source breakdown
+    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
+    '<div style="font-size:0.82rem;color:var(--muted);font-weight:600;margin-bottom:0.4rem">How patients found you this week</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.5rem">' +
+    renderAnalyticsStat(viewsMatch, "From match flow") +
+    renderAnalyticsStat(viewsDirectory, "From directory") +
+    renderAnalyticsStat(viewsDirect, "Direct / link") +
+    renderAnalyticsStat(viewsOther, "Other sources") +
+    "</div></div>" +
+    // Contact-intent breakdown
+    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
+    '<div style="font-size:0.82rem;color:var(--muted);font-weight:600;margin-bottom:0.4rem">How patients tried to reach you this week</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.5rem">' +
+    renderAnalyticsStat(ctaPhone, "Phone") +
+    renderAnalyticsStat(ctaEmail, "Email") +
+    renderAnalyticsStat(ctaBooking, "Booking link") +
+    renderAnalyticsStat(ctaWebsite, "Website") +
+    "</div></div>";
 }
 
 async function loadAnalyticsIntoPortal() {
@@ -943,8 +1065,29 @@ async function loadAnalyticsIntoPortal() {
     return;
   }
   try {
-    const result = await fetchPortalAnalytics();
-    renderAnalyticsBlock(result || {});
+    // Fetch analytics + subscription in parallel; subscription drives the
+    // free-vs-paid render split. Either failing independently shouldn't
+    // blow up the other — analytics is always shown; subscription just
+    // toggles depth.
+    const [analyticsResult, subscriptionResult] = await Promise.all([
+      fetchPortalAnalytics().catch(function () {
+        return null;
+      }),
+      fetchTherapistSubscription().catch(function () {
+        return null;
+      }),
+    ]);
+    if (!analyticsResult) {
+      const body = document.getElementById("portalAnalyticsBody");
+      if (body) {
+        body.textContent = "Profile activity is unavailable right now. Refresh to try again.";
+      }
+      return;
+    }
+    renderAnalyticsBlock(
+      analyticsResult,
+      (subscriptionResult && subscriptionResult.subscription) || null,
+    );
   } catch (_error) {
     const body = document.getElementById("portalAnalyticsBody");
     if (body) {
