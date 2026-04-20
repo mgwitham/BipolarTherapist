@@ -465,14 +465,18 @@
                 />
               </label>
               <label>
-                <span>City or ZIP</span>
+                <span>Practice ZIP code</span>
                 <input
                   type="text"
-                  name="city_or_zip"
-                  autocomplete="address-level2"
-                  placeholder="Los Angeles or 90025"
+                  name="zip"
+                  autocomplete="postal-code"
+                  inputmode="numeric"
+                  pattern="\d{5}"
+                  maxlength="5"
+                  placeholder="90025"
                   required
                 />
+                <span class="new-listing-field-hint"> 5-digit ZIP where you see patients. </span>
               </label>
               <label class="new-listing-checkbox">
                 <input type="checkbox" name="treats_bipolar" required />
@@ -502,8 +506,8 @@
           <div class="signup-how-it-works-step-index">1</div>
           <h3>Submit 5 fields</h3>
           <p>
-            Name, email, CA license, city, and a confirmation that you treat bipolar disorder. No
-            bio or photo needed yet.
+            Name, email, CA license, practice ZIP, and a confirmation that you treat bipolar
+            disorder. No bio or photo needed yet.
           </p>
         </div>
         <div class="signup-how-it-works-step">

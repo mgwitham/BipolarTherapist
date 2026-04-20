@@ -1,5 +1,5 @@
 // Client-side wiring for the short-form "list my practice" intake on
-// /signup. Five fields: full_name, email, license_number, city_or_zip,
+// /signup. Five fields: full_name, email, license_number, zip,
 // treats_bipolar (checkbox). Posts to /applications/intake which
 // creates a minimal therapistApplication in the review queue.
 //
@@ -12,19 +12,9 @@ import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 
-function parseCityOrZip(raw) {
-  const trimmed = String(raw || "").trim();
-  if (!trimmed) return { city: "", zip: "" };
-  // If it's 5 digits, treat as ZIP. If it contains letters, treat as
-  // a city name. If the user typed "Los Angeles 90025" we take the
-  // first 5-digit chunk as ZIP and the rest as the city.
-  const zipMatch = trimmed.match(/\b(\d{5})\b/);
-  const zip = zipMatch ? zipMatch[1] : "";
-  const city = trimmed
-    .replace(/\b\d{5}\b/, "")
-    .replace(/[,\s]+$/g, "")
-    .trim();
-  return { city, zip };
+function parseZip(raw) {
+  const match = String(raw || "").match(/\d{5}/);
+  return match ? match[0] : "";
 }
 
 function setStatus(node, message, tone) {
@@ -43,15 +33,20 @@ async function submitIntake(form, status) {
   const fullName = form.elements.full_name.value.trim();
   const email = form.elements.email.value.trim();
   const licenseNumber = form.elements.license_number.value.trim();
-  const cityOrZipRaw = form.elements.city_or_zip.value.trim();
+  const zipRaw = form.elements.zip.value.trim();
+  const zip = parseZip(zipRaw);
 
   trackFunnelEvent("signup_new_listing_submit_attempted", {
-    has_all_fields: Boolean(fullName && email && licenseNumber && cityOrZipRaw),
+    has_all_fields: Boolean(fullName && email && licenseNumber && zip),
     treats_bipolar_checked: treatsBipolar,
   });
 
-  if (!fullName || !email || !licenseNumber || !cityOrZipRaw) {
+  if (!fullName || !email || !licenseNumber || !zipRaw) {
     setStatus(status, "Fill in all four fields above before submitting.", "error");
+    return;
+  }
+  if (!zip) {
+    setStatus(status, "Enter a valid 5-digit ZIP code for your practice.", "error");
     return;
   }
   if (!treatsBipolar) {
@@ -63,14 +58,12 @@ async function submitIntake(form, status) {
     return;
   }
 
-  const { city, zip } = parseCityOrZip(cityOrZipRaw);
   const payload = {
     name: fullName,
     email,
     license_number: licenseNumber,
     license_state: "CA",
     state: "CA",
-    city,
     zip,
     treats_bipolar: true,
     intake_source: "signup_short_form",
@@ -141,7 +134,6 @@ async function submitIntake(form, status) {
       "success",
     );
     trackFunnelEvent("signup_new_listing_submitted", {
-      city: city || null,
       zip: zip || null,
     });
     form.reset();
@@ -184,4 +176,4 @@ if (document.readyState === "loading") {
 }
 
 // Exported for tests.
-export { parseCityOrZip, submitIntake };
+export { parseZip, submitIntake };
