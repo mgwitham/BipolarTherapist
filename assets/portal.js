@@ -746,10 +746,22 @@ function renderLookupState() {
 
 function describeFeaturedStatus(subscription) {
   if (!subscription || subscription.plan === "none" || !subscription.status) {
-    return "You're on the free listing. Upgrade to Featured to get a badge and priority placement in match results.";
+    return "You're on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edit review.";
   }
   if (subscription.has_active_featured) {
     var endDate = formatDate(subscription.current_period_ends_at);
+    if (subscription.cancel_at_period_end) {
+      // Trial-with-scheduled-cancel is the most common way a user ends up
+      // here. The end date comes from trialEndsAt (trial cancels never
+      // reach a billed period), falling back to currentPeriodEndsAt for
+      // post-trial cancels.
+      var cancelDate = formatDate(subscription.trial_ends_at) || endDate;
+      return (
+        "Cancellation scheduled" +
+        (cancelDate ? " for " + cancelDate : "") +
+        ". Your paid features (analytics, digest email, same-day edit review) continue through that date, then your listing reverts to free. Resume anytime from Manage subscription."
+      );
+    }
     if (subscription.status === "trialing") {
       var trialEnd = formatDate(subscription.trial_ends_at);
       return (
@@ -757,13 +769,6 @@ function describeFeaturedStatus(subscription) {
         (trialEnd ? " Trial ends " + trialEnd + "." : "") +
         " You can cancel anytime before then — no charge until day 15. " +
         "Use Manage subscription below to cancel in one click."
-      );
-    }
-    if (subscription.cancel_at_period_end) {
-      return (
-        "Subscription set to end" +
-        (endDate ? " on " + endDate : "") +
-        ". You can resume anytime from Manage subscription."
       );
     }
     return (
@@ -867,6 +872,44 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
   }
 }
 
+// When a subscription is flagged cancel_at_period_end, surface a
+// prominent top-of-portal banner so the user isn't surprised by a
+// sudden tier change on the end date. Idempotent — re-renders cleanly
+// if subscription state changes without leaving a duplicate element.
+function renderCancelScheduledBanner(subscription) {
+  var existing = document.getElementById("portalCancelScheduledBanner");
+  if (existing && existing.parentNode) {
+    existing.parentNode.removeChild(existing);
+  }
+  if (!subscription || !subscription.cancel_at_period_end || !subscription.has_active_featured) {
+    return;
+  }
+  var endIso = subscription.trial_ends_at || subscription.current_period_ends_at || "";
+  var endLabel = endIso ? formatDate(endIso) : "";
+  var shell = document.getElementById("portalShell");
+  if (!shell) return;
+  var hero = shell.querySelector(".portal-hero");
+  var banner = document.createElement("section");
+  banner.id = "portalCancelScheduledBanner";
+  banner.className = "portal-card";
+  banner.style.cssText = "border:1px solid #f59e0b;background:#fffbeb;margin-bottom:1rem";
+  banner.innerHTML =
+    '<p class="portal-eyebrow" style="color:#92400e;margin:0 0 0.35rem">Cancellation scheduled</p>' +
+    '<h2 style="margin:0 0 0.35rem">Your paid features end' +
+    (endLabel ? " " + escapeHtml(endLabel) : "") +
+    "</h2>" +
+    '<p class="portal-subtle" style="margin:0">' +
+    "Analytics, Monday digest email, and same-day edit review continue through that date. " +
+    "Your listing then reverts to the free tier (still ranked by fit, still listed in the directory). " +
+    "Resume anytime from the Subscription card below." +
+    "</p>";
+  if (hero && hero.nextSibling) {
+    hero.parentNode.insertBefore(banner, hero.nextSibling);
+  } else {
+    shell.insertBefore(banner, shell.firstChild);
+  }
+}
+
 function renderFeaturedCard(subscription) {
   var body = document.getElementById("portalFeaturedBody");
   var actions = document.getElementById("portalFeaturedActions");
@@ -938,7 +981,11 @@ async function handleFeaturedBillingClick(event) {
   }
   try {
     var result = await createStripeBillingPortalSession({
-      return_path: "/portal.html",
+      // Return the therapist to their own portal (with slug) instead of
+      // the unslugged lookup state. stripe=managed lets the portal know
+      // the user just came back from Stripe billing so it can refresh
+      // subscription state rather than relying on cached render data.
+      return_path: "/portal.html?slug=" + encodeURIComponent(slug || "") + "&stripe=managed",
     });
     if (result && result.url) {
       window.location.href = result.url;
@@ -1218,6 +1265,7 @@ async function loadSubscriptionIntoFeaturedCard() {
     var subscription = (result && result.subscription) || null;
     renderFeaturedCard(subscription);
     renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail);
+    renderCancelScheduledBanner(subscription);
   } catch (_error) {
     var body = document.getElementById("portalFeaturedBody");
     if (body) {
