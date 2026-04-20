@@ -431,7 +431,8 @@ function initQuickClaim() {
     }
     setConfirmStatus("", "");
     confirmPanel.hidden = false;
-    form.hidden = true;
+    // Keep the form visible so picked name/license stay populated as a reference.
+    form.hidden = false;
   }
 
   function hideConfirmPanel() {
