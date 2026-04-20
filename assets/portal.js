@@ -738,24 +738,29 @@ function describeFeaturedStatus(subscription) {
     if (subscription.status === "trialing") {
       var trialEnd = formatDate(subscription.trial_ends_at);
       return (
-        "Featured is active (free trial)." +
+        "14-day free trial active." +
         (trialEnd ? " Trial ends " + trialEnd + "." : "") +
-        " Card on file will be charged when the trial ends."
+        " You can cancel anytime before then — no charge until day 15. " +
+        "Use Manage subscription below to cancel in one click."
       );
     }
     if (subscription.cancel_at_period_end) {
       return (
-        "Featured is active but set to end" +
+        "Subscription set to end" +
         (endDate ? " on " + endDate : "") +
-        ". You can resume anytime from billing."
+        ". You can resume anytime from Manage subscription."
       );
     }
-    return "Featured is active." + (endDate ? " Renews " + endDate + "." : "");
+    return (
+      "Subscription active." +
+      (endDate ? " Renews " + endDate + "." : "") +
+      " Cancel or update payment anytime from Manage subscription."
+    );
   }
   if (subscription.status === "past_due" || subscription.status === "unpaid") {
-    return "Featured billing needs attention. Open billing to fix your payment method.";
+    return "Your subscription needs attention. Open Manage subscription to fix your payment method.";
   }
-  return "Featured is inactive. Upgrade again to restore your badge and priority placement.";
+  return "No active subscription. Start a 14-day free trial to unlock analytics and enhanced profile.";
 }
 
 function renderFeaturedCard(subscription) {
@@ -772,11 +777,20 @@ function renderFeaturedCard(subscription) {
   var buttons = "";
   if (showUpgrade) {
     buttons +=
-      '<button class="btn-primary" type="button" id="portalFeaturedUpgradeButton">Upgrade to Featured</button>';
+      '<button class="btn-primary" type="button" id="portalFeaturedUpgradeButton">Start 14-day free trial</button>';
   }
   if (hasCustomer) {
+    // Surface cancel intent front and center — this is the action users
+    // look for most urgently on a trial and it was buried under "Manage
+    // billing" (sounded like a payment-method update, not a cancel path).
+    var billingLabel =
+      subscription && subscription.status === "trialing"
+        ? "Manage subscription · Cancel trial"
+        : "Manage subscription";
     buttons +=
-      '<button class="btn-secondary" type="button" id="portalFeaturedBillingButton">Manage billing</button>';
+      '<button class="btn-primary" type="button" id="portalFeaturedBillingButton">' +
+      billingLabel +
+      "</button>";
   }
   actions.innerHTML = buttons;
 
@@ -1234,7 +1248,7 @@ function renderPortal(therapist, options) {
         escapeHtml(therapist.slug) +
         '" data-therapist-email="' +
         escapeHtml(claimedEmail) +
-        '"><h2>Featured placement</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your featured status...</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>'
+        '"><h2>Your subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status...</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>'
       : "") +
     "</section>";
 
