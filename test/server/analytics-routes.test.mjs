@@ -41,9 +41,7 @@ function buildContext(options) {
       deps: {
         parseBody,
         sendJson,
-        getAuthorizedActor: options.authorized
-          ? () => ({ username: "admin" })
-          : () => null,
+        getAuthorizedActor: options.authorized ? () => ({ username: "admin" }) : () => null,
         isAuthorized: options.authorized ? () => true : () => false,
       },
     },
@@ -113,9 +111,7 @@ test("POST /analytics/events: prepends new events (most recent first)", async ()
     "funnelEventLog.singleton": {
       _id: "funnelEventLog.singleton",
       _type: "funnelEventLog",
-      events: [
-        { _key: "old1", type: "claim_page_viewed", occurredAt: "2026-04-18T00:00:00Z" },
-      ],
+      events: [{ _key: "old1", type: "claim_page_viewed", occurredAt: "2026-04-18T00:00:00Z" }],
       totalAppended: 1,
     },
   });
