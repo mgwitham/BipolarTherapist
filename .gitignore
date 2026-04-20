@@ -19,3 +19,6 @@ data/import/generated-*.json
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv
 scripts/*-ingest-batch-*.json
+
+# Generated at build time — see scripts/generate-sitemap.mjs
+public/sitemap.xml
