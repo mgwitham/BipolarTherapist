@@ -442,8 +442,15 @@ function initQuickClaim() {
       confirmMeta.textContent = location + licenseBit;
     }
     if (confirmEmail) {
-      const hint = typeof result.email_hint === "string" ? result.email_hint.trim() : "";
-      confirmEmail.textContent = hint || "the email on your listing";
+      const rawHint =
+        typeof result.email_hint === "string"
+          ? result.email_hint.trim()
+          : result.email_hint
+            ? String(result.email_hint).trim()
+            : "";
+      // Fallback must always surface SOMETHING readable — users shouldn't
+      // see "We'll email your activation link to ." with an empty span.
+      confirmEmail.textContent = rawHint || "the email on your listing";
     }
     if (confirmSend) {
       // Secondary "just claim free" link. If email is missing, fall back to
@@ -464,8 +471,12 @@ function initQuickClaim() {
     }
     setConfirmStatus("", "");
     confirmPanel.hidden = false;
-    // Keep the form visible so picked name/license stay populated as a reference.
-    form.hidden = false;
+    // Hide the secondary form once the user has picked a listing. The
+    // confirm panel now carries the primary CTA (Start trial) plus the
+    // two escape hatches ("Just claim free →", "Use a different email →").
+    // Keeping both visible gave users two competing paths — reduces
+    // to one clear action. Use a different email unhides the form.
+    form.hidden = true;
   }
 
   function hideConfirmPanel() {
