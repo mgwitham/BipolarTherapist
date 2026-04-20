@@ -8,6 +8,8 @@
 // verify the CA license on the client — server does that asynchronously
 // against the DCA API after the application is created.
 
+import { trackFunnelEvent } from "./funnel-analytics.js";
+
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 
 function parseCityOrZip(raw) {
@@ -42,6 +44,11 @@ async function submitIntake(form, status) {
   const email = form.elements.email.value.trim();
   const licenseNumber = form.elements.license_number.value.trim();
   const cityOrZipRaw = form.elements.city_or_zip.value.trim();
+
+  trackFunnelEvent("signup_new_listing_submit_attempted", {
+    has_all_fields: Boolean(fullName && email && licenseNumber && cityOrZipRaw),
+    treats_bipolar_checked: treatsBipolar,
+  });
 
   if (!fullName || !email || !licenseNumber || !cityOrZipRaw) {
     setStatus(status, "Fill in all four fields above before submitting.", "error");
@@ -122,6 +129,10 @@ async function submitIntake(form, status) {
         " within 2-3 business days. No action needed until then.",
       "success",
     );
+    trackFunnelEvent("signup_new_listing_submitted", {
+      city: city || null,
+      zip: zip || null,
+    });
     form.reset();
   } catch (_error) {
     setStatus(
@@ -140,7 +151,15 @@ async function submitIntake(form, status) {
 function bindIntakeForm() {
   const form = document.getElementById("newListingForm");
   if (!form) return;
+  trackFunnelEvent("signup_page_viewed", {});
   const status = document.getElementById("newListingStatus");
+  let firstInputTracked = false;
+  form.addEventListener("input", function () {
+    if (!firstInputTracked) {
+      firstInputTracked = true;
+      trackFunnelEvent("signup_new_listing_form_started", {});
+    }
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     submitIntake(form, status);
