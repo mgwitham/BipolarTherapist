@@ -353,6 +353,8 @@ function normalizeReviewEvent(doc) {
 }
 
 function normalizePortalRequest(doc) {
+  const paidPlan = String(doc.subscriptionPlan || "") === "featured";
+  const paidStatus = doc.subscriptionStatus === "active" || doc.subscriptionStatus === "trialing";
   return {
     id: doc._id,
     therapist_slug: doc.therapistSlug || "",
@@ -365,6 +367,7 @@ function normalizePortalRequest(doc) {
     status: doc.status || "open",
     requested_at: doc.requestedAt || doc._createdAt || "",
     reviewed_at: doc.reviewedAt || "",
+    is_priority: Boolean(paidPlan && paidStatus),
   };
 }
 

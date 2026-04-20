@@ -267,10 +267,25 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Join each portal request against the therapist's subscription so
+    // the admin inbox can promote paid-tier requests to the top and
+    // surface a visible priority badge. Paid therapists are promised
+    // same-day edit review as part of their $19/mo; the ordering below
+    // is how that promise is kept operationally.
     const docs = await client.fetch(
-      `*[_type == "therapistPortalRequest"] | order(coalesce(requestedAt, _createdAt) desc){
-        _id, _createdAt, therapistSlug, therapistName, requestType, requesterName, requesterEmail, licenseNumber, message, status, requestedAt, reviewedAt
-      }`,
+      `*[_type == "therapistPortalRequest"]{
+        _id, _createdAt, therapistSlug, therapistName, requestType, requesterName,
+        requesterEmail, licenseNumber, message, status, requestedAt, reviewedAt,
+        "subscriptionPlan": *[_type == "therapistSubscription" && therapistSlug == ^.therapistSlug][0].plan,
+        "subscriptionStatus": *[_type == "therapistSubscription" && therapistSlug == ^.therapistSlug][0].status
+      } | order(
+        select(
+          status == "open" && subscriptionPlan == "featured" && subscriptionStatus in ["active", "trialing"] => 0,
+          status == "open" => 1,
+          2
+        ) asc,
+        coalesce(requestedAt, _createdAt) desc
+      )`,
     );
 
     sendJson(response, 200, docs.map(normalizePortalRequest), origin, config);
