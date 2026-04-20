@@ -51,14 +51,18 @@ function extractTherapistSlug(stripeSubscription, eventObject) {
 }
 
 export async function handleStripeRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath } = context;
+  const { client, config, deps, origin, request, response, routePath, url } = context;
   const {
+    buildPortalClaimToken,
+    cancelSubscriptionImmediately,
     createBillingPortalSession,
     createFeaturedCheckoutSession,
     getAuthorizedTherapist,
     parseBody,
     parseRawBody,
     sendJson,
+    sendTrialEndingReminder,
+    sendUnverifiedTrialCanceledNotice,
     verifyAndParseWebhook,
     retrieveSubscription,
   } = deps;
@@ -257,6 +261,69 @@ export async function handleStripeRoutes(context) {
     const merged = mergeSubscriptionDocuments(existing, next);
 
     await client.transaction().createOrReplace(merged).commit({ visibility: "async" });
+
+    // trial_will_end fires ~3 days before the trial ends. Two branches:
+    //   - Therapist has claimed (clicked activation link): send AB 390
+    //     pre-charge reminder required by California subscription law
+    //   - Therapist never claimed: immediately cancel the subscription
+    //     so their card isn't billed on day 15, and email them an
+    //     explanation + fresh activation link.
+    if (event.type === "customer.subscription.trial_will_end") {
+      try {
+        const therapist = await client.fetch(
+          `*[_type == "therapist" && slug.current == $slug][0]{
+            _id, name, email, claimStatus
+          }`,
+          { slug: therapistSlug },
+        );
+        const claimed = therapist && therapist.claimStatus === "claimed";
+        const trialEndsAt = merged.trialEndsAt || null;
+        if (claimed) {
+          if (typeof sendTrialEndingReminder === "function") {
+            await sendTrialEndingReminder(config, therapist, trialEndsAt);
+          }
+        } else if (therapist) {
+          if (
+            typeof cancelSubscriptionImmediately === "function" &&
+            stripeSubscription &&
+            stripeSubscription.id
+          ) {
+            try {
+              await cancelSubscriptionImmediately(config, stripeSubscription.id);
+            } catch (_error) {
+              // Non-fatal: we still want to email the therapist
+            }
+          }
+          // Build a fresh activation link so they can still claim if they want
+          let activationUrl = "";
+          if (
+            typeof buildPortalClaimToken === "function" &&
+            therapist.email &&
+            url &&
+            url.protocol &&
+            url.host
+          ) {
+            try {
+              const ttlMs = 24 * 60 * 60 * 1000;
+              const token = buildPortalClaimToken(
+                config,
+                { ...therapist, slug: { current: therapistSlug } },
+                therapist.email,
+                { ttlMs },
+              );
+              activationUrl = `${url.protocol}//${url.host}/portal.html?token=${encodeURIComponent(token)}`;
+            } catch (_error) {
+              activationUrl = "";
+            }
+          }
+          if (typeof sendUnverifiedTrialCanceledNotice === "function") {
+            await sendUnverifiedTrialCanceledNotice(config, therapist, activationUrl);
+          }
+        }
+      } catch (_error) {
+        // Webhook processing should not fail because our side-effects errored.
+      }
+    }
 
     sendJson(
       response,

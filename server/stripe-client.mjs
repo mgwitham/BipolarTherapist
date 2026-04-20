@@ -135,3 +135,11 @@ export async function retrieveSubscription(config, subscriptionId) {
   const stripe = await getStripeClient(config);
   return stripe.subscriptions.retrieve(subscriptionId);
 }
+
+// Immediate cancellation (not end-of-period). Used when a trial ends
+// without ownership verification — we don't want to let an unverified
+// subscription roll into a paid period.
+export async function cancelSubscriptionImmediately(config, subscriptionId) {
+  const stripe = await getStripeClient(config);
+  return stripe.subscriptions.cancel(subscriptionId);
+}

@@ -158,6 +158,76 @@ hours.</p>`,
   });
 }
 
+// CA AB 390 pre-charge notice. Fires when Stripe's
+// `customer.subscription.trial_will_end` webhook arrives ~3 days
+// before the trial ends. Required by California consumer-subscription
+// law: electronic notice before the first charge on a negative-option
+// subscription. Sends to the therapist's on-file email.
+export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const onFileEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!onFileEmail) {
+    return;
+  }
+  const endDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }) : "day 15 of your trial";
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [onFileEmail],
+    reply_to: config.notificationTo,
+    subject: "Your BipolarTherapyHub trial ends in 3 days",
+    html: `<h2>Heads up: your trial ends in 3 days</h2>
+<p>Hi ${therapist.name || "there"},</p>
+<p>Your 14-day free trial ends on <strong>${endDate}</strong>. After that, we'll charge your
+card on file $19 per month.</p>
+<p><strong>If you want to keep your subscription active</strong>, no action needed — you'll
+be billed automatically.</p>
+<p><strong>If you want to cancel</strong>, open your portal and click "Manage subscription · Cancel
+trial". One click, cancels immediately, no charge.</p>
+<p style="font-size:13px;color:#666;">This is a legally required pre-billing reminder under
+California consumer-subscription law. If you think this is a mistake, reply to this email.</p>`,
+  });
+}
+
+// Unverified-trial cancellation email. Fires when a trial reaches its
+// end without the therapist clicking their activation link. We cancel
+// the Stripe subscription immediately and send this to let them know.
+export async function sendUnverifiedTrialCanceledNotice(config, therapist, activationUrl) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const onFileEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!onFileEmail) {
+    return;
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [onFileEmail],
+    reply_to: config.notificationTo,
+    subject: "We canceled your BipolarTherapyHub trial (ownership not verified)",
+    html: `<h2>Trial canceled — ownership not verified</h2>
+<p>Hi ${therapist.name || "there"},</p>
+<p>Your 14-day trial started but we never received your activation click, so we couldn't
+confirm you own this listing. We've canceled your subscription. <strong>Your card was not
+charged.</strong></p>
+${activationUrl ? `<p>If you meant to activate, here's a fresh link (expires in 24 hours):</p>
+<p style="margin:1.25rem 0;"><a href="${activationUrl}" style="background:#2f6e80;color:#fff;
+padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;">Activate my
+listing →</a></p>` : ""}
+<p style="font-size:13px;color:#666;">If you didn't start this trial, ignore this email. No
+further action needed — nothing was charged.</p>`,
+  });
+}
+
 // Listing-removal email. Sent to the email ON FILE for the listing,
 // not to whatever address the submitter typed, so a third party can't
 // remove a therapist by guessing their license number. If the email
