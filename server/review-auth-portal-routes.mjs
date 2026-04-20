@@ -1115,6 +1115,7 @@ export async function handleAuthAndPortalRoutes(context) {
         current_period_key: currentPeriodKey,
         current: current,
         previous: previous,
+        summaries: list,
       },
       origin,
       config,
