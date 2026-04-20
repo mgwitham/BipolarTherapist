@@ -11,6 +11,7 @@ import {
   fetchTherapistMe,
   fetchTherapistSubscription,
   getTherapistSessionToken,
+  patchTherapistProfile,
   requestTherapistClaimLink,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -1306,6 +1307,274 @@ function renderStripeReturnBanner() {
   );
 }
 
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+function joinArray(value) {
+  return Array.isArray(value) ? value.join(", ") : "";
+}
+
+function buildEditProfileHtml(therapist) {
+  var t = therapist || {};
+  var readOnlyNote =
+    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>';
+
+  function textInput(name, label, value, opts) {
+    opts = opts || {};
+    var type = opts.type || "text";
+    var attrs = opts.attrs || "";
+    return (
+      '<label class="portal-edit-field"><span>' +
+      escapeHtml(label) +
+      '</span><input type="' +
+      type +
+      '" name="' +
+      name +
+      '" value="' +
+      escapeAttr(value == null ? "" : value) +
+      '" ' +
+      attrs +
+      " /></label>"
+    );
+  }
+
+  function textarea(name, label, value, rows) {
+    return (
+      '<label class="portal-edit-field"><span>' +
+      escapeHtml(label) +
+      '</span><textarea name="' +
+      name +
+      '" rows="' +
+      (rows || 4) +
+      '">' +
+      escapeHtml(value || "") +
+      "</textarea></label>"
+    );
+  }
+
+  function checkbox(name, label, checked) {
+    return (
+      '<label class="portal-edit-check"><input type="checkbox" name="' +
+      name +
+      '" ' +
+      (checked ? "checked" : "") +
+      " /><span>" +
+      escapeHtml(label) +
+      "</span></label>"
+    );
+  }
+
+  function select(name, label, value, choices) {
+    var opts = choices
+      .map(function (c) {
+        return (
+          '<option value="' +
+          escapeAttr(c.value) +
+          '" ' +
+          (String(value || "") === c.value ? "selected" : "") +
+          ">" +
+          escapeHtml(c.label) +
+          "</option>"
+        );
+      })
+      .join("");
+    return (
+      '<label class="portal-edit-field"><span>' +
+      escapeHtml(label) +
+      '</span><select name="' +
+      name +
+      '">' +
+      opts +
+      "</select></label>"
+    );
+  }
+
+  return (
+    '<section class="portal-card portal-edit" id="portalEditCard" style="margin-bottom:1rem">' +
+    "<h2>Edit your profile</h2>" +
+    readOnlyNote +
+    '<form id="portalEditForm" class="portal-edit-form">' +
+    '<fieldset class="portal-edit-group"><legend>Availability</legend>' +
+    checkbox(
+      "accepting_new_patients",
+      "Currently accepting new patients",
+      t.accepting_new_patients !== false,
+    ) +
+    checkbox("accepts_telehealth", "Offer telehealth sessions", t.accepts_telehealth !== false) +
+    checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
+    textInput(
+      "estimated_wait_time",
+      'Estimated wait time (e.g. "2 weeks")',
+      t.estimated_wait_time,
+    ) +
+    "</fieldset>" +
+    '<fieldset class="portal-edit-group"><legend>About you</legend>' +
+    textarea("bio", "Bio (min 50 characters, visible on your public profile)", t.bio, 6) +
+    textInput("credentials", 'Credentials (e.g. "LMFT, PhD")', t.credentials) +
+    textInput("title", "Professional title", t.title) +
+    textInput("practice_name", "Practice name", t.practice_name) +
+    textarea("care_approach", "How you help bipolar clients", t.care_approach, 4) +
+    textInput("years_experience", "Years of experience", t.years_experience, {
+      type: "number",
+      attrs: 'min="0" max="80"',
+    }) +
+    textInput("bipolar_years_experience", "Years treating bipolar", t.bipolar_years_experience, {
+      type: "number",
+      attrs: 'min="0" max="80"',
+    }) +
+    checkbox(
+      "medication_management",
+      "I provide medication management",
+      t.medication_management === true,
+    ) +
+    "</fieldset>" +
+    '<fieldset class="portal-edit-group"><legend>Contact</legend>' +
+    textInput("phone", "Public phone", t.phone) +
+    textInput("website", "Website", t.website, { type: "url", attrs: 'placeholder="https://"' }) +
+    textInput("booking_url", "Booking URL", t.booking_url, {
+      type: "url",
+      attrs: 'placeholder="https://"',
+    }) +
+    select("preferred_contact_method", "Preferred contact method", t.preferred_contact_method, [
+      { value: "", label: "— Not set —" },
+      { value: "email", label: "Email" },
+      { value: "phone", label: "Phone" },
+      { value: "website", label: "Website" },
+      { value: "booking", label: "Booking link" },
+    ]) +
+    textInput(
+      "preferred_contact_label",
+      'Contact button label (e.g. "Book a consultation")',
+      t.preferred_contact_label,
+    ) +
+    textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3) +
+    textarea(
+      "first_step_expectation",
+      "What happens after someone reaches out",
+      t.first_step_expectation,
+      3,
+    ) +
+    "</fieldset>" +
+    '<fieldset class="portal-edit-group"><legend>Fit and filters</legend>' +
+    textInput("specialties", "Specialties (comma-separated)", joinArray(t.specialties)) +
+    textInput(
+      "insurance_accepted",
+      "Insurance accepted (comma-separated)",
+      joinArray(t.insurance_accepted),
+    ) +
+    textInput(
+      "telehealth_states",
+      "Telehealth states (comma-separated, 2-letter codes)",
+      joinArray(t.telehealth_states),
+    ) +
+    textInput(
+      "treatment_modalities",
+      "Treatment modalities (comma-separated)",
+      joinArray(t.treatment_modalities),
+    ) +
+    textInput("languages", "Languages (comma-separated)", joinArray(t.languages)) +
+    "</fieldset>" +
+    '<fieldset class="portal-edit-group"><legend>Fees</legend>' +
+    textInput("session_fee_min", "Session fee minimum ($)", t.session_fee_min, {
+      type: "number",
+      attrs: 'min="0" max="10000"',
+    }) +
+    textInput("session_fee_max", "Session fee maximum ($)", t.session_fee_max, {
+      type: "number",
+      attrs: 'min="0" max="10000"',
+    }) +
+    checkbox("sliding_scale", "I offer a sliding scale", t.sliding_scale === true) +
+    "</fieldset>" +
+    '<div class="portal-actions" style="margin-top:1rem"><button class="btn-primary" type="submit">Save changes</button><div class="portal-feedback" id="portalEditFeedback"></div></div>' +
+    "</form></section>"
+  );
+}
+
+function collectEditProfileUpdates(form) {
+  var elements = form.elements;
+  var payload = {};
+
+  function str(name) {
+    var el = elements[name];
+    payload[name] = el ? String(el.value || "").trim() : "";
+  }
+
+  function num(name) {
+    var el = elements[name];
+    if (!el) return;
+    var v = String(el.value || "").trim();
+    payload[name] = v === "" ? "" : Number(v);
+  }
+
+  function bool(name) {
+    var el = elements[name];
+    payload[name] = !!(el && el.checked);
+  }
+
+  [
+    "bio",
+    "credentials",
+    "title",
+    "practice_name",
+    "phone",
+    "website",
+    "booking_url",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "contact_guidance",
+    "first_step_expectation",
+    "estimated_wait_time",
+    "care_approach",
+    "specialties",
+    "insurance_accepted",
+    "telehealth_states",
+    "treatment_modalities",
+    "languages",
+  ].forEach(str);
+
+  ["session_fee_min", "session_fee_max", "years_experience", "bipolar_years_experience"].forEach(
+    num,
+  );
+
+  [
+    "accepting_new_patients",
+    "accepts_telehealth",
+    "accepts_in_person",
+    "sliding_scale",
+    "medication_management",
+  ].forEach(bool);
+
+  return payload;
+}
+
+function wireEditProfileHandlers() {
+  var form = document.getElementById("portalEditForm");
+  if (!form) return;
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var feedback = document.getElementById("portalEditFeedback");
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    feedback.textContent = "Saving...";
+    feedback.style.color = "";
+    try {
+      var payload = collectEditProfileUpdates(form);
+      var result = await patchTherapistProfile(payload);
+      feedback.textContent = "Saved. Your public listing is updated.";
+      feedback.style.color = "#1a7a8f";
+      if (result && result.therapist) {
+        claimSessionState = { therapist: result.therapist };
+      }
+    } catch (error) {
+      feedback.textContent = (error && error.message) || "Something went wrong while saving.";
+      feedback.style.color = "#b03636";
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
 function renderPortal(therapist, options) {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -1389,6 +1658,7 @@ function renderPortal(therapist, options) {
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
+    (verifiedClaim ? buildEditProfileHtml(therapist) : "") +
     '<section class="portal-grid">' +
     '<article class="portal-card"><h2>Profile status</h2><div class="portal-list">' +
     "<div><strong>Live listing:</strong> " +
@@ -1645,6 +1915,7 @@ function renderPortal(therapist, options) {
   });
 
   if (verifiedClaim) {
+    wireEditProfileHandlers();
     loadAnalyticsIntoPortal();
     loadSubscriptionIntoFeaturedCard();
   } else if (sessionMode === "claim_token") {

@@ -282,7 +282,7 @@ export function createMemoryClient(initialDocuments) {
         return deepClone(state.documents.get(id) || null);
       },
       patch(id) {
-        const pending = { set: {}, setIfMissing: {}, inc: {}, append: {} };
+        const pending = { set: {}, setIfMissing: {}, inc: {}, append: {}, unset: [] };
         const api = {
           set(fields) {
             pending.set = { ...pending.set, ...fields };
@@ -302,6 +302,10 @@ export function createMemoryClient(initialDocuments) {
             pending.append[field] = values;
             return api;
           },
+          unset(fields) {
+            pending.unset = pending.unset.concat(Array.isArray(fields) ? fields : [fields]);
+            return api;
+          },
           async commit() {
             const current = deepClone(state.documents.get(id) || {});
             const next = {
@@ -316,6 +320,9 @@ export function createMemoryClient(initialDocuments) {
               next[key] = []
                 .concat(Array.isArray(current[key]) ? current[key] : [])
                 .concat(deepClone(values));
+            });
+            pending.unset.forEach(function (key) {
+              delete next[key];
             });
             state.documents.set(id, next);
             return { _id: id };
