@@ -256,8 +256,7 @@ function buildPortalMagicLinkCopy(mode) {
         "Click the button below to sign in to your BipolarTherapyHub portal. No password needed.",
       ctaLabel: "Sign in →",
       expiryLine: "This link expires in 24 hours.",
-      ignoreLine:
-        "If you didn't ask for a sign-in link, ignore this email — your account is safe.",
+      ignoreLine: "If you didn't ask for a sign-in link, ignore this email — your account is safe.",
     };
   }
   return {
