@@ -329,15 +329,40 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
   const adminUrl = config.adminDashboardUrl
     ? `${config.adminDashboardUrl.replace(/\/+$/, "")}/admin.html#recovery`
     : "";
+
+  // When the therapist-self-confirm page returns "no", the caller tags
+  // the request with adminAlert="therapist_denied_confirmation". That's
+  // the strongest attack signal we'll ever see — the real therapist, via
+  // a channel the requester doesn't control, has said "not me." Surface
+  // that as a distinct, loud email so it doesn't get lost in the queue.
+  const isDenial = recoveryRequest.adminAlert === "therapist_denied_confirmation";
+  const subject = isDenial
+    ? `ATTACK ATTEMPT — ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
+    : `New recovery request: ${recoveryRequest.fullName || "(no name)"}`;
+  const headerHtml = isDenial
+    ? `<div style="background:#fbeaea;border:2px solid #a04a4a;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;color:#7a2f2f;">
+<strong>Attack attempt detected.</strong> The real therapist, reached through a channel
+the requester did not control, denied this claim request.
+Assume the <strong>requester email</strong> below is an attacker and act accordingly —
+no action is needed for the therapist's listing (access was NOT granted), but consider
+blocking the requester IP range or adding the requested email to a watch list.
+</div><h2>Therapist denied a recovery request</h2>`
+    : `<h2>New therapist recovery request</h2>`;
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [config.notificationTo],
-    subject: `New recovery request: ${recoveryRequest.fullName || "(no name)"}`,
-    html: `<h2>New therapist recovery request</h2>
+    subject,
+    html: `${headerHtml}
 <p><strong>Name:</strong> ${recoveryRequest.fullName || "—"}</p>
 <p><strong>License:</strong> ${recoveryRequest.licenseNumber || "—"}</p>
-<p><strong>Requested email:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
+<p><strong>Requested email${isDenial ? " (likely attacker)" : ""}:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
 <p><strong>Prior email:</strong> ${recoveryRequest.priorEmail || "—"}</p>
+${
+  isDenial && recoveryRequest.confirmationChannel
+    ? `<p><strong>Confirmed via channel:</strong> ${recoveryRequest.confirmationChannel} <em>(${recoveryRequest.confirmationChannelContext || "unspecified source"})</em></p>`
+    : ""
+}
 <p><strong>Profile name on record:</strong> ${recoveryRequest.profileName || "—"} ${
       recoveryRequest.profileName &&
       recoveryRequest.fullName &&
@@ -346,15 +371,14 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
         : ""
     }</p>
 <p><strong>Profile email hint:</strong> ${recoveryRequest.profileEmailHint || "—"}</p>
+<p><strong>Requester IP (first 3 octets):</strong> ${recoveryRequest.requesterIp || "—"}</p>
 <p><strong>Reason:</strong></p>
-<blockquote style="border-left:3px solid #1a7a8f;padding-left:1rem;color:#4a6572">${
+<blockquote style="border-left:3px solid ${isDenial ? "#a04a4a" : "#1a7a8f"};padding-left:1rem;color:#4a6572">${
       recoveryRequest.reason
         ? String(recoveryRequest.reason).replace(/\n/g, "<br/>")
         : "(none given)"
     }</blockquote>
-<p>Review and approve or reject in the admin panel${
-      adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""
-    }.</p>`,
+<p>Review in the admin panel${adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""}.</p>`,
   });
 }
 

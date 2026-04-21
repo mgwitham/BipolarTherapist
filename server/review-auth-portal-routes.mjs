@@ -1174,10 +1174,43 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const nowIso = new Date().toISOString();
-
-    // Invalidate the token immediately by rotating the nonce. Any
-    // subsequent click on the same link falls into the 410 path above.
     const newNonce = crypto.randomBytes(12).toString("hex");
+
+    // Atomic nonce rotation: claim the right to act on this link by
+    // patching with ifRevisionId(recovery._rev). If another concurrent
+    // request already rotated the nonce (e.g., double-click), Sanity
+    // will throw a revision-mismatch error and we return 410. This is
+    // the gate — once we get past this patch, we "own" the response and
+    // can safely do the expensive side effects (email, therapist
+    // updates) below without racing. In-memory test client no-ops
+    // ifRevisionId since tests don't exercise real concurrency.
+    try {
+      await client
+        .patch(recovery._id)
+        .ifRevisionId(recovery._rev || "")
+        .set({
+          confirmationResponse: therapistResponse,
+          confirmationRespondedAt: nowIso,
+          confirmationTokenNonce: newNonce,
+        })
+        .commit({ visibility: "sync" });
+    } catch (error) {
+      const errMessage = String((error && error.message) || "");
+      if (/revision|_rev|mutation conflict/i.test(errMessage)) {
+        sendJson(
+          response,
+          410,
+          {
+            error: "This link has already been used. If that wasn't you, contact us.",
+            reason: "used_or_replaced",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+      throw error;
+    }
 
     if (therapistResponse === "no") {
       await client
@@ -1188,9 +1221,6 @@ export async function handleAuthAndPortalRoutes(context) {
           reviewedBy: "therapist-self-confirm",
           outcomeMessage:
             "Therapist reported they did NOT request access. Request blocked without notifying the requester.",
-          confirmationResponse: "no",
-          confirmationRespondedAt: nowIso,
-          confirmationTokenNonce: newNonce,
         })
         .commit({ visibility: "sync" });
 
