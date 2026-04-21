@@ -1441,7 +1441,6 @@ function getProjectedTherapist(baseTherapist, form) {
     booking_url: str("booking_url") || baseTherapist.booking_url || "",
     bio: str("bio") || baseTherapist.bio || "",
     credentials: str("credentials") || baseTherapist.credentials || "",
-    title: str("title") || baseTherapist.title || "",
     practice_name: str("practice_name") || baseTherapist.practice_name || "",
     care_approach: str("care_approach") || baseTherapist.care_approach || "",
     contact_guidance: str("contact_guidance") || baseTherapist.contact_guidance || "",
@@ -1675,7 +1674,6 @@ function buildEditProfileHtml(therapist) {
     '<fieldset class="portal-edit-group"><legend>About you</legend>' +
     textarea("bio", "Bio (min 50 characters, visible on your public profile)", t.bio, 6) +
     textInput("credentials", 'Credentials (e.g. "LMFT, PhD")', t.credentials) +
-    textInput("title", "Professional title", t.title) +
     textInput("practice_name", "Practice name", t.practice_name) +
     textarea("care_approach", "How you help bipolar clients", t.care_approach, 4) +
     textInput("years_experience", "Years of experience", t.years_experience, {
@@ -1783,7 +1781,6 @@ function collectEditProfileUpdates(form) {
   [
     "bio",
     "credentials",
-    "title",
     "practice_name",
     "phone",
     "website",
