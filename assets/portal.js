@@ -2,6 +2,7 @@ import "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
+import { PORTAL_PICKER_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   acceptTherapistClaim,
   createStripeBillingPortalSession,
@@ -1578,17 +1579,23 @@ function buildReadinessSectionHtml() {
 
 function buildEditProfileHtml(therapist) {
   var t = therapist || {};
-  var readOnlyNote =
-    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>';
+  var viewHref = t.slug ? "therapist.html?slug=" + encodeURIComponent(t.slug) : "";
+
+  function hintBlock(text) {
+    return text ? '<small class="portal-hint">' + escapeHtml(text) + "</small>" : "";
+  }
 
   function textInput(name, label, value, opts) {
     opts = opts || {};
     var type = opts.type || "text";
     var attrs = opts.attrs || "";
     return (
-      '<label class="portal-edit-field"><span>' +
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
-      '</span><input type="' +
+      "</strong>" +
+      hintBlock(opts.hint) +
+      "</span>" +
+      '<input type="' +
       type +
       '" name="' +
       name +
@@ -1600,33 +1607,50 @@ function buildEditProfileHtml(therapist) {
     );
   }
 
-  function textarea(name, label, value, rows) {
+  function textarea(name, label, value, rows, opts) {
+    opts = opts || {};
+    var minLen = opts.minLen ? ' data-min-len="' + opts.minLen + '"' : "";
+    var goodLen = opts.goodLen ? ' data-good-len="' + opts.goodLen + '"' : "";
+    var hasCounter = opts.minLen || opts.goodLen;
     return (
-      '<label class="portal-edit-field"><span>' +
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
-      '</span><textarea name="' +
+      "</strong>" +
+      hintBlock(opts.hint) +
+      "</span>" +
+      '<textarea name="' +
       name +
       '" rows="' +
       (rows || 4) +
-      '">' +
+      '"' +
+      minLen +
+      goodLen +
+      (hasCounter ? ' data-has-counter="true"' : "") +
+      ">" +
       escapeHtml(value || "") +
-      "</textarea></label>"
+      "</textarea>" +
+      (hasCounter
+        ? '<div class="portal-char-counter" data-counter-for="' + name + '"></div>'
+        : "") +
+      "</label>"
     );
   }
 
-  function checkbox(name, label, checked) {
+  function checkbox(name, label, checked, hint) {
     return (
       '<label class="portal-edit-check"><input type="checkbox" name="' +
       name +
       '" ' +
       (checked ? "checked" : "") +
-      " /><span>" +
+      " /><span><strong>" +
       escapeHtml(label) +
+      "</strong>" +
+      hintBlock(hint) +
       "</span></label>"
     );
   }
 
-  function select(name, label, value, choices) {
+  function select(name, label, value, choices, hint) {
     var opts = choices
       .map(function (c) {
         return (
@@ -1641,9 +1665,12 @@ function buildEditProfileHtml(therapist) {
       })
       .join("");
     return (
-      '<label class="portal-edit-field"><span>' +
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
-      '</span><select name="' +
+      "</strong>" +
+      hintBlock(hint) +
+      "</span>" +
+      '<select name="' +
       name +
       '">' +
       opts +
@@ -1651,106 +1678,214 @@ function buildEditProfileHtml(therapist) {
     );
   }
 
+  function chipPicker(name, label, values, hint) {
+    var current = Array.isArray(values) ? values : [];
+    var chipsHtml = current
+      .map(function (v) {
+        return (
+          '<span class="portal-chip">' +
+          escapeHtml(v) +
+          '<button type="button" class="portal-chip-remove" aria-label="Remove ' +
+          escapeAttr(v) +
+          '" data-val="' +
+          escapeAttr(v) +
+          '">×</button></span>'
+        );
+      })
+      .join("");
+    return (
+      '<div class="portal-edit-field portal-chip-picker" data-field="' +
+      name +
+      '">' +
+      '<span class="portal-edit-label"><strong>' +
+      escapeHtml(label) +
+      "</strong>" +
+      hintBlock(hint) +
+      "</span>" +
+      '<div class="portal-chip-list">' +
+      chipsHtml +
+      "</div>" +
+      '<div class="portal-chip-input-wrap">' +
+      '<input type="text" class="portal-chip-input" placeholder="Type to search or add…" autocomplete="off" />' +
+      '<ul class="portal-chip-suggestions" hidden></ul>' +
+      "</div>" +
+      '<input type="hidden" name="' +
+      name +
+      '" value="' +
+      escapeAttr(current.join(",")) +
+      '" />' +
+      "</div>"
+    );
+  }
+
   return (
     '<section class="portal-card portal-edit" id="portalEditCard" style="margin-bottom:1rem">' +
+    '<div class="portal-edit-head">' +
     "<h2>Edit your profile</h2>" +
-    readOnlyNote +
+    (viewHref
+      ? '<a class="btn-secondary portal-edit-view" href="' +
+        escapeAttr(viewHref) +
+        '" target="_blank" rel="noopener">View public listing ↗</a>'
+      : "") +
+    "</div>" +
+    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>' +
     buildReadinessSectionHtml() +
     '<form id="portalEditForm" class="portal-edit-form">' +
-    '<fieldset class="portal-edit-group"><legend>Availability</legend>' +
-    checkbox(
-      "accepting_new_patients",
-      "Currently accepting new patients",
-      t.accepting_new_patients !== false,
-    ) +
-    checkbox("accepts_telehealth", "Offer telehealth sessions", t.accepts_telehealth !== false) +
-    checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
-    textInput(
-      "estimated_wait_time",
-      'Estimated wait time (e.g. "2 weeks")',
-      t.estimated_wait_time,
-    ) +
-    "</fieldset>" +
+    // About you — most conversion-critical, comes first.
     '<fieldset class="portal-edit-group"><legend>About you</legend>' +
-    textarea("bio", "Bio (min 50 characters, visible on your public profile)", t.bio, 6) +
-    textInput("credentials", 'Credentials (e.g. "LMFT, PhD")', t.credentials) +
-    textInput("practice_name", "Practice name", t.practice_name) +
-    textarea("care_approach", "How you help bipolar clients", t.care_approach, 4) +
+    textarea("bio", "Bio", t.bio, 6, {
+      hint: "Patients read this first. 150–300 words works best. Speak to them, not about yourself in third person.",
+      minLen: 50,
+      goodLen: 600,
+    }) +
+    textInput("credentials", "Credentials", t.credentials, {
+      hint: 'Short form like "LMFT, PhD". Shown next to your name across the directory.',
+    }) +
+    textInput("practice_name", "Practice name", t.practice_name, {
+      hint: "Optional. Leave blank if you practice under your own name.",
+    }) +
+    textarea("care_approach", "How you help bipolar clients", t.care_approach, 4, {
+      hint: "What's distinctive about your bipolar work? Populations, modalities, mood-stabilization vs. relapse prevention, med-coordination. A specific answer beats a generic one.",
+      minLen: 120,
+      goodLen: 400,
+    }) +
     textInput("years_experience", "Years of experience", t.years_experience, {
       type: "number",
       attrs: 'min="0" max="80"',
+      hint: "Total years in practice.",
     }) +
-    textInput("bipolar_years_experience", "Years treating bipolar", t.bipolar_years_experience, {
-      type: "number",
-      attrs: 'min="0" max="80"',
-    }) +
+    textInput(
+      "bipolar_years_experience",
+      "Years treating bipolar specifically",
+      t.bipolar_years_experience,
+      {
+        type: "number",
+        attrs: 'min="0" max="80"',
+        hint: "Patients searching for specialists weight this heavily. 8+ years unlocks a readiness boost.",
+      },
+    ) +
     checkbox(
       "medication_management",
       "I provide medication management",
       t.medication_management === true,
+      "Check only if you can prescribe or co-manage meds. This is a patient filter.",
     ) +
     "</fieldset>" +
-    '<fieldset class="portal-edit-group"><legend>Contact</legend>' +
-    textInput("phone", "Public phone", t.phone) +
-    textInput("website", "Website", t.website, { type: "url", attrs: 'placeholder="https://"' }) +
+    // Who you see + how — fit & filters. The chip pickers live here.
+    '<fieldset class="portal-edit-group"><legend>Who you see and how</legend>' +
+    chipPicker(
+      "specialties",
+      "Bipolar specialties",
+      t.specialties,
+      "Click to add. Patients filter by these. More specific > generic.",
+    ) +
+    chipPicker(
+      "insurance_accepted",
+      "Insurance accepted",
+      t.insurance_accepted,
+      "Patients filter by this. Without it, you're invisible in insurance-filtered searches. Type your own plan if not listed.",
+    ) +
+    chipPicker(
+      "telehealth_states",
+      "Telehealth states",
+      t.telehealth_states,
+      "Only list states where you're actually licensed. Required to appear in cross-state searches.",
+    ) +
+    chipPicker(
+      "treatment_modalities",
+      "Treatment modalities",
+      t.treatment_modalities,
+      "IPSRT and Family-Focused Therapy are bipolar-specific and score well with informed patients.",
+    ) +
+    chipPicker(
+      "client_populations",
+      "Populations you serve",
+      t.client_populations,
+      "Adolescents, couples, LGBTQ+, BIPOC — patients filter by these.",
+    ) +
+    chipPicker(
+      "languages",
+      "Languages",
+      t.languages,
+      "Any language you can conduct a full session in.",
+    ) +
+    "</fieldset>" +
+    // Contact + availability
+    '<fieldset class="portal-edit-group"><legend>Contact and availability</legend>' +
+    checkbox(
+      "accepting_new_patients",
+      "Currently accepting new patients",
+      t.accepting_new_patients !== false,
+      "Patients filter on this. Toggle off when you're full — your listing stays up but drops from 'accepting' searches.",
+    ) +
+    checkbox("accepts_telehealth", "Offer telehealth sessions", t.accepts_telehealth !== false) +
+    checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
+    textInput("estimated_wait_time", "Estimated wait time", t.estimated_wait_time, {
+      hint: '"2 weeks", "Immediately available", "4–6 weeks". Patients triage urgent vs. exploratory by this.',
+    }) +
+    textInput("phone", "Public phone", t.phone, {
+      hint: "Shown on your public profile. Leave blank to keep it private.",
+    }) +
+    textInput("website", "Website", t.website, {
+      type: "url",
+      attrs: 'placeholder="https://"',
+      hint: "Builds trust and supports independent verification.",
+    }) +
     textInput("booking_url", "Booking URL", t.booking_url, {
       type: "url",
       attrs: 'placeholder="https://"',
+      hint: "Optional. Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
     }) +
-    select("preferred_contact_method", "Preferred contact method", t.preferred_contact_method, [
-      { value: "", label: "— Not set —" },
-      { value: "email", label: "Email" },
-      { value: "phone", label: "Phone" },
-      { value: "website", label: "Website" },
-      { value: "booking", label: "Booking link" },
-    ]) +
-    textInput(
-      "preferred_contact_label",
-      'Contact button label (e.g. "Book a consultation")',
-      t.preferred_contact_label,
+    select(
+      "preferred_contact_method",
+      "Preferred contact method",
+      t.preferred_contact_method,
+      [
+        { value: "", label: "— Not set —" },
+        { value: "email", label: "Email" },
+        { value: "phone", label: "Phone" },
+        { value: "website", label: "Website" },
+        { value: "booking", label: "Booking link" },
+      ],
+      "What the primary CTA button on your profile routes to.",
     ) +
-    textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3) +
+    textInput("preferred_contact_label", "Contact button label", t.preferred_contact_label, {
+      hint: '"Book a consultation", "Request an intake", "Email me". Overrides the default label.',
+    }) +
+    textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3, {
+      hint: "Tell patients what to send up front — state they're in, therapy vs. med needs, insurance. Reduces back-and-forth.",
+      minLen: 60,
+      goodLen: 250,
+    }) +
     textarea(
       "first_step_expectation",
       "What happens after someone reaches out",
       t.first_step_expectation,
       3,
+      {
+        hint: "Do you call within 24h? Offer a 15-min consult? Describe the first step so patients can picture it.",
+        minLen: 60,
+        goodLen: 250,
+      },
     ) +
     "</fieldset>" +
-    '<fieldset class="portal-edit-group"><legend>Fit and filters</legend>' +
-    textInput("specialties", "Specialties (comma-separated)", joinArray(t.specialties)) +
-    textInput(
-      "insurance_accepted",
-      "Insurance accepted (comma-separated)",
-      joinArray(t.insurance_accepted),
-    ) +
-    textInput(
-      "telehealth_states",
-      "Telehealth states (comma-separated, 2-letter codes)",
-      joinArray(t.telehealth_states),
-    ) +
-    textInput(
-      "treatment_modalities",
-      "Treatment modalities (comma-separated)",
-      joinArray(t.treatment_modalities),
-    ) +
-    textInput("languages", "Languages (comma-separated)", joinArray(t.languages)) +
-    textInput(
-      "client_populations",
-      'Populations served (comma-separated, e.g. "Adults, College students")',
-      joinArray(t.client_populations),
-    ) +
-    "</fieldset>" +
+    // Fees
     '<fieldset class="portal-edit-group"><legend>Fees</legend>' +
     textInput("session_fee_min", "Session fee minimum ($)", t.session_fee_min, {
       type: "number",
       attrs: 'min="0" max="10000"',
+      hint: "A range filters out price-mismatched inquiries before they waste your time.",
     }) +
     textInput("session_fee_max", "Session fee maximum ($)", t.session_fee_max, {
       type: "number",
       attrs: 'min="0" max="10000"',
     }) +
-    checkbox("sliding_scale", "I offer a sliding scale", t.sliding_scale === true) +
+    checkbox(
+      "sliding_scale",
+      "I offer a sliding scale",
+      t.sliding_scale === true,
+      "Even a partial sliding scale is a discoverability boost — patients filter for this.",
+    ) +
     "</fieldset>" +
     '<div class="portal-actions" style="margin-top:1rem"><button class="btn-primary" type="submit">Save changes</button><div class="portal-feedback" id="portalEditFeedback"></div></div>' +
     "</form></section>"
@@ -1814,13 +1949,185 @@ function collectEditProfileUpdates(form) {
   return payload;
 }
 
+function attachChipPicker(picker) {
+  var field = picker.dataset.field;
+  var suggestions = PORTAL_PICKER_OPTIONS[field] || [];
+  var list = picker.querySelector(".portal-chip-list");
+  var input = picker.querySelector(".portal-chip-input");
+  var suggestBox = picker.querySelector(".portal-chip-suggestions");
+  var hidden = picker.querySelector('input[type="hidden"]');
+
+  function currentValues() {
+    return hidden.value
+      ? hidden.value
+          .split(",")
+          .map(function (s) {
+            return s.trim();
+          })
+          .filter(function (s) {
+            return s.length > 0;
+          })
+      : [];
+  }
+
+  function renderChips(arr) {
+    list.innerHTML = arr
+      .map(function (v) {
+        return (
+          '<span class="portal-chip">' +
+          escapeHtml(v) +
+          '<button type="button" class="portal-chip-remove" aria-label="Remove ' +
+          escapeAttr(v) +
+          '" data-val="' +
+          escapeAttr(v) +
+          '">×</button></span>'
+        );
+      })
+      .join("");
+  }
+
+  function setValues(arr) {
+    hidden.value = arr.join(",");
+    renderChips(arr);
+    hidden.dispatchEvent(new window.Event("input", { bubbles: true }));
+  }
+
+  function showSuggestions(query) {
+    var q = String(query || "")
+      .toLowerCase()
+      .trim();
+    var taken = {};
+    currentValues().forEach(function (v) {
+      taken[v.toLowerCase()] = true;
+    });
+    var matches = suggestions.filter(function (s) {
+      if (taken[s.toLowerCase()]) return false;
+      if (!q) return true;
+      return s.toLowerCase().indexOf(q) !== -1;
+    });
+    matches = matches.slice(0, 10);
+    if (!matches.length) {
+      suggestBox.hidden = true;
+      suggestBox.innerHTML = "";
+      return;
+    }
+    suggestBox.innerHTML = matches
+      .map(function (m) {
+        return '<li data-val="' + escapeAttr(m) + '" role="option">' + escapeHtml(m) + "</li>";
+      })
+      .join("");
+    suggestBox.hidden = false;
+  }
+
+  function addValue(v) {
+    v = String(v || "").trim();
+    if (!v) return;
+    var arr = currentValues();
+    var lower = v.toLowerCase();
+    for (var i = 0; i < arr.length; i += 1) {
+      if (arr[i].toLowerCase() === lower) return;
+    }
+    arr.push(v);
+    setValues(arr);
+    input.value = "";
+    showSuggestions("");
+  }
+
+  function removeValue(v) {
+    setValues(
+      currentValues().filter(function (x) {
+        return x !== v;
+      }),
+    );
+  }
+
+  list.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-val]");
+    if (btn) removeValue(btn.dataset.val);
+  });
+
+  input.addEventListener("input", function () {
+    showSuggestions(input.value);
+  });
+  input.addEventListener("focus", function () {
+    showSuggestions(input.value);
+  });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addValue(input.value);
+    } else if (e.key === "Backspace" && !input.value) {
+      var arr = currentValues();
+      if (arr.length) {
+        arr.pop();
+        setValues(arr);
+      }
+    } else if (e.key === "Escape") {
+      suggestBox.hidden = true;
+    }
+  });
+
+  suggestBox.addEventListener("mousedown", function (e) {
+    var li = e.target.closest("li[data-val]");
+    if (li) {
+      e.preventDefault();
+      addValue(li.dataset.val);
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!picker.contains(e.target)) suggestBox.hidden = true;
+  });
+}
+
+function attachAllChipPickers(form) {
+  form.querySelectorAll(".portal-chip-picker").forEach(attachChipPicker);
+}
+
+function updateCharCounter(node) {
+  var name = node.name;
+  var counter = document.querySelector('[data-counter-for="' + name + '"]');
+  if (!counter) return;
+  var len = String(node.value || "").length;
+  var minLen = Number(node.dataset.minLen || 0);
+  var goodLen = Number(node.dataset.goodLen || 0);
+  var state = "short";
+  var label = len + " chars";
+  if (minLen && len < minLen) {
+    state = "short";
+    label = len + " / " + minLen + " min";
+  } else if (goodLen && len >= goodLen) {
+    state = "good";
+    label = len + " chars · good length";
+  } else if (minLen && len >= minLen) {
+    state = "ok";
+    label = len + " chars · ok";
+  }
+  counter.textContent = label;
+  counter.className = "portal-char-counter is-" + state;
+}
+
+function attachAllCharCounters(form) {
+  form.querySelectorAll('textarea[data-has-counter="true"]').forEach(function (node) {
+    updateCharCounter(node);
+    node.addEventListener("input", function () {
+      updateCharCounter(node);
+    });
+  });
+}
+
 function wireEditProfileHandlers(therapist) {
   var form = document.getElementById("portalEditForm");
   if (!form) return;
 
+  attachAllChipPickers(form);
+  attachAllCharCounters(form);
+
   // Prime the readiness UI with initial values, then update on any
   // edit. Using both input + change covers text/number (input) and
-  // checkbox/select (change).
+  // checkbox/select (change). Chip pickers dispatch 'input' on their
+  // hidden inputs when values change, so the form-level listener
+  // catches them through bubbling.
   updateReadinessUi(therapist, form);
   var onEdit = function () {
     updateReadinessUi(therapist, form);
