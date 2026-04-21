@@ -2177,12 +2177,38 @@ function attachAllCharCounters(form) {
   });
 }
 
+// Captures the current form state as a map keyed by input name.
+// Used to diff against on submit so we only send fields the user
+// actually changed. Keeps "reviewed" provenance honest — a therapist
+// who hits Save without editing anything marks zero fields as
+// reviewed (and gets a friendly "no changes" message).
+function snapshotFormState(form) {
+  var state = {};
+  form.querySelectorAll("input, select, textarea").forEach(function (node) {
+    if (!node.name) return;
+    if (node.type === "checkbox") {
+      state[node.name] = node.checked ? "true" : "false";
+    } else {
+      state[node.name] = String(node.value || "");
+    }
+  });
+  return state;
+}
+
+function currentFormState(form) {
+  return snapshotFormState(form);
+}
+
 function wireEditProfileHandlers(therapist) {
   var form = document.getElementById("portalEditForm");
   if (!form) return;
 
   attachAllChipPickers(form);
   attachAllCharCounters(form);
+
+  // Initial snapshot captured AFTER chip pickers render so their
+  // hidden inputs have their starting values. Used to diff on submit.
+  var initialSnapshot = snapshotFormState(form);
 
   // Prime the readiness UI with initial values, then update on any
   // edit. Using both input + change covers text/number (input) and
@@ -2200,11 +2226,31 @@ function wireEditProfileHandlers(therapist) {
     event.preventDefault();
     var feedback = document.getElementById("portalEditFeedback");
     var submitBtn = form.querySelector('button[type="submit"]');
+
+    var snapshotNow = currentFormState(form);
+    var changedNames = Object.keys(snapshotNow).filter(function (name) {
+      return snapshotNow[name] !== initialSnapshot[name];
+    });
+    if (!changedNames.length) {
+      feedback.textContent = "No changes to save.";
+      feedback.style.color = "#6b8290";
+      return;
+    }
+
+    // Build the typed payload from every field, then drop any key
+    // whose snapshot didn't change. This keeps coercion logic in one
+    // place (collectEditProfileUpdates) and limits the request to
+    // fields the user actually touched.
+    var fullPayload = collectEditProfileUpdates(form);
+    var payload = {};
+    changedNames.forEach(function (name) {
+      if (name in fullPayload) payload[name] = fullPayload[name];
+    });
+
     if (submitBtn) submitBtn.disabled = true;
     feedback.textContent = "Saving...";
     feedback.style.color = "";
     try {
-      var payload = collectEditProfileUpdates(form);
       var result = await patchTherapistProfile(payload);
       feedback.textContent = "Saved. Your public listing is updated.";
       feedback.style.color = "#1a7a8f";
@@ -2212,6 +2258,8 @@ function wireEditProfileHandlers(therapist) {
         claimSessionState = { therapist: result.therapist };
         therapist = result.therapist;
         updateReadinessUi(therapist, form);
+        // Re-snapshot so the next save diffs against the new baseline.
+        initialSnapshot = snapshotFormState(form);
       }
     } catch (error) {
       feedback.textContent = (error && error.message) || "Something went wrong while saving.";
