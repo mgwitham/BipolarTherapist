@@ -362,6 +362,16 @@ export async function requestTherapistClaimLink(payload) {
   });
 }
 
+// Email-only sign-in for returning therapists. Server always returns a
+// generic success response to prevent email enumeration; the client
+// shows the same "check your inbox" message regardless.
+export async function requestTherapistSignIn(email) {
+  return request("/portal/sign-in", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function requestTherapistQuickClaim(payload) {
   return request("/portal/quick-claim", {
     method: "POST",

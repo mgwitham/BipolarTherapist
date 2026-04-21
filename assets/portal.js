@@ -15,6 +15,7 @@ import {
   getTherapistSessionToken,
   patchTherapistProfile,
   requestTherapistClaimLink,
+  requestTherapistSignIn,
   submitTherapistPortalRequest,
 } from "./review-api.js";
 
@@ -721,30 +722,42 @@ function renderLookupState() {
   }
 
   shell.innerHTML =
-    '<section class="portal-card"><h2>Claim or manage your profile</h2><p class="portal-subtle">Paste your public profile link or slug and the public email already on your profile. If the email matches, we will send a secure manage link. If not, you can still submit a manual request.</p><form id="portalLookupForm" class="portal-form"><label>Profile link or slug<input type="text" id="portalSlugInput" placeholder="https://.../therapist.html?slug=dr-jane-smith-los-angeles-ca or dr-jane-smith-los-angeles-ca" /></label><label>Public profile email<input type="email" id="portalEmailInput" placeholder="you@example.com" /></label><button class="btn-primary" type="submit">Send secure manage link</button><div class="portal-feedback" id="portalLookupFeedback"></div></form></section>';
+    '<section class="portal-card">' +
+    "<h2>Sign in to your listing</h2>" +
+    '<p class="portal-subtle">Enter the email you claimed with. We\'ll send you a sign-in link.</p>' +
+    '<form id="portalSignInForm" class="portal-form">' +
+    '<label>Email<input type="email" id="portalSignInEmail" placeholder="you@example.com" autocomplete="email" required /></label>' +
+    '<button class="btn-primary" type="submit">Email me a sign-in link</button>' +
+    '<div class="portal-feedback" id="portalSignInFeedback"></div>' +
+    "</form>" +
+    '<p class="portal-subtle" style="margin-top:1rem;font-size:0.88rem;">' +
+    'Haven\'t claimed yet? <a href="claim.html">Claim your profile</a>. ' +
+    "Don't remember which email you used? <a href=\"claim.html\">Re-claim your profile</a> — we'll send a link to the email on your public listing." +
+    "</p>" +
+    "</section>";
 
-  document.getElementById("portalLookupForm").addEventListener("submit", function (event) {
+  trackFunnelEvent("portal_signin_viewed", {});
+
+  document.getElementById("portalSignInForm").addEventListener("submit", function (event) {
     event.preventDefault();
-    var nextSlug = normalizeSlugInput(document.getElementById("portalSlugInput").value);
-    var email = String(document.getElementById("portalEmailInput").value || "").trim();
-    var feedback = document.getElementById("portalLookupFeedback");
-    if (!nextSlug || !email) {
-      feedback.textContent = "Enter both the profile slug and the public email on the profile.";
+    var emailInput = document.getElementById("portalSignInEmail");
+    var email = String((emailInput && emailInput.value) || "").trim();
+    var feedback = document.getElementById("portalSignInFeedback");
+    if (!email) {
+      feedback.textContent = "Enter the email you claimed with.";
       return;
     }
-    feedback.textContent = "Sending secure manage link...";
-    requestTherapistClaimLink({
-      therapist_slug: nextSlug,
-      requester_email: email,
-    })
+    feedback.textContent = "Sending sign-in link...";
+    trackFunnelEvent("portal_signin_requested", { email_domain: email.split("@")[1] || "" });
+    requestTherapistSignIn(email)
       .then(function () {
         feedback.textContent =
-          "If the email matched the public profile email, a secure manage link has been sent.";
+          "Check your inbox. If that email matches a claimed profile, we just sent a sign-in link. It expires in 15 minutes.";
+        trackFunnelEvent("portal_signin_link_sent", {});
       })
       .catch(function (error) {
         feedback.textContent =
-          (error && error.message) ||
-          "We could not send a manage link. Use the manual request flow instead.";
+          (error && error.message) || "We couldn't send a sign-in link. Try again in a moment.";
       });
   });
 }
@@ -2868,6 +2881,9 @@ function renderPortal(therapist, options) {
     try {
       var session = await fetchTherapistClaimSession(token);
       claimSessionState = session;
+      if (session.therapist && session.therapist.claim_status === "claimed") {
+        trackFunnelEvent("portal_signin_completed", { slug: session.therapist.slug || "" });
+      }
       renderPortal(session.therapist, {
         sessionMode: session.therapist.claim_status === "claimed" ? "claimed" : "claim_token",
       });

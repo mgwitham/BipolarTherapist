@@ -1439,6 +1439,76 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // POST /portal/sign-in — email-only sign-in for returning therapists.
+  // Looks up a CLAIMED therapist by claimedByEmail (case-insensitive),
+  // sends a magic link to that address. Always returns the same generic
+  // success response to prevent email enumeration. Per-therapist rate
+  // limit piggybacks on claimLinkRequests (3/hour) — same bucket used
+  // by /portal/claim-link so a determined attacker can't multiply the
+  // budget by spreading across endpoints.
+  if (request.method === "POST" && routePath === "/portal/sign-in") {
+    const body = await parseBody(request);
+    const requesterEmail = String(body.email || "")
+      .trim()
+      .toLowerCase();
+
+    const GENERIC_SUCCESS = {
+      ok: true,
+      message:
+        "If that email matches a claimed profile, we just sent a sign-in link. The link expires in 15 minutes.",
+    };
+
+    if (!requesterEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requesterEmail)) {
+      sendJson(response, 400, { error: "Enter a valid email." }, origin, config);
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && lower(claimedByEmail) == $email][0]{
+        _id, name, email, claimStatus, claimedByEmail, claimLinkRequests, "slug": slug
+      }`,
+      { email: requesterEmail },
+    );
+
+    const resolvedSlug =
+      (therapist && therapist.slug && therapist.slug.current) ||
+      (therapist && typeof therapist.slug === "string" ? therapist.slug : "");
+
+    if (!therapist || !resolvedSlug) {
+      // Silently succeed to prevent enumeration.
+      sendJson(response, 200, GENERIC_SUCCESS, origin, config);
+      return true;
+    }
+
+    const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests);
+    if (rate.exceeded) {
+      // Silently succeed — don't leak the rate-limit signal since the
+      // generic response promises a link only "if the email matched".
+      sendJson(response, 200, GENERIC_SUCCESS, origin, config);
+      return true;
+    }
+
+    const therapistForEmail = {
+      ...therapist,
+      slug: { current: resolvedSlug },
+    };
+
+    await sendPortalClaimLink(
+      config,
+      therapistForEmail,
+      requesterEmail,
+      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+    );
+
+    await client
+      .patch(therapist._id)
+      .set({ claimLinkRequests: rate.nextHistory })
+      .commit({ visibility: "sync" });
+
+    sendJson(response, 200, GENERIC_SUCCESS, origin, config);
+    return true;
+  }
+
   if (request.method === "POST" && routePath === "/portal/claim-link") {
     const body = await parseBody(request);
     const therapistSlug = String(body.therapist_slug || "").trim();
