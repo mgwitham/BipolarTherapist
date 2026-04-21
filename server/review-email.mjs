@@ -415,6 +415,54 @@ If that wasn't you, reply to this email immediately.</p>`,
   });
 }
 
+// Therapist-self-confirm email. Sent to an out-of-band channel the
+// admin has sourced from a public record (DCA, practice website, PT
+// profile). Asks the therapist to confirm or deny that THEY initiated
+// the claim. The confirm/deny link auto-resolves the recovery request.
+export async function sendRecoveryConfirmationEmail(
+  config,
+  recoveryRequest,
+  confirmUrl,
+  denyUrl,
+  channelEmail,
+  channelContext,
+) {
+  if (!hasEmailConfig(config)) {
+    throw new Error("Email delivery is not configured.");
+  }
+  const therapistName = recoveryRequest.fullName || "there";
+  const requestedEmail = recoveryRequest.requestedEmail || "(unknown)";
+  const contextBit = channelContext
+    ? ` (we sourced this email from ${String(channelContext).replace(/[<>]/g, "")})`
+    : "";
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [channelEmail],
+    reply_to: config.notificationTo,
+    subject: "Did you request access to your bipolartherapyhub.com listing?",
+    html: `<h2>Quick confirmation needed</h2>
+<p>Hi ${therapistName},</p>
+<p>Someone just requested access to your BipolarTherapyHub listing${contextBit}.</p>
+<p>The request was made with:</p>
+<ul>
+  <li><strong>Name:</strong> ${therapistName}</li>
+  <li><strong>License:</strong> ${recoveryRequest.licenseNumber || "(unknown)"}</li>
+  <li><strong>Email to grant access to:</strong> ${requestedEmail}</li>
+</ul>
+<p><strong>Was this you?</strong></p>
+<p style="margin: 1.5rem 0;">
+  <a href="${confirmUrl}"
+     style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
+     text-decoration:none;font-weight:600;margin-right:12px;">Yes, that was me →</a>
+  <a href="${denyUrl}"
+     style="background:#a04a4a;color:#fff;padding:12px 22px;border-radius:8px;
+     text-decoration:none;font-weight:600;">No, I didn't request this</a>
+</p>
+<p style="font-size:13px;color:#666;">If it wasn't you, click "No" — we'll block the
+request immediately and take no further action. This link expires in 7 days.</p>`,
+  });
+}
+
 export async function sendRecoveryRejectedEmail(config, recoveryRequest, outcomeMessage) {
   if (!hasEmailConfig(config)) {
     return;

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Confirm listing access — BipolarTherapyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: #f4f8f9;
+        color: #1d3a4a;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        line-height: 1.5;
+      }
+      main {
+        background: #fff;
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 540px;
+        width: 100%;
+        box-shadow: 0 4px 24px rgba(29, 58, 74, 0.08);
+      }
+      h1 {
+        font-family: "Lora", serif;
+        font-size: 1.6rem;
+        margin-bottom: 1rem;
+      }
+      p {
+        margin-bottom: 1rem;
+        color: #4a6170;
+      }
+      .context-box {
+        background: #f4f8f9;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin: 1.25rem 0;
+        font-size: 0.95rem;
+      }
+      .context-box dt {
+        font-weight: 600;
+        color: #1d3a4a;
+        margin-top: 0.5rem;
+      }
+      .context-box dt:first-child {
+        margin-top: 0;
+      }
+      .context-box dd {
+        margin-left: 0;
+        color: #4a6170;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+          monospace;
+        font-size: 0.88rem;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+      @media (max-width: 460px) {
+        .actions {
+          grid-template-columns: 1fr;
+        }
+      }
+      button {
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.85rem 1.25rem;
+        border-radius: 8px;
+        border: 0;
+        cursor: pointer;
+        transition:
+          transform 0.05s ease,
+          box-shadow 0.2s ease;
+      }
+      button:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn-yes {
+        background: #2f6e80;
+        color: #fff;
+      }
+      .btn-no {
+        background: #a04a4a;
+        color: #fff;
+      }
+      .status {
+        padding: 1rem 1.15rem;
+        border-radius: 8px;
+        margin-top: 1.25rem;
+        font-size: 0.92rem;
+      }
+      .status[data-tone="info"] {
+        background: #eaf4f6;
+        color: #1d3a4a;
+      }
+      .status[data-tone="success"] {
+        background: #e7f5ed;
+        color: #1f6a44;
+      }
+      .status[data-tone="warn"] {
+        background: #fbeaea;
+        color: #7a2f2f;
+      }
+      .subtle {
+        color: #6b8290;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="confirmHeading">Did you request this?</h1>
+      <p id="confirmLede">
+        Someone asked for access to your BipolarTherapyHub listing. Before we hand over editing
+        rights, we want to hear it from you directly.
+      </p>
+      <dl class="context-box" id="confirmContext" hidden></dl>
+      <div class="actions" id="confirmActions" hidden>
+        <button type="button" class="btn-yes" id="confirmYes">Yes, that was me</button>
+        <button type="button" class="btn-no" id="confirmNo">No, I didn't request this</button>
+      </div>
+      <div class="status" id="confirmStatus" data-tone="info" hidden></div>
+      <p class="subtle" style="margin-top: 1.5rem">
+        This link expires after a single click. If you reach this page in error, you can close the
+        tab — no access is granted unless you click "Yes".
+      </p>
+    </main>
+    <script type="module" src="assets/confirm-claim.js"></script>
+  </body>
+</html>
