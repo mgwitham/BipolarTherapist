@@ -1674,11 +1674,18 @@ export async function handleAuthAndPortalRoutes(context) {
       slug: { current: resolvedSlug },
     };
 
+    // Already-claimed therapists land here via re-entry ("send me a
+    // fresh link" for a listing they already own). The "activate your
+    // listing" copy is wrong for them — they already did that. Pass
+    // mode=signin so the email reads as a sign-in link instead.
+    const emailMode = therapist.claimStatus === "claimed" ? "signin" : "claim";
+
     await sendPortalClaimLink(
       config,
       therapistForEmail,
       onFileEmail,
       `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+      { mode: emailMode },
     );
 
     const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
@@ -2136,6 +2143,7 @@ export async function handleAuthAndPortalRoutes(context) {
       therapistForEmail,
       requesterEmail,
       `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+      { mode: "signin" },
     );
 
     await client
@@ -2204,6 +2212,7 @@ export async function handleAuthAndPortalRoutes(context) {
       therapist,
       requesterEmail,
       `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+      { mode: therapist.claimStatus === "claimed" ? "signin" : "claim" },
     );
 
     await client

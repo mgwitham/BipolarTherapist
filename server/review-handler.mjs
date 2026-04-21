@@ -442,13 +442,14 @@ function readPortalClaimToken(config, token) {
   return payload;
 }
 
-async function sendPortalClaimLink(config, therapist, requesterEmail, portalBaseUrl) {
+async function sendPortalClaimLink(config, therapist, requesterEmail, portalBaseUrl, options) {
   return sendPortalClaimLinkEmail(
     config,
     therapist,
     requesterEmail,
     portalBaseUrl,
     buildPortalClaimToken,
+    options,
   );
 }
 
