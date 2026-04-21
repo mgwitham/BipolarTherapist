@@ -488,6 +488,52 @@ test("POST /recovery-confirm with 'no' auto-rejects and alerts admin", async () 
   assert.equal(therapist.claimStatus, "unclaimed", "therapist profile must not be claimed on deny");
 });
 
+test("POST /recovery-confirm returns 410 when Sanity rejects the nonce-rotation patch (concurrent click)", async () => {
+  // Simulate the race: two users click the same link at once. The
+  // first request gets through and rotates the nonce; the second
+  // arrives with the same _rev and Sanity rejects with a revision-
+  // mismatch error. We stub the patch to throw on ifRevisionId-guarded
+  // commit to exercise that branch.
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+
+  const originalPatch = client.patch.bind(client);
+  let shouldConflict = true;
+  client.patch = function patchWithConflict(id) {
+    const builder = originalPatch(id);
+    const originalIfRev = builder.ifRevisionId;
+    builder.ifRevisionId = function () {
+      originalIfRev.call(builder);
+      if (shouldConflict) {
+        shouldConflict = false;
+        return {
+          set: () => ({
+            commit: async () => {
+              throw new Error("mutation conflict: revision mismatch");
+            },
+          }),
+        };
+      }
+      return builder;
+    };
+    return builder;
+  };
+
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|abc123", response: "yes" },
+    routePath: "/recovery-confirm",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 410);
+  assert.equal(response.payload.reason, "used_or_replaced");
+});
+
 test("POST /recovery-confirm with reused token returns 410", async () => {
   const { client } = createMemoryClient(
     seedColdTakeoverFixtures({
