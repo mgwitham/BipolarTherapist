@@ -1176,12 +1176,24 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Full projection mirrors /portal/me so magic-link arrivals hydrate
+    // the edit form with bio, chip pickers, therapist_reported_fields,
+    // etc. — everything the portal UI needs to render. Previously this
+    // returned a slim object and the edit card rendered empty, which
+    // also suppressed the review banner (no pre-filled data detected).
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, practiceName, status, listingActive,
+        _id, name, email, city, state, zip, practiceName, status, listingActive,
         claimStatus, claimedByEmail, claimedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current
+        "slug": slug.current,
+        bio, credentials, title, phone, website, bookingUrl,
+        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
+        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
+        sessionFeeMin, sessionFeeMax, slidingScale,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
+        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
+        medicationManagement, therapistReportedFields
       }`,
       { slug: payload.slug },
     );
@@ -1194,25 +1206,7 @@ export async function handleAuthAndPortalRoutes(context) {
     sendJson(
       response,
       200,
-      {
-        ok: true,
-        therapist: {
-          slug: therapist.slug,
-          name: therapist.name,
-          email: therapist.email || "",
-          city: therapist.city || "",
-          state: therapist.state || "",
-          practice_name: therapist.practiceName || "",
-          status: therapist.status || "",
-          listing_active: therapist.listingActive !== false,
-          claim_status: therapist.claimStatus || "unclaimed",
-          claimed_by_email: therapist.claimedByEmail || "",
-          claimed_at: therapist.claimedAt || "",
-          portal_last_seen_at: therapist.portalLastSeenAt || "",
-          listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
-          listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
-        },
-      },
+      { ok: true, therapist: shapePortalTherapist(therapist) },
       origin,
       config,
     );
