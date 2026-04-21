@@ -121,16 +121,170 @@ function buildApprovalMagicLink(config, application, options) {
   }
 }
 
+// Escape HTML used in email templates. Same-scope helper so the email
+// module doesn't pull in an app-tier escaper. Trusted values only need
+// this to avoid breaking the markup on quote chars in therapist names.
+function escapeEmailHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+  });
+}
+
+// Shared wrapper for portal magic-link emails. Mobile-friendly, uses
+// table-based button markup so Outlook doesn't mangle it, and provides
+// a visible fallback URL plus a trust footer. Content is caller-supplied
+// so "first claim" and "returning sign-in" share one polished shell.
+function renderPortalMagicLinkEmail({
+  therapistName,
+  heading,
+  bodyParagraph,
+  ctaLabel,
+  ctaUrl,
+  ignoreLine,
+  expiryLine,
+}) {
+  const safeName = escapeEmailHtml(therapistName || "there");
+  const safeHeading = escapeEmailHtml(heading);
+  const safeBody = escapeEmailHtml(bodyParagraph);
+  const safeCtaLabel = escapeEmailHtml(ctaLabel);
+  const safeIgnoreLine = escapeEmailHtml(ignoreLine);
+  const safeExpiryLine = escapeEmailHtml(expiryLine);
+  // ctaUrl is inserted both as href and as visible text. We already
+  // construct it from encodeURIComponent'd inputs; escape just enough
+  // to survive appearing in HTML body text.
+  const safeUrl = escapeEmailHtml(ctaUrl);
+
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f7fbfc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1d3a4a;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7fbfc;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;box-shadow:0 6px 20px rgba(15,65,78,0.08);overflow:hidden;">
+            <tr>
+              <td style="padding:22px 28px 0 28px;">
+                <div style="font-size:15px;font-weight:700;letter-spacing:-0.01em;color:#0f3f4a;">
+                  BipolarTherapy<span style="color:#1a7a8f;">Hub</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 28px 4px 28px;">
+                <h1 style="margin:0;font-size:22px;line-height:1.25;color:#0f3f4a;font-weight:700;">${safeHeading}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 28px 8px 28px;font-size:15px;line-height:1.55;color:#1d3a4a;">
+                <p style="margin:0 0 12px 0;">Hi ${safeName},</p>
+                <p style="margin:0 0 20px 0;">${safeBody}</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="padding:4px 28px 8px 28px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+                  <tr>
+                    <td style="background:#1a7a8f;border-radius:10px;">
+                      <a href="${safeUrl}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${safeCtaLabel}</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:14px 28px 4px 28px;font-size:13px;line-height:1.5;color:#4a6572;">
+                <p style="margin:0 0 6px 0;">Button not working? Paste this into your browser:</p>
+                <p style="margin:0;word-break:break-all;">
+                  <a href="${safeUrl}" style="color:#155f70;text-decoration:underline;">${safeUrl}</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 28px 22px 28px;border-top:1px solid #e6eef1;margin-top:14px;font-size:12px;line-height:1.5;color:#6b8290;">
+                <p style="margin:14px 0 6px 0;">${safeExpiryLine}</p>
+                <p style="margin:0;">${safeIgnoreLine}</p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:18px 0 0 0;font-size:11px;color:#8a9ba4;">
+            BipolarTherapyHub · California bipolar-specialist directory
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+// Plain-text fallback. Some mail clients and screen readers prefer
+// text/plain, and a clean plain-text part also improves deliverability.
+function renderPortalMagicLinkText({
+  therapistName,
+  heading,
+  bodyParagraph,
+  ctaUrl,
+  ignoreLine,
+  expiryLine,
+}) {
+  const name = String(therapistName || "there");
+  return [
+    heading,
+    "",
+    `Hi ${name},`,
+    "",
+    bodyParagraph,
+    "",
+    ctaUrl,
+    "",
+    expiryLine,
+    ignoreLine,
+    "",
+    "— BipolarTherapyHub",
+  ].join("\n");
+}
+
+// Mode drives copy. "claim" = first-time activation after a therapist
+// starts a claim / trial. "signin" = returning therapist who asked for
+// a fresh sign-in link (already activated, already has portal access).
+// The ceremony-sounding "Activate your listing" copy is wrong for the
+// returning case, so we split it explicitly.
+function buildPortalMagicLinkCopy(mode) {
+  if (mode === "signin") {
+    return {
+      subject: "Your BipolarTherapyHub sign-in link",
+      heading: "Sign in to your listing",
+      bodyParagraph:
+        "Click the button below to sign in to your BipolarTherapyHub portal. No password needed.",
+      ctaLabel: "Sign in →",
+      expiryLine: "This link expires in 24 hours.",
+      ignoreLine:
+        "If you didn't ask for a sign-in link, ignore this email — your account is safe.",
+    };
+  }
+  return {
+    subject: "Activate your BipolarTherapyHub listing",
+    heading: "You're one click away",
+    bodyParagraph:
+      "Click below to verify your email and unlock your profile controls — editing, analytics, accepting-patients status, bio, and headshot.",
+    ctaLabel: "Activate my listing →",
+    expiryLine: "This link expires in 24 hours.",
+    ignoreLine:
+      "If you didn't just start a trial or request this link, ignore this email — your card won't be charged and nothing will happen.",
+  };
+}
+
 export async function sendPortalClaimLink(
   config,
   therapist,
   requesterEmail,
   portalBaseUrl,
   buildPortalClaimToken,
+  options,
 ) {
   if (!hasEmailConfig(config)) {
     throw new Error("Email delivery is not configured for claim links yet.");
   }
+
+  const mode = options && options.mode === "signin" ? "signin" : "claim";
 
   const token = buildPortalClaimToken(config, therapist, requesterEmail);
   const manageUrl =
@@ -138,24 +292,34 @@ export async function sendPortalClaimLink(
     "/portal.html?token=" +
     encodeURIComponent(token);
 
+  const copy = buildPortalMagicLinkCopy(mode);
+
+  const html = renderPortalMagicLinkEmail({
+    therapistName: therapist && therapist.name,
+    heading: copy.heading,
+    bodyParagraph: copy.bodyParagraph,
+    ctaLabel: copy.ctaLabel,
+    ctaUrl: manageUrl,
+    ignoreLine: copy.ignoreLine,
+    expiryLine: copy.expiryLine,
+  });
+
+  const text = renderPortalMagicLinkText({
+    therapistName: therapist && therapist.name,
+    heading: copy.heading,
+    bodyParagraph: copy.bodyParagraph,
+    ctaUrl: manageUrl,
+    ignoreLine: copy.ignoreLine,
+    expiryLine: copy.expiryLine,
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [requesterEmail],
     reply_to: "support@bipolartherapyhub.com",
-    subject: `Activate your BipolarTherapyHub listing`,
-    html: `<h2>You're one click away from activating your listing</h2>
-<p>Hi ${therapist.name || "there"},</p>
-<p>Click below to verify your email and unlock your profile controls (editing, analytics,
-accepting-status, bio, headshot).</p>
-<p style="margin: 1.25rem 0;">
-  <a href="${manageUrl}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
-  text-decoration:none;font-weight:600;">Activate my listing →</a>
-</p>
-<p style="font-size:13px;color:#666;">Or copy and paste this link into your browser:<br/>
-<a href="${manageUrl}">${manageUrl}</a></p>
-<p style="font-size:13px;color:#666;">If you didn't just start a trial or request this link,
-ignore this email — your card won't be charged and nothing will happen. The link expires in 24
-hours.</p>`,
+    subject: copy.subject,
+    html,
+    text,
   });
 }
 
