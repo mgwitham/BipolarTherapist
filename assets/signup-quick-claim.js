@@ -647,18 +647,12 @@ function initQuickClaim() {
         license_number: String(formData.get("license_number") || "").trim(),
         requested_email: String(formData.get("requested_email") || "").trim(),
         prior_email: String(formData.get("prior_email") || "").trim(),
-        reason: String(formData.get("reason") || "").trim(),
       };
-      if (
-        !payload.full_name ||
-        !payload.license_number ||
-        !payload.requested_email ||
-        !payload.reason
-      ) {
+      if (!payload.full_name || !payload.license_number || !payload.requested_email) {
         if (statusBox) {
           statusBox.hidden = false;
           statusBox.setAttribute("data-tone", "warn");
-          statusBox.textContent = "Name, license, recovery email, and a reason are all required.";
+          statusBox.textContent = "Name, license, and recovery email are all required.";
         }
         return;
       }
