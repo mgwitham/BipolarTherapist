@@ -718,7 +718,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, claimStatus, claimLinkRequests, "slug": slug
+        _id, name, email, claimStatus, claimedByEmail, claimLinkRequests, "slug": slug
       }`,
       { slug },
     );
@@ -741,9 +741,20 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
-    const onFileEmail = String(therapist.email || "")
+    // When a profile is already claimed, prefer sending the sign-in
+    // link to the email address that originally claimed it — not the
+    // public contact email, which may differ (a therapist can claim
+    // with a work inbox while listing a front-desk address publicly).
+    // Falling back to the public email keeps unclaimed profiles
+    // working as before.
+    const publicEmail = String(therapist.email || "")
       .trim()
       .toLowerCase();
+    const claimedEmail = String(therapist.claimedByEmail || "")
+      .trim()
+      .toLowerCase();
+    const onFileEmail =
+      therapist.claimStatus === "claimed" && claimedEmail ? claimedEmail : publicEmail;
 
     if (!onFileEmail) {
       sendJson(
@@ -802,7 +813,7 @@ export async function handleAuthAndPortalRoutes(context) {
         ok: true,
         message: "Claim link sent. Check your inbox.",
         therapist_slug: resolvedSlug,
-        email_hint: maskEmail(therapist.email),
+        email_hint: maskEmail(onFileEmail),
         verification_method: "email_on_file",
       },
       origin,
@@ -1121,7 +1132,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, claimStatus, "slug": slug
+        _id, name, email, claimStatus, claimedByEmail, "slug": slug
       }`,
       { slug: therapistSlug },
     );
@@ -1131,16 +1142,27 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Accept either the public profile email OR the address the profile
+    // was originally claimed with. The second case matters when a
+    // therapist claims with a work email that's different from their
+    // public contact email, or when they update their public email
+    // later — without this, a legitimate owner can't get a fresh
+    // sign-in link.
     const profileEmail = String(therapist.email || "")
       .trim()
       .toLowerCase();
-    if (!profileEmail || profileEmail !== requesterEmail) {
+    const claimedEmail = String(therapist.claimedByEmail || "")
+      .trim()
+      .toLowerCase();
+    const matchesProfile = profileEmail && profileEmail === requesterEmail;
+    const matchesClaimed = claimedEmail && claimedEmail === requesterEmail;
+    if (!matchesProfile && !matchesClaimed) {
       sendJson(
         response,
         403,
         {
           error:
-            "That email does not match the public contact email on this profile yet. Use the request form instead so we can verify ownership manually.",
+            "That email doesn't match the public contact email or the address this profile was claimed with. Use the request form below so we can verify ownership manually.",
         },
         origin,
         config,
