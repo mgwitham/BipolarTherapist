@@ -766,11 +766,50 @@ function maybeLiveRecompute(event) {
     // Live recompute reuses the same pipeline as submit but skips the
     // scroll-into-view — the user is focused inside the drawer and a
     // page scroll would pull them off it.
+    //
+    // executeMatch ultimately calls renderPrimaryMatchCards, which
+    // replaces #matchResults.innerHTML wholesale. That detaches the
+    // .match-builder (drawer) subtree briefly and placeBuilderInResults
+    // reattaches it, but focus is dropped in the process — without
+    // preserving it, each click inside the drawer would lose keyboard
+    // focus and feel like "nothing works." Capture the focused element
+    // before the re-render and restore focus + selection after.
+    var active = document.activeElement;
+    var restoreId = active && active.id ? active.id : "";
+    var restoreName = active && active.name ? active.name : "";
+    var restoreValue = active && typeof active.value === "string" ? active.value : null;
+    var restoreSelectionStart =
+      active && typeof active.selectionStart === "number" ? active.selectionStart : null;
+    var restoreSelectionEnd =
+      active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
     var profile = readCurrentIntakeProfile();
     executeMatch(profile, {
       scroll: false,
       source: "match_live_refine",
     });
+    var restoreNode = null;
+    if (restoreId) {
+      restoreNode = document.getElementById(restoreId);
+    }
+    if (!restoreNode && restoreName) {
+      restoreNode =
+        document.querySelector('[name="' + restoreName + '"][value="' + restoreValue + '"]') ||
+        document.querySelector('[name="' + restoreName + '"]');
+    }
+    if (restoreNode && typeof restoreNode.focus === "function") {
+      try {
+        restoreNode.focus({ preventScroll: true });
+        if (
+          restoreSelectionStart !== null &&
+          restoreSelectionEnd !== null &&
+          typeof restoreNode.setSelectionRange === "function"
+        ) {
+          restoreNode.setSelectionRange(restoreSelectionStart, restoreSelectionEnd);
+        }
+      } catch (_error) {
+        /* setSelectionRange throws on non-text inputs; ignore */
+      }
+    }
     var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
     var message =
       count === 0

@@ -1205,8 +1205,60 @@
         display: none;
       }
       body.match-refine-drawer-open .refine-advanced-panel {
-        padding: 1.1rem 1.25rem 4.25rem;
+        padding: 1.25rem 1.25rem 4.25rem;
         max-width: none;
+        display: grid;
+        gap: 1.4rem;
+      }
+      /* Give each section visible breathing room + a hairline divider
+         so the drawer reads as a stack of decisions instead of one
+         dense scroll of controls. */
+      body.match-refine-drawer-open .refine-adv-section {
+        padding-bottom: 1.4rem;
+        border-bottom: 1px solid rgba(14, 77, 95, 0.12);
+      }
+      body.match-refine-drawer-open .refine-adv-section:last-of-type {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      body.match-refine-drawer-open .refine-adv-header {
+        margin-bottom: 0.75rem;
+      }
+      body.match-refine-drawer-open .refine-adv-title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--navy);
+        letter-spacing: -0.005em;
+      }
+      body.match-refine-drawer-open .refine-adv-hint {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      /* Section-level inputs breathe a little more on their own line. */
+      body.match-refine-drawer-open .refine-quick,
+      body.match-refine-drawer-open .refine-cost-row {
+        display: grid;
+        gap: 0.9rem;
+      }
+      body.match-refine-drawer-open .refine-field-lbl,
+      body.match-refine-drawer-open .refine-chips-lbl {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--slate);
+        margin-bottom: 0.4rem;
+        display: block;
+      }
+      body.match-refine-drawer-open .refine-priority-opts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      body.match-refine-drawer-open .refine-priority-card {
+        padding: 0.7rem 0.85rem;
+        font-size: 0.88rem;
       }
       .match-refine-drawer-header {
         display: none;
