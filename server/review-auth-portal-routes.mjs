@@ -1,4 +1,5 @@
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
+import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 
 function normalizeNameForMatch(value) {
   return String(value || "")
@@ -163,8 +164,8 @@ function shapePortalTherapist(therapist) {
     portal_last_seen_at: therapist.portalLastSeenAt || "",
     listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
     listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
-    bio: therapist.bio || "",
-    credentials: therapist.credentials || "",
+    bio: scrubIntakeStub(therapist.bio),
+    credentials: scrubIntakeStub(therapist.credentials),
     title: therapist.title || "",
     phone: therapist.phone || "",
     website: therapist.website || "",
@@ -191,7 +192,7 @@ function shapePortalTherapist(therapist) {
       ? therapist.treatmentModalities
       : [],
     languages: Array.isArray(therapist.languages) ? therapist.languages : [],
-    care_approach: therapist.careApproach || "",
+    care_approach: scrubIntakeStub(therapist.careApproach),
     estimated_wait_time: therapist.estimatedWaitTime || "",
     years_experience:
       typeof therapist.yearsExperience === "number" ? therapist.yearsExperience : null,
