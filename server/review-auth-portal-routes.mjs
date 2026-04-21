@@ -1,4 +1,5 @@
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
+import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 
 function normalizeNameForMatch(value) {
   return String(value || "")
@@ -141,6 +142,284 @@ function maskEmail(email) {
   const maskLocal = local.slice(0, 1) + "***";
   const maskDomain = (domainHead ? domainHead.slice(0, 1) + "***" : "***") + domainTail;
   return maskLocal + "@" + maskDomain;
+}
+
+// Shapes a therapist document into the portal /me + PATCH response
+// payload. Kept in one place so /portal/me and /portal/therapist
+// never drift.
+function shapePortalTherapist(therapist) {
+  return {
+    slug: therapist.slug,
+    name: therapist.name,
+    email: therapist.email || "",
+    city: therapist.city || "",
+    state: therapist.state || "",
+    zip: therapist.zip || "",
+    practice_name: therapist.practiceName || "",
+    status: therapist.status || "",
+    listing_active: therapist.listingActive !== false,
+    claim_status: therapist.claimStatus || "unclaimed",
+    claimed_by_email: therapist.claimedByEmail || "",
+    claimed_at: therapist.claimedAt || "",
+    portal_last_seen_at: therapist.portalLastSeenAt || "",
+    listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
+    listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
+    bio: scrubIntakeStub(therapist.bio),
+    credentials: scrubIntakeStub(therapist.credentials),
+    title: therapist.title || "",
+    phone: therapist.phone || "",
+    website: therapist.website || "",
+    booking_url: therapist.bookingUrl || "",
+    preferred_contact_method: therapist.preferredContactMethod || "",
+    preferred_contact_label: therapist.preferredContactLabel || "",
+    contact_guidance: therapist.contactGuidance || "",
+    first_step_expectation: therapist.firstStepExpectation || "",
+    accepting_new_patients: therapist.acceptingNewPatients !== false,
+    accepts_telehealth: therapist.acceptsTelehealth !== false,
+    accepts_in_person: therapist.acceptsInPerson !== false,
+    session_fee_min: typeof therapist.sessionFeeMin === "number" ? therapist.sessionFeeMin : null,
+    session_fee_max: typeof therapist.sessionFeeMax === "number" ? therapist.sessionFeeMax : null,
+    sliding_scale: therapist.slidingScale === true,
+    client_populations: Array.isArray(therapist.clientPopulations)
+      ? therapist.clientPopulations
+      : [],
+    specialties: Array.isArray(therapist.specialties) ? therapist.specialties : [],
+    insurance_accepted: Array.isArray(therapist.insuranceAccepted)
+      ? therapist.insuranceAccepted
+      : [],
+    telehealth_states: Array.isArray(therapist.telehealthStates) ? therapist.telehealthStates : [],
+    treatment_modalities: Array.isArray(therapist.treatmentModalities)
+      ? therapist.treatmentModalities
+      : [],
+    languages: Array.isArray(therapist.languages) ? therapist.languages : [],
+    care_approach: scrubIntakeStub(therapist.careApproach),
+    estimated_wait_time: therapist.estimatedWaitTime || "",
+    years_experience:
+      typeof therapist.yearsExperience === "number" ? therapist.yearsExperience : null,
+    bipolar_years_experience:
+      typeof therapist.bipolarYearsExperience === "number"
+        ? therapist.bipolarYearsExperience
+        : null,
+    medication_management: therapist.medicationManagement === true,
+    therapist_reported_fields: Array.isArray(therapist.therapistReportedFields)
+      ? therapist.therapistReportedFields
+      : [],
+    portal_first_save_at: therapist.portalFirstSaveAt || "",
+    portal_last_save_at: therapist.portalLastSaveAt || "",
+    portal_save_count:
+      typeof therapist.portalSaveCount === "number" ? therapist.portalSaveCount : 0,
+  };
+}
+
+// Validates and normalizes a PATCH /portal/therapist body. Strict
+// whitelist — any field not in this map is silently ignored so a
+// caller can send a bigger payload than they intend without breaking.
+// Returns { setFields, unsetFields, touchedBodyKeys, hasChanges,
+// error?, field? }. touchedBodyKeys is the set of snake_case body
+// keys that had any effect — used to promote those fields into the
+// therapist-reported set (provenance: "I reviewed this").
+function validatePortalTherapistUpdates(body) {
+  if (!body || typeof body !== "object") {
+    return { setFields: {}, unsetFields: [], touchedBodyKeys: [], hasChanges: false };
+  }
+
+  const setFields = {};
+  const unsetFields = [];
+  const touchedBodyKeys = new Set();
+
+  // Strings: trim; empty string → unset. Enforces max length.
+  const stringFields = {
+    credentials: { max: 200 },
+    title: { max: 120 },
+    phone: { max: 40 },
+    website: { max: 500, url: true },
+    bookingUrl: { max: 500, url: true, bodyKey: "booking_url" },
+    preferredContactLabel: { max: 60, bodyKey: "preferred_contact_label" },
+    contactGuidance: { max: 600, bodyKey: "contact_guidance" },
+    firstStepExpectation: { max: 600, bodyKey: "first_step_expectation" },
+    estimatedWaitTime: { max: 120, bodyKey: "estimated_wait_time" },
+    careApproach: { max: 1500, bodyKey: "care_approach" },
+    practiceName: { max: 200, bodyKey: "practice_name" },
+    city: { max: 120 },
+    zip: { max: 15 },
+  };
+  for (const field of Object.keys(stringFields)) {
+    const spec = stringFields[field];
+    const bodyKey = spec.bodyKey || field;
+    if (!(bodyKey in body)) continue;
+    const raw = body[bodyKey];
+    if (raw === null || raw === undefined || String(raw).trim() === "") {
+      unsetFields.push(field);
+      touchedBodyKeys.add(bodyKey);
+      continue;
+    }
+    const value = String(raw).trim();
+    if (value.length > spec.max) {
+      return { error: `${bodyKey} is too long.`, field: bodyKey };
+    }
+    if (spec.url && !/^https?:\/\//i.test(value)) {
+      return { error: `${bodyKey} must start with http:// or https://.`, field: bodyKey };
+    }
+    setFields[field] = value;
+    touchedBodyKeys.add(bodyKey);
+  }
+
+  // Bio is required + schema-min of 50 chars. Reject clearing it.
+  if ("bio" in body) {
+    const bio = String(body.bio || "").trim();
+    if (!bio) {
+      return { error: "Bio is required.", field: "bio" };
+    }
+    if (bio.length < 50) {
+      return { error: "Bio must be at least 50 characters.", field: "bio" };
+    }
+    if (bio.length > 4000) {
+      return { error: "Bio is too long.", field: "bio" };
+    }
+    setFields.bio = bio;
+    touchedBodyKeys.add("bio");
+  }
+
+  // Enum: preferredContactMethod.
+  if ("preferred_contact_method" in body) {
+    const raw = String(body.preferred_contact_method || "").trim();
+    if (!raw) {
+      unsetFields.push("preferredContactMethod");
+      touchedBodyKeys.add("preferred_contact_method");
+    } else if (!["email", "phone", "website", "booking"].includes(raw)) {
+      return {
+        error: "preferred_contact_method must be one of email, phone, website, booking.",
+        field: "preferred_contact_method",
+      };
+    } else {
+      setFields.preferredContactMethod = raw;
+      touchedBodyKeys.add("preferred_contact_method");
+    }
+  }
+
+  // Booleans. Accept true/false (and "true"/"false" strings).
+  const booleanFields = {
+    acceptingNewPatients: "accepting_new_patients",
+    acceptsTelehealth: "accepts_telehealth",
+    acceptsInPerson: "accepts_in_person",
+    slidingScale: "sliding_scale",
+    medicationManagement: "medication_management",
+  };
+  for (const field of Object.keys(booleanFields)) {
+    const bodyKey = booleanFields[field];
+    if (!(bodyKey in body)) continue;
+    const raw = body[bodyKey];
+    if (raw === true || raw === "true") {
+      setFields[field] = true;
+      touchedBodyKeys.add(bodyKey);
+    } else if (raw === false || raw === "false") {
+      setFields[field] = false;
+      touchedBodyKeys.add(bodyKey);
+    } else {
+      return { error: `${bodyKey} must be true or false.`, field: bodyKey };
+    }
+  }
+
+  // Numbers: session fees + experience.
+  const numberFields = {
+    sessionFeeMin: { bodyKey: "session_fee_min", min: 0, max: 10000 },
+    sessionFeeMax: { bodyKey: "session_fee_max", min: 0, max: 10000 },
+    yearsExperience: { bodyKey: "years_experience", min: 0, max: 80 },
+    bipolarYearsExperience: { bodyKey: "bipolar_years_experience", min: 0, max: 80 },
+  };
+  for (const field of Object.keys(numberFields)) {
+    const spec = numberFields[field];
+    if (!(spec.bodyKey in body)) continue;
+    const raw = body[spec.bodyKey];
+    if (raw === null || raw === "" || raw === undefined) {
+      unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
+      continue;
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < spec.min || value > spec.max) {
+      return {
+        error: `${spec.bodyKey} must be a number between ${spec.min} and ${spec.max}.`,
+        field: spec.bodyKey,
+      };
+    }
+    setFields[field] = value;
+    touchedBodyKeys.add(spec.bodyKey);
+  }
+
+  // Cross-field: sessionFeeMin <= sessionFeeMax when both present.
+  const nextMin =
+    "sessionFeeMin" in setFields
+      ? setFields.sessionFeeMin
+      : unsetFields.includes("sessionFeeMin")
+        ? null
+        : undefined;
+  const nextMax =
+    "sessionFeeMax" in setFields
+      ? setFields.sessionFeeMax
+      : unsetFields.includes("sessionFeeMax")
+        ? null
+        : undefined;
+  if (typeof nextMin === "number" && typeof nextMax === "number" && nextMin > nextMax) {
+    return {
+      error: "Minimum session fee cannot exceed maximum session fee.",
+      field: "session_fee_min",
+    };
+  }
+
+  // Arrays of strings. Accept array or comma-separated string. Empty → unset.
+  const arrayFields = {
+    specialties: { bodyKey: "specialties", maxItems: 40, maxLen: 80 },
+    insuranceAccepted: { bodyKey: "insurance_accepted", maxItems: 40, maxLen: 120 },
+    telehealthStates: { bodyKey: "telehealth_states", maxItems: 60, maxLen: 60 },
+    treatmentModalities: { bodyKey: "treatment_modalities", maxItems: 40, maxLen: 120 },
+    languages: { bodyKey: "languages", maxItems: 20, maxLen: 60 },
+    clientPopulations: { bodyKey: "client_populations", maxItems: 40, maxLen: 80 },
+  };
+  for (const field of Object.keys(arrayFields)) {
+    const spec = arrayFields[field];
+    if (!(spec.bodyKey in body)) continue;
+    const raw = body[spec.bodyKey];
+    let items;
+    if (Array.isArray(raw)) {
+      items = raw;
+    } else if (typeof raw === "string") {
+      items = raw.split(",");
+    } else if (raw === null || raw === undefined) {
+      unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
+      continue;
+    } else {
+      return {
+        error: `${spec.bodyKey} must be an array or comma-separated string.`,
+        field: spec.bodyKey,
+      };
+    }
+    const cleaned = items
+      .map((item) => String(item || "").trim())
+      .filter((item) => item.length > 0);
+    if (!cleaned.length) {
+      unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
+      continue;
+    }
+    if (cleaned.length > spec.maxItems) {
+      return { error: `${spec.bodyKey} has too many entries.`, field: spec.bodyKey };
+    }
+    if (cleaned.some((item) => item.length > spec.maxLen)) {
+      return { error: `${spec.bodyKey} contains an entry that is too long.`, field: spec.bodyKey };
+    }
+    setFields[field] = cleaned;
+    touchedBodyKeys.add(spec.bodyKey);
+  }
+
+  const hasChanges = Object.keys(setFields).length > 0 || unsetFields.length > 0;
+  return {
+    setFields,
+    unsetFields,
+    touchedBodyKeys: Array.from(touchedBodyKeys),
+    hasChanges,
+  };
 }
 
 export async function handleAuthAndPortalRoutes(context) {
@@ -901,12 +1180,24 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Full projection mirrors /portal/me so magic-link arrivals hydrate
+    // the edit form with bio, chip pickers, therapist_reported_fields,
+    // etc. — everything the portal UI needs to render. Previously this
+    // returned a slim object and the edit card rendered empty, which
+    // also suppressed the review banner (no pre-filled data detected).
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, practiceName, status, listingActive,
+        _id, name, email, city, state, zip, practiceName, status, listingActive,
         claimStatus, claimedByEmail, claimedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current
+        "slug": slug.current,
+        bio, credentials, title, phone, website, bookingUrl,
+        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
+        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
+        sessionFeeMin, sessionFeeMax, slidingScale,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
+        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
       }`,
       { slug: payload.slug },
     );
@@ -919,25 +1210,7 @@ export async function handleAuthAndPortalRoutes(context) {
     sendJson(
       response,
       200,
-      {
-        ok: true,
-        therapist: {
-          slug: therapist.slug,
-          name: therapist.name,
-          email: therapist.email || "",
-          city: therapist.city || "",
-          state: therapist.state || "",
-          practice_name: therapist.practiceName || "",
-          status: therapist.status || "",
-          listing_active: therapist.listingActive !== false,
-          claim_status: therapist.claimStatus || "unclaimed",
-          claimed_by_email: therapist.claimedByEmail || "",
-          claimed_at: therapist.claimedAt || "",
-          portal_last_seen_at: therapist.portalLastSeenAt || "",
-          listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
-          listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
-        },
-      },
+      { ok: true, therapist: shapePortalTherapist(therapist) },
       origin,
       config,
     );
@@ -1062,10 +1335,17 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, practiceName, status, listingActive,
+        _id, name, email, city, state, zip, practiceName, status, listingActive,
         claimStatus, claimedByEmail, claimedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current
+        "slug": slug.current,
+        bio, credentials, title, phone, website, bookingUrl,
+        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
+        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
+        sessionFeeMin, sessionFeeMax, slidingScale,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
+        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
       }`,
       { slug: session.slug },
     );
@@ -1085,26 +1365,114 @@ export async function handleAuthAndPortalRoutes(context) {
           email: session.email,
           expires_at: session.expiresAt,
         },
-        therapist: {
-          slug: therapist.slug,
-          name: therapist.name,
-          email: therapist.email || "",
-          city: therapist.city || "",
-          state: therapist.state || "",
-          practice_name: therapist.practiceName || "",
-          status: therapist.status || "",
-          listing_active: therapist.listingActive !== false,
-          claim_status: therapist.claimStatus || "unclaimed",
-          claimed_by_email: therapist.claimedByEmail || "",
-          claimed_at: therapist.claimedAt || "",
-          portal_last_seen_at: therapist.portalLastSeenAt || "",
-          listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
-          listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
-        },
+        therapist: shapePortalTherapist(therapist),
       },
       origin,
       config,
     );
+    return true;
+  }
+
+  // PATCH /portal/therapist — self-service profile edits for an
+  // authenticated claimed therapist. Writes are direct (no admin
+  // review) for the whitelisted field set below. Identity/trust fields
+  // (name, licenseNumber, licenseState, public email, slug) are NOT
+  // editable here on purpose — those require re-verification.
+  if (
+    (request.method === "PATCH" || request.method === "POST") &&
+    routePath === "/portal/therapist"
+  ) {
+    const session = getAuthorizedTherapist(request, config);
+    if (!session) {
+      sendJson(response, 401, { error: "Not signed in." }, origin, config);
+      return true;
+    }
+
+    const body = await parseBody(request);
+    const validation = validatePortalTherapistUpdates(body);
+    if (validation.error) {
+      sendJson(response, 400, { error: validation.error, field: validation.field }, origin, config);
+      return true;
+    }
+    if (!validation.hasChanges) {
+      sendJson(response, 400, { error: "No editable fields supplied." }, origin, config);
+      return true;
+    }
+
+    const existing = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, claimStatus, therapistReportedFields,
+        portalFirstSaveAt, portalSaveCount
+      }`,
+      { slug: session.slug },
+    );
+    if (!existing) {
+      sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+      return true;
+    }
+    if (existing.claimStatus !== "claimed") {
+      sendJson(response, 403, { error: "Claim this profile before editing it." }, origin, config);
+      return true;
+    }
+
+    // Merge touched snake_case keys into therapistReportedFields. Any
+    // field the therapist submitted — set or unset — is considered
+    // reviewed. This is the provenance signal the portal uses to hide
+    // the "unreviewed" dot and dismiss the "review scraped data"
+    // banner on the next render.
+    const priorReported = Array.isArray(existing.therapistReportedFields)
+      ? existing.therapistReportedFields
+      : [];
+    const nextReportedSet = new Set(priorReported);
+    (validation.touchedBodyKeys || []).forEach(function (key) {
+      nextReportedSet.add(key);
+    });
+    const nextReported = Array.from(nextReportedSet);
+
+    // Save bookkeeping for portal funnel analytics. Aggregate-friendly
+    // counters + timestamps on the therapist doc — no new doc types.
+    // portalFirstSaveAt sticks (never overwritten). portalLastSaveAt
+    // and portalSaveCount update every save.
+    const nowIso = new Date().toISOString();
+    const saveBookkeeping = {
+      portalLastSaveAt: nowIso,
+      portalSaveCount: Number(existing.portalSaveCount || 0) + 1,
+    };
+    if (!existing.portalFirstSaveAt) {
+      saveBookkeeping.portalFirstSaveAt = nowIso;
+    }
+
+    let patch = client.patch(existing._id);
+    if (Object.keys(validation.setFields).length) {
+      patch = patch.set(validation.setFields);
+    }
+    if (validation.unsetFields.length) {
+      patch = patch.unset(validation.unsetFields);
+    }
+    if (nextReported.length > priorReported.length) {
+      patch = patch.set({ therapistReportedFields: nextReported });
+    }
+    patch = patch.set(saveBookkeeping);
+    await patch.commit({ visibility: "sync" });
+
+    const updated = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, name, email, city, state, zip, practiceName, status, listingActive,
+        claimStatus, claimedByEmail, claimedAt,
+        portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
+        "slug": slug.current,
+        bio, credentials, title, phone, website, bookingUrl,
+        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
+        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
+        sessionFeeMin, sessionFeeMax, slidingScale,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
+        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
+      }`,
+      { slug: session.slug },
+    );
+
+    sendJson(response, 200, { ok: true, therapist: shapePortalTherapist(updated) }, origin, config);
     return true;
   }
 

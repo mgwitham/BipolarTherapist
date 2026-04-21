@@ -2745,21 +2745,37 @@ function renderProfile(t, therapistDirectory) {
   // no migration or data gate beyond the subscription flag.
   var hasPaidSubscription = Boolean(t.has_paid_subscription);
 
+  // Short-form signup injects stub placeholders into the application
+  // so schema validation passes. Those used to leak through to the
+  // published therapist doc and render to patients as "Pending —
+  // completed after approval." Treat them as empty.
+  var INTAKE_STUBS = [
+    "Pending",
+    "Pending — completed after approval.",
+    "Pending - completed after approval.",
+  ];
+  function stripIntakeStub(value) {
+    if (typeof value !== "string") return value;
+    var trimmed = value.trim();
+    return INTAKE_STUBS.indexOf(trimmed) !== -1 ? "" : value;
+  }
+
   function renderBioParagraphs(rawBio) {
-    if (!rawBio) {
+    var bio = stripIntakeStub(rawBio);
+    if (!bio) {
       return '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>';
     }
     // Split on blank lines so therapists who write multi-paragraph bios
     // see them rendered as paragraphs. Collapsed view used the whole
     // string in one <p> which lost structure.
-    var paragraphs = String(rawBio)
+    var paragraphs = String(bio)
       .split(/\n\s*\n+/)
       .map(function (chunk) {
         return chunk.trim();
       })
       .filter(Boolean);
     if (!paragraphs.length) {
-      return '<p class="profile-bio-paragraph">' + escapeHtml(String(rawBio).trim()) + "</p>";
+      return '<p class="profile-bio-paragraph">' + escapeHtml(String(bio).trim()) + "</p>";
     }
     return paragraphs
       .map(function (paragraph) {
@@ -2768,15 +2784,17 @@ function renderProfile(t, therapistDirectory) {
       .join("");
   }
 
+  var scrubbedBio = stripIntakeStub(t.bio);
+  var scrubbedCareApproach = stripIntakeStub(t.care_approach);
   var bioBodyHtml =
     (hasPaidSubscription
-      ? renderBioParagraphs(t.bio)
-      : t.bio
-        ? '<p class="profile-bio-paragraph">' + escapeHtml(t.bio) + "</p>"
+      ? renderBioParagraphs(scrubbedBio)
+      : scrubbedBio
+        ? '<p class="profile-bio-paragraph">' + escapeHtml(scrubbedBio) + "</p>"
         : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
-    (t.care_approach
+    (scrubbedCareApproach
       ? '<p class="profile-bio-paragraph profile-bio-approach">' +
-        escapeHtml(t.care_approach) +
+        escapeHtml(scrubbedCareApproach) +
         "</p>"
       : "");
 

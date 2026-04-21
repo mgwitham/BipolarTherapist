@@ -237,6 +237,14 @@ export async function fetchTherapistMe() {
   });
 }
 
+export async function patchTherapistProfile(updates) {
+  return request("/portal/therapist", {
+    method: "PATCH",
+    headers: getTherapistHeaders(),
+    body: JSON.stringify(updates || {}),
+  });
+}
+
 function getAdminHeaders() {
   const sessionToken = getAdminSessionToken();
   return sessionToken

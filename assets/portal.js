@@ -1,7 +1,9 @@
 import "./funnel-analytics.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
+import { PORTAL_PICKER_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   acceptTherapistClaim,
   createStripeBillingPortalSession,
@@ -11,6 +13,7 @@ import {
   fetchTherapistMe,
   fetchTherapistSubscription,
   getTherapistSessionToken,
+  patchTherapistProfile,
   requestTherapistClaimLink,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -1306,6 +1309,1160 @@ function renderStripeReturnBanner() {
   );
 }
 
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+function joinArray(value) {
+  return Array.isArray(value) ? value.join(", ") : "";
+}
+
+// Candidates for the "next best add" nudge. Each tests a missing
+// field by stubbing a plausible filled value and seeing how much
+// getTherapistMatchReadiness moves. The nudge shows the biggest mover.
+// Keep this list strictly to fields the therapist can edit from the
+// portal — suggesting "add license number" would be useless since
+// that's locked here.
+var NEXT_BEST_FIELDS = [
+  {
+    key: "phone",
+    label: "Add a public phone number",
+    isEmpty: function (t) {
+      return !String(t.phone || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { phone: "555-555-5555" });
+    },
+  },
+  {
+    key: "website",
+    label: "Add your website",
+    isEmpty: function (t) {
+      return !String(t.website || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { website: "https://example.com" });
+    },
+  },
+  {
+    key: "care_approach",
+    label: "Describe how you help bipolar clients",
+    isEmpty: function (t) {
+      return !String(t.care_approach || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { care_approach: "stub" });
+    },
+  },
+  {
+    key: "insurance_accepted",
+    label: "List insurance accepted",
+    isEmpty: function (t) {
+      return !(t.insurance_accepted && t.insurance_accepted.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { insurance_accepted: ["Aetna", "Cigna", "BCBS"] });
+    },
+  },
+  {
+    key: "treatment_modalities",
+    label: "List your treatment modalities",
+    isEmpty: function (t) {
+      return !(t.treatment_modalities && t.treatment_modalities.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { treatment_modalities: ["CBT", "DBT"] });
+    },
+  },
+  {
+    key: "client_populations",
+    label: "Specify populations you serve",
+    isEmpty: function (t) {
+      return !(t.client_populations && t.client_populations.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { client_populations: ["Adults"] });
+    },
+  },
+  {
+    key: "bipolar_years_experience",
+    label: "Add years of bipolar-specific experience",
+    isEmpty: function (t) {
+      return !Number(t.bipolar_years_experience || 0);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { bipolar_years_experience: 5 });
+    },
+  },
+  {
+    key: "telehealth_states",
+    label: "List telehealth states you cover",
+    isEmpty: function (t) {
+      return !(t.accepts_telehealth && t.telehealth_states && t.telehealth_states.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { accepts_telehealth: true, telehealth_states: ["CA"] });
+    },
+  },
+];
+
+function getProjectedTherapist(baseTherapist, form) {
+  if (!form) return baseTherapist;
+  var el = form.elements;
+  function str(name) {
+    var node = el[name];
+    return node ? String(node.value || "").trim() : "";
+  }
+  function bool(name) {
+    var node = el[name];
+    return !!(node && node.checked);
+  }
+  function num(name) {
+    var node = el[name];
+    if (!node) return null;
+    var v = String(node.value || "").trim();
+    if (v === "") return null;
+    var n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  function csv(name) {
+    var v = str(name);
+    if (!v) return [];
+    return v
+      .split(",")
+      .map(function (x) {
+        return x.trim();
+      })
+      .filter(function (x) {
+        return x.length > 0;
+      });
+  }
+  return Object.assign({}, baseTherapist, {
+    phone: str("phone") || baseTherapist.phone || "",
+    website: str("website") || baseTherapist.website || "",
+    booking_url: str("booking_url") || baseTherapist.booking_url || "",
+    bio: str("bio") || baseTherapist.bio || "",
+    credentials: str("credentials") || baseTherapist.credentials || "",
+    practice_name: str("practice_name") || baseTherapist.practice_name || "",
+    care_approach: str("care_approach") || baseTherapist.care_approach || "",
+    contact_guidance: str("contact_guidance") || baseTherapist.contact_guidance || "",
+    first_step_expectation:
+      str("first_step_expectation") || baseTherapist.first_step_expectation || "",
+    estimated_wait_time: str("estimated_wait_time") || baseTherapist.estimated_wait_time || "",
+    preferred_contact_method:
+      str("preferred_contact_method") || baseTherapist.preferred_contact_method || "",
+    preferred_contact_label:
+      str("preferred_contact_label") || baseTherapist.preferred_contact_label || "",
+    accepting_new_patients: bool("accepting_new_patients"),
+    accepts_telehealth: bool("accepts_telehealth"),
+    accepts_in_person: bool("accepts_in_person"),
+    sliding_scale: bool("sliding_scale"),
+    medication_management: bool("medication_management"),
+    session_fee_min: num("session_fee_min"),
+    session_fee_max: num("session_fee_max"),
+    years_experience: num("years_experience"),
+    bipolar_years_experience: num("bipolar_years_experience"),
+    specialties: csv("specialties"),
+    insurance_accepted: csv("insurance_accepted"),
+    telehealth_states: csv("telehealth_states"),
+    treatment_modalities: csv("treatment_modalities"),
+    languages: csv("languages"),
+    client_populations: csv("client_populations"),
+  });
+}
+
+function computeNextBestAdd(projectedTherapist) {
+  var baseScore = getTherapistMatchReadiness(projectedTherapist).score;
+  var best = null;
+  for (var i = 0; i < NEXT_BEST_FIELDS.length; i += 1) {
+    var candidate = NEXT_BEST_FIELDS[i];
+    if (!candidate.isEmpty(projectedTherapist)) continue;
+    var stubbed = getTherapistMatchReadiness(candidate.stub(projectedTherapist)).score;
+    var delta = stubbed - baseScore;
+    if (delta <= 0) continue;
+    if (!best || delta > best.delta) {
+      best = { label: candidate.label, delta: delta, from: baseScore, to: stubbed };
+    }
+  }
+  return best;
+}
+
+// Per-fieldset completion: fraction of trackable (non-boolean) inputs
+// in the fieldset that have a non-empty value. Booleans are excluded
+// because they're always "answered" (toggle defaults).
+function fieldsetFillStats(fieldsetEl) {
+  var inputs = fieldsetEl.querySelectorAll("input, select, textarea");
+  var trackable = 0;
+  var filled = 0;
+  inputs.forEach(function (node) {
+    if (node.type === "checkbox" || node.type === "hidden") return;
+    trackable += 1;
+    if (String(node.value || "").trim() !== "") filled += 1;
+  });
+  return { filled: filled, total: trackable };
+}
+
+function updateReadinessUi(baseTherapist, form) {
+  var projected = getProjectedTherapist(baseTherapist, form);
+  var readiness = getTherapistMatchReadiness(projected);
+  var score = readiness.score;
+
+  var bar = document.getElementById("portalReadinessBarFill");
+  var scoreEl = document.getElementById("portalReadinessScore");
+  var labelEl = document.getElementById("portalReadinessLabel");
+  var nudgeEl = document.getElementById("portalReadinessNudge");
+  if (bar) bar.style.width = Math.max(3, score) + "%";
+  if (scoreEl) scoreEl.textContent = score + "/100";
+  if (labelEl) labelEl.textContent = readiness.label;
+
+  if (nudgeEl) {
+    var nextBest = computeNextBestAdd(projected);
+    if (nextBest) {
+      nudgeEl.innerHTML =
+        "<strong>Biggest next jump:</strong> " +
+        escapeHtml(nextBest.label) +
+        " would move you from <strong>" +
+        nextBest.from +
+        "</strong> to <strong>" +
+        nextBest.to +
+        "</strong>.";
+      nudgeEl.hidden = false;
+    } else if (score >= 90) {
+      nudgeEl.textContent = "Your profile is match-ready. Keep the details fresh.";
+      nudgeEl.hidden = false;
+    } else {
+      nudgeEl.hidden = true;
+    }
+  }
+
+  // Per-fieldset chips.
+  var fieldsets = form ? form.querySelectorAll("fieldset.portal-edit-group") : [];
+  fieldsets.forEach(function (fs) {
+    var legend = fs.querySelector("legend");
+    if (!legend) return;
+    var chip = legend.querySelector(".portal-edit-chip");
+    var stats = fieldsetFillStats(fs);
+    if (!stats.total) {
+      if (chip) chip.remove();
+      return;
+    }
+    var text =
+      stats.filled === stats.total ? "✓ complete" : stats.filled + "/" + stats.total + " filled";
+    var className =
+      stats.filled === stats.total ? "portal-edit-chip is-complete" : "portal-edit-chip";
+    if (chip) {
+      chip.textContent = text;
+      chip.className = className;
+    } else {
+      var span = document.createElement("span");
+      span.className = className;
+      span.textContent = text;
+      legend.appendChild(span);
+    }
+  });
+}
+
+function buildReadinessSectionHtml() {
+  return (
+    '<div class="portal-readiness" id="portalReadinessSection">' +
+    '<div class="portal-readiness-head">' +
+    '<span class="portal-readiness-title">Profile readiness</span>' +
+    '<span class="portal-readiness-label" id="portalReadinessLabel">—</span>' +
+    '<span class="portal-readiness-score" id="portalReadinessScore">—</span>' +
+    "</div>" +
+    '<div class="portal-readiness-bar" aria-hidden="true">' +
+    '<div class="portal-readiness-bar-fill" id="portalReadinessBarFill" style="width:3%"></div>' +
+    "</div>" +
+    '<p class="portal-readiness-nudge" id="portalReadinessNudge" hidden></p>' +
+    "</div>"
+  );
+}
+
+function buildEditProfileHtml(therapist) {
+  var t = therapist || {};
+  var viewHref = t.slug ? "therapist.html?slug=" + encodeURIComponent(t.slug) : "";
+
+  // Fields the therapist has already reviewed (either confirmed or
+  // edited). Any field with a value that ISN'T in this set is
+  // "editorially sourced" — likely scraped from public sources — and
+  // gets a grey dot next to its label until the therapist saves it.
+  var reportedList = Array.isArray(t.therapist_reported_fields) ? t.therapist_reported_fields : [];
+  var reportedSet = {};
+  reportedList.forEach(function (k) {
+    reportedSet[String(k).trim()] = true;
+    // Tolerate mixed camelCase/snake_case history by registering both
+    // spellings. Older review events stored camelCase names.
+    reportedSet[
+      String(k)
+        .replace(/([A-Z])/g, "_$1")
+        .toLowerCase()
+    ] = true;
+  });
+
+  function hasMeaningfulValue(value) {
+    if (value == null || value === "") return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (typeof value === "number") return true;
+    return Boolean(value);
+  }
+
+  function reviewDot(name, value) {
+    if (reportedSet[name]) return "";
+    if (!hasMeaningfulValue(value)) return "";
+    return '<span class="portal-review-dot" title="Pulled from public sources — please review and save to confirm" aria-label="Unreviewed field"></span>';
+  }
+
+  // The big banner shows when the therapist has never confirmed any
+  // field AND the profile already has at least one pre-filled value
+  // (i.e. this is a scraped profile they just claimed). If everything
+  // is empty, there's nothing to review — no banner.
+  var hasAnyPrefilledData =
+    hasMeaningfulValue(t.bio) ||
+    hasMeaningfulValue(t.credentials) ||
+    hasMeaningfulValue(t.care_approach) ||
+    hasMeaningfulValue(t.phone) ||
+    hasMeaningfulValue(t.website) ||
+    hasMeaningfulValue(t.specialties) ||
+    hasMeaningfulValue(t.insurance_accepted) ||
+    hasMeaningfulValue(t.telehealth_states) ||
+    hasMeaningfulValue(t.session_fee_min);
+  var showReviewBanner = reportedList.length === 0 && hasAnyPrefilledData;
+  // Empty-state coaching — only for fresh signups with no pre-filled
+  // data and zero prior saves. Pointing a new therapist directly at
+  // bio + specialties is the single highest-leverage first-3-minutes
+  // ask. Don't show if the profile is scraped/pre-filled (the review
+  // banner handles that case) or if they've saved before.
+  var isFirstTimeEmpty =
+    !hasAnyPrefilledData && !((t && t.portal_save_count) > 0) && reportedList.length === 0;
+  var coachingBannerHtml = isFirstTimeEmpty
+    ? '<div class="portal-coaching-banner">' +
+      "<strong>New to the directory?</strong> " +
+      "Three minutes on <strong>Bio</strong> + <strong>Bipolar specialties</strong> puts you in front of patients by the end of the day. " +
+      'Start with <a href="#" class="portal-coaching-jump" data-target="bio">your bio below ↓</a>.' +
+      "</div>"
+    : "";
+  var reviewBannerHtml = showReviewBanner
+    ? '<div class="portal-review-banner" id="portalReviewBanner">' +
+      "<strong>We pre-filled your profile from public sources.</strong> " +
+      "Please review each section — outdated info hurts your discoverability. " +
+      "Any field with a " +
+      '<span class="portal-review-dot" aria-hidden="true"></span> hasn\'t been confirmed by you yet. ' +
+      "Saving a section marks it as reviewed." +
+      "</div>"
+    : "";
+
+  function hintBlock(text) {
+    return text ? '<small class="portal-hint">' + escapeHtml(text) + "</small>" : "";
+  }
+
+  function textInput(name, label, value, opts) {
+    opts = opts || {};
+    var type = opts.type || "text";
+    var attrs = opts.attrs || "";
+    return (
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
+      escapeHtml(label) +
+      reviewDot(name, value) +
+      "</strong>" +
+      hintBlock(opts.hint) +
+      "</span>" +
+      '<input type="' +
+      type +
+      '" name="' +
+      name +
+      '" value="' +
+      escapeAttr(value == null ? "" : value) +
+      '" ' +
+      attrs +
+      " /></label>"
+    );
+  }
+
+  function textarea(name, label, value, rows, opts) {
+    opts = opts || {};
+    var minLen = opts.minLen ? ' data-min-len="' + opts.minLen + '"' : "";
+    var goodLen = opts.goodLen ? ' data-good-len="' + opts.goodLen + '"' : "";
+    var hasCounter = opts.minLen || opts.goodLen;
+    return (
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
+      escapeHtml(label) +
+      reviewDot(name, value) +
+      "</strong>" +
+      hintBlock(opts.hint) +
+      "</span>" +
+      '<textarea name="' +
+      name +
+      '" rows="' +
+      (rows || 4) +
+      '"' +
+      minLen +
+      goodLen +
+      (hasCounter ? ' data-has-counter="true"' : "") +
+      ">" +
+      escapeHtml(value || "") +
+      "</textarea>" +
+      (hasCounter
+        ? '<div class="portal-char-counter" data-counter-for="' + name + '"></div>'
+        : "") +
+      "</label>"
+    );
+  }
+
+  function checkbox(name, label, checked, hint) {
+    return (
+      '<label class="portal-edit-check"><input type="checkbox" name="' +
+      name +
+      '" ' +
+      (checked ? "checked" : "") +
+      " /><span><strong>" +
+      escapeHtml(label) +
+      "</strong>" +
+      hintBlock(hint) +
+      "</span></label>"
+    );
+  }
+
+  function select(name, label, value, choices, hint) {
+    var opts = choices
+      .map(function (c) {
+        return (
+          '<option value="' +
+          escapeAttr(c.value) +
+          '" ' +
+          (String(value || "") === c.value ? "selected" : "") +
+          ">" +
+          escapeHtml(c.label) +
+          "</option>"
+        );
+      })
+      .join("");
+    return (
+      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
+      escapeHtml(label) +
+      reviewDot(name, value) +
+      "</strong>" +
+      hintBlock(hint) +
+      "</span>" +
+      '<select name="' +
+      name +
+      '">' +
+      opts +
+      "</select></label>"
+    );
+  }
+
+  function chipPicker(name, label, values, hint) {
+    var current = Array.isArray(values) ? values : [];
+    var chipsHtml = current
+      .map(function (v) {
+        return (
+          '<span class="portal-chip">' +
+          escapeHtml(v) +
+          '<button type="button" class="portal-chip-remove" aria-label="Remove ' +
+          escapeAttr(v) +
+          '" data-val="' +
+          escapeAttr(v) +
+          '">×</button></span>'
+        );
+      })
+      .join("");
+    return (
+      '<div class="portal-edit-field portal-chip-picker" data-field="' +
+      name +
+      '">' +
+      '<span class="portal-edit-label"><strong>' +
+      escapeHtml(label) +
+      reviewDot(name, current) +
+      "</strong>" +
+      hintBlock(hint) +
+      "</span>" +
+      '<div class="portal-chip-list">' +
+      chipsHtml +
+      "</div>" +
+      '<div class="portal-chip-input-wrap">' +
+      '<input type="text" class="portal-chip-input" placeholder="Type to search or add…" autocomplete="off" />' +
+      '<ul class="portal-chip-suggestions" hidden></ul>' +
+      "</div>" +
+      '<input type="hidden" name="' +
+      name +
+      '" value="' +
+      escapeAttr(current.join(",")) +
+      '" />' +
+      "</div>"
+    );
+  }
+
+  return (
+    '<section class="portal-card portal-edit" id="portalEditCard" style="margin-bottom:1rem">' +
+    '<div class="portal-edit-head">' +
+    "<h2>Edit your profile</h2>" +
+    (viewHref
+      ? '<a class="btn-secondary portal-edit-view" href="' +
+        escapeAttr(viewHref) +
+        '" target="_blank" rel="noopener">View public listing ↗</a>'
+      : "") +
+    "</div>" +
+    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>' +
+    reviewBannerHtml +
+    coachingBannerHtml +
+    buildReadinessSectionHtml() +
+    '<form id="portalEditForm" class="portal-edit-form">' +
+    // About you — most conversion-critical, comes first.
+    '<fieldset class="portal-edit-group"><legend>About you</legend>' +
+    textarea("bio", "Bio", t.bio, 6, {
+      hint: "Patients read this first. 150–300 words works best. Speak to them, not about yourself in third person.",
+      minLen: 50,
+      goodLen: 600,
+    }) +
+    textInput("credentials", "Credentials", t.credentials, {
+      hint: 'Short form like "LMFT, PhD". Shown next to your name across the directory.',
+    }) +
+    textInput("practice_name", "Practice name", t.practice_name, {
+      hint: "Optional. Leave blank if you practice under your own name.",
+    }) +
+    textarea("care_approach", "How you help bipolar clients", t.care_approach, 4, {
+      hint: "What's distinctive about your bipolar work? Populations, modalities, mood-stabilization vs. relapse prevention, med-coordination. A specific answer beats a generic one.",
+      minLen: 120,
+      goodLen: 400,
+    }) +
+    textInput("years_experience", "Years of experience", t.years_experience, {
+      type: "number",
+      attrs: 'min="0" max="80"',
+      hint: "Total years in practice.",
+    }) +
+    textInput(
+      "bipolar_years_experience",
+      "Years treating bipolar specifically",
+      t.bipolar_years_experience,
+      {
+        type: "number",
+        attrs: 'min="0" max="80"',
+        hint: "Patients searching for specialists weight this heavily. 8+ years unlocks a readiness boost.",
+      },
+    ) +
+    checkbox(
+      "medication_management",
+      "I provide medication management",
+      t.medication_management === true,
+      "Check only if you can prescribe or co-manage meds. This is a patient filter.",
+    ) +
+    "</fieldset>" +
+    // Who you see + how — fit & filters. The chip pickers live here.
+    '<fieldset class="portal-edit-group"><legend>Who you see and how</legend>' +
+    chipPicker(
+      "specialties",
+      "Bipolar specialties",
+      t.specialties,
+      "Click to add. Patients filter by these. More specific > generic.",
+    ) +
+    chipPicker(
+      "insurance_accepted",
+      "Insurance accepted",
+      t.insurance_accepted,
+      "Patients filter by this. Without it, you're invisible in insurance-filtered searches. Type your own plan if not listed.",
+    ) +
+    chipPicker(
+      "telehealth_states",
+      "Telehealth states",
+      t.telehealth_states,
+      "Only list states where you're actually licensed. Required to appear in cross-state searches.",
+    ) +
+    chipPicker(
+      "treatment_modalities",
+      "Treatment modalities",
+      t.treatment_modalities,
+      "IPSRT and Family-Focused Therapy are bipolar-specific and score well with informed patients.",
+    ) +
+    chipPicker(
+      "client_populations",
+      "Populations you serve",
+      t.client_populations,
+      "Adolescents, couples, LGBTQ+, BIPOC — patients filter by these.",
+    ) +
+    chipPicker(
+      "languages",
+      "Languages",
+      t.languages,
+      "Any language you can conduct a full session in.",
+    ) +
+    "</fieldset>" +
+    // Contact + availability
+    '<fieldset class="portal-edit-group"><legend>Contact and availability</legend>' +
+    checkbox(
+      "accepting_new_patients",
+      "Currently accepting new patients",
+      t.accepting_new_patients !== false,
+      "Patients filter on this. Toggle off when you're full — your listing stays up but drops from 'accepting' searches.",
+    ) +
+    checkbox("accepts_telehealth", "Offer telehealth sessions", t.accepts_telehealth !== false) +
+    checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
+    textInput("estimated_wait_time", "Estimated wait time", t.estimated_wait_time, {
+      hint: '"2 weeks", "Immediately available", "4–6 weeks". Patients triage urgent vs. exploratory by this.',
+    }) +
+    textInput("phone", "Public phone", t.phone, {
+      hint: "Shown on your public profile. Leave blank to keep it private.",
+    }) +
+    textInput("website", "Website", t.website, {
+      type: "url",
+      attrs: 'placeholder="https://"',
+      hint: "Builds trust and supports independent verification.",
+    }) +
+    textInput("booking_url", "Booking URL", t.booking_url, {
+      type: "url",
+      attrs: 'placeholder="https://"',
+      hint: "Optional. Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
+    }) +
+    select(
+      "preferred_contact_method",
+      "Preferred contact method",
+      t.preferred_contact_method,
+      [
+        { value: "", label: "— Not set —" },
+        { value: "email", label: "Email" },
+        { value: "phone", label: "Phone" },
+        { value: "website", label: "Website" },
+        { value: "booking", label: "Booking link" },
+      ],
+      "What the primary CTA button on your profile routes to.",
+    ) +
+    textInput("preferred_contact_label", "Contact button label", t.preferred_contact_label, {
+      hint: '"Book a consultation", "Request an intake", "Email me". Overrides the default label.',
+    }) +
+    textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3, {
+      hint: "Tell patients what to send up front — state they're in, therapy vs. med needs, insurance. Reduces back-and-forth.",
+      minLen: 60,
+      goodLen: 250,
+    }) +
+    textarea(
+      "first_step_expectation",
+      "What happens after someone reaches out",
+      t.first_step_expectation,
+      3,
+      {
+        hint: "Do you call within 24h? Offer a 15-min consult? Describe the first step so patients can picture it.",
+        minLen: 60,
+        goodLen: 250,
+      },
+    ) +
+    "</fieldset>" +
+    // Fees
+    '<fieldset class="portal-edit-group"><legend>Fees</legend>' +
+    textInput("session_fee_min", "Session fee minimum ($)", t.session_fee_min, {
+      type: "number",
+      attrs: 'min="0" max="10000"',
+      hint: "A range filters out price-mismatched inquiries before they waste your time.",
+    }) +
+    textInput("session_fee_max", "Session fee maximum ($)", t.session_fee_max, {
+      type: "number",
+      attrs: 'min="0" max="10000"',
+    }) +
+    checkbox(
+      "sliding_scale",
+      "I offer a sliding scale",
+      t.sliding_scale === true,
+      "Even a partial sliding scale is a discoverability boost — patients filter for this.",
+    ) +
+    "</fieldset>" +
+    '<div class="portal-actions" style="margin-top:1rem"><button class="btn-primary" type="submit">Save changes</button><div class="portal-feedback" id="portalEditFeedback"></div></div>' +
+    "</form></section>"
+  );
+}
+
+function collectEditProfileUpdates(form) {
+  var elements = form.elements;
+  var payload = {};
+
+  function str(name) {
+    var el = elements[name];
+    payload[name] = el ? String(el.value || "").trim() : "";
+  }
+
+  function num(name) {
+    var el = elements[name];
+    if (!el) return;
+    var v = String(el.value || "").trim();
+    payload[name] = v === "" ? "" : Number(v);
+  }
+
+  function bool(name) {
+    var el = elements[name];
+    payload[name] = !!(el && el.checked);
+  }
+
+  [
+    "bio",
+    "credentials",
+    "practice_name",
+    "phone",
+    "website",
+    "booking_url",
+    "preferred_contact_method",
+    "preferred_contact_label",
+    "contact_guidance",
+    "first_step_expectation",
+    "estimated_wait_time",
+    "care_approach",
+    "specialties",
+    "insurance_accepted",
+    "telehealth_states",
+    "treatment_modalities",
+    "languages",
+    "client_populations",
+  ].forEach(str);
+
+  ["session_fee_min", "session_fee_max", "years_experience", "bipolar_years_experience"].forEach(
+    num,
+  );
+
+  [
+    "accepting_new_patients",
+    "accepts_telehealth",
+    "accepts_in_person",
+    "sliding_scale",
+    "medication_management",
+  ].forEach(bool);
+
+  return payload;
+}
+
+function attachChipPicker(picker) {
+  var field = picker.dataset.field;
+  var suggestions = PORTAL_PICKER_OPTIONS[field] || [];
+  var list = picker.querySelector(".portal-chip-list");
+  var input = picker.querySelector(".portal-chip-input");
+  var suggestBox = picker.querySelector(".portal-chip-suggestions");
+  var hidden = picker.querySelector('input[type="hidden"]');
+
+  function currentValues() {
+    return hidden.value
+      ? hidden.value
+          .split(",")
+          .map(function (s) {
+            return s.trim();
+          })
+          .filter(function (s) {
+            return s.length > 0;
+          })
+      : [];
+  }
+
+  function renderChips(arr) {
+    list.innerHTML = arr
+      .map(function (v) {
+        return (
+          '<span class="portal-chip">' +
+          escapeHtml(v) +
+          '<button type="button" class="portal-chip-remove" aria-label="Remove ' +
+          escapeAttr(v) +
+          '" data-val="' +
+          escapeAttr(v) +
+          '">×</button></span>'
+        );
+      })
+      .join("");
+  }
+
+  function setValues(arr) {
+    hidden.value = arr.join(",");
+    renderChips(arr);
+    hidden.dispatchEvent(new window.Event("input", { bubbles: true }));
+  }
+
+  function showSuggestions(query) {
+    var q = String(query || "")
+      .toLowerCase()
+      .trim();
+    var taken = {};
+    currentValues().forEach(function (v) {
+      taken[v.toLowerCase()] = true;
+    });
+    var matches = suggestions.filter(function (s) {
+      if (taken[s.toLowerCase()]) return false;
+      if (!q) return true;
+      return s.toLowerCase().indexOf(q) !== -1;
+    });
+    matches = matches.slice(0, 10);
+    if (!matches.length) {
+      suggestBox.hidden = true;
+      suggestBox.innerHTML = "";
+      return;
+    }
+    suggestBox.innerHTML = matches
+      .map(function (m) {
+        return '<li data-val="' + escapeAttr(m) + '" role="option">' + escapeHtml(m) + "</li>";
+      })
+      .join("");
+    suggestBox.hidden = false;
+  }
+
+  function addValue(v) {
+    v = String(v || "").trim();
+    if (!v) return;
+    var arr = currentValues();
+    var lower = v.toLowerCase();
+    for (var i = 0; i < arr.length; i += 1) {
+      if (arr[i].toLowerCase() === lower) return;
+    }
+    arr.push(v);
+    setValues(arr);
+    input.value = "";
+    showSuggestions("");
+  }
+
+  function removeValue(v) {
+    setValues(
+      currentValues().filter(function (x) {
+        return x !== v;
+      }),
+    );
+  }
+
+  list.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-val]");
+    if (btn) removeValue(btn.dataset.val);
+  });
+
+  input.addEventListener("input", function () {
+    showSuggestions(input.value);
+  });
+  input.addEventListener("focus", function () {
+    showSuggestions(input.value);
+  });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addValue(input.value);
+    } else if (e.key === "Backspace" && !input.value) {
+      var arr = currentValues();
+      if (arr.length) {
+        arr.pop();
+        setValues(arr);
+      }
+    } else if (e.key === "Escape") {
+      suggestBox.hidden = true;
+    }
+  });
+
+  suggestBox.addEventListener("mousedown", function (e) {
+    var li = e.target.closest("li[data-val]");
+    if (li) {
+      e.preventDefault();
+      addValue(li.dataset.val);
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!picker.contains(e.target)) suggestBox.hidden = true;
+  });
+}
+
+function attachAllChipPickers(form) {
+  form.querySelectorAll(".portal-chip-picker").forEach(attachChipPicker);
+}
+
+function updateCharCounter(node) {
+  var name = node.name;
+  var counter = document.querySelector('[data-counter-for="' + name + '"]');
+  if (!counter) return;
+  var len = String(node.value || "").length;
+  var minLen = Number(node.dataset.minLen || 0);
+  var goodLen = Number(node.dataset.goodLen || 0);
+  var state = "short";
+  var label = len + " chars";
+  if (minLen && len < minLen) {
+    state = "short";
+    label = len + " / " + minLen + " min";
+  } else if (goodLen && len >= goodLen) {
+    state = "good";
+    label = len + " chars · good length";
+  } else if (minLen && len >= minLen) {
+    state = "ok";
+    label = len + " chars · ok";
+  }
+  counter.textContent = label;
+  counter.className = "portal-char-counter is-" + state;
+}
+
+function attachAllCharCounters(form) {
+  form.querySelectorAll('textarea[data-has-counter="true"]').forEach(function (node) {
+    updateCharCounter(node);
+    node.addEventListener("input", function () {
+      updateCharCounter(node);
+    });
+  });
+}
+
+// Captures the current form state as a map keyed by input name.
+// Used to diff against on submit so we only send fields the user
+// actually changed. Keeps "reviewed" provenance honest — a therapist
+// who hits Save without editing anything marks zero fields as
+// reviewed (and gets a friendly "no changes" message).
+function snapshotFormState(form) {
+  var state = {};
+  form.querySelectorAll("input, select, textarea").forEach(function (node) {
+    if (!node.name) return;
+    if (node.type === "checkbox") {
+      state[node.name] = node.checked ? "true" : "false";
+    } else {
+      state[node.name] = String(node.value || "");
+    }
+  });
+  return state;
+}
+
+function currentFormState(form) {
+  return snapshotFormState(form);
+}
+
+var PORTAL_DRAFT_KEY_PREFIX = "portal-draft-";
+
+function portalDraftKey(slug) {
+  return PORTAL_DRAFT_KEY_PREFIX + String(slug || "");
+}
+
+function readPortalDraft(slug) {
+  try {
+    var raw = window.localStorage.getItem(portalDraftKey(slug));
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.state) return null;
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writePortalDraft(slug, state) {
+  try {
+    window.localStorage.setItem(
+      portalDraftKey(slug),
+      JSON.stringify({ state: state, saved_at: new Date().toISOString() }),
+    );
+  } catch (_error) {
+    // localStorage might be unavailable (private mode, disk full). Drafts
+    // are a convenience — failing silently is correct here.
+  }
+}
+
+function clearPortalDraft(slug) {
+  try {
+    window.localStorage.removeItem(portalDraftKey(slug));
+  } catch (_error) {
+    // nothing to do — draft was already unreadable
+  }
+}
+
+function applyDraftToForm(form, state) {
+  if (!state) return;
+  form.querySelectorAll("input, select, textarea").forEach(function (node) {
+    if (!node.name || !(node.name in state)) return;
+    if (node.type === "checkbox") {
+      node.checked = state[node.name] === "true";
+    } else {
+      node.value = state[node.name];
+    }
+  });
+  // Chip pickers re-render from their hidden inputs. Re-trigger.
+  form.querySelectorAll(".portal-chip-picker").forEach(function (picker) {
+    var hidden = picker.querySelector('input[type="hidden"]');
+    if (!hidden) return;
+    hidden.dispatchEvent(new window.Event("input", { bubbles: true }));
+  });
+}
+
+function wireEditProfileHandlers(therapist) {
+  var form = document.getElementById("portalEditForm");
+  if (!form) return;
+
+  attachAllChipPickers(form);
+  attachAllCharCounters(form);
+
+  // Coaching banner "jump" link — focus the bio field and scroll it
+  // into view. Only lives on the page for fresh/empty profiles.
+  var coachingJump = document.querySelector(".portal-coaching-jump");
+  if (coachingJump) {
+    coachingJump.addEventListener("click", function (event) {
+      event.preventDefault();
+      var bio = form.elements.bio;
+      if (bio) {
+        bio.scrollIntoView({ behavior: "smooth", block: "center" });
+        bio.focus();
+        trackFunnelEvent("portal_coaching_jumped", { target: "bio" });
+      }
+    });
+  }
+
+  // Initial snapshot captured AFTER chip pickers render so their
+  // hidden inputs have their starting values. Used to diff on submit.
+  var initialSnapshot = snapshotFormState(form);
+
+  // Check for an unsaved draft from a prior session (tab closed
+  // before save, browser crash, etc.). Only offer restore if the
+  // draft is actually different from what's on the doc.
+  var draftSlug = therapist && therapist.slug;
+  var draft = draftSlug ? readPortalDraft(draftSlug) : null;
+  if (draft && draft.state) {
+    var differsFromDoc = Object.keys(draft.state).some(function (k) {
+      return draft.state[k] !== initialSnapshot[k];
+    });
+    if (!differsFromDoc) {
+      clearPortalDraft(draftSlug);
+      draft = null;
+    }
+  }
+  if (draft) {
+    var draftBanner = document.createElement("div");
+    draftBanner.className = "portal-draft-banner";
+    var savedDate = new Date(draft.saved_at);
+    var dateStr = Number.isFinite(savedDate.getTime())
+      ? savedDate.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "earlier";
+    draftBanner.innerHTML =
+      "<span>Unsaved draft from <strong>" +
+      escapeHtml(dateStr) +
+      "</strong>. Restore?</span>" +
+      '<div><button type="button" class="portal-draft-restore">Restore</button>' +
+      '<button type="button" class="portal-draft-discard">Discard</button></div>';
+    form.parentElement.insertBefore(draftBanner, form);
+    draftBanner.querySelector(".portal-draft-restore").addEventListener("click", function () {
+      applyDraftToForm(form, draft.state);
+      updateReadinessUi(therapist, form);
+      draftBanner.remove();
+      trackFunnelEvent("portal_draft_restored", { slug: draftSlug });
+    });
+    draftBanner.querySelector(".portal-draft-discard").addEventListener("click", function () {
+      clearPortalDraft(draftSlug);
+      draftBanner.remove();
+      trackFunnelEvent("portal_draft_discarded", { slug: draftSlug });
+    });
+  }
+
+  // Funnel instrumentation. Track portal-open once, first-edit once
+  // per session, and readiness-threshold crossings so we can measure
+  // whether the UX polish is actually moving therapists toward
+  // "match-ready" within the target window.
+  trackFunnelEvent("portal_opened", {
+    slug: draftSlug,
+    claim_status: therapist && therapist.claim_status,
+    save_count: (therapist && therapist.portal_save_count) || 0,
+    initial_readiness: getTherapistMatchReadiness(therapist).score,
+  });
+
+  var firstEditFired = false;
+  var lastReadinessScore = getTherapistMatchReadiness(therapist).score;
+
+  // Debounced draft autosave on edit. 600ms covers a natural typing
+  // pause without burning writes on every keystroke.
+  var draftSaveTimer = null;
+  function scheduleDraftSave() {
+    if (draftSaveTimer) window.clearTimeout(draftSaveTimer);
+    draftSaveTimer = window.setTimeout(function () {
+      if (!draftSlug) return;
+      var currentState = snapshotFormState(form);
+      // Only write draft if it differs from the current doc baseline.
+      var differs = Object.keys(currentState).some(function (k) {
+        return currentState[k] !== initialSnapshot[k];
+      });
+      if (differs) {
+        writePortalDraft(draftSlug, currentState);
+      } else {
+        clearPortalDraft(draftSlug);
+      }
+    }, 600);
+  }
+
+  // Prime the readiness UI with initial values, then update on any
+  // edit. Using both input + change covers text/number (input) and
+  // checkbox/select (change). Chip pickers dispatch 'input' on their
+  // hidden inputs when values change, so the form-level listener
+  // catches them through bubbling.
+  updateReadinessUi(therapist, form);
+  var onEdit = function () {
+    updateReadinessUi(therapist, form);
+    scheduleDraftSave();
+    if (!firstEditFired) {
+      firstEditFired = true;
+      trackFunnelEvent("portal_first_edit", { slug: draftSlug });
+    }
+    // Readiness threshold crossings (from below only).
+    var nextScore = getTherapistMatchReadiness(getProjectedTherapist(therapist, form)).score;
+    if (lastReadinessScore < 65 && nextScore >= 65) {
+      trackFunnelEvent("portal_readiness_crossed_65", { slug: draftSlug, score: nextScore });
+    }
+    if (lastReadinessScore < 85 && nextScore >= 85) {
+      trackFunnelEvent("portal_readiness_crossed_85", { slug: draftSlug, score: nextScore });
+    }
+    lastReadinessScore = nextScore;
+  };
+  form.addEventListener("input", onEdit);
+  form.addEventListener("change", onEdit);
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var feedback = document.getElementById("portalEditFeedback");
+    var submitBtn = form.querySelector('button[type="submit"]');
+
+    var snapshotNow = currentFormState(form);
+    var changedNames = Object.keys(snapshotNow).filter(function (name) {
+      return snapshotNow[name] !== initialSnapshot[name];
+    });
+    if (!changedNames.length) {
+      feedback.textContent = "No changes to save.";
+      feedback.style.color = "#6b8290";
+      trackFunnelEvent("portal_save_no_changes", { slug: draftSlug });
+      return;
+    }
+
+    // Build the typed payload from every field, then drop any key
+    // whose snapshot didn't change. This keeps coercion logic in one
+    // place (collectEditProfileUpdates) and limits the request to
+    // fields the user actually touched.
+    var fullPayload = collectEditProfileUpdates(form);
+    var payload = {};
+    changedNames.forEach(function (name) {
+      if (name in fullPayload) payload[name] = fullPayload[name];
+    });
+
+    if (submitBtn) submitBtn.disabled = true;
+    feedback.textContent = "Saving...";
+    feedback.style.color = "";
+    try {
+      var result = await patchTherapistProfile(payload);
+      feedback.textContent = "Saved. Your public listing is updated.";
+      feedback.style.color = "#1a7a8f";
+      if (result && result.therapist) {
+        claimSessionState = { therapist: result.therapist };
+        therapist = result.therapist;
+        updateReadinessUi(therapist, form);
+        // Re-snapshot so the next save diffs against the new baseline.
+        initialSnapshot = snapshotFormState(form);
+        clearPortalDraft(draftSlug);
+      }
+      trackFunnelEvent("portal_save_success", {
+        slug: draftSlug,
+        changed_fields: changedNames,
+        save_count: (therapist && therapist.portal_save_count) || 0,
+        readiness_score: getTherapistMatchReadiness(therapist).score,
+      });
+    } catch (error) {
+      feedback.textContent = (error && error.message) || "Something went wrong while saving.";
+      feedback.style.color = "#b03636";
+      trackFunnelEvent("portal_save_error", {
+        slug: draftSlug,
+        message: error && error.message,
+      });
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
 function renderPortal(therapist, options) {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -1389,6 +2546,7 @@ function renderPortal(therapist, options) {
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
+    (verifiedClaim ? buildEditProfileHtml(therapist) : "") +
     '<section class="portal-grid">' +
     '<article class="portal-card"><h2>Profile status</h2><div class="portal-list">' +
     "<div><strong>Live listing:</strong> " +
@@ -1645,6 +2803,7 @@ function renderPortal(therapist, options) {
   });
 
   if (verifiedClaim) {
+    wireEditProfileHandlers(therapist);
     loadAnalyticsIntoPortal();
     loadSubscriptionIntoFeaturedCard();
   } else if (sessionMode === "claim_token") {

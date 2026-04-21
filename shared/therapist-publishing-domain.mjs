@@ -20,6 +20,30 @@ import {
 const PUBLISH_EVENT_ID_PREFIX = "therapist-publish-event-";
 const MAX_EVENT_ID_ENTITY_FRAGMENT = 40;
 
+// Stub placeholder strings inserted by short-form signup to satisfy
+// application-schema validation (bio required, credentials required,
+// etc.). They belong on the therapistApplication doc as a marker that
+// the application is incomplete — but they must NEVER land on the
+// published therapist doc, because they'd leak into the portal edit
+// form (forcing therapists to delete placeholder text before typing)
+// and into public profile pages (patients reading "Pending —
+// completed after approval." as a bio). Keep the full list here so
+// any new stub value is scrubbed consistently.
+const INTAKE_STUB_VALUES = new Set([
+  "Pending",
+  "Pending — completed after approval.",
+  "Pending - completed after approval.",
+]);
+
+export function isIntakeStub(value) {
+  if (typeof value !== "string") return false;
+  return INTAKE_STUB_VALUES.has(value.trim());
+}
+
+export function scrubIntakeStub(value) {
+  return isIntakeStub(value) ? "" : value || "";
+}
+
 export function buildPublishEventId(entityId) {
   const raw = String(entityId || "").trim();
   const fragment = raw.slice(0, MAX_EVENT_ID_ENTITY_FRAGMENT);
@@ -85,15 +109,15 @@ export function buildTherapistDocument(application, existingId, helpers) {
     therapistReportedConfirmedAt: application.therapistReportedConfirmedAt || "",
     fieldReviewStates: application.fieldReviewStates || {},
     name: application.name,
-    credentials: application.credentials,
+    credentials: scrubIntakeStub(application.credentials),
     city: application.city,
     state: application.state,
     email: application.email,
     phone: application.phone,
     website: application.website,
     bookingUrl: application.bookingUrl,
-    careApproach: application.careApproach,
-    bio: application.bio,
+    careApproach: scrubIntakeStub(application.careApproach),
+    bio: scrubIntakeStub(application.bio),
     specialties: helpers.splitList(application.specialties),
     insuranceAccepted: helpers.splitList(application.insuranceAccepted),
     languages: helpers.splitList(application.languages),
@@ -110,14 +134,14 @@ export function buildTherapistDocument(application, existingId, helpers) {
       _type: "slug",
       current: slug,
     },
-    credentials: application.credentials || "",
+    credentials: scrubIntakeStub(application.credentials),
     title: application.title || "",
     ...(application.photo ? { photo: application.photo } : {}),
     photoSourceType: application.photoSourceType || "",
     photoReviewedAt: application.photoReviewedAt || "",
     photoUsagePermissionConfirmed: Boolean(application.photoUsagePermissionConfirmed),
-    bio: application.bio || "",
-    bioPreview: application.bio || "",
+    bio: scrubIntakeStub(application.bio),
+    bioPreview: scrubIntakeStub(application.bio),
     practiceName: application.practiceName || "",
     email: application.email || "",
     phone: application.phone || "",
@@ -150,7 +174,7 @@ export function buildTherapistDocument(application, existingId, helpers) {
     acceptingNewPatients: helpers.parseBoolean(application.acceptingNewPatients, true),
     telehealthStates: helpers.splitList(application.telehealthStates),
     estimatedWaitTime: application.estimatedWaitTime || "",
-    careApproach: application.careApproach || "",
+    careApproach: scrubIntakeStub(application.careApproach),
     medicationManagement: helpers.parseBoolean(application.medicationManagement, false),
     verificationStatus: "editorially_verified",
     sourceUrl: application.sourceUrl || application.website || "",
