@@ -83,14 +83,15 @@ and use "Manage my existing listing" to request a fresh one.</p>`
   const rejectedHtml = `<h2>Your application was reviewed</h2>
 <p>Hi ${application.name},</p>
 <p>Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
-<p>You can reply to this email if you want to follow up with updated details later.</p>`;
+<p>You can email <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>
+if you want to follow up with updated details later.</p>`;
 
   const html = decision === "approved" ? approvedHtml : rejectedHtml;
 
   await sendEmail(config, {
     from: config.emailFrom,
     to: [application.email],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: subject,
     html: html,
   });
@@ -140,7 +141,7 @@ export async function sendPortalClaimLink(
   await sendEmail(config, {
     from: config.emailFrom,
     to: [requesterEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: `Activate your BipolarTherapyHub listing`,
     html: `<h2>You're one click away from activating your listing</h2>
 <p>Hi ${therapist.name || "there"},</p>
@@ -176,7 +177,7 @@ export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, 
   await sendEmail(config, {
     from: config.emailFrom,
     to: [recipientEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "You're in. Welcome to BipolarTherapyHub.",
     html: `<h2>Welcome, ${therapist.name || "there"}.</h2>
 <p>Your listing is claimed. Patients looking for bipolar-specialist care in California can find you right now.</p>
@@ -191,7 +192,8 @@ export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, 
   <li>See weekly insights on how patients are finding you</li>
 </ul>
 ${listingUrl ? `<p>Your public listing: <a href="${listingUrl}">${listingUrl}</a></p>` : ""}
-<p style="font-size:13px;color:#666;">Questions or changes you can't make yourself? Just reply to this email.</p>`,
+<p style="font-size:13px;color:#666;">Questions or changes you can't make yourself?
+Email <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
   });
 }
 
@@ -220,7 +222,7 @@ export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "Your BipolarTherapyHub trial ends in 3 days",
     html: `<h2>Heads up: your trial ends in 3 days</h2>
 <p>Hi ${therapist.name || "there"},</p>
@@ -231,7 +233,8 @@ be billed automatically.</p>
 <p><strong>If you want to cancel</strong>, open your portal and click "Manage subscription · Cancel
 trial". One click, cancels immediately, no charge.</p>
 <p style="font-size:13px;color:#666;">This is a legally required pre-billing reminder under
-California consumer-subscription law. If you think this is a mistake, reply to this email.</p>`,
+California consumer-subscription law. If you think this is a mistake, email
+<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
   });
 }
 
@@ -251,7 +254,7 @@ export async function sendUnverifiedTrialCanceledNotice(config, therapist, activ
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "We canceled your BipolarTherapyHub trial (ownership not verified)",
     html: `<h2>Trial canceled — ownership not verified</h2>
 <p>Hi ${therapist.name || "there"},</p>
@@ -303,7 +306,7 @@ export async function sendListingRemovalLink(
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: `Confirm removal of your Bipolar Therapy Hub listing`,
     html: `<h2>Confirm your listing removal</h2>
 <p>Hi ${therapist.name || "there"},</p>
@@ -393,7 +396,7 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "We got your request — watch your other inboxes too",
     html: `<h2>Request received</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
@@ -410,7 +413,8 @@ bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
   <li>License: ${recoveryRequest.licenseNumber || "—"}</li>
   <li>Access email: ${email}</li>
 </ul>
-<p>If you need to correct anything, reply to this email.</p>`,
+<p>If you need to correct anything, email
+<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
   });
 }
 
@@ -429,7 +433,7 @@ export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, m
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "Action needed — check your other inbox",
     html: `<h2>We need one quick confirmation</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
@@ -440,8 +444,9 @@ border-radius:8px;">${maskedChannelHint}</p>
 <p>Please open that inbox, find our email with the subject <strong>"Did you request access
 to your bipolartherapyhub.com listing?"</strong>, and click the green <strong>Yes</strong>
 button. You'll be signed in within a minute.</p>
-<p>If that address doesn't look familiar to you, reply to this email — it could mean we
-need to reach you a different way.</p>
+<p>If that address doesn't look familiar to you, email
+<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.
+It could mean we need to reach you a different way.</p>
 <p style="color:#6b8290;font-size:13px;">We only ever ask you to confirm through addresses
 that are already public for your practice. If you didn't request this claim at all, you
 can safely ignore every email from us.</p>`,
@@ -459,7 +464,7 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "Your recovery request was approved",
     html: `<h2>You're back in</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
@@ -473,7 +478,8 @@ below to sign into your portal. The link expires in 24 hours.</p>
 <a href="${magicLink}">${magicLink}</a></p>
 ${customMessage ? `<p>${String(customMessage).replace(/\n/g, "<br/>")}</p>` : ""}
 <p>Your on-file contact email for the portal has been updated to <strong>${email}</strong>.
-If that wasn't you, reply to this email immediately.</p>`,
+If that wasn't you, email
+<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a> immediately.</p>`,
   });
 }
 
@@ -500,7 +506,7 @@ export async function sendRecoveryConfirmationEmail(
   await sendEmail(config, {
     from: config.emailFrom,
     to: [channelEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "Did you request access to your bipolartherapyhub.com listing?",
     html: `<h2>Quick confirmation needed</h2>
 <p>Hi ${therapistName},</p>
@@ -536,7 +542,7 @@ export async function sendRecoveryRejectedEmail(config, recoveryRequest, outcome
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject: "Update on your recovery request",
     html: `<h2>Your recovery request was reviewed</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
@@ -547,8 +553,9 @@ ${
     ? `<p><strong>Reviewer note:</strong><br/>${String(outcomeMessage).replace(/\n/g, "<br/>")}</p>`
     : ""
 }
-<p>If you'd like to try again with different details, reply to this email and we'll
-take another look.</p>`,
+<p>If you'd like to try again with different details, email
+<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>
+and we'll take another look.</p>`,
   });
 }
 
@@ -578,7 +585,7 @@ export async function sendWeeklyDigestEmail(config, therapist, digest, portalBas
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
-    reply_to: config.notificationTo,
+    reply_to: "support@bipolartherapyhub.com",
     subject,
     text,
   });
