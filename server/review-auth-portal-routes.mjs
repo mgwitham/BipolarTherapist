@@ -580,6 +580,327 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // POST /portal/recovery-request — therapist-initiated account
+  // recovery. When a claimed therapist has lost access to their
+  // on-file email AND can't domain-verify, they file this and admin
+  // reviews manually. Creates a therapistRecoveryRequest doc in
+  // "pending" state and fires a notification to admin. Rate-limited
+  // to 3 pending per license to prevent flooding.
+  if (request.method === "POST" && routePath === "/portal/recovery-request") {
+    const body = await parseBody(request);
+    const fullName = String(body.full_name || "").trim();
+    const licenseNumber = String(body.license_number || "").trim();
+    const requestedEmail = String(body.requested_email || "")
+      .trim()
+      .toLowerCase();
+    const priorEmail = String(body.prior_email || "")
+      .trim()
+      .toLowerCase();
+    const reason = String(body.reason || "").trim();
+
+    if (!fullName || !licenseNumber || !requestedEmail) {
+      sendJson(
+        response,
+        400,
+        { error: "Full name, license number, and recovery email are required." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requestedEmail)) {
+      sendJson(
+        response,
+        400,
+        { error: "Recovery email does not look valid.", field: "requested_email" },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (fullName.length > 200 || requestedEmail.length > 200 || reason.length > 2000) {
+      sendJson(response, 400, { error: "One of the fields is too long." }, origin, config);
+      return true;
+    }
+
+    // Rate limit: max 3 pending requests for the same license.
+    const normalizedLicense = normalizeLicenseForMatch(licenseNumber);
+    const pending = await client.fetch(
+      `count(*[_type == "therapistRecoveryRequest" && status == "pending" && licenseNumber match $license])`,
+      { license: `*${normalizedLicense}*` },
+    );
+    if (Number(pending) >= 3) {
+      sendJson(
+        response,
+        429,
+        {
+          error:
+            "We already have an open recovery request for this license. Please wait for our team to review, or reply to the confirmation email you got earlier.",
+          reason: "rate_limited",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Look up the matching therapist for context (slug, profile name,
+    // masked email). Not required — if no profile matches we still
+    // accept the request so the admin can check a misremembered license.
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && licenseNumber match $license][0]{
+        _id, name, email, claimedByEmail, "slug": slug.current
+      }`,
+      { license: `*${normalizedLicense}*` },
+    );
+
+    const nowIso = new Date().toISOString();
+    const requesterIp = (() => {
+      const raw =
+        (request.headers && (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
+        (request.socket && request.socket.remoteAddress) ||
+        "";
+      const first = String(raw).split(",")[0].trim();
+      const parts = first.split(".");
+      return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
+    })();
+
+    // The GROQ projection casts slug to a string, but the in-memory
+    // test client doesn't honor projections and returns the raw doc.
+    // Coerce defensively so both shapes produce a clean string.
+    const resolvedSlug =
+      (therapist && therapist.slug && therapist.slug.current) ||
+      (therapist && typeof therapist.slug === "string" ? therapist.slug : "") ||
+      "";
+
+    const document = {
+      _type: "therapistRecoveryRequest",
+      fullName,
+      licenseNumber,
+      requestedEmail,
+      priorEmail: priorEmail || "",
+      reason,
+      status: "pending",
+      therapistSlug: resolvedSlug,
+      therapistDocId: (therapist && therapist._id) || "",
+      profileName: (therapist && therapist.name) || "",
+      profileEmailHint: therapist ? maskEmail(therapist.email) : "",
+      profileClaimedEmail: (therapist && therapist.claimedByEmail) || "",
+      requesterIp,
+      createdAt: nowIso,
+    };
+    const created = await client.create(document);
+
+    // Fire-and-forget notifications — don't fail the request if the
+    // email provider is down.
+    try {
+      await deps.notifyAdminOfRecoveryRequest(config, created);
+    } catch (error) {
+      console.error("Failed to notify admin of recovery request.", error);
+    }
+    try {
+      await deps.notifyTherapistOfRecoveryReceived(config, created);
+    } catch (error) {
+      console.error("Failed to send recovery-received confirmation email.", error);
+    }
+
+    sendJson(
+      response,
+      201,
+      {
+        ok: true,
+        id: created._id,
+        status: "pending",
+        message:
+          "Recovery request received. Check your inbox for a confirmation, and we'll email a verified decision within one business day.",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // GET /recovery-requests — admin list. Pending first.
+  if (request.method === "GET" && routePath === "/recovery-requests") {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requests = await client.fetch(
+      `*[_type == "therapistRecoveryRequest"] | order(
+        select(status == "pending" => 0, status == "approved" => 1, 2),
+        createdAt desc
+      )[0...200]{
+        _id, fullName, licenseNumber, requestedEmail, priorEmail, reason,
+        status, therapistSlug, therapistDocId, profileName, profileEmailHint,
+        profileClaimedEmail, adminNote, outcomeMessage,
+        reviewedAt, reviewedBy, requesterIp, createdAt
+      }`,
+    );
+    sendJson(response, 200, { ok: true, requests: requests || [] }, origin, config);
+    return true;
+  }
+
+  // POST /recovery-requests/:id/approve — admin approves, server
+  // generates a magic link to the requestedEmail, updates
+  // claimedByEmail on the therapist doc, and emails the therapist.
+  const recoveryApproveMatch = routePath.match(/^\/recovery-requests\/([^/]+)\/approve$/);
+  if (request.method === "POST" && recoveryApproveMatch) {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requestId = decodeURIComponent(recoveryApproveMatch[1]);
+    const body = await parseBody(request);
+    const customMessage = String(body.outcome_message || "").trim();
+    const adminNote = String(body.admin_note || "").trim();
+
+    const recovery = await client.getDocument(requestId);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Recovery request not found." }, origin, config);
+      return true;
+    }
+    if (recovery.status !== "pending") {
+      sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
+      return true;
+    }
+    if (!recovery.therapistDocId || !recovery.therapistSlug) {
+      sendJson(
+        response,
+        400,
+        {
+          error:
+            "This request was not linked to a matching therapist profile. Reject with a note instead.",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Build a magic-link token tied to the therapist + the requested
+    // email. The portal's claim-accept handler treats an already-
+    // claimed profile as idempotent re-entry, so this token seamlessly
+    // signs the therapist in.
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && _id == $id][0]{ _id, name, claimStatus, "slug": slug }`,
+      { id: recovery.therapistDocId },
+    );
+    if (!therapist) {
+      sendJson(
+        response,
+        404,
+        { error: "Target therapist profile no longer exists. Reject with a note." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const nowIso = new Date().toISOString();
+
+    // Update the therapist doc: promote claimedByEmail to the new
+    // address and mark claimed (if it wasn't already). This is the
+    // actual recovery — the therapist can now sign in with the new
+    // email both via this magic link AND via /claim going forward.
+    await client
+      .patch(therapist._id)
+      .set({
+        claimStatus: "claimed",
+        claimedByEmail: recovery.requestedEmail,
+        claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
+      })
+      .commit({ visibility: "sync" });
+
+    // Build and send the magic link. deps.sendPortalClaimLink expects
+    // a therapist with slug.current. Build the shape it wants.
+    const therapistForLink =
+      typeof therapist.slug === "string"
+        ? { ...therapist, slug: { current: therapist.slug } }
+        : therapist;
+
+    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const magicLink = deps.buildRecoveryMagicLink(
+      config,
+      therapistForLink,
+      recovery.requestedEmail,
+      portalBaseUrl,
+    );
+
+    try {
+      await deps.sendRecoveryApprovedEmail(config, recovery, magicLink, customMessage);
+    } catch (error) {
+      sendJson(
+        response,
+        502,
+        { error: "Approval saved on therapist, but email delivery failed: " + error.message },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const reviewer = deps.getAuthorizedActor(request, config);
+    const updated = await client
+      .patch(recovery._id)
+      .set({
+        status: "approved",
+        reviewedAt: nowIso,
+        reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+        outcomeMessage: customMessage,
+        adminNote: adminNote || recovery.adminNote || "",
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(response, 200, { ok: true, request: updated }, origin, config);
+    return true;
+  }
+
+  // POST /recovery-requests/:id/reject — admin rejects, therapist
+  // gets an explanation email.
+  const recoveryRejectMatch = routePath.match(/^\/recovery-requests\/([^/]+)\/reject$/);
+  if (request.method === "POST" && recoveryRejectMatch) {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requestId = decodeURIComponent(recoveryRejectMatch[1]);
+    const body = await parseBody(request);
+    const outcomeMessage = String(body.outcome_message || "").trim();
+    const adminNote = String(body.admin_note || "").trim();
+
+    const recovery = await client.getDocument(requestId);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Recovery request not found." }, origin, config);
+      return true;
+    }
+    if (recovery.status !== "pending") {
+      sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
+      return true;
+    }
+
+    try {
+      await deps.sendRecoveryRejectedEmail(config, recovery, outcomeMessage);
+    } catch (error) {
+      console.error("Failed to send rejection email.", error);
+    }
+
+    const reviewer = deps.getAuthorizedActor(request, config);
+    const updated = await client
+      .patch(recovery._id)
+      .set({
+        status: "rejected",
+        reviewedAt: new Date().toISOString(),
+        reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+        outcomeMessage,
+        adminNote: adminNote || recovery.adminNote || "",
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(response, 200, { ok: true, request: updated }, origin, config);
+    return true;
+  }
+
   const portalRequestUpdateMatch = routePath.match(/^\/portal\/requests\/([^/]+)$/);
   if ((request.method === "PATCH" || request.method === "POST") && portalRequestUpdateMatch) {
     if (!deps.isAuthorized(request, config)) {

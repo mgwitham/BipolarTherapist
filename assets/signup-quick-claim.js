@@ -1,6 +1,7 @@
 import {
   createStripeFeaturedCheckoutSession,
   lookupTherapistBySlug,
+  requestAccountRecovery,
   requestTherapistQuickClaim,
   searchTherapistQuickClaim,
   sendClaimLinkToSlug,
@@ -30,7 +31,6 @@ const CONFIRM_EMAIL_ID = "claimConfirmEmail";
 const CONFIRM_SEND_ID = "claimConfirmSend";
 const CONFIRM_TRIAL_ID = "claimStartTrial";
 const CONFIRM_CHANGE_ID = "claimConfirmChange";
-const CONFIRM_USE_OTHER_ID = "claimConfirmUseOther";
 const CONFIRM_STATUS_ID = "claimConfirmStatus";
 const QUICK_RESEND_ID = "quickClaimResend";
 const QUICK_RESEND_LINK_ID = "quickClaimResendLink";
@@ -407,7 +407,6 @@ function initQuickClaim() {
   const confirmSend = document.getElementById(CONFIRM_SEND_ID);
   const confirmTrial = document.getElementById(CONFIRM_TRIAL_ID);
   const confirmChange = document.getElementById(CONFIRM_CHANGE_ID);
-  const confirmUseOther = document.getElementById(CONFIRM_USE_OTHER_ID);
   const confirmStatus = document.getElementById(CONFIRM_STATUS_ID);
 
   let pickedResult = null;
@@ -566,8 +565,11 @@ function initQuickClaim() {
   // Updates the fallback form's email-section copy based on why the
   // user is seeing the form:
   //   "on_file_missing" → no email on file at all for this listing
-  //   "use_different"   → user clicked "Use a different email →"
   //   "default"         → generic fallback (license-based quick claim)
+  //
+  // The "use_different" mode was removed when the self-service
+  // different-email path was killed — all email changes now flow
+  // through the admin-reviewed recovery queue (see openRecoveryModal).
   function setFormMode(mode, result) {
     const banner = document.getElementById("quickClaimFormBanner");
     const emailLabel = document.getElementById("quickClaimEmailLabel");
@@ -578,18 +580,122 @@ function initQuickClaim() {
       banner.innerHTML =
         "<strong>No email on file.</strong> We don't have a contact address for " +
         escapeHtml(therapistName) +
-        " yet. Enter the email you want to use — we'll send the activation link there and save it as your on-file email.";
+        " yet. Enter the email you want to use — we'll verify ownership by matching your email domain to the listed website or falling back to manual review.";
       emailLabel.textContent = "Your email address";
-    } else if (mode === "use_different") {
-      banner.hidden = false;
-      banner.innerHTML =
-        "<strong>Using a different email.</strong> We'll send the activation link to the address you enter below instead of the one we have on file. After you click the link, we'll update your on-file email to match.";
-      emailLabel.textContent = "Email you can receive at";
     } else {
       banner.hidden = true;
       banner.innerHTML = "";
       emailLabel.textContent = "Email on your current listing";
     }
+  }
+
+  // Pre-fill + open the recovery modal when the user clicks
+  // "Can't access the email on file? Request account recovery".
+  // Uses the already-picked listing (pickedResult) to seed name +
+  // license so the therapist only has to type their new email + reason.
+  function openRecoveryModal(fromResult) {
+    const modal = document.getElementById("claimRecoveryModal");
+    if (!modal) return;
+    const name = fromResult && fromResult.name ? String(fromResult.name) : "";
+    const license =
+      fromResult && fromResult.license_number ? String(fromResult.license_number) : "";
+    const nameField = document.getElementById("claimRecoveryFullName");
+    const licenseField = document.getElementById("claimRecoveryLicense");
+    const statusBox = document.getElementById("claimRecoveryStatus");
+    if (nameField) nameField.value = name;
+    if (licenseField) licenseField.value = license;
+    if (statusBox) {
+      statusBox.hidden = true;
+      statusBox.textContent = "";
+    }
+    modal.hidden = false;
+    // Focus the first empty field so keyboard users can start typing.
+    const firstEmpty = modal.querySelector("input:not([value])");
+    const requestedEmailField = document.getElementById("claimRecoveryRequestedEmail");
+    (firstEmpty || requestedEmailField || nameField || licenseField || null)?.focus();
+    trackFunnelEvent("claim_recovery_opened", {
+      therapist_slug: fromResult && fromResult.slug,
+    });
+  }
+
+  function closeRecoveryModal() {
+    const modal = document.getElementById("claimRecoveryModal");
+    if (modal) modal.hidden = true;
+  }
+
+  function initRecoveryModal() {
+    const modal = document.getElementById("claimRecoveryModal");
+    if (!modal) return;
+    const form = document.getElementById("claimRecoveryForm");
+    const submit = document.getElementById("claimRecoverySubmit");
+    const statusBox = document.getElementById("claimRecoveryStatus");
+    const closeBtn = document.getElementById("claimRecoveryClose");
+    const backdrop = document.getElementById("claimRecoveryBackdrop");
+
+    if (closeBtn) closeBtn.addEventListener("click", closeRecoveryModal);
+    if (backdrop) backdrop.addEventListener("click", closeRecoveryModal);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !modal.hidden) closeRecoveryModal();
+    });
+
+    if (!form) return;
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        full_name: String(formData.get("full_name") || "").trim(),
+        license_number: String(formData.get("license_number") || "").trim(),
+        requested_email: String(formData.get("requested_email") || "").trim(),
+        prior_email: String(formData.get("prior_email") || "").trim(),
+        reason: String(formData.get("reason") || "").trim(),
+      };
+      if (
+        !payload.full_name ||
+        !payload.license_number ||
+        !payload.requested_email ||
+        !payload.reason
+      ) {
+        if (statusBox) {
+          statusBox.hidden = false;
+          statusBox.setAttribute("data-tone", "warn");
+          statusBox.textContent = "Name, license, recovery email, and a reason are all required.";
+        }
+        return;
+      }
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = "Sending...";
+      }
+      try {
+        const result = await requestAccountRecovery(payload);
+        if (statusBox) {
+          statusBox.hidden = false;
+          statusBox.setAttribute("data-tone", "success");
+          statusBox.innerHTML =
+            "<strong>Got it.</strong> Check your inbox for a confirmation. We'll email a verified decision within one business day.";
+        }
+        trackFunnelEvent("claim_recovery_submitted", {
+          therapist_slug: pickedResult && pickedResult.slug,
+          id: result && result.id,
+        });
+        form.reset();
+        if (submit) {
+          submit.textContent = "Request sent";
+        }
+      } catch (error) {
+        if (statusBox) {
+          statusBox.hidden = false;
+          statusBox.setAttribute("data-tone", "warn");
+          statusBox.textContent =
+            (error && error.message) ||
+            "We couldn't submit your request. Please try again or email us directly.";
+        }
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = "Send recovery request";
+        }
+      }
+    });
   }
 
   function applyPickedResult(result) {
@@ -751,20 +857,21 @@ function initQuickClaim() {
       });
     });
   }
-  if (confirmUseOther) {
-    confirmUseOther.addEventListener("click", function (event) {
+  // "Request account recovery" replaces the old "Use a different email"
+  // path. Opens a modal that files a therapistRecoveryRequest doc for
+  // admin to review manually. We removed the self-service "type any
+  // email" path because it had a social-engineering hole — anyone
+  // controlling a domain listed on a therapist profile could take it
+  // over. All email changes now flow through human verification.
+  const requestRecoveryLink = document.getElementById("claimConfirmRequestRecovery");
+  if (requestRecoveryLink) {
+    requestRecoveryLink.addEventListener("click", function (event) {
       event.preventDefault();
-      setFormMode("use_different", pickedResult);
-      hideConfirmPanel();
-      // Clear the auto-populated email from the on-file hint flow so
-      // the user isn't staring at a pre-filled value they're trying
-      // to replace.
-      if (emailInput) {
-        emailInput.value = "";
-        emailInput.focus();
-      }
+      openRecoveryModal(pickedResult);
     });
   }
+
+  initRecoveryModal();
 
   const runSearch = debounce(async function (query) {
     if (!searchResults) {
