@@ -35,7 +35,12 @@
       .match-results-hero {
         max-width: 1080px;
         margin: 0 auto;
-        padding: 1rem 1.1rem 0;
+        padding: 1.25rem 1.5rem 0;
+      }
+      @media (min-width: 720px) {
+        .match-results-hero {
+          padding: 1.5rem 2rem 0;
+        }
       }
       .match-hero-copy {
         text-align: left;
@@ -1144,6 +1149,157 @@
       .match-refinements[open] .match-refinements-toggle::before {
         transform: rotate(180deg);
       }
+
+      /* ==========================================================
+         Refine drawer — hoists the refinements panel into a fixed
+         right-side drawer when the Customize button is clicked.
+         Keeps the <details> element as the semantic container; CSS
+         lifts it out when body.match-refine-drawer-open is set, so
+         results stay visible underneath on desktop and live-update
+         as the user changes filters.
+         ========================================================== */
+      .match-refine-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 30, 40, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms ease;
+        z-index: 100;
+      }
+      body.match-refine-drawer-open .match-refine-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      body.match-refine-drawer-open {
+        overflow: hidden;
+      }
+      body.match-refine-drawer-open .match-refinements {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(460px, 100vw);
+        max-width: 100vw;
+        background: var(--white);
+        z-index: 101;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0;
+        margin: 0;
+        border-top: none;
+        box-shadow: -18px 0 40px rgba(10, 30, 40, 0.18);
+        animation: match-refine-drawer-in 230ms ease;
+      }
+      @keyframes match-refine-drawer-in {
+        from {
+          transform: translateX(40px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      body.match-refine-drawer-open .match-refinements > summary {
+        display: none;
+      }
+      body.match-refine-drawer-open .refine-advanced-panel {
+        padding: 1.1rem 1.25rem 4.25rem;
+        max-width: none;
+      }
+      .match-refine-drawer-header {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--white);
+        z-index: 2;
+      }
+      body.match-refine-drawer-open .match-refine-drawer-header {
+        display: flex;
+      }
+      .match-refine-drawer-header h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .match-refine-drawer-close {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        width: 34px;
+        height: 34px;
+        cursor: pointer;
+        color: var(--slate);
+        font-size: 1.1rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .match-refine-drawer-close:hover {
+        color: var(--navy);
+        border-color: var(--muted);
+      }
+      .match-refine-live-status {
+        display: none;
+      }
+      body.match-refine-drawer-open .match-refine-live-status {
+        display: flex;
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        padding: 0.7rem 1.25rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--slate);
+        font-weight: 600;
+        align-items: center;
+        gap: 0.55rem;
+      }
+      .match-refine-live-status.is-updating::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        border-top-color: var(--teal);
+        animation: match-refine-spin 700ms linear infinite;
+        flex: 0 0 auto;
+      }
+      @keyframes match-refine-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      body.match-refine-drawer-open .refine-bottom-submit {
+        display: none;
+      }
+      /* Hide the inline "Change your search" duplicate fields inside
+         the drawer — the primary care-intent + ZIP pills up top are
+         the canonical inputs; duplicating them in the drawer makes
+         the panel feel cluttered and creates focus confusion. */
+      body.match-refine-drawer-open .refine-adv-section--search {
+        display: none;
+      }
+      /* Small screens: take most of the viewport so the drawer is
+         usable on phones. The results under the scrim aren't visible
+         at this size, so we lean on the live-status counter for
+         feedback. */
+      @media (max-width: 640px) {
+        body.match-refine-drawer-open .match-refinements {
+          width: 100vw;
+        }
+      }
+
       .match-refinement-grid {
         display: grid;
         gap: 1rem;
@@ -5774,6 +5930,10 @@
       </div>
     </div>
 
+    <!-- Backdrop for the refine drawer. Click or ESC closes the drawer;
+         semi-transparent so results underneath stay visible on desktop. -->
+    <div class="match-refine-backdrop" id="matchRefineBackdrop" aria-hidden="true"></div>
+
     <div class="match-layout">
       <section class="match-results">
         <div class="match-builder">
@@ -5866,9 +6026,23 @@
                   </button>
                 </div>
 
-                <!-- Advanced panel (expands below the foot row) -->
+                <!-- Advanced panel. Rendered as a fixed-position right-side
+                     drawer when body.match-refine-drawer-open is set (see
+                     assets/match.js for the toggle + live-filter wiring). -->
                 <details class="match-refinements" id="refineAdvancedDetails">
                   <summary aria-hidden="true"></summary>
+
+                  <div class="match-refine-drawer-header">
+                    <h2>Refine your matches</h2>
+                    <button
+                      type="button"
+                      id="matchRefineDrawerClose"
+                      class="match-refine-drawer-close"
+                      aria-label="Close filters"
+                    >
+                      ✕
+                    </button>
+                  </div>
 
                   <div class="refine-advanced-panel">
                     <!-- Insurance + format -->
@@ -6212,6 +6386,14 @@
                       </div>
                     </div>
                     <button type="submit" class="refine-bottom-submit">Refine search</button>
+                  </div>
+                  <div
+                    class="match-refine-live-status"
+                    id="matchRefineLiveStatus"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    Adjust any filter above to see matches update in real time.
                   </div>
                 </details>
 
