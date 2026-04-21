@@ -370,19 +370,57 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     from: config.emailFrom,
     to: [email],
     reply_to: config.notificationTo,
-    subject: "We got your recovery request",
-    html: `<h2>Recovery request received</h2>
+    subject: "We got your request — watch your other inboxes too",
+    html: `<h2>Request received</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>We got your request to regain access to your BipolarTherapyHub listing. Our team will
-verify your identity manually (usually via the CA DCA license database and a quick
-out-of-band check) and email you within one business day.</p>
+<p>We got your request to claim your BipolarTherapyHub listing. To make sure it's really
+you, we may email one of your <strong>publicly-listed addresses</strong> (e.g. the contact
+email on your practice website, Psychology Today profile, or DCA record) with a quick
+"did you request this?" prompt.</p>
+<p><strong>Please check any of your other professional inboxes over the next day</strong>
+for an email from us with the subject line "Did you request access to your
+bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
 <p><strong>What you submitted:</strong></p>
 <ul>
   <li>Name: ${recoveryRequest.fullName || "—"}</li>
   <li>License: ${recoveryRequest.licenseNumber || "—"}</li>
-  <li>Recovery email: ${email}</li>
+  <li>Access email: ${email}</li>
 </ul>
-<p>If you need to add more detail or correct something, just reply to this email.</p>`,
+<p>If you need to correct anything, reply to this email.</p>`,
+  });
+}
+
+// Heads-up to the requester when the admin has just sent a
+// confirmation email to one of the therapist's other addresses. The
+// channel hint is deliberately masked so an attacker who guessed at a
+// claim doesn't learn which public address to try to intercept.
+export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, maskedChannelHint) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const email = String(recoveryRequest.requestedEmail || "").trim();
+  if (!email) {
+    return;
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [email],
+    reply_to: config.notificationTo,
+    subject: "Action needed — check your other inbox",
+    html: `<h2>We need one quick confirmation</h2>
+<p>Hi ${recoveryRequest.fullName || "there"},</p>
+<p>To finish verifying your BipolarTherapyHub claim, we just emailed another one of your
+publicly-listed addresses with a "did you request this?" prompt. It should land at:</p>
+<p style="font-family:monospace;font-size:1.05rem;padding:0.75rem 1rem;background:#f4f8f9;
+border-radius:8px;">${maskedChannelHint}</p>
+<p>Please open that inbox, find our email with the subject <strong>"Did you request access
+to your bipolartherapyhub.com listing?"</strong>, and click the green <strong>Yes</strong>
+button. You'll be signed in within a minute.</p>
+<p>If that address doesn't look familiar to you, reply to this email — it could mean we
+need to reach you a different way.</p>
+<p style="color:#6b8290;font-size:13px;">We only ever ask you to confirm through addresses
+that are already public for your practice. If you didn't request this claim at all, you
+can safely ignore every email from us.</p>`,
   });
 }
 

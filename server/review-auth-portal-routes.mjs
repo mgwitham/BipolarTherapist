@@ -1029,6 +1029,16 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Ping the requester's submitted email so they know to check their
+    // other inbox. The channel is masked so a requester who happens to
+    // be an attacker doesn't learn which public address we used.
+    // Best-effort — send-confirmation succeeds even if this fails.
+    try {
+      await deps.sendRecoveryConfirmationHeadsUp(config, recovery, maskEmail(channelEmail));
+    } catch (error) {
+      console.error("Failed to send heads-up to requester email.", error);
+    }
+
     const nowIso = new Date().toISOString();
     const updated = await client
       .patch(recovery._id)

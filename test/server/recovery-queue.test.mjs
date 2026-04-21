@@ -53,6 +53,8 @@ function buildAdminApproveContext(options) {
         sendRecoveryApprovedEmail: async () => {},
         sendRecoveryRejectedEmail: async () => {},
         sendRecoveryConfirmationEmail: options.sendRecoveryConfirmationEmail || (async () => {}),
+        sendRecoveryConfirmationHeadsUp:
+          options.sendRecoveryConfirmationHeadsUp || (async () => {}),
         isAuthorized: options.isAuthorized || (() => true),
         getAuthorizedActor: () => "admin",
         notifyAdminOfRecoveryRequest: async () => {},
@@ -325,6 +327,33 @@ test("POST /recovery-requests/:id/send-confirmation stamps channel and nonce on 
   assert.equal(updated.confirmationResponse, "pending");
   assert.ok(updated.confirmationTokenNonce, "nonce must be stored for single-use invalidation");
   assert.ok(updated.confirmationSentAt);
+});
+
+test("POST /recovery-requests/:id/send-confirmation also pings the requester with a masked heads-up", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const headsUpCalls = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+    sendRecoveryConfirmationHeadsUp: async (_cfg, rec, maskedHint) => {
+      headsUpCalls.push({ rec, maskedHint });
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(headsUpCalls.length, 1, "heads-up email was sent to the requester");
+  assert.ok(
+    headsUpCalls[0].maskedHint.includes("*"),
+    "the channel hint is masked (e.g., o***@d***.com), not the full address",
+  );
+  assert.ok(
+    !headsUpCalls[0].maskedHint.includes("office@drsmiththerapy.com"),
+    "full channel address must NOT leak to the requester",
+  );
 });
 
 test("POST /recovery-requests/:id/send-confirmation rejects channel matching requester email", async () => {
