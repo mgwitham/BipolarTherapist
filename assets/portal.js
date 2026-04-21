@@ -6,6 +6,7 @@ import { getApplications } from "./store.js";
 import { PORTAL_PICKER_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   acceptTherapistClaim,
+  clearTherapistSessionToken,
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
   fetchPortalAnalytics,
@@ -16,6 +17,7 @@ import {
   patchTherapistProfile,
   requestTherapistClaimLink,
   requestTherapistSignIn,
+  signOutTherapistSession,
   submitTherapistPortalRequest,
 } from "./review-api.js";
 
@@ -721,7 +723,16 @@ function renderLookupState() {
     return;
   }
 
+  var signedOut = new URLSearchParams(window.location.search).get("signed_out") === "1";
+  var signedOutToast = signedOut
+    ? '<section class="portal-card" style="border:1px solid #2a9cb3;background:#ecf7f9;margin-bottom:1rem">' +
+      '<p style="margin:0;color:#155f70;font-weight:600">You\'re signed out.</p>' +
+      '<p class="portal-subtle" style="margin:0.25rem 0 0">Sign back in below whenever you want to manage your listing.</p>' +
+      "</section>"
+    : "";
+
   shell.innerHTML =
+    signedOutToast +
     '<section class="portal-card">' +
     "<h2>Sign in to your listing</h2>" +
     '<p class="portal-subtle">Enter the email you claimed with. We\'ll send you a sign-in link.</p>' +
@@ -2561,6 +2572,18 @@ function renderPortal(therapist, options) {
       "</section>"
     : "";
 
+  // Sign-out affordance only renders for authenticated sessions. Public
+  // viewers don't have a session to sign out of. Stateless tokens mean
+  // we can only clear the client-side entry; the server logout endpoint
+  // is for funnel instrumentation, not revocation.
+  var signOutControl =
+    sessionMode === "claimed" || sessionMode === "claim_token"
+      ? '<button type="button" id="portalSignOut" class="portal-signout" ' +
+        'style="background:transparent;border:1px solid rgba(26,122,143,0.35);' +
+        "color:#155f70;font-size:0.82rem;font-weight:600;padding:0.4rem 0.8rem;" +
+        'border-radius:999px;cursor:pointer;white-space:nowrap">Sign out</button>'
+      : "";
+
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
     escapeHtml(heroEyebrow) +
@@ -2569,11 +2592,14 @@ function renderPortal(therapist, options) {
     '</h1><p class="portal-subtle">' +
     escapeHtml(therapist.city + ", " + therapist.state) +
     (therapist.practice_name ? " · " + escapeHtml(therapist.practice_name) : "") +
-    '</p></div><div class="portal-badges"><span class="portal-badge">' +
+    '</p></div><div class="portal-badges" style="display:flex;gap:0.5rem;' +
+    'align-items:center;flex-wrap:wrap"><span class="portal-badge">' +
     escapeHtml(claimStatus) +
     '</span><span class="portal-badge">' +
     escapeHtml(readiness.label + " · " + readiness.score + "/100") +
-    "</span></div></section>" +
+    "</span>" +
+    signOutControl +
+    "</div></section>" +
     notYetPublicBanner +
     welcomeUpsellBanner +
     (sessionMode === "claim_token"
@@ -2846,6 +2872,29 @@ function renderPortal(therapist, options) {
     // profile" button — especially when that button can get stuck on
     // replayed / used tokens and leave the user with no way forward.
     renderPortalWelcomeUpsell(null, therapist.slug || slug, therapist.email || "");
+  }
+
+  var signOutButton = document.getElementById("portalSignOut");
+  if (signOutButton) {
+    signOutButton.addEventListener("click", async function () {
+      signOutButton.disabled = true;
+      signOutButton.textContent = "Signing out...";
+      trackFunnelEvent("portal_signed_out", { slug: therapist.slug || slug });
+      // Fire-and-forget: the server endpoint is an instrumentation hook,
+      // not a revocation step. Stateless tokens mean the client clear
+      // below is the actual sign-out.
+      try {
+        await signOutTherapistSession();
+      } catch (_error) {
+        // Ignore — we still want to clear locally and redirect.
+      }
+      clearTherapistSessionToken();
+      var redirect = new URL(window.location.href);
+      redirect.searchParams.delete("token");
+      redirect.searchParams.delete("slug");
+      redirect.searchParams.set("signed_out", "1");
+      window.location.replace(redirect.pathname + "?" + redirect.searchParams.toString());
+    });
   }
 
   if (sessionMode === "claim_token") {
