@@ -22,10 +22,26 @@ function writeStoredView(view) {
   }
 }
 
+function clearWorkflowFocusMode() {
+  const grid = document.querySelector("#adminApp .grid");
+  if (!grid) return;
+  grid.classList.remove("workflow-focus-active");
+  grid.querySelectorAll(".workflow-focus-owner").forEach(function (node) {
+    node.classList.remove("workflow-focus-owner");
+  });
+  grid.querySelectorAll(".workflow-focus-target").forEach(function (node) {
+    node.classList.remove("workflow-focus-target");
+  });
+  document.querySelectorAll('[data-workflow-handoff="true"]').forEach(function (node) {
+    node.remove();
+  });
+}
+
 export function setActiveView(view) {
   const normalized = VALID_VIEWS.indexOf(view) === -1 ? DEFAULT_VIEW : view;
   document.body.setAttribute("data-admin-view", normalized);
   writeStoredView(normalized);
+  clearWorkflowFocusMode();
 
   const tabs = document.querySelectorAll("[data-admin-tab]");
   tabs.forEach(function (tab) {
