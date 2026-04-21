@@ -498,7 +498,14 @@ function initQuickClaim() {
       // id="claimConfirmEmail"> child is replaced on each render, so
       // rebuild the sentence and re-insert the hint span.
       const hintText = confirmEmail ? confirmEmail.textContent : "the email on your listing";
-      if (isAlreadyClaimed) {
+      if (!result.has_email) {
+        // No email on file → email-based activation is impossible.
+        // Route the therapist through identity verification instead of
+        // promising a link we can't send.
+        confirmDestination.innerHTML =
+          "No email is on file for this listing, so we can't send an activation link. " +
+          "Verify your identity against your CA license to claim it.";
+      } else if (isAlreadyClaimed) {
         confirmDestination.innerHTML =
           "If that's you, we'll send a fresh sign-in link to <strong id=\"claimConfirmEmail\">" +
           escapeHtml(hintText) +
@@ -514,33 +521,37 @@ function initQuickClaim() {
     renderTrustSignals(result);
 
     if (confirmSend) {
-      if (isAlreadyClaimed) {
+      if (!result.has_email) {
+        // No-email case: confirmSend becomes the primary identity-
+        // verification CTA. handleConfirmSend detects has_email=false
+        // and routes to the recovery modal instead of the email API.
+        confirmSend.textContent = "Verify your identity to claim →";
+      } else if (isAlreadyClaimed) {
         // Re-entry mode: the "Just claim" link becomes the primary path
         // since the trial button is hidden.
-        confirmSend.textContent = result.has_email
-          ? "Email me a sign-in link"
-          : "No email on file — use form below";
+        confirmSend.textContent = "Email me a sign-in link";
       } else {
-        confirmSend.textContent = result.has_email
-          ? "Just claim free basic controls →"
-          : "No email on file — use form below";
+        confirmSend.textContent = "Just claim free basic controls →";
       }
     }
     if (confirmTrial) {
-      // Hide the trial button for already-claimed profiles — they
-      // can't restart a trial and offering one confuses the flow.
-      confirmTrial.hidden = isAlreadyClaimed;
-      if (!isAlreadyClaimed) {
-        confirmTrial.disabled = !result.has_email;
-        if (!result.has_email) {
-          confirmTrial.textContent = "No email on file — use form below";
-        } else {
-          confirmTrial.textContent = "Start 14-day free trial — $0 today";
-        }
+      // Hide the trial button for already-claimed profiles (can't
+      // restart a trial) and for no-email profiles (can't activate
+      // until identity is verified — trial would be a dead button).
+      confirmTrial.hidden = isAlreadyClaimed || !result.has_email;
+      if (!confirmTrial.hidden) {
+        confirmTrial.disabled = false;
+        confirmTrial.textContent = "Start 14-day free trial — $0 today";
       }
     }
     if (trialSubhint) {
-      trialSubhint.hidden = isAlreadyClaimed;
+      trialSubhint.hidden = isAlreadyClaimed || !result.has_email;
+    }
+    const recoveryLink = document.getElementById("claimConfirmRequestRecovery");
+    if (recoveryLink && recoveryLink.parentElement) {
+      // Hide the tertiary recovery link when it would duplicate the
+      // primary CTA (no-email case already routes through recovery).
+      recoveryLink.parentElement.hidden = !result.has_email;
     }
     if (disputeWrap) {
       // Dispute link surfaces only in re-entry mode so non-owners have
@@ -729,6 +740,12 @@ function initQuickClaim() {
       event.preventDefault();
     }
     if (!pickedResult || !pickedResult.slug || !confirmSend) {
+      return;
+    }
+    // No email on file → can't send an activation link. Route to the
+    // identity-verification flow (recovery queue) as the primary path.
+    if (!pickedResult.has_email) {
+      openRecoveryModal(pickedResult);
       return;
     }
     const originalLabel = confirmSend.textContent;
