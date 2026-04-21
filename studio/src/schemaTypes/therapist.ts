@@ -206,6 +206,27 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "portalFirstSaveAt",
+      title: "Portal first save at",
+      type: "datetime",
+      group: "practice",
+      description:
+        "Timestamp of the therapist's first successful PATCH from the portal edit form. Sticky — never overwritten.",
+    }),
+    defineField({
+      name: "portalLastSaveAt",
+      title: "Portal last save at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
+      name: "portalSaveCount",
+      title: "Portal save count",
+      type: "number",
+      group: "practice",
+      description: "Total number of successful PATCH /portal/therapist commits for this profile.",
+    }),
+    defineField({
       name: "lastWeeklyDigestSentAt",
       title: "Last weekly digest sent at",
       type: "datetime",

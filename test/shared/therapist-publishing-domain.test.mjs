@@ -6,6 +6,8 @@ import {
   buildCandidateReviewEvent,
   buildPublishEventId,
   buildTherapistOpsEvent,
+  isIntakeStub,
+  scrubIntakeStub,
 } from "../../shared/therapist-publishing-domain.mjs";
 
 // Sanity's document ID ceiling. Any builder that composes an _id from an
@@ -64,4 +66,28 @@ test("buildTherapistOpsEvent yields a legal Sanity document id for long ids", fu
     { eventType: "therapist_review_completed" },
   );
   assert.ok(event._id.length <= SANITY_MAX_DOCUMENT_ID_LENGTH);
+});
+
+test("isIntakeStub matches the short-form signup placeholders", function () {
+  assert.equal(isIntakeStub("Pending"), true);
+  assert.equal(isIntakeStub("Pending — completed after approval."), true);
+  assert.equal(isIntakeStub("Pending - completed after approval."), true);
+  assert.equal(isIntakeStub("  Pending  "), true);
+});
+
+test("isIntakeStub returns false for real content and non-strings", function () {
+  assert.equal(isIntakeStub(""), false);
+  assert.equal(isIntakeStub("My real bio."), false);
+  assert.equal(isIntakeStub(null), false);
+  assert.equal(isIntakeStub(undefined), false);
+  assert.equal(isIntakeStub(42), false);
+});
+
+test("scrubIntakeStub strips stubs but leaves real content intact", function () {
+  assert.equal(scrubIntakeStub("Pending — completed after approval."), "");
+  assert.equal(scrubIntakeStub("Pending"), "");
+  assert.equal(scrubIntakeStub("My real bio."), "My real bio.");
+  assert.equal(scrubIntakeStub(""), "");
+  assert.equal(scrubIntakeStub(null), "");
+  assert.equal(scrubIntakeStub(undefined), "");
 });

@@ -127,6 +127,219 @@ test("/portal/me returns 401 without a session token", async () => {
   assert.equal(response.statusCode, 401);
 });
 
+function buildClaimedTherapistFixture(overrides) {
+  return {
+    _id: "therapist-jamie",
+    _type: "therapist",
+    name: "Jamie Rivera",
+    email: "jamie@example.com",
+    slug: { current: "jamie-rivera" },
+    city: "Oakland",
+    state: "CA",
+    claimStatus: "claimed",
+    claimedByEmail: "jamie@example.com",
+    bio: "Experienced therapist specializing in bipolar-adjacent mood work and stabilization.",
+    acceptingNewPatients: true,
+    ...overrides,
+  };
+}
+
+function authHeader(slug, email) {
+  const config = createTestApiConfig();
+  const token = createTherapistSession(config, { slug, email });
+  return { authorization: `Bearer ${token}` };
+}
+
+test("PATCH /portal/therapist requires a session token", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { bio: "x".repeat(60) },
+    headers: standardHeaders(),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 401);
+});
+
+test("PATCH /portal/therapist rejects edits on an unclaimed profile", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({ claimStatus: "unclaimed" }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { bio: "x".repeat(60) },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 403);
+});
+
+test("PATCH /portal/therapist writes whitelisted fields and ignores unknown keys", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      bio: "Brand new bio with enough characters to clear the fifty char min requirement here.",
+      accepting_new_patients: false,
+      specialties: "Bipolar II, Mood stabilization, Grief",
+      session_fee_min: 150,
+      session_fee_max: 225,
+      sliding_scale: true,
+      // These should be silently ignored — identity/trust fields are locked.
+      name: "Someone Else",
+      licenseNumber: "00000",
+      slug: "someone-else",
+      claimStatus: "unclaimed",
+    },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const updated = response.payload.therapist;
+  assert.equal(updated.name, "Jamie Rivera"); // locked
+  assert.equal(updated.accepting_new_patients, false);
+  assert.equal(updated.sliding_scale, true);
+  assert.equal(updated.session_fee_min, 150);
+  assert.equal(updated.session_fee_max, 225);
+  assert.deepEqual(updated.specialties, ["Bipolar II", "Mood stabilization", "Grief"]);
+
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.name, "Jamie Rivera");
+  assert.equal(raw.claimStatus, "claimed");
+  assert.equal(raw.acceptingNewPatients, false);
+});
+
+test("PATCH /portal/therapist rejects bio shorter than 50 characters", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { bio: "too short" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.field, "bio");
+});
+
+test("PATCH /portal/therapist rejects session_fee_min greater than session_fee_max", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { session_fee_min: 300, session_fee_max: 150 },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.field, "session_fee_min");
+});
+
+test("PATCH /portal/therapist rejects invalid preferred_contact_method", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { preferred_contact_method: "carrier-pigeon" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.field, "preferred_contact_method");
+});
+
+test("PATCH /portal/therapist promotes touched fields into therapist_reported_fields", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      bio: "Updated bio with plenty of characters to pass the fifty char minimum here.",
+      phone: "555-123-4567",
+      specialties: "Bipolar II, Mood stabilization",
+    },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.ok(Array.isArray(raw.therapistReportedFields));
+  const reported = new Set(raw.therapistReportedFields);
+  assert.ok(reported.has("bio"));
+  assert.ok(reported.has("phone"));
+  assert.ok(reported.has("specialties"));
+  // Fields not in the PATCH body should not be marked reviewed.
+  assert.ok(!reported.has("website"));
+
+  assert.deepEqual(response.payload.therapist.therapist_reported_fields.sort(), [
+    "bio",
+    "phone",
+    "specialties",
+  ]);
+});
+
+test("PATCH /portal/therapist appends to an existing therapist_reported_fields list", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      therapistReportedFields: ["phone", "website"],
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { estimated_wait_time: "2 weeks" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  const reported = new Set(raw.therapistReportedFields);
+  assert.ok(reported.has("phone"));
+  assert.ok(reported.has("website"));
+  assert.ok(reported.has("estimated_wait_time"));
+});
+
+test("PATCH /portal/therapist unsets optional fields when given an empty value", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      estimatedWaitTime: "2 weeks",
+      specialties: ["Bipolar I", "Mood disorders"],
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { estimated_wait_time: "", specialties: [] },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.estimatedWaitTime, undefined);
+  assert.equal(raw.specialties, undefined);
+});
+
 test("/portal/analytics returns current-week engagement summary for the authenticated therapist", async () => {
   const { buildEngagementPeriodKey, buildEngagementPeriodStart } =
     await import("../../shared/therapist-engagement-domain.mjs");
