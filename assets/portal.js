@@ -1315,6 +1315,268 @@ function joinArray(value) {
   return Array.isArray(value) ? value.join(", ") : "";
 }
 
+// Candidates for the "next best add" nudge. Each tests a missing
+// field by stubbing a plausible filled value and seeing how much
+// getTherapistMatchReadiness moves. The nudge shows the biggest mover.
+// Keep this list strictly to fields the therapist can edit from the
+// portal — suggesting "add license number" would be useless since
+// that's locked here.
+var NEXT_BEST_FIELDS = [
+  {
+    key: "phone",
+    label: "Add a public phone number",
+    isEmpty: function (t) {
+      return !String(t.phone || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { phone: "555-555-5555" });
+    },
+  },
+  {
+    key: "website",
+    label: "Add your website",
+    isEmpty: function (t) {
+      return !String(t.website || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { website: "https://example.com" });
+    },
+  },
+  {
+    key: "care_approach",
+    label: "Describe how you help bipolar clients",
+    isEmpty: function (t) {
+      return !String(t.care_approach || "").trim();
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { care_approach: "stub" });
+    },
+  },
+  {
+    key: "insurance_accepted",
+    label: "List insurance accepted",
+    isEmpty: function (t) {
+      return !(t.insurance_accepted && t.insurance_accepted.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { insurance_accepted: ["Aetna", "Cigna", "BCBS"] });
+    },
+  },
+  {
+    key: "treatment_modalities",
+    label: "List your treatment modalities",
+    isEmpty: function (t) {
+      return !(t.treatment_modalities && t.treatment_modalities.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { treatment_modalities: ["CBT", "DBT"] });
+    },
+  },
+  {
+    key: "client_populations",
+    label: "Specify populations you serve",
+    isEmpty: function (t) {
+      return !(t.client_populations && t.client_populations.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { client_populations: ["Adults"] });
+    },
+  },
+  {
+    key: "bipolar_years_experience",
+    label: "Add years of bipolar-specific experience",
+    isEmpty: function (t) {
+      return !Number(t.bipolar_years_experience || 0);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { bipolar_years_experience: 5 });
+    },
+  },
+  {
+    key: "telehealth_states",
+    label: "List telehealth states you cover",
+    isEmpty: function (t) {
+      return !(t.accepts_telehealth && t.telehealth_states && t.telehealth_states.length);
+    },
+    stub: function (t) {
+      return Object.assign({}, t, { accepts_telehealth: true, telehealth_states: ["CA"] });
+    },
+  },
+];
+
+function getProjectedTherapist(baseTherapist, form) {
+  if (!form) return baseTherapist;
+  var el = form.elements;
+  function str(name) {
+    var node = el[name];
+    return node ? String(node.value || "").trim() : "";
+  }
+  function bool(name) {
+    var node = el[name];
+    return !!(node && node.checked);
+  }
+  function num(name) {
+    var node = el[name];
+    if (!node) return null;
+    var v = String(node.value || "").trim();
+    if (v === "") return null;
+    var n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  function csv(name) {
+    var v = str(name);
+    if (!v) return [];
+    return v
+      .split(",")
+      .map(function (x) {
+        return x.trim();
+      })
+      .filter(function (x) {
+        return x.length > 0;
+      });
+  }
+  return Object.assign({}, baseTherapist, {
+    phone: str("phone") || baseTherapist.phone || "",
+    website: str("website") || baseTherapist.website || "",
+    booking_url: str("booking_url") || baseTherapist.booking_url || "",
+    bio: str("bio") || baseTherapist.bio || "",
+    credentials: str("credentials") || baseTherapist.credentials || "",
+    title: str("title") || baseTherapist.title || "",
+    practice_name: str("practice_name") || baseTherapist.practice_name || "",
+    care_approach: str("care_approach") || baseTherapist.care_approach || "",
+    contact_guidance: str("contact_guidance") || baseTherapist.contact_guidance || "",
+    first_step_expectation:
+      str("first_step_expectation") || baseTherapist.first_step_expectation || "",
+    estimated_wait_time: str("estimated_wait_time") || baseTherapist.estimated_wait_time || "",
+    preferred_contact_method:
+      str("preferred_contact_method") || baseTherapist.preferred_contact_method || "",
+    preferred_contact_label:
+      str("preferred_contact_label") || baseTherapist.preferred_contact_label || "",
+    accepting_new_patients: bool("accepting_new_patients"),
+    accepts_telehealth: bool("accepts_telehealth"),
+    accepts_in_person: bool("accepts_in_person"),
+    sliding_scale: bool("sliding_scale"),
+    medication_management: bool("medication_management"),
+    session_fee_min: num("session_fee_min"),
+    session_fee_max: num("session_fee_max"),
+    years_experience: num("years_experience"),
+    bipolar_years_experience: num("bipolar_years_experience"),
+    specialties: csv("specialties"),
+    insurance_accepted: csv("insurance_accepted"),
+    telehealth_states: csv("telehealth_states"),
+    treatment_modalities: csv("treatment_modalities"),
+    languages: csv("languages"),
+    client_populations: csv("client_populations"),
+  });
+}
+
+function computeNextBestAdd(projectedTherapist) {
+  var baseScore = getTherapistMatchReadiness(projectedTherapist).score;
+  var best = null;
+  for (var i = 0; i < NEXT_BEST_FIELDS.length; i += 1) {
+    var candidate = NEXT_BEST_FIELDS[i];
+    if (!candidate.isEmpty(projectedTherapist)) continue;
+    var stubbed = getTherapistMatchReadiness(candidate.stub(projectedTherapist)).score;
+    var delta = stubbed - baseScore;
+    if (delta <= 0) continue;
+    if (!best || delta > best.delta) {
+      best = { label: candidate.label, delta: delta, from: baseScore, to: stubbed };
+    }
+  }
+  return best;
+}
+
+// Per-fieldset completion: fraction of trackable (non-boolean) inputs
+// in the fieldset that have a non-empty value. Booleans are excluded
+// because they're always "answered" (toggle defaults).
+function fieldsetFillStats(fieldsetEl) {
+  var inputs = fieldsetEl.querySelectorAll("input, select, textarea");
+  var trackable = 0;
+  var filled = 0;
+  inputs.forEach(function (node) {
+    if (node.type === "checkbox" || node.type === "hidden") return;
+    trackable += 1;
+    if (String(node.value || "").trim() !== "") filled += 1;
+  });
+  return { filled: filled, total: trackable };
+}
+
+function updateReadinessUi(baseTherapist, form) {
+  var projected = getProjectedTherapist(baseTherapist, form);
+  var readiness = getTherapistMatchReadiness(projected);
+  var score = readiness.score;
+
+  var bar = document.getElementById("portalReadinessBarFill");
+  var scoreEl = document.getElementById("portalReadinessScore");
+  var labelEl = document.getElementById("portalReadinessLabel");
+  var nudgeEl = document.getElementById("portalReadinessNudge");
+  if (bar) bar.style.width = Math.max(3, score) + "%";
+  if (scoreEl) scoreEl.textContent = score + "/100";
+  if (labelEl) labelEl.textContent = readiness.label;
+
+  if (nudgeEl) {
+    var nextBest = computeNextBestAdd(projected);
+    if (nextBest) {
+      nudgeEl.innerHTML =
+        "<strong>Biggest next jump:</strong> " +
+        escapeHtml(nextBest.label) +
+        " would move you from <strong>" +
+        nextBest.from +
+        "</strong> to <strong>" +
+        nextBest.to +
+        "</strong>.";
+      nudgeEl.hidden = false;
+    } else if (score >= 90) {
+      nudgeEl.textContent = "Your profile is match-ready. Keep the details fresh.";
+      nudgeEl.hidden = false;
+    } else {
+      nudgeEl.hidden = true;
+    }
+  }
+
+  // Per-fieldset chips.
+  var fieldsets = form ? form.querySelectorAll("fieldset.portal-edit-group") : [];
+  fieldsets.forEach(function (fs) {
+    var legend = fs.querySelector("legend");
+    if (!legend) return;
+    var chip = legend.querySelector(".portal-edit-chip");
+    var stats = fieldsetFillStats(fs);
+    if (!stats.total) {
+      if (chip) chip.remove();
+      return;
+    }
+    var text =
+      stats.filled === stats.total ? "✓ complete" : stats.filled + "/" + stats.total + " filled";
+    var className =
+      stats.filled === stats.total ? "portal-edit-chip is-complete" : "portal-edit-chip";
+    if (chip) {
+      chip.textContent = text;
+      chip.className = className;
+    } else {
+      var span = document.createElement("span");
+      span.className = className;
+      span.textContent = text;
+      legend.appendChild(span);
+    }
+  });
+}
+
+function buildReadinessSectionHtml() {
+  return (
+    '<div class="portal-readiness" id="portalReadinessSection">' +
+    '<div class="portal-readiness-head">' +
+    '<span class="portal-readiness-title">Profile readiness</span>' +
+    '<span class="portal-readiness-label" id="portalReadinessLabel">—</span>' +
+    '<span class="portal-readiness-score" id="portalReadinessScore">—</span>' +
+    "</div>" +
+    '<div class="portal-readiness-bar" aria-hidden="true">' +
+    '<div class="portal-readiness-bar-fill" id="portalReadinessBarFill" style="width:3%"></div>' +
+    "</div>" +
+    '<p class="portal-readiness-nudge" id="portalReadinessNudge" hidden></p>' +
+    "</div>"
+  );
+}
+
 function buildEditProfileHtml(therapist) {
   var t = therapist || {};
   var readOnlyNote =
@@ -1394,6 +1656,7 @@ function buildEditProfileHtml(therapist) {
     '<section class="portal-card portal-edit" id="portalEditCard" style="margin-bottom:1rem">' +
     "<h2>Edit your profile</h2>" +
     readOnlyNote +
+    buildReadinessSectionHtml() +
     '<form id="portalEditForm" class="portal-edit-form">' +
     '<fieldset class="portal-edit-group"><legend>Availability</legend>' +
     checkbox(
@@ -1474,6 +1737,11 @@ function buildEditProfileHtml(therapist) {
       joinArray(t.treatment_modalities),
     ) +
     textInput("languages", "Languages (comma-separated)", joinArray(t.languages)) +
+    textInput(
+      "client_populations",
+      'Populations served (comma-separated, e.g. "Adults, College students")',
+      joinArray(t.client_populations),
+    ) +
     "</fieldset>" +
     '<fieldset class="portal-edit-group"><legend>Fees</legend>' +
     textInput("session_fee_min", "Session fee minimum ($)", t.session_fee_min, {
@@ -1531,6 +1799,7 @@ function collectEditProfileUpdates(form) {
     "telehealth_states",
     "treatment_modalities",
     "languages",
+    "client_populations",
   ].forEach(str);
 
   ["session_fee_min", "session_fee_max", "years_experience", "bipolar_years_experience"].forEach(
@@ -1548,9 +1817,20 @@ function collectEditProfileUpdates(form) {
   return payload;
 }
 
-function wireEditProfileHandlers() {
+function wireEditProfileHandlers(therapist) {
   var form = document.getElementById("portalEditForm");
   if (!form) return;
+
+  // Prime the readiness UI with initial values, then update on any
+  // edit. Using both input + change covers text/number (input) and
+  // checkbox/select (change).
+  updateReadinessUi(therapist, form);
+  var onEdit = function () {
+    updateReadinessUi(therapist, form);
+  };
+  form.addEventListener("input", onEdit);
+  form.addEventListener("change", onEdit);
+
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
     var feedback = document.getElementById("portalEditFeedback");
@@ -1565,6 +1845,8 @@ function wireEditProfileHandlers() {
       feedback.style.color = "#1a7a8f";
       if (result && result.therapist) {
         claimSessionState = { therapist: result.therapist };
+        therapist = result.therapist;
+        updateReadinessUi(therapist, form);
       }
     } catch (error) {
       feedback.textContent = (error && error.message) || "Something went wrong while saving.";
@@ -1915,7 +2197,7 @@ function renderPortal(therapist, options) {
   });
 
   if (verifiedClaim) {
-    wireEditProfileHandlers();
+    wireEditProfileHandlers(therapist);
     loadAnalyticsIntoPortal();
     loadSubscriptionIntoFeaturedCard();
   } else if (sessionMode === "claim_token") {

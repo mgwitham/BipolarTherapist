@@ -168,6 +168,75 @@
         width: 1.05rem;
         height: 1.05rem;
       }
+      .portal-readiness {
+        background: linear-gradient(180deg, #ecf7f9 0%, #fff 100%);
+        border: 1px solid #b9dde4;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin: 0 0 1rem;
+        display: grid;
+        gap: 0.55rem;
+      }
+      .portal-readiness-head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .portal-readiness-title {
+        font-weight: 700;
+        color: var(--navy);
+        font-size: 0.95rem;
+      }
+      .portal-readiness-label {
+        color: #155f70;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .portal-readiness-score {
+        margin-left: auto;
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: var(--navy);
+      }
+      .portal-readiness-bar {
+        height: 10px;
+        background: #dceff3;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .portal-readiness-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #2f6e80 0%, #1a7a8f 100%);
+        border-radius: 999px;
+        transition: width 0.35s ease-out;
+      }
+      .portal-readiness-nudge {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #1d3a4a;
+        line-height: 1.5;
+      }
+      .portal-readiness-nudge[hidden] {
+        display: none;
+      }
+      .portal-edit-chip {
+        margin-left: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #6b8290;
+        background: #eef3f5;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .portal-edit-chip.is-complete {
+        color: #1a7a8f;
+        background: #d9f0f3;
+      }
       @media (max-width: 860px) {
         .portal-hero,
         .portal-grid {

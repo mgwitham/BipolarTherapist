@@ -179,6 +179,9 @@ function shapePortalTherapist(therapist) {
     session_fee_min: typeof therapist.sessionFeeMin === "number" ? therapist.sessionFeeMin : null,
     session_fee_max: typeof therapist.sessionFeeMax === "number" ? therapist.sessionFeeMax : null,
     sliding_scale: therapist.slidingScale === true,
+    client_populations: Array.isArray(therapist.clientPopulations)
+      ? therapist.clientPopulations
+      : [],
     specialties: Array.isArray(therapist.specialties) ? therapist.specialties : [],
     insurance_accepted: Array.isArray(therapist.insuranceAccepted)
       ? therapist.insuranceAccepted
@@ -350,6 +353,7 @@ function validatePortalTherapistUpdates(body) {
     telehealthStates: { bodyKey: "telehealth_states", maxItems: 60, maxLen: 60 },
     treatmentModalities: { bodyKey: "treatment_modalities", maxItems: 40, maxLen: 120 },
     languages: { bodyKey: "languages", maxItems: 20, maxLen: 60 },
+    clientPopulations: { bodyKey: "client_populations", maxItems: 40, maxLen: 80 },
   };
   for (const field of Object.keys(arrayFields)) {
     const spec = arrayFields[field];
@@ -1316,7 +1320,7 @@ export async function handleAuthAndPortalRoutes(context) {
         preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
         acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
         sessionFeeMin, sessionFeeMax, slidingScale,
-        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
         medicationManagement
       }`,
@@ -1404,7 +1408,7 @@ export async function handleAuthAndPortalRoutes(context) {
         preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
         acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
         sessionFeeMin, sessionFeeMax, slidingScale,
-        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages,
+        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
         medicationManagement
       }`,
