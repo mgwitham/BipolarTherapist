@@ -1174,6 +1174,21 @@
       body.match-refine-drawer-open {
         overflow: hidden;
       }
+      /* CRITICAL: #matchResults gets a `motion-enter` class that animates
+         a transform with `animation-fill-mode: both`, leaving a residual
+         `matrix(1, 0, 0, 1, 0, 0)` on the element forever. ANY transform
+         on an ancestor turns it into the containing block for nested
+         position:fixed descendants — meaning the drawer renders anchored
+         to #matchResults (often well below the fold) instead of to the
+         viewport. Clearing the transform while the drawer is open lets
+         position:fixed anchor to the viewport as intended. The entrance
+         animation is long-completed by the time the user opens the
+         drawer, so the override is visually a no-op. */
+      body.match-refine-drawer-open #matchResults {
+        transform: none !important;
+        animation: none !important;
+        will-change: auto !important;
+      }
       body.match-refine-drawer-open .match-refinements {
         position: fixed;
         top: 0;
