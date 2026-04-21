@@ -263,6 +263,61 @@ test("PATCH /portal/therapist rejects invalid preferred_contact_method", async (
   assert.equal(response.payload.field, "preferred_contact_method");
 });
 
+test("PATCH /portal/therapist promotes touched fields into therapist_reported_fields", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      bio: "Updated bio with plenty of characters to pass the fifty char minimum here.",
+      phone: "555-123-4567",
+      specialties: "Bipolar II, Mood stabilization",
+    },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.ok(Array.isArray(raw.therapistReportedFields));
+  const reported = new Set(raw.therapistReportedFields);
+  assert.ok(reported.has("bio"));
+  assert.ok(reported.has("phone"));
+  assert.ok(reported.has("specialties"));
+  // Fields not in the PATCH body should not be marked reviewed.
+  assert.ok(!reported.has("website"));
+
+  assert.deepEqual(response.payload.therapist.therapist_reported_fields.sort(), [
+    "bio",
+    "phone",
+    "specialties",
+  ]);
+});
+
+test("PATCH /portal/therapist appends to an existing therapist_reported_fields list", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      therapistReportedFields: ["phone", "website"],
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { estimated_wait_time: "2 weeks" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  const reported = new Set(raw.therapistReportedFields);
+  assert.ok(reported.has("phone"));
+  assert.ok(reported.has("website"));
+  assert.ok(reported.has("estimated_wait_time"));
+});
+
 test("PATCH /portal/therapist unsets optional fields when given an empty value", async () => {
   const { client } = createMemoryClient({
     "therapist-jamie": buildClaimedTherapistFixture({

@@ -201,20 +201,27 @@ function shapePortalTherapist(therapist) {
         ? therapist.bipolarYearsExperience
         : null,
     medication_management: therapist.medicationManagement === true,
+    therapist_reported_fields: Array.isArray(therapist.therapistReportedFields)
+      ? therapist.therapistReportedFields
+      : [],
   };
 }
 
 // Validates and normalizes a PATCH /portal/therapist body. Strict
 // whitelist — any field not in this map is silently ignored so a
 // caller can send a bigger payload than they intend without breaking.
-// Returns { setFields, unsetFields, hasChanges, error?, field? }.
+// Returns { setFields, unsetFields, touchedBodyKeys, hasChanges,
+// error?, field? }. touchedBodyKeys is the set of snake_case body
+// keys that had any effect — used to promote those fields into the
+// therapist-reported set (provenance: "I reviewed this").
 function validatePortalTherapistUpdates(body) {
   if (!body || typeof body !== "object") {
-    return { setFields: {}, unsetFields: [], hasChanges: false };
+    return { setFields: {}, unsetFields: [], touchedBodyKeys: [], hasChanges: false };
   }
 
   const setFields = {};
   const unsetFields = [];
+  const touchedBodyKeys = new Set();
 
   // Strings: trim; empty string → unset. Enforces max length.
   const stringFields = {
@@ -239,6 +246,7 @@ function validatePortalTherapistUpdates(body) {
     const raw = body[bodyKey];
     if (raw === null || raw === undefined || String(raw).trim() === "") {
       unsetFields.push(field);
+      touchedBodyKeys.add(bodyKey);
       continue;
     }
     const value = String(raw).trim();
@@ -249,6 +257,7 @@ function validatePortalTherapistUpdates(body) {
       return { error: `${bodyKey} must start with http:// or https://.`, field: bodyKey };
     }
     setFields[field] = value;
+    touchedBodyKeys.add(bodyKey);
   }
 
   // Bio is required + schema-min of 50 chars. Reject clearing it.
@@ -264,6 +273,7 @@ function validatePortalTherapistUpdates(body) {
       return { error: "Bio is too long.", field: "bio" };
     }
     setFields.bio = bio;
+    touchedBodyKeys.add("bio");
   }
 
   // Enum: preferredContactMethod.
@@ -271,6 +281,7 @@ function validatePortalTherapistUpdates(body) {
     const raw = String(body.preferred_contact_method || "").trim();
     if (!raw) {
       unsetFields.push("preferredContactMethod");
+      touchedBodyKeys.add("preferred_contact_method");
     } else if (!["email", "phone", "website", "booking"].includes(raw)) {
       return {
         error: "preferred_contact_method must be one of email, phone, website, booking.",
@@ -278,6 +289,7 @@ function validatePortalTherapistUpdates(body) {
       };
     } else {
       setFields.preferredContactMethod = raw;
+      touchedBodyKeys.add("preferred_contact_method");
     }
   }
 
@@ -295,8 +307,10 @@ function validatePortalTherapistUpdates(body) {
     const raw = body[bodyKey];
     if (raw === true || raw === "true") {
       setFields[field] = true;
+      touchedBodyKeys.add(bodyKey);
     } else if (raw === false || raw === "false") {
       setFields[field] = false;
+      touchedBodyKeys.add(bodyKey);
     } else {
       return { error: `${bodyKey} must be true or false.`, field: bodyKey };
     }
@@ -315,6 +329,7 @@ function validatePortalTherapistUpdates(body) {
     const raw = body[spec.bodyKey];
     if (raw === null || raw === "" || raw === undefined) {
       unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
       continue;
     }
     const value = Number(raw);
@@ -325,6 +340,7 @@ function validatePortalTherapistUpdates(body) {
       };
     }
     setFields[field] = value;
+    touchedBodyKeys.add(spec.bodyKey);
   }
 
   // Cross-field: sessionFeeMin <= sessionFeeMax when both present.
@@ -367,6 +383,7 @@ function validatePortalTherapistUpdates(body) {
       items = raw.split(",");
     } else if (raw === null || raw === undefined) {
       unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
       continue;
     } else {
       return {
@@ -379,6 +396,7 @@ function validatePortalTherapistUpdates(body) {
       .filter((item) => item.length > 0);
     if (!cleaned.length) {
       unsetFields.push(field);
+      touchedBodyKeys.add(spec.bodyKey);
       continue;
     }
     if (cleaned.length > spec.maxItems) {
@@ -388,10 +406,16 @@ function validatePortalTherapistUpdates(body) {
       return { error: `${spec.bodyKey} contains an entry that is too long.`, field: spec.bodyKey };
     }
     setFields[field] = cleaned;
+    touchedBodyKeys.add(spec.bodyKey);
   }
 
   const hasChanges = Object.keys(setFields).length > 0 || unsetFields.length > 0;
-  return { setFields, unsetFields, hasChanges };
+  return {
+    setFields,
+    unsetFields,
+    touchedBodyKeys: Array.from(touchedBodyKeys),
+    hasChanges,
+  };
 }
 
 export async function handleAuthAndPortalRoutes(context) {
@@ -1323,7 +1347,7 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement
+        medicationManagement, therapistReportedFields
       }`,
       { slug: session.slug },
     );
@@ -1378,7 +1402,9 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const existing = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{ _id, claimStatus }`,
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, claimStatus, therapistReportedFields
+      }`,
       { slug: session.slug },
     );
     if (!existing) {
@@ -1390,12 +1416,29 @@ export async function handleAuthAndPortalRoutes(context) {
       return true;
     }
 
+    // Merge touched snake_case keys into therapistReportedFields. Any
+    // field the therapist submitted — set or unset — is considered
+    // reviewed. This is the provenance signal the portal uses to hide
+    // the "unreviewed" dot and dismiss the "review scraped data"
+    // banner on the next render.
+    const priorReported = Array.isArray(existing.therapistReportedFields)
+      ? existing.therapistReportedFields
+      : [];
+    const nextReportedSet = new Set(priorReported);
+    (validation.touchedBodyKeys || []).forEach(function (key) {
+      nextReportedSet.add(key);
+    });
+    const nextReported = Array.from(nextReportedSet);
+
     let patch = client.patch(existing._id);
     if (Object.keys(validation.setFields).length) {
       patch = patch.set(validation.setFields);
     }
     if (validation.unsetFields.length) {
       patch = patch.unset(validation.unsetFields);
+    }
+    if (nextReported.length > priorReported.length) {
+      patch = patch.set({ therapistReportedFields: nextReported });
     }
     await patch.commit({ visibility: "sync" });
 
@@ -1411,7 +1454,7 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement
+        medicationManagement, therapistReportedFields
       }`,
       { slug: session.slug },
     );

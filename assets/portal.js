@@ -1581,6 +1581,62 @@ function buildEditProfileHtml(therapist) {
   var t = therapist || {};
   var viewHref = t.slug ? "therapist.html?slug=" + encodeURIComponent(t.slug) : "";
 
+  // Fields the therapist has already reviewed (either confirmed or
+  // edited). Any field with a value that ISN'T in this set is
+  // "editorially sourced" — likely scraped from public sources — and
+  // gets a grey dot next to its label until the therapist saves it.
+  var reportedList = Array.isArray(t.therapist_reported_fields) ? t.therapist_reported_fields : [];
+  var reportedSet = {};
+  reportedList.forEach(function (k) {
+    reportedSet[String(k).trim()] = true;
+    // Tolerate mixed camelCase/snake_case history by registering both
+    // spellings. Older review events stored camelCase names.
+    reportedSet[
+      String(k)
+        .replace(/([A-Z])/g, "_$1")
+        .toLowerCase()
+    ] = true;
+  });
+
+  function hasMeaningfulValue(value) {
+    if (value == null || value === "") return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (typeof value === "number") return true;
+    return Boolean(value);
+  }
+
+  function reviewDot(name, value) {
+    if (reportedSet[name]) return "";
+    if (!hasMeaningfulValue(value)) return "";
+    return '<span class="portal-review-dot" title="Pulled from public sources — please review and save to confirm" aria-label="Unreviewed field"></span>';
+  }
+
+  // The big banner shows when the therapist has never confirmed any
+  // field AND the profile already has at least one pre-filled value
+  // (i.e. this is a scraped profile they just claimed). If everything
+  // is empty, there's nothing to review — no banner.
+  var hasAnyPrefilledData =
+    hasMeaningfulValue(t.bio) ||
+    hasMeaningfulValue(t.credentials) ||
+    hasMeaningfulValue(t.care_approach) ||
+    hasMeaningfulValue(t.phone) ||
+    hasMeaningfulValue(t.website) ||
+    hasMeaningfulValue(t.specialties) ||
+    hasMeaningfulValue(t.insurance_accepted) ||
+    hasMeaningfulValue(t.telehealth_states) ||
+    hasMeaningfulValue(t.session_fee_min);
+  var showReviewBanner = reportedList.length === 0 && hasAnyPrefilledData;
+  var reviewBannerHtml = showReviewBanner
+    ? '<div class="portal-review-banner" id="portalReviewBanner">' +
+      "<strong>We pre-filled your profile from public sources.</strong> " +
+      "Please review each section — outdated info hurts your discoverability. " +
+      "Any field with a " +
+      '<span class="portal-review-dot" aria-hidden="true"></span> hasn\'t been confirmed by you yet. ' +
+      "Saving a section marks it as reviewed." +
+      "</div>"
+    : "";
+
   function hintBlock(text) {
     return text ? '<small class="portal-hint">' + escapeHtml(text) + "</small>" : "";
   }
@@ -1592,6 +1648,7 @@ function buildEditProfileHtml(therapist) {
     return (
       '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
+      reviewDot(name, value) +
       "</strong>" +
       hintBlock(opts.hint) +
       "</span>" +
@@ -1615,6 +1672,7 @@ function buildEditProfileHtml(therapist) {
     return (
       '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
+      reviewDot(name, value) +
       "</strong>" +
       hintBlock(opts.hint) +
       "</span>" +
@@ -1667,6 +1725,7 @@ function buildEditProfileHtml(therapist) {
     return (
       '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
+      reviewDot(name, value) +
       "</strong>" +
       hintBlock(hint) +
       "</span>" +
@@ -1699,6 +1758,7 @@ function buildEditProfileHtml(therapist) {
       '">' +
       '<span class="portal-edit-label"><strong>' +
       escapeHtml(label) +
+      reviewDot(name, current) +
       "</strong>" +
       hintBlock(hint) +
       "</span>" +
@@ -1729,6 +1789,7 @@ function buildEditProfileHtml(therapist) {
       : "") +
     "</div>" +
     '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>' +
+    reviewBannerHtml +
     buildReadinessSectionHtml() +
     '<form id="portalEditForm" class="portal-edit-form">' +
     // About you — most conversion-critical, comes first.
