@@ -578,9 +578,9 @@ function initQuickClaim() {
       const therapistName = (result && result.name) || "this listing";
       banner.hidden = false;
       banner.innerHTML =
-        "<strong>No email on file.</strong> We don't have a contact address for " +
+        "<strong>No email on file for " +
         escapeHtml(therapistName) +
-        " yet. Enter the email you want to use. If it matches your listed practice website, we'll send a claim link right away. Otherwise we'll do a quick manual review and email you within one business day.";
+        ".</strong> Enter the email you want to use.";
       emailLabel.textContent = "Your email address";
     } else {
       banner.hidden = true;
