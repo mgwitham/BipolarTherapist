@@ -150,6 +150,27 @@
         font-size: 0.72rem;
         font-weight: 700;
       }
+      /* Zone-switch link (dark-hero variant). Right-aligned separator
+         between patient and therapist zones. */
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+      }
+      .nav-zone-switch:hover {
+        color: white !important;
+        border-color: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+      }
       .hero {
         background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
         min-height: 100vh;
@@ -1477,8 +1498,9 @@
             >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
           >
         </li>
-        <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
+        <li class="nav-zone-switch-item">
+          <a href="signup.html" class="nav-zone-switch">For therapists →</a>
+        </li>
       </ul>
     </nav>
 
