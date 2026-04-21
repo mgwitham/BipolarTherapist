@@ -317,41 +317,168 @@ test("workflow: application approval is blocked without a license number", async
 
 // --- /applications/intake (short-form new-therapist signup) ---
 
-test("intake: short-form submission creates a pending application with stub bio/care_approach", async function () {
-  const { client, state } = createMemoryClient();
-  const handler = createReviewApiHandler(createTestApiConfig(), client);
+// Helpers for DCA mocking in the new synchronous-verify intake flow.
+// The server's verifyLicense() hits iservices.dca.ca.gov via global
+// fetch — monkey-patching that gives us deterministic test behavior
+// without adding an injectable client.
+function withDcaFetchStub(handler) {
+  const original = globalThis.fetch;
+  globalThis.fetch = async function (url, init) {
+    const href = String(url);
+    if (href.includes("iservices.dca.ca.gov")) {
+      return handler(url);
+    }
+    if (original) return original(url, init);
+    throw new Error("No fetch stub for " + href);
+  };
+  return function restore() {
+    globalThis.fetch = original;
+  };
+}
 
-  const response = await runHandlerRequest(handler, {
-    body: {
-      name: "Dr. Jamie Rivera",
-      email: "jamie@example.com",
-      license_number: "LMFT12345",
-      city: "Los Angeles",
-      state: "CA",
-      treats_bipolar: true,
-      intake_source: "signup_short_form",
-    },
-    headers: { host: "localhost:8787" },
-    method: "POST",
-    url: "/applications/intake",
+test("intake: sync-verifies the license and publishes a therapist doc (listingActive=false, pending_profile)", async function () {
+  const { client, state } = createMemoryClient();
+  const handler = createReviewApiHandler(
+    { ...createTestApiConfig(), dcaAppId: "app", dcaAppKey: "key" },
+    client,
+  );
+  // Only the MFT type (2001) returns a license hit; the other 5 types
+  // return empty so we exercise the "race all types" path.
+  const restore = withDcaFetchStub((url) => {
+    const match = String(url).match(/licType=(\d+)/);
+    const typeCode = match ? match[1] : "";
+    if (typeCode === "2001") {
+      return {
+        ok: true,
+        async json() {
+          return {
+            licenseDetails: [
+              {
+                getFullLicenseDetail: [
+                  {
+                    getLicenseDetails: [
+                      {
+                        primaryStatusCode: "20",
+                        expDate: "20990101",
+                        issueDate: "20100101",
+                        licenseNumber: "12345",
+                        boardCode: "04",
+                      },
+                    ],
+                    getNameDetails: [
+                      {
+                        individualNameDetails: [
+                          { firstName: "Jamie", middleName: "", lastName: "Rivera" },
+                        ],
+                      },
+                    ],
+                    getAddressDetail: [
+                      {
+                        address: [{ city: "Los Angeles", state: "CA" }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { licenseDetails: [] };
+      },
+    };
   });
 
-  assert.equal(response.statusCode, 201);
-  assert.equal(response.payload.ok, true);
-  assert.equal(typeof response.payload.id, "string");
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Jamie Rivera",
+        email: "jamie@example.com",
+        license_number: "12345",
+        city: "Los Angeles",
+        state: "CA",
+        treats_bipolar: true,
+      },
+      headers: { host: "localhost:8787" },
+      method: "POST",
+      url: "/applications/intake",
+    });
 
-  const created = state.documents.get(response.payload.id);
-  assert.ok(created, "application should have been created in Sanity");
-  assert.equal(created._type, "therapistApplication");
-  assert.equal(created.status, "pending");
-  assert.equal(created.name, "Dr. Jamie Rivera");
-  assert.equal(created.email, "jamie@example.com");
-  assert.equal(created.licenseNumber, "LMFT12345");
-  assert.equal(created.licenseState, "CA");
-  // Stub values populate so the admin review queue renders and the
-  // Sanity schema accepts the doc.
-  assert.match(created.bio, /Pending/i);
-  assert.match(created.careApproach, /Pending/i);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.payload.ok, true);
+    assert.equal(typeof response.payload.therapist_slug, "string");
+    assert.equal(typeof response.payload.therapist_id, "string");
+    assert.equal(typeof response.payload.claim_token, "string");
+    // stripe_url is empty in tests because no Stripe keys are configured;
+    // the intake gracefully degrades so the client can still fall back
+    // to the portal + claim-token path.
+    assert.equal(typeof response.payload.stripe_url, "string");
+
+    // Therapist doc was created with the hidden-listing gate so the
+    // stub bio doesn't leak to the directory.
+    const therapist = state.documents.get(response.payload.therapist_id);
+    assert.ok(therapist, "therapist doc should have been created in Sanity");
+    assert.equal(therapist._type, "therapist");
+    assert.equal(therapist.listingActive, false);
+    assert.equal(therapist.status, "pending_profile");
+    assert.equal(therapist.claimStatus, "unclaimed");
+    assert.equal(therapist.intakeSource, "signup_instant_checkout");
+
+    // Audit-trail application doc still exists; status is auto_approved
+    // with the therapist id linked so admin can trace origin.
+    const applications = Array.from(state.documents.values()).filter(
+      (d) => d._type === "therapistApplication",
+    );
+    assert.equal(applications.length, 1, "one audit application doc");
+    const app = applications[0];
+    assert.equal(app.status, "auto_approved");
+    assert.equal(app.publishedTherapistId, therapist._id);
+  } finally {
+    restore();
+  }
+});
+
+test("intake: license-not-verified returns 422 and does NOT create any docs", async function () {
+  const { client, state } = createMemoryClient();
+  const handler = createReviewApiHandler(
+    { ...createTestApiConfig(), dcaAppId: "app", dcaAppKey: "key" },
+    client,
+  );
+  // DCA returns empty arrays for every license type -> no verification
+  const restore = withDcaFetchStub(() => ({
+    ok: true,
+    async json() {
+      return { licenseDetails: [] };
+    },
+  }));
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Fake Name",
+        email: "fake@example.com",
+        license_number: "99999",
+        city: "Los Angeles",
+        state: "CA",
+        treats_bipolar: true,
+      },
+      headers: { host: "localhost:8787" },
+      method: "POST",
+      url: "/applications/intake",
+    });
+
+    assert.equal(response.statusCode, 422);
+    assert.equal(response.payload.reason, "license_not_verified");
+    assert.match(response.payload.error, /verify/i);
+    // No doc should have been created when the license fails verification.
+    const docs = Array.from(state.documents.values());
+    assert.equal(docs.length, 0);
+  } finally {
+    restore();
+  }
 });
 
 test("intake: missing fields returns 400", async function () {

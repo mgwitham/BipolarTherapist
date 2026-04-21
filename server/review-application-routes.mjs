@@ -10,6 +10,7 @@ export async function handleApplicationRoutes(context) {
     buildTherapistApplicationFieldPatch,
     buildTherapistDocument,
     buildTherapistObservationDocuments,
+    createFeaturedCheckoutSession,
     findDuplicateTherapistEntity,
     getAuthorizedActor,
     isAuthorized,
@@ -24,18 +25,25 @@ export async function handleApplicationRoutes(context) {
     validateRevisionInput,
   } = deps;
 
-  // POST /applications/intake — short-form intake for the new-therapist
-  // signup flow. Accepts only 5 fields (name, email, CA license,
-  // city/ZIP, bipolar confirmation) and fills in stub values for the
-  // fields the full-form endpoint normally requires (bio, credentials,
-  // care_approach). Those are completed by the therapist via the
-  // portal after approval.
+  // POST /applications/intake — short-form signup with synchronous
+  // license verification and immediate checkout. The therapist pays
+  // right after license verification, no admin review gate. Flow:
   //
-  // Review queue routing is identical to the full-form /applications
-  // endpoint — dup check, admin notification, async DCA license
-  // verification. The only difference is the stubbed fields, which
-  // admins see flagged in the review queue as "intake_source:
-  // signup_short_form" so they know to expect a partial profile.
+  //   1. Validate inputs + check for duplicates
+  //   2. Sync DCA verification (try all 6 CA license types in parallel)
+  //   3. On fail: 422 with license-not-verified — no charge, no doc
+  //   4. On pass: build application doc (audit trail) + therapist doc
+  //      (listingActive=false so stub bios don't leak into the public
+  //      directory; therapist flips live from portal once a real bio
+  //      is saved)
+  //   5. Compose Stripe checkout session + portal claim token
+  //   6. Return {stripe_url, claim_token, therapist_slug} — client
+  //      redirects directly to Stripe
+  //
+  // Admin visibility is preserved through the audit-trail application
+  // doc (status=auto_approved, intake_source=signup_instant_checkout)
+  // and the therapist doc itself (listed in the admin listings
+  // workspace with listingActive=false + status=pending_profile).
   if (request.method === "POST" && routePath === "/applications/intake") {
     const body = await parseBody(request);
     const name = String(body.name || "").trim();
@@ -68,10 +76,10 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
-    // Normalize intake body into the shape buildApplicationDocument
-    // expects. Stub fields ("Pending — completed after approval") keep
-    // the Sanity schema happy and give admins a visible marker that
-    // this is a short-form submission needing profile completion.
+    // Stub the narrative fields the full-form /applications endpoint
+    // expects. Empty strings would fail schema validation; these get
+    // scrubbed when buildTherapistDocument runs and are replaced by
+    // the therapist's own content via the portal editor.
     const STUB_VALUE = "Pending — completed after approval.";
     const intakeBody = {
       name: name,
@@ -84,7 +92,7 @@ export async function handleApplicationRoutes(context) {
       credentials: String(body.credentials || "").trim() || "Pending",
       bio: STUB_VALUE,
       care_approach: STUB_VALUE,
-      intake_source: "signup_short_form",
+      intake_source: "signup_instant_checkout",
       submission_intent: "intake",
     };
 
@@ -113,23 +121,127 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
-    const document = await buildApplicationDocument(client, intakeBody);
-    const created = await client.create(document);
+    // Synchronous DCA verification. Signup only collects the license
+    // number (no type dropdown), so we race all 6 California license
+    // types in parallel and take the first verified hit. ~1-2s end to
+    // end vs ~2-3 day human review the old flow had.
+    let verification;
     try {
-      await notifyAdminOfSubmission(config, created);
+      verification = await verifyLicenseAcrossCaTypes(config, licenseNumber);
     } catch (error) {
-      console.error("Failed to send new-intake email.", error);
+      console.error("DCA verification threw at intake", error);
+      verification = { verified: false, error: "dca_unreachable" };
     }
-    runDcaVerification(client, config, created, intakeBody).catch(function (err) {
-      console.error("DCA license verification failed for " + created._id, err);
+    if (!verification.verified) {
+      sendJson(
+        response,
+        422,
+        {
+          error:
+            verification.error === "dca_unreachable"
+              ? "We couldn't reach the license verification service. Please try again in a minute."
+              : "We couldn't verify that CA license. Double-check the number and try again. If it's correct and this keeps failing, email support and we'll sort it out.",
+          reason: "license_not_verified",
+          dca_error: verification.error || "",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    intakeBody.licensure_verification = verification.licensureVerification;
+    intakeBody.license_type = verification.licenseTypeLabel || "";
+    // Persist primaryStatus so the admin audit trail shows DCA
+    // confirmed the license was active (or in what state) at signup.
+    intakeBody.license_verified_at = new Date().toISOString();
+
+    // Build the application doc as an audit trail. Status is
+    // auto_approved since the license passed verification and the
+    // therapist is going straight to publish. publishedTherapistId
+    // is set once the therapist doc is created below.
+    const applicationDocument = await buildApplicationDocument(client, intakeBody);
+    applicationDocument.status = "auto_approved";
+    applicationDocument.reviewedAt = new Date().toISOString();
+    applicationDocument.licensureVerification = verification.licensureVerification;
+    const applicationCreated = await client.create(applicationDocument);
+
+    // Build the therapist doc directly. Override listingActive=false
+    // + status=pending_profile so the stub-bio listing stays out of
+    // the public directory until the therapist saves a real bio from
+    // the portal editor.
+    const therapistDraft = buildTherapistDocument(
+      { ...applicationCreated, licensureVerification: verification.licensureVerification },
+      undefined,
+      publishingHelpers,
+    );
+    therapistDraft.listingActive = false;
+    therapistDraft.status = "pending_profile";
+    therapistDraft.claimStatus = "unclaimed";
+    therapistDraft.intakeSource = "signup_instant_checkout";
+    // Cached copies so admin filters + listings workspace can surface
+    // these therapists cleanly without a join.
+    therapistDraft.signupCompletedAt = new Date().toISOString();
+
+    const therapistCreated = await client.create(therapistDraft);
+
+    // Link the application to the newly published therapist for the
+    // audit trail. Non-fatal if this write fails — the therapist doc
+    // is the source of truth for the live listing.
+    try {
+      await client
+        .patch(applicationCreated._id)
+        .set({ publishedTherapistId: therapistCreated._id })
+        .commit();
+    } catch (linkError) {
+      console.error("Failed to link application -> therapist", linkError);
+    }
+
+    // Admin email stays on the signup-instant path — it's the admin's
+    // cue to audit the new listing.
+    try {
+      await notifyAdminOfSubmission(config, applicationCreated);
+    } catch (emailError) {
+      console.error("Failed to send admin-notify email for signup intake.", emailError);
+    }
+
+    // Compose Stripe checkout + portal claim token so the client can
+    // fire a single redirect straight to Stripe. The portal claim
+    // token embeds slug+email; post-Stripe return hits /portal?slug=X
+    // &token=... and auto-accepts (#235).
+    let stripeUrl = "";
+    let checkoutError = "";
+    try {
+      const checkout = await createFeaturedCheckoutSession(config, {
+        therapistSlug: therapistCreated.slug.current,
+        customerEmail: email,
+        plan: "paid_monthly",
+        returnPath:
+          "/portal.html?slug=" +
+          encodeURIComponent(therapistCreated.slug.current) +
+          "&stripe=success",
+      });
+      stripeUrl = (checkout && checkout.url) || "";
+    } catch (error) {
+      checkoutError = error && error.message ? error.message : "checkout_unavailable";
+      console.error("Stripe checkout session failed at intake", error);
+    }
+
+    const claimToken = buildPortalClaimToken(config, therapistCreated, email, {
+      ttlMs: 7 * 24 * 60 * 60 * 1000,
     });
+
     sendJson(
       response,
-      201,
+      200,
       {
         ok: true,
-        id: created._id,
-        message: "Application received. We'll email you within 2-3 business days with next steps.",
+        therapist_slug: therapistCreated.slug.current,
+        therapist_id: therapistCreated._id,
+        claim_token: claimToken,
+        stripe_url: stripeUrl,
+        stripe_error: checkoutError || undefined,
+        license_verified_at: intakeBody.license_verified_at,
       },
       origin,
       config,
@@ -587,4 +699,45 @@ async function runDcaVerification(client, config, application, body) {
       ": " +
       result.licensureVerification.primaryStatus,
   );
+}
+
+// Synchronous fan-out DCA verification for the signup-intake path.
+// Signup only collects a license number (no type dropdown — adding a
+// dropdown would be the single biggest friction point on a 5-field
+// form), so we race all 6 CA license types in parallel and return the
+// first verified match. Only one type can hit for a given license
+// number since license numbers aren't unique across types but the
+// DCA search will return zero results for a mismatched type.
+//
+// Returns { verified, licensureVerification, licenseTypeLabel } on
+// hit, or { verified: false, error } on miss / all-types-fail.
+async function verifyLicenseAcrossCaTypes(config, licenseNumber) {
+  const { verifyLicense, getLicenseTypeOptions } = await import("./dca-license-client.mjs");
+  const types = getLicenseTypeOptions();
+  if (!types || !types.length) {
+    return { verified: false, error: "no_license_types_configured" };
+  }
+  const results = await Promise.all(
+    types.map(function (option) {
+      return verifyLicense(config, option.code, licenseNumber)
+        .then(function (r) {
+          return { option, result: r };
+        })
+        .catch(function (error) {
+          return { option, result: { verified: false, error: String(error) } };
+        });
+    }),
+  );
+  const hit = results.find(function (r) {
+    return r.result && r.result.verified;
+  });
+  if (!hit) {
+    const lastError = (results[0] && results[0].result && results[0].result.error) || "not_found";
+    return { verified: false, error: lastError };
+  }
+  return {
+    verified: true,
+    licensureVerification: hit.result.licensureVerification,
+    licenseTypeLabel: hit.option.label,
+  };
 }

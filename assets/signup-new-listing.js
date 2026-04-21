@@ -160,7 +160,7 @@ async function submitIntake(form, status) {
     submit.disabled = true;
     submit.textContent = "Submitting...";
   }
-  setStatus(status, "", null);
+  setStatus(status, "Verifying your license and opening secure checkout...", null);
 
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
@@ -196,6 +196,26 @@ async function submitIntake(form, status) {
       setStatus(status, msg, "error");
       return;
     }
+    if (response.status === 422) {
+      // License couldn't be verified against the DCA database. No
+      // therapist doc was created, no Stripe session, no charge.
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_error) {
+        /* ignore */
+      }
+      trackFunnelEvent("signup_license_not_verified", {
+        dca_error: (data && data.dca_error) || "",
+      });
+      setStatus(
+        status,
+        (data && data.error) ||
+          "We couldn't verify that CA license. Double-check the number and try again.",
+        "error",
+      );
+      return;
+    }
     if (!response.ok) {
       let data = {};
       try {
@@ -211,16 +231,45 @@ async function submitIntake(form, status) {
       );
       return;
     }
-    setStatus(
-      status,
-      "Got it. We'll review your application and email you at " +
-        email +
-        " within 2-3 business days. No action needed until then.",
-      "success",
-    );
+    // Success: server verified the license, published the therapist
+    // doc, and created a Stripe checkout session. Redirect straight
+    // to Stripe — the post-checkout return URL drops the user into
+    // their claimed portal with the trial active.
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_error) {
+      /* ignore */
+    }
     trackFunnelEvent("signup_new_listing_submitted", {
       zip: zip || null,
+      therapist_slug: (data && data.therapist_slug) || null,
+      has_stripe_url: Boolean(data && data.stripe_url),
     });
+    if (data && data.stripe_url) {
+      setStatus(status, "License verified. Opening secure checkout...", "success");
+      window.setTimeout(function () {
+        window.location.href = data.stripe_url;
+      }, 300);
+      return;
+    }
+    // Fallback: license verified but Stripe checkout didn't build. Send
+    // the user to the portal with their claim token so they can still
+    // claim the listing; they can start the trial from the portal
+    // upsell banner.
+    if (data && data.therapist_slug && data.claim_token) {
+      setStatus(status, "Your listing is ready. Opening your dashboard...", "success");
+      const portalTarget =
+        "/portal?slug=" +
+        encodeURIComponent(data.therapist_slug) +
+        "&token=" +
+        encodeURIComponent(data.claim_token);
+      window.setTimeout(function () {
+        window.location.href = portalTarget;
+      }, 500);
+      return;
+    }
+    setStatus(status, "Your listing is verified. Check your inbox for a login link.", "success");
     form.reset();
   } catch (_error) {
     setStatus(
