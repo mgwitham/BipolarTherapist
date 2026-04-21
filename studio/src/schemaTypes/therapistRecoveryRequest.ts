@@ -144,6 +144,14 @@ export const therapistRecoveryRequestType = defineType({
       type: "datetime",
     }),
     defineField({
+      name: "confirmationSendHistory",
+      title: "Confirmation send history (ISO timestamps)",
+      type: "array",
+      of: [{ type: "string" }],
+      description:
+        "Appended each time send-confirmation runs. Capped at 5 per rolling 24h window to prevent inbox-spam abuse via admin creds.",
+    }),
+    defineField({
       name: "outcomeMessage",
       title: "Message sent to therapist on resolution",
       type: "text",

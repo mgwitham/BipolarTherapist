@@ -400,6 +400,14 @@ export async function sendRecoveryConfirmation(requestId, payload) {
   });
 }
 
+export async function resendRecoverySignin(requestId) {
+  return request("/recovery-requests/" + encodeURIComponent(requestId) + "/resend-signin", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({}),
+  });
+}
+
 // Account-recovery queue — therapist submits a request, admin reviews
 // manually, therapist gets an approval/rejection email. Used when
 // they've lost access to the email on file AND can't domain-verify.
