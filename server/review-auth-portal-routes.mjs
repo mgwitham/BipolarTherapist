@@ -1389,32 +1389,13 @@ export async function handleAuthAndPortalRoutes(context) {
     const domainVerified =
       !emailMatches && emailDomainMatchesWebsite(requesterEmail, therapist.website);
 
-    // Three cases below:
-    //   1. Email on file but doesn't match → reject with email_mismatch so
-    //      the legitimate owner gets directed to the email they used when
-    //      the profile was created (and imposters stay locked out).
-    //   2. No email on file, no domain match → auto-open a manual-review
-    //      recovery request. The listing has never had an owner contact
-    //      address, so there's no imposter risk from the email-mismatch
-    //      angle — the admin still verifies identity before approving.
-    //   3. emailMatches or domainVerified → happy path below.
-    if (!emailMatches && !domainVerified && profileEmail) {
-      sendJson(
-        response,
-        403,
-        {
-          error:
-            "That email doesn't match the contact email on your profile. Use the email on file, or contact us if you no longer have access to it.",
-          reason: "email_mismatch",
-          email_hint: maskEmail(therapist.email),
-        },
-        origin,
-        config,
-      );
-      return true;
-    }
-
-    if (!emailMatches && !domainVerified && !profileEmail) {
+    // If neither automatic path verifies ownership, route to manual
+    // review. Imposter risk is contained because we already required a
+    // name match + license match above, and admin verifies identity
+    // before approving. Covers both "no email on file" and "stale email
+    // on file" (therapist changed practices, old contact address is
+    // dead, no website on profile to domain-match against).
+    if (!emailMatches && !domainVerified) {
       const pendingCount = await client.fetch(
         `count(*[_type == "therapistRecoveryRequest" && status == "pending" && licenseNumber match $license])`,
         { license: `*${licenseNumber}*` },
@@ -1446,18 +1427,19 @@ export async function handleAuthAndPortalRoutes(context) {
         return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
       })();
 
+      const reviewReason = profileEmail ? "stale_email_on_file" : "no_email_on_file";
       const recoveryDoc = {
         _type: "therapistRecoveryRequest",
         fullName: rawFullName,
         licenseNumber: rawLicense,
         requestedEmail: requesterEmail,
         priorEmail: "",
-        reason: "no_email_on_file",
+        reason: reviewReason,
         status: "pending",
         therapistSlug: therapist.slug.current,
         therapistDocId: therapist._id,
         profileName: therapist.name || "",
-        profileEmailHint: "",
+        profileEmailHint: profileEmail ? maskEmail(therapist.email) : "",
         profileClaimedEmail: "",
         requesterIp,
         createdAt: nowIso,
@@ -1467,7 +1449,7 @@ export async function handleAuthAndPortalRoutes(context) {
       try {
         await deps.notifyAdminOfRecoveryRequest(config, created);
       } catch (error) {
-        console.error("Failed to notify admin of no-email quick-claim review.", error);
+        console.error("Failed to notify admin of quick-claim manual review.", error);
       }
       try {
         await deps.notifyTherapistOfRecoveryReceived(config, created);
