@@ -580,7 +580,7 @@ function initQuickClaim() {
       banner.innerHTML =
         "<strong>No email on file.</strong> We don't have a contact address for " +
         escapeHtml(therapistName) +
-        " yet. Enter the email you want to use — we'll verify ownership by matching your email domain to the listed website or falling back to manual review.";
+        " yet. Enter the email you want to use. If it matches your listed practice website, we'll send a claim link right away. Otherwise we'll do a quick manual review and email you within one business day.";
       emailLabel.textContent = "Your email address";
     } else {
       banner.hidden = true;
@@ -935,19 +935,36 @@ function initQuickClaim() {
 
     try {
       const result = await requestTherapistQuickClaim(payload);
-      const verifiedByDomain = result && result.verification_method === "email_domain_match";
-      setStatus(
-        status,
-        "success",
-        "Check your inbox.",
-        verifiedByDomain
-          ? "Your email matched your practice website's domain, so we verified ownership automatically and sent a one-time sign-in link."
-          : "We sent a one-time link that signs you into your profile for the next 24 hours.",
-      );
+      const verificationMethod = (result && result.verification_method) || "";
+      const verifiedByDomain = verificationMethod === "email_domain_match";
+      const manualReview = verificationMethod === "manual_review";
+      if (manualReview) {
+        setStatus(
+          status,
+          "info",
+          "Sent to manual review.",
+          "We couldn't auto-verify your email against the listed practice website, so a human will check it. Watch for a confirmation email — we'll email a decision within one business day.",
+        );
+        trackFunnelEvent("claim_recovery_submitted", {
+          therapist_slug: (result && result.therapist_slug) || "",
+          source: "quick_claim_no_email_on_file",
+        });
+      } else {
+        setStatus(
+          status,
+          "success",
+          "Check your inbox.",
+          verifiedByDomain
+            ? "Your email matched your practice website's domain, so we verified ownership automatically and sent a one-time sign-in link."
+            : "We sent a one-time link that signs you into your profile for the next 24 hours.",
+        );
+      }
       lastSend = { kind: "quick", payload: { ...payload }, target: "quick" };
-      showResend("quick");
+      if (!manualReview) {
+        showResend("quick");
+      }
       const slugForTrial = result && result.therapist_slug ? result.therapist_slug : "";
-      if (slugForTrial) {
+      if (slugForTrial && !manualReview) {
         showTrialOffer(slugForTrial, payload.email);
       } else {
         hideTrialOffer();

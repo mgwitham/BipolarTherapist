@@ -1389,7 +1389,16 @@ export async function handleAuthAndPortalRoutes(context) {
     const domainVerified =
       !emailMatches && emailDomainMatchesWebsite(requesterEmail, therapist.website);
 
-    if (!emailMatches && !domainVerified) {
+    // Three cases below:
+    //   1. Email on file but doesn't match → reject with email_mismatch so
+    //      the legitimate owner gets directed to the email they used when
+    //      the profile was created (and imposters stay locked out).
+    //   2. No email on file, no domain match → auto-open a manual-review
+    //      recovery request. The listing has never had an owner contact
+    //      address, so there's no imposter risk from the email-mismatch
+    //      angle — the admin still verifies identity before approving.
+    //   3. emailMatches or domainVerified → happy path below.
+    if (!emailMatches && !domainVerified && profileEmail) {
       sendJson(
         response,
         403,
@@ -1398,6 +1407,93 @@ export async function handleAuthAndPortalRoutes(context) {
             "That email doesn't match the contact email on your profile. Use the email on file, or contact us if you no longer have access to it.",
           reason: "email_mismatch",
           email_hint: maskEmail(therapist.email),
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    if (!emailMatches && !domainVerified && !profileEmail) {
+      const pendingCount = await client.fetch(
+        `count(*[_type == "therapistRecoveryRequest" && status == "pending" && licenseNumber match $license])`,
+        { license: `*${licenseNumber}*` },
+      );
+      if (Number(pendingCount) >= 3) {
+        sendJson(
+          response,
+          429,
+          {
+            error:
+              "We already have an open review request for this license. We'll email you within one business day.",
+            reason: "rate_limited",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+
+      const nowIso = new Date().toISOString();
+      const requesterIp = (() => {
+        const raw =
+          (request.headers &&
+            (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
+          (request.socket && request.socket.remoteAddress) ||
+          "";
+        const first = String(raw).split(",")[0].trim();
+        const parts = first.split(".");
+        return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
+      })();
+
+      const recoveryDoc = {
+        _type: "therapistRecoveryRequest",
+        fullName: rawFullName,
+        licenseNumber: rawLicense,
+        requestedEmail: requesterEmail,
+        priorEmail: "",
+        reason: "no_email_on_file",
+        status: "pending",
+        therapistSlug: therapist.slug.current,
+        therapistDocId: therapist._id,
+        profileName: therapist.name || "",
+        profileEmailHint: "",
+        profileClaimedEmail: "",
+        requesterIp,
+        createdAt: nowIso,
+      };
+      const created = await client.create(recoveryDoc);
+
+      try {
+        await deps.notifyAdminOfRecoveryRequest(config, created);
+      } catch (error) {
+        console.error("Failed to notify admin of no-email quick-claim review.", error);
+      }
+      try {
+        await deps.notifyTherapistOfRecoveryReceived(config, created);
+      } catch (error) {
+        console.error("Failed to send review-received confirmation email.", error);
+      }
+
+      try {
+        await client
+          .patch(therapist._id)
+          .set({ claimStatus: "claim_requested" })
+          .commit({ visibility: "sync" });
+      } catch (_error) {
+        // Non-fatal — claim status is derived admin state.
+      }
+
+      sendJson(
+        response,
+        202,
+        {
+          ok: true,
+          message:
+            "We couldn't auto-verify your email, so we sent this to manual review. Check your inbox for a confirmation — we'll email a decision within one business day.",
+          therapist_slug: therapist.slug.current,
+          verification_method: "manual_review",
+          recovery_request_id: created._id,
         },
         origin,
         config,

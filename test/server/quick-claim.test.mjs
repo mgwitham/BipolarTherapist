@@ -69,6 +69,8 @@ function buildContext(options) {
         getSecurityWarnings: () => [],
         isAuthorized: () => false,
         normalizePortalRequest: (doc) => doc,
+        notifyAdminOfRecoveryRequest: async () => {},
+        notifyTherapistOfRecoveryReceived: async () => {},
         parseAuthorizationHeader: () => "",
         readPortalClaimToken: options.readPortalClaimToken || (() => null),
         readSignedSession: () => null,
@@ -385,6 +387,119 @@ test("quick-claim: rejects aggregator-domain websites for auto-verify", async ()
   await handleAuthAndPortalRoutes(context);
   assert.equal(response.statusCode, 403);
   assert.equal(response.payload.reason, "email_mismatch");
+});
+
+test("quick-claim: no email on file + no domain match routes to manual review", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { email: "", website: "" }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 202);
+  assert.equal(response.payload.verification_method, "manual_review");
+  assert.equal(emailsSent.length, 0, "no claim link is sent until admin approves");
+
+  const recoveryDocs = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapistRecoveryRequest",
+  );
+  assert.equal(recoveryDocs.length, 1);
+  assert.equal(recoveryDocs[0].status, "pending");
+  assert.equal(recoveryDocs[0].reason, "no_email_on_file");
+  assert.equal(recoveryDocs[0].requestedEmail, "jamie@example.com");
+  assert.equal(recoveryDocs[0].therapistDocId, "therapist-LMFT12345");
+
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("quick-claim: no email on file but domain matches website still auto-verifies", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      email: "",
+      website: "https://jamie-therapy.com",
+    }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "hello@jamie-therapy.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.verification_method, "email_domain_match");
+  assert.equal(emailsSent.length, 1);
+  const recoveryDocs = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapistRecoveryRequest",
+  );
+  assert.equal(recoveryDocs.length, 0, "domain match should NOT create a recovery request");
+});
+
+test("quick-claim: email on file but mismatch still returns 403 (imposter protection)", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "imposter@evil.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.payload.reason, "email_mismatch");
+});
+
+test("quick-claim: no-email manual review rate-limits at 3 pending per license", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", { email: "", website: "" }),
+  });
+  for (let i = 0; i < 3; i += 1) {
+    await client.create({
+      _id: `recovery-${i}`,
+      _type: "therapistRecoveryRequest",
+      status: "pending",
+      licenseNumber: "LMFT12345",
+      requestedEmail: `pending${i}@example.com`,
+      fullName: "Jamie Rivera",
+      createdAt: new Date().toISOString(),
+    });
+  }
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+
+  const recoveryDocs = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapistRecoveryRequest",
+  );
+  assert.equal(recoveryDocs.length, 3, "no 4th doc is created while rate-limited");
 });
 
 test("claim-by-slug: sends link to on-file email when slug matches", async () => {
