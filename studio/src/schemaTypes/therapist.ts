@@ -739,11 +739,32 @@ export const therapistType = defineType({
       options: {
         list: [
           { title: "Active", value: "active" },
+          {
+            title: "Pending profile (awaiting bio from therapist)",
+            value: "pending_profile",
+          },
+          { title: "Inactive", value: "inactive" },
           { title: "Draft", value: "draft" },
           { title: "Archived", value: "archived" },
         ],
       },
       initialValue: "active",
+    }),
+    defineField({
+      name: "intakeSource",
+      title: "Intake source",
+      type: "string",
+      group: "directory",
+      description:
+        "How this listing was created. 'signup_instant_checkout' means the therapist signed up and paid through the new self-service flow.",
+    }),
+    defineField({
+      name: "signupCompletedAt",
+      title: "Signup completed at",
+      type: "datetime",
+      group: "directory",
+      description:
+        "Timestamp of the self-service signup + DCA verification that created this listing.",
     }),
   ],
   preview: {

@@ -1893,7 +1893,8 @@ export async function handleAuthAndPortalRoutes(context) {
     const existing = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
         _id, claimStatus, therapistReportedFields,
-        portalFirstSaveAt, portalSaveCount
+        portalFirstSaveAt, portalSaveCount,
+        listingActive, status, bio
       }`,
       { slug: session.slug },
     );
@@ -1933,9 +1934,28 @@ export async function handleAuthAndPortalRoutes(context) {
       saveBookkeeping.portalFirstSaveAt = nowIso;
     }
 
+    // Auto-publish: a therapist who signed up via signup-instant-checkout
+    // lands with listingActive=false + status=pending_profile so their
+    // stub bio doesn't leak into the public directory before they fill
+    // it in. The first portal save that results in a bio of 50+ chars
+    // (matches the Sanity schema's min validation) flips them live
+    // automatically. No admin gate, no extra click.
+    const setFields = { ...validation.setFields };
+    const shouldAutoPublish =
+      (existing.listingActive === false || existing.status === "pending_profile") &&
+      ((typeof setFields.bio === "string" && setFields.bio.trim().length >= 50) ||
+        (setFields.bio === undefined &&
+          typeof existing.bio === "string" &&
+          existing.bio.trim().length >= 50 &&
+          !/^Pending/i.test(existing.bio.trim())));
+    if (shouldAutoPublish) {
+      setFields.listingActive = true;
+      setFields.status = "active";
+    }
+
     let patch = client.patch(existing._id);
-    if (Object.keys(validation.setFields).length) {
-      patch = patch.set(validation.setFields);
+    if (Object.keys(setFields).length) {
+      patch = patch.set(setFields);
     }
     if (validation.unsetFields.length) {
       patch = patch.unset(validation.unsetFields);

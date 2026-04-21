@@ -2528,7 +2528,7 @@ function renderPortal(therapist, options) {
       '<ul class="pricing-features" style="list-style:none;padding:0;margin:0.85rem 0 1rem;display:grid;gap:0.5rem">' +
       '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>12-week analytics dashboard</strong> view trend, how patients found you (match flow vs directory vs direct), and which contact methods they actually used.</li>' +
       '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>Monday morning digest email</strong> last week\'s numbers + trend vs prior week, delivered to you automatically.</li>' +
-      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>Same-day profile edit review</strong> changes go live within hours instead of 2-3 business days.</li>' +
+      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>14-day free trial</strong> full dashboard and digest email, no charge until day 15, cancel in one click.</li>' +
       "</ul>" +
       '<button type="button" id="portalWelcomeUpsellCta" class="btn-primary" style="background:#1a7a8f;color:#fff;border:0;border-radius:12px;padding:0.85rem 1.2rem;font-weight:700;font-size:0.95rem;cursor:pointer">Start 14-day free trial — $0 today →</button>' +
       "</section>"
@@ -2541,6 +2541,25 @@ function renderPortal(therapist, options) {
     : sessionMode === "claim_token"
       ? "Welcome to your dashboard"
       : "Claim and manage your profile";
+
+  // "Not yet public" banner. Fires for signup-instant-checkout
+  // therapists whose listing was created with listingActive=false +
+  // status=pending_profile so their stub bio didn't leak into the
+  // directory. Saving a bio (50+ chars) via the editor auto-publishes
+  // them, so the call to action is explicit.
+  var isPendingProfile =
+    verifiedClaim && (therapist.listing_active === false || therapist.status === "pending_profile");
+  var notYetPublicBanner = isPendingProfile
+    ? '<section class="portal-card" style="border:2px solid #f59e0b;background:#fffbeb;margin-bottom:1rem">' +
+      '<p class="portal-eyebrow" style="color:#92400e;margin:0 0 0.35rem">Your listing is not public yet</p>' +
+      '<h2 style="margin:0 0 0.35rem">Add a bio to go live</h2>' +
+      '<p class="portal-subtle" style="margin:0 0 0.75rem">' +
+      "Write a short paragraph (50+ characters) about how you work with bipolar clients in the editor below. " +
+      "Saving a real bio publishes your listing to the directory automatically. No admin review, no waiting." +
+      "</p>" +
+      '<a href="#portalEditProfile" class="btn-primary" style="display:inline-block;padding:0.65rem 1rem;border-radius:10px;background:#f59e0b;color:#fff;text-decoration:none;font-weight:700;font-size:0.95rem">Go to editor ↓</a>' +
+      "</section>"
+    : "";
 
   shell.innerHTML =
     '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
@@ -2555,6 +2574,7 @@ function renderPortal(therapist, options) {
     '</span><span class="portal-badge">' +
     escapeHtml(readiness.label + " · " + readiness.score + "/100") +
     "</span></div></section>" +
+    notYetPublicBanner +
     welcomeUpsellBanner +
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'

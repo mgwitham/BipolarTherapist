@@ -634,6 +634,7 @@ function createReviewRouteModules() {
         buildTherapistApplicationFieldPatch,
         buildTherapistDocument,
         buildTherapistObservationDocuments,
+        createFeaturedCheckoutSession,
         findDuplicateTherapistEntity,
         getAuthorizedActor,
         isAuthorized,
