@@ -102,6 +102,56 @@ export const therapistRecoveryRequestType = defineType({
         "How the admin confirmed the requester is the real therapist. Required when approving an unclaimed-profile cold takeover (reason = no_email_on_file).",
     }),
     defineField({
+      name: "confirmationChannel",
+      title: "Confirmation channel (email admin sent to)",
+      type: "string",
+      description:
+        "Out-of-band email address the admin used to route a therapist-self-confirm request. Attacker must not control this channel.",
+    }),
+    defineField({
+      name: "confirmationChannelContext",
+      title: "Where the confirmation channel was found",
+      type: "string",
+      description: "e.g., 'DCA record', 'Psychology Today profile', 'practice website footer'.",
+    }),
+    defineField({
+      name: "confirmationSentAt",
+      title: "Confirmation sent at",
+      type: "datetime",
+    }),
+    defineField({
+      name: "confirmationTokenNonce",
+      title: "Confirmation token nonce",
+      type: "string",
+      description:
+        "Nonce stored to invalidate the token after a single use. Compared against the token's nonce on click-through.",
+    }),
+    defineField({
+      name: "confirmationResponse",
+      title: "Confirmation response",
+      type: "string",
+      options: {
+        list: [
+          { title: "Awaiting therapist response", value: "pending" },
+          { title: "Therapist confirmed", value: "yes" },
+          { title: "Therapist denied", value: "no" },
+        ],
+      },
+    }),
+    defineField({
+      name: "confirmationRespondedAt",
+      title: "Confirmation responded at",
+      type: "datetime",
+    }),
+    defineField({
+      name: "confirmationSendHistory",
+      title: "Confirmation send history (ISO timestamps)",
+      type: "array",
+      of: [{ type: "string" }],
+      description:
+        "Appended each time send-confirmation runs. Capped at 5 per rolling 24h window to prevent inbox-spam abuse via admin creds.",
+    }),
+    defineField({
       name: "outcomeMessage",
       title: "Message sent to therapist on resolution",
       type: "text",

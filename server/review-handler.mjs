@@ -38,6 +38,8 @@ import {
   sendPortalClaimLink as sendPortalClaimLinkEmail,
   sendPortalWelcomeEmail,
   sendRecoveryApprovedEmail,
+  sendRecoveryConfirmationEmail,
+  sendRecoveryConfirmationHeadsUp,
   sendRecoveryRejectedEmail,
   sendTrialEndingReminder,
   sendUnverifiedTrialCanceledNotice,
@@ -463,6 +465,30 @@ function buildRecoveryMagicLink(config, therapist, requestedEmail, portalBaseUrl
 // Listing-removal token — one-time, 24h, bound to therapist slug.
 // Stored with sub "listing-removal" so it can't be mistakenly accepted
 // as a portal-claim token and vice versa.
+// Therapist-self-confirm token — 7-day TTL, bound to a recovery-request
+// doc. Admin sends a magic-link email asking "did you request access?".
+// Therapist clicks Yes/No on a public page, which auto-approves or
+// auto-rejects. The token is single-use via nonce stored on the doc.
+function buildRecoveryConfirmToken(config, recoveryId, nonce) {
+  return createSignedPayload(
+    {
+      sub: "recovery-confirm",
+      recovery: String(recoveryId),
+      nonce: String(nonce),
+      exp: Date.now() + 1000 * 60 * 60 * 24 * 7,
+    },
+    config.sessionSecret,
+  );
+}
+
+function readRecoveryConfirmToken(config, token) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "recovery-confirm" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  return payload;
+}
+
 function buildListingRemovalToken(config, therapist) {
   return createSignedPayload(
     {
@@ -523,6 +549,7 @@ function createReviewRouteModules() {
       handler: handleAuthAndPortalRoutes,
       deps: {
         buildPortalRequestDocument,
+        buildRecoveryConfirmToken,
         buildRecoveryMagicLink,
         canAttemptLogin,
         clearFailedLogins,
@@ -540,6 +567,7 @@ function createReviewRouteModules() {
         parseBody,
         readListingRemovalToken,
         readPortalClaimToken,
+        readRecoveryConfirmToken,
         readSignedSession,
         recordFailedLogin,
         sendJson,
@@ -547,6 +575,8 @@ function createReviewRouteModules() {
         sendPortalClaimLink,
         sendPortalWelcomeEmail,
         sendRecoveryApprovedEmail,
+        sendRecoveryConfirmationEmail,
+        sendRecoveryConfirmationHeadsUp,
         sendRecoveryRejectedEmail,
         updatePortalRequestFields,
       },
