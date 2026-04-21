@@ -733,39 +733,155 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
   });
 }
 
+// Live filter: when the drawer is open and we already have a valid
+// care-intent + ZIP, recompute results on every field change with a
+// short debounce so the list reflects the current filter state as
+// the user makes choices. Keeps the panel feeling "direct-manipulation"
+// instead of the old form-submit-only flow.
+var liveRecomputeTimer = null;
+function maybeLiveRecompute(event) {
+  if (!document.body.classList.contains("match-refine-drawer-open")) return;
+  var form = document.getElementById("matchForm");
+  if (!form) return;
+  var careIntent = (form.elements.care_intent || { value: "" }).value || "";
+  var zipRaw = (form.elements.location_query || { value: "" }).value || "";
+  var zip = normalizeLocationQuery(zipRaw);
+  if (!careIntent || !zip) {
+    // Nothing to recompute yet — surface a gentle prompt instead.
+    setLiveStatus("Pick care type and a ZIP code to see live matches.", false);
+    return;
+  }
+  setLiveStatus("Updating matches...", true);
+  if (liveRecomputeTimer) {
+    window.clearTimeout(liveRecomputeTimer);
+  }
+  var changedField =
+    event && event.target && event.target.name
+      ? event.target.name
+      : event && event.target && event.target.id
+        ? event.target.id
+        : "";
+  liveRecomputeTimer = window.setTimeout(function () {
+    liveRecomputeTimer = null;
+    // Live recompute reuses the same pipeline as submit but skips the
+    // scroll-into-view — the user is focused inside the drawer and a
+    // page scroll would pull them off it.
+    var profile = readCurrentIntakeProfile();
+    executeMatch(profile, {
+      scroll: false,
+      source: "match_live_refine",
+    });
+    var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
+    var message =
+      count === 0
+        ? "No matches for these filters. Try easing one."
+        : count === 1
+          ? "Showing 1 match for your filters."
+          : "Showing " + count + " matches for your filters.";
+    setLiveStatus(message, false);
+    trackFunnelEvent("match_live_filter_applied", {
+      changed_field: changedField,
+      result_count: count,
+    });
+  }, 250);
+}
+
+function setLiveStatus(message, isUpdating) {
+  var node = document.getElementById("matchRefineLiveStatus");
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("is-updating", Boolean(isUpdating));
+}
+
+// Drawer state + keyboard handling. The refine panel renders as a
+// fixed right-side drawer when body.match-refine-drawer-open is set;
+// these helpers keep the toggle button, ESC key, and backdrop in sync.
+function setRefineDrawerOpen(open) {
+  var refinements = document.querySelector(".match-refinements");
+  var moreBtn = document.getElementById("openAdvancedFiltersButton");
+  var bodyClass = "match-refine-drawer-open";
+  if (open) {
+    document.body.classList.add(bodyClass);
+    if (refinements) {
+      refinements.open = true;
+    }
+    if (moreBtn) {
+      moreBtn.setAttribute("aria-expanded", "true");
+      moreBtn.classList.add("is-expanded");
+    }
+    // Focus the close button so keyboard users land in the drawer
+    // instead of being stuck on the underlying toggle.
+    window.requestAnimationFrame(function () {
+      var close = document.getElementById("matchRefineDrawerClose");
+      if (close) close.focus();
+    });
+    trackFunnelEvent("match_refine_drawer_opened", {
+      care_intent: (document.getElementById("matchForm") || { elements: {} }).elements
+        ? (document.getElementById("matchForm").elements.care_intent || { value: "" }).value || ""
+        : "",
+    });
+  } else {
+    document.body.classList.remove(bodyClass);
+    if (refinements) {
+      refinements.open = false;
+    }
+    if (moreBtn) {
+      moreBtn.setAttribute("aria-expanded", "false");
+      moreBtn.classList.remove("is-expanded");
+      // Return focus to the trigger when the drawer closes so keyboard
+      // users don't lose their place.
+      window.requestAnimationFrame(function () {
+        moreBtn.focus();
+      });
+    }
+  }
+}
+
 function bindRefineButtons() {
-  // refineSearchButton: external trigger — always opens the panel
+  // refineSearchButton: external trigger — always opens the drawer
   var externalBtn = document.getElementById("refineSearchButton");
   if (externalBtn && externalBtn.dataset.boundRefine !== "true") {
     externalBtn.dataset.boundRefine = "true";
     externalBtn.addEventListener("click", function () {
-      var refinements = document.querySelector(".match-refinements");
-      var moreBtn = document.getElementById("openAdvancedFiltersButton");
-      if (refinements) {
-        refinements.open = true;
-        if (moreBtn) {
-          moreBtn.setAttribute("aria-expanded", "true");
-          moreBtn.classList.add("is-expanded");
-        }
-      }
-      var builder = document.querySelector(".match-builder");
-      if (builder) {
-        builder.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      setRefineDrawerOpen(true);
     });
   }
 
-  // openAdvancedFiltersButton: inline toggle button
+  // openAdvancedFiltersButton: inline toggle button → drawer toggle
   var moreBtn = document.getElementById("openAdvancedFiltersButton");
   if (moreBtn && moreBtn.dataset.boundRefine !== "true") {
     moreBtn.dataset.boundRefine = "true";
     moreBtn.addEventListener("click", function () {
-      var refinements = document.querySelector(".match-refinements");
-      if (refinements) {
-        refinements.open = !refinements.open;
-        moreBtn.setAttribute("aria-expanded", refinements.open ? "true" : "false");
-        moreBtn.classList.toggle("is-expanded", refinements.open);
-      }
+      var isOpen = document.body.classList.contains("match-refine-drawer-open");
+      setRefineDrawerOpen(!isOpen);
+    });
+  }
+
+  // Backdrop click → close
+  var backdrop = document.getElementById("matchRefineBackdrop");
+  if (backdrop && backdrop.dataset.boundRefine !== "true") {
+    backdrop.dataset.boundRefine = "true";
+    backdrop.addEventListener("click", function () {
+      setRefineDrawerOpen(false);
+    });
+  }
+
+  // Explicit close button inside the drawer header
+  var close = document.getElementById("matchRefineDrawerClose");
+  if (close && close.dataset.boundRefine !== "true") {
+    close.dataset.boundRefine = "true";
+    close.addEventListener("click", function () {
+      setRefineDrawerOpen(false);
+    });
+  }
+
+  // ESC anywhere closes the drawer
+  if (!document.body.dataset.boundRefineEsc) {
+    document.body.dataset.boundRefineEsc = "true";
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      if (!document.body.classList.contains("match-refine-drawer-open")) return;
+      setRefineDrawerOpen(false);
     });
   }
 }
@@ -4973,11 +5089,13 @@ function refreshIntakeUiFromForm() {
   bindRefineTeaserShortcuts();
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
-  matchForm.addEventListener("input", function () {
+  matchForm.addEventListener("input", function (event) {
     refreshIntakeUiFromForm();
+    maybeLiveRecompute(event);
   });
-  matchForm.addEventListener("change", function () {
+  matchForm.addEventListener("change", function (event) {
     refreshIntakeUiFromForm();
+    maybeLiveRecompute(event);
   });
   var refinements = refs.refinements;
   if (refinements) {
