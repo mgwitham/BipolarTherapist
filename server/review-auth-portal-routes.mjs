@@ -738,7 +738,7 @@ export async function handleAuthAndPortalRoutes(context) {
         profileClaimedEmail, adminNote, identityVerification, outcomeMessage,
         reviewedAt, reviewedBy, requesterIp, createdAt,
         confirmationChannel, confirmationChannelContext, confirmationSentAt,
-        confirmationResponse, confirmationRespondedAt
+        confirmationResponse, confirmationRespondedAt, confirmationSendHistory
       }`,
     );
     sendJson(response, 200, { ok: true, requests: requests || [] }, origin, config);
@@ -929,6 +929,88 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // POST /recovery-requests/:id/resend-signin — admin-only fallback
+  // for when an approved recovery didn't get its sign-in email delivered
+  // (Resend outage, typo, spam folder). Re-mints a magic link and re-
+  // sends the approved email. No state change on the recovery doc.
+  const recoveryResendSigninMatch = routePath.match(
+    /^\/recovery-requests\/([^/]+)\/resend-signin$/,
+  );
+  if (request.method === "POST" && recoveryResendSigninMatch) {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requestId = decodeURIComponent(recoveryResendSigninMatch[1]);
+    const recovery = await client.getDocument(requestId);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Recovery request not found." }, origin, config);
+      return true;
+    }
+    if (recovery.status !== "approved") {
+      sendJson(
+        response,
+        409,
+        {
+          error: "Resend only applies to already-approved recoveries. Approve this request first.",
+          reason: "not_approved",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (!recovery.therapistDocId) {
+      sendJson(
+        response,
+        400,
+        { error: "This request is missing its therapist link." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && _id == $id][0]{ _id, name, claimStatus, "slug": slug }`,
+      { id: recovery.therapistDocId },
+    );
+    if (!therapist) {
+      sendJson(
+        response,
+        404,
+        { error: "Target therapist profile no longer exists." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const therapistForLink =
+      typeof therapist.slug === "string"
+        ? { ...therapist, slug: { current: therapist.slug } }
+        : therapist;
+    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const magicLink = deps.buildRecoveryMagicLink(
+      config,
+      therapistForLink,
+      recovery.requestedEmail,
+      portalBaseUrl,
+    );
+    try {
+      await deps.sendRecoveryApprovedEmail(config, recovery, magicLink, "");
+    } catch (error) {
+      sendJson(
+        response,
+        502,
+        { error: "Resend failed: " + (error.message || "unknown") },
+        origin,
+        config,
+      );
+      return true;
+    }
+    sendJson(response, 200, { ok: true, message: "Sign-in link resent." }, origin, config);
+    return true;
+  }
+
   // POST /recovery-requests/:id/send-confirmation — admin pastes an
   // out-of-band email address they sourced from a public record (DCA,
   // practice website, PT profile). Server mints a single-use token,
@@ -982,6 +1064,34 @@ export async function handleAuthAndPortalRoutes(context) {
       sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
       return true;
     }
+
+    // Rate limit: 5 send-confirmation calls per recovery per rolling
+    // 24h window. Protects the therapist's publicly-listed inboxes from
+    // being spammed by a compromised admin account or a malicious
+    // insider cycling through channels.
+    const sendHistory = Array.isArray(recovery.confirmationSendHistory)
+      ? recovery.confirmationSendHistory
+      : [];
+    const cutoff = Date.now() - 1000 * 60 * 60 * 24;
+    const recentSends = sendHistory.filter(function (iso) {
+      const t = Date.parse(iso);
+      return Number.isFinite(t) && t >= cutoff;
+    });
+    if (recentSends.length >= 5) {
+      sendJson(
+        response,
+        429,
+        {
+          error:
+            "This request has hit the send-confirmation limit (5 per 24h). If the therapist isn't responding, use the manual identity-verification fallback or wait.",
+          reason: "send_confirmation_rate_limited",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     if (
       String(recovery.requestedEmail || "")
         .trim()
@@ -1040,6 +1150,7 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const nowIso = new Date().toISOString();
+    const nextHistory = recentSends.concat([nowIso]);
     const updated = await client
       .patch(recovery._id)
       .set({
@@ -1048,6 +1159,7 @@ export async function handleAuthAndPortalRoutes(context) {
         confirmationSentAt: nowIso,
         confirmationTokenNonce: nonce,
         confirmationResponse: "pending",
+        confirmationSendHistory: nextHistory,
       })
       .commit({ visibility: "sync" });
 

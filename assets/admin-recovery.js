@@ -8,6 +8,7 @@ import {
   approveRecoveryRequest,
   fetchRecoveryRequests,
   rejectRecoveryRequest,
+  resendRecoverySignin,
   sendRecoveryConfirmation,
 } from "./review-api.js";
 
@@ -256,6 +257,16 @@ function renderRequestCard(req) {
         "</dd>"
       : "") +
     "</dl>" +
+    (req.status === "approved"
+      ? '<div class="admin-recovery-resend-signin">' +
+        '<button type="button" class="btn-secondary admin-recovery-resend-signin-btn" data-request-id="' +
+        escapeHtml(req._id) +
+        '" title="Re-mint and resend the magic sign-in link to the requested email. Use if the original approval email bounced, went to spam, or the therapist didn\'t receive it.">Resend sign-in link</button>' +
+        '<div class="admin-recovery-feedback" data-feedback-for="' +
+        escapeHtml(req._id) +
+        '" hidden></div>' +
+        "</div>"
+      : "") +
     (req.status === "pending"
       ? '<div class="admin-recovery-actions">' +
         renderConfirmationSection(req, coldTakeover) +
@@ -357,6 +368,29 @@ function bindCardActions(container) {
     if (!button) return;
     textarea.addEventListener("input", function () {
       button.disabled = textarea.value.trim().length < 20;
+    });
+  });
+
+  container.querySelectorAll(".admin-recovery-resend-signin-btn").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-request-id");
+      if (
+        !window.confirm(
+          "Resend the magic sign-in link to the requested email? Use this when the original approval email bounced or didn't arrive.",
+        )
+      ) {
+        return;
+      }
+      button.disabled = true;
+      setFeedback(id, "info", "Resending sign-in link...");
+      try {
+        await resendRecoverySignin(id);
+        setFeedback(id, "success", "Sign-in link resent. Ask the therapist to check their inbox.");
+      } catch (error) {
+        setFeedback(id, "warn", (error && error.message) || "Resend failed.");
+      } finally {
+        button.disabled = false;
+      }
     });
   });
 

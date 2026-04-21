@@ -356,6 +356,53 @@ test("POST /recovery-requests/:id/send-confirmation also pings the requester wit
   );
 });
 
+test("POST /recovery-requests/:id/send-confirmation rate-limits at 5 per rolling 24h", async () => {
+  const recent = [];
+  for (let i = 0; i < 5; i += 1) {
+    recent.push(new Date(Date.now() - i * 60 * 60 * 1000).toISOString());
+  }
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({ confirmationSendHistory: recent }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "send_confirmation_rate_limited");
+});
+
+test("POST /recovery-requests/:id/send-confirmation ignores stale (>24h) history entries", async () => {
+  const old = [];
+  for (let i = 0; i < 5; i += 1) {
+    old.push(new Date(Date.now() - 26 * 60 * 60 * 1000 - i * 1000).toISOString());
+  }
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({ confirmationSendHistory: old }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  const updated = state.documents.get("recovery-1");
+  assert.equal(
+    updated.confirmationSendHistory.length,
+    1,
+    "stale entries are pruned; only the new send is kept",
+  );
+});
+
 test("POST /recovery-requests/:id/send-confirmation rejects channel matching requester email", async () => {
   const { client } = createMemoryClient(
     seedColdTakeoverFixtures({ requestedEmail: "attacker@example.com" }),
@@ -549,6 +596,57 @@ test("POST /recovery-confirm with reused token returns 410", async () => {
   await handleAuthAndPortalRoutes(context);
   assert.equal(response.statusCode, 410);
   assert.equal(response.payload.reason, "used_or_replaced");
+});
+
+test("POST /recovery-requests/:id/resend-signin re-sends approval email without mutating doc state", async () => {
+  const { client, state } = createMemoryClient({
+    "recovery-approved": {
+      _id: "recovery-approved",
+      _type: "therapistRecoveryRequest",
+      status: "approved",
+      reason: "stale_email_on_file",
+      fullName: "Jamie Rivera",
+      licenseNumber: "LMFT12345",
+      requestedEmail: "jamie@newpractice.com",
+      therapistSlug: "jamie-rivera",
+      therapistDocId: "therapist-jamie",
+      createdAt: new Date().toISOString(),
+      reviewedAt: new Date().toISOString(),
+    },
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      name: "Jamie Rivera",
+      slug: { current: "jamie-rivera" },
+      claimStatus: "claimed",
+    },
+  });
+  const emailsSent = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {},
+    routePath: "/recovery-requests/recovery-approved/resend-signin",
+  });
+  context.deps.sendRecoveryApprovedEmail = async (_cfg, rec, link) => {
+    emailsSent.push({ rec, link });
+  };
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  const doc = state.documents.get("recovery-approved");
+  assert.equal(doc.status, "approved", "doc status is unchanged");
+});
+
+test("POST /recovery-requests/:id/resend-signin refuses if request is not approved", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {},
+    routePath: "/recovery-requests/recovery-1/resend-signin",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "not_approved");
 });
 
 test("POST /recovery-requests/:id/reject requires admin auth", async () => {
