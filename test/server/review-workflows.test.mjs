@@ -634,3 +634,165 @@ test("approval: emits a portal magic link to the applicant so they can finish th
     globalThis.fetch = originalFetch;
   }
 });
+
+// --- /applications/free-path-selected (plan-choice "List free for now") ---
+
+// Helper: run an intake call that will succeed and return the claim_token
+// the subsequent free-path endpoint expects. Mocks DCA so the license
+// verifies inline.
+async function runSuccessfulIntake(handler) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async function (url, init) {
+    const href = String(url);
+    if (href.includes("iservices.dca.ca.gov")) {
+      const match = href.match(/licType=(\d+)/);
+      const typeCode = match ? match[1] : "";
+      if (typeCode === "2001") {
+        return {
+          ok: true,
+          async json() {
+            return {
+              licenseDetails: [
+                {
+                  getFullLicenseDetail: [
+                    {
+                      getLicenseDetails: [
+                        {
+                          primaryStatusCode: "20",
+                          expDate: "20990101",
+                          issueDate: "20100101",
+                          licenseNumber: "45678",
+                          boardCode: "04",
+                        },
+                      ],
+                      getNameDetails: [
+                        {
+                          individualNameDetails: [
+                            { firstName: "Jordan", middleName: "", lastName: "Free" },
+                          ],
+                        },
+                      ],
+                      getAddressDetail: [{ address: [{ city: "Oakland", state: "CA" }] }],
+                    },
+                  ],
+                },
+              ],
+            };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return { licenseDetails: [] };
+        },
+      };
+    }
+    if (originalFetch) return originalFetch(url, init);
+    throw new Error("No fetch stub for " + href);
+  };
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Jordan Free",
+        email: "jordan@example.com",
+        license_number: "45678",
+        city: "Oakland",
+        state: "CA",
+        treats_bipolar: true,
+      },
+      headers: { host: "localhost:8787" },
+      method: "POST",
+      url: "/applications/intake",
+    });
+    return { response, restore: () => (globalThis.fetch = originalFetch) };
+  } catch (error) {
+    globalThis.fetch = originalFetch;
+    throw error;
+  }
+}
+
+test("free-path-selected: with a valid claim_token sends a magic-login email and returns email_sent=true", async function () {
+  const { client } = createMemoryClient();
+  const config = {
+    ...createTestApiConfig(),
+    dcaAppId: "app",
+    dcaAppKey: "key",
+    resendApiKey: "re_test_key",
+    emailFrom: "noreply@bipolartherapyhub.example",
+    notificationTo: "admin@bipolartherapyhub.example",
+  };
+  const handler = createReviewApiHandler(config, client);
+
+  const resendCalls = [];
+  const origFetch = globalThis.fetch;
+  const { response: intakeResponse, restore: restoreDca } = await runSuccessfulIntake(handler);
+  // After the intake helper restores fetch, swap in a Resend spy so we
+  // can assert the free-path email is actually sent.
+  restoreDca();
+  const capturedFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("api.resend.com")) {
+      let body = {};
+      try {
+        body = JSON.parse(String((init && init.body) || "{}"));
+      } catch (_error) {
+        /* ignore */
+      }
+      resendCalls.push(body);
+      return new Response(JSON.stringify({ id: "email_test" }), { status: 200 });
+    }
+    if (capturedFetch) return capturedFetch(url, init);
+    return origFetch(url, init);
+  };
+  try {
+    assert.equal(intakeResponse.statusCode, 200);
+    const claimToken = intakeResponse.payload.claim_token;
+    assert.ok(claimToken, "intake should return a claim token");
+
+    const response = await runHandlerRequest(handler, {
+      body: { claim_token: claimToken },
+      headers: { host: "localhost:8787" },
+      method: "POST",
+      url: "/applications/free-path-selected",
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.payload.ok, true);
+    assert.equal(response.payload.email_sent, true);
+
+    const claimEmail = resendCalls.find(
+      (call) => Array.isArray(call.to) && call.to.includes("jordan@example.com"),
+    );
+    assert.ok(claimEmail, "free-path email should be sent to the applicant");
+    assert.match(claimEmail.subject, /activate/i);
+    assert.match(claimEmail.html, /portal\.html\?token=/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("free-path-selected: missing claim_token returns 400", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const response = await runHandlerRequest(handler, {
+    body: {},
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/free-path-selected",
+  });
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /claim_token/i);
+});
+
+test("free-path-selected: invalid claim_token returns 401", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const response = await runHandlerRequest(handler, {
+    body: { claim_token: "not-a-real-token" },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/free-path-selected",
+  });
+  assert.equal(response.statusCode, 401);
+  assert.match(response.payload.error, /invalid|expired/i);
+});

@@ -649,6 +649,8 @@ function createReviewRouteModules() {
         buildAppliedFieldReviewStatePatch,
         buildApplicationReviewEvent,
         buildPortalClaimToken,
+        readPortalClaimToken,
+        sendPortalClaimLink,
         buildRevisionFieldUpdates: function buildRevisionFieldUpdatesForRoute(
           client,
           input,

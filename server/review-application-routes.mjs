@@ -19,7 +19,9 @@ export async function handleApplicationRoutes(context) {
     notifyApplicantOfDecision,
     parseBody,
     publishingHelpers,
+    readPortalClaimToken,
     sendJson,
+    sendPortalClaimLink,
     slugify,
     updateApplicationFields,
     validateRevisionInput,
@@ -246,6 +248,48 @@ export async function handleApplicationRoutes(context) {
       origin,
       config,
     );
+    return true;
+  }
+
+  // POST /applications/free-path-selected — called from the signup
+  // plan-choice card when the therapist picks "List free for now"
+  // instead of starting a Stripe trial. The in-URL claim token returned
+  // by /applications/intake already lands them in the portal right now;
+  // this endpoint exists so they get a durable magic-login email as a
+  // way back in after their session cookie expires. Non-fatal if the
+  // email send fails — the client still redirects them into the portal
+  // on return.
+  if (request.method === "POST" && routePath === "/applications/free-path-selected") {
+    const body = await parseBody(request);
+    const claimToken = String(body.claim_token || "").trim();
+    if (!claimToken) {
+      sendJson(response, 400, { error: "Missing claim_token." }, origin, config);
+      return true;
+    }
+    const payload = readPortalClaimToken(config, claimToken);
+    if (!payload || !payload.slug || !payload.email) {
+      sendJson(response, 401, { error: "Invalid or expired claim token." }, origin, config);
+      return true;
+    }
+    const therapist = await client.fetch(`*[_type == "therapist" && slug.current == $slug][0]`, {
+      slug: payload.slug,
+    });
+    if (!therapist) {
+      sendJson(response, 404, { error: "Listing not found." }, origin, config);
+      return true;
+    }
+    const portalBaseUrl =
+      url && url.protocol && url.host
+        ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
+        : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+    let emailSent = false;
+    try {
+      await sendPortalClaimLink(config, therapist, payload.email, portalBaseUrl);
+      emailSent = true;
+    } catch (error) {
+      console.error("Failed to send free-path claim email", error);
+    }
+    sendJson(response, 200, { ok: true, email_sent: emailSent }, origin, config);
     return true;
   }
 
