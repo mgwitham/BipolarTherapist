@@ -337,6 +337,17 @@
       .claim-confirm-alt a:hover {
         color: var(--teal);
       }
+      .claim-confirm-dispute {
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+        border-top: 1px dashed var(--border);
+      }
+      .claim-confirm-dispute a {
+        color: #a04a4a;
+      }
+      .claim-confirm-dispute a:hover {
+        color: #7a2f2f;
+      }
       .claim-confirm-status {
         padding: 0.7rem 0.85rem;
         border-radius: 8px;
@@ -801,19 +812,19 @@
            directory-page "claim this listing" banner. -->
       <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
         <div class="claim-confirm-header">
-          <span class="claim-confirm-label">Found your listing</span>
+          <span class="claim-confirm-label" id="claimConfirmLabel">Found your listing</span>
           <a href="#" id="claimConfirmChange">Change →</a>
         </div>
         <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
         <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
         <ul class="claim-trust-signals" id="claimTrustSignals" hidden></ul>
-        <p class="claim-confirm-destination">
+        <p class="claim-confirm-destination" id="claimConfirmDestination">
           We'll email your activation link to <strong id="claimConfirmEmail"></strong>.
         </p>
         <button type="button" id="claimStartTrial" class="claim-confirm-send">
           Start 14-day free trial — $0 today
         </button>
-        <p class="claim-trial-subhint">
+        <p class="claim-trial-subhint" id="claimTrialSubhint">
           $19/mo after trial · cancel anytime · no charge until day 15
         </p>
         <p class="claim-confirm-alt">
@@ -821,6 +832,13 @@
         </p>
         <p class="claim-confirm-alt">
           <a href="#" id="claimConfirmUseOther">Use a different email →</a>
+        </p>
+        <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
+          <a
+            href="mailto:hello@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
+            id="claimConfirmDispute"
+            >Not you? Report a mistaken claim →</a
+          >
         </p>
         <div
           class="claim-confirm-status"

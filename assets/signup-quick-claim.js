@@ -458,6 +458,13 @@ function initQuickClaim() {
     if (!confirmPanel) {
       return;
     }
+
+    // Already-claimed profiles get a re-entry skin: different heading,
+    // different primary CTA, no trial offer (they can't restart one),
+    // and a "Not you?" dispute link. Everything else stays wired so
+    // the same endpoints work for both new claims and re-entries.
+    const isAlreadyClaimed = result && result.claim_status === "claimed";
+
     if (confirmName) {
       const credentialBit = result.credentials ? ", " + result.credentials : "";
       confirmName.textContent = (result.name || "") + credentialBit;
@@ -467,6 +474,17 @@ function initQuickClaim() {
       const licenseBit = result.license_number ? " · License " + result.license_number : "";
       confirmMeta.textContent = location + licenseBit;
     }
+
+    const confirmLabel = document.getElementById("claimConfirmLabel");
+    const confirmDestination = document.getElementById("claimConfirmDestination");
+    const trialSubhint = document.getElementById("claimTrialSubhint");
+    const disputeWrap = document.getElementById("claimConfirmDisputeWrap");
+
+    if (confirmLabel) {
+      confirmLabel.textContent = isAlreadyClaimed
+        ? "This profile is already claimed"
+        : "Found your listing";
+    }
     if (confirmEmail) {
       const rawHint =
         typeof result.email_hint === "string"
@@ -474,35 +492,65 @@ function initQuickClaim() {
           : result.email_hint
             ? String(result.email_hint).trim()
             : "";
-      // Fallback must always surface SOMETHING readable — users shouldn't
-      // see "We'll email your activation link to ." with an empty span.
       confirmEmail.textContent = rawHint || "the email on your listing";
     }
-    renderTrustSignals(result);
-    if (confirmSend) {
-      // Secondary "just claim free" link. If email is missing, fall back to
-      // the form below where they can type one manually.
-      confirmSend.textContent = result.has_email
-        ? "Just claim free basic controls →"
-        : "No email on file — use form below";
-    }
-    if (confirmTrial) {
-      // Primary "Start trial" button. Only usable if we have an on-file
-      // email to pre-fill Stripe with and send the activation link to.
-      confirmTrial.disabled = !result.has_email;
-      if (!result.has_email) {
-        confirmTrial.textContent = "No email on file — use form below";
+    if (confirmDestination) {
+      // Re-frame the destination copy for re-entry. The <strong
+      // id="claimConfirmEmail"> child is replaced on each render, so
+      // rebuild the sentence and re-insert the hint span.
+      const hintText = confirmEmail ? confirmEmail.textContent : "the email on your listing";
+      if (isAlreadyClaimed) {
+        confirmDestination.innerHTML =
+          "If that's you, we'll send a fresh sign-in link to <strong id=\"claimConfirmEmail\">" +
+          escapeHtml(hintText) +
+          "</strong> so you can get back into your portal.";
       } else {
-        confirmTrial.textContent = "Start 14-day free trial — $0 today";
+        confirmDestination.innerHTML =
+          'We\'ll email your activation link to <strong id="claimConfirmEmail">' +
+          escapeHtml(hintText) +
+          "</strong>.";
       }
     }
+
+    renderTrustSignals(result);
+
+    if (confirmSend) {
+      if (isAlreadyClaimed) {
+        // Re-entry mode: the "Just claim" link becomes the primary path
+        // since the trial button is hidden.
+        confirmSend.textContent = result.has_email
+          ? "Email me a sign-in link"
+          : "No email on file — use form below";
+      } else {
+        confirmSend.textContent = result.has_email
+          ? "Just claim free basic controls →"
+          : "No email on file — use form below";
+      }
+    }
+    if (confirmTrial) {
+      // Hide the trial button for already-claimed profiles — they
+      // can't restart a trial and offering one confuses the flow.
+      confirmTrial.hidden = isAlreadyClaimed;
+      if (!isAlreadyClaimed) {
+        confirmTrial.disabled = !result.has_email;
+        if (!result.has_email) {
+          confirmTrial.textContent = "No email on file — use form below";
+        } else {
+          confirmTrial.textContent = "Start 14-day free trial — $0 today";
+        }
+      }
+    }
+    if (trialSubhint) {
+      trialSubhint.hidden = isAlreadyClaimed;
+    }
+    if (disputeWrap) {
+      // Dispute link surfaces only in re-entry mode so non-owners have
+      // a route and legitimate owners aren't distracted by it.
+      disputeWrap.hidden = !isAlreadyClaimed;
+    }
+
     setConfirmStatus("", "");
     confirmPanel.hidden = false;
-    // Hide the secondary form once the user has picked a listing. The
-    // confirm panel now carries the primary CTA (Start trial) plus the
-    // two escape hatches ("Just claim free →", "Use a different email →").
-    // Keeping both visible gave users two competing paths — reduces
-    // to one clear action. Use a different email unhides the form.
     form.hidden = true;
   }
 
@@ -690,6 +738,17 @@ function initQuickClaim() {
         searchInput.focus();
         searchInput.select();
       }
+    });
+  }
+  const disputeLink = document.getElementById("claimConfirmDispute");
+  if (disputeLink) {
+    disputeLink.addEventListener("click", function () {
+      // Don't preventDefault — the mailto: should actually open. Just
+      // log the event so admin can see how often non-owners bounce
+      // into this flow.
+      trackFunnelEvent("claim_dispute_clicked", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
     });
   }
   if (confirmUseOther) {
