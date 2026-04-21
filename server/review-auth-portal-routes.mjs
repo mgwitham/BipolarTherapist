@@ -204,6 +204,10 @@ function shapePortalTherapist(therapist) {
     therapist_reported_fields: Array.isArray(therapist.therapistReportedFields)
       ? therapist.therapistReportedFields
       : [],
+    portal_first_save_at: therapist.portalFirstSaveAt || "",
+    portal_last_save_at: therapist.portalLastSaveAt || "",
+    portal_save_count:
+      typeof therapist.portalSaveCount === "number" ? therapist.portalSaveCount : 0,
   };
 }
 
@@ -1193,7 +1197,7 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
       }`,
       { slug: payload.slug },
     );
@@ -1341,7 +1345,7 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
       }`,
       { slug: session.slug },
     );
@@ -1397,7 +1401,8 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const existing = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, claimStatus, therapistReportedFields
+        _id, claimStatus, therapistReportedFields,
+        portalFirstSaveAt, portalSaveCount
       }`,
       { slug: session.slug },
     );
@@ -1424,6 +1429,19 @@ export async function handleAuthAndPortalRoutes(context) {
     });
     const nextReported = Array.from(nextReportedSet);
 
+    // Save bookkeeping for portal funnel analytics. Aggregate-friendly
+    // counters + timestamps on the therapist doc — no new doc types.
+    // portalFirstSaveAt sticks (never overwritten). portalLastSaveAt
+    // and portalSaveCount update every save.
+    const nowIso = new Date().toISOString();
+    const saveBookkeeping = {
+      portalLastSaveAt: nowIso,
+      portalSaveCount: Number(existing.portalSaveCount || 0) + 1,
+    };
+    if (!existing.portalFirstSaveAt) {
+      saveBookkeeping.portalFirstSaveAt = nowIso;
+    }
+
     let patch = client.patch(existing._id);
     if (Object.keys(validation.setFields).length) {
       patch = patch.set(validation.setFields);
@@ -1434,6 +1452,7 @@ export async function handleAuthAndPortalRoutes(context) {
     if (nextReported.length > priorReported.length) {
       patch = patch.set({ therapistReportedFields: nextReported });
     }
+    patch = patch.set(saveBookkeeping);
     await patch.commit({ visibility: "sync" });
 
     const updated = await client.fetch(
@@ -1448,7 +1467,7 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
       }`,
       { slug: session.slug },
     );

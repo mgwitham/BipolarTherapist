@@ -28,6 +28,19 @@ const CLAIM_STEPS = [
   { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
 ];
 
+// Portal edit-form funnel. Tracks the post-claim path a therapist
+// takes from "landed on portal" through "profile is match-ready."
+// This is the primary metric driver for the portal UX work — if
+// fewer therapists reach "portal_readiness_crossed_65", the polish
+// isn't converting the way we expect.
+const PORTAL_STEPS = [
+  { key: "portal_opened", label: "Opened portal" },
+  { key: "portal_first_edit", label: "First edit" },
+  { key: "portal_save_success", label: "Saved changes" },
+  { key: "portal_readiness_crossed_65", label: "Readiness ≥ 65" },
+  { key: "portal_readiness_crossed_85", label: "Match-ready (≥ 85)" },
+];
+
 function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, function (char) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
@@ -189,6 +202,7 @@ function renderDashboard(container, logData) {
   const lastSevenDays = { ms: 7 * 24 * 60 * 60 * 1000 };
   const signupRows = buildFunnelRow(events, SIGNUP_STEPS, lastSevenDays);
   const claimRows = buildFunnelRow(events, CLAIM_STEPS, lastSevenDays);
+  const portalRows = buildFunnelRow(events, PORTAL_STEPS, lastSevenDays);
 
   const totalAppended = Number(logData.totalAppended || 0);
   const updatedAt = logData.updatedAt || "never";
@@ -202,6 +216,9 @@ function renderDashboard(container, logData) {
     "</section>" +
     '<section class="admin-funnel-section"><h3>Claim + trial funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who reached step 1", claimRows) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
+    renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Recent events (last 50)</h3>' +
     renderRecentEvents(events) +

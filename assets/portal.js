@@ -1,4 +1,5 @@
 import "./funnel-analytics.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
@@ -1627,6 +1628,20 @@ function buildEditProfileHtml(therapist) {
     hasMeaningfulValue(t.telehealth_states) ||
     hasMeaningfulValue(t.session_fee_min);
   var showReviewBanner = reportedList.length === 0 && hasAnyPrefilledData;
+  // Empty-state coaching — only for fresh signups with no pre-filled
+  // data and zero prior saves. Pointing a new therapist directly at
+  // bio + specialties is the single highest-leverage first-3-minutes
+  // ask. Don't show if the profile is scraped/pre-filled (the review
+  // banner handles that case) or if they've saved before.
+  var isFirstTimeEmpty =
+    !hasAnyPrefilledData && !((t && t.portal_save_count) > 0) && reportedList.length === 0;
+  var coachingBannerHtml = isFirstTimeEmpty
+    ? '<div class="portal-coaching-banner">' +
+      "<strong>New to the directory?</strong> " +
+      "Three minutes on <strong>Bio</strong> + <strong>Bipolar specialties</strong> puts you in front of patients by the end of the day. " +
+      'Start with <a href="#" class="portal-coaching-jump" data-target="bio">your bio below ↓</a>.' +
+      "</div>"
+    : "";
   var reviewBannerHtml = showReviewBanner
     ? '<div class="portal-review-banner" id="portalReviewBanner">' +
       "<strong>We pre-filled your profile from public sources.</strong> " +
@@ -1790,6 +1805,7 @@ function buildEditProfileHtml(therapist) {
     "</div>" +
     '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>' +
     reviewBannerHtml +
+    coachingBannerHtml +
     buildReadinessSectionHtml() +
     '<form id="portalEditForm" class="portal-edit-form">' +
     // About you — most conversion-critical, comes first.
@@ -2199,6 +2215,62 @@ function currentFormState(form) {
   return snapshotFormState(form);
 }
 
+var PORTAL_DRAFT_KEY_PREFIX = "portal-draft-";
+
+function portalDraftKey(slug) {
+  return PORTAL_DRAFT_KEY_PREFIX + String(slug || "");
+}
+
+function readPortalDraft(slug) {
+  try {
+    var raw = window.localStorage.getItem(portalDraftKey(slug));
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.state) return null;
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writePortalDraft(slug, state) {
+  try {
+    window.localStorage.setItem(
+      portalDraftKey(slug),
+      JSON.stringify({ state: state, saved_at: new Date().toISOString() }),
+    );
+  } catch (_error) {
+    // localStorage might be unavailable (private mode, disk full). Drafts
+    // are a convenience — failing silently is correct here.
+  }
+}
+
+function clearPortalDraft(slug) {
+  try {
+    window.localStorage.removeItem(portalDraftKey(slug));
+  } catch (_error) {
+    // nothing to do — draft was already unreadable
+  }
+}
+
+function applyDraftToForm(form, state) {
+  if (!state) return;
+  form.querySelectorAll("input, select, textarea").forEach(function (node) {
+    if (!node.name || !(node.name in state)) return;
+    if (node.type === "checkbox") {
+      node.checked = state[node.name] === "true";
+    } else {
+      node.value = state[node.name];
+    }
+  });
+  // Chip pickers re-render from their hidden inputs. Re-trigger.
+  form.querySelectorAll(".portal-chip-picker").forEach(function (picker) {
+    var hidden = picker.querySelector('input[type="hidden"]');
+    if (!hidden) return;
+    hidden.dispatchEvent(new window.Event("input", { bubbles: true }));
+  });
+}
+
 function wireEditProfileHandlers(therapist) {
   var form = document.getElementById("portalEditForm");
   if (!form) return;
@@ -2206,9 +2278,104 @@ function wireEditProfileHandlers(therapist) {
   attachAllChipPickers(form);
   attachAllCharCounters(form);
 
+  // Coaching banner "jump" link — focus the bio field and scroll it
+  // into view. Only lives on the page for fresh/empty profiles.
+  var coachingJump = document.querySelector(".portal-coaching-jump");
+  if (coachingJump) {
+    coachingJump.addEventListener("click", function (event) {
+      event.preventDefault();
+      var bio = form.elements.bio;
+      if (bio) {
+        bio.scrollIntoView({ behavior: "smooth", block: "center" });
+        bio.focus();
+        trackFunnelEvent("portal_coaching_jumped", { target: "bio" });
+      }
+    });
+  }
+
   // Initial snapshot captured AFTER chip pickers render so their
   // hidden inputs have their starting values. Used to diff on submit.
   var initialSnapshot = snapshotFormState(form);
+
+  // Check for an unsaved draft from a prior session (tab closed
+  // before save, browser crash, etc.). Only offer restore if the
+  // draft is actually different from what's on the doc.
+  var draftSlug = therapist && therapist.slug;
+  var draft = draftSlug ? readPortalDraft(draftSlug) : null;
+  if (draft && draft.state) {
+    var differsFromDoc = Object.keys(draft.state).some(function (k) {
+      return draft.state[k] !== initialSnapshot[k];
+    });
+    if (!differsFromDoc) {
+      clearPortalDraft(draftSlug);
+      draft = null;
+    }
+  }
+  if (draft) {
+    var draftBanner = document.createElement("div");
+    draftBanner.className = "portal-draft-banner";
+    var savedDate = new Date(draft.saved_at);
+    var dateStr = Number.isFinite(savedDate.getTime())
+      ? savedDate.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "earlier";
+    draftBanner.innerHTML =
+      "<span>Unsaved draft from <strong>" +
+      escapeHtml(dateStr) +
+      "</strong>. Restore?</span>" +
+      '<div><button type="button" class="portal-draft-restore">Restore</button>' +
+      '<button type="button" class="portal-draft-discard">Discard</button></div>';
+    form.parentElement.insertBefore(draftBanner, form);
+    draftBanner.querySelector(".portal-draft-restore").addEventListener("click", function () {
+      applyDraftToForm(form, draft.state);
+      updateReadinessUi(therapist, form);
+      draftBanner.remove();
+      trackFunnelEvent("portal_draft_restored", { slug: draftSlug });
+    });
+    draftBanner.querySelector(".portal-draft-discard").addEventListener("click", function () {
+      clearPortalDraft(draftSlug);
+      draftBanner.remove();
+      trackFunnelEvent("portal_draft_discarded", { slug: draftSlug });
+    });
+  }
+
+  // Funnel instrumentation. Track portal-open once, first-edit once
+  // per session, and readiness-threshold crossings so we can measure
+  // whether the UX polish is actually moving therapists toward
+  // "match-ready" within the target window.
+  trackFunnelEvent("portal_opened", {
+    slug: draftSlug,
+    claim_status: therapist && therapist.claim_status,
+    save_count: (therapist && therapist.portal_save_count) || 0,
+    initial_readiness: getTherapistMatchReadiness(therapist).score,
+  });
+
+  var firstEditFired = false;
+  var lastReadinessScore = getTherapistMatchReadiness(therapist).score;
+
+  // Debounced draft autosave on edit. 600ms covers a natural typing
+  // pause without burning writes on every keystroke.
+  var draftSaveTimer = null;
+  function scheduleDraftSave() {
+    if (draftSaveTimer) window.clearTimeout(draftSaveTimer);
+    draftSaveTimer = window.setTimeout(function () {
+      if (!draftSlug) return;
+      var currentState = snapshotFormState(form);
+      // Only write draft if it differs from the current doc baseline.
+      var differs = Object.keys(currentState).some(function (k) {
+        return currentState[k] !== initialSnapshot[k];
+      });
+      if (differs) {
+        writePortalDraft(draftSlug, currentState);
+      } else {
+        clearPortalDraft(draftSlug);
+      }
+    }, 600);
+  }
 
   // Prime the readiness UI with initial values, then update on any
   // edit. Using both input + change covers text/number (input) and
@@ -2218,6 +2385,20 @@ function wireEditProfileHandlers(therapist) {
   updateReadinessUi(therapist, form);
   var onEdit = function () {
     updateReadinessUi(therapist, form);
+    scheduleDraftSave();
+    if (!firstEditFired) {
+      firstEditFired = true;
+      trackFunnelEvent("portal_first_edit", { slug: draftSlug });
+    }
+    // Readiness threshold crossings (from below only).
+    var nextScore = getTherapistMatchReadiness(getProjectedTherapist(therapist, form)).score;
+    if (lastReadinessScore < 65 && nextScore >= 65) {
+      trackFunnelEvent("portal_readiness_crossed_65", { slug: draftSlug, score: nextScore });
+    }
+    if (lastReadinessScore < 85 && nextScore >= 85) {
+      trackFunnelEvent("portal_readiness_crossed_85", { slug: draftSlug, score: nextScore });
+    }
+    lastReadinessScore = nextScore;
   };
   form.addEventListener("input", onEdit);
   form.addEventListener("change", onEdit);
@@ -2234,6 +2415,7 @@ function wireEditProfileHandlers(therapist) {
     if (!changedNames.length) {
       feedback.textContent = "No changes to save.";
       feedback.style.color = "#6b8290";
+      trackFunnelEvent("portal_save_no_changes", { slug: draftSlug });
       return;
     }
 
@@ -2260,10 +2442,21 @@ function wireEditProfileHandlers(therapist) {
         updateReadinessUi(therapist, form);
         // Re-snapshot so the next save diffs against the new baseline.
         initialSnapshot = snapshotFormState(form);
+        clearPortalDraft(draftSlug);
       }
+      trackFunnelEvent("portal_save_success", {
+        slug: draftSlug,
+        changed_fields: changedNames,
+        save_count: (therapist && therapist.portal_save_count) || 0,
+        readiness_score: getTherapistMatchReadiness(therapist).score,
+      });
     } catch (error) {
       feedback.textContent = (error && error.message) || "Something went wrong while saving.";
       feedback.style.color = "#b03636";
+      trackFunnelEvent("portal_save_error", {
+        slug: draftSlug,
+        message: error && error.message,
+      });
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
