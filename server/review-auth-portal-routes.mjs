@@ -733,7 +733,7 @@ export async function handleAuthAndPortalRoutes(context) {
       )[0...200]{
         _id, fullName, licenseNumber, requestedEmail, priorEmail, reason,
         status, therapistSlug, therapistDocId, profileName, profileEmailHint,
-        profileClaimedEmail, adminNote, outcomeMessage,
+        profileClaimedEmail, adminNote, identityVerification, outcomeMessage,
         reviewedAt, reviewedBy, requesterIp, createdAt
       }`,
     );
@@ -754,6 +754,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const body = await parseBody(request);
     const customMessage = String(body.outcome_message || "").trim();
     const adminNote = String(body.admin_note || "").trim();
+    const identityVerification = String(body.identity_verification || "").trim();
 
     const recovery = await client.getDocument(requestId);
     if (!recovery || recovery._type !== "therapistRecoveryRequest") {
@@ -764,6 +765,28 @@ export async function handleAuthAndPortalRoutes(context) {
       sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
       return true;
     }
+
+    // Cold-takeover guard. When the original claim request came in with
+    // no prior email on file, there's no pre-existing owner to disturb
+    // and public name+license is not a meaningful gate — so require the
+    // approver to record how they verified identity out-of-band (phone
+    // from DCA, practice website contact form, etc.). 20+ chars forces
+    // something substantive; a shorter "ok" or "checked" wouldn't.
+    if (recovery.reason === "no_email_on_file" && identityVerification.length < 20) {
+      sendJson(
+        response,
+        400,
+        {
+          error:
+            "Cold-takeover approval requires an identity-verification note (20+ chars). Describe the out-of-band check you performed.",
+          reason: "identity_verification_required",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     if (!recovery.therapistDocId || !recovery.therapistSlug) {
       sendJson(
         response,
@@ -849,6 +872,7 @@ export async function handleAuthAndPortalRoutes(context) {
         reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
         outcomeMessage: customMessage,
         adminNote: adminNote || recovery.adminNote || "",
+        identityVerification: identityVerification || recovery.identityVerification || "",
       })
       .commit({ visibility: "sync" });
 

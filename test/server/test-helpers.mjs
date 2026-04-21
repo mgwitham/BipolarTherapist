@@ -159,6 +159,18 @@ export function createMemoryClient(initialDocuments) {
     client: {
       async fetch(query, params) {
         if (
+          query.includes(`*[_type == "therapist" && _id == $id][0]`) &&
+          params &&
+          typeof params.id === "string"
+        ) {
+          const match = state.documents.get(params.id);
+          if (!match || match._type !== "therapist") {
+            return null;
+          }
+          return deepClone(match);
+        }
+
+        if (
           query.includes(`*[_type == "therapist" && slug.current == $slug][0]`) &&
           params &&
           typeof params.slug === "string"
