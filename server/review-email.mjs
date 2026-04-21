@@ -317,6 +317,131 @@ visit the signup page and choose "List my practice".</p>`,
   });
 }
 
+// Four emails around the account-recovery queue. Therapists who can't
+// use the normal claim / sign-in flows because they lost their on-file
+// email file a recovery request. Admin reviews manually, then approves
+// or rejects. These four templates cover each transition.
+
+export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const adminUrl = config.adminDashboardUrl
+    ? `${config.adminDashboardUrl.replace(/\/+$/, "")}/admin.html#recovery`
+    : "";
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [config.notificationTo],
+    subject: `New recovery request: ${recoveryRequest.fullName || "(no name)"}`,
+    html: `<h2>New therapist recovery request</h2>
+<p><strong>Name:</strong> ${recoveryRequest.fullName || "—"}</p>
+<p><strong>License:</strong> ${recoveryRequest.licenseNumber || "—"}</p>
+<p><strong>Requested email:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
+<p><strong>Prior email:</strong> ${recoveryRequest.priorEmail || "—"}</p>
+<p><strong>Profile name on record:</strong> ${recoveryRequest.profileName || "—"} ${
+      recoveryRequest.profileName &&
+      recoveryRequest.fullName &&
+      recoveryRequest.profileName.toLowerCase() !== recoveryRequest.fullName.toLowerCase()
+        ? '<em style="color:#b03636"> (mismatch!)</em>'
+        : ""
+    }</p>
+<p><strong>Profile email hint:</strong> ${recoveryRequest.profileEmailHint || "—"}</p>
+<p><strong>Reason:</strong></p>
+<blockquote style="border-left:3px solid #1a7a8f;padding-left:1rem;color:#4a6572">${
+      recoveryRequest.reason
+        ? String(recoveryRequest.reason).replace(/\n/g, "<br/>")
+        : "(none given)"
+    }</blockquote>
+<p>Review and approve or reject in the admin panel${
+      adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""
+    }.</p>`,
+  });
+}
+
+export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const email = String(recoveryRequest.requestedEmail || "").trim();
+  if (!email) {
+    return;
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [email],
+    reply_to: config.notificationTo,
+    subject: "We got your recovery request",
+    html: `<h2>Recovery request received</h2>
+<p>Hi ${recoveryRequest.fullName || "there"},</p>
+<p>We got your request to regain access to your BipolarTherapyHub listing. Our team will
+verify your identity manually (usually via the CA DCA license database and a quick
+out-of-band check) and email you within one business day.</p>
+<p><strong>What you submitted:</strong></p>
+<ul>
+  <li>Name: ${recoveryRequest.fullName || "—"}</li>
+  <li>License: ${recoveryRequest.licenseNumber || "—"}</li>
+  <li>Recovery email: ${email}</li>
+</ul>
+<p>If you need to add more detail or correct something, just reply to this email.</p>`,
+  });
+}
+
+export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLink, customMessage) {
+  if (!hasEmailConfig(config)) {
+    throw new Error("Email delivery is not configured.");
+  }
+  const email = String(recoveryRequest.requestedEmail || "").trim();
+  if (!email) {
+    throw new Error("No requested email on recovery request.");
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [email],
+    reply_to: config.notificationTo,
+    subject: "Your recovery request was approved",
+    html: `<h2>You're back in</h2>
+<p>Hi ${recoveryRequest.fullName || "there"},</p>
+<p>We verified your identity and approved your recovery request. Click the secure link
+below to sign into your portal. The link expires in 24 hours.</p>
+<p style="margin: 1.25rem 0;">
+  <a href="${magicLink}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
+  text-decoration:none;font-weight:600;">Sign in to my portal →</a>
+</p>
+<p style="font-size:13px;color:#666;">Or copy and paste this link into your browser:<br/>
+<a href="${magicLink}">${magicLink}</a></p>
+${customMessage ? `<p>${String(customMessage).replace(/\n/g, "<br/>")}</p>` : ""}
+<p>Your on-file contact email for the portal has been updated to <strong>${email}</strong>.
+If that wasn't you, reply to this email immediately.</p>`,
+  });
+}
+
+export async function sendRecoveryRejectedEmail(config, recoveryRequest, outcomeMessage) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const email = String(recoveryRequest.requestedEmail || "").trim();
+  if (!email) {
+    return;
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [email],
+    reply_to: config.notificationTo,
+    subject: "Update on your recovery request",
+    html: `<h2>Your recovery request was reviewed</h2>
+<p>Hi ${recoveryRequest.fullName || "there"},</p>
+<p>We reviewed your recovery request and weren't able to approve it based on the
+information provided.</p>
+${
+  outcomeMessage
+    ? `<p><strong>Reviewer note:</strong><br/>${String(outcomeMessage).replace(/\n/g, "<br/>")}</p>`
+    : ""
+}
+<p>If you'd like to try again with different details, reply to this email and we'll
+take another look.</p>`,
+  });
+}
+
 // Send the weekly engagement digest to a single paid therapist. The
 // digest object comes from shared/weekly-digest-domain.mjs; this just
 // adapts it to the email provider shape. Text-only keeps the template

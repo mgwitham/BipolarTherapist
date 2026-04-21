@@ -348,6 +348,123 @@
       .claim-confirm-dispute a:hover {
         color: #7a2f2f;
       }
+      .claim-recovery-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+      }
+      .claim-recovery-modal[hidden] {
+        display: none;
+      }
+      .claim-recovery-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 65, 78, 0.55);
+      }
+      .claim-recovery-dialog {
+        position: relative;
+        background: var(--white);
+        border-radius: 16px;
+        padding: 1.75rem;
+        max-width: 520px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 48px rgba(15, 65, 78, 0.28);
+      }
+      .claim-recovery-close {
+        position: absolute;
+        top: 0.7rem;
+        right: 0.9rem;
+        background: transparent;
+        border: 0;
+        font-size: 1.6rem;
+        color: var(--muted);
+        cursor: pointer;
+        line-height: 1;
+      }
+      .claim-recovery-close:hover {
+        color: var(--navy);
+      }
+      .claim-recovery-heading {
+        font-family: "Lora", serif;
+        font-size: 1.35rem;
+        margin: 0 0 0.55rem;
+        color: var(--navy);
+      }
+      .claim-recovery-sub {
+        margin: 0 0 1.1rem;
+        color: var(--slate);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .claim-recovery-form {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .claim-recovery-form label {
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .claim-recovery-form label em {
+        font-weight: 400;
+        color: var(--muted);
+        font-style: normal;
+      }
+      .claim-recovery-form input,
+      .claim-recovery-form textarea {
+        width: 100%;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        color: var(--navy);
+        background: var(--white);
+      }
+      .claim-recovery-form input:focus,
+      .claim-recovery-form textarea:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .claim-recovery-submit {
+        background: var(--teal);
+        color: var(--white);
+        border: 0;
+        border-radius: 10px;
+        padding: 0.85rem 1.1rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .claim-recovery-submit:hover {
+        background: var(--teal-dark);
+      }
+      .claim-recovery-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .claim-recovery-status {
+        padding: 0.7rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+      .claim-recovery-status[data-tone="success"] {
+        background: rgba(47, 110, 128, 0.08);
+        color: var(--navy);
+      }
+      .claim-recovery-status[data-tone="warn"] {
+        background: rgba(224, 108, 108, 0.1);
+        color: #8c2b2b;
+      }
       .claim-confirm-status {
         padding: 0.7rem 0.85rem;
         border-radius: 8px;
@@ -831,7 +948,9 @@
           <a href="#" id="claimConfirmSend">Just claim free basic controls →</a>
         </p>
         <p class="claim-confirm-alt">
-          <a href="#" id="claimConfirmUseOther">Use a different email →</a>
+          <a href="#" id="claimConfirmRequestRecovery"
+            >Can't access the email on file? Request account recovery →</a
+          >
         </p>
         <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
           <a
@@ -851,6 +970,89 @@
           Didn't see it in 2 min? Check your spam folder or
           <a href="#" id="claimConfirmResendLink">resend the link</a>.
         </p>
+      </div>
+
+      <!-- Account recovery modal — opens from "Request account recovery" -->
+      <div
+        class="claim-recovery-modal"
+        id="claimRecoveryModal"
+        hidden
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby="claimRecoveryHeading"
+      >
+        <div class="claim-recovery-backdrop" id="claimRecoveryBackdrop"></div>
+        <div class="claim-recovery-dialog">
+          <button
+            type="button"
+            class="claim-recovery-close"
+            id="claimRecoveryClose"
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <h2 class="claim-recovery-heading" id="claimRecoveryHeading">Request account recovery</h2>
+          <p class="claim-recovery-sub">
+            A human reviews every request. We verify your identity against the CA DCA license
+            database plus a quick out-of-band check, then email a verified sign-in link within one
+            business day.
+          </p>
+          <form id="claimRecoveryForm" class="claim-recovery-form" novalidate>
+            <label>
+              <span>Full name (as on your license)</span>
+              <input
+                type="text"
+                name="full_name"
+                id="claimRecoveryFullName"
+                autocomplete="name"
+                required
+              />
+            </label>
+            <label>
+              <span>CA license number</span>
+              <input type="text" name="license_number" id="claimRecoveryLicense" required />
+            </label>
+            <label>
+              <span>Email you want access at</span>
+              <input
+                type="email"
+                name="requested_email"
+                id="claimRecoveryRequestedEmail"
+                autocomplete="email"
+                required
+              />
+            </label>
+            <label>
+              <span>Email you used to have access to <em>(if you remember it)</em></span>
+              <input
+                type="email"
+                name="prior_email"
+                id="claimRecoveryPriorEmail"
+                autocomplete="email"
+              />
+            </label>
+            <label>
+              <span>What happened?</span>
+              <textarea
+                name="reason"
+                id="claimRecoveryReason"
+                rows="4"
+                placeholder="e.g. Left my prior practice and lost access to the clinic email. My new practice email is on file now."
+                required
+              ></textarea>
+            </label>
+            <button type="submit" class="claim-recovery-submit" id="claimRecoverySubmit">
+              Send recovery request
+            </button>
+            <div
+              class="claim-recovery-status"
+              id="claimRecoveryStatus"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+          </form>
+        </div>
       </div>
 
       <!-- Legacy trial-offer surface kept for JS compatibility. Hidden
@@ -977,11 +1179,12 @@
         </p>
       </details>
       <details class="claim-faq-item">
-        <summary>What if my on-file email is wrong?</summary>
+        <summary>What if I can't access the email on file?</summary>
         <p>
-          Pick your listing, then click "Use a different email →" in the confirm panel. Enter the
-          email you actually have access to. We'll send the activation link there and update your
-          on-file email after you click it.
+          Pick your listing, then click <strong>"Request account recovery"</strong> in the confirm
+          panel. A human reviews every request manually — we verify your identity through the CA DCA
+          license database and a quick out-of-band check, then email you a verified sign-in link
+          within one business day.
         </p>
       </details>
       <details class="claim-faq-item">

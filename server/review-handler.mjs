@@ -30,11 +30,15 @@ import {
 } from "./stripe-client.mjs";
 import {
   hasEmailConfig,
+  notifyAdminOfRecoveryRequest,
   notifyAdminOfSubmission,
   notifyApplicantOfDecision,
+  notifyTherapistOfRecoveryReceived,
   sendListingRemovalLink as sendListingRemovalLinkEmail,
   sendPortalClaimLink as sendPortalClaimLinkEmail,
   sendPortalWelcomeEmail,
+  sendRecoveryApprovedEmail,
+  sendRecoveryRejectedEmail,
   sendTrialEndingReminder,
   sendUnverifiedTrialCanceledNotice,
 } from "./review-email.mjs";
@@ -446,6 +450,16 @@ async function sendPortalClaimLink(config, therapist, requesterEmail, portalBase
   );
 }
 
+// Build a 24h portal magic-link URL for a therapist + recovery email.
+// Used by the recovery-queue approve flow — admin has already verified
+// identity out-of-band, so we directly issue a fresh claim token bound
+// to the requested email and link it in the approval notification.
+function buildRecoveryMagicLink(config, therapist, requestedEmail, portalBaseUrl) {
+  const token = buildPortalClaimToken(config, therapist, requestedEmail);
+  const base = String(portalBaseUrl || "").replace(/\/+$/, "");
+  return `${base}/portal.html?token=${encodeURIComponent(token)}`;
+}
+
 // Listing-removal token — one-time, 24h, bound to therapist slug.
 // Stored with sub "listing-removal" so it can't be mistakenly accepted
 // as a portal-claim token and vice versa.
@@ -509,6 +523,7 @@ function createReviewRouteModules() {
       handler: handleAuthAndPortalRoutes,
       deps: {
         buildPortalRequestDocument,
+        buildRecoveryMagicLink,
         canAttemptLogin,
         clearFailedLogins,
         createFeaturedCheckoutSession,
@@ -519,6 +534,8 @@ function createReviewRouteModules() {
         getSecurityWarnings,
         isAuthorized,
         normalizePortalRequest,
+        notifyAdminOfRecoveryRequest,
+        notifyTherapistOfRecoveryReceived,
         parseAuthorizationHeader,
         parseBody,
         readListingRemovalToken,
@@ -529,6 +546,8 @@ function createReviewRouteModules() {
         sendListingRemovalLink,
         sendPortalClaimLink,
         sendPortalWelcomeEmail,
+        sendRecoveryApprovedEmail,
+        sendRecoveryRejectedEmail,
         updatePortalRequestFields,
       },
       includeUrl: true,

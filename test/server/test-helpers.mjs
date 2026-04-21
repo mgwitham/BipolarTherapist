@@ -195,6 +195,24 @@ export function createMemoryClient(initialDocuments) {
           return match ? deepClone(match) : null;
         }
 
+        // Rate-limit count query for the recovery queue. Matches the
+        // shape: count(*[_type == "therapistRecoveryRequest" && status == "pending" ...]).
+        if (
+          query.trim().startsWith("count(") &&
+          query.includes('_type == "therapistRecoveryRequest"') &&
+          query.includes('status == "pending"')
+        ) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "therapistRecoveryRequest" && document.status === "pending";
+          }).length;
+        }
+
+        if (query.includes(`*[_type == "therapistRecoveryRequest"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "therapistRecoveryRequest";
+          });
+        }
+
         if (query.includes(`*[_type == "therapistPortalRequest"]`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapistPortalRequest";

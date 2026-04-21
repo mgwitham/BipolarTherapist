@@ -369,6 +369,39 @@ export async function requestTherapistQuickClaim(payload) {
   });
 }
 
+// Account-recovery queue — therapist submits a request, admin reviews
+// manually, therapist gets an approval/rejection email. Used when
+// they've lost access to the email on file AND can't domain-verify.
+export async function requestAccountRecovery(payload) {
+  return request("/portal/recovery-request", {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function fetchRecoveryRequests() {
+  return request("/recovery-requests", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function approveRecoveryRequest(id, payload) {
+  return request("/recovery-requests/" + encodeURIComponent(id) + "/approve", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function rejectRecoveryRequest(id, payload) {
+  return request("/recovery-requests/" + encodeURIComponent(id) + "/reject", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function searchTherapistQuickClaim(query) {
   return request("/portal/quick-claim/search?q=" + encodeURIComponent(query || ""), {
     method: "GET",

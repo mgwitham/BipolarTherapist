@@ -387,7 +387,8 @@
       body:not([data-admin-view="today"]) [data-view-group="today"],
       body:not([data-admin-view="listings"]) [data-view-group="listings"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
-      body:not([data-admin-view="funnel"]) [data-view-group="funnel"] {
+      body:not([data-admin-view="funnel"]) [data-view-group="funnel"],
+      body:not([data-admin-view="recovery"]) [data-view-group="recovery"] {
         display: none !important;
       }
       .admin-funnel-section {
@@ -525,6 +526,128 @@
         .admin-funnel-headline-grid {
           grid-template-columns: 1fr;
         }
+      }
+      .admin-recovery-section {
+        margin-bottom: 2rem;
+      }
+      .admin-recovery-section h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1.05rem;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-recovery-card {
+        background: #fff;
+        border: 1px solid #d4e4e9;
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 0.75rem;
+      }
+      .admin-recovery-card.is-approved {
+        border-left: 4px solid #2f8e5a;
+      }
+      .admin-recovery-card.is-rejected {
+        border-left: 4px solid #a04a4a;
+      }
+      .admin-recovery-card.is-pending {
+        border-left: 4px solid #c79a3c;
+        background: #fffbf3;
+      }
+      .admin-recovery-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.82rem;
+        color: var(--muted, #6b8290);
+      }
+      .admin-recovery-status-pill {
+        display: inline-block;
+        padding: 0.12rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .admin-recovery-status-pending {
+        background: #fff8ec;
+        color: #5f4418;
+      }
+      .admin-recovery-status-approved {
+        background: #e7f5ed;
+        color: #1f6a44;
+      }
+      .admin-recovery-status-rejected {
+        background: #fbeaea;
+        color: #7a2f2f;
+      }
+      .admin-recovery-flag {
+        margin-left: 0.5rem;
+        color: #a04a4a;
+        font-weight: 700;
+      }
+      .admin-recovery-name {
+        font-family: "Lora", serif;
+        font-size: 1.1rem;
+        margin: 0.5rem 0 0.65rem;
+        color: var(--navy, #1d3a4a);
+      }
+      .admin-recovery-name a {
+        color: var(--teal, #1a7a8f);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .admin-recovery-fields {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.35rem 0.9rem;
+        margin: 0;
+        font-size: 0.88rem;
+      }
+      .admin-recovery-fields dt {
+        font-weight: 600;
+        color: var(--slate, #4a6572);
+      }
+      .admin-recovery-fields dd {
+        margin: 0;
+        color: var(--navy, #1d3a4a);
+        word-break: break-word;
+      }
+      .admin-recovery-fields code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.82rem;
+      }
+      .admin-recovery-actions {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed #d4e4e9;
+      }
+      .admin-recovery-outcome {
+        width: 100%;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid #d4e4e9;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 0.88rem;
+        margin-bottom: 0.65rem;
+      }
+      .admin-recovery-buttons {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .admin-recovery-feedback {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+      }
+      .admin-recovery-feedback[data-tone="success"] {
+        color: #1f6a44;
+      }
+      .admin-recovery-feedback[data-tone="warn"] {
+        color: #8c2b2b;
+      }
+      .admin-recovery-feedback[data-tone="info"] {
+        color: var(--muted, #6b8290);
       }
       .panel-intro {
         margin: 0 0 0.85rem;
@@ -4468,6 +4591,16 @@
         >
           Funnel
         </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="recovery"
+          role="tab"
+          aria-selected="false"
+        >
+          Recovery
+          <span class="admin-tab-count" id="navCountRecovery"></span>
+        </button>
       </div>
 
       <section class="admin-today" id="todayRegion" data-view-group="today" style="display: none">
@@ -5198,6 +5331,35 @@
               </header>
               <div id="adminFunnelDashboard"></div>
             </section>
+            <section
+              class="admin-region-shell"
+              id="recoveryRegion"
+              data-view-group="recovery"
+              style="margin-top: 1.5rem"
+            >
+              <header class="admin-funnel-header">
+                <div>
+                  <h2 style="margin: 0">Account recovery queue</h2>
+                  <p class="subtle" style="margin: 0.25rem 0 0">
+                    Therapists who lost access to their on-file email. Verify identity manually (DCA
+                    lookup, phone, LinkedIn) before approving.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center">
+                  <span
+                    class="admin-funnel-status"
+                    id="adminRecoveryStatus"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                  ></span>
+                  <button type="button" class="btn-secondary" id="adminRecoveryRefresh">
+                    Refresh
+                  </button>
+                </div>
+              </header>
+              <div id="adminRecoveryDashboard"></div>
+            </section>
           </main>
         </div>
       </div>
@@ -5231,6 +5393,7 @@
 
     <script type="module" src="assets/admin-view-tabs.js"></script>
     <script type="module" src="assets/admin-funnel.js"></script>
+    <script type="module" src="assets/admin-recovery.js"></script>
     <script type="module" src="assets/admin.js"></script>
 
     <!-- Edit profile drawer -->
