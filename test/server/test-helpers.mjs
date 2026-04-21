@@ -231,6 +231,25 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (
+          query.includes(
+            `*[_type == "therapist" && claimStatus == "claimed" && lower(claimedByEmail) == $email]`,
+          ) &&
+          params &&
+          typeof params.email === "string"
+        ) {
+          const match = Array.from(state.documents.values()).find(function (document) {
+            if (document._type !== "therapist") {
+              return false;
+            }
+            if (document.claimStatus !== "claimed") {
+              return false;
+            }
+            return String(document.claimedByEmail || "").toLowerCase() === params.email;
+          });
+          return match ? deepClone(match) : null;
+        }
+
         if (query.includes(`*[_type == "therapist"]`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapist";

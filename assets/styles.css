@@ -183,6 +183,16 @@ nav {
   background: var(--teal-dark) !important;
 }
 
+.nav-signin-link {
+  color: var(--muted) !important;
+  font-weight: 500 !important;
+  font-size: 0.92rem;
+}
+
+.nav-signin-link:hover {
+  color: var(--teal) !important;
+}
+
 .public-mobile-nav {
   display: none;
 }
