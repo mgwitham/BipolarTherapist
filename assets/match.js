@@ -4790,20 +4790,34 @@ function renderPrimaryMatchCards(entries, profile) {
 
   placeBuilderInResults(root);
 
-  // Wire smart-refine chips to open the existing filter panel
+  // Wire the results-header Refine button and the smart-refine chips
+  // ("Takes my insurance" / "Telehealth only" / "Language") to open the
+  // refine drawer. Previously these only toggled the <details open>
+  // attribute, which skipped the drawer CSS state and left the panel
+  // invisible or rendered inline in a broken position.
   root.querySelectorAll("[data-mx-refine-open]").forEach(function (chip) {
     chip.addEventListener("click", function () {
-      var advanced = document.getElementById("refineAdvancedDetails");
-      if (advanced) {
-        advanced.setAttribute("open", "");
-      }
-      var refineSection = document.getElementById("matchRefineSection");
-      if (refineSection) {
-        refineSection.setAttribute("open", "");
-        refineSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      setRefineDrawerOpen(true);
       var target = chip.getAttribute("data-mx-refine-open");
       trackFunnelEvent("match_smart_refine_chip", { target: target });
+      // For the smart chips (insurance / format / language), focus the
+      // relevant field in the drawer so the user can type immediately.
+      if (target && target !== "header") {
+        var focusMap = {
+          insurance: "insurance",
+          format: 'input[name="care_format"]',
+          language: "language_preferences",
+        };
+        var selector = focusMap[target];
+        if (selector) {
+          window.requestAnimationFrame(function () {
+            var node = document.getElementById(selector) || document.querySelector(selector);
+            if (node && typeof node.focus === "function") {
+              node.focus({ preventScroll: true });
+            }
+          });
+        }
+      }
     });
   });
 
