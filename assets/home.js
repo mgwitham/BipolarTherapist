@@ -144,16 +144,11 @@ function syncHeroSearchState() {
   }
 }
 
-function getHeroButtonLabel(interest) {
-  if (interest === "therapist") {
-    return "See therapy matches";
-  }
-
-  if (interest === "psychiatrist") {
-    return "See psychiatry matches";
-  }
-
-  return "See my matches";
+function getHeroButtonLabel(_interest) {
+  // Uniform "Find care" across all states — shorter, action-first, and
+  // patient-facing without forcing a therapy-vs-psychiatry commitment
+  // upfront. The unused param is kept for call-site compatibility.
+  return "Find care";
 }
 
 function getHeroHelperCopy(interest, hasLocation) {
@@ -984,6 +979,23 @@ function initHomeSearchForm() {
   }
   syncHomeSearchHiddenFields(interestInput ? String(interestInput.value || "").trim() : "");
   syncHeroSearchState();
+
+  // Bottom "Start my match ↑" CTA scrolls to top and focuses the
+  // first form field. A plain href="#startMatch" jumps without smooth
+  // scroll and leaves the ZIP field blurred — this makes the round
+  // trip feel intentional on long scroll.
+  document.querySelectorAll('a[href="#startMatch"]').forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      var first = document.getElementById("homepage_interest");
+      if (first) {
+        window.setTimeout(function () {
+          first.focus({ preventScroll: true });
+        }, 450);
+      }
+    });
+  });
 
   try {
     var content = await fetchHomePageContent();

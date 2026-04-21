@@ -1070,6 +1070,242 @@
         text-align: center;
         margin-top: 2rem;
       }
+      /* Long-scroll homepage sections — below the hero. */
+      .home-section {
+        padding: 4.5rem 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+      .home-section-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      .home-section-eyebrow {
+        margin: 0 0 0.5rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--teal);
+      }
+      .home-section-title {
+        font-family: "Lora", serif;
+        font-size: clamp(1.65rem, 3vw, 2.2rem);
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--navy);
+        margin: 0 0 1.75rem;
+        max-width: 760px;
+      }
+      .home-section-link {
+        color: var(--teal);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .home-section-link:hover {
+        color: var(--teal-dark);
+        text-decoration: underline;
+      }
+      /* Section 1 — Why */
+      .home-section--why {
+        background: var(--white);
+        border-top: 0;
+      }
+      .home-why-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+      }
+      .home-why-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.75rem 1.5rem;
+      }
+      .home-why-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--teal);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-bottom: 1rem;
+      }
+      .home-why-card h3 {
+        font-family: "Lora", serif;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0 0 0.6rem;
+        color: var(--navy);
+      }
+      .home-why-card p {
+        margin: 0;
+        color: var(--slate);
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+      /* Section 2 — How it works */
+      .home-section--how {
+        background: var(--bg);
+      }
+      .home-how-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.75rem;
+        counter-reset: steps;
+      }
+      .home-how-step {
+        position: relative;
+      }
+      .home-how-num {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--white);
+        border: 2px solid var(--teal);
+        color: var(--teal);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .home-how-step h3 {
+        font-family: "Lora", serif;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0 0 0.55rem;
+        color: var(--navy);
+      }
+      .home-how-step p {
+        margin: 0;
+        color: var(--slate);
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+      .home-how-cta {
+        margin-top: 2rem;
+        font-size: 0.95rem;
+      }
+      /* Section 3 — Educate */
+      .home-section--educate {
+        background: var(--white);
+      }
+      .home-educate-body {
+        max-width: 720px;
+        color: var(--slate);
+        font-size: 1.02rem;
+        line-height: 1.7;
+      }
+      .home-educate-body p {
+        margin: 0 0 1.1rem;
+      }
+      .home-educate-body strong {
+        color: var(--navy);
+      }
+      /* Section 4 — FAQ */
+      .home-section--faq {
+        background: var(--bg);
+      }
+      .home-faq-list {
+        max-width: 780px;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .home-faq-item {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .home-faq-item[open] {
+        border-color: var(--teal);
+      }
+      .home-faq-item summary {
+        cursor: pointer;
+        padding: 1rem 1.2rem;
+        font-weight: 700;
+        color: var(--navy);
+        list-style: none;
+        position: relative;
+        font-size: 1rem;
+      }
+      .home-faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+      .home-faq-item summary::after {
+        content: "+";
+        position: absolute;
+        right: 1.2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.3rem;
+        font-weight: 400;
+        color: var(--teal);
+      }
+      .home-faq-item[open] summary::after {
+        content: "−";
+      }
+      .home-faq-item p {
+        margin: 0;
+        padding: 0 1.2rem 1.1rem;
+        color: var(--slate);
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+      /* Section 5 — Closing CTA */
+      .home-section--closing {
+        background: linear-gradient(180deg, var(--teal) 0%, var(--teal-dark) 100%);
+        color: #fff;
+        text-align: center;
+        padding: 5rem 1.5rem;
+      }
+      .home-closing-inner {
+        max-width: 620px;
+      }
+      .home-section--closing .home-section-title {
+        color: #fff;
+        max-width: none;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .home-closing-sub {
+        color: #e8f5f8;
+        margin: 0 0 1.75rem;
+        font-size: 1.05rem;
+      }
+      .home-closing-btn {
+        display: inline-block;
+        background: #fff;
+        color: var(--teal-dark);
+        font-weight: 700;
+        padding: 0.95rem 1.75rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: 1rem;
+        transition: transform 0.15s ease;
+      }
+      .home-closing-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      @media (max-width: 860px) {
+        .home-why-grid,
+        .home-how-steps {
+          grid-template-columns: 1fr;
+        }
+        .home-section {
+          padding: 3.25rem 1.25rem;
+        }
+      }
+
       @media (max-width: 640px) {
         body {
           padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
@@ -1253,12 +1489,162 @@
               value=""
             />
             <div class="search-launch-note">Currently matching California ZIP codes.</div>
-            <button type="submit" class="search-btn" id="searchButton">Start my match</button>
+            <button type="submit" class="search-btn" id="searchButton">Find care</button>
           </form>
           <div class="hero-browse-link">
             <a href="directory.html">Prefer to browse first?</a>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--why">
+      <div class="home-section-inner">
+        <p class="home-section-eyebrow">Why BipolarTherapyHub</p>
+        <h2 class="home-section-title">Not a generalist directory. A bipolar specialist one.</h2>
+        <div class="home-why-grid">
+          <div class="home-why-card">
+            <div class="home-why-icon" aria-hidden="true">✓</div>
+            <h3>Bipolar focus required</h3>
+            <p>
+              Every therapist listed has documented bipolar work in their practice. We verify the
+              signal before anyone appears. Then the therapist personally confirms the details that
+              matter to you.
+            </p>
+          </div>
+          <div class="home-why-card">
+            <div class="home-why-icon" aria-hidden="true">✓</div>
+            <h3>California-licensed, verified</h3>
+            <p>
+              We cross-check every license against the California Department of Consumer Affairs. No
+              expired credentials. No mystery out-of-state clinicians.
+            </p>
+          </div>
+          <div class="home-why-card">
+            <div class="home-why-icon" aria-hidden="true">✓</div>
+            <h3>Direct contact, no middleman</h3>
+            <p>
+              Reach out however the therapist prefers. Email, phone, booking link. No intake team,
+              no matchmaker fee, no third party between you and the therapist.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--how">
+      <div class="home-section-inner">
+        <p class="home-section-eyebrow">How it works</p>
+        <h2 class="home-section-title">Three steps. About three minutes.</h2>
+        <ol class="home-how-steps">
+          <li class="home-how-step">
+            <div class="home-how-num">1</div>
+            <h3>Tell us about you</h3>
+            <p>
+              A few questions: what kind of support you need, where you are, what matters most.
+              Thirty seconds, no account required.
+            </p>
+          </li>
+          <li class="home-how-step">
+            <div class="home-how-num">2</div>
+            <h3>See matched specialists</h3>
+            <p>
+              Ranked by fit: bipolar experience, insurance, availability, distance. Not by who paid
+              the most.
+            </p>
+          </li>
+          <li class="home-how-step">
+            <div class="home-how-num">3</div>
+            <h3>Reach out on your terms</h3>
+            <p>
+              Message, call, or book directly with the therapist. No intermediaries, no automatic
+              intros, no pressure.
+            </p>
+          </li>
+        </ol>
+        <div class="home-how-cta">
+          <a href="#startMatch" class="home-section-link">Start with the guided match →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--educate">
+      <div class="home-section-inner">
+        <p class="home-section-eyebrow">What to look for</p>
+        <h2 class="home-section-title">What makes a therapist bipolar-informed?</h2>
+        <div class="home-educate-body">
+          <p>
+            Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
+            training, supervision, and case volume that bipolar-informed care requires. The
+            difference shows up when symptoms don't fit a textbook: mixed episodes, rapid cycling,
+            postpartum triggers, treatment resistance.
+          </p>
+          <p>
+            Bipolar-informed therapists tend to work in a few recognizable ways. They coordinate
+            with psychiatrists for medication management. They know evidence-based modalities like
+            Interpersonal and Social Rhythm Therapy (IPSRT) and Family-Focused Therapy. They help
+            you spot early warning signs of a mood shift before it becomes an episode. They
+            understand that stability is the long game, not a quick symptom fix.
+          </p>
+          <p>
+            Every profile here surfaces the operational details that actually matter: years treating
+            bipolar specifically, modalities, coordination practices, insurance accepted, estimated
+            wait time. No generic "everything" profiles.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--faq">
+      <div class="home-section-inner">
+        <p class="home-section-eyebrow">Common questions</p>
+        <h2 class="home-section-title">Questions we hear most</h2>
+        <div class="home-faq-list">
+          <details class="home-faq-item">
+            <summary>How is this different from Psychology Today?</summary>
+            <p>
+              Psychology Today is a paid listing where any therapist can claim any specialty. We
+              review every therapist for documented bipolar work before they appear, so generalists
+              claiming everything don't get in. Then the therapist maintains their own profile with
+              the specifics that matter: training, years treating bipolar, modalities, insurance.
+            </p>
+          </details>
+          <details class="home-faq-item">
+            <summary>Is this free for patients?</summary>
+            <p>Yes, always. Patients pay nothing to search, match, or contact therapists.</p>
+          </details>
+          <details class="home-faq-item">
+            <summary>Do I need insurance?</summary>
+            <p>
+              Not required. Therapists list which insurance plans they accept and whether they offer
+              sliding-scale rates or self-pay. Filter by what applies to you.
+            </p>
+          </details>
+          <details class="home-faq-item">
+            <summary>What if I'm not in California?</summary>
+            <p>
+              We're California-only for now. Building a directory right means starting narrow and
+              expanding deliberately. Email us and we'll let you know when we launch in your state.
+            </p>
+          </details>
+          <details class="home-faq-item">
+            <summary>How are therapists vetted?</summary>
+            <p>
+              Every profile is license-verified against the California Department of Consumer
+              Affairs. Bipolar expertise is confirmed through the therapist's listed training,
+              bipolar-specific years of experience, treatment modalities, and operational details
+              they personally maintain through a therapist portal.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--closing">
+      <div class="home-section-inner home-closing-inner">
+        <h2 class="home-section-title">Find a therapist who gets bipolar.</h2>
+        <p class="home-closing-sub">Thirty seconds. No account. No insurance needed to search.</p>
+        <a href="#startMatch" class="home-closing-btn">Start my match ↑</a>
       </div>
     </section>
 
