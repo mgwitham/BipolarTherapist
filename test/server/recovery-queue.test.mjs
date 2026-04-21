@@ -1,8 +1,66 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { handleAuthAndPortalRoutes } from "../../server/review-auth-portal-routes.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
-import { createMemoryClient, createTestApiConfig, runHandlerRequest } from "./test-helpers.mjs";
+import {
+  createMemoryClient,
+  createTestApiConfig,
+  deepClone,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
+
+function buildAdminApproveContext(options) {
+  const response = { statusCode: null, payload: null };
+  return {
+    response,
+    context: {
+      client: options.client,
+      config: options.config || createTestApiConfig(),
+      origin: "",
+      request: {
+        method: "POST",
+        headers: { host: "localhost:8787" },
+        on() {
+          return this;
+        },
+        destroy() {},
+      },
+      response: { writeHead() {}, end() {} },
+      routePath: options.routePath,
+      url: new URL(`http://localhost:8787${options.routePath}`),
+      deps: {
+        parseBody: async () => deepClone(options.body || {}),
+        sendJson(_res, statusCode, payload) {
+          response.statusCode = statusCode;
+          response.payload = payload;
+        },
+        buildRecoveryMagicLink: () => "https://test.example/portal.html?token=stub",
+        sendRecoveryApprovedEmail: async () => {},
+        sendRecoveryRejectedEmail: async () => {},
+        isAuthorized: () => true,
+        getAuthorizedActor: () => "admin",
+        notifyAdminOfRecoveryRequest: async () => {},
+        notifyTherapistOfRecoveryReceived: async () => {},
+        // Stubs for unused deps
+        buildPortalRequestDocument: () => null,
+        canAttemptLogin: () => true,
+        clearFailedLogins: () => {},
+        createSignedSession: () => "",
+        createTherapistSession: () => "",
+        getAuthorizedTherapist: () => null,
+        getSecurityWarnings: () => [],
+        normalizePortalRequest: (doc) => doc,
+        parseAuthorizationHeader: () => "",
+        readPortalClaimToken: () => null,
+        readSignedSession: () => null,
+        recordFailedLogin: () => {},
+        sendPortalClaimLink: async () => {},
+        updatePortalRequestFields: async () => null,
+      },
+    },
+  };
+}
 
 function standardHeaders(extra) {
   return { host: "localhost:8787", ...(extra || {}) };
@@ -136,6 +194,93 @@ test("GET /recovery-requests requires admin auth", async () => {
   });
 
   assert.equal(response.statusCode, 401);
+});
+
+function seedColdTakeoverFixtures(overrides = {}) {
+  return {
+    "recovery-1": {
+      _id: "recovery-1",
+      _type: "therapistRecoveryRequest",
+      status: "pending",
+      reason: "no_email_on_file",
+      fullName: "Jamie Rivera",
+      licenseNumber: "LMFT12345",
+      requestedEmail: "jamie@newpractice.com",
+      therapistSlug: "jamie-rivera",
+      therapistDocId: "therapist-jamie",
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    },
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      name: "Jamie Rivera",
+      slug: { current: "jamie-rivera" },
+      claimStatus: "unclaimed",
+    },
+  };
+}
+
+test("POST /recovery-requests/:id/approve rejects cold takeover without identity verification", async () => {
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({ requestedEmail: "attacker@example.com" }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { outcome_message: "approved" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.reason, "identity_verification_required");
+});
+
+test("POST /recovery-requests/:id/approve rejects short identity verification (<20 chars)", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { outcome_message: "ok", identity_verification: "looks fine" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.reason, "identity_verification_required");
+});
+
+test("POST /recovery-requests/:id/approve accepts cold takeover with identity verification", async () => {
+  const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      outcome_message: "approved",
+      identity_verification:
+        "Called 415-555-0100 from DCA record. Confirmed license and new email with Jamie.",
+    },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  const updated = state.documents.get("recovery-1");
+  assert.equal(updated.status, "approved");
+  assert.ok(
+    updated.identityVerification.includes("415-555-0100"),
+    "identity verification note is persisted on the recovery doc",
+  );
+});
+
+test("POST /recovery-requests/:id/approve does NOT require identity verification for stale-email case", async () => {
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({ reason: "stale_email_on_file" }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { outcome_message: "approved" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  const updated = state.documents.get("recovery-1");
+  assert.equal(updated.status, "approved");
 });
 
 test("POST /recovery-requests/:id/reject requires admin auth", async () => {

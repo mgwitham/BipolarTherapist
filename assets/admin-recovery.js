@@ -52,6 +52,15 @@ function dcaLookupUrl(license) {
   );
 }
 
+// "no_email_on_file" means the listing never had a contact address on
+// file when the therapist submitted the claim. Approving this is a
+// cold takeover: there's no prior owner to disturb and public
+// name+license is the only thing the automated flow checked. Admin
+// must verify identity out-of-band before approving.
+function isColdTakeover(req) {
+  return req.reason === "no_email_on_file";
+}
+
 function renderRequestCard(req) {
   const statusClass =
     req.status === "approved"
@@ -59,6 +68,7 @@ function renderRequestCard(req) {
       : req.status === "rejected"
         ? "is-rejected"
         : "is-pending";
+  const coldTakeover = isColdTakeover(req);
   const nameMismatch =
     req.profileName &&
     req.fullName &&
@@ -74,9 +84,19 @@ function renderRequestCard(req) {
   return (
     '<article class="admin-recovery-card ' +
     statusClass +
+    (coldTakeover ? " is-cold-takeover" : "") +
     '" data-request-id="' +
     escapeHtml(req._id) +
+    '" data-reason="' +
+    escapeHtml(req.reason || "") +
     '">' +
+    (coldTakeover
+      ? '<div class="admin-recovery-risk-banner">' +
+        "<strong>⚠ COLD TAKEOVER.</strong> Unclaimed profile, no prior owner email. " +
+        "Public name + license is all that matched. <strong>Verify identity out-of-band " +
+        "before approving</strong> (phone from DCA, practice website contact form, etc.)." +
+        "</div>"
+      : "") +
     '<header class="admin-recovery-head">' +
     '<div><span class="admin-recovery-status-pill admin-recovery-status-' +
     escapeHtml(req.status) +
@@ -146,16 +166,36 @@ function renderRequestCard(req) {
         escapeHtml(req.adminNote).replace(/\n/g, "<br/>") +
         "</em></dd>"
       : "") +
+    (req.identityVerification
+      ? "<dt>Identity verification</dt><dd><em>" +
+        escapeHtml(req.identityVerification).replace(/\n/g, "<br/>") +
+        "</em></dd>"
+      : "") +
     "</dl>" +
     (req.status === "pending"
       ? '<div class="admin-recovery-actions">' +
+        (coldTakeover
+          ? '<label class="admin-recovery-verify-label" for="verify-' +
+            escapeHtml(req._id) +
+            '"><strong>Identity verification (required, 20+ chars)</strong><br/>' +
+            '<small>How did you confirm this is the real therapist? e.g. "Called 415-555-0100 ' +
+            'listed on DCA record, confirmed license + new email." Stored on the request for audit.</small>' +
+            "</label>" +
+            '<textarea class="admin-recovery-verify" id="verify-' +
+            escapeHtml(req._id) +
+            '" data-verify-for="' +
+            escapeHtml(req._id) +
+            '" rows="3" placeholder="Describe the out-of-band check you performed..."></textarea>'
+          : "") +
         '<textarea class="admin-recovery-outcome" data-for="' +
         escapeHtml(req._id) +
         '" placeholder="Message for the therapist (optional, included in the email)" rows="2"></textarea>' +
         '<div class="admin-recovery-buttons">' +
         '<button type="button" class="btn-primary admin-recovery-approve" data-request-id="' +
         escapeHtml(req._id) +
-        '">Approve + send sign-in link</button>' +
+        '"' +
+        (coldTakeover ? " disabled" : "") +
+        ">Approve + send sign-in link</button>" +
         '<button type="button" class="btn-secondary admin-recovery-reject" data-request-id="' +
         escapeHtml(req._id) +
         '">Reject</button>' +
@@ -221,23 +261,55 @@ function setFeedback(requestId, tone, message) {
 }
 
 function bindCardActions(container) {
+  // Cold-takeover cards gate the Approve button behind a 20+ char
+  // identity-verification textarea. Wire the input listener first so
+  // the button unlocks as the admin types.
+  container.querySelectorAll(".admin-recovery-verify").forEach(function (textarea) {
+    const id = textarea.getAttribute("data-verify-for");
+    const button = container.querySelector('.admin-recovery-approve[data-request-id="' + id + '"]');
+    if (!button) return;
+    textarea.addEventListener("input", function () {
+      button.disabled = textarea.value.trim().length < 20;
+    });
+  });
+
   container.querySelectorAll(".admin-recovery-approve").forEach(function (button) {
     button.addEventListener("click", async function () {
       const id = button.getAttribute("data-request-id");
+      const card = button.closest(".admin-recovery-card");
+      const coldTakeover = card && card.classList.contains("is-cold-takeover");
       const outcomeBox = container.querySelector('.admin-recovery-outcome[data-for="' + id + '"]');
       const outcomeMessage = outcomeBox ? outcomeBox.value : "";
-      if (!window.confirm("Approve this recovery? This sends a sign-in link to the therapist.")) {
+      const verifyBox = container.querySelector(
+        '.admin-recovery-verify[data-verify-for="' + id + '"]',
+      );
+      const identityVerification = verifyBox ? verifyBox.value.trim() : "";
+      if (coldTakeover && identityVerification.length < 20) {
+        setFeedback(
+          id,
+          "warn",
+          "Identity verification note is required (20+ chars) before approving a cold takeover.",
+        );
+        return;
+      }
+      const confirmMessage = coldTakeover
+        ? "Approve this COLD TAKEOVER? A sign-in link will go to the requested email, granting full profile control. Your verification note will be saved on the request."
+        : "Approve this recovery? This sends a sign-in link to the therapist.";
+      if (!window.confirm(confirmMessage)) {
         return;
       }
       button.disabled = true;
       setFeedback(id, "info", "Approving and sending sign-in link...");
       try {
-        await approveRecoveryRequest(id, { outcome_message: outcomeMessage });
+        await approveRecoveryRequest(id, {
+          outcome_message: outcomeMessage,
+          identity_verification: identityVerification,
+        });
         setFeedback(id, "success", "Approved. Email sent.");
         window.setTimeout(loadRecoveryDashboard, 800);
       } catch (error) {
         setFeedback(id, "warn", (error && error.message) || "Approval failed.");
-        button.disabled = false;
+        button.disabled = coldTakeover && identityVerification.length < 20;
       }
     });
   });

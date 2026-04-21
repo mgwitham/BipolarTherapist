@@ -94,6 +94,14 @@ export const therapistRecoveryRequestType = defineType({
       rows: 3,
     }),
     defineField({
+      name: "identityVerification",
+      title: "Identity verification (required for cold takeovers)",
+      type: "text",
+      rows: 3,
+      description:
+        "How the admin confirmed the requester is the real therapist. Required when approving an unclaimed-profile cold takeover (reason = no_email_on_file).",
+    }),
+    defineField({
       name: "outcomeMessage",
       title: "Message sent to therapist on resolution",
       type: "text",
