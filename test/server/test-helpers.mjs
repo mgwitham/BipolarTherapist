@@ -355,6 +355,13 @@ export function createMemoryClient(initialDocuments) {
             pending.unset = pending.unset.concat(Array.isArray(fields) ? fields : [fields]);
             return api;
           },
+          // Real Sanity client supports optimistic concurrency via
+          // .ifRevisionId(rev). Tests don't exercise real concurrency so
+          // this is a pass-through — the in-memory patch is effectively
+          // atomic anyway.
+          ifRevisionId() {
+            return api;
+          },
           async commit() {
             const current = deepClone(state.documents.get(id) || {});
             const next = {

@@ -25,6 +25,7 @@ export default defineConfig({
         admin: resolve(rootDir, "admin.html"),
         portal: resolve(rootDir, "portal.html"),
         pricing: resolve(rootDir, "pricing.html"),
+        confirmClaim: resolve(rootDir, "confirm-claim.html"),
       },
     },
   },

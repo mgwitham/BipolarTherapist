@@ -329,15 +329,40 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
   const adminUrl = config.adminDashboardUrl
     ? `${config.adminDashboardUrl.replace(/\/+$/, "")}/admin.html#recovery`
     : "";
+
+  // When the therapist-self-confirm page returns "no", the caller tags
+  // the request with adminAlert="therapist_denied_confirmation". That's
+  // the strongest attack signal we'll ever see — the real therapist, via
+  // a channel the requester doesn't control, has said "not me." Surface
+  // that as a distinct, loud email so it doesn't get lost in the queue.
+  const isDenial = recoveryRequest.adminAlert === "therapist_denied_confirmation";
+  const subject = isDenial
+    ? `ATTACK ATTEMPT — ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
+    : `New recovery request: ${recoveryRequest.fullName || "(no name)"}`;
+  const headerHtml = isDenial
+    ? `<div style="background:#fbeaea;border:2px solid #a04a4a;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;color:#7a2f2f;">
+<strong>Attack attempt detected.</strong> The real therapist, reached through a channel
+the requester did not control, denied this claim request.
+Assume the <strong>requester email</strong> below is an attacker and act accordingly —
+no action is needed for the therapist's listing (access was NOT granted), but consider
+blocking the requester IP range or adding the requested email to a watch list.
+</div><h2>Therapist denied a recovery request</h2>`
+    : `<h2>New therapist recovery request</h2>`;
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [config.notificationTo],
-    subject: `New recovery request: ${recoveryRequest.fullName || "(no name)"}`,
-    html: `<h2>New therapist recovery request</h2>
+    subject,
+    html: `${headerHtml}
 <p><strong>Name:</strong> ${recoveryRequest.fullName || "—"}</p>
 <p><strong>License:</strong> ${recoveryRequest.licenseNumber || "—"}</p>
-<p><strong>Requested email:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
+<p><strong>Requested email${isDenial ? " (likely attacker)" : ""}:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
 <p><strong>Prior email:</strong> ${recoveryRequest.priorEmail || "—"}</p>
+${
+  isDenial && recoveryRequest.confirmationChannel
+    ? `<p><strong>Confirmed via channel:</strong> ${recoveryRequest.confirmationChannel} <em>(${recoveryRequest.confirmationChannelContext || "unspecified source"})</em></p>`
+    : ""
+}
 <p><strong>Profile name on record:</strong> ${recoveryRequest.profileName || "—"} ${
       recoveryRequest.profileName &&
       recoveryRequest.fullName &&
@@ -346,15 +371,14 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
         : ""
     }</p>
 <p><strong>Profile email hint:</strong> ${recoveryRequest.profileEmailHint || "—"}</p>
+<p><strong>Requester IP (first 3 octets):</strong> ${recoveryRequest.requesterIp || "—"}</p>
 <p><strong>Reason:</strong></p>
-<blockquote style="border-left:3px solid #1a7a8f;padding-left:1rem;color:#4a6572">${
+<blockquote style="border-left:3px solid ${isDenial ? "#a04a4a" : "#1a7a8f"};padding-left:1rem;color:#4a6572">${
       recoveryRequest.reason
         ? String(recoveryRequest.reason).replace(/\n/g, "<br/>")
         : "(none given)"
     }</blockquote>
-<p>Review and approve or reject in the admin panel${
-      adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""
-    }.</p>`,
+<p>Review in the admin panel${adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""}.</p>`,
   });
 }
 
@@ -370,19 +394,57 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     from: config.emailFrom,
     to: [email],
     reply_to: config.notificationTo,
-    subject: "We got your recovery request",
-    html: `<h2>Recovery request received</h2>
+    subject: "We got your request — watch your other inboxes too",
+    html: `<h2>Request received</h2>
 <p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>We got your request to regain access to your BipolarTherapyHub listing. Our team will
-verify your identity manually (usually via the CA DCA license database and a quick
-out-of-band check) and email you within one business day.</p>
+<p>We got your request to claim your BipolarTherapyHub listing. To make sure it's really
+you, we may email one of your <strong>publicly-listed addresses</strong> (e.g. the contact
+email on your practice website, Psychology Today profile, or DCA record) with a quick
+"did you request this?" prompt.</p>
+<p><strong>Please check any of your other professional inboxes over the next day</strong>
+for an email from us with the subject line "Did you request access to your
+bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
 <p><strong>What you submitted:</strong></p>
 <ul>
   <li>Name: ${recoveryRequest.fullName || "—"}</li>
   <li>License: ${recoveryRequest.licenseNumber || "—"}</li>
-  <li>Recovery email: ${email}</li>
+  <li>Access email: ${email}</li>
 </ul>
-<p>If you need to add more detail or correct something, just reply to this email.</p>`,
+<p>If you need to correct anything, reply to this email.</p>`,
+  });
+}
+
+// Heads-up to the requester when the admin has just sent a
+// confirmation email to one of the therapist's other addresses. The
+// channel hint is deliberately masked so an attacker who guessed at a
+// claim doesn't learn which public address to try to intercept.
+export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, maskedChannelHint) {
+  if (!hasEmailConfig(config)) {
+    return;
+  }
+  const email = String(recoveryRequest.requestedEmail || "").trim();
+  if (!email) {
+    return;
+  }
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [email],
+    reply_to: config.notificationTo,
+    subject: "Action needed — check your other inbox",
+    html: `<h2>We need one quick confirmation</h2>
+<p>Hi ${recoveryRequest.fullName || "there"},</p>
+<p>To finish verifying your BipolarTherapyHub claim, we just emailed another one of your
+publicly-listed addresses with a "did you request this?" prompt. It should land at:</p>
+<p style="font-family:monospace;font-size:1.05rem;padding:0.75rem 1rem;background:#f4f8f9;
+border-radius:8px;">${maskedChannelHint}</p>
+<p>Please open that inbox, find our email with the subject <strong>"Did you request access
+to your bipolartherapyhub.com listing?"</strong>, and click the green <strong>Yes</strong>
+button. You'll be signed in within a minute.</p>
+<p>If that address doesn't look familiar to you, reply to this email — it could mean we
+need to reach you a different way.</p>
+<p style="color:#6b8290;font-size:13px;">We only ever ask you to confirm through addresses
+that are already public for your practice. If you didn't request this claim at all, you
+can safely ignore every email from us.</p>`,
   });
 }
 
@@ -412,6 +474,54 @@ below to sign into your portal. The link expires in 24 hours.</p>
 ${customMessage ? `<p>${String(customMessage).replace(/\n/g, "<br/>")}</p>` : ""}
 <p>Your on-file contact email for the portal has been updated to <strong>${email}</strong>.
 If that wasn't you, reply to this email immediately.</p>`,
+  });
+}
+
+// Therapist-self-confirm email. Sent to an out-of-band channel the
+// admin has sourced from a public record (DCA, practice website, PT
+// profile). Asks the therapist to confirm or deny that THEY initiated
+// the claim. The confirm/deny link auto-resolves the recovery request.
+export async function sendRecoveryConfirmationEmail(
+  config,
+  recoveryRequest,
+  confirmUrl,
+  denyUrl,
+  channelEmail,
+  channelContext,
+) {
+  if (!hasEmailConfig(config)) {
+    throw new Error("Email delivery is not configured.");
+  }
+  const therapistName = recoveryRequest.fullName || "there";
+  const requestedEmail = recoveryRequest.requestedEmail || "(unknown)";
+  const contextBit = channelContext
+    ? ` (we sourced this email from ${String(channelContext).replace(/[<>]/g, "")})`
+    : "";
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [channelEmail],
+    reply_to: config.notificationTo,
+    subject: "Did you request access to your bipolartherapyhub.com listing?",
+    html: `<h2>Quick confirmation needed</h2>
+<p>Hi ${therapistName},</p>
+<p>Someone just requested access to your BipolarTherapyHub listing${contextBit}.</p>
+<p>The request was made with:</p>
+<ul>
+  <li><strong>Name:</strong> ${therapistName}</li>
+  <li><strong>License:</strong> ${recoveryRequest.licenseNumber || "(unknown)"}</li>
+  <li><strong>Email to grant access to:</strong> ${requestedEmail}</li>
+</ul>
+<p><strong>Was this you?</strong></p>
+<p style="margin: 1.5rem 0;">
+  <a href="${confirmUrl}"
+     style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
+     text-decoration:none;font-weight:600;margin-right:12px;">Yes, that was me →</a>
+  <a href="${denyUrl}"
+     style="background:#a04a4a;color:#fff;padding:12px 22px;border-radius:8px;
+     text-decoration:none;font-weight:600;">No, I didn't request this</a>
+</p>
+<p style="font-size:13px;color:#666;">If it wasn't you, click "No" — we'll block the
+request immediately and take no further action. This link expires in 7 days.</p>`,
   });
 }
 

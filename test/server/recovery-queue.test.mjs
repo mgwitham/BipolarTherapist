@@ -19,7 +19,7 @@ function buildAdminApproveContext(options) {
       config: options.config || createTestApiConfig(),
       origin: "",
       request: {
-        method: "POST",
+        method: options.method || "POST",
         headers: { host: "localhost:8787" },
         on() {
           return this;
@@ -36,9 +36,26 @@ function buildAdminApproveContext(options) {
           response.payload = payload;
         },
         buildRecoveryMagicLink: () => "https://test.example/portal.html?token=stub",
+        buildRecoveryConfirmToken: (_config, recoveryId, nonce) =>
+          "tok|" + recoveryId + "|" + nonce,
+        readRecoveryConfirmToken:
+          options.readRecoveryConfirmToken ||
+          ((_config, token) => {
+            const parts = String(token || "").split("|");
+            if (parts.length !== 3 || parts[0] !== "tok") return null;
+            return {
+              sub: "recovery-confirm",
+              recovery: parts[1],
+              nonce: parts[2],
+              exp: Date.now() + 1000,
+            };
+          }),
         sendRecoveryApprovedEmail: async () => {},
         sendRecoveryRejectedEmail: async () => {},
-        isAuthorized: () => true,
+        sendRecoveryConfirmationEmail: options.sendRecoveryConfirmationEmail || (async () => {}),
+        sendRecoveryConfirmationHeadsUp:
+          options.sendRecoveryConfirmationHeadsUp || (async () => {}),
+        isAuthorized: options.isAuthorized || (() => true),
         getAuthorizedActor: () => "admin",
         notifyAdminOfRecoveryRequest: async () => {},
         notifyTherapistOfRecoveryReceived: async () => {},
@@ -281,6 +298,355 @@ test("POST /recovery-requests/:id/approve does NOT require identity verification
   assert.equal(response.statusCode, 200);
   const updated = state.documents.get("recovery-1");
   assert.equal(updated.status, "approved");
+});
+
+test("POST /recovery-requests/:id/send-confirmation stamps channel and nonce on the doc", async () => {
+  const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
+  const emailsSent = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "info@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+    sendRecoveryConfirmationEmail: async (_cfg, _rec, confirmUrl, denyUrl, channelEmail, ctx) => {
+      emailsSent.push({ confirmUrl, denyUrl, channelEmail, ctx });
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  assert.equal(emailsSent[0].channelEmail, "info@drsmiththerapy.com");
+  assert.ok(emailsSent[0].confirmUrl.includes("response=yes"));
+  assert.ok(emailsSent[0].denyUrl.includes("response=no"));
+
+  const updated = state.documents.get("recovery-1");
+  assert.equal(updated.confirmationChannel, "info@drsmiththerapy.com");
+  assert.equal(updated.confirmationChannelContext, "Practice website footer");
+  assert.equal(updated.confirmationResponse, "pending");
+  assert.ok(updated.confirmationTokenNonce, "nonce must be stored for single-use invalidation");
+  assert.ok(updated.confirmationSentAt);
+});
+
+test("POST /recovery-requests/:id/send-confirmation also pings the requester with a masked heads-up", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const headsUpCalls = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+    sendRecoveryConfirmationHeadsUp: async (_cfg, rec, maskedHint) => {
+      headsUpCalls.push({ rec, maskedHint });
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(headsUpCalls.length, 1, "heads-up email was sent to the requester");
+  assert.ok(
+    headsUpCalls[0].maskedHint.includes("*"),
+    "the channel hint is masked (e.g., o***@d***.com), not the full address",
+  );
+  assert.ok(
+    !headsUpCalls[0].maskedHint.includes("office@drsmiththerapy.com"),
+    "full channel address must NOT leak to the requester",
+  );
+});
+
+test("POST /recovery-requests/:id/send-confirmation rate-limits at 5 per rolling 24h", async () => {
+  const recent = [];
+  for (let i = 0; i < 5; i += 1) {
+    recent.push(new Date(Date.now() - i * 60 * 60 * 1000).toISOString());
+  }
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({ confirmationSendHistory: recent }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "send_confirmation_rate_limited");
+});
+
+test("POST /recovery-requests/:id/send-confirmation ignores stale (>24h) history entries", async () => {
+  const old = [];
+  for (let i = 0; i < 5; i += 1) {
+    old.push(new Date(Date.now() - 26 * 60 * 60 * 1000 - i * 1000).toISOString());
+  }
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({ confirmationSendHistory: old }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "office@drsmiththerapy.com",
+      channel_context: "Practice website footer",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  const updated = state.documents.get("recovery-1");
+  assert.equal(
+    updated.confirmationSendHistory.length,
+    1,
+    "stale entries are pruned; only the new send is kept",
+  );
+});
+
+test("POST /recovery-requests/:id/send-confirmation rejects channel matching requester email", async () => {
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({ requestedEmail: "attacker@example.com" }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      channel_email: "Attacker@Example.com",
+      channel_context: "Psychology Today",
+    },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.reason, "channel_matches_requester");
+});
+
+test("POST /recovery-requests/:id/send-confirmation requires channel context note", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { channel_email: "info@drsmiththerapy.com", channel_context: "" },
+    routePath: "/recovery-requests/recovery-1/send-confirmation",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+});
+
+test("GET /recovery-confirm returns context for valid token", async () => {
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    method: "GET",
+    body: {},
+    routePath: "/recovery-confirm",
+  });
+  context.url = new URL("http://localhost:8787/recovery-confirm?token=tok|recovery-1|abc123");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.therapist_name, "Jamie Rivera");
+  assert.equal(response.payload.requested_email, "jamie@newpractice.com");
+});
+
+test("GET /recovery-confirm returns 410 when nonce no longer matches (used)", async () => {
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({ confirmationTokenNonce: "new-nonce-after-use" }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    method: "GET",
+    body: {},
+    routePath: "/recovery-confirm",
+  });
+  context.url = new URL("http://localhost:8787/recovery-confirm?token=tok|recovery-1|old-nonce");
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 410);
+  assert.equal(response.payload.reason, "used_or_replaced");
+});
+
+test("POST /recovery-confirm with 'yes' auto-approves and invalidates token", async () => {
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationChannel: "info@drsmiththerapy.com",
+      confirmationChannelContext: "Practice website footer",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+  const emailsSent = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|abc123", response: "yes" },
+    routePath: "/recovery-confirm",
+  });
+  context.deps.sendRecoveryApprovedEmail = async (_cfg, rec, link) => {
+    emailsSent.push({ rec, link });
+  };
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.outcome, "confirmed");
+  assert.equal(emailsSent.length, 1, "sign-in link was emailed to the requested email");
+
+  const updated = state.documents.get("recovery-1");
+  assert.equal(updated.status, "approved");
+  assert.equal(updated.confirmationResponse, "yes");
+  assert.ok(updated.identityVerification.includes("Confirmed by therapist"));
+  assert.notEqual(updated.confirmationTokenNonce, "abc123", "nonce rotates to invalidate the link");
+
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimStatus, "claimed");
+  assert.equal(therapist.claimedByEmail, "jamie@newpractice.com");
+});
+
+test("POST /recovery-confirm with 'no' auto-rejects and alerts admin", async () => {
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+  const adminAlerts = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|abc123", response: "no" },
+    routePath: "/recovery-confirm",
+  });
+  context.deps.notifyAdminOfRecoveryRequest = async (_cfg, rec) => {
+    adminAlerts.push(rec);
+  };
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.outcome, "denied");
+  assert.equal(adminAlerts.length, 1);
+  assert.equal(adminAlerts[0].adminAlert, "therapist_denied_confirmation");
+
+  const updated = state.documents.get("recovery-1");
+  assert.equal(updated.status, "rejected");
+  assert.equal(updated.confirmationResponse, "no");
+  assert.notEqual(updated.confirmationTokenNonce, "abc123");
+
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimStatus, "unclaimed", "therapist profile must not be claimed on deny");
+});
+
+test("POST /recovery-confirm returns 410 when Sanity rejects the nonce-rotation patch (concurrent click)", async () => {
+  // Simulate the race: two users click the same link at once. The
+  // first request gets through and rotates the nonce; the second
+  // arrives with the same _rev and Sanity rejects with a revision-
+  // mismatch error. We stub the patch to throw on ifRevisionId-guarded
+  // commit to exercise that branch.
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+
+  const originalPatch = client.patch.bind(client);
+  let shouldConflict = true;
+  client.patch = function patchWithConflict(id) {
+    const builder = originalPatch(id);
+    const originalIfRev = builder.ifRevisionId;
+    builder.ifRevisionId = function () {
+      originalIfRev.call(builder);
+      if (shouldConflict) {
+        shouldConflict = false;
+        return {
+          set: () => ({
+            commit: async () => {
+              throw new Error("mutation conflict: revision mismatch");
+            },
+          }),
+        };
+      }
+      return builder;
+    };
+    return builder;
+  };
+
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|abc123", response: "yes" },
+    routePath: "/recovery-confirm",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 410);
+  assert.equal(response.payload.reason, "used_or_replaced");
+});
+
+test("POST /recovery-confirm with reused token returns 410", async () => {
+  const { client } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "rotated-already",
+      confirmationResponse: "yes",
+    }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|old-nonce", response: "yes" },
+    routePath: "/recovery-confirm",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 410);
+  assert.equal(response.payload.reason, "used_or_replaced");
+});
+
+test("POST /recovery-requests/:id/resend-signin re-sends approval email without mutating doc state", async () => {
+  const { client, state } = createMemoryClient({
+    "recovery-approved": {
+      _id: "recovery-approved",
+      _type: "therapistRecoveryRequest",
+      status: "approved",
+      reason: "stale_email_on_file",
+      fullName: "Jamie Rivera",
+      licenseNumber: "LMFT12345",
+      requestedEmail: "jamie@newpractice.com",
+      therapistSlug: "jamie-rivera",
+      therapistDocId: "therapist-jamie",
+      createdAt: new Date().toISOString(),
+      reviewedAt: new Date().toISOString(),
+    },
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      name: "Jamie Rivera",
+      slug: { current: "jamie-rivera" },
+      claimStatus: "claimed",
+    },
+  });
+  const emailsSent = [];
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {},
+    routePath: "/recovery-requests/recovery-approved/resend-signin",
+  });
+  context.deps.sendRecoveryApprovedEmail = async (_cfg, rec, link) => {
+    emailsSent.push({ rec, link });
+  };
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  const doc = state.documents.get("recovery-approved");
+  assert.equal(doc.status, "approved", "doc status is unchanged");
+});
+
+test("POST /recovery-requests/:id/resend-signin refuses if request is not approved", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {},
+    routePath: "/recovery-requests/recovery-1/resend-signin",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "not_approved");
 });
 
 test("POST /recovery-requests/:id/reject requires admin auth", async () => {

@@ -379,6 +379,35 @@ export async function requestTherapistQuickClaim(payload) {
   });
 }
 
+export async function fetchRecoveryConfirmContext(token) {
+  return request("/recovery-confirm?token=" + encodeURIComponent(token), {
+    method: "GET",
+  });
+}
+
+export async function submitRecoveryConfirmResponse(token, therapistResponse) {
+  return request("/recovery-confirm", {
+    method: "POST",
+    body: JSON.stringify({ token, response: therapistResponse }),
+  });
+}
+
+export async function sendRecoveryConfirmation(requestId, payload) {
+  return request("/recovery-requests/" + encodeURIComponent(requestId) + "/send-confirmation", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export async function resendRecoverySignin(requestId) {
+  return request("/recovery-requests/" + encodeURIComponent(requestId) + "/resend-signin", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({}),
+  });
+}
+
 // Account-recovery queue — therapist submits a request, admin reviews
 // manually, therapist gets an approval/rejection email. Used when
 // they've lost access to the email on file AND can't domain-verify.
