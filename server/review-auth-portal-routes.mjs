@@ -2377,6 +2377,17 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  if (request.method === "POST" && routePath === "/portal/logout") {
+    // Signed, stateless tokens — we can't revoke the bearer here without a
+    // session table. The route exists so the client has a trustworthy ack
+    // before clearing localStorage and so we have a hook when we later add
+    // a session table (for "sign out of all devices"). Funnel event is
+    // already tracked client-side before this call; no server logging
+    // needed here.
+    sendJson(response, 200, { ok: true }, origin, config);
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/portal/me") {
     const session = getAuthorizedTherapist(request, config);
     if (!session) {

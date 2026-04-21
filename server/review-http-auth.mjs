@@ -144,7 +144,11 @@ export function readSignedSession(token, config) {
   return payload;
 }
 
-const DEFAULT_THERAPIST_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// 14-day absolute TTL. Therapists edit listings monthly at best, so a
+// shorter window bounds risk from shared devices / lost tablets without
+// forcing frequent re-auth during normal use. Sliding refresh can be
+// added later if retention data warrants it.
+const DEFAULT_THERAPIST_SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 export function createTherapistSession(config, claims) {
   const extraClaims = claims && typeof claims === "object" ? claims : {};

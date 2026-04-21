@@ -245,6 +245,25 @@ export async function patchTherapistProfile(updates) {
   });
 }
 
+// Server-side sign-out is stateless (signed tokens, no session table),
+// so this endpoint's job is funnel instrumentation + future-proofing.
+// The actual sign-out happens client-side via clearTherapistSessionToken.
+export async function signOutTherapistSession() {
+  const token = getTherapistSessionToken();
+  if (!token) {
+    return { ok: true };
+  }
+  try {
+    return await request("/portal/logout", {
+      method: "POST",
+      headers: getTherapistHeaders(),
+    });
+  } catch (_error) {
+    // Non-fatal — caller clears localStorage regardless.
+    return { ok: false };
+  }
+}
+
 function getAdminHeaders() {
   const sessionToken = getAdminSessionToken();
   return sessionToken
