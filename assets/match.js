@@ -739,6 +739,8 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 // the user makes choices. Keeps the panel feeling "direct-manipulation"
 // instead of the old form-submit-only flow.
 var liveRecomputeTimer = null;
+var pendingFiltersChanged = false;
+var pendingFilterProfile = null;
 function maybeLiveRecompute(event) {
   if (!document.body.classList.contains("match-refine-drawer-open")) return;
   var form = document.getElementById("matchForm");
@@ -763,60 +765,23 @@ function maybeLiveRecompute(event) {
         : "";
   liveRecomputeTimer = window.setTimeout(function () {
     liveRecomputeTimer = null;
-    // Live recompute reuses the same pipeline as submit but skips the
-    // scroll-into-view — the user is focused inside the drawer and a
-    // page scroll would pull them off it.
-    //
-    // executeMatch ultimately calls renderPrimaryMatchCards, which
-    // replaces #matchResults.innerHTML wholesale. That detaches the
-    // .match-builder (drawer) subtree briefly and placeBuilderInResults
-    // reattaches it, but focus is dropped in the process — without
-    // preserving it, each click inside the drawer would lose keyboard
-    // focus and feel like "nothing works." Capture the focused element
-    // before the re-render and restore focus + selection after.
-    var active = document.activeElement;
-    var restoreId = active && active.id ? active.id : "";
-    var restoreName = active && active.name ? active.name : "";
-    var restoreValue = active && typeof active.value === "string" ? active.value : null;
-    var restoreSelectionStart =
-      active && typeof active.selectionStart === "number" ? active.selectionStart : null;
-    var restoreSelectionEnd =
-      active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
+    // While the drawer is open, RANK without re-rendering — re-rendering
+    // wipes #matchResults.innerHTML which also briefly detaches the
+    // .match-builder (drawer) subtree, dropping keyboard focus and
+    // breaking every interaction inside the drawer. Mark the recompute
+    // as pending so the next drawer-close will trigger a real render
+    // with the current filters applied.
     var profile = readCurrentIntakeProfile();
-    executeMatch(profile, {
-      scroll: false,
-      source: "match_live_refine",
-    });
-    var restoreNode = null;
-    if (restoreId) {
-      restoreNode = document.getElementById(restoreId);
-    }
-    if (!restoreNode && restoreName) {
-      restoreNode =
-        document.querySelector('[name="' + restoreName + '"][value="' + restoreValue + '"]') ||
-        document.querySelector('[name="' + restoreName + '"]');
-    }
-    if (restoreNode && typeof restoreNode.focus === "function") {
-      try {
-        restoreNode.focus({ preventScroll: true });
-        if (
-          restoreSelectionStart !== null &&
-          restoreSelectionEnd !== null &&
-          typeof restoreNode.setSelectionRange === "function"
-        ) {
-          restoreNode.setSelectionRange(restoreSelectionStart, restoreSelectionEnd);
-        }
-      } catch (_error) {
-        /* setSelectionRange throws on non-text inputs; ignore */
-      }
-    }
-    var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
+    var entries = rankEntriesForProfile(profile);
+    pendingFiltersChanged = true;
+    pendingFilterProfile = profile;
+    var count = Array.isArray(entries) ? entries.length : 0;
     var message =
       count === 0
-        ? "No matches for these filters. Try easing one."
+        ? "No matches with these filters. Close and ease one to see more."
         : count === 1
-          ? "Showing 1 match for your filters."
-          : "Showing " + count + " matches for your filters.";
+          ? "1 match with these filters. Close to apply."
+          : count + " matches with these filters. Close to apply.";
     setLiveStatus(message, false);
     trackFunnelEvent("match_live_filter_applied", {
       changed_field: changedField,
@@ -871,6 +836,19 @@ function setRefineDrawerOpen(open) {
       // users don't lose their place.
       window.requestAnimationFrame(function () {
         moreBtn.focus();
+      });
+    }
+    // Apply the live-filter changes that accumulated while the drawer
+    // was open. We deferred the full re-render to keep focus stable
+    // inside the drawer; now that it's closing, the user wants to see
+    // the new card list.
+    if (pendingFiltersChanged) {
+      pendingFiltersChanged = false;
+      var profile = pendingFilterProfile || readCurrentIntakeProfile();
+      pendingFilterProfile = null;
+      executeMatch(profile, {
+        scroll: false,
+        source: "match_drawer_apply",
       });
     }
   }
