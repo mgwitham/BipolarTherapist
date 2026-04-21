@@ -58,42 +58,75 @@ export async function notifyApplicantOfDecision(config, application, decision, o
   // closure on the short-form signup flow: intake → admin approves →
   // therapist gets an email with one link that signs them in.
   const magicLink = buildApprovalMagicLink(config, application, options);
+  const name = application.name || "there";
 
-  const subject =
-    decision === "approved"
-      ? "Your BipolarTherapyHub application was approved"
-      : "Your BipolarTherapyHub application was reviewed";
+  if (decision === "approved") {
+    const heading = "Your listing was approved";
+    const bodyHtml = magicLink
+      ? `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application has been approved and your listing is live. One last step: complete your full profile so patients see what makes your practice a fit.</p>
+<p style="margin:0 0 20px 0;">The button below signs you into your portal with no password — just click and start editing your bio, specialties, insurance, telehealth states, and contact details. Takes about 10 minutes.</p>`
+      : `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application has been approved and your listing is now live.</p>
+<p style="margin:0 0 20px 0;">Thank you for joining the directory.</p>`;
 
-  const approvedHtml = magicLink
-    ? `<h2>Your listing was approved</h2>
-<p>Hi ${application.name},</p>
-<p>Your BipolarTherapyHub application has been approved and your listing is live. One
-last step: complete your full profile so patients see what makes your practice a fit.</p>
-<p><a href="${magicLink}">${magicLink}</a></p>
-<p>That link signs you into your portal with no password — just click and start editing
-your bio, specialties, insurance, telehealth states, and contact details. Takes about
-10 minutes.</p>
-<p>The link expires in 7 days. If it expires before you finish, visit the signup page
-and use "Manage my existing listing" to request a fresh one.</p>`
-    : `<h2>Your listing was approved</h2>
-<p>Hi ${application.name},</p>
-<p>Your BipolarTherapyHub application has been approved and your listing is now live.</p>
-<p>Thank you for joining the directory.</p>`;
+    const html = renderBrandedEmail({
+      heading,
+      greetingName: name,
+      bodyHtml,
+      primaryCta: magicLink ? { label: "Complete my profile →", url: magicLink } : null,
+      footerLines: magicLink
+        ? [
+            "This link expires in 7 days.",
+            'If it expires before you finish, visit the signup page and use "Manage my existing listing" to request a fresh one.',
+          ]
+        : [],
+    });
 
-  const rejectedHtml = `<h2>Your application was reviewed</h2>
-<p>Hi ${application.name},</p>
-<p>Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
-<p>You can email <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>
-if you want to follow up with updated details later.</p>`;
+    const text = renderBrandedEmailText({
+      heading,
+      greetingName: name,
+      bodyText: magicLink
+        ? "Your application was approved and your listing is live. Click the link below to sign into your portal and finish your bio, specialties, and contact details. Takes about 10 minutes."
+        : "Your application was approved and your listing is now live. Thank you for joining the directory.",
+      primaryCta: magicLink ? { label: "Complete my profile", url: magicLink } : null,
+      footerLines: magicLink ? ["This link expires in 7 days."] : [],
+    });
 
-  const html = decision === "approved" ? approvedHtml : rejectedHtml;
+    await sendEmail(config, {
+      from: config.emailFrom,
+      to: [application.email],
+      reply_to: "support@bipolartherapyhub.com",
+      subject: "Your BipolarTherapyHub application was approved",
+      html,
+      text,
+    });
+    return;
+  }
+
+  // Rejected path — no CTA, just a note with the support address.
+  const heading = "Your application was reviewed";
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
+<p style="margin:0 0 20px 0;">You can email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> if you want to follow up with updated details later.</p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your BipolarTherapyHub application was reviewed and is not moving forward right now. Email support@bipolartherapyhub.com if you want to follow up with updated details later.",
+  });
 
   await sendEmail(config, {
     from: config.emailFrom,
     to: [application.email],
     reply_to: "support@bipolartherapyhub.com",
-    subject: subject,
-    html: html,
+    subject: "Your BipolarTherapyHub application was reviewed",
+    html,
+    text,
   });
 }
 
@@ -130,29 +163,109 @@ function escapeEmailHtml(value) {
   });
 }
 
-// Shared wrapper for portal magic-link emails. Mobile-friendly, uses
-// table-based button markup so Outlook doesn't mangle it, and provides
-// a visible fallback URL plus a trust footer. Content is caller-supplied
-// so "first claim" and "returning sign-in" share one polished shell.
-function renderPortalMagicLinkEmail({
-  therapistName,
-  heading,
-  bodyParagraph,
-  ctaLabel,
-  ctaUrl,
-  ignoreLine,
-  expiryLine,
-}) {
-  const safeName = escapeEmailHtml(therapistName || "there");
-  const safeHeading = escapeEmailHtml(heading);
-  const safeBody = escapeEmailHtml(bodyParagraph);
-  const safeCtaLabel = escapeEmailHtml(ctaLabel);
-  const safeIgnoreLine = escapeEmailHtml(ignoreLine);
-  const safeExpiryLine = escapeEmailHtml(expiryLine);
-  // ctaUrl is inserted both as href and as visible text. We already
-  // construct it from encodeURIComponent'd inputs; escape just enough
-  // to survive appearing in HTML body text.
-  const safeUrl = escapeEmailHtml(ctaUrl);
+// Shared branded shell for all therapist-facing emails. Mobile-friendly,
+// uses table-based button markup so Outlook doesn't mangle it, and
+// provides an optional alert banner, primary/secondary CTAs, fallback
+// URL block, and trust footer. Caller supplies bodyHtml as a string of
+// sanitized/known-safe HTML (use escapeEmailHtml on user data).
+//
+// Props:
+//   heading          — plain text, escaped here.
+//   greetingName     — plain text, escaped. Rendered as "Hi {name},".
+//                      Pass "" to omit the greeting line.
+//   bodyHtml         — pre-built HTML for the body (paragraphs, lists).
+//   alertBanner      — optional { tone: "warn"|"info", html } for
+//                      callouts above the heading.
+//   primaryCta       — optional { label, url }. Teal button.
+//   secondaryCta     — optional { label, url }. Red button, paired
+//                      next to primary (used by confirm/deny recovery).
+//   footerLines      — array of plain-text lines rendered in the muted
+//                      footer. Supports minimal HTML via footerLinesHtml.
+//   footerLinesHtml  — array of HTML strings. Takes precedence over
+//                      footerLines when set (caller pre-escaped).
+function renderBrandedEmail(options) {
+  const heading = escapeEmailHtml((options && options.heading) || "");
+  const greetingName = options && options.greetingName ? String(options.greetingName) : "";
+  const bodyHtml = (options && options.bodyHtml) || "";
+  const alertBanner = options && options.alertBanner;
+  const primaryCta = options && options.primaryCta;
+  const secondaryCta = options && options.secondaryCta;
+  const footerLinesHtml =
+    options && Array.isArray(options.footerLinesHtml) ? options.footerLinesHtml : null;
+  const footerLines =
+    options && Array.isArray(options.footerLines) ? options.footerLines : footerLinesHtml ? [] : [];
+
+  const greetingBlock = greetingName
+    ? `<p style="margin:0 0 12px 0;">Hi ${escapeEmailHtml(greetingName)},</p>`
+    : "";
+
+  const alertHtml = alertBanner
+    ? (function () {
+        const palette =
+          alertBanner.tone === "warn"
+            ? { bg: "#fbeaea", border: "#e8c4c4", color: "#7a2f2f" }
+            : { bg: "#eaf3f6", border: "#c4dde4", color: "#0f3f4a" };
+        return `<tr>
+              <td style="padding:0 28px 4px 28px;">
+                <div style="background:${palette.bg};border:1px solid ${palette.border};color:${palette.color};border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;">
+                  ${alertBanner.html || ""}
+                </div>
+              </td>
+            </tr>`;
+      })()
+    : "";
+
+  function ctaMarkup(cta, color) {
+    if (!cta || !cta.url || !cta.label) return "";
+    const url = escapeEmailHtml(cta.url);
+    const label = escapeEmailHtml(cta.label);
+    return `<td style="background:${color};border-radius:10px;padding-right:10px;">
+                      <a href="${url}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${label}</a>
+                    </td>`;
+  }
+
+  const ctaBlock =
+    primaryCta || secondaryCta
+      ? `<tr>
+              <td align="left" style="padding:4px 28px 8px 28px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+                  <tr>
+                    ${ctaMarkup(primaryCta, "#1a7a8f")}
+                    ${ctaMarkup(secondaryCta, "#a04a4a")}
+                  </tr>
+                </table>
+              </td>
+            </tr>`
+      : "";
+
+  // Fallback-URL block is only shown when a primary CTA exists; that's
+  // where "button not working" matters. Pick the first URL that exists.
+  const fallbackUrl = (primaryCta && primaryCta.url) || (secondaryCta && secondaryCta.url) || "";
+  const fallbackBlock = fallbackUrl
+    ? `<tr>
+              <td style="padding:14px 28px 4px 28px;font-size:13px;line-height:1.5;color:#4a6572;">
+                <p style="margin:0 0 6px 0;">Button not working? Paste this into your browser:</p>
+                <p style="margin:0;word-break:break-all;">
+                  <a href="${escapeEmailHtml(fallbackUrl)}" style="color:#155f70;text-decoration:underline;">${escapeEmailHtml(fallbackUrl)}</a>
+                </p>
+              </td>
+            </tr>`
+    : "";
+
+  const footerHtml = (footerLinesHtml || footerLines.map(escapeEmailHtml))
+    .filter(Boolean)
+    .map(function (line, index) {
+      return `<p style="margin:${index === 0 ? "14px 0 6px 0" : "0 0 6px 0"};">${line}</p>`;
+    })
+    .join("");
+
+  const footerBlock = footerHtml
+    ? `<tr>
+              <td style="padding:18px 28px 22px 28px;border-top:1px solid #e6eef1;margin-top:14px;font-size:12px;line-height:1.5;color:#6b8290;">
+                ${footerHtml}
+              </td>
+            </tr>`
+    : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -168,42 +281,21 @@ function renderPortalMagicLinkEmail({
                 </div>
               </td>
             </tr>
+            ${alertHtml}
             <tr>
               <td style="padding:18px 28px 4px 28px;">
-                <h1 style="margin:0;font-size:22px;line-height:1.25;color:#0f3f4a;font-weight:700;">${safeHeading}</h1>
+                <h1 style="margin:0;font-size:22px;line-height:1.25;color:#0f3f4a;font-weight:700;">${heading}</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:16px 28px 8px 28px;font-size:15px;line-height:1.55;color:#1d3a4a;">
-                <p style="margin:0 0 12px 0;">Hi ${safeName},</p>
-                <p style="margin:0 0 20px 0;">${safeBody}</p>
+                ${greetingBlock}
+                ${bodyHtml}
               </td>
             </tr>
-            <tr>
-              <td align="left" style="padding:4px 28px 8px 28px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
-                  <tr>
-                    <td style="background:#1a7a8f;border-radius:10px;">
-                      <a href="${safeUrl}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${safeCtaLabel}</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:14px 28px 4px 28px;font-size:13px;line-height:1.5;color:#4a6572;">
-                <p style="margin:0 0 6px 0;">Button not working? Paste this into your browser:</p>
-                <p style="margin:0;word-break:break-all;">
-                  <a href="${safeUrl}" style="color:#155f70;text-decoration:underline;">${safeUrl}</a>
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:18px 28px 22px 28px;border-top:1px solid #e6eef1;margin-top:14px;font-size:12px;line-height:1.5;color:#6b8290;">
-                <p style="margin:14px 0 6px 0;">${safeExpiryLine}</p>
-                <p style="margin:0;">${safeIgnoreLine}</p>
-              </td>
-            </tr>
+            ${ctaBlock}
+            ${fallbackBlock}
+            ${footerBlock}
           </table>
           <p style="margin:18px 0 0 0;font-size:11px;color:#8a9ba4;">
             BipolarTherapyHub · California bipolar-specialist directory
@@ -217,29 +309,33 @@ function renderPortalMagicLinkEmail({
 
 // Plain-text fallback. Some mail clients and screen readers prefer
 // text/plain, and a clean plain-text part also improves deliverability.
-function renderPortalMagicLinkText({
-  therapistName,
-  heading,
-  bodyParagraph,
-  ctaUrl,
-  ignoreLine,
-  expiryLine,
-}) {
-  const name = String(therapistName || "there");
-  return [
-    heading,
-    "",
-    `Hi ${name},`,
-    "",
-    bodyParagraph,
-    "",
-    ctaUrl,
-    "",
-    expiryLine,
-    ignoreLine,
-    "",
-    "— BipolarTherapyHub",
-  ].join("\n");
+function renderBrandedEmailText(options) {
+  const heading = (options && options.heading) || "";
+  const greetingName = options && options.greetingName ? String(options.greetingName) : "";
+  const bodyText = (options && options.bodyText) || "";
+  const primaryCta = options && options.primaryCta;
+  const secondaryCta = options && options.secondaryCta;
+  const footerLines =
+    options && Array.isArray(options.footerLines) ? options.footerLines.filter(Boolean) : [];
+
+  const parts = [heading, ""];
+  if (greetingName) {
+    parts.push("Hi " + greetingName + ",", "");
+  }
+  if (bodyText) {
+    parts.push(bodyText, "");
+  }
+  if (primaryCta && primaryCta.url) {
+    parts.push((primaryCta.label ? primaryCta.label + ": " : "") + primaryCta.url, "");
+  }
+  if (secondaryCta && secondaryCta.url) {
+    parts.push((secondaryCta.label ? secondaryCta.label + ": " : "") + secondaryCta.url, "");
+  }
+  if (footerLines.length) {
+    parts.push(...footerLines, "");
+  }
+  parts.push("— BipolarTherapyHub");
+  return parts.join("\n");
 }
 
 // Mode drives copy. "claim" = first-time activation after a therapist
@@ -293,23 +389,20 @@ export async function sendPortalClaimLink(
 
   const copy = buildPortalMagicLinkCopy(mode);
 
-  const html = renderPortalMagicLinkEmail({
-    therapistName: therapist && therapist.name,
+  const html = renderBrandedEmail({
     heading: copy.heading,
-    bodyParagraph: copy.bodyParagraph,
-    ctaLabel: copy.ctaLabel,
-    ctaUrl: manageUrl,
-    ignoreLine: copy.ignoreLine,
-    expiryLine: copy.expiryLine,
+    greetingName: (therapist && therapist.name) || "there",
+    bodyHtml: `<p style="margin:0 0 20px 0;">${escapeEmailHtml(copy.bodyParagraph)}</p>`,
+    primaryCta: { label: copy.ctaLabel, url: manageUrl },
+    footerLines: [copy.expiryLine, copy.ignoreLine],
   });
 
-  const text = renderPortalMagicLinkText({
-    therapistName: therapist && therapist.name,
+  const text = renderBrandedEmailText({
     heading: copy.heading,
-    bodyParagraph: copy.bodyParagraph,
-    ctaUrl: manageUrl,
-    ignoreLine: copy.ignoreLine,
-    expiryLine: copy.expiryLine,
+    greetingName: (therapist && therapist.name) || "there",
+    bodyText: copy.bodyParagraph,
+    primaryCta: { label: copy.ctaLabel.replace(/\s*→\s*$/, ""), url: manageUrl },
+    footerLines: [copy.expiryLine, copy.ignoreLine],
   });
 
   await sendEmail(config, {
@@ -336,27 +429,58 @@ export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, 
     ? `${base}/portal.html?slug=${encodeURIComponent(slug)}`
     : `${base}/portal.html`;
   const listingUrl = slug ? `${base}/therapist.html?slug=${encodeURIComponent(slug)}` : "";
+  const name = (therapist && therapist.name) || "there";
+  const heading = "Welcome to BipolarTherapyHub";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your listing is claimed. Patients looking for bipolar-specialist care in California can find you right now.</p>
+<p style="margin:0 0 8px 0;"><strong>What you can do from the portal:</strong></p>
+<ul style="margin:0 0 20px 1.1rem;padding:0;">
+  <li style="margin-bottom:4px;">Edit your bio, headshot, credentials, and contact info</li>
+  <li style="margin-bottom:4px;">Toggle accepting-new-clients on and off</li>
+  <li>See weekly insights on how patients are finding you</li>
+</ul>`;
+
+  const footerLinesHtml = [];
+  if (listingUrl) {
+    footerLinesHtml.push(
+      'Your public listing: <a href="' +
+        escapeEmailHtml(listingUrl) +
+        '" style="color:#155f70;">' +
+        escapeEmailHtml(listingUrl) +
+        "</a>",
+    );
+  }
+  footerLinesHtml.push(
+    'Questions or changes you can\'t make yourself? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
+  );
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    primaryCta: { label: "Open my portal →", url: portalUrl },
+    footerLinesHtml,
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your listing is claimed. Patients looking for bipolar-specialist care in California can find you right now.",
+    primaryCta: { label: "Open my portal", url: portalUrl },
+    footerLines: [
+      listingUrl ? "Your public listing: " + listingUrl : "",
+      "Questions? Email support@bipolartherapyhub.com",
+    ],
+  });
 
   await sendEmail(config, {
     from: config.emailFrom,
     to: [recipientEmail],
     reply_to: "support@bipolartherapyhub.com",
     subject: "You're in. Welcome to BipolarTherapyHub.",
-    html: `<h2>Welcome, ${therapist.name || "there"}.</h2>
-<p>Your listing is claimed. Patients looking for bipolar-specialist care in California can find you right now.</p>
-<p style="margin: 1.25rem 0;">
-  <a href="${portalUrl}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
-  text-decoration:none;font-weight:600;">Open my portal →</a>
-</p>
-<p><strong>What you can do from the portal:</strong></p>
-<ul>
-  <li>Edit your bio, headshot, credentials, and contact info</li>
-  <li>Toggle accepting-new-clients on and off</li>
-  <li>See weekly insights on how patients are finding you</li>
-</ul>
-${listingUrl ? `<p>Your public listing: <a href="${listingUrl}">${listingUrl}</a></p>` : ""}
-<p style="font-size:13px;color:#666;">Questions or changes you can't make yourself?
-Email <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
+    html,
+    text,
   });
 }
 
@@ -382,22 +506,42 @@ export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
         day: "numeric",
       })
     : "day 15 of your trial";
+  const name = (therapist && therapist.name) || "there";
+  const heading = "Your trial ends in 3 days";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your 14-day free trial ends on <strong>${escapeEmailHtml(endDate)}</strong>. After that, we'll charge your card on file $19 per month.</p>
+<p style="margin:0 0 8px 0;"><strong>If you want to keep your subscription active</strong>, no action needed — you'll be billed automatically.</p>
+<p style="margin:0 0 20px 0;"><strong>If you want to cancel</strong>, open your portal and click "Manage subscription · Cancel trial". One click, cancels immediately, no charge.</p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    footerLinesHtml: [
+      'This is a legally required pre-billing reminder under California consumer-subscription law. If you think this is a mistake, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your 14-day free trial ends on " +
+      endDate +
+      ". After that, we'll charge your card $19/month. To keep the subscription, do nothing. To cancel, open your portal and click 'Manage subscription · Cancel trial'.",
+    footerLines: [
+      "Legally required pre-billing reminder under California consumer-subscription law.",
+      "Email support@bipolartherapyhub.com if this looks wrong.",
+    ],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
     reply_to: "support@bipolartherapyhub.com",
     subject: "Your BipolarTherapyHub trial ends in 3 days",
-    html: `<h2>Heads up: your trial ends in 3 days</h2>
-<p>Hi ${therapist.name || "there"},</p>
-<p>Your 14-day free trial ends on <strong>${endDate}</strong>. After that, we'll charge your
-card on file $19 per month.</p>
-<p><strong>If you want to keep your subscription active</strong>, no action needed — you'll
-be billed automatically.</p>
-<p><strong>If you want to cancel</strong>, open your portal and click "Manage subscription · Cancel
-trial". One click, cancels immediately, no charge.</p>
-<p style="font-size:13px;color:#666;">This is a legally required pre-billing reminder under
-California consumer-subscription law. If you think this is a mistake, email
-<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
+    html,
+    text,
   });
 }
 
@@ -414,26 +558,38 @@ export async function sendUnverifiedTrialCanceledNotice(config, therapist, activ
   if (!onFileEmail) {
     return;
   }
+  const name = (therapist && therapist.name) || "there";
+  const heading = "Trial canceled — ownership not verified";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your 14-day trial started but we never received your activation click, so we couldn't confirm you own this listing. We've canceled your subscription. <strong>Your card was not charged.</strong></p>
+${activationUrl ? `<p style="margin:0 0 20px 0;">If you meant to activate, here's a fresh link (expires in 24 hours):</p>` : ""}`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    primaryCta: activationUrl ? { label: "Activate my listing →", url: activationUrl } : null,
+    footerLines: [
+      "If you didn't start this trial, ignore this email. Nothing was charged, no further action needed.",
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your 14-day trial started but we never received your activation click. We've canceled your subscription. Your card was not charged.",
+    primaryCta: activationUrl ? { label: "Activate my listing", url: activationUrl } : null,
+    footerLines: ["If you didn't start this trial, ignore this email — nothing was charged."],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
     reply_to: "support@bipolartherapyhub.com",
     subject: "We canceled your BipolarTherapyHub trial (ownership not verified)",
-    html: `<h2>Trial canceled — ownership not verified</h2>
-<p>Hi ${therapist.name || "there"},</p>
-<p>Your 14-day trial started but we never received your activation click, so we couldn't
-confirm you own this listing. We've canceled your subscription. <strong>Your card was not
-charged.</strong></p>
-${
-  activationUrl
-    ? `<p>If you meant to activate, here's a fresh link (expires in 24 hours):</p>
-<p style="margin:1.25rem 0;"><a href="${activationUrl}" style="background:#2f6e80;color:#fff;
-padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;">Activate my
-listing →</a></p>`
-    : ""
-}
-<p style="font-size:13px;color:#666;">If you didn't start this trial, ignore this email. No
-further action needed — nothing was charged.</p>`,
+    html,
+    text,
   });
 }
 
@@ -466,20 +622,41 @@ export async function sendListingRemovalLink(
     "/api/review/portal/listing-removal/confirm?token=" +
     encodeURIComponent(token);
 
+  const name = (therapist && therapist.name) || "there";
+  const heading = "Confirm your listing removal";
+
+  const bodyHtml = `<p style="margin:0 0 20px 0;">Someone asked to remove your BipolarTherapyHub listing. If that was you, click the button below to confirm. Your listing goes dark immediately after you click.</p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    primaryCta: { label: "Confirm removal →", url: confirmUrl },
+    footerLinesHtml: [
+      "If you did not request this, ignore this email and your listing stays active. This link expires in 24 hours.",
+      'Once removed, you can create a new listing any time — visit the signup page and choose "List my practice".',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Someone asked to remove your BipolarTherapyHub listing. If that was you, click the link below. Your listing goes dark immediately after you click.",
+    primaryCta: { label: "Confirm removal", url: confirmUrl },
+    footerLines: [
+      "If you did not request this, ignore this email — your listing stays active.",
+      "Link expires in 24 hours.",
+    ],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [onFileEmail],
     reply_to: "support@bipolartherapyhub.com",
-    subject: `Confirm removal of your Bipolar Therapy Hub listing`,
-    html: `<h2>Confirm your listing removal</h2>
-<p>Hi ${therapist.name || "there"},</p>
-<p>Someone asked to remove your Bipolar Therapy Hub listing. If that was you, click the
-secure link below to confirm. Your listing goes dark immediately after you click.</p>
-<p><a href="${confirmUrl}">${confirmUrl}</a></p>
-<p>If you did not request this, you can ignore this email and your listing stays active.
-The link expires in 24 hours.</p>
-<p>Once removed, you can create a new listing any time if you change your mind —
-visit the signup page and choose "List my practice".</p>`,
+    subject: "Confirm removal of your BipolarTherapyHub listing",
+    html,
+    text,
   });
 }
 
@@ -556,28 +733,42 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
   if (!email) {
     return;
   }
+  const name = recoveryRequest.fullName || "there";
+  const heading = "Request received";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">We got your request to claim your BipolarTherapyHub listing. To make sure it's really you, we may email one of your <strong>publicly-listed addresses</strong> (e.g. the contact email on your practice website, Psychology Today profile, or DCA record) with a quick "did you request this?" prompt.</p>
+<p style="margin:0 0 16px 0;"><strong>Please check any of your other professional inboxes over the next day</strong> for an email from us with the subject line "Did you request access to your bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
+<p style="margin:0 0 8px 0;"><strong>What you submitted:</strong></p>
+<ul style="margin:0 0 20px 1.1rem;padding:0;">
+  <li style="margin-bottom:4px;">Name: ${escapeEmailHtml(recoveryRequest.fullName || "—")}</li>
+  <li style="margin-bottom:4px;">License: ${escapeEmailHtml(recoveryRequest.licenseNumber || "—")}</li>
+  <li>Access email: ${escapeEmailHtml(email)}</li>
+</ul>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    footerLinesHtml: [
+      'Need to correct anything? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "We got your request to claim your BipolarTherapyHub listing. We may email one of your publicly-listed addresses (practice website, Psychology Today, DCA) with a 'did you request this?' prompt. Check your other professional inboxes over the next day — subject line 'Did you request access to your bipolartherapyhub.com listing?' — and click Yes.",
+    footerLines: ["Need to correct anything? Email support@bipolartherapyhub.com"],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
     subject: "We got your request — watch your other inboxes too",
-    html: `<h2>Request received</h2>
-<p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>We got your request to claim your BipolarTherapyHub listing. To make sure it's really
-you, we may email one of your <strong>publicly-listed addresses</strong> (e.g. the contact
-email on your practice website, Psychology Today profile, or DCA record) with a quick
-"did you request this?" prompt.</p>
-<p><strong>Please check any of your other professional inboxes over the next day</strong>
-for an email from us with the subject line "Did you request access to your
-bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
-<p><strong>What you submitted:</strong></p>
-<ul>
-  <li>Name: ${recoveryRequest.fullName || "—"}</li>
-  <li>License: ${recoveryRequest.licenseNumber || "—"}</li>
-  <li>Access email: ${email}</li>
-</ul>
-<p>If you need to correct anything, email
-<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p>`,
+    html,
+    text,
   });
 }
 
@@ -593,26 +784,43 @@ export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, m
   if (!email) {
     return;
   }
+  const name = recoveryRequest.fullName || "there";
+  const heading = "One quick confirmation needed";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">To finish verifying your BipolarTherapyHub claim, we just emailed another one of your publicly-listed addresses with a "did you request this?" prompt. It should land at:</p>
+<p style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:15px;padding:10px 14px;background:#f4f8f9;border-radius:8px;margin:0 0 16px 0;">${escapeEmailHtml(maskedChannelHint)}</p>
+<p style="margin:0 0 20px 0;">Open that inbox, find our email with the subject <strong>"Did you request access to your bipolartherapyhub.com listing?"</strong>, and click the green <strong>Yes</strong> button. You'll be signed in within a minute.</p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    footerLinesHtml: [
+      'If that address doesn\'t look familiar, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> — we may need to reach you a different way.',
+      "We only ever confirm through addresses that are already public for your practice. If you didn't request this claim, ignore every email from us.",
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "To finish verifying your BipolarTherapyHub claim, we emailed another of your publicly-listed addresses: " +
+      maskedChannelHint +
+      ". Open that inbox, find our email 'Did you request access to your bipolartherapyhub.com listing?', and click Yes.",
+    footerLines: [
+      "If that address doesn't look familiar, email support@bipolartherapyhub.com",
+      "If you didn't request this claim, ignore every email from us.",
+    ],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
     subject: "Action needed — check your other inbox",
-    html: `<h2>We need one quick confirmation</h2>
-<p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>To finish verifying your BipolarTherapyHub claim, we just emailed another one of your
-publicly-listed addresses with a "did you request this?" prompt. It should land at:</p>
-<p style="font-family:monospace;font-size:1.05rem;padding:0.75rem 1rem;background:#f4f8f9;
-border-radius:8px;">${maskedChannelHint}</p>
-<p>Please open that inbox, find our email with the subject <strong>"Did you request access
-to your bipolartherapyhub.com listing?"</strong>, and click the green <strong>Yes</strong>
-button. You'll be signed in within a minute.</p>
-<p>If that address doesn't look familiar to you, email
-<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.
-It could mean we need to reach you a different way.</p>
-<p style="color:#6b8290;font-size:13px;">We only ever ask you to confirm through addresses
-that are already public for your practice. If you didn't request this claim at all, you
-can safely ignore every email from us.</p>`,
+    html,
+    text,
   });
 }
 
@@ -624,25 +832,49 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
   if (!email) {
     throw new Error("No requested email on recovery request.");
   }
+  const name = recoveryRequest.fullName || "there";
+  const heading = "You're back in";
+
+  const bodyHtml = `<p style="margin:0 0 20px 0;">We verified your identity and approved your recovery request. Click the button below to sign into your portal.</p>${
+    customMessage
+      ? `<p style="margin:0 0 20px 0;padding:12px 14px;background:#f4f8f9;border-radius:8px;color:#1d3a4a;font-size:14px;">${escapeEmailHtml(String(customMessage)).replace(/\n/g, "<br/>")}</p>`
+      : ""
+  }`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    primaryCta: { label: "Sign in to my portal →", url: magicLink },
+    footerLinesHtml: [
+      "This link expires in 24 hours.",
+      "Your on-file contact email for the portal has been updated to <strong>" +
+        escapeEmailHtml(email) +
+        '</strong>. If that wasn\'t you, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> immediately.',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "We verified your identity and approved your recovery request. Click the link below to sign in." +
+      (customMessage ? "\n\nReviewer note: " + String(customMessage) : ""),
+    primaryCta: { label: "Sign in to my portal", url: magicLink },
+    footerLines: [
+      "This link expires in 24 hours.",
+      "Your on-file contact email for the portal has been updated to " + email + ".",
+      "If that wasn't you, email support@bipolartherapyhub.com immediately.",
+    ],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
     subject: "Your recovery request was approved",
-    html: `<h2>You're back in</h2>
-<p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>We verified your identity and approved your recovery request. Click the secure link
-below to sign into your portal. The link expires in 24 hours.</p>
-<p style="margin: 1.25rem 0;">
-  <a href="${magicLink}" style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
-  text-decoration:none;font-weight:600;">Sign in to my portal →</a>
-</p>
-<p style="font-size:13px;color:#666;">Or copy and paste this link into your browser:<br/>
-<a href="${magicLink}">${magicLink}</a></p>
-${customMessage ? `<p>${String(customMessage).replace(/\n/g, "<br/>")}</p>` : ""}
-<p>Your on-file contact email for the portal has been updated to <strong>${email}</strong>.
-If that wasn't you, email
-<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a> immediately.</p>`,
+    html,
+    text,
   });
 }
 
@@ -666,31 +898,52 @@ export async function sendRecoveryConfirmationEmail(
   const contextBit = channelContext
     ? ` (we sourced this email from ${String(channelContext).replace(/[<>]/g, "")})`
     : "";
+  const heading = "Did you request access to your listing?";
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Someone just requested access to your BipolarTherapyHub listing${escapeEmailHtml(contextBit)}.</p>
+<p style="margin:0 0 8px 0;"><strong>The request was made with:</strong></p>
+<ul style="margin:0 0 16px 1.1rem;padding:0;">
+  <li style="margin-bottom:4px;"><strong>Name:</strong> ${escapeEmailHtml(therapistName)}</li>
+  <li style="margin-bottom:4px;"><strong>License:</strong> ${escapeEmailHtml(recoveryRequest.licenseNumber || "(unknown)")}</li>
+  <li><strong>Email to grant access to:</strong> ${escapeEmailHtml(requestedEmail)}</li>
+</ul>
+<p style="margin:0 0 20px 0;"><strong>Was this you?</strong></p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: therapistName,
+    bodyHtml,
+    primaryCta: { label: "Yes, that was me →", url: confirmUrl },
+    secondaryCta: { label: "No, I didn't request this", url: denyUrl },
+    footerLines: [
+      "If it wasn't you, click \"No\" — we'll block the request immediately and take no further action.",
+      "These links expire in 7 days.",
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: therapistName,
+    bodyText:
+      "Someone just requested access to your BipolarTherapyHub listing. Name: " +
+      therapistName +
+      ". License: " +
+      (recoveryRequest.licenseNumber || "(unknown)") +
+      ". Email to grant access to: " +
+      requestedEmail +
+      ".",
+    primaryCta: { label: "Yes, that was me", url: confirmUrl },
+    secondaryCta: { label: "No, I didn't request this", url: denyUrl },
+    footerLines: ["Links expire in 7 days."],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [channelEmail],
     reply_to: "support@bipolartherapyhub.com",
     subject: "Did you request access to your bipolartherapyhub.com listing?",
-    html: `<h2>Quick confirmation needed</h2>
-<p>Hi ${therapistName},</p>
-<p>Someone just requested access to your BipolarTherapyHub listing${contextBit}.</p>
-<p>The request was made with:</p>
-<ul>
-  <li><strong>Name:</strong> ${therapistName}</li>
-  <li><strong>License:</strong> ${recoveryRequest.licenseNumber || "(unknown)"}</li>
-  <li><strong>Email to grant access to:</strong> ${requestedEmail}</li>
-</ul>
-<p><strong>Was this you?</strong></p>
-<p style="margin: 1.5rem 0;">
-  <a href="${confirmUrl}"
-     style="background:#2f6e80;color:#fff;padding:12px 22px;border-radius:8px;
-     text-decoration:none;font-weight:600;margin-right:12px;">Yes, that was me →</a>
-  <a href="${denyUrl}"
-     style="background:#a04a4a;color:#fff;padding:12px 22px;border-radius:8px;
-     text-decoration:none;font-weight:600;">No, I didn't request this</a>
-</p>
-<p style="font-size:13px;color:#666;">If it wasn't you, click "No" — we'll block the
-request immediately and take no further action. This link expires in 7 days.</p>`,
+    html,
+    text,
   });
 }
 
@@ -702,23 +955,41 @@ export async function sendRecoveryRejectedEmail(config, recoveryRequest, outcome
   if (!email) {
     return;
   }
+  const name = recoveryRequest.fullName || "there";
+  const heading = "Your recovery request was reviewed";
+
+  const bodyHtml = `<p style="margin:0 0 ${outcomeMessage ? "16" : "20"}px 0;">We reviewed your recovery request and weren't able to approve it based on the information provided.</p>${
+    outcomeMessage
+      ? `<p style="margin:0 0 8px 0;"><strong>Reviewer note:</strong></p>
+<p style="margin:0 0 20px 0;padding:12px 14px;background:#f4f8f9;border-radius:8px;color:#1d3a4a;font-size:14px;">${escapeEmailHtml(String(outcomeMessage)).replace(/\n/g, "<br/>")}</p>`
+      : ""
+  }`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    footerLinesHtml: [
+      'If you\'d like to try again with different details, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> and we\'ll take another look.',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "We reviewed your recovery request and weren't able to approve it based on the information provided." +
+      (outcomeMessage ? "\n\nReviewer note: " + String(outcomeMessage) : ""),
+    footerLines: ["Email support@bipolartherapyhub.com to try again with different details."],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
     subject: "Update on your recovery request",
-    html: `<h2>Your recovery request was reviewed</h2>
-<p>Hi ${recoveryRequest.fullName || "there"},</p>
-<p>We reviewed your recovery request and weren't able to approve it based on the
-information provided.</p>
-${
-  outcomeMessage
-    ? `<p><strong>Reviewer note:</strong><br/>${String(outcomeMessage).replace(/\n/g, "<br/>")}</p>`
-    : ""
-}
-<p>If you'd like to try again with different details, email
-<a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>
-and we'll take another look.</p>`,
+    html,
+    text,
   });
 }
 
