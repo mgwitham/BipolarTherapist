@@ -8,6 +8,7 @@ import {
   approveRecoveryRequest,
   fetchRecoveryRequests,
   rejectRecoveryRequest,
+  sendRecoveryConfirmation,
 } from "./review-api.js";
 
 const DASHBOARD_ID = "adminRecoveryDashboard";
@@ -59,6 +60,78 @@ function dcaLookupUrl(license) {
 // must verify identity out-of-band before approving.
 function isColdTakeover(req) {
   return req.reason === "no_email_on_file";
+}
+
+// Therapist-self-confirm UI block. Only rendered on cold-takeover
+// cards — stale-email recoveries already have a prior email anchor so
+// the admin can approve directly. Three states:
+//   1. Not yet sent → form to pick a confirmation channel
+//   2. Sent, pending therapist response → status line + "resend to
+//      different channel" affordance
+//   3. Responded → the response is already in the card's outcome copy,
+//      so nothing to render here; the card itself has moved state.
+function renderConfirmationSection(req, coldTakeover) {
+  if (!coldTakeover) return "";
+  const sent = req.confirmationSentAt;
+  const response = req.confirmationResponse || "";
+  if (!sent) {
+    return (
+      '<div class="admin-recovery-confirm-block">' +
+      '<h4 class="admin-recovery-confirm-title">Confirm via therapist\'s own channel (recommended)</h4>' +
+      '<p class="admin-recovery-confirm-help">' +
+      "Find an email for this therapist on a <strong>public source the requester doesn't control</strong> " +
+      "(DCA record, practice website footer, Psychology Today profile). " +
+      "We'll email that address asking the therapist to confirm or deny. " +
+      "If they confirm, the claim auto-approves. If they deny, it auto-rejects." +
+      "</p>" +
+      '<label class="admin-recovery-confirm-label">Channel email' +
+      '<input type="email" class="admin-recovery-confirm-email" data-confirm-email-for="' +
+      escapeHtml(req._id) +
+      '" placeholder="e.g. info@drsmiththerapy.com" />' +
+      "</label>" +
+      '<label class="admin-recovery-confirm-label">Where did you find this email?' +
+      '<input type="text" class="admin-recovery-confirm-context" data-confirm-context-for="' +
+      escapeHtml(req._id) +
+      '" placeholder="e.g. Psychology Today profile, DCA record, practice website footer" />' +
+      "</label>" +
+      '<button type="button" class="btn-primary admin-recovery-confirm-send" data-request-id="' +
+      escapeHtml(req._id) +
+      '">Send confirmation request</button>' +
+      "</div>"
+    );
+  }
+  if (response === "pending" || !response) {
+    return (
+      '<div class="admin-recovery-confirm-block admin-recovery-confirm-waiting">' +
+      "<strong>⏳ Confirmation sent to " +
+      escapeHtml(req.confirmationChannel || "") +
+      "</strong><br/>" +
+      '<span class="subtle">Sourced from: ' +
+      escapeHtml(req.confirmationChannelContext || "(unspecified)") +
+      " · Sent " +
+      escapeHtml(formatDate(sent)) +
+      "</span><br/>" +
+      "<small>Waiting for the therapist to click Yes or No. Link expires in 7 days. " +
+      "If they don't respond, you can still use the manual fallback below.</small>" +
+      '<details class="admin-recovery-resend"><summary>Send to a different channel instead</summary>' +
+      '<label class="admin-recovery-confirm-label">Channel email' +
+      '<input type="email" class="admin-recovery-confirm-email" data-confirm-email-for="' +
+      escapeHtml(req._id) +
+      '" placeholder="e.g. info@drsmiththerapy.com" />' +
+      "</label>" +
+      '<label class="admin-recovery-confirm-label">Where did you find this email?' +
+      '<input type="text" class="admin-recovery-confirm-context" data-confirm-context-for="' +
+      escapeHtml(req._id) +
+      '" placeholder="e.g. Psychology Today profile" />' +
+      "</label>" +
+      '<button type="button" class="btn-secondary admin-recovery-confirm-send" data-request-id="' +
+      escapeHtml(req._id) +
+      '">Resend to this channel</button>' +
+      "</details>" +
+      "</div>"
+    );
+  }
+  return "";
 }
 
 function renderRequestCard(req) {
@@ -171,21 +244,35 @@ function renderRequestCard(req) {
         escapeHtml(req.identityVerification).replace(/\n/g, "<br/>") +
         "</em></dd>"
       : "") +
+    (req.confirmationChannel
+      ? "<dt>Confirmation sent to</dt><dd>" +
+        escapeHtml(req.confirmationChannel) +
+        (req.confirmationChannelContext
+          ? " <small>(" + escapeHtml(req.confirmationChannelContext) + ")</small>"
+          : "") +
+        (req.confirmationResponse && req.confirmationResponse !== "pending"
+          ? " · <strong>Therapist responded: " + escapeHtml(req.confirmationResponse) + "</strong>"
+          : " · <em>Awaiting response</em>") +
+        "</dd>"
+      : "") +
     "</dl>" +
     (req.status === "pending"
       ? '<div class="admin-recovery-actions">' +
+        renderConfirmationSection(req, coldTakeover) +
         (coldTakeover
-          ? '<label class="admin-recovery-verify-label" for="verify-' +
+          ? '<details class="admin-recovery-fallback"><summary>Fallback: skip therapist confirmation and approve manually</summary>' +
+            '<label class="admin-recovery-verify-label" for="verify-' +
             escapeHtml(req._id) +
             '"><strong>Identity verification (required, 20+ chars)</strong><br/>' +
-            '<small>How did you confirm this is the real therapist? e.g. "Called 415-555-0100 ' +
-            'listed on DCA record, confirmed license + new email." Stored on the request for audit.</small>' +
+            "<small>Only use this path if you verified identity through a separate out-of-band channel " +
+            "(phone call, video, etc.) AND the therapist-self-confirm email is not an option.</small>" +
             "</label>" +
             '<textarea class="admin-recovery-verify" id="verify-' +
             escapeHtml(req._id) +
             '" data-verify-for="' +
             escapeHtml(req._id) +
-            '" rows="3" placeholder="Describe the out-of-band check you performed..."></textarea>'
+            '" rows="3" placeholder="Describe the out-of-band check you performed..."></textarea>' +
+            "</details>"
           : "") +
         '<textarea class="admin-recovery-outcome" data-for="' +
         escapeHtml(req._id) +
@@ -270,6 +357,50 @@ function bindCardActions(container) {
     if (!button) return;
     textarea.addEventListener("input", function () {
       button.disabled = textarea.value.trim().length < 20;
+    });
+  });
+
+  container.querySelectorAll(".admin-recovery-confirm-send").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-request-id");
+      const emailInput = container.querySelector(
+        '.admin-recovery-confirm-email[data-confirm-email-for="' + id + '"]',
+      );
+      const contextInput = container.querySelector(
+        '.admin-recovery-confirm-context[data-confirm-context-for="' + id + '"]',
+      );
+      const email = emailInput ? emailInput.value.trim() : "";
+      const context = contextInput ? contextInput.value.trim() : "";
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        setFeedback(id, "warn", "Enter a valid confirmation channel email.");
+        return;
+      }
+      if (context.length < 3) {
+        setFeedback(
+          id,
+          "warn",
+          "Note where you sourced this email (e.g., DCA record, PT profile).",
+        );
+        return;
+      }
+      button.disabled = true;
+      setFeedback(id, "info", "Sending confirmation email to " + email + "...");
+      try {
+        await sendRecoveryConfirmation(id, {
+          channel_email: email,
+          channel_context: context,
+        });
+        setFeedback(
+          id,
+          "success",
+          "Confirmation email sent. Therapist will click Yes or No to resolve this.",
+        );
+        window.setTimeout(loadRecoveryDashboard, 800);
+      } catch (error) {
+        const msg = (error && error.message) || "Send failed.";
+        setFeedback(id, "warn", msg);
+        button.disabled = false;
+      }
     });
   });
 

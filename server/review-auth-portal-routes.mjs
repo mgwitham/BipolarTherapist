@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 
@@ -734,7 +736,9 @@ export async function handleAuthAndPortalRoutes(context) {
         _id, fullName, licenseNumber, requestedEmail, priorEmail, reason,
         status, therapistSlug, therapistDocId, profileName, profileEmailHint,
         profileClaimedEmail, adminNote, identityVerification, outcomeMessage,
-        reviewedAt, reviewedBy, requesterIp, createdAt
+        reviewedAt, reviewedBy, requesterIp, createdAt,
+        confirmationChannel, confirmationChannelContext, confirmationSentAt,
+        confirmationResponse, confirmationRespondedAt
       }`,
     );
     sendJson(response, 200, { ok: true, requests: requests || [] }, origin, config);
@@ -922,6 +926,386 @@ export async function handleAuthAndPortalRoutes(context) {
       .commit({ visibility: "sync" });
 
     sendJson(response, 200, { ok: true, request: updated }, origin, config);
+    return true;
+  }
+
+  // POST /recovery-requests/:id/send-confirmation — admin pastes an
+  // out-of-band email address they sourced from a public record (DCA,
+  // practice website, PT profile). Server mints a single-use token,
+  // emails a "did you request this?" prompt to that address. When the
+  // therapist clicks yes/no, the recovery request auto-resolves.
+  const recoverySendConfirmationMatch = routePath.match(
+    /^\/recovery-requests\/([^/]+)\/send-confirmation$/,
+  );
+  if (request.method === "POST" && recoverySendConfirmationMatch) {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requestId = decodeURIComponent(recoverySendConfirmationMatch[1]);
+    const body = await parseBody(request);
+    const channelEmail = String(body.channel_email || "")
+      .trim()
+      .toLowerCase();
+    const channelContext = String(body.channel_context || "").trim();
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(channelEmail)) {
+      sendJson(
+        response,
+        400,
+        { error: "Enter a valid confirmation channel email." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (channelContext.length < 3) {
+      sendJson(
+        response,
+        400,
+        {
+          error:
+            "Note where you sourced this email (e.g., 'DCA record', 'Psychology Today profile').",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const recovery = await client.getDocument(requestId);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Recovery request not found." }, origin, config);
+      return true;
+    }
+    if (recovery.status !== "pending") {
+      sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
+      return true;
+    }
+    if (
+      String(recovery.requestedEmail || "")
+        .trim()
+        .toLowerCase() === channelEmail
+    ) {
+      sendJson(
+        response,
+        400,
+        {
+          error:
+            "Confirmation channel must be an address the requester did NOT provide — otherwise the requester could self-confirm. Source it from DCA, a practice website, or similar.",
+          reason: "channel_matches_requester",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const nonce = crypto.randomBytes(12).toString("hex");
+    const token = deps.buildRecoveryConfirmToken(config, recovery._id, nonce);
+    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const confirmUrl =
+      portalBaseUrl + "/confirm-claim.html?token=" + encodeURIComponent(token) + "&response=yes";
+    const denyUrl =
+      portalBaseUrl + "/confirm-claim.html?token=" + encodeURIComponent(token) + "&response=no";
+
+    try {
+      await deps.sendRecoveryConfirmationEmail(
+        config,
+        recovery,
+        confirmUrl,
+        denyUrl,
+        channelEmail,
+        channelContext,
+      );
+    } catch (error) {
+      sendJson(
+        response,
+        502,
+        { error: "Email send failed: " + (error.message || "unknown") },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const nowIso = new Date().toISOString();
+    const updated = await client
+      .patch(recovery._id)
+      .set({
+        confirmationChannel: channelEmail,
+        confirmationChannelContext: channelContext,
+        confirmationSentAt: nowIso,
+        confirmationTokenNonce: nonce,
+        confirmationResponse: "pending",
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(response, 200, { ok: true, request: updated }, origin, config);
+    return true;
+  }
+
+  // GET /recovery-confirm?token=X — public. Renders context for the
+  // public confirm-claim.html page so the therapist sees what they're
+  // approving. Masks the requester IP so we don't leak attacker geo
+  // info to the therapist unnecessarily.
+  if (request.method === "GET" && routePath === "/recovery-confirm") {
+    const token = String(url.searchParams.get("token") || "");
+    if (!token) {
+      sendJson(response, 400, { error: "Missing token." }, origin, config);
+      return true;
+    }
+    const payload = deps.readRecoveryConfirmToken(config, token);
+    if (!payload) {
+      sendJson(
+        response,
+        400,
+        { error: "This confirmation link is invalid or has expired.", reason: "invalid_token" },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const recovery = await client.getDocument(payload.recovery);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(
+        response,
+        404,
+        { error: "Confirmation target not found.", reason: "not_found" },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (recovery.confirmationTokenNonce !== payload.nonce) {
+      sendJson(
+        response,
+        410,
+        {
+          error: "This confirmation link has already been used or replaced.",
+          reason: "used_or_replaced",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        therapist_name: recovery.fullName || recovery.profileName || "",
+        license_number: recovery.licenseNumber || "",
+        requested_email: recovery.requestedEmail || "",
+        already_responded:
+          recovery.confirmationResponse && recovery.confirmationResponse !== "pending"
+            ? recovery.confirmationResponse
+            : null,
+        status: recovery.status,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // POST /recovery-confirm — public. Body: { token, response: "yes"|"no" }.
+  // Yes auto-approves the recovery (claim link goes to requestedEmail).
+  // No auto-rejects and notifies admin so they can follow up if the
+  // real therapist is being targeted.
+  if (request.method === "POST" && routePath === "/recovery-confirm") {
+    const body = await parseBody(request);
+    const token = String(body.token || "");
+    const therapistResponse = String(body.response || "").toLowerCase();
+
+    if (therapistResponse !== "yes" && therapistResponse !== "no") {
+      sendJson(response, 400, { error: "Response must be 'yes' or 'no'." }, origin, config);
+      return true;
+    }
+    const payload = deps.readRecoveryConfirmToken(config, token);
+    if (!payload) {
+      sendJson(
+        response,
+        400,
+        { error: "This confirmation link is invalid or has expired.", reason: "invalid_token" },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const recovery = await client.getDocument(payload.recovery);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Confirmation target not found." }, origin, config);
+      return true;
+    }
+    if (recovery.confirmationTokenNonce !== payload.nonce) {
+      sendJson(
+        response,
+        410,
+        {
+          error: "This link has already been used. If that wasn't you, contact us.",
+          reason: "used_or_replaced",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+    if (recovery.status !== "pending") {
+      sendJson(
+        response,
+        409,
+        { error: "This request was already resolved.", reason: "already_resolved" },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const nowIso = new Date().toISOString();
+
+    // Invalidate the token immediately by rotating the nonce. Any
+    // subsequent click on the same link falls into the 410 path above.
+    const newNonce = crypto.randomBytes(12).toString("hex");
+
+    if (therapistResponse === "no") {
+      await client
+        .patch(recovery._id)
+        .set({
+          status: "rejected",
+          reviewedAt: nowIso,
+          reviewedBy: "therapist-self-confirm",
+          outcomeMessage:
+            "Therapist reported they did NOT request access. Request blocked without notifying the requester.",
+          confirmationResponse: "no",
+          confirmationRespondedAt: nowIso,
+          confirmationTokenNonce: newNonce,
+        })
+        .commit({ visibility: "sync" });
+
+      // Alert admin — a denial on a cold takeover is worth investigating
+      // (possibly an active attacker). Best-effort; don't fail the
+      // request if email is down.
+      try {
+        await deps.notifyAdminOfRecoveryRequest(config, {
+          ...recovery,
+          adminAlert: "therapist_denied_confirmation",
+        });
+      } catch (error) {
+        console.error("Failed to alert admin of therapist denial.", error);
+      }
+
+      sendJson(
+        response,
+        200,
+        {
+          ok: true,
+          outcome: "denied",
+          message: "Thanks. We've blocked the request and our team has been alerted.",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // therapistResponse === "yes" → auto-approve, same effect as the
+    // admin approve path but with identityVerification auto-filled.
+    if (!recovery.therapistDocId || !recovery.therapistSlug) {
+      sendJson(
+        response,
+        400,
+        { error: "This request is missing its therapist link. Please contact support." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && _id == $id][0]{ _id, name, claimStatus, "slug": slug }`,
+      { id: recovery.therapistDocId },
+    );
+    if (!therapist) {
+      sendJson(
+        response,
+        404,
+        { error: "Target therapist profile no longer exists." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    await client
+      .patch(therapist._id)
+      .set({
+        claimStatus: "claimed",
+        claimedByEmail: recovery.requestedEmail,
+        claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
+      })
+      .commit({ visibility: "sync" });
+
+    const therapistForLink =
+      typeof therapist.slug === "string"
+        ? { ...therapist, slug: { current: therapist.slug } }
+        : therapist;
+    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const magicLink = deps.buildRecoveryMagicLink(
+      config,
+      therapistForLink,
+      recovery.requestedEmail,
+      portalBaseUrl,
+    );
+
+    try {
+      await deps.sendRecoveryApprovedEmail(config, recovery, magicLink, "");
+    } catch (error) {
+      sendJson(
+        response,
+        502,
+        { error: "Confirmation saved, but sign-in email delivery failed: " + error.message },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const autoVerificationNote =
+      "Confirmed by therapist via " +
+      (recovery.confirmationChannel || "email") +
+      " (" +
+      (recovery.confirmationChannelContext || "admin-sourced channel") +
+      ") at " +
+      nowIso +
+      ".";
+
+    await client
+      .patch(recovery._id)
+      .set({
+        status: "approved",
+        reviewedAt: nowIso,
+        reviewedBy: "therapist-self-confirm",
+        outcomeMessage: "",
+        identityVerification: autoVerificationNote,
+        confirmationResponse: "yes",
+        confirmationRespondedAt: nowIso,
+        confirmationTokenNonce: newNonce,
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        outcome: "confirmed",
+        message: "Thanks — you're back in. Check your inbox for the sign-in link.",
+      },
+      origin,
+      config,
+    );
     return true;
   }
 
