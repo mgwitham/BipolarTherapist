@@ -1389,15 +1389,93 @@ export async function handleAuthAndPortalRoutes(context) {
     const domainVerified =
       !emailMatches && emailDomainMatchesWebsite(requesterEmail, therapist.website);
 
+    // If neither automatic path verifies ownership, route to manual
+    // review. Imposter risk is contained because we already required a
+    // name match + license match above, and admin verifies identity
+    // before approving. Covers both "no email on file" and "stale email
+    // on file" (therapist changed practices, old contact address is
+    // dead, no website on profile to domain-match against).
     if (!emailMatches && !domainVerified) {
+      const pendingCount = await client.fetch(
+        `count(*[_type == "therapistRecoveryRequest" && status == "pending" && licenseNumber match $license])`,
+        { license: `*${licenseNumber}*` },
+      );
+      if (Number(pendingCount) >= 3) {
+        sendJson(
+          response,
+          429,
+          {
+            error:
+              "We already have an open review request for this license. We'll email you within one business day.",
+            reason: "rate_limited",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+
+      const nowIso = new Date().toISOString();
+      const requesterIp = (() => {
+        const raw =
+          (request.headers &&
+            (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
+          (request.socket && request.socket.remoteAddress) ||
+          "";
+        const first = String(raw).split(",")[0].trim();
+        const parts = first.split(".");
+        return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
+      })();
+
+      const reviewReason = profileEmail ? "stale_email_on_file" : "no_email_on_file";
+      const recoveryDoc = {
+        _type: "therapistRecoveryRequest",
+        fullName: rawFullName,
+        licenseNumber: rawLicense,
+        requestedEmail: requesterEmail,
+        priorEmail: "",
+        reason: reviewReason,
+        status: "pending",
+        therapistSlug: therapist.slug.current,
+        therapistDocId: therapist._id,
+        profileName: therapist.name || "",
+        profileEmailHint: profileEmail ? maskEmail(therapist.email) : "",
+        profileClaimedEmail: "",
+        requesterIp,
+        createdAt: nowIso,
+      };
+      const created = await client.create(recoveryDoc);
+
+      try {
+        await deps.notifyAdminOfRecoveryRequest(config, created);
+      } catch (error) {
+        console.error("Failed to notify admin of quick-claim manual review.", error);
+      }
+      try {
+        await deps.notifyTherapistOfRecoveryReceived(config, created);
+      } catch (error) {
+        console.error("Failed to send review-received confirmation email.", error);
+      }
+
+      try {
+        await client
+          .patch(therapist._id)
+          .set({ claimStatus: "claim_requested" })
+          .commit({ visibility: "sync" });
+      } catch (_error) {
+        // Non-fatal — claim status is derived admin state.
+      }
+
       sendJson(
         response,
-        403,
+        202,
         {
-          error:
-            "That email doesn't match the contact email on your profile. Use the email on file, or contact us if you no longer have access to it.",
-          reason: "email_mismatch",
-          email_hint: maskEmail(therapist.email),
+          ok: true,
+          message:
+            "We couldn't auto-verify your email, so we sent this to manual review. Check your inbox for a confirmation — we'll email a decision within one business day.",
+          therapist_slug: therapist.slug.current,
+          verification_method: "manual_review",
+          recovery_request_id: created._id,
         },
         origin,
         config,
