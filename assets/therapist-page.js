@@ -1920,13 +1920,21 @@ function renderProfile(t, therapistDirectory) {
   document.title = t.name + " — BipolarTherapyHub";
   applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
+  // navClaimLink was removed from the nav (moved into heroClaimLink
+  // banner). Keep the lookup for back-compat in case an older template
+  // variant still renders it.
   var navClaimLink = document.getElementById("navClaimLink");
+  var heroClaimLink = document.getElementById("heroClaimLink");
   var footerClaimLink = document.getElementById("footerClaimLink");
+  var claimHref = "claim.html?confirm=" + encodeURIComponent(t.slug);
   if (navClaimLink) {
-    navClaimLink.href = "claim.html?confirm=" + encodeURIComponent(t.slug);
+    navClaimLink.href = claimHref;
+  }
+  if (heroClaimLink) {
+    heroClaimLink.href = claimHref;
   }
   if (footerClaimLink) {
-    footerClaimLink.href = "claim.html?confirm=" + encodeURIComponent(t.slug);
+    footerClaimLink.href = claimHref;
   }
 
   var initials = (t.name || "")

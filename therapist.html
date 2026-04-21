@@ -758,6 +758,18 @@
         font-weight: 700;
         padding: 0 0.35rem;
       }
+      .nav-link-current {
+        color: var(--teal) !important;
+        font-weight: 600 !important;
+      }
+      .nav-signin-link {
+        color: var(--muted) !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem;
+      }
+      .nav-signin-link:hover {
+        color: var(--teal) !important;
+      }
       .nav-cta {
         background: var(--teal) !important;
         color: white !important;
@@ -783,6 +795,28 @@
         text-decoration: none;
       }
       .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+      .ts-claim-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 0.55rem 1rem;
+        background: var(--teal-faint, #e8f5f8);
+        border-bottom: 1px solid rgba(26, 122, 143, 0.16);
+        font-size: 0.85rem;
+        color: var(--teal-dark, #155f70);
+      }
+      .ts-claim-banner-text {
+        color: var(--navy, #1d3a4a);
+      }
+      .ts-claim-banner-cta {
+        color: var(--teal, #1a7a8f);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .ts-claim-banner-cta:hover {
         text-decoration: underline;
       }
       .profile-wrap {
@@ -3265,14 +3299,15 @@
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
       <ul class="nav-links">
+        <li><a href="directory.html" class="nav-link-current">Find a Therapist</a></li>
+        <li><a href="match.html">Get Matched</a></li>
         <li>
           <a href="directory.html" class="nav-shortlist" data-shortlist-link
             >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
           >
         </li>
-        <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="portal.html" class="nav-signin-link">Therapist Sign In</a></li>
-        <li><a href="claim.html" class="nav-cta" id="navClaimLink">Claim this listing</a></li>
+        <li><a href="signup.html">For Therapists</a></li>
+        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
       </ul>
     </nav>
     <div class="public-mobile-nav" aria-label="Mobile navigation">
@@ -3301,6 +3336,15 @@
       <a href="index.html">Home</a> › <a href="directory.html">Directory</a> ›
       <span id="breadcrumbName">Loading...</span>
     </div>
+
+    <!-- In-page claim banner. Previously lived as "Claim this listing" in
+         the site nav, which mixed a therapist CTA with patient-facing
+         navigation. Moved here so the nav stays consistent across pages
+         and the claim offer sits in context next to the profile. -->
+    <aside class="ts-claim-banner" id="inPageClaimBanner">
+      <span class="ts-claim-banner-text">Is this your listing?</span>
+      <a href="claim.html" id="heroClaimLink" class="ts-claim-banner-cta">Claim your profile →</a>
+    </aside>
 
     <div class="profile-wrap" id="profileWrap">
       <div class="loading-profile">

@@ -107,6 +107,36 @@
       .nav-links a:hover {
         color: var(--teal);
       }
+      .nav-link-current {
+        color: var(--teal) !important;
+        font-weight: 600 !important;
+      }
+      .nav-signin-link {
+        color: var(--muted) !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem;
+      }
+      .nav-signin-link:hover {
+        color: var(--teal) !important;
+      }
+      .nav-shortlist {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .nav-shortlist-count {
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.35rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
 
       /* =========================
          Page layout
@@ -889,8 +919,14 @@
       </a>
       <ul class="nav-links">
         <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="portal.html" class="nav-signin-link">Therapist Sign In</a></li>
-        <li><a href="signup.html">List Your Practice</a></li>
+        <li><a href="match.html">Get Matched</a></li>
+        <li>
+          <a href="directory.html" class="nav-shortlist" data-shortlist-link
+            >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
+          >
+        </li>
+        <li><a href="signup.html" class="nav-link-current">For Therapists</a></li>
+        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
       </ul>
     </nav>
 
