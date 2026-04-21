@@ -297,6 +297,73 @@
       .new-listing-dup-nudge-cta:hover {
         text-decoration: underline;
       }
+      .new-listing-plan-choice[hidden] {
+        display: none;
+      }
+      .new-listing-plan-choice {
+        display: grid;
+        gap: 0.85rem;
+        margin-top: 0.25rem;
+      }
+      .new-listing-plan-eyebrow {
+        color: var(--teal-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      .new-listing-plan-choice h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: var(--navy);
+      }
+      .new-listing-plan-options {
+        display: grid;
+        gap: 0.65rem;
+      }
+      .new-listing-plan-option {
+        text-align: left;
+        padding: 0.95rem 1rem;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        display: grid;
+        gap: 0.35rem;
+        font-family: inherit;
+        transition:
+          transform 120ms ease,
+          box-shadow 120ms ease,
+          background 120ms ease;
+      }
+      .new-listing-plan-option-title {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+      .new-listing-plan-option-body {
+        font-size: 0.88rem;
+        line-height: 1.4;
+      }
+      .new-listing-plan-option.is-primary {
+        background: var(--teal);
+        color: #fff;
+      }
+      .new-listing-plan-option.is-primary:hover:not(:disabled) {
+        background: var(--teal-dark);
+        transform: translateY(-1px);
+      }
+      .new-listing-plan-option.is-secondary {
+        background: #fff;
+        border-color: var(--teal);
+        color: var(--navy);
+      }
+      .new-listing-plan-option.is-secondary:hover:not(:disabled) {
+        background: var(--teal-faint);
+      }
+      .new-listing-plan-option:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
 
       /* =========================
          How it works
@@ -462,7 +529,9 @@
         <div>
           <section class="signup-form-card" aria-label="List your practice">
             <h2>List your practice</h2>
-            <p class="signup-form-card-sub">Five fields. Sixty seconds.</p>
+            <p class="signup-form-card-sub">
+              Five fields. License verified instantly. You choose paid or free right after.
+            </p>
             <form id="newListingForm" class="new-listing-form" novalidate>
               <label>
                 <span>Full name</span>
@@ -483,9 +552,7 @@
                   placeholder="jamie@yourpractice.com"
                   required
                 />
-                <span class="new-listing-field-hint">
-                  We'll email your approval decision here.
-                </span>
+                <span class="new-listing-field-hint"> We'll send your welcome link here. </span>
               </label>
               <label>
                 <span>CA license number</span>
@@ -532,7 +599,7 @@
                   I'm a California-licensed clinician and I treat bipolar disorder in my practice.
                 </span>
               </label>
-              <button type="submit" class="new-listing-submit">Submit application</button>
+              <button type="submit" class="new-listing-submit">Verify my license →</button>
               <div
                 class="new-listing-status"
                 id="newListingStatus"
@@ -540,8 +607,50 @@
                 aria-live="polite"
                 hidden
               ></div>
-              <p class="new-listing-fineprint">No credit card. Free to list.</p>
+              <p class="new-listing-fineprint">
+                Free listing or 14-day paid trial. You pick after your license verifies.
+              </p>
             </form>
+
+            <section
+              class="new-listing-plan-choice"
+              id="newListingPlanChoice"
+              aria-label="Choose how to start"
+              hidden
+            >
+              <p class="new-listing-plan-eyebrow">License verified ✓</p>
+              <h3>How do you want to start?</h3>
+              <div class="new-listing-plan-options">
+                <button
+                  type="button"
+                  id="newListingPlanTrialBtn"
+                  class="new-listing-plan-option is-primary"
+                >
+                  <span class="new-listing-plan-option-title">Start 14-day free trial</span>
+                  <span class="new-listing-plan-option-body">
+                    Featured placement, analytics, and a verified badge. Cancel anytime. $19/month
+                    after the trial.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  id="newListingPlanFreeBtn"
+                  class="new-listing-plan-option is-secondary"
+                >
+                  <span class="new-listing-plan-option-title">List free for now</span>
+                  <span class="new-listing-plan-option-body">
+                    Basic directory listing, no card required. Upgrade anytime from your portal.
+                  </span>
+                </button>
+              </div>
+              <div
+                class="new-listing-status"
+                id="newListingPlanStatus"
+                role="status"
+                aria-live="polite"
+                hidden
+              ></div>
+            </section>
           </section>
         </div>
       </section>
@@ -569,11 +678,11 @@
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">3</div>
-          <h3>Start your trial, edit your profile, go live</h3>
+          <h3>Pick free or trial, edit your profile, go live</h3>
           <p>
-            Start a 14-day free trial (no charge until day 15), land in your dashboard, and add a
-            short bio to publish your listing to the directory. The free listing stays free if you
-            don't want the trial.
+            Choose a 14-day free trial (no charge until day 15) or stay on the free tier. Either way
+            you land in your dashboard and add a short bio to publish your listing. You can upgrade
+            from free to trial anytime.
           </p>
         </div>
       </div>
@@ -608,8 +717,8 @@
       <details class="signup-faq-item">
         <summary>How do I remove my listing if I change my mind?</summary>
         <p>
-          Any time. Use the portal (after approval) to pause or request removal — we email a
-          confirmation link and your listing goes dark the moment you click.
+          Any time. Use the portal to pause or request removal. We email a confirmation link and
+          your listing goes dark the moment you click.
         </p>
       </details>
     </section>

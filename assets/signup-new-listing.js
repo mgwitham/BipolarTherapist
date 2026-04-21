@@ -1,16 +1,20 @@
 // Client-side wiring for the short-form "list my practice" intake on
 // /signup. Five fields: full_name, email, license_number, zip,
 // treats_bipolar (checkbox). Posts to /applications/intake which
-// creates a minimal therapistApplication in the review queue.
+// verifies the license against DCA, creates the therapist + application
+// docs, and returns both a Stripe checkout URL and a portal claim token.
 //
-// Keeps the handler simple: inline validation on submit, optimistic
-// button label swap, clear success / error states. Does not try to
-// verify the CA license on the client — server does that asynchronously
-// against the DCA API after the application is created.
+// After a successful intake the form is swapped for a plan-choice card:
+// "Start 14-day trial" (primary) redirects to Stripe; "List free for now"
+// (secondary) hits /applications/free-path-selected to fire a magic-login
+// email, then lands the therapist in the portal with their claim token.
+// The claim-token redirect path is identical for both options — only the
+// detour through Stripe differs.
 
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
+const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 
 function parseZip(raw) {
@@ -158,9 +162,9 @@ async function submitIntake(form, status) {
   const priorLabel = submit ? submit.textContent : "";
   if (submit) {
     submit.disabled = true;
-    submit.textContent = "Submitting...";
+    submit.textContent = "Verifying...";
   }
-  setStatus(status, "Verifying your license and opening secure checkout...", null);
+  setStatus(status, "Verifying your California license...", null);
 
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
@@ -232,9 +236,9 @@ async function submitIntake(form, status) {
       return;
     }
     // Success: server verified the license, published the therapist
-    // doc, and created a Stripe checkout session. Redirect straight
-    // to Stripe — the post-checkout return URL drops the user into
-    // their claimed portal with the trial active.
+    // doc, and returned both a Stripe checkout URL and a portal claim
+    // token. Swap the form out for the plan-choice card so the
+    // therapist picks trial or free before we redirect anywhere.
     let data = {};
     try {
       data = await response.json();
@@ -246,31 +250,17 @@ async function submitIntake(form, status) {
       therapist_slug: (data && data.therapist_slug) || null,
       has_stripe_url: Boolean(data && data.stripe_url),
     });
-    if (data && data.stripe_url) {
-      setStatus(status, "License verified. Opening secure checkout...", "success");
-      window.setTimeout(function () {
-        window.location.href = data.stripe_url;
-      }, 300);
-      return;
-    }
-    // Fallback: license verified but Stripe checkout didn't build. Send
-    // the user to the portal with their claim token so they can still
-    // claim the listing; they can start the trial from the portal
-    // upsell banner.
     if (data && data.therapist_slug && data.claim_token) {
-      setStatus(status, "Your listing is ready. Opening your dashboard...", "success");
-      const portalTarget =
-        "/portal?slug=" +
-        encodeURIComponent(data.therapist_slug) +
-        "&token=" +
-        encodeURIComponent(data.claim_token);
-      window.setTimeout(function () {
-        window.location.href = portalTarget;
-      }, 500);
+      revealPlanChoice(form, status, data, email);
       return;
     }
-    setStatus(status, "Your listing is verified. Check your inbox for a login link.", "success");
-    form.reset();
+    // Fallback: server didn't return enough to route the therapist
+    // anywhere. Keep them on the page with a support-pointer message.
+    setStatus(
+      status,
+      "We verified your license but couldn't finish setting up your listing. Email support@bipolartherapyhub.com and we'll sort it out.",
+      "error",
+    );
   } catch (_error) {
     setStatus(
       status,
@@ -283,6 +273,102 @@ async function submitIntake(form, status) {
       submit.textContent = priorLabel;
     }
   }
+}
+
+// Build the portal magic-link URL that both the trial and free paths
+// eventually land the therapist on. Identical slug + token payload in
+// both cases — only the detour through Stripe differs.
+function buildPortalTarget(therapistSlug, claimToken, entry) {
+  return (
+    "/portal.html?slug=" +
+    encodeURIComponent(therapistSlug) +
+    "&token=" +
+    encodeURIComponent(claimToken) +
+    "&entry=" +
+    encodeURIComponent(entry)
+  );
+}
+
+function revealPlanChoice(form, formStatus, intakeData, email) {
+  const choice = document.getElementById("newListingPlanChoice");
+  const trialBtn = document.getElementById("newListingPlanTrialBtn");
+  const freeBtn = document.getElementById("newListingPlanFreeBtn");
+  const planStatus = document.getElementById("newListingPlanStatus");
+  // If the choice card isn't on the page (older build / SSR edge case),
+  // fall back to the old behavior so the user still gets to their
+  // listing rather than dead-ending on the form.
+  if (!choice || !trialBtn || !freeBtn) {
+    if (intakeData.stripe_url) {
+      window.location.href = intakeData.stripe_url;
+      return;
+    }
+    window.location.href = buildPortalTarget(
+      intakeData.therapist_slug,
+      intakeData.claim_token,
+      "free",
+    );
+    return;
+  }
+  // Hide the form, reveal the choice card. Keep the duplicate-nudge and
+  // status hidden — they're only relevant to the form we just left.
+  form.hidden = true;
+  setStatus(formStatus, "", null);
+  hideDupNudge();
+  choice.hidden = false;
+  trackFunnelEvent("signup_plan_choice_shown", {
+    therapist_slug: intakeData.therapist_slug || null,
+    has_stripe_url: Boolean(intakeData.stripe_url),
+  });
+  // If Stripe somehow didn't build, disable the trial button rather than
+  // letting the user click into a broken redirect.
+  if (!intakeData.stripe_url) {
+    trialBtn.disabled = true;
+    trialBtn.title = "Checkout is temporarily unavailable. Choose 'List free for now' to continue.";
+  }
+  trialBtn.addEventListener("click", function () {
+    if (!intakeData.stripe_url) return;
+    trackFunnelEvent("signup_plan_trial_chosen", {
+      therapist_slug: intakeData.therapist_slug || null,
+    });
+    trialBtn.disabled = true;
+    freeBtn.disabled = true;
+    setStatus(planStatus, "Opening secure checkout...", "success");
+    window.setTimeout(function () {
+      window.location.href = intakeData.stripe_url;
+    }, 250);
+  });
+  freeBtn.addEventListener("click", async function () {
+    trackFunnelEvent("signup_plan_free_chosen", {
+      therapist_slug: intakeData.therapist_slug || null,
+    });
+    trialBtn.disabled = true;
+    freeBtn.disabled = true;
+    setStatus(planStatus, "Setting up your free listing...", null);
+    try {
+      // Fire-and-forget magic-login email so the therapist has a way
+      // back into the portal after this session cookie expires.
+      // Failure is non-fatal — the in-URL claim token still lands them
+      // in the portal right now.
+      await fetch(FREE_PATH_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          claim_token: intakeData.claim_token,
+          email: email,
+        }),
+      });
+    } catch (_error) {
+      /* non-fatal */
+    }
+    setStatus(planStatus, "Opening your dashboard...", "success");
+    window.setTimeout(function () {
+      window.location.href = buildPortalTarget(
+        intakeData.therapist_slug,
+        intakeData.claim_token,
+        "free",
+      );
+    }, 250);
+  });
 }
 
 function bindIntakeForm() {

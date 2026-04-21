@@ -1298,28 +1298,63 @@ async function loadSubscriptionIntoFeaturedCard() {
 function renderStripeReturnBanner() {
   var params = new URLSearchParams(window.location.search);
   var state = params.get("stripe");
-  if (!state) {
+  var entry = params.get("entry");
+  if (!state && !entry) {
     return;
   }
   var shell = document.getElementById("portalShell");
   if (!shell) {
     return;
   }
-  var message =
-    state === "success"
-      ? "Checkout complete. Featured placement activates within a minute of Stripe confirming the subscription."
-      : state === "cancel"
-        ? "Checkout canceled. No charge was made. You can try again anytime."
-        : "";
+  var message = "";
+  var tone = "neutral";
+  if (state === "success") {
+    message =
+      "Trial active. You're live in the directory the moment you save a bio below — no admin review, no waiting.";
+    tone = "success";
+  } else if (state === "cancel") {
+    message = "Checkout canceled. No charge was made. You can try again anytime.";
+  } else if (entry === "free") {
+    message =
+      "You're in on the free tier. Add a bio below to go live — you can upgrade to the trial anytime from your subscription card.";
+    tone = "success";
+  }
   if (!message) {
     return;
   }
+  var bg = tone === "success" ? "#ecfdf5" : "#f1f5f9";
+  var border = tone === "success" ? "#10b981" : "#cbd5e1";
+  var color = tone === "success" ? "#065f46" : "#334155";
   shell.insertAdjacentHTML(
     "afterbegin",
-    '<section class="portal-card" style="margin-bottom:1rem"><p class="portal-subtle">' +
+    '<section class="portal-card" style="margin-bottom:1rem;background:' +
+      bg +
+      ";border:1px solid " +
+      border +
+      ';"><p style="margin:0;color:' +
+      color +
+      ';font-weight:600">' +
       escapeHtml(message) +
       "</p></section>",
   );
+}
+
+// After a first-time signup landing (trial return or free-path entry),
+// scroll the editor into view so the therapist's next step is obvious
+// rather than buried below status cards. One-shot per page load, keyed
+// off the query params so refreshing or clicking around doesn't re-jump.
+function scrollToEditorOnSignupLanding() {
+  var params = new URLSearchParams(window.location.search);
+  var state = params.get("stripe");
+  var entry = params.get("entry");
+  var isSignupLanding = state === "success" || entry === "free";
+  if (!isSignupLanding) return;
+  window.setTimeout(function () {
+    var target = document.getElementById("portalEditProfile");
+    if (target && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 600);
 }
 
 function escapeAttr(value) {
@@ -2542,22 +2577,24 @@ function renderPortal(therapist, options) {
       ? "Welcome to your dashboard"
       : "Claim and manage your profile";
 
-  // "Not yet public" banner. Fires for signup-instant-checkout
+  // "One step from live" banner. Fires for signup-instant-checkout
   // therapists whose listing was created with listingActive=false +
   // status=pending_profile so their stub bio didn't leak into the
   // directory. Saving a bio (50+ chars) via the editor auto-publishes
-  // them, so the call to action is explicit.
+  // them. Framed as a forward step rather than a warning — the
+  // therapist has already completed signup and shouldn't feel
+  // penalized by an amber "not public" state.
   var isPendingProfile =
     verifiedClaim && (therapist.listing_active === false || therapist.status === "pending_profile");
   var notYetPublicBanner = isPendingProfile
-    ? '<section class="portal-card" style="border:2px solid #f59e0b;background:#fffbeb;margin-bottom:1rem">' +
-      '<p class="portal-eyebrow" style="color:#92400e;margin:0 0 0.35rem">Your listing is not public yet</p>' +
-      '<h2 style="margin:0 0 0.35rem">Add a bio to go live</h2>' +
+    ? '<section class="portal-card" style="border:2px solid #10b981;background:#ecfdf5;margin-bottom:1rem">' +
+      '<p class="portal-eyebrow" style="color:#065f46;margin:0 0 0.35rem">One step from live</p>' +
+      '<h2 style="margin:0 0 0.35rem">Add a bio to publish your listing</h2>' +
       '<p class="portal-subtle" style="margin:0 0 0.75rem">' +
       "Write a short paragraph (50+ characters) about how you work with bipolar clients in the editor below. " +
-      "Saving a real bio publishes your listing to the directory automatically. No admin review, no waiting." +
+      "Your listing goes live the moment you save. No admin review, no waiting." +
       "</p>" +
-      '<a href="#portalEditProfile" class="btn-primary" style="display:inline-block;padding:0.65rem 1rem;border-radius:10px;background:#f59e0b;color:#fff;text-decoration:none;font-weight:700;font-size:0.95rem">Go to editor ↓</a>' +
+      '<a href="#portalEditProfile" class="btn-primary" style="display:inline-block;padding:0.65rem 1rem;border-radius:10px;background:#10b981;color:#fff;text-decoration:none;font-weight:700;font-size:0.95rem">Go to editor ↓</a>' +
       "</section>"
     : "";
 
@@ -2874,6 +2911,12 @@ function renderPortal(therapist, options) {
       }
     });
   }
+
+  // Post-signup: if the therapist just returned from Stripe checkout
+  // or picked the free path, scroll them to the editor. Their next
+  // real step is writing a bio; surfacing it reduces the odds they
+  // bounce off the dashboard before going live.
+  scrollToEditorOnSignupLanding();
 }
 
 (async function init() {
