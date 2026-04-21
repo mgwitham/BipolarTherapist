@@ -770,6 +770,25 @@
       .nav-signin-link:hover {
         color: var(--teal) !important;
       }
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem !important;
+        color: var(--muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        border: 1px solid transparent;
+        border-radius: 999px;
+      }
+      .nav-zone-switch:hover {
+        color: var(--teal-dark) !important;
+        border-color: rgba(26, 122, 143, 0.22);
+        background: rgba(26, 122, 143, 0.06);
+      }
       .nav-cta {
         background: var(--teal) !important;
         color: white !important;
@@ -3306,8 +3325,9 @@
             >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
           >
         </li>
-        <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
+        <li class="nav-zone-switch-item">
+          <a href="signup.html" class="nav-zone-switch">For therapists →</a>
+        </li>
       </ul>
     </nav>
     <div class="public-mobile-nav" aria-label="Mobile navigation">
