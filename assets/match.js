@@ -804,8 +804,18 @@ function setRefineDrawerOpen(open) {
   var refinements = document.querySelector(".match-refinements");
   var moreBtn = document.getElementById("openAdvancedFiltersButton");
   var bodyClass = "match-refine-drawer-open";
+  // After a match runs, placeBuilderInResults wraps .match-builder in a
+  // <details id="matchRefineSection"> that starts closed. Children of a
+  // closed <details> are hidden by the UA stylesheet (content-visibility),
+  // which collapses our position:fixed drawer to height 0 and pins it
+  // ~2000px down the page. Opening the wrapper restores normal layout
+  // for the descendants.
+  var refineSection = document.getElementById("matchRefineSection");
   if (open) {
     document.body.classList.add(bodyClass);
+    if (refineSection) {
+      refineSection.open = true;
+    }
     if (refinements) {
       refinements.open = true;
     }
@@ -828,6 +838,12 @@ function setRefineDrawerOpen(open) {
     document.body.classList.remove(bodyClass);
     if (refinements) {
       refinements.open = false;
+    }
+    // Collapse the wrapper section back to its closed state so the
+    // post-results UI returns to its normal "click Refine to expand"
+    // affordance.
+    if (refineSection) {
+      refineSection.open = false;
     }
     if (moreBtn) {
       moreBtn.setAttribute("aria-expanded", "false");
