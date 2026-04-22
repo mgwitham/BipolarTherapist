@@ -1350,12 +1350,47 @@
       body.match-refine-drawer-open .refine-bottom-submit {
         display: none;
       }
-      /* Hide the inline "Change your search" duplicate fields inside
-         the drawer — the primary care-intent + ZIP pills up top are
-         the canonical inputs; duplicating them in the drawer makes
-         the panel feel cluttered and creates focus confusion. */
+      /* The drawer's "Change your search" section (care type + ZIP) is
+         now the primary way to adjust the search since the inline
+         refine card has been removed in results mode. Move it to the
+         top of the drawer and style it as a primary input block. */
       body.match-refine-drawer-open .refine-adv-section--search {
+        order: -1;
+      }
+      body.match-refine-drawer-open .refine-adv-section--search .refine-adv-header {
         display: none;
+      }
+      body.match-refine-drawer-open .refine-search-row {
+        display: grid;
+        grid-template-columns: 1fr 130px;
+        gap: 0.7rem;
+      }
+      body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
+        font-size: 0.78rem;
+        color: var(--slate);
+        font-weight: 600;
+      }
+      /* In results mode, collapse the inline .match-builder so the
+         "Refine your results" card no longer appears below the cards.
+         Use max-height + overflow hidden (not display:none) so the
+         <details class="match-refinements"> descendant can still be
+         hoisted to position:fixed via the drawer-open body class —
+         display:none would prevent the drawer from rendering. */
+      .match-builder.is-results-mode {
+        max-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        overflow: visible;
+      }
+      .match-builder.is-results-mode > form > .match-tool-shell {
+        max-height: 0;
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
       }
       /* Small screens: take most of the viewport so the drawer is
          usable on phones. The results under the scrim aren't visible

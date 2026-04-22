@@ -739,8 +739,6 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 // the user makes choices. Keeps the panel feeling "direct-manipulation"
 // instead of the old form-submit-only flow.
 var liveRecomputeTimer = null;
-var pendingFiltersChanged = false;
-var pendingFilterProfile = null;
 function maybeLiveRecompute(event) {
   if (!document.body.classList.contains("match-refine-drawer-open")) return;
   var form = document.getElementById("matchForm");
@@ -765,23 +763,23 @@ function maybeLiveRecompute(event) {
         : "";
   liveRecomputeTimer = window.setTimeout(function () {
     liveRecomputeTimer = null;
-    // While the drawer is open, RANK without re-rendering — re-rendering
-    // wipes #matchResults.innerHTML which also briefly detaches the
-    // .match-builder (drawer) subtree, dropping keyboard focus and
-    // breaking every interaction inside the drawer. Mark the recompute
-    // as pending so the next drawer-close will trigger a real render
-    // with the current filters applied.
+    // The drawer now lives at its original DOM position (inside
+    // .match-layout), NOT inside #matchResults — so wiping
+    // #matchResults.innerHTML during executeMatch no longer detaches
+    // the drawer subtree. Live recompute is safe again: cards under
+    // the dimmed backdrop animate as the user tweaks filters.
     var profile = readCurrentIntakeProfile();
-    var entries = rankEntriesForProfile(profile);
-    pendingFiltersChanged = true;
-    pendingFilterProfile = profile;
-    var count = Array.isArray(entries) ? entries.length : 0;
+    executeMatch(profile, {
+      scroll: false,
+      source: "match_live_refine",
+    });
+    var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
     var message =
       count === 0
-        ? "No matches with these filters. Close and ease one to see more."
+        ? "No matches with these filters. Try easing one."
         : count === 1
-          ? "1 match with these filters. Close to apply."
-          : count + " matches with these filters. Close to apply.";
+          ? "1 match showing"
+          : count + " matches showing";
     setLiveStatus(message, false);
     trackFunnelEvent("match_live_filter_applied", {
       changed_field: changedField,
@@ -839,34 +837,28 @@ function setRefineDrawerOpen(open) {
     if (refinements) {
       refinements.open = false;
     }
-    // Collapse the wrapper section back to its closed state so the
-    // post-results UI returns to its normal "click Refine to expand"
-    // affordance.
     if (refineSection) {
       refineSection.open = false;
     }
     if (moreBtn) {
       moreBtn.setAttribute("aria-expanded", "false");
       moreBtn.classList.remove("is-expanded");
-      // Return focus to the trigger when the drawer closes so keyboard
-      // users don't lose their place.
-      window.requestAnimationFrame(function () {
+    }
+    // Return focus to whichever Refine trigger the user actually clicked
+    // from. The header Refine button (rendered into #matchResults after
+    // a match runs) is the canonical entry point in results mode; only
+    // fall back to the inline Customize button when there's no header
+    // button (empty / pre-match state).
+    window.requestAnimationFrame(function () {
+      var headerRefine = document.querySelector('[data-mx-refine-open="header"]');
+      if (headerRefine && typeof headerRefine.focus === "function") {
+        headerRefine.focus();
+        return;
+      }
+      if (moreBtn && typeof moreBtn.focus === "function") {
         moreBtn.focus();
-      });
-    }
-    // Apply the live-filter changes that accumulated while the drawer
-    // was open. We deferred the full re-render to keep focus stable
-    // inside the drawer; now that it's closing, the user wants to see
-    // the new card list.
-    if (pendingFiltersChanged) {
-      pendingFiltersChanged = false;
-      var profile = pendingFilterProfile || readCurrentIntakeProfile();
-      pendingFilterProfile = null;
-      executeMatch(profile, {
-        scroll: false,
-        source: "match_drawer_apply",
-      });
-    }
+      }
+    });
   }
 }
 
@@ -4821,7 +4813,14 @@ function renderPrimaryMatchCards(entries, profile) {
     bankHtml +
     "</div>";
 
-  placeBuilderInResults(root);
+  // Deliberately NOT calling placeBuilderInResults: that used to move
+  // the .match-builder into #matchResults wrapped in a <details>
+  // "Refine your results" summary, which created a second refinement
+  // surface competing with the drawer AND trapped the drawer inside a
+  // transformed / collapsed ancestor that broke position:fixed. The
+  // drawer now lives at its original DOM location (inside .match-layout)
+  // and is the only refinement surface; it's opened via the header
+  // Refine button.
 
   // Wire the results-header Refine button and the smart-refine chips
   // ("Takes my insurance" / "Telehealth only" / "Language") to open the
