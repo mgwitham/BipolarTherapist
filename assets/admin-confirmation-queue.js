@@ -1,8 +1,4 @@
-import {
-  renderActionFirstIntro,
-  renderDecisionGuide,
-  renderRecommendedActionBar,
-} from "./admin-action-first.js";
+import { renderActionFirstIntro, renderRecommendedActionBar } from "./admin-action-first.js";
 import { createActionFlashStore } from "./admin-action-flash.js";
 
 const confirmationActionFlash = createActionFlashStore();
@@ -116,38 +112,39 @@ export function renderConfirmationQueuePanel(options) {
         );
         const primaryAskField = orderedUnknownFields[0] || "";
         const addOnAskFields = orderedUnknownFields.slice(1);
-        const primaryActionLabel =
+        const waitingOnSummary = (agenda.unknown_fields || [])
+          .map(options.formatFieldLabel)
+          .join(", ");
+        const nextStepLabel =
           workflow.status === "confirmed" || workflow.status === "applied"
-            ? "Copy updated confirmation request"
+            ? "Copy live update brief"
             : workflow.status === "waiting_on_therapist" || workflow.status === "sent"
               ? "Copy follow-up request and mark sent"
               : "Copy first request and mark sent";
+        const primaryActionLabel =
+          workflow.status === "confirmed" || workflow.status === "applied"
+            ? "Copy live update brief"
+            : nextStepLabel;
+        const primaryActionHtml =
+          workflow.status === "confirmed" || workflow.status === "applied"
+            ? '<button class="btn-primary" data-confirmation-apply-brief="' +
+              options.escapeHtml(item.slug) +
+              '">Copy live update brief</button>'
+            : '<button class="btn-primary" data-confirmation-copy="' +
+              options.escapeHtml(item.slug) +
+              '">' +
+              options.escapeHtml(primaryActionLabel) +
+              "</button>";
         const firstActionWhy =
           workflow.status === "confirmed" || workflow.status === "applied"
-            ? "This listing already has therapist-confirmed details, so the next move is to prepare or apply the live update cleanly."
+            ? "This listing already has therapist-confirmed details, so the next move is to prepare the live update cleanly."
             : workflow.status === "waiting_on_therapist" || workflow.status === "sent"
               ? "This listing already has outreach history, so the next move is to follow up cleanly instead of restarting the request."
               : "This listing is the highest-priority confirmation task in the current filtered view.";
         const firstActionDoneWhen =
           workflow.status === "confirmed" || workflow.status === "applied"
-            ? "Confirmed details are captured and the listing is marked confirmed or applied."
+            ? "The live-update brief is ready and the listing can move to applied once the profile is updated."
             : "The request is sent and the status accurately reflects the next state: sent or waiting on therapist.";
-        const decisionGuide = {
-          recommended:
-            workflow.status === "confirmed" || workflow.status === "applied"
-              ? "Capture the confirmed details and move the listing toward applied."
-              : workflow.status === "waiting_on_therapist" || workflow.status === "sent"
-                ? "Send a clean follow-up and keep the status aligned with the outreach state."
-                : "Send the first confirmation request and move this listing into active follow-up.",
-          sendPath:
-            workflow.status === "waiting_on_therapist" || workflow.status === "sent"
-              ? "Copy the follow-up request, send it, and keep the listing in sent or waiting status."
-              : "Copy the first request, send it, and mark the listing sent.",
-          confirmPath:
-            "When a therapist replies, record the confirmed details and move the listing to confirmed.",
-          applyPath:
-            "Once the live profile reflects the therapist-confirmed details, mark the listing applied.",
-        };
         return (
           '<article class="queue-card' +
           (index === 0 ? " is-start-here" : "") +
@@ -173,48 +170,29 @@ export function renderConfirmationQueuePanel(options) {
           options.escapeHtml(options.formatStatusLabel(agenda.priority)) +
           ' priority</span><span class="tag">' +
           options.escapeHtml(options.formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Needs:</strong> ' +
+          "</span></div></div>" +
           (index === 0
             ? renderRecommendedActionBar({
                 why: firstActionWhy,
                 doneWhen: firstActionDoneWhen,
-                primaryActionHtml:
-                  '<button class="btn-primary" data-confirmation-copy="' +
-                  options.escapeHtml(item.slug) +
-                  '">' +
-                  options.escapeHtml(primaryActionLabel) +
-                  "</button>",
+                primaryActionHtml: primaryActionHtml,
                 secondaryActionHtml:
                   '<a class="btn-secondary btn-inline" href="' +
                   options.escapeHtml(confirmationLink) +
                   '" target="_blank" rel="noopener">Open confirmation form</a>',
                 escapeHtml: options.escapeHtml,
-              }) +
-              renderDecisionGuide({
-                items: [
-                  { label: "Recommended next move", value: decisionGuide.recommended },
-                  { label: "If outreach is needed", value: decisionGuide.sendPath },
-                  { label: "If the therapist replied", value: decisionGuide.confirmPath },
-                  { label: "If the live listing is updated", value: decisionGuide.applyPath },
-                ],
-                escapeHtml: options.escapeHtml,
               })
             : "") +
-          '<div class="queue-summary"><strong>Needs:</strong> ' +
-          options.escapeHtml(agenda.unknown_fields.map(options.formatFieldLabel).join(", ")) +
+          '<div class="queue-summary"><strong>Waiting on:</strong> ' +
+          options.escapeHtml(waitingOnSummary || "No outstanding confirmation fields.") +
           "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              options.escapeHtml(options.formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              options.escapeHtml(addOnAskFields.map(options.formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          options.escapeHtml(orderedUnknownFields.map(options.formatFieldLabel).join(" -> ")) +
+          '<div class="queue-summary"><strong>Next step:</strong> ' +
+          options.escapeHtml(nextStepLabel) +
+          "</div>" +
+          '<div class="queue-summary"><strong>Last action:</strong> ' +
+          options.escapeHtml(
+            options.getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, ""),
+          ) +
           "</div>" +
           (workflow.status === "confirmed" || workflow.status === "applied"
             ? options.buildConfirmationResponseCaptureHtml(
@@ -257,13 +235,6 @@ export function renderConfirmationQueuePanel(options) {
               options.escapeHtml(options.formatDate(workflow.last_sent_at)) +
               "</div>"
             : "") +
-          '</div><div class="queue-shortlist">' +
-          (agenda.asks || [])
-            .map(function (ask) {
-              return '<div class="queue-shortlist-item">' + options.escapeHtml(ask) + "</div>";
-            })
-            .join("") +
-          "</div>" +
           (index === 0
             ? '<div class="queue-actions secondary-actions">'
             : '<div class="queue-actions">') +
@@ -276,14 +247,7 @@ export function renderConfirmationQueuePanel(options) {
               : "Copy confirmation link",
           ) +
           "</button>" +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              options.escapeHtml(item.slug) +
-              '">Copy live update brief</button>'
-            : "") +
-          '<button class="btn-secondary" data-confirmation-checklist="' +
-          options.escapeHtml(item.slug) +
-          '">Copy operator checklist</button><a class="btn-secondary btn-inline" href="' +
+          '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(confirmationLink) +
           '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
           encodeURIComponent(item.slug) +
