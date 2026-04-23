@@ -21,7 +21,7 @@ export function createAdminWorkflowNavigator(config) {
     target.classList.add("section-spotlight");
     window.setTimeout(function () {
       target.classList.remove("section-spotlight");
-    }, 1000);
+    }, 2000);
   }
 
   function clearWorkflowHandoffs() {
