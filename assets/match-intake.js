@@ -59,27 +59,34 @@ export function deriveStateFromLocation(value, options) {
 }
 
 export function syncZipResolvedLabel(value) {
-  var resolved = document.getElementById("matchZipResolved");
-  if (!resolved) {
+  var resolvedNodes = Array.from(document.querySelectorAll(".match-zip-resolved"));
+  if (!resolvedNodes.length) {
     return;
   }
 
   var zipStatus = getZipMarketStatus(value);
   if (zipStatus.status === "invalid") {
-    resolved.textContent = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
-    resolved.classList.toggle("is-visible", Boolean(String(value || "").trim()));
+    var invalidMessage = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
+    resolvedNodes.forEach(function (resolved) {
+      resolved.textContent = invalidMessage;
+      resolved.classList.toggle("is-visible", Boolean(String(value || "").trim()));
+    });
     return;
   }
 
   if (!zipStatus.place) {
-    resolved.textContent = "";
-    resolved.classList.remove("is-visible");
+    resolvedNodes.forEach(function (resolved) {
+      resolved.textContent = "";
+      resolved.classList.remove("is-visible");
+    });
     return;
   }
 
-  resolved.textContent =
-    zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
-  resolved.classList.add("is-visible");
+  var resolvedText = zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
+  resolvedNodes.forEach(function (resolved) {
+    resolved.textContent = resolvedText;
+    resolved.classList.add("is-visible");
+  });
 }
 
 export function getMatchSearchButtonLabel(careIntent) {
@@ -382,7 +389,7 @@ export function hydrateForm(profile, options) {
   var settings = options || {};
   var form = settings.form || document.getElementById("matchForm");
   function setFieldValue(name, value) {
-    var nodes = form.querySelectorAll('[name="' + name + '"]');
+    var nodes = form.querySelectorAll('[name="' + name + '"], [data-sync-key="' + name + '"]');
     nodes.forEach(function (node) {
       if (node.type === "radio") {
         node.checked = node.value === value;

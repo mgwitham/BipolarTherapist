@@ -105,8 +105,9 @@
                     data-match-care-field
                   >
                     <select
-                      id="care_intent"
+                      id="care_intent_primary"
                       name="care_intent"
+                      data-sync-key="care_intent"
                       class="refine-primary-select"
                       aria-label="What kind of support do you want?"
                     >
@@ -118,8 +119,9 @@
                   <div class="refine-primary-sep" role="separator"></div>
                   <div class="refine-primary-field" data-intake-field="location_query">
                     <input
-                      id="location_query"
+                      id="location_query_primary"
                       name="location_query"
+                      data-sync-key="location_query"
                       type="text"
                       class="refine-primary-input"
                       placeholder="Enter ZIP code"
@@ -129,7 +131,7 @@
                     />
                     <span
                       class="match-zip-resolved"
-                      id="matchZipResolved"
+                      id="matchZipResolvedPrimary"
                       aria-live="polite"
                     ></span>
                   </div>
@@ -513,19 +515,29 @@
                       </div>
                       <div class="refine-search-row">
                         <div class="match-group" data-intake-field="care_intent">
-                          <label class="refine-field-lbl" for="care_intent">Type of care</label>
-                          <select id="care_intent" name="care_intent" required>
+                          <label class="refine-field-lbl" for="care_intent_drawer"
+                            >Type of care</label
+                          >
+                          <select
+                            id="care_intent_drawer"
+                            name="care_intent_drawer"
+                            data-sync-key="care_intent"
+                            required
+                          >
                             <option value="">Any type</option>
                             <option value="Therapy">Therapy</option>
                             <option value="Psychiatry">Psychiatry</option>
                           </select>
                         </div>
                         <div class="match-group" data-intake-field="location_query">
-                          <label class="refine-field-lbl" for="location_query">ZIP code</label>
+                          <label class="refine-field-lbl" for="location_query_drawer"
+                            >ZIP code</label
+                          >
                           <div class="match-zip-inline">
                             <input
-                              id="location_query"
-                              name="location_query"
+                              id="location_query_drawer"
+                              name="location_query_drawer"
+                              data-sync-key="location_query"
                               type="text"
                               placeholder="ZIP code"
                               inputmode="numeric"
@@ -533,7 +545,7 @@
                             />
                             <span
                               class="match-zip-resolved"
-                              id="matchZipResolved"
+                              id="matchZipResolvedDrawer"
                               aria-live="polite"
                             ></span>
                           </div>
