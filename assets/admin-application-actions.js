@@ -175,6 +175,25 @@ export function bindApplicationPanelInteractions(root, options) {
     options.renderApplications();
   });
 
+  root.querySelectorAll("[data-review-details-open]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-review-details-open");
+      var card = button.closest("[data-application-card-id]");
+      var details = card
+        ? card.querySelector('[data-review-details-id="' + id + '"]')
+        : root.querySelector('[data-review-details-id="' + id + '"]');
+      if (!details) {
+        return;
+      }
+      details.open = true;
+      button.setAttribute("aria-expanded", "true");
+      var summary = details.querySelector("summary");
+      if (summary) {
+        summary.focus();
+      }
+    });
+  });
+
   root.querySelectorAll("[data-action]").forEach(function (button) {
     button.addEventListener("click", async function () {
       const id = button.getAttribute("data-id");
