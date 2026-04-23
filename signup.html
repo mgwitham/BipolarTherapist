@@ -211,6 +211,23 @@
         color: var(--green);
         font-weight: 700;
       }
+      .signup-hero-claim-note {
+        margin-top: 1.5rem;
+        padding: 0.7rem 0.9rem;
+        background: var(--white);
+        border: 1px dashed var(--border);
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .signup-hero-claim-note a {
+        color: var(--teal-dark);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .signup-hero-claim-note a:hover {
+        text-decoration: underline;
+      }
 
       /* =========================
          New-listing form card
@@ -283,6 +300,39 @@
         height: 18px;
         accent-color: var(--teal);
       }
+      .new-listing-steps {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-top: 0.15rem;
+      }
+      .new-listing-step {
+        background: var(--teal-faint);
+        border: 1px solid rgba(26, 122, 143, 0.18);
+        border-radius: 10px;
+        padding: 0.55rem 0.7rem;
+        display: grid;
+        gap: 0.15rem;
+      }
+      .new-listing-step-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+      .new-listing-step-text {
+        font-size: 0.86rem;
+        font-weight: 500;
+        color: var(--navy);
+        line-height: 1.35;
+      }
+      .new-listing-privacy {
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-align: center;
+        margin-top: -0.25rem;
+      }
       .new-listing-submit {
         background: var(--teal);
         color: var(--white);
@@ -290,10 +340,11 @@
         border-radius: 12px;
         padding: 0.95rem 1rem;
         font: inherit;
-        font-size: 1rem;
+        font-size: 1.02rem;
         font-weight: 700;
         cursor: pointer;
         transition: background 0.15s ease;
+        box-shadow: 0 4px 12px rgba(26, 122, 143, 0.22);
       }
       .new-listing-submit:hover:not(:disabled) {
         background: var(--teal-dark);
@@ -549,6 +600,9 @@
         .signup-form-card {
           padding: 1.35rem;
         }
+        .new-listing-steps {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -559,7 +613,6 @@
       </a>
       <ul class="nav-links">
         <li><a href="signup.html" class="nav-link-current">List Your Practice</a></li>
-        <li><a href="claim.html">Claim a Listing</a></li>
         <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
         <li class="nav-zone-switch-item">
           <a href="directory.html" class="nav-zone-switch">← For patients</a>
@@ -570,23 +623,30 @@
     <main class="signup-main">
       <section class="signup-hero">
         <div class="signup-hero-copy">
-          <h1>List your California practice on BipolarTherapyHub</h1>
+          <h1>Reach Californians searching for bipolar-informed care.</h1>
           <p class="signup-hero-sub">
-            The verified bipolar-specialist directory for California. Patients reach you through
-            guided matching and intent-driven searches — not generic browsing.
+            BipolarTherapyHub connects verified California clinicians with patients who specifically
+            want bipolar-informed therapy. Guided matching sends them to you, no generic browsing.
           </p>
           <ul class="signup-hero-proof">
-            <li>Free to list, no credit card required</li>
-            <li>Instant CA license verification</li>
+            <li>5-field signup, most clinicians finish in under 2 minutes</li>
+            <li>Instant California license verification</li>
+            <li>Free listing, no credit card required</li>
             <li>Cancel or remove your listing anytime</li>
           </ul>
+
+          <p class="signup-hero-claim-note">
+            Already on BipolarTherapyHub and want to edit your existing profile?
+            <a href="claim.html">Claim your listing →</a>
+          </p>
         </div>
 
         <div>
           <section class="signup-form-card" aria-label="List your practice">
-            <h2>List your practice</h2>
+            <h2>Start your free listing</h2>
             <p class="signup-form-card-sub">
-              Five fields. License verified instantly. You choose paid or free right after.
+              Five short fields. We verify your California license instantly, then you pick free or
+              free trial.
             </p>
             <form id="newListingForm" class="new-listing-form" novalidate>
               <label>
@@ -651,11 +711,25 @@
               </label>
               <label class="new-listing-checkbox">
                 <input type="checkbox" name="treats_bipolar" required />
-                <span>
-                  I'm a California-licensed clinician and I treat bipolar disorder in my practice.
-                </span>
+                <span> I'm licensed in California and treat bipolar disorder in my practice. </span>
               </label>
-              <button type="submit" class="new-listing-submit">Verify my license →</button>
+              <div class="new-listing-steps" aria-hidden="true">
+                <div class="new-listing-step">
+                  <span class="new-listing-step-label">Step 1</span>
+                  <span class="new-listing-step-text">Verify your California license</span>
+                </div>
+                <div class="new-listing-step">
+                  <span class="new-listing-step-label">Step 2</span>
+                  <span class="new-listing-step-text">Choose free listing or free trial</span>
+                </div>
+              </div>
+              <button type="submit" class="new-listing-submit">
+                Verify license and continue →
+              </button>
+              <p class="new-listing-privacy">
+                We only use these details to verify your license and set up your listing. No credit
+                card required to start.
+              </p>
               <div
                 class="new-listing-status"
                 id="newListingStatus"
@@ -664,7 +738,8 @@
                 hidden
               ></div>
               <p class="new-listing-fineprint">
-                Free listing or 14-day paid trial. You pick after your license verifies.
+                Free listing stays free. The 14-day trial is optional and you only decide after
+                verification.
               </p>
             </form>
 
@@ -719,26 +794,24 @@
           <div class="signup-how-it-works-step-index">1</div>
           <h3>Submit 5 fields</h3>
           <p>
-            Name, email, CA license, practice ZIP, and a confirmation that you treat bipolar
-            disorder. No bio or photo needed yet.
+            Name, email, California license, practice ZIP, and confirmation that you treat bipolar
+            disorder. No bio or photo required yet.
           </p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">2</div>
-          <h3>We verify your license instantly</h3>
+          <h3>Instant California license check</h3>
           <p>
-            Real-time check against the California Board of Behavioral Sciences, Board of
-            Psychology, and Medical Board. If your license is valid, you move straight to the next
-            step.
+            We verify against the Board of Behavioral Sciences, Board of Psychology, and Medical
+            Board in real time. Valid licenses move to the next step right away.
           </p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">3</div>
-          <h3>Pick free or trial, edit your profile, go live</h3>
+          <h3>Choose free or trial and go live</h3>
           <p>
-            Choose a 14-day free trial (no charge until day 15) or stay on the free tier. Either way
-            you land in your dashboard and add a short bio to publish your listing. You can upgrade
-            from free to trial anytime.
+            Stay on the free tier or start a 14-day trial (no charge until day 15). You land in your
+            portal, add a short bio, and publish when ready.
           </p>
         </div>
       </div>
