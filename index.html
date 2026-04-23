@@ -593,7 +593,6 @@
       }
       .waitlist-panel {
         display: none;
-        position: relative;
         margin-top: 0.7rem;
         padding: 0.85rem;
         border-radius: 12px;
@@ -601,27 +600,37 @@
         background: #fafdfd;
         text-align: left;
       }
-      .waitlist-panel-close {
-        position: absolute;
-        top: 0.4rem;
-        right: 0.4rem;
-        width: 1.75rem;
-        height: 1.75rem;
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        font-size: 1.1rem;
-        line-height: 1;
-        cursor: pointer;
-        border-radius: 50%;
+      .waitlist-panel-header {
         display: flex;
         align-items: center;
-        justify-content: center;
-        padding: 0;
+        justify-content: space-between;
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .waitlist-panel-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .waitlist-panel-close {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.4rem 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--white);
+        color: var(--slate);
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
       }
       .waitlist-panel-close:hover {
-        background: rgba(107, 130, 144, 0.1);
-        color: var(--slate);
+        background: var(--teal-faint);
+        border-color: var(--teal);
+        color: var(--teal-dark);
       }
       .waitlist-panel.is-open {
         display: block;
@@ -1763,14 +1772,17 @@
               </button>
             </div>
             <div class="waitlist-panel" id="waitlistPanel" aria-hidden="true">
-              <button
-                type="button"
-                class="waitlist-panel-close"
-                id="waitlistClose"
-                aria-label="Close waitlist and go back"
-              >
-                ×
-              </button>
+              <div class="waitlist-panel-header">
+                <span class="waitlist-panel-title">Join the waitlist</span>
+                <button
+                  type="button"
+                  class="waitlist-panel-close"
+                  id="waitlistClose"
+                  aria-label="Close waitlist and go back to match tool"
+                >
+                  ← Back
+                </button>
+              </div>
               <div class="waitlist-panel-row">
                 <input
                   type="email"
