@@ -483,8 +483,15 @@
         font-family: "Lora", serif;
         font-size: 1.75rem;
         color: var(--navy);
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.9rem;
         text-align: center;
+      }
+      .signup-how-it-works-intro {
+        max-width: 44rem;
+        margin: 0 auto 1.5rem;
+        text-align: center;
+        color: var(--slate);
+        font-size: 0.98rem;
       }
       .signup-how-it-works-grid {
         display: grid;
@@ -517,6 +524,13 @@
       .signup-how-it-works-step p {
         color: var(--slate);
         font-size: 0.94rem;
+      }
+      .signup-how-it-works-footnote {
+        margin-top: 1rem;
+        text-align: center;
+        color: var(--teal-dark);
+        font-size: 0.95rem;
+        font-weight: 600;
       }
 
       /* =========================
@@ -625,8 +639,9 @@
         <div class="signup-hero-copy">
           <h1>Reach Californians searching for bipolar-informed care.</h1>
           <p class="signup-hero-sub">
-            BipolarTherapyHub connects verified California clinicians with patients who specifically
-            want bipolar-informed therapy. Guided matching sends them to you, no generic browsing.
+            BipolarTherapyHub helps verified California clinicians get discovered by patients
+            looking for bipolar-informed care. More complete profiles support stronger-fit matches,
+            not just broader exposure.
           </p>
           <ul class="signup-hero-proof">
             <li>5-field signup, most clinicians finish in under 2 minutes</li>
@@ -787,8 +802,12 @@
       </section>
     </main>
 
-    <section class="signup-how-it-works" aria-label="How it works">
-      <h2>How it works</h2>
+    <section class="signup-how-it-works" aria-label="How listing and matching work">
+      <h2>How listing and matching work</h2>
+      <p class="signup-how-it-works-intro">
+        Signup stays short. Verification happens immediately. Once your listing is live, profile
+        detail helps drive match quality.
+      </p>
       <div class="signup-how-it-works-grid">
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">1</div>
@@ -808,31 +827,43 @@
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">3</div>
-          <h3>Choose free or trial and go live</h3>
+          <h3>How matching works</h3>
           <p>
-            Stay on the free tier or start a 14-day trial (no charge until day 15). You land in your
-            portal, add a short bio, and publish when ready.
+            We use your profile to identify fit across the factors that matter most, including
+            specialties, populations served, treatment approach, availability, insurance, location,
+            and licensure.
           </p>
         </div>
       </div>
+      <p class="signup-how-it-works-footnote">
+        More complete profiles lead to better-fit matches and stronger visibility.
+      </p>
     </section>
 
     <section class="signup-faq" aria-label="Frequently asked questions">
       <h2>Common questions</h2>
+      <details class="signup-faq-item">
+        <summary>How does matching work?</summary>
+        <p>
+          We use your profile information to surface potential fit across factors like specialties,
+          treatment approach, availability, insurance, location, and licensure. We look at overall
+          fit, not any single field alone.
+        </p>
+      </details>
+      <details class="signup-faq-item">
+        <summary>Does completing my profile make a difference?</summary>
+        <p>
+          Yes. More complete profiles give us more context to represent your practice accurately and
+          improve your visibility in relevant matches. Specialties, treatment approach, insurance,
+          and availability are especially useful.
+        </p>
+      </details>
       <details class="signup-faq-item">
         <summary>Does it cost anything to be listed?</summary>
         <p>
           No. The basic listing is free forever. You can optionally start a 14-day free trial for
           analytics, a longer bio, and profile-edit tools — $19 per month after trial, cancel
           anytime. Paid tier has no effect on how your listing ranks.
-        </p>
-      </details>
-      <details class="signup-faq-item">
-        <summary>Do I need to upload a photo or bio right now?</summary>
-        <p>
-          No. The short form is intentionally five fields. After we approve your application, you
-          get a portal link where you can add a headshot, bio, specialties, insurance details, and
-          accepting-patients status at your own pace.
         </p>
       </details>
       <details class="signup-faq-item">
