@@ -199,18 +199,90 @@
       }
       .hero-sub {
         font-size: 1.05rem;
-        color: rgba(255, 255, 255, 0.78);
-        max-width: 440px;
-        margin: 0 auto 0.9rem;
+        color: rgba(255, 255, 255, 0.82);
+        max-width: 480px;
+        margin: 0 auto 1.1rem;
         line-height: 1.6;
       }
-      .hero-reassurance {
-        font-size: 0.82rem;
+      .hero-trust-chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.45rem;
+        max-width: 560px;
+        margin: 0 auto 1.4rem;
+      }
+      .hero-trust-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.78rem;
         font-weight: 600;
-        letter-spacing: 0.04em;
-        color: rgba(255, 255, 255, 0.58);
-        margin: 0 auto 1.8rem;
-        text-transform: uppercase;
+        line-height: 1.2;
+      }
+      .hero-trust-chip::before {
+        content: "✓";
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      .hero-process {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(29, 58, 74, 0.08);
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        text-align: left;
+      }
+      .hero-process-step {
+        display: flex;
+        flex-direction: column;
+        gap: 0.18rem;
+      }
+      .hero-process-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+      .hero-process-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.3;
+        margin-top: 0.1rem;
+      }
+      .hero-process-copy {
+        font-size: 0.74rem;
+        color: var(--slate);
+        line-height: 1.4;
+      }
+      .hero-expectation {
+        margin-top: 0.7rem;
+        text-align: center;
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .hero-expectation::before {
+        content: "⏱ ";
+        opacity: 0.7;
+      }
+      .search-btn[aria-busy="true"] {
+        opacity: 0.85;
+        cursor: progress;
       }
       .tool-shell {
         background: rgba(255, 255, 255, 0.1);
@@ -426,18 +498,21 @@
         background: var(--teal-dark);
       }
       .hero-browse-link {
-        margin-top: 0.95rem;
+        margin-top: 0.85rem;
         text-align: center;
       }
       .hero-browse-link a {
-        font-size: 0.92rem;
-        color: var(--teal-dark);
-        font-weight: 700;
-        text-decoration: none;
+        font-size: 0.82rem;
+        color: var(--muted);
+        font-weight: 500;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-color: rgba(107, 130, 144, 0.4);
         transition: color 0.18s;
       }
       .hero-browse-link a:hover {
-        color: var(--navy);
+        color: var(--slate);
+        text-decoration-color: var(--slate);
       }
       .search-helper {
         margin-top: 0.2rem;
@@ -1403,6 +1478,17 @@
         .hero-handoff {
           grid-template-columns: 1fr;
         }
+        .hero-process {
+          grid-template-columns: 1fr;
+          gap: 0.55rem;
+        }
+        .hero-trust-chips {
+          gap: 0.4rem;
+        }
+        .hero-trust-chip {
+          font-size: 0.74rem;
+          padding: 0.3rem 0.65rem;
+        }
         .search-preview-grid {
           grid-template-columns: 1fr;
         }
@@ -1512,8 +1598,15 @@
 
     <section class="hero" id="startMatch">
       <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
-      <p class="hero-sub">A calmer way to find bipolar care.</p>
-      <p class="hero-reassurance">Free · No account · No insurance needed</p>
+      <p class="hero-sub">
+        California therapists who actually treat bipolar. A calmer way to find care.
+      </p>
+      <div class="hero-trust-chips" aria-label="What you get">
+        <span class="hero-trust-chip">Bipolar specialists only</span>
+        <span class="hero-trust-chip">California licensed, verified</span>
+        <span class="hero-trust-chip">Direct contact, no middleman</span>
+        <span class="hero-trust-chip">Free. No account. No insurance.</span>
+      </div>
       <div class="tool-shell">
         <div class="tool-card">
           <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
@@ -1554,8 +1647,26 @@
             <div class="search-launch-note">Currently matching California ZIP codes.</div>
             <button type="submit" class="search-btn" id="searchButton">Find care</button>
           </form>
+          <p class="hero-expectation">About 3 minutes. No account required.</p>
+          <div class="hero-process" aria-label="What happens next">
+            <div class="hero-process-step">
+              <span class="hero-process-num" aria-hidden="true">1</span>
+              <span class="hero-process-title">A few quick questions</span>
+              <span class="hero-process-copy">Care type, location, what matters most.</span>
+            </div>
+            <div class="hero-process-step">
+              <span class="hero-process-num" aria-hidden="true">2</span>
+              <span class="hero-process-title">See matched specialists</span>
+              <span class="hero-process-copy">Ranked by fit, not by who paid.</span>
+            </div>
+            <div class="hero-process-step">
+              <span class="hero-process-num" aria-hidden="true">3</span>
+              <span class="hero-process-title">Reach out directly</span>
+              <span class="hero-process-copy">Email, phone, or booking link.</span>
+            </div>
+          </div>
           <div class="hero-browse-link">
-            <a href="directory.html">Prefer to browse first?</a>
+            <a href="directory.html">Or browse specialists instead</a>
           </div>
         </div>
       </div>
@@ -1706,8 +1817,16 @@
     <section class="home-section home-section--closing">
       <div class="home-section-inner home-closing-inner">
         <h2 class="home-section-title">Find a therapist who gets bipolar.</h2>
-        <p class="home-closing-sub">Thirty seconds. No account. No insurance needed to search.</p>
-        <a href="#startMatch" class="home-closing-btn">Start my match ↑</a>
+        <p class="home-closing-sub">About 60 seconds. No account. No insurance needed to search.</p>
+        <a href="#startMatch" class="home-closing-btn">Find care →</a>
+        <p style="margin-top: 1rem; font-size: 0.82rem; color: rgba(255, 255, 255, 0.78)">
+          Or
+          <a
+            href="directory.html"
+            style="color: #fff; text-decoration: underline; text-underline-offset: 3px"
+            >browse specialists instead</a
+          >.
+        </p>
       </div>
     </section>
 
@@ -1799,6 +1918,12 @@
               locationInput.focus();
             }
             return;
+          }
+
+          var btn = document.getElementById("searchButton");
+          if (btn) {
+            btn.setAttribute("aria-busy", "true");
+            btn.textContent = "Finding your matches…";
           }
         });
 
