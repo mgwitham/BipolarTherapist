@@ -2,14 +2,19 @@ function buildConfirmationSprintEmailHref(options, item, sprintRow) {
   if (!item || !item.email || !sprintRow) {
     return "";
   }
-  var body = [sprintRow.request_message || "", "", "Confirmation form:", options.buildConfirmationLink(item.slug)]
+  var body = [
+    sprintRow.request_message || "",
+    "",
+    "Confirmation form:",
+    options.buildConfirmationLink(item.slug),
+  ]
     .filter(Boolean)
     .join("\n");
   return (
     "mailto:" +
     encodeURIComponent(item.email) +
     "?subject=" +
-    encodeURIComponent(sprintRow.request_subject || ("Quick profile confirmation for " + item.name)) +
+    encodeURIComponent(sprintRow.request_subject || "Quick profile confirmation for " + item.name) +
     "&body=" +
     encodeURIComponent(body)
   );
@@ -74,7 +79,7 @@ export function renderConfirmationSprintPanel(options) {
     (readySprintRows.length
       ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button>'
       : "") +
-    '</div>' +
+    "</div>" +
     (miniLanes.length
       ? miniLanes
           .map(function (lane) {
@@ -136,7 +141,9 @@ export function renderConfirmationSprintPanel(options) {
               })
               .filter(Boolean)
           : orderedUnknownFields.slice(1);
-        const waitingOnSummary = (agenda.unknown_fields || []).map(options.formatFieldLabel).join(", ");
+        const waitingOnSummary = (agenda.unknown_fields || [])
+          .map(options.formatFieldLabel)
+          .join(", ");
         const emailHref = buildConfirmationSprintEmailHref(options, item, sprintRow);
         const nextStepLabel =
           workflow.status === "confirmed" || workflow.status === "applied"

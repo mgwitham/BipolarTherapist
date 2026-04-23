@@ -823,7 +823,9 @@ export function createConfirmationWorkspace(options) {
       "mailto:" +
       encodeURIComponent(item.email) +
       "?subject=" +
-      encodeURIComponent(subject || ("Quick profile confirmation for " + (item.name || "this therapist"))) +
+      encodeURIComponent(
+        subject || "Quick profile confirmation for " + (item.name || "this therapist"),
+      ) +
       "&body=" +
       encodeURIComponent(body)
     );
@@ -1071,8 +1073,14 @@ export function createConfirmationWorkspace(options) {
           var workflow = row.workflow;
           var emailHref = buildConfirmationEmailHref(
             item,
-            row.request_subject || ("Quick profile confirmation for " + item.name + " on BipolarTherapyHub"),
-            row.request_message || buildOrderedConfirmationRequestMessage(item, row.agenda.unknown_fields || [], row.primaryAskField),
+            row.request_subject ||
+              "Quick profile confirmation for " + item.name + " on BipolarTherapyHub",
+            row.request_message ||
+              buildOrderedConfirmationRequestMessage(
+                item,
+                row.agenda.unknown_fields || [],
+                row.primaryAskField,
+              ),
             buildConfirmationLink(item.slug),
           );
           var waitingOnSummary = [row.primaryAskField]
