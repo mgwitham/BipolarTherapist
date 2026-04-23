@@ -329,9 +329,10 @@ export function buildDirectoryDecisionPreviewModel(options) {
         label: "Fees",
         value: feeCopy,
         plain: true,
-        tone: therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
-          ? "teal"
-          : "",
+        tone:
+          therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale
+            ? "teal"
+            : "",
       },
       {
         label: "Availability",

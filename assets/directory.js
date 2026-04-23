@@ -468,7 +468,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     }
   }
 
-  function uniqueCounts(field, nested) {
+  function uniqueCounts(field, _nested) {
     var counts =
       field === "treatment_modalities"
         ? optionIndexes.modality
@@ -699,7 +699,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     dialog.hidden = false;
     scrim.hidden = false;
 
-    requestAnimationFrame(function () {
+    window.requestAnimationFrame(function () {
       dialog.setAttribute("data-open", "true");
       scrim.setAttribute("data-open", "true");
       if (closeButton) {
@@ -1012,7 +1012,9 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return;
     }
 
-    var backupShortlistButton = event.target.closest(".directory-backup-card [data-shortlist-slug]");
+    var backupShortlistButton = event.target.closest(
+      ".directory-backup-card [data-shortlist-slug]",
+    );
     if (backupShortlistButton) {
       var backupSlug = backupShortlistButton.getAttribute("data-shortlist-slug");
       if (!backupSlug) {

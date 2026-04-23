@@ -97,7 +97,11 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
       ? '<div class="directory-decision-preview-supporting">' +
         model.secondaryReasons
           .map(function (reason) {
-            return '<span class="directory-decision-preview-supporting-item">' + escapeHtml(reason) + "</span>";
+            return (
+              '<span class="directory-decision-preview-supporting-item">' +
+              escapeHtml(reason) +
+              "</span>"
+            );
           })
           .join("") +
         "</div>"
@@ -124,7 +128,11 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
       })
       .join("") +
     '</div><div class="directory-decision-preview-next-step">These are strong options to begin with. Contact one now, then come back if you need a backup.</div><div class="directory-decision-preview-cta-group"><a href="' +
-    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(model.therapist.slug, "preview_contact")) +
+    escapeHtml(
+      model.contactRoute
+        ? model.contactRoute.href
+        : buildTherapistProfileHref(model.therapist.slug, "preview_contact"),
+    ) +
     '"' +
     (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
     ' class="card-action-primary" data-primary-cta="' +
@@ -185,7 +193,11 @@ export function renderBackupCardMarkup(options) {
     renderTrustSignals(model.trustSignals.slice(0, 3), "directory-backup-card-trust") +
     renderFitReasons(model, 2) +
     '<div class="directory-backup-card-actions"><a href="' +
-    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(therapist.slug, "backup_contact")) +
+    escapeHtml(
+      model.contactRoute
+        ? model.contactRoute.href
+        : buildTherapistProfileHref(therapist.slug, "backup_contact"),
+    ) +
     '"' +
     (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
     ' class="card-action-primary" data-primary-cta="' +
@@ -299,7 +311,11 @@ export function renderDirectoryDetailsMarkup(options) {
     "</div></div>" +
     renderTrustSignals(model.trustSignals, "directory-details-trust") +
     '<div class="directory-details-actions"><a href="' +
-    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(model.therapist.slug, "details_contact")) +
+    escapeHtml(
+      model.contactRoute
+        ? model.contactRoute.href
+        : buildTherapistProfileHref(model.therapist.slug, "details_contact"),
+    ) +
     '"' +
     (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
     ' class="card-action-primary" data-primary-cta="' +
