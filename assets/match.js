@@ -4490,15 +4490,16 @@ function renderLeadResultCard(entry, _backupName, options) {
   var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
   var ctaLabel =
     routeType === "booking"
-      ? "Book a consultation"
+      ? "Book consultation"
       : routeType === "phone"
-        ? "Call this provider"
+        ? "Call therapist"
         : routeType === "email"
-          ? "Email this provider"
-          : routeType === "website"
-            ? "Visit provider site"
-            : "Reach out";
+          ? "Email therapist"
+          : "Contact therapist";
   var chips = getHeroFitChips(therapist, entry);
+  var fitReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
+    ? entry.evaluation.reasons.filter(Boolean).slice(0, 3)
+    : [];
   var chipsHtml = chips
     .map(function (chip) {
       return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
@@ -4556,6 +4557,15 @@ function renderLeadResultCard(entry, _backupName, options) {
     "</span>" +
     "</div>" +
     "</div>" +
+    (fitReasons.length
+      ? '<div class="mx-hero-fit"><h4 class="mx-hero-fit-title">Why this may be a good fit</h4><ul class="mx-hero-fit-list">' +
+        fitReasons
+          .map(function (reason) {
+            return "<li>" + escapeHtml(reason) + "</li>";
+          })
+          .join("") +
+        "</ul></div>"
+      : "") +
     '<div class="mx-hero-actions">' +
     (preferredRoute
       ? '<a href="' +
@@ -4574,8 +4584,9 @@ function renderLeadResultCard(entry, _backupName, options) {
     encodeURIComponent(therapist.slug || "") +
     '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">See full profile</a>' +
+    '" data-profile-link-context="primary-card">View details</a>' +
     "</div>" +
+    '<p class="mx-hero-reassure">You do not need to get this perfect. Start with your top match.</p>' +
     "</div>" +
     "</article>"
   );
@@ -4600,9 +4611,7 @@ function renderSupportingResultCard(entry, _rank, options) {
         ? "Call"
         : routeType === "email"
           ? "Email"
-          : routeType === "website"
-            ? "Visit"
-            : "Reach out";
+          : "Contact";
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
   var metaParts = [];
   if (availabilityLabel) {
@@ -4632,7 +4641,11 @@ function renderSupportingResultCard(entry, _rank, options) {
     renderSaveIcon() +
     "</button>" +
     "</div>" +
-    (explanation ? '<p class="mx-card-reason">' + escapeHtml(explanation) + "</p>" : "") +
+    (explanation
+      ? '<div class="mx-card-fit"><span class="mx-card-fit-label">Why this may be a good fit</span><p class="mx-card-reason">' +
+        escapeHtml(explanation) +
+        "</p></div>"
+      : "") +
     (metaHtml ? '<div class="mx-card-meta">' + metaHtml + "</div>" : "") +
     '<div class="mx-card-actions">' +
     (preferredRoute
