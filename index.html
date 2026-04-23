@@ -593,12 +593,63 @@
       }
       .waitlist-panel {
         display: none;
-        margin-top: 0.7rem;
-        padding: 0.85rem;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fafdfd;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: rgba(10, 35, 45, 0.55);
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
         text-align: left;
+      }
+      .waitlist-panel.is-open {
+        display: flex;
+      }
+      .waitlist-panel-card {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        background: var(--white);
+        border-radius: 18px;
+        padding: 1.5rem 1.25rem 1.25rem;
+        box-shadow: 0 24px 50px rgba(3, 25, 31, 0.35);
+      }
+      .waitlist-panel-title {
+        font-family: "Lora", serif;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--navy);
+        margin-bottom: 0.25rem;
+        padding-right: 2.5rem;
+      }
+      .waitlist-panel-subtitle {
+        font-size: 0.85rem;
+        color: var(--slate);
+        margin-bottom: 1rem;
+      }
+      .waitlist-panel-close {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 2.2rem;
+        height: 2.2rem;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: var(--white);
+        color: var(--slate);
+        font-size: 1.3rem;
+        line-height: 1;
+        font-family: inherit;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .waitlist-panel-close:hover {
+        background: var(--teal-faint);
+        border-color: var(--teal);
+        color: var(--teal-dark);
       }
       .waitlist-panel.is-open {
         display: block;
@@ -1739,22 +1790,43 @@
                 other states: join waitlist
               </button>
             </div>
-            <div class="waitlist-panel" id="waitlistPanel" aria-hidden="true">
-              <div class="waitlist-panel-row">
-                <input
-                  type="email"
-                  id="waitlistEmail"
-                  placeholder="your@email.com"
-                  autocomplete="email"
-                />
-                <select id="waitlistState" aria-label="Your state">
-                  <option value="">State</option>
-                </select>
+            <div
+              class="waitlist-panel"
+              id="waitlistPanel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="waitlistPanelTitle"
+              aria-hidden="true"
+            >
+              <div class="waitlist-panel-card">
+                <button
+                  type="button"
+                  class="waitlist-panel-close"
+                  id="waitlistClose"
+                  aria-label="Close waitlist"
+                >
+                  ×
+                </button>
+                <div class="waitlist-panel-title" id="waitlistPanelTitle">Join the waitlist</div>
+                <div class="waitlist-panel-subtitle">
+                  We'll email you when we launch in your state.
+                </div>
+                <div class="waitlist-panel-row">
+                  <input
+                    type="email"
+                    id="waitlistEmail"
+                    placeholder="your@email.com"
+                    autocomplete="email"
+                  />
+                  <select id="waitlistState" aria-label="Your state">
+                    <option value="">State</option>
+                  </select>
+                </div>
+                <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
+                  Join waitlist
+                </button>
+                <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
               </div>
-              <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
-                Join waitlist
-              </button>
-              <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
             </div>
             <button type="submit" class="search-btn" id="searchButton">Find care</button>
           </form>
@@ -2063,18 +2135,36 @@
           return "/api/review";
         }
 
-        var findCareBtn = document.getElementById("searchButton");
-        toggle.addEventListener("click", function () {
-          var opening = !panel.classList.contains("is-open");
+        var closeBtn = document.getElementById("waitlistClose");
+        function setPanelOpen(opening) {
           panel.classList.toggle("is-open", opening);
           panel.setAttribute("aria-hidden", opening ? "false" : "true");
-          if (findCareBtn) {
-            findCareBtn.style.display = opening ? "none" : "";
-          }
+          document.body.style.overflow = opening ? "hidden" : "";
           if (opening) {
             setTimeout(function () {
               emailInput.focus();
             }, 0);
+          } else {
+            setStatus("", "");
+            toggle.focus();
+          }
+        }
+        toggle.addEventListener("click", function () {
+          setPanelOpen(true);
+        });
+        if (closeBtn) {
+          closeBtn.addEventListener("click", function () {
+            setPanelOpen(false);
+          });
+        }
+        panel.addEventListener("click", function (event) {
+          if (event.target === panel) {
+            setPanelOpen(false);
+          }
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && panel.classList.contains("is-open")) {
+            setPanelOpen(false);
           }
         });
 
