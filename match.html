@@ -5975,6 +5975,30 @@
           display: none;
         }
       }
+
+      /* Primary-CTA dominance: make the featured (lead-card) contact action
+         visually outrank every secondary action on the first screen. */
+      .lead-card .match-card-cta:not(.is-supporting) {
+        min-height: 60px;
+        font-size: 1.02rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        box-shadow: 0 18px 36px rgba(26, 122, 143, 0.22);
+      }
+      .lead-card .match-card-copy-btn,
+      .lead-card .match-card-profile-link.btn-secondary {
+        font-weight: 500;
+        box-shadow: none;
+      }
+      /* Demote the feedback bar and compare block so they don't fight the
+         featured CTA for attention. They remain fully functional, just quieter. */
+      .match-feedback-bar,
+      #matchCompare {
+        opacity: 0.95;
+      }
+      .match-feedback-bar .feedback-btn {
+        box-shadow: none;
+      }
     </style>
   </head>
   <body>
@@ -5999,12 +6023,12 @@
       <a href="index.html" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Start</span>
         <span class="public-mobile-nav-title">Homepage</span>
-        <span class="public-mobile-nav-copy">Reorient fast</span>
+        <span class="public-mobile-nav-copy">Start over</span>
       </a>
       <a href="match.html" class="public-mobile-nav-link is-current">
         <span class="public-mobile-nav-kicker">Guided</span>
         <span class="public-mobile-nav-title">Get matched</span>
-        <span class="public-mobile-nav-copy">Lead and backup</span>
+        <span class="public-mobile-nav-copy">Top matches</span>
       </a>
       <a href="match.html" class="public-mobile-nav-link nav-shortlist" data-shortlist-link>
         <span class="public-mobile-nav-kicker">Saved</span>
@@ -6135,7 +6159,7 @@
                   <summary aria-hidden="true"></summary>
 
                   <div class="match-refine-drawer-header">
-                    <h2>Refine your matches</h2>
+                    <h2>Narrow results</h2>
                     <button
                       type="button"
                       id="matchRefineDrawerClose"
@@ -6546,8 +6570,8 @@
         <div id="matchAdaptiveGuidance"></div>
         <div class="feedback-insights" id="feedbackInsights" hidden>
           <div class="feedback-insights-header">
-            <h3>Internal Match Insights</h3>
-            <p>Local-only summary of the feedback captured on this device.</p>
+            <h3>Your feedback so far</h3>
+            <p>A quick summary of what you have flagged on this device.</p>
           </div>
           <div class="insight-empty">No feedback captured yet.</div>
         </div>
