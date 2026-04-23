@@ -115,11 +115,7 @@ function applyLoggedOutState() {
   pricingState.paidMode = slugParam ? "claim" : "signup";
 
   updateCtaLink(freeCta, "Claim free listing", buildClaimHref());
-  updateCtaLink(
-    paidCta,
-    "Start free trial",
-    slugParam ? buildClaimHref() : buildSignupHref(),
-  );
+  updateCtaLink(paidCta, "Start free trial", slugParam ? buildClaimHref() : buildSignupHref());
 
   if (freeBadge) {
     freeBadge.textContent = "Always available";
@@ -203,7 +199,11 @@ function applySignedInPaidState(me, subscription) {
   pricingState.paidMode = "manage_subscription";
 
   updateCtaLink(freeCta, "Open dashboard", buildPortalHref(therapistSlug));
-  updateCtaLink(paidCta, isTrial ? "Manage trial" : "Manage subscription", buildPortalHref(therapistSlug));
+  updateCtaLink(
+    paidCta,
+    isTrial ? "Manage trial" : "Manage subscription",
+    buildPortalHref(therapistSlug),
+  );
 
   if (freeBadge) {
     freeBadge.textContent = "Included now";
@@ -333,7 +333,8 @@ async function handleManageSubscription(event) {
     return;
   }
 
-  var originalLabel = pricingState.branch === "signed_in_trial" ? "Manage trial" : "Manage subscription";
+  var originalLabel =
+    pricingState.branch === "signed_in_trial" ? "Manage trial" : "Manage subscription";
   setCtaBusy(paidCta, "Opening billing...");
   setFeedback(paidFeedback, "Opening billing and cancellation controls...", "success");
 

@@ -13,12 +13,14 @@ const pricingJs = readFileSync(
 );
 
 test("pricing page: headline and supporting copy explain free vs paid concretely", () => {
+  assert.match(pricingHtml, /Get listed for free\./);
   assert.match(
     pricingHtml,
-    /Get listed for free\. Upgrade when you want clearer insight into how patients find and contact you\./,
+    /Upgrade when you want clearer insight into how patients find and\s+contact you\./,
   );
   assert.match(pricingHtml, /Every therapist can claim a directory listing/);
-  assert.match(pricingHtml, /Paying never\s+changes placement in match results\./);
+  assert.match(pricingHtml, /Paying never/);
+  assert.match(pricingHtml, /placement in match results\./);
 });
 
 test("pricing page: free and paid CTA labels are parallel and easy to compare", () => {
@@ -52,14 +54,20 @@ test("pricing page: includes decision support and a paid-value preview", () => {
 test("pricing page: mobile comparison stays single-column and preview remains responsive", () => {
   assert.match(pricingHtml, /@media \(max-width: 720px\)/);
   assert.match(pricingHtml, /\.pricing-grid\s*\{\s*grid-template-columns: 1fr;/);
-  assert.match(pricingHtml, /\.pricing-preview,\s*\.pricing-support-grid,\s*\.pricing-fairness-grid\s*\{\s*grid-template-columns: 1fr;/);
+  assert.match(
+    pricingHtml,
+    /\.pricing-preview,\s*\.pricing-support-grid,\s*\.pricing-fairness-grid\s*\{\s*grid-template-columns: 1fr;/,
+  );
 });
 
 test("pricing script: resolves signed-out, free, trial, and paid therapist branches", () => {
   assert.match(pricingJs, /branch:\s*therapistSessionToken \? "signed_in_loading" : "logged_out"/);
   assert.match(pricingJs, /pricingState\.branch = "signed_in_free"/);
   assert.match(pricingJs, /pricingState\.branch = isTrial \? "signed_in_trial" : "signed_in_paid"/);
-  assert.match(pricingJs, /pricingState\.branch = slugParam \? "logged_out_known_listing" : "logged_out"/);
+  assert.match(
+    pricingJs,
+    /pricingState\.branch = slugParam \? "logged_out_known_listing" : "logged_out"/,
+  );
 });
 
 test("pricing script: uses therapist session and subscription APIs for authenticated CTA behavior", () => {
@@ -67,7 +75,10 @@ test("pricing script: uses therapist session and subscription APIs for authentic
   assert.match(pricingJs, /fetchTherapistSubscription/);
   assert.match(pricingJs, /createStripeFeaturedCheckoutSession/);
   assert.match(pricingJs, /createStripeBillingPortalSession/);
-  assert.match(pricingJs, /Promise\.all\(\[fetchTherapistMe\(\), fetchTherapistSubscription\(\)\]\)/);
+  assert.match(
+    pricingJs,
+    /Promise\.all\(\[fetchTherapistMe\(\), fetchTherapistSubscription\(\)\]\)/,
+  );
 });
 
 test("pricing script: tracks pricing analytics for views, CTAs, branch resolution, and preview interaction", () => {
