@@ -78,6 +78,17 @@ test("admin page: secondary filters are progressively revealed", function () {
   assert.match(html, /Fine-tune signups, claim flow, and review goals/);
 });
 
+test("application review cards are compact and keep deeper context behind details", function () {
+  const applicationReviewJs = read("assets/admin-application-review.js");
+  const applicationActionsJs = read("assets/admin-application-actions.js");
+
+  assert.match(applicationReviewJs, /Apply refresh/);
+  assert.match(applicationReviewJs, /data-open-review-details/);
+  assert.match(applicationReviewJs, /Details, coaching, and notes/);
+  assert.match(applicationActionsJs, /data-open-review-details/);
+  assert.doesNotMatch(applicationReviewJs, /Review command/);
+});
+
 test("confirmation queue cards stay action-first instead of repeating ask scaffolding", function () {
   const confirmationQueueJs = read("assets/admin-confirmation-queue.js");
 

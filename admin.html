@@ -3236,6 +3236,98 @@
       .application-head h3 {
         margin: 0;
       }
+      .application-card-shell {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .application-card-topline {
+        display: flex;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .application-priority-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.24rem 0.58rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.1);
+        color: var(--teal-dark);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+      }
+      .application-priority-chip.is-neutral {
+        background: #eef4f6;
+        color: #46616d;
+      }
+      .application-priority-chip.is-publish {
+        background: rgba(34, 197, 94, 0.14);
+        color: #166534;
+      }
+      .application-priority-chip.is-trust {
+        background: rgba(245, 158, 11, 0.16);
+        color: #9a6700;
+      }
+      .application-priority-chip.is-ownership {
+        background: rgba(59, 130, 246, 0.14);
+        color: #1d4ed8;
+      }
+      .application-card-summary {
+        margin: 0;
+        color: var(--navy);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      .application-card-subsummary {
+        margin: 0;
+        color: #547283;
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+      .application-card-actions {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .application-card-actions .btn-primary,
+      .application-card-actions .btn-secondary,
+      .application-card-actions .btn-secondary.btn-inline {
+        min-height: 40px;
+      }
+      .application-compact-facts {
+        display: flex;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .application-fact-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
+        background: #eef4f6;
+        color: #46616d;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      .application-fact-pill.is-publish {
+        background: rgba(34, 197, 94, 0.12);
+        color: #166534;
+      }
+      .application-fact-pill.is-trust {
+        background: rgba(245, 158, 11, 0.16);
+        color: #9a6700;
+      }
+      .application-fact-pill.is-ownership {
+        background: rgba(59, 130, 246, 0.14);
+        color: #1d4ed8;
+      }
+      .application-fact-pill.is-neutral {
+        background: #eef4f6;
+        color: #46616d;
+      }
       .card-state-strip {
         margin: 0.78rem 0 0.82rem;
         padding: 0.78rem 0.88rem;
@@ -3966,16 +4058,28 @@
       .review-details-summary {
         list-style: none;
         cursor: pointer;
-        padding: 0.85rem 1rem;
-        font-size: 0.84rem;
+        padding: 0.72rem 0.95rem;
+        font-size: 0.78rem;
         font-weight: 800;
         color: var(--navy);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         background: linear-gradient(180deg, #ffffff 0%, #f9fcfd 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
       .review-details-summary::-webkit-details-marker {
         display: none;
+      }
+      .review-details-summary::after {
+        content: "+";
+        font-size: 1rem;
+        line-height: 1;
+        color: #648293;
+      }
+      .review-details[open] .review-details-summary::after {
+        content: "−";
       }
       .review-details-body {
         padding: 0 1rem 1rem;
