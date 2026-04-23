@@ -218,7 +218,11 @@ function maybeWarmZipcodesForValue(value) {
 }
 
 function syncMirroredFieldValues(changedNode) {
-  if (!changedNode || !changedNode.name) {
+  if (!changedNode) {
+    return;
+  }
+  var syncKey = changedNode.getAttribute("data-sync-key") || changedNode.name;
+  if (!syncKey) {
     return;
   }
   if (changedNode.type === "radio" || changedNode.type === "checkbox") {
@@ -228,7 +232,8 @@ function syncMirroredFieldValues(changedNode) {
   if (!form) {
     return;
   }
-  Array.from(form.querySelectorAll('[name="' + changedNode.name + '"]')).forEach(function (node) {
+  var selector = '[data-sync-key="' + syncKey + '"], [name="' + syncKey + '"]';
+  Array.from(form.querySelectorAll(selector)).forEach(function (node) {
     if (node === changedNode || node.type === "radio" || node.type === "checkbox") {
       return;
     }
@@ -774,7 +779,7 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
   root.querySelectorAll("[data-empty-clear]").forEach(function (button) {
     button.addEventListener("click", function () {
       clearOptionalRefinements();
-      syncZipResolvedLabel(document.getElementById("location_query").value);
+      syncZipResolvedLabel(readCurrentIntakeProfile().location_query);
       syncMatchStartState();
       renderAdaptiveIntakeGuidance(readCurrentIntakeProfile());
       renderIntakeTradeoffPreview(readCurrentIntakeProfile());
@@ -797,9 +802,9 @@ function maybeLiveRecompute(event) {
   if (!document.body.classList.contains("match-refine-drawer-open")) return;
   var form = document.getElementById("matchForm");
   if (!form) return;
-  var careIntent = (form.elements.care_intent || { value: "" }).value || "";
-  var zipRaw = (form.elements.location_query || { value: "" }).value || "";
-  var zip = normalizeLocationQuery(zipRaw);
+  var profile = readCurrentIntakeProfile();
+  var careIntent = profile && profile.care_intent ? profile.care_intent : "";
+  var zip = normalizeLocationQuery(profile && profile.location_query);
   if (!careIntent || !zip) {
     // Nothing to recompute yet — surface a gentle prompt instead.
     setLiveStatus("Pick care type and a ZIP code to see live matches.", false);
@@ -822,7 +827,6 @@ function maybeLiveRecompute(event) {
     // #matchResults.innerHTML during executeMatch no longer detaches
     // the drawer subtree. Live recompute is safe again: cards under
     // the dimmed backdrop animate as the user tweaks filters.
-    var profile = readCurrentIntakeProfile();
     await ensureZipcodesReadyForProfile(profile);
     executeMatch(profile, {
       scroll: false,
@@ -1477,7 +1481,7 @@ function formatSegmentLabel(segment) {
 }
 
 function initMatchCareDropdown() {
-  var select = document.getElementById("care_intent");
+  var select = document.getElementById("care_intent_primary");
 
   if (!select) {
     return;
@@ -5366,7 +5370,9 @@ function refreshIntakeUiFromForm() {
   var form = refs.form;
   var profile = readCurrentIntakeProfile();
 
-  syncZipResolvedLabel(form.elements.location_query.value);
+  syncZipResolvedLabel(
+    profile.location_query || (form.elements.location_query || { value: "" }).value,
+  );
   syncMatchStartState();
   renderMatchIntakePreview(profile);
   renderAdaptiveIntakeGuidance(profile);
