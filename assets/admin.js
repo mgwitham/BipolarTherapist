@@ -675,6 +675,15 @@ if (typeof window !== "undefined") {
       syncAdminQuickNavFromViewport();
     }, 120);
   });
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest(".admin-mode-links a[href^='#']");
+    if (!link) return;
+    var targetHash = link.getAttribute("href");
+    if (!targetHash || targetHash === "#") return;
+    if (window.location.hash === targetHash) {
+      syncWorkflowFocusFromHash();
+    }
+  });
   window.setTimeout(function () {
     applyAdminWorkflowUrlParams();
     syncWorkflowFocusFromHash();
