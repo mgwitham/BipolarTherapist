@@ -5210,18 +5210,38 @@ function getDomainFromUrl(url) {
   }
 }
 
+var HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
+var CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
+
+function extractFirstName(name) {
+  var raw = String(name || "").trim();
+  if (!raw) return "";
+  // Drop everything after a comma — credentials almost always follow one.
+  var beforeComma = raw.split(",")[0];
+  var tokens = beforeComma.split(/\s+/).filter(Boolean);
+  while (tokens.length && HONORIFIC_PATTERN.test(tokens[0])) {
+    tokens.shift();
+  }
+  while (tokens.length && CREDENTIAL_PATTERN.test(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+  var first = tokens[0] || "";
+  if (!first || HONORIFIC_PATTERN.test(first) || CREDENTIAL_PATTERN.test(first)) {
+    return "";
+  }
+  return first;
+}
+
 function getFirstName(name) {
-  var parts = String(name || "")
-    .trim()
-    .split(/\s+/);
-  return parts[0] || "your therapist";
+  return extractFirstName(name) || "your therapist";
 }
 
 function buildContactDraftMessage(therapist) {
+  var first = extractFirstName(therapist.name);
+  var greeting = first ? "Hi " + first + "," : "Hi there,";
   return (
-    "Hi " +
-    getFirstName(therapist.name) +
-    ", I found you through BipolarTherapyHub. " +
+    greeting +
+    " I found you through BipolarTherapyHub. " +
     "I'm looking for a bipolar-informed therapist and saw your profile. " +
     "Are you currently accepting new patients?"
   );
