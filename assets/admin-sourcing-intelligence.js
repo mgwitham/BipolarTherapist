@@ -26,25 +26,24 @@ function formatCoveredZips(zips) {
   return Array.from(zips).sort().join(", ");
 }
 
-function buildZipsClause(cityEntry, cityLabel) {
+function extractCityName(cityLabel) {
+  const comma = String(cityLabel || "").indexOf(",");
+  return comma >= 0 ? cityLabel.slice(0, comma).trim() : String(cityLabel || "").trim();
+}
+
+function buildCoverageContext(cityEntry) {
   if (!cityEntry || !cityEntry.zips.size) {
-    return (
-      "neighborhoods across " +
-      cityLabel +
-      " — we have no clinicians in this city yet; spread results across 4-5 distinct neighborhoods"
-    );
+    return "# COVERAGE CONTEXT\n\nWe have no clinicians in this city yet. Spread candidates across 4-5 distinct neighborhoods so the first batch represents the full city rather than one cluster.";
   }
   const covered = formatCoveredZips(cityEntry.zips);
   return (
-    "neighborhoods across " +
-    cityLabel +
-    " — already covered ZIPs: " +
+    "# COVERAGE CONTEXT\n\nAlready covered ZIPs in this city: " +
     covered +
-    "; prioritize candidates in ZIPs we do NOT yet cover, spread across 4-5 distinct neighborhoods"
+    ". Prioritize candidates in ZIPs we do NOT yet cover; spread across 4-5 distinct neighborhoods so we broaden the footprint rather than deepen existing coverage."
   );
 }
 
-function buildExclusionsClause(cityEntry) {
+function buildExistingClinicianList(cityEntry) {
   if (!cityEntry || !cityEntry.entries.length) {
     return "# ALREADY IN OUR DATABASE\n\nNo existing listings in this city yet.";
   }
@@ -65,12 +64,13 @@ function buildExclusionsClause(cityEntry) {
 
 export function buildDiscoveryPromptForCity(cityLabel, cityEntry, count) {
   const n = Number(count) > 0 ? Math.floor(Number(count)) : DEFAULT_DISCOVERY_COUNT;
-  const zipsClause = buildZipsClause(cityEntry, cityLabel);
-  const exclusions = buildExclusionsClause(cityEntry);
+  const cityName = extractCityName(cityLabel) || cityLabel;
+  const exclusions =
+    buildCoverageContext(cityEntry) + "\n\n" + buildExistingClinicianList(cityEntry);
   return discoveryPromptTemplate
-    .replace(/\{CITY\}/g, cityLabel)
+    .replace(/\{CITY\}/g, cityName)
     .replace(/\{N\}/g, String(n))
-    .replace(/\{ZIPS\}/g, zipsClause)
+    .replace(/\{ZIPS\}/g, "")
     .replace(/\{EXCLUSIONS\}/g, exclusions);
 }
 
