@@ -4998,11 +4998,21 @@ var matchEntriesBySlug = Object.create(null);
 
 function rememberEntriesForDetails(entries) {
   matchEntriesBySlug = Object.create(null);
+  var missingContact = [];
   (entries || []).forEach(function (entry) {
     if (entry && entry.therapist && entry.therapist.slug) {
       matchEntriesBySlug[entry.therapist.slug] = entry;
+      if (!getContactRoutes(entry).length) {
+        missingContact.push(entry.therapist.slug + " (" + (entry.therapist.name || "?") + ")");
+      }
     }
   });
+  if (missingContact.length) {
+    console.warn(
+      "[match] therapists missing all contact methods (cards will be hidden):",
+      missingContact,
+    );
+  }
 }
 
 function renderDetailsBody(entry) {
@@ -5031,19 +5041,26 @@ function renderDetailsBody(entry) {
   if (cost) gridItems.push(["Session fee", cost]);
   if (insurance) gridItems.push(["Insurance", insurance]);
   if (therapist.license_number) {
-    gridItems.push(["License", "CA " + therapist.license_number]);
+    gridItems.push([
+      "License",
+      "CA " + therapist.license_number,
+      '<a href="https://search.dca.ca.gov/" target="_blank" rel="noopener noreferrer">CA ' +
+        escapeHtml(therapist.license_number) +
+        "</a>",
+    ]);
   }
   var gridHtml = gridItems.length
     ? '<div class="mx-details-grid">' +
       gridItems
         .map(function (pair) {
+          var valueHtml = pair[2] ? pair[2] : escapeHtml(pair[1]);
           return (
             '<div class="mx-details-grid-item">' +
             '<span class="mx-details-grid-label">' +
             escapeHtml(pair[0]) +
             "</span>" +
             '<span class="mx-details-grid-value">' +
-            escapeHtml(pair[1]) +
+            valueHtml +
             "</span>" +
             "</div>"
           );
@@ -5171,6 +5188,407 @@ function bindMatchDetailsDialog() {
       event.preventDefault();
     }
   });
+}
+
+// ─── Contact modal ──────────────────────────────────────────────
+// Single-purpose dialog launched by every contact CTA on the match
+// page. Replaces the raw tel:/mailto: that previously fired straight
+// from anchors (which opened FaceTime on macOS).
+
+function isMobileViewport() {
+  if (typeof window === "undefined") return false;
+  if ("ontouchstart" in window || navigator.maxTouchPoints > 0) return true;
+  if (window.matchMedia && window.matchMedia("(max-width: 767px)").matches) return true;
+  return false;
+}
+
+function getDomainFromUrl(url) {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch (_e) {
+    return "";
+  }
+}
+
+function getFirstName(name) {
+  var parts = String(name || "")
+    .trim()
+    .split(/\s+/);
+  return parts[0] || "your therapist";
+}
+
+function buildContactDraftMessage(therapist) {
+  return (
+    "Hi " +
+    getFirstName(therapist.name) +
+    ", I found you through BipolarTherapyHub. " +
+    "I'm looking for a bipolar-informed therapist and saw your profile. " +
+    "Are you currently accepting new patients?"
+  );
+}
+
+function formatPhoneDisplay(phone) {
+  var digits = String(phone || "").replace(/[^\d]/g, "");
+  if (digits.length === 11 && digits.charAt(0) === "1") {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 10) {
+    return "(" + digits.slice(0, 3) + ") " + digits.slice(3, 6) + "-" + digits.slice(6);
+  }
+  return String(phone || "").trim();
+}
+
+function getContactRoutes(entry) {
+  var therapist = (entry && entry.therapist) || {};
+  var routes = [];
+  var phoneDigits = String(therapist.phone || "").replace(/[^\d+]/g, "");
+  if (phoneDigits) {
+    routes.push({
+      type: "phone",
+      label: "Phone",
+      display: formatPhoneDisplay(therapist.phone),
+      href: "tel:" + phoneDigits,
+      raw: therapist.phone,
+    });
+  }
+  if (therapist.email && therapist.email !== "contact@example.com") {
+    routes.push({
+      type: "email",
+      label: "Email",
+      display: therapist.email,
+      href: "mailto:" + therapist.email,
+      raw: therapist.email,
+    });
+  }
+  if (therapist.booking_url) {
+    var bookingHref = /^(https?:)/i.test(therapist.booking_url)
+      ? therapist.booking_url
+      : "https://" + therapist.booking_url.replace(/^\/+/, "");
+    routes.push({
+      type: "booking",
+      label: "Book online",
+      display: getDomainFromUrl(bookingHref) || "Booking page",
+      href: bookingHref,
+      raw: bookingHref,
+    });
+  }
+  if (therapist.website) {
+    var siteHref = /^(https?:)/i.test(therapist.website)
+      ? therapist.website
+      : "https://" + therapist.website.replace(/^\/+/, "");
+    routes.push({
+      type: "website",
+      label: "Website",
+      display: getDomainFromUrl(siteHref) || "Website",
+      href: siteHref,
+      raw: siteHref,
+    });
+  }
+  return routes;
+}
+
+function pickPrimaryContactRoute(entry) {
+  var routes = getContactRoutes(entry);
+  if (!routes.length) return null;
+  var preferred = String(
+    (entry && entry.therapist && entry.therapist.preferred_contact_method) || "",
+  ).trim();
+  if (preferred) {
+    var match = routes.find(function (r) {
+      return r.type === preferred;
+    });
+    if (match) return match;
+  }
+  // Default priority: phone → email → booking → website
+  var order = ["phone", "email", "booking", "website"];
+  for (var i = 0; i < order.length; i += 1) {
+    var found = routes.find(function (r) {
+      return r.type === order[i];
+    });
+    if (found) return found;
+  }
+  return routes[0];
+}
+
+function renderContactDialogBody(entry) {
+  var therapist = entry.therapist || {};
+  var primary = pickPrimaryContactRoute(entry);
+  var routes = getContactRoutes(entry);
+  var others = routes.filter(function (r) {
+    return r !== primary;
+  });
+  var firstName = getFirstName(therapist.name);
+  var mobile = isMobileViewport();
+
+  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
+  var metaLine = [credLine, locLine].filter(Boolean).join(" · ");
+
+  // Primary method block
+  var primaryBlockHtml = "";
+  if (primary) {
+    if (primary.type === "phone") {
+      primaryBlockHtml =
+        '<div class="mx-contact-method"><div class="mx-contact-method-label">Phone</div>' +
+        '<div class="mx-contact-method-value" data-contact-copy-source="phone">' +
+        escapeHtml(primary.display) +
+        "</div></div>";
+    } else if (primary.type === "email") {
+      primaryBlockHtml =
+        '<div class="mx-contact-method"><div class="mx-contact-method-label">Email</div>' +
+        '<div class="mx-contact-method-value mx-contact-method-value--mono" data-contact-copy-source="email">' +
+        escapeHtml(primary.display) +
+        "</div></div>";
+    } else {
+      primaryBlockHtml =
+        '<div class="mx-contact-method"><div class="mx-contact-method-label">' +
+        escapeHtml(primary.label) +
+        "</div>" +
+        '<div class="mx-contact-method-value mx-contact-method-value--mono">' +
+        escapeHtml(primary.display) +
+        "</div></div>";
+    }
+  }
+
+  // Device-aware primary action button(s)
+  var actionsHtml = "";
+  if (primary) {
+    if (primary.type === "phone") {
+      actionsHtml = mobile
+        ? '<a class="mx-btn-primary" href="' + escapeHtml(primary.href) + '">Call now</a>'
+        : '<button type="button" class="mx-btn-primary" data-contact-copy="phone" data-contact-copy-value="' +
+          escapeHtml(primary.display) +
+          '">Copy number</button>';
+    } else if (primary.type === "email") {
+      actionsHtml = mobile
+        ? '<a class="mx-btn-primary" href="' +
+          escapeHtml(primary.href) +
+          "?subject=" +
+          encodeURIComponent("Inquiry from BipolarTherapyHub") +
+          '">Email now</a>'
+        : '<button type="button" class="mx-btn-primary" data-contact-copy="email" data-contact-copy-value="' +
+          escapeHtml(primary.raw) +
+          '">Copy email</button>';
+    } else {
+      actionsHtml =
+        '<a class="mx-btn-primary" href="' +
+        escapeHtml(primary.href) +
+        '" target="_blank" rel="noopener noreferrer">Open booking page</a>';
+    }
+  }
+
+  // Other-methods strip
+  var othersHtml = "";
+  if (others.length) {
+    othersHtml =
+      '<div class="mx-contact-others"><div class="mx-contact-others-label">Other ways to reach ' +
+      escapeHtml(firstName) +
+      ':</div><ul class="mx-contact-others-list">' +
+      others
+        .map(function (r) {
+          var external = r.type === "booking" || r.type === "website";
+          return (
+            '<li><a href="' +
+            escapeHtml(r.href) +
+            '"' +
+            (external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+            ' data-contact-other-route="' +
+            escapeHtml(r.type) +
+            '"><span class="mx-contact-other-label">' +
+            escapeHtml(r.label) +
+            ':</span> <span class="mx-contact-other-value">' +
+            escapeHtml(r.display) +
+            "</span></a></li>"
+          );
+        })
+        .join("") +
+      "</ul></div>";
+  }
+
+  // Pre-written outreach message
+  var draft = buildContactDraftMessage(therapist);
+  var draftHtml =
+    '<div class="mx-contact-draft">' +
+    '<label for="contactDraftMessage" class="mx-contact-draft-label">A message to get you started — edit or use as-is</label>' +
+    '<textarea id="contactDraftMessage" class="mx-contact-draft-textarea" rows="5">' +
+    escapeHtml(draft) +
+    "</textarea>" +
+    '<div class="mx-contact-draft-actions">' +
+    '<button type="button" class="mx-btn-secondary" data-contact-copy-message>Copy message</button>' +
+    (primary && primary.type === "email" && therapist.email
+      ? '<button type="button" class="mx-btn-secondary" data-contact-send-email="' +
+        escapeHtml(therapist.email) +
+        '">Send as email</button>'
+      : "") +
+    "</div></div>";
+
+  var reassureHtml =
+    '<p class="mx-contact-reassure">Most bipolar-informed therapists respond within 2-3 business days.</p>';
+
+  return (
+    '<header class="mx-contact-header">' +
+    '<h3 class="mx-contact-name" id="contactDialogTitle">' +
+    escapeHtml(therapist.name || "") +
+    "</h3>" +
+    (metaLine ? '<p class="mx-contact-meta">' + escapeHtml(metaLine) + "</p>" : "") +
+    "</header>" +
+    primaryBlockHtml +
+    (actionsHtml ? '<div class="mx-contact-actions">' + actionsHtml + "</div>" : "") +
+    othersHtml +
+    draftHtml +
+    reassureHtml
+  );
+}
+
+function flashCopyConfirmation(button) {
+  if (!button) return;
+  var original = button.getAttribute("data-original-label") || button.textContent;
+  button.setAttribute("data-original-label", original);
+  button.textContent = "Copied ✓";
+  button.classList.add("is-copied");
+  window.setTimeout(function () {
+    button.textContent = original;
+    button.classList.remove("is-copied");
+  }, 2000);
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_e) {
+      // fall through to legacy path
+    }
+  }
+  try {
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+function bindContactDialogActions(entry) {
+  var body = document.getElementById("contactDialogBody");
+  if (!body) return;
+  var therapist = entry.therapist || {};
+
+  body.querySelectorAll("[data-contact-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var value = button.getAttribute("data-contact-copy-value") || "";
+      var ok = await copyTextToClipboard(value);
+      if (ok) {
+        flashCopyConfirmation(button);
+        trackFunnelEvent("match_contact_modal_copy", {
+          slug: therapist.slug || "",
+          target: button.getAttribute("data-contact-copy"),
+        });
+      }
+    });
+  });
+
+  var copyMessageBtn = body.querySelector("[data-contact-copy-message]");
+  if (copyMessageBtn) {
+    copyMessageBtn.addEventListener("click", async function () {
+      var textarea = body.querySelector("#contactDraftMessage");
+      var text = textarea ? textarea.value : "";
+      var ok = await copyTextToClipboard(text);
+      if (ok) {
+        flashCopyConfirmation(copyMessageBtn);
+        trackFunnelEvent("match_contact_modal_copy_message", {
+          slug: therapist.slug || "",
+        });
+      }
+    });
+  }
+
+  var sendEmailBtn = body.querySelector("[data-contact-send-email]");
+  if (sendEmailBtn) {
+    sendEmailBtn.addEventListener("click", function () {
+      var email = sendEmailBtn.getAttribute("data-contact-send-email") || "";
+      var textarea = body.querySelector("#contactDraftMessage");
+      var bodyText = textarea ? textarea.value : "";
+      var href =
+        "mailto:" +
+        email +
+        "?subject=" +
+        encodeURIComponent("Inquiry from BipolarTherapyHub") +
+        "&body=" +
+        encodeURIComponent(bodyText);
+      trackFunnelEvent("match_contact_modal_send_email", {
+        slug: therapist.slug || "",
+      });
+      window.location.href = href;
+    });
+  }
+
+  body.querySelectorAll("[data-contact-other-route]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      trackFunnelEvent("match_contact_modal_other_route", {
+        slug: therapist.slug || "",
+        route: link.getAttribute("data-contact-other-route") || "",
+      });
+    });
+  });
+}
+
+function openContactDialog(slug) {
+  var entry = matchEntriesBySlug[slug];
+  if (!entry || !entry.therapist) return false;
+  var routes = getContactRoutes(entry);
+  if (!routes.length) return false;
+  var dialog = document.getElementById("contactDialog");
+  var body = document.getElementById("contactDialogBody");
+  if (!dialog || !body || typeof dialog.showModal !== "function") return false;
+  body.innerHTML = renderContactDialogBody(entry);
+  if (!dialog.open) dialog.showModal();
+  bindContactDialogActions(entry);
+  trackFunnelEvent("match_contact_modal_opened", {
+    slug: entry.therapist.slug || "",
+  });
+  return true;
+}
+
+function bindContactDialog() {
+  var dialog = document.getElementById("contactDialog");
+  var close = document.getElementById("contactDialogClose");
+  if (!dialog || !close) return;
+  close.addEventListener("click", function () {
+    if (dialog.open) dialog.close();
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) dialog.close();
+  });
+
+  document.addEventListener(
+    "click",
+    function (event) {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
+      var target = event.target && event.target.closest ? event.target : null;
+      if (!target) return;
+      var trigger = target.closest(
+        "[data-match-primary-cta], [data-fallback-contact-link], [data-contact-trigger]",
+      );
+      if (!trigger) return;
+      var slug =
+        trigger.getAttribute("data-match-primary-cta") ||
+        trigger.getAttribute("data-fallback-contact-link") ||
+        trigger.getAttribute("data-contact-trigger");
+      if (!slug) return;
+      if (openContactDialog(slug)) {
+        event.preventDefault();
+      }
+    },
+    true,
+  );
 }
 
 function renderResults(entries, profile) {
@@ -5405,6 +5823,7 @@ function refreshIntakeUiFromForm() {
   var refs = getMatchShellRefs();
   initMatchCareDropdown();
   bindMatchDetailsDialog();
+  bindContactDialog();
   bindRefineButtons();
   bindRefineTeaserShortcuts();
   var matchForm = refs.form;
