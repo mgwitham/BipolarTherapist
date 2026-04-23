@@ -1136,10 +1136,6 @@
 }
 body.match-refine-drawer-open .match-refine-backdrop {
   opacity: 1;
-  pointer-events: auto;
-}
-body.match-refine-drawer-open {
-  overflow: hidden;
 }
 /* CRITICAL: #matchResults gets a `motion-enter` class that animates
          a transform with `animation-fill-mode: both`, leaving a residual

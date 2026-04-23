@@ -243,14 +243,39 @@ export function readCurrentIntakeProfile(options) {
     return null;
   }
   function readFieldValue(name) {
-    var nodes = form.querySelectorAll('[name="' + name + '"]');
-    for (var i = 0; i < nodes.length; i++) {
+    var nodes = Array.from(form.querySelectorAll('[name="' + name + '"]'));
+    if (!nodes.length) {
+      return "";
+    }
+    var firstNode = nodes[0];
+    if (firstNode.type === "radio") {
+      var checkedNode = nodes.find(function (node) {
+        return node.checked;
+      });
+      return checkedNode ? checkedNode.value : "";
+    }
+    if (firstNode.type === "checkbox") {
+      var checkedBox = nodes.find(function (node) {
+        return node.checked;
+      });
+      return checkedBox ? checkedBox.value : "";
+    }
+    var activeNode =
+      typeof document !== "undefined" && document.activeElement
+        ? nodes.find(function (node) {
+            return node === document.activeElement;
+          })
+        : null;
+    if (activeNode) {
+      return activeNode.value;
+    }
+    for (var i = nodes.length - 1; i >= 0; i--) {
       var value = String(nodes[i].value || "").trim();
       if (value) {
         return nodes[i].value;
       }
     }
-    return nodes[0] ? nodes[0].value : "";
+    return firstNode.value || "";
   }
   var urgencyField = form.elements.urgency;
   var locationQuery = normalizeLocationQuery(readFieldValue("location_query"));
@@ -359,6 +384,16 @@ export function hydrateForm(profile, options) {
   function setFieldValue(name, value) {
     var nodes = form.querySelectorAll('[name="' + name + '"]');
     nodes.forEach(function (node) {
+      if (node.type === "radio") {
+        node.checked = node.value === value;
+        return;
+      }
+      if (node.type === "checkbox") {
+        node.checked = Array.isArray(value)
+          ? value.indexOf(node.value) !== -1
+          : node.value === value;
+        return;
+      }
       node.value = value;
     });
   }
