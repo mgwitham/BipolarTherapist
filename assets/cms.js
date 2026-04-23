@@ -15,6 +15,94 @@ const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
   error: null,
 };
+const PUBLIC_THERAPISTS_CACHE_KEY = "bth_public_therapists_cache_v1";
+const PUBLIC_THERAPISTS_CACHE_TTL_MS = 60 * 1000;
+let publicTherapistsMemoryCache = null;
+let publicTherapistsPromise = null;
+
+function cloneCachedValue(value) {
+  if (typeof globalThis !== "undefined" && typeof globalThis.structuredClone === "function") {
+    return globalThis.structuredClone(value);
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
+function canUseSessionStorage() {
+  try {
+    return typeof window !== "undefined" && !!window.sessionStorage;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function readPublicTherapistsCache() {
+  if (
+    publicTherapistsMemoryCache &&
+    Date.now() - publicTherapistsMemoryCache.timestamp < PUBLIC_THERAPISTS_CACHE_TTL_MS
+  ) {
+    return cloneCachedValue(publicTherapistsMemoryCache.value);
+  }
+
+  if (!canUseSessionStorage()) {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(PUBLIC_THERAPISTS_CACHE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      !Array.isArray(parsed.value) ||
+      typeof parsed.timestamp !== "number" ||
+      Date.now() - parsed.timestamp >= PUBLIC_THERAPISTS_CACHE_TTL_MS
+    ) {
+      window.sessionStorage.removeItem(PUBLIC_THERAPISTS_CACHE_KEY);
+      return null;
+    }
+
+    publicTherapistsMemoryCache = parsed;
+    return cloneCachedValue(parsed.value);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writePublicTherapistsCache(value) {
+  const entry = {
+    timestamp: Date.now(),
+    value: cloneCachedValue(value),
+  };
+  publicTherapistsMemoryCache = entry;
+
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(PUBLIC_THERAPISTS_CACHE_KEY, JSON.stringify(entry));
+  } catch (_error) {
+    // Ignore cache write failures and continue with the live response.
+  }
+}
+
+function clearPublicTherapistsCache() {
+  publicTherapistsMemoryCache = null;
+  publicTherapistsPromise = null;
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(PUBLIC_THERAPISTS_CACHE_KEY);
+  } catch (_error) {
+    // Ignore cache clear failures.
+  }
+}
 
 function normalizeSiteSettings(doc) {
   if (!doc) {
@@ -387,21 +475,49 @@ export async function fetchPublicTherapists(options) {
     return getTherapists();
   }
 
+  if (!fresh) {
+    const cached = readPublicTherapistsCache();
+    if (cached) {
+      setCmsState("sanity", null);
+      return cached;
+    }
+    if (publicTherapistsPromise) {
+      return publicTherapistsPromise.then(cloneCachedValue);
+    }
+  }
+
   try {
-    const docs = await fetchFromSanity(
+    const fetchPromise = fetchFromSanity(
       `*[_type == "therapist" && listingActive == true && status == "active"] | order(name asc) ${therapistProjection}`,
       null,
       { fresh },
-    );
+    ).then(function (docs) {
+      const normalized = docs.map(normalizeTherapist);
+      if (!fresh) {
+        writePublicTherapistsCache(normalized);
+      }
+      return normalized;
+    });
+    if (!fresh) {
+      publicTherapistsPromise = fetchPromise;
+    }
+    const therapists = await fetchPromise;
     setCmsState("sanity", null);
-    return docs.map(normalizeTherapist);
+    return cloneCachedValue(therapists);
   } catch (error) {
     console.error("Failed to load therapists from Sanity.", error);
     setCmsState("error", error);
+    if (!fresh) {
+      clearPublicTherapistsCache();
+    }
     if (strict) {
       throw error;
     }
     return getTherapists();
+  } finally {
+    if (!fresh) {
+      publicTherapistsPromise = null;
+    }
   }
 }
 
@@ -436,7 +552,7 @@ export async function fetchPublicTherapistBySlug(slug) {
     );
     setCmsState("sanity", null);
     if (!doc) {
-      return null;
+      return getTherapistBySlug(slug);
     }
     // Pull the subscription document for this therapist so the page
     // renderer can gate enhanced-profile treatment (e.g. full-bio
@@ -462,7 +578,7 @@ export async function fetchPublicTherapistBySlug(slug) {
   } catch (error) {
     console.error("Failed to load therapist profile from Sanity.", error);
     setCmsState("error", error);
-    return null;
+    return getTherapistBySlug(slug);
   }
 }
 
