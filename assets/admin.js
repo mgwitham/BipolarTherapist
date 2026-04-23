@@ -66,6 +66,7 @@ import {
   summarizeProfileContactSignals,
   summarizeProfileQueueProgress,
   summarizePatientJourney,
+  trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { createConfirmationWorkspace } from "./admin-confirmation-workspace.js";
 import { createListingsWorkspace } from "./admin-listings-workspace.js";
