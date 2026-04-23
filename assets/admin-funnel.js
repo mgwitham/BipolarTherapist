@@ -258,15 +258,16 @@ function bindFunnelDashboard() {
       loadFunnelDashboard();
     });
   }
-  // Load when the admin-view tab becomes "funnel".
+  // Load when the admin-view tab becomes "reports" so funnel analysis stays
+  // with other reporting surfaces instead of competing with queue work.
   const observer = new window.MutationObserver(function () {
-    if (document.body.getAttribute("data-admin-view") === "funnel") {
+    if (document.body.getAttribute("data-admin-view") === "reports") {
       loadFunnelDashboard();
     }
   });
   observer.observe(document.body, { attributes: true, attributeFilter: ["data-admin-view"] });
-  // Also load once on init if already on the funnel tab.
-  if (document.body.getAttribute("data-admin-view") === "funnel") {
+  // Also load once on init if already on the reports tab.
+  if (document.body.getAttribute("data-admin-view") === "reports") {
     loadFunnelDashboard();
   }
 }

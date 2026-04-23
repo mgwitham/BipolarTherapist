@@ -1,9 +1,12 @@
 import { updateTherapistCandidate, updateTherapist } from "./review-api.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 
 let _drawerEl = null;
 let _onSaved = null;
 let _editMode = "candidate"; // "candidate" | "therapist"
 let _editId = null;
+let _initialSnapshot = "";
+let _isDirty = false;
 
 function getDrawer() {
   if (!_drawerEl) {
@@ -45,6 +48,60 @@ function getVal(id) {
 function setDrawerTitle(label) {
   const titleEl = document.getElementById("editDrawerTitle");
   if (titleEl) titleEl.textContent = label;
+}
+
+function getForm() {
+  const drawer = getDrawer();
+  return drawer ? drawer.querySelector(".edit-drawer-form") : null;
+}
+
+function serializeForm(form) {
+  if (!form) return "";
+  const payload = [];
+  form.querySelectorAll("input, textarea, select").forEach(function (field) {
+    if (!field.id) return;
+    payload.push(
+      field.id +
+        ":" +
+        (field.type === "checkbox" ? String(Boolean(field.checked)) : String(field.value || "")),
+    );
+  });
+  return payload.join("|");
+}
+
+function syncDirtyState() {
+  const drawer = getDrawer();
+  const dirtyBadge = document.getElementById("editDrawerDirty");
+  const contextNote = document.getElementById("editDrawerContext");
+  const visibilityNote = document.getElementById("editDrawerVisibility");
+  if (!drawer || !dirtyBadge) return;
+
+  _isDirty = serializeForm(getForm()) !== _initialSnapshot;
+  drawer.setAttribute("data-edit-dirty", _isDirty ? "true" : "false");
+  document.body.setAttribute(
+    "data-admin-mode",
+    drawer.classList.contains("is-open") ? "editing" : "workspace",
+  );
+  dirtyBadge.textContent = _isDirty ? "Unsaved changes" : "All changes saved";
+  dirtyBadge.className = "edit-drawer-badge " + (_isDirty ? "is-dirty" : "is-clean");
+
+  if (contextNote) {
+    contextNote.textContent =
+      _editMode === "therapist"
+        ? "Editing mode for a live listing. Review carefully before saving."
+        : "Editing mode for a queued listing. Save keeps your review context in place.";
+  }
+  if (visibilityNote) {
+    visibilityNote.textContent =
+      _editMode === "therapist"
+        ? "Saved therapist changes can affect the public listing immediately."
+        : "Saved candidate changes update the review record and do not publish by themselves.";
+  }
+}
+
+function markSavedState() {
+  _initialSnapshot = serializeForm(getForm());
+  syncDirtyState();
 }
 
 export function openCandidateEditDrawer(candidate, onSaved) {
@@ -102,6 +159,12 @@ export function openCandidateEditDrawer(candidate, onSaved) {
 
   drawer.classList.add("is-open");
   document.body.classList.add("drawer-open");
+  document.body.setAttribute("data-admin-mode", "editing");
+  trackFunnelEvent("admin_profile_edit_opened", {
+    mode: "candidate",
+    record_id: _editId,
+  });
+  markSavedState();
 }
 
 export function openTherapistEditDrawer(therapist, onSaved) {
@@ -167,13 +230,27 @@ export function openTherapistEditDrawer(therapist, onSaved) {
 
   drawer.classList.add("is-open");
   document.body.classList.add("drawer-open");
+  document.body.setAttribute("data-admin-mode", "editing");
+  trackFunnelEvent("admin_profile_edit_opened", {
+    mode: "therapist",
+    record_id: _editId,
+  });
+  markSavedState();
 }
 
 export function closeCandidateEditDrawer() {
   const drawer = getDrawer();
   if (!drawer) return;
+  if (_isDirty && typeof window !== "undefined" && typeof window.confirm === "function") {
+    const shouldClose = window.confirm(
+      "You have unsaved changes in editing mode. Close without saving?",
+    );
+    if (!shouldClose) return;
+  }
   drawer.classList.remove("is-open");
   document.body.classList.remove("drawer-open");
+  document.body.setAttribute("data-admin-mode", "workspace");
+  _isDirty = false;
 }
 
 export function bindCandidateEditDrawer() {
@@ -195,6 +272,16 @@ export function bindCandidateEditDrawer() {
   const form = drawer.querySelector(".edit-drawer-form");
   const statusEl = drawer.querySelector(".edit-save-status");
   if (!form) return;
+
+  ["input", "change"].forEach(function (eventName) {
+    form.addEventListener(eventName, function () {
+      syncDirtyState();
+      if (statusEl && statusEl.classList.contains("is-success")) {
+        statusEl.textContent = "";
+        statusEl.className = "edit-save-status";
+      }
+    });
+  });
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -275,17 +362,29 @@ export function bindCandidateEditDrawer() {
       }
 
       if (statusEl) {
-        statusEl.textContent = "Saved.";
+        statusEl.textContent = "Saved. The latest changes are now the working version.";
         statusEl.className = "edit-save-status is-success";
       }
+      markSavedState();
+      trackFunnelEvent("admin_profile_changes_saved", {
+        mode: _editMode,
+        record_id: _editId,
+      });
       if (_onSaved) _onSaved(saved);
       window.setTimeout(closeCandidateEditDrawer, 900);
     } catch (err) {
       if (statusEl) {
         statusEl.textContent =
-          "Save failed \u2014 " + (err && err.message ? err.message : "try again");
+          err && err.status === 409
+            ? "Save blocked because this record changed elsewhere. Reload the latest version and try again."
+            : "Save failed — " + (err && err.message ? err.message : "try again");
         statusEl.className = "edit-save-status is-error";
       }
+      trackFunnelEvent("admin_profile_save_failed", {
+        mode: _editMode,
+        record_id: _editId,
+        status: err && err.status ? err.status : 0,
+      });
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
