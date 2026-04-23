@@ -2416,6 +2416,23 @@ function wireEditProfileHandlers(therapist) {
   var firstEditFired = false;
   var lastReadinessScore = getTherapistMatchReadiness(therapist).score;
 
+  // Unsaved-changes guard. beforeunload asks the browser to warn the
+  // clinician if they try to close the tab or navigate with dirty edits.
+  // Cleared on successful save below. Modern browsers ignore the string
+  // — event.preventDefault() is what actually triggers the native prompt.
+  var isDirty = false;
+  function setDirty(next) {
+    isDirty = Boolean(next);
+    document.body.classList.toggle("portal-has-unsaved", isDirty);
+  }
+  function beforeUnloadHandler(event) {
+    if (!isDirty) return undefined;
+    event.preventDefault();
+    event.returnValue = "";
+    return "";
+  }
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+
   // Debounced draft autosave on edit. 600ms covers a natural typing
   // pause without burning writes on every keystroke.
   var draftSaveTimer = null;
@@ -2445,6 +2462,13 @@ function wireEditProfileHandlers(therapist) {
   var onEdit = function () {
     updateReadinessUi(therapist, form);
     scheduleDraftSave();
+    // Dirty-tracks against the last saved snapshot so toggling a field
+    // back to its original value clears the guard.
+    var currentState = snapshotFormState(form);
+    var differs = Object.keys(currentState).some(function (k) {
+      return currentState[k] !== initialSnapshot[k];
+    });
+    setDirty(differs);
     if (!firstEditFired) {
       firstEditFired = true;
       trackFunnelEvent("portal_first_edit", { slug: draftSlug });
@@ -2503,6 +2527,7 @@ function wireEditProfileHandlers(therapist) {
         initialSnapshot = snapshotFormState(form);
         clearPortalDraft(draftSlug);
       }
+      setDirty(false);
       trackFunnelEvent("portal_save_success", {
         slug: draftSlug,
         changed_fields: changedNames,
@@ -2621,210 +2646,247 @@ function renderPortal(therapist, options) {
         'border-radius:999px;cursor:pointer;white-space:nowrap">Sign out</button>'
       : "";
 
-  shell.innerHTML =
-    '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
-    escapeHtml(heroEyebrow) +
-    "</p><h1>" +
-    escapeHtml(therapist.name) +
-    '</h1><p class="portal-subtle">' +
-    escapeHtml(therapist.city + ", " + therapist.state) +
-    (therapist.practice_name ? " · " + escapeHtml(therapist.practice_name) : "") +
-    '</p></div><div class="portal-badges" style="display:flex;gap:0.5rem;' +
-    'align-items:center;flex-wrap:wrap"><span class="portal-badge">' +
-    escapeHtml(claimStatus) +
-    '</span><span class="portal-badge">' +
-    escapeHtml(readiness.label + " · " + readiness.score + "/100") +
-    "</span>" +
-    signOutControl +
-    "</div></section>" +
-    notYetPublicBanner +
-    welcomeUpsellBanner +
-    (sessionMode === "claim_token"
-      ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
-      : "") +
-    (verifiedClaim ? buildEditProfileHtml(therapist) : "") +
-    '<section class="portal-grid">' +
-    '<article class="portal-card"><h2>Profile status</h2><div class="portal-list">' +
-    "<div><strong>Live listing:</strong> " +
-    escapeHtml(
-      therapist.listing_active === false
-        ? "Paused (hidden from directory)"
-        : therapist.status === "active"
-          ? "Live"
-          : therapist.status
-            ? therapist.status.charAt(0).toUpperCase() + therapist.status.slice(1)
-            : "Not yet published",
-    ) +
-    "</div>" +
-    "<div><strong>Claim status:</strong> " +
-    escapeHtml(claimStatus) +
-    "</div>" +
-    "<div><strong>Claimed email:</strong> " +
-    escapeHtml(therapist.claimed_by_email || "Not set") +
-    "</div>" +
-    "<div><strong>Claimed at:</strong> " +
-    escapeHtml(formatDate(therapist.claimed_at) || "Not set") +
-    "</div>" +
-    "<div><strong>Last seen in portal:</strong> " +
-    escapeHtml(formatDate(therapist.portal_last_seen_at) || "Not tracked yet") +
-    "</div>" +
-    "<div><strong>Pause requested:</strong> " +
-    escapeHtml(pauseRequested ? "Yes" : "No") +
-    "</div>" +
-    "<div><strong>Removal requested:</strong> " +
-    escapeHtml(removalRequested ? "Yes" : "No") +
-    "</div>" +
-    "</div></article>" +
-    '<article class="portal-card"><h2>Manage now</h2><p class="portal-subtle">' +
-    escapeHtml(
-      verifiedClaim
-        ? "You now manage this profile through a lightweight reviewed workflow. Updates still go through review before they replace the live listing."
-        : "Once you claim the profile, this becomes your lightweight control surface for updates, pause requests, and removal requests.",
-    ) +
-    '</p><div class="portal-list"><div><strong>Main contact route:</strong> ' +
-    escapeHtml(getContactRouteLabel(therapist)) +
-    "</div><div><strong>Headshot status:</strong> " +
-    escapeHtml(getPhotoStatusLabel(therapist)) +
-    "</div><div><strong>Accepting patients:</strong> " +
-    escapeHtml(
-      therapist.accepting_new_patients === false
-        ? "Currently marked not accepting"
-        : "Currently marked accepting or open to inquiry",
-    ) +
-    '</div></div><div class="portal-actions"><a class="btn-secondary" href="claim.html?confirm=' +
-    encodeURIComponent(therapist.slug) +
-    '">Confirm or update profile</a><a class="btn-secondary" href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug) +
-    '">View live profile</a>' +
-    (verifiedClaim
-      ? '<span class="portal-subtle">This profile is now claimed to ' +
-        escapeHtml(therapist.claimed_by_email || "") +
-        ".</span>"
-      : "") +
-    "</div></article>" +
-    '<article class="portal-card"><h2>Recommended next step</h2><div class="portal-list"><div><strong>' +
-    escapeHtml(nextAction.title) +
-    "</strong></div><div>" +
-    escapeHtml(nextAction.body) +
-    "</div></div>" +
-    (nextAction.href && nextAction.ctaLabel
+  // Live / paused / pending — single plain-English label for the snapshot.
+  var liveLabel =
+    therapist.listing_active === false
+      ? "Paused (hidden from directory)"
+      : therapist.status === "active"
+        ? "Live"
+        : therapist.status
+          ? therapist.status.charAt(0).toUpperCase() + therapist.status.slice(1)
+          : "Not yet published";
+
+  // Auto-open editor only when the clinician clearly needs it:
+  // fresh claim_token session, pre-publish state, explicit deep-link to
+  // #portalEditProfile, or no saves yet. Otherwise keep overview first.
+  var editorAutoOpen =
+    isPendingProfile ||
+    sessionMode === "claim_token" ||
+    (typeof window !== "undefined" &&
+      window.location &&
+      window.location.hash === "#portalEditProfile") ||
+    (verifiedClaim && !(therapist && therapist.portal_save_count > 0));
+
+  var nextStepCta =
+    nextAction.href && nextAction.ctaLabel
       ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
         escapeHtml(nextAction.href) +
         '">' +
         escapeHtml(nextAction.ctaLabel) +
         "</a></div>"
-      : "") +
+      : verifiedClaim
+        ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="#portalEditProfile" data-portal-editor-jump="1">Edit profile</a></div>'
+        : "";
+
+  // Zone 1 — Priority: recommended next step (prominent, accented) + a
+  // compact listing snapshot with quick actions. Replaces the old
+  // "Profile status" + "Manage now" + "Recommended next step" +
+  // "What needs attention" four-card sprawl.
+  var priorityZone =
+    '<section class="portal-priority">' +
+    '<article class="portal-card portal-next-step">' +
+    '<p class="portal-eyebrow">What to do next</p>' +
+    "<h2>" +
+    escapeHtml(nextAction.title) +
+    "</h2>" +
+    '<p class="portal-subtle" style="margin:0.35rem 0 0">' +
+    escapeHtml(nextAction.body) +
+    "</p>" +
+    nextStepCta +
     "</article>" +
-    (progress
-      ? '<article class="portal-card"><h2>Your progress</h2><div class="portal-list"><div><strong>Current status:</strong> ' +
-        escapeHtml(progress.statusLabel) +
-        "</div><div><strong>Next step:</strong> " +
-        escapeHtml(progress.nextStep) +
-        '</div></div><div class="portal-list" style="margin-top:0.85rem">' +
-        progress.stages
-          .map(function (stage) {
-            return "<div>" + (stage.done ? "✓ " : "○ ") + escapeHtml(stage.label) + "</div>";
-          })
-          .join("") +
-        (relatedApplication && relatedApplication.portal_state === "claimed_ready_for_profile"
-          ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
-            escapeHtml(
-              getPortalSignupHref(
-                therapist,
-                relatedApplication,
-                getPortalResumeField(relatedApplication),
-              ),
-            ) +
-            '">Complete full profile</a></div>'
-          : "") +
-        "</div></article>"
-      : "") +
-    (profileCoaching
-      ? '<article class="portal-card"><h2>What Will Strengthen Your Profile</h2><div class="portal-list"><div><strong>Current readiness:</strong> ' +
-        escapeHtml(profileCoaching.scoreLabel) +
-        "</div>" +
-        (profileCoaching.missingItems.length
-          ? '<div><strong>Best next additions:</strong></div><div class="portal-list">' +
-            profileCoaching.missingItems
-              .map(function (item) {
-                return "<div>• " + escapeHtml(item) + "</div>";
-              })
-              .join("") +
-            "</div>"
-          : "") +
-        (profileCoaching.strengths.length
-          ? '<div style="margin-top:0.4rem"><strong>Already helping your profile:</strong></div><div class="portal-list">' +
-            profileCoaching.strengths
-              .map(function (item) {
-                return "<div>✓ " + escapeHtml(item) + "</div>";
-              })
-              .join("") +
-            "</div>"
-          : "") +
-        "</div></article>"
-      : "") +
-    (portalTimeline.length
-      ? '<article class="portal-card"><h2>Recent Progress</h2><div class="portal-list">' +
-        portalTimeline
+    '<article class="portal-card portal-listing-snapshot">' +
+    '<p class="portal-eyebrow">Listing status</p>' +
+    '<h2 style="margin:0 0 0.35rem">' +
+    escapeHtml(liveLabel) +
+    "</h2>" +
+    '<ul class="portal-snapshot-list">' +
+    "<li><span>Claim</span><strong>" +
+    escapeHtml(claimStatus) +
+    "</strong></li>" +
+    "<li><span>Accepting patients</span><strong>" +
+    escapeHtml(therapist.accepting_new_patients === false ? "Not accepting" : "Accepting or open") +
+    "</strong></li>" +
+    "<li><span>Headshot</span><strong>" +
+    escapeHtml(getPhotoStatusLabel(therapist)) +
+    "</strong></li>" +
+    "<li><span>Main contact route</span><strong>" +
+    escapeHtml(getContactRouteLabel(therapist)) +
+    "</strong></li>" +
+    (pauseRequested ? "<li><span>Pause</span><strong>Requested</strong></li>" : "") +
+    (removalRequested ? "<li><span>Removal</span><strong>Requested</strong></li>" : "") +
+    "</ul>" +
+    (quickAttentionItems && quickAttentionItems.length
+      ? '<details class="portal-attention"><summary>' +
+        quickAttentionItems.length +
+        " item" +
+        (quickAttentionItems.length === 1 ? "" : "s") +
+        ' to review</summary><ul class="portal-list" style="margin-top:0.5rem">' +
+        quickAttentionItems
           .map(function (item) {
-            return (
-              "<div><strong>" +
-              escapeHtml(item.label) +
-              ":</strong> " +
-              escapeHtml(formatDate(item.date) || "Recently") +
-              "</div>"
-            );
+            return "<li>• " + escapeHtml(item) + "</li>";
           })
           .join("") +
-        "</div></article>"
+        "</ul></details>"
       : "") +
-    (expectations
-      ? '<article class="portal-card"><h2>What To Expect Next</h2><div class="portal-list"><div><strong>' +
-        escapeHtml(expectations.headline) +
-        "</strong></div><div>" +
-        escapeHtml(expectations.body) +
-        "</div></div></article>"
+    '<div class="portal-actions portal-snapshot-actions" style="margin-top:0.9rem">' +
+    '<a class="btn-secondary" href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug) +
+    '" target="_blank" rel="noopener">View public listing ↗</a>' +
+    (verifiedClaim
+      ? '<a class="btn-secondary" href="#portalEditProfile" data-portal-editor-jump="1">Edit profile</a>'
       : "") +
-    (urgency
-      ? '<article class="portal-card"><h2>Priority Signal</h2><div class="portal-list"><div><strong>' +
-        escapeHtml(urgency.label) +
-        "</strong></div><div>" +
-        escapeHtml(urgency.body) +
-        "</div></div></article>"
-      : "") +
-    (reviewReadinessSignal
-      ? '<article class="portal-card"><h2>Review Readiness Signal</h2><div class="portal-list"><div><strong>' +
-        escapeHtml(reviewReadinessSignal.label) +
-        "</strong></div><div>" +
-        escapeHtml(reviewReadinessSignal.body) +
-        "</div></div></article>"
-      : "") +
-    (reviewTiming
-      ? '<article class="portal-card"><h2>Review Timing</h2><div class="portal-list"><div><strong>' +
-        escapeHtml(reviewTiming.label) +
-        "</strong></div><div>" +
-        escapeHtml(reviewTiming.body) +
-        "</div></div></article>"
-      : "") +
-    (reviewerFeedback
-      ? '<article class="portal-card"><h2>Reviewer Feedback</h2><div class="portal-list">' +
-        (reviewerFeedback.requestedAt
-          ? "<div><strong>Requested:</strong> " +
-            escapeHtml(formatDate(reviewerFeedback.requestedAt) || "Recently") +
-            "</div>"
-          : "") +
-        "<div>" +
-        escapeHtml(reviewerFeedback.message) +
-        "</div></div></article>"
-      : "") +
-    '<article class="portal-card"><h2>What needs attention</h2><div class="portal-list">' +
-    quickAttentionItems
-      .map(function (item) {
-        return "<div>• " + escapeHtml(item) + "</div>";
-      })
-      .join("") +
-    "</div></article>" +
-    '<article class="portal-card"><h2>Portal requests</h2><p class="portal-subtle">This MVP routes claim, pause, removal, and profile-update requests into the review system without giving direct publish control yet.</p><form id="portalRequestForm" class="portal-form"><input type="hidden" name="therapist_slug" value="' +
+    "</div>" +
+    "</article>" +
+    "</section>";
+
+  // Zone 2 — Deep editor, collapsed unless the clinician clearly needs
+  // to see it (pending-publish, claim_token, deep link, or pre-save).
+  var editorZone = verifiedClaim
+    ? '<details class="portal-editor-shell" id="portalEditProfile"' +
+      (editorAutoOpen ? " open" : "") +
+      '><summary class="portal-editor-summary">' +
+      '<span class="portal-editor-summary-label"><strong>Edit profile</strong><span class="portal-subtle" style="font-size:0.85rem">Full editor — bio, specialties, fees, availability</span></span>' +
+      '<span class="portal-editor-summary-chevron" aria-hidden="true">▾</span>' +
+      "</summary>" +
+      buildEditProfileHtml(therapist) +
+      "</details>"
+    : "";
+
+  // Zone 3 — Plan & activity. Subscription + analytics in one strip.
+  var planZone = verifiedClaim
+    ? '<section class="portal-grid portal-grid--plan">' +
+      '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
+      escapeHtml(therapist.slug) +
+      '" data-therapist-email="' +
+      escapeHtml(claimedEmail) +
+      '"><p class="portal-eyebrow">Your plan</p><h2 style="margin:0 0 0.4rem">Subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status…</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>' +
+      '<article class="portal-card" id="portalAnalyticsCard"><p class="portal-eyebrow">This week at a glance</p><h2 style="margin:0 0 0.4rem">Activity</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity…</p><div id="portalAnalyticsGrid" hidden></div></article>' +
+      "</section>"
+    : "";
+
+  // Zone 4 — Review activity & coaching. Collapsed under one disclosure.
+  var hasReviewContent = Boolean(
+    progress ||
+    profileCoaching ||
+    portalTimeline.length ||
+    expectations ||
+    urgency ||
+    reviewReadinessSignal ||
+    reviewTiming ||
+    reviewerFeedback,
+  );
+  var reviewZone = hasReviewContent
+    ? '<details class="portal-card portal-review-details"><summary><strong>Review activity &amp; coaching</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">Progress, feedback, and timing</span></summary><div class="portal-review-body">' +
+      (progress
+        ? '<section class="portal-review-block"><h3>Progress</h3><div class="portal-list"><div><strong>Current:</strong> ' +
+          escapeHtml(progress.statusLabel) +
+          "</div><div><strong>Next step:</strong> " +
+          escapeHtml(progress.nextStep) +
+          '</div></div><div class="portal-list" style="margin-top:0.6rem">' +
+          progress.stages
+            .map(function (stage) {
+              return "<div>" + (stage.done ? "✓ " : "○ ") + escapeHtml(stage.label) + "</div>";
+            })
+            .join("") +
+          (relatedApplication && relatedApplication.portal_state === "claimed_ready_for_profile"
+            ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
+              escapeHtml(
+                getPortalSignupHref(
+                  therapist,
+                  relatedApplication,
+                  getPortalResumeField(relatedApplication),
+                ),
+              ) +
+              '">Complete full profile</a></div>'
+            : "") +
+          "</div></section>"
+        : "") +
+      (profileCoaching
+        ? '<section class="portal-review-block"><h3>What will strengthen your profile</h3><div class="portal-list"><div><strong>Current readiness:</strong> ' +
+          escapeHtml(profileCoaching.scoreLabel) +
+          "</div>" +
+          (profileCoaching.missingItems.length
+            ? '<div><strong>Best next additions:</strong></div><div class="portal-list">' +
+              profileCoaching.missingItems
+                .map(function (item) {
+                  return "<div>• " + escapeHtml(item) + "</div>";
+                })
+                .join("") +
+              "</div>"
+            : "") +
+          (profileCoaching.strengths.length
+            ? '<div style="margin-top:0.4rem"><strong>Already helping your profile:</strong></div><div class="portal-list">' +
+              profileCoaching.strengths
+                .map(function (item) {
+                  return "<div>✓ " + escapeHtml(item) + "</div>";
+                })
+                .join("") +
+              "</div>"
+            : "") +
+          "</div></section>"
+        : "") +
+      (portalTimeline.length
+        ? '<section class="portal-review-block"><h3>Recent progress</h3><div class="portal-list">' +
+          portalTimeline
+            .map(function (item) {
+              return (
+                "<div><strong>" +
+                escapeHtml(item.label) +
+                ":</strong> " +
+                escapeHtml(formatDate(item.date) || "Recently") +
+                "</div>"
+              );
+            })
+            .join("") +
+          "</div></section>"
+        : "") +
+      (expectations
+        ? '<section class="portal-review-block"><h3>What to expect next</h3><div><strong>' +
+          escapeHtml(expectations.headline) +
+          "</strong></div><div>" +
+          escapeHtml(expectations.body) +
+          "</div></section>"
+        : "") +
+      (urgency
+        ? '<section class="portal-review-block"><h3>Priority signal</h3><div><strong>' +
+          escapeHtml(urgency.label) +
+          "</strong></div><div>" +
+          escapeHtml(urgency.body) +
+          "</div></section>"
+        : "") +
+      (reviewReadinessSignal
+        ? '<section class="portal-review-block"><h3>Review readiness signal</h3><div><strong>' +
+          escapeHtml(reviewReadinessSignal.label) +
+          "</strong></div><div>" +
+          escapeHtml(reviewReadinessSignal.body) +
+          "</div></section>"
+        : "") +
+      (reviewTiming
+        ? '<section class="portal-review-block"><h3>Review timing</h3><div><strong>' +
+          escapeHtml(reviewTiming.label) +
+          "</strong></div><div>" +
+          escapeHtml(reviewTiming.body) +
+          "</div></section>"
+        : "") +
+      (reviewerFeedback
+        ? '<section class="portal-review-block"><h3>Reviewer feedback</h3>' +
+          (reviewerFeedback.requestedAt
+            ? "<div><strong>Requested:</strong> " +
+              escapeHtml(formatDate(reviewerFeedback.requestedAt) || "Recently") +
+              "</div>"
+            : "") +
+          "<div>" +
+          escapeHtml(reviewerFeedback.message) +
+          "</div></section>"
+        : "") +
+      "</div></details>"
+    : "";
+
+  // Zone 5 — Help & account requests. Demoted behind one disclosure.
+  var helpZone =
+    '<details class="portal-card portal-help-details"><summary><strong>Help &amp; account requests</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">Pause, remove, update, or ask a question</span></summary>' +
+    '<p class="portal-subtle" style="margin:0.5rem 0 0.9rem">Claim, pause, removal, and profile-update requests route to the review team. Your edits above still publish directly; this form is for things the editor can\'t change.</p>' +
+    '<form id="portalRequestForm" class="portal-form"><input type="hidden" name="therapist_slug" value="' +
     escapeHtml(therapist.slug) +
     '" /><input type="hidden" name="therapist_name" value="' +
     escapeHtml(therapist.name) +
@@ -2856,19 +2918,35 @@ function renderPortal(therapist, options) {
     ) +
     '</textarea></label><button class="btn-primary" type="submit">' +
     escapeHtml(verifiedClaim ? "Send managed request" : "Send request") +
-    '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form></article>' +
-    '<article class="portal-card"><h2>Account controls</h2><div class="portal-list"><div><strong>Pause listing:</strong> Request a temporary pause instead of deleting your profile.</div><div><strong>Remove listing:</strong> Request permanent removal if you no longer want to appear in the directory.</div><div><strong>Headshot and profile updates:</strong> Use the update flow above. Your edits still go through review before they replace the live profile.</div></div></article>' +
-    (verifiedClaim
-      ? '<article class="portal-card" id="portalAnalyticsCard"><h2>This week at a glance</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity...</p><div id="portalAnalyticsGrid" hidden></div></article>'
+    '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form>' +
+    "</details>";
+
+  shell.innerHTML =
+    '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
+    escapeHtml(heroEyebrow) +
+    "</p><h1>" +
+    escapeHtml(therapist.name) +
+    '</h1><p class="portal-subtle">' +
+    escapeHtml(therapist.city + ", " + therapist.state) +
+    (therapist.practice_name ? " · " + escapeHtml(therapist.practice_name) : "") +
+    '</p></div><div class="portal-badges" style="display:flex;gap:0.5rem;' +
+    'align-items:center;flex-wrap:wrap"><span class="portal-badge">' +
+    escapeHtml(claimStatus) +
+    '</span><span class="portal-badge">' +
+    escapeHtml(readiness.label + " · " + readiness.score + "/100") +
+    "</span>" +
+    signOutControl +
+    "</div></section>" +
+    notYetPublicBanner +
+    welcomeUpsellBanner +
+    (sessionMode === "claim_token"
+      ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
-    (verifiedClaim
-      ? '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
-        escapeHtml(therapist.slug) +
-        '" data-therapist-email="' +
-        escapeHtml(claimedEmail) +
-        '"><h2>Your subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status...</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>'
-      : "") +
-    "</section>";
+    priorityZone +
+    editorZone +
+    planZone +
+    reviewZone +
+    helpZone;
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -2896,6 +2974,30 @@ function renderPortal(therapist, options) {
       feedback.textContent =
         (error && error.message) || "Something went wrong while sending the request.";
     }
+  });
+
+  // Editor-jump affordance — any "Edit profile" link with a #portalEditProfile
+  // hash needs to open the <details> and scroll to the editor card. This
+  // also covers the #portalEditProfile anchor on the pending-profile banner.
+  document.querySelectorAll('[data-portal-editor-jump="1"]').forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      var details = document.getElementById("portalEditProfile");
+      if (details && !details.open) {
+        details.open = true;
+      }
+      if (details) {
+        event.preventDefault();
+        details.scrollIntoView({ behavior: "smooth", block: "start" });
+        var firstField = details.querySelector(
+          'textarea[name="bio"], input[name="credentials"], input, textarea, select',
+        );
+        if (firstField) {
+          window.setTimeout(function () {
+            firstField.focus({ preventScroll: true });
+          }, 350);
+        }
+      }
+    });
   });
 
   if (verifiedClaim) {
