@@ -94,8 +94,20 @@ function recordCtaClickSafely(slug, route) {
   }
 }
 
+function getSlugFromPath(pathname) {
+  var match = String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+function buildTherapistProfileUrl(slugValue) {
+  var cleanSlug = String(slugValue || "").trim();
+  return cleanSlug
+    ? `https://www.bipolartherapyhub.com/therapists/${encodeURIComponent(cleanSlug)}/`
+    : "https://www.bipolartherapyhub.com/directory";
+}
+
 var profileParams = new URLSearchParams(window.location.search);
-var slug = profileParams.get("slug");
+var slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname);
 var profileSource = profileParams.get("source") || "";
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
@@ -113,7 +125,7 @@ function escapeHtml(value) {
 }
 
 // Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so
-// each /therapist.html?slug=X has unique title, description, OG tags,
+// each /therapists/X/ has unique title, description, OG tags,
 // and structured data. Injected client-side after the therapist fetch
 // resolves — Google's crawler executes JS and picks these up.
 function upsertMeta(attr, key, content) {
@@ -153,7 +165,7 @@ function buildTherapistJsonLd(t) {
   const name = t.name || "";
   const credentials = t.credentials || "";
   const nameWithCreds = credentials ? `${name}, ${credentials}` : name;
-  const pageUrl = `https://www.bipolartherapyhub.com/therapist.html?slug=${encodeURIComponent(t.slug || "")}`;
+  const pageUrl = buildTherapistProfileUrl(t.slug || "");
   const address = {
     "@type": "PostalAddress",
     addressLocality: t.city || undefined,
@@ -195,7 +207,7 @@ function applyTherapistSeo(t) {
   const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
   const seoTitle = `${name}${credentials} — Bipolar Therapist in ${location}`;
   const seoDescription = buildTherapistSeoDescription(t);
-  const canonicalUrl = `https://www.bipolartherapyhub.com/therapist.html?slug=${encodeURIComponent(t.slug || "")}`;
+  const canonicalUrl = buildTherapistProfileUrl(t.slug || "");
 
   document.title = `${seoTitle} — BipolarTherapyHub`;
   upsertMeta("name", "description", seoDescription);
@@ -1422,8 +1434,7 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
         ? "Compare after backup review"
         : "Compare these two",
     ctaHref: buildShortlistCompareUrl(),
-    profileHref:
-      "therapist.html?slug=" + encodeURIComponent(backup.therapist.slug) + "&source=profile_backup",
+    profileHref: buildTherapistProfileUrl(backup.therapist.slug) + "?source=profile_backup",
     primaryAction: backupSignals ? backupSignals.preferred_action : "balanced",
   };
 }

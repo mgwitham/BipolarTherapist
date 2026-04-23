@@ -1,6 +1,6 @@
 // Build-time sitemap generator. Queries Sanity for all listing-active
-// therapist slugs, emits public/sitemap.xml with static routes +
-// one <url> entry per therapist. Runs before vite build so the
+// therapist records, emits public/sitemap.xml with static routes +
+// one clean <url> entry per therapist. Runs before vite build so the
 // generated file lands in dist/.
 //
 // Skips gracefully (with a warning, not an error) if Sanity isn't
@@ -15,6 +15,7 @@ const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
 const OUTPUT_PATH = path.join(ROOT, "public", "sitemap.xml");
+const PROFILE_PATH_PREFIX = "/therapists/";
 
 // Static routes we always want indexed. Portal/admin deliberately
 // excluded (robots.txt also disallows them).
@@ -95,6 +96,10 @@ async function fetchTherapistSlugs(config) {
   );
 }
 
+function buildTherapistPath(slug) {
+  return `${PROFILE_PATH_PREFIX}${encodeURIComponent(String(slug || "").trim())}/`;
+}
+
 function buildSitemapXml(entries) {
   const header = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
   const body = entries.map(buildUrlEntry).join("\n");
@@ -137,7 +142,7 @@ async function main() {
   (therapists || []).forEach((t) => {
     if (!t || !t.slug) return;
     entries.push({
-      loc: `/therapist.html?slug=${encodeURIComponent(t.slug)}`,
+      loc: buildTherapistPath(t.slug),
       lastmod: (t._updatedAt || "").slice(0, 10) || now,
       changefreq: "weekly",
       priority: "0.7",
