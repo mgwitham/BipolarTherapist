@@ -5199,17 +5199,17 @@ function updateHeroStatus(context) {
   var parts = [];
   if (ctx.priorityCount) {
     parts.push(
-      ctx.priorityCount + " thing" + (ctx.priorityCount === 1 ? "" : "s") + " need you now",
+      ctx.priorityCount + " priority action" + (ctx.priorityCount === 1 ? "" : "s") + " active",
     );
   } else {
-    parts.push("No urgent actions");
+    parts.push("Clear for now");
   }
   if (ctx.candidateReviewCount) {
     parts.push(
       ctx.candidateReviewCount +
-        " new listing" +
+        " new candidate" +
         (ctx.candidateReviewCount === 1 ? "" : "s") +
-        " to triage",
+        " waiting",
     );
   }
   if (ctx.pendingApplicationsCount) {
@@ -5224,11 +5224,9 @@ function updateHeroStatus(context) {
 
 function updateNavCounts(counts) {
   var mapping = {
-    navCountCandidates: counts.candidates,
-    navCountReview: counts.review,
-    navCountConfirmations: counts.confirmations,
-    navCountRequests: counts.requests,
-    navCountLive: counts.live,
+    navCountCandidates: counts.today,
+    navCountWorkQueues: counts.workQueues,
+    navCountRecovery: counts.recovery,
   };
   Object.keys(mapping).forEach(function (id) {
     var node = document.getElementById(id);
@@ -5236,6 +5234,52 @@ function updateNavCounts(counts) {
     var value = Number(mapping[id]) || 0;
     node.textContent = value > 0 ? String(value) : "";
   });
+}
+
+function escapeAdminHtml(value) {
+  return escapeHtml(value || "");
+}
+
+function buildTodayRailAction(action, tone, fallback) {
+  if (!action) {
+    return (
+      '<div class="admin-action-card"><strong>' +
+      escapeAdminHtml((fallback && fallback.title) || "Clear for now") +
+      "</strong><p>" +
+      escapeAdminHtml(
+        (fallback && fallback.copy) ||
+          "There is no urgent action at the moment. Enter a queue when you are ready for the next review block.",
+      ) +
+      "</p></div>"
+    );
+  }
+  return (
+    '<button class="admin-action-card" type="button" data-admin-scroll-target="' +
+    escapeAdminHtml(action.targetId || "") +
+    '">' +
+    '<span class="admin-tier-pill is-' +
+    escapeAdminHtml(tone || "recommended") +
+    '">' +
+    escapeAdminHtml((tone || "recommended").replace("_", " ")) +
+    "</span>" +
+    "<strong>" +
+    escapeAdminHtml(action.headline || action.lane || "Next action") +
+    "</strong><p>" +
+    escapeAdminHtml(action.copy || "") +
+    "</p></button>"
+  );
+}
+
+function buildTodayQuickAction(title, copy, targetId) {
+  return (
+    '<button class="admin-quick-action" type="button" data-admin-scroll-target="' +
+    escapeAdminHtml(targetId || "") +
+    '"><strong>' +
+    escapeAdminHtml(title) +
+    '</strong><p class="admin-quick-actions-copy">' +
+    escapeAdminHtml(copy) +
+    "</p></button>"
+  );
 }
 
 function updateSignupsPill(pendingCount) {
@@ -5462,70 +5506,99 @@ function renderStats() {
     });
 
     var topActions = nextBestActions.slice(0, 3);
-    var nowSectionHtml = topActions.length
-      ? '<div><div class="admin-now-title">What needs you now</div>' +
-        '<div class="priority-rows">' +
-        topActions
-          .map(function (action, index) {
-            return buildPriorityActionRow(action, index);
-          })
-          .join("") +
-        "</div></div>"
-      : '<div><div class="admin-now-title">What needs you now</div>' +
-        '<div class="admin-now-empty">Nothing urgent. Queues are clear or actions are in-flight.</div></div>';
-
-    var scorecardCards = [
-      buildActionStatCard(candidateReviewCount, "New listings to triage", "supplyReviewRegion", {
-        meta: candidateReadyCount
-          ? candidateReadyCount + " ready to publish"
-          : candidateDuplicateCount
-            ? candidateDuplicateCount + " possible duplicates"
-            : "",
-        actionLabel: "Open triage lane",
-      }),
-      buildActionStatCard(
-        profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount,
-        "Confirmations in flight",
-        "confirmationRegion",
-        {
-          meta: readyToApplyCount
-            ? readyToApplyCount + " ready to apply"
-            : awaitingConfirmationCount
-              ? awaitingConfirmationCount + " waiting on reply"
-              : "",
-          actionLabel: "Open confirmations",
-        },
-      ),
-      buildActionStatCard(
-        pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
-        "Requests to handle",
-        "requestsRegion",
-        {
-          meta: pendingApplicationsCount
-            ? pendingApplicationsCount + " pending applications"
-            : openPortalRequestCount
-              ? openPortalRequestCount + " portal requests"
-              : "",
-          actionLabel: "Open ops inbox",
-        },
-      ),
-      buildActionStatCard(
-        profilesNeedingRefresh + strictImportBlockerCount,
-        "Live listings to maintain",
-        "liveListingsRegion",
-        {
-          meta: strictImportBlockerCount ? strictImportBlockerCount + " blocked on details" : "",
-          actionLabel: "Open maintenance",
-        },
-      ),
-    ];
+    var blockers = [
+      { count: claimFollowUpCount, label: "claim follow-up due" },
+      { count: readyToApplyCount, label: "confirmed replies ready to apply" },
+      { count: strictImportBlockerCount, label: "trust-critical listing blockers" },
+      { count: openPortalRequestCount, label: "portal requests waiting" },
+    ].filter(function (item) {
+      return item.count > 0;
+    });
 
     document.getElementById("adminStats").innerHTML =
-      nowSectionHtml +
-      '<div><div class="admin-now-title">At a glance</div>' +
-      '<div class="admin-now-scorecard">' +
-      scorecardCards.join("") +
-      "</div></div>";
+      '<div class="admin-today-grid">' +
+      '<section class="admin-today-rail admin-today-rail--urgent"><div class="admin-today-rail-header"><div><div class="admin-now-title">Attention now</div><h3 class="admin-today-rail-title">First and second best actions</h3></div><span class="admin-tier-pill is-urgent">' +
+      escapeAdminHtml(topActions.length ? "Needs action" : "Clear") +
+      '</span></div><div class="admin-action-stack">' +
+      buildTodayRailAction(topActions[0], "urgent", {
+        title: "No urgent work waiting",
+        copy: "Use Work queues to choose the next deliberate review block or open Reports for analysis.",
+      }) +
+      buildTodayRailAction(topActions[1], "recommended", {
+        title: "No second-priority action",
+        copy: "Once the top task is clear, move into the next queue with the strongest leverage.",
+      }) +
+      "</div></section>" +
+      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">Top blockers</div><h3 class="admin-today-rail-title">What can slow the operation today</h3></div><span class="admin-tier-pill is-' +
+      escapeAdminHtml(blockers.length ? "recommended" : "informational") +
+      '">' +
+      escapeAdminHtml(blockers.length ? "Recommended" : "Informational") +
+      "</span></div>" +
+      (blockers.length
+        ? '<ul class="admin-action-list">' +
+          blockers
+            .map(function (item) {
+              return (
+                "<li><strong>" +
+                escapeAdminHtml(String(item.count)) +
+                "</strong> " +
+                escapeAdminHtml(item.label) +
+                "</li>"
+              );
+            })
+            .join("") +
+          "</ul>"
+        : '<p class="admin-metric-summary">No active blockers are stacked up right now. The operation looks clear for the next focused queue session.</p>') +
+      "</section>" +
+      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">Quick actions</div><h3 class="admin-today-rail-title">Enter the right queue without browsing the whole admin</h3></div><span class="admin-tier-pill is-recommended">Recommended</span></div><div class="admin-quick-actions">' +
+      buildTodayQuickAction(
+        "Open new candidates",
+        candidateReviewCount
+          ? candidateReviewCount + " waiting for triage."
+          : "Queue is clear. Spot-check or return later.",
+        "candidateQueuePanel",
+      ) +
+      buildTodayQuickAction(
+        "Open therapist signups",
+        pendingApplicationsCount
+          ? pendingApplicationsCount + " pending signups need decisions."
+          : "No pending signups right now.",
+        "applicationsPanel",
+      ) +
+      buildTodayQuickAction(
+        "Open confirmations",
+        profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount
+          ? "Reply tracking and apply-ready work stay together here."
+          : "Confirmation work is stable for now.",
+        "confirmationRegion",
+      ) +
+      buildTodayQuickAction(
+        "Open reports",
+        "Move to analysis mode for exports, funnel trends, and activity.",
+        "intelligenceRegion",
+      ) +
+      "</div></section>" +
+      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">At a glance</div><h3 class="admin-today-rail-title">Orientation metrics</h3></div><span class="admin-tier-pill is-informational">Informational</span></div><div class="admin-today-metrics">' +
+      [
+        { value: candidateReviewCount, label: "New candidates" },
+        {
+          value: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
+          label: "Requests and signups",
+        },
+        { value: profilesNeedingRefresh + strictImportBlockerCount, label: "Maintenance pressure" },
+        { value: readyToApplyCount, label: "Ready to apply" },
+      ]
+        .map(function (metric) {
+          return (
+            '<div class="admin-today-metric"><p class="admin-today-metric-value">' +
+            escapeAdminHtml(String(metric.value)) +
+            '</p><p class="admin-today-metric-label">' +
+            escapeAdminHtml(metric.label) +
+            "</p></div>"
+          );
+        })
+        .join("") +
+      "</div></section></div>";
 
     var statsContainer = document.getElementById("adminStats");
     if (statsContainer) {
@@ -5538,11 +5611,19 @@ function renderStats() {
       pendingApplicationsCount: pendingApplicationsCount,
     });
     updateNavCounts({
-      candidates: candidateReviewCount,
-      review: candidateParkedReviewCount,
-      confirmations: profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount,
-      requests: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
-      live: profilesNeedingRefresh + strictImportBlockerCount,
+      today: topActions.length + pendingApplicationsCount,
+      workQueues:
+        candidateReviewCount +
+        candidateParkedReviewCount +
+        pendingApplicationsCount +
+        openConciergeCount +
+        openPortalRequestCount +
+        profilesNeedingConfirmation +
+        awaitingConfirmationCount +
+        readyToApplyCount +
+        profilesNeedingRefresh +
+        strictImportBlockerCount,
+      recovery: 0,
     });
     collapseRegionSopNotes();
 
@@ -7275,6 +7356,11 @@ function setAuthUiState() {
     if (authError) {
       authError.style.display = authErrorVisible ? "block" : "none";
     }
+    updateHeroStatus({
+      priorityCount: 0,
+      candidateReviewCount: 0,
+      pendingApplicationsCount: 0,
+    });
     if (usernameField) {
       if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
         window.requestAnimationFrame(function () {
@@ -7316,6 +7402,9 @@ function setAuthUiState() {
     authError.style.display = "none";
   }
   authErrorVisible = false;
+  trackFunnelEvent("admin_today_view_loaded", {
+    mode: document.body.getAttribute("data-admin-view") || "today",
+  });
 }
 
 async function loadData() {
@@ -7531,9 +7620,15 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
   }
 
   try {
+    trackFunnelEvent("admin_login_attempt", {
+      has_username: Boolean(username),
+    });
     const result = await signInAdmin({
       username: username,
       password: value,
+    });
+    trackFunnelEvent("admin_login_success", {
+      has_username: Boolean(username),
     });
     setAdminSessionToken(result.sessionToken);
     authRequired = false;
@@ -7555,6 +7650,9 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     }
   } catch (_error) {
     authRequired = true;
+    trackFunnelEvent("admin_login_failure", {
+      has_username: Boolean(username),
+    });
     error.textContent = "Those operator credentials were not accepted.";
     error.style.display = "block";
     authErrorVisible = true;
@@ -7736,6 +7834,10 @@ document.getElementById("reviewActivityCopyLink").addEventListener("click", asyn
 
 document.getElementById("reviewActivityExportJson").addEventListener("click", async function () {
   try {
+    trackFunnelEvent("admin_export_used", {
+      format: "json",
+      source: "review_activity",
+    });
     await exportReviewActivity("json");
   } catch (_error) {
     // Keep the panel usable even if export fails.
@@ -7744,6 +7846,10 @@ document.getElementById("reviewActivityExportJson").addEventListener("click", as
 
 document.getElementById("reviewActivityExportCsv").addEventListener("click", async function () {
   try {
+    trackFunnelEvent("admin_export_used", {
+      format: "csv",
+      source: "review_activity",
+    });
     await exportReviewActivity("csv");
   } catch (_error) {
     // Keep the panel usable even if export fails.
@@ -7815,8 +7921,18 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
 });
 
 document.addEventListener("click", function (event) {
+  var tab = event.target.closest("[data-admin-tab]");
+  if (tab) {
+    var nextView = tab.getAttribute("data-admin-tab") || "";
+    trackFunnelEvent(nextView === "reports" ? "admin_report_view_opened" : "admin_queue_entry", {
+      view: nextView,
+    });
+  }
   var primaryActionButton = event.target.closest("[data-workflow-primary-action]");
   if (primaryActionButton) {
+    trackFunnelEvent("admin_queue_action_taken", {
+      action: primaryActionButton.getAttribute("data-workflow-primary-action") || "",
+    });
     event.preventDefault();
     handleWorkflowPrimaryActionClick(primaryActionButton);
     return;
