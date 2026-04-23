@@ -785,7 +785,7 @@ function maybeLiveRecompute(event) {
       changed_field: changedField,
       result_count: count,
     });
-  }, 250);
+  }, 120);
 }
 
 function setLiveStatus(message, isUpdating) {
@@ -831,6 +831,12 @@ function setRefineDrawerOpen(open) {
       care_intent: (document.getElementById("matchForm") || { elements: {} }).elements
         ? (document.getElementById("matchForm").elements.care_intent || { value: "" }).value || ""
         : "",
+    });
+    // Kick off an immediate recompute so results behind the drawer reflect
+    // current filters before the user touches anything. Prevents the "empty
+    // looking" feeling when opening Narrow results on a pre-search state.
+    window.requestAnimationFrame(function () {
+      maybeLiveRecompute(null);
     });
   } else {
     document.body.classList.remove(bodyClass);
