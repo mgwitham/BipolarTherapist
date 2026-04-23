@@ -172,7 +172,11 @@ export function renderWeeklyDigestEmail(options) {
         .join(" • ")
     : "";
   const topContactLine = digest.topContact
-    ? "Most-used contact path: " + digest.topContact.label + " (" + digest.topContact.count + " clicks)"
+    ? "Most-used contact path: " +
+      digest.topContact.label +
+      " (" +
+      digest.topContact.count +
+      " clicks)"
     : "";
 
   const subject =
