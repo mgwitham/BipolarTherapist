@@ -1239,6 +1239,85 @@ function renderAnalyticsSparkline(weeklyCounts) {
   );
 }
 
+function getPortalAnalyticsTopSource(current) {
+  var sources = [
+    { label: "match flow", count: Number((current && current.profileViewsMatch) || 0) },
+    { label: "directory", count: Number((current && current.profileViewsDirectory) || 0) },
+    { label: "direct / link", count: Number((current && current.profileViewsDirect) || 0) },
+    {
+      label: "other sources",
+      count:
+        Number((current && current.profileViewsOther) || 0) +
+        Number((current && current.profileViewsSearch) || 0) +
+        Number((current && current.profileViewsEmail) || 0),
+    },
+  ];
+  sources.sort(function (a, b) {
+    return b.count - a.count;
+  });
+  return sources[0] && sources[0].count > 0 ? sources[0] : null;
+}
+
+function getPortalAnalyticsTopContactPath(current) {
+  var paths = [
+    { label: "booking link", count: Number((current && current.ctaClicksBooking) || 0) },
+    { label: "email", count: Number((current && current.ctaClicksEmail) || 0) },
+    { label: "phone", count: Number((current && current.ctaClicksPhone) || 0) },
+    { label: "website", count: Number((current && current.ctaClicksWebsite) || 0) },
+  ];
+  paths.sort(function (a, b) {
+    return b.count - a.count;
+  });
+  return paths[0] && paths[0].count > 0 ? paths[0] : null;
+}
+
+function renderPortalAnalyticsInterpretation(current, previous) {
+  var currentViews = Number((current && current.profileViewsTotal) || 0);
+  var previousViews = Number((previous && previous.profileViewsTotal) || 0);
+  var currentClicks = Number((current && current.ctaClicksTotal) || 0);
+  var previousClicks = Number((previous && previous.ctaClicksTotal) || 0);
+  var topSource = getPortalAnalyticsTopSource(current);
+  var topContact = getPortalAnalyticsTopContactPath(current);
+  var headline = "Your paid analytics are building.";
+  var details = [];
+
+  if (previousViews > 0 && currentViews > previousViews && currentClicks <= previousClicks) {
+    headline = "Visibility is growing. Conversion is the next opportunity.";
+    details.push(
+      "More people viewed your profile than last week, while contact clicks did not rise at the same pace.",
+    );
+  } else if (previousViews > 0 && currentViews > previousViews && currentClicks > previousClicks) {
+    headline = "Your profile gained both visibility and patient action this week.";
+    details.push("Profile views and contact clicks both increased compared with last week.");
+  } else if (previousViews > 0 && currentViews < previousViews) {
+    headline = "Visibility softened this week.";
+    details.push(
+      "Your profile was viewed less often than last week, so discovery is worth watching.",
+    );
+  } else if (currentViews > 0) {
+    headline = "Your profile generated measurable patient activity this week.";
+  }
+
+  if (topSource) {
+    details.push("Top discovery source: " + topSource.label + " (" + topSource.count + " views).");
+  }
+  if (topContact) {
+    details.push(
+      "Most-used contact path: " + topContact.label + " (" + topContact.count + " clicks).",
+    );
+  }
+
+  return (
+    '<div style="grid-column:1 / -1;padding:0.9rem 1rem;border:1px solid #d6e8ee;border-radius:14px;background:linear-gradient(135deg,#f1fafc 0%,#fff 72%)">' +
+    '<div style="font-weight:800;color:var(--navy);margin-bottom:0.25rem">' +
+    escapeHtml(headline) +
+    "</div>" +
+    '<div style="font-size:0.9rem;color:var(--slate);line-height:1.55">' +
+    escapeHtml(details.join(" ")) +
+    "</div></div>"
+  );
+}
+
 function renderAnalyticsBlock(payload, subscription) {
   const card = document.getElementById("portalAnalyticsCard");
   const body = document.getElementById("portalAnalyticsBody");
@@ -1328,6 +1407,7 @@ function renderAnalyticsBlock(payload, subscription) {
     });
 
   grid.innerHTML =
+    renderPortalAnalyticsInterpretation(current, payload && payload.previous) +
     renderAnalyticsStat(views, "Profile views this week") +
     renderAnalyticsStat(ctaClicks, "Contact clicks this week") +
     // 12-week trendline spans the full row so it reads as a trend, not a stat.
