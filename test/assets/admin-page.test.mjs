@@ -10,11 +10,11 @@ function read(file) {
   return readFileSync(path.join(repoRoot, file), "utf8");
 }
 
-test("admin page: top-level modes separate today, work queues, reports, and recovery", function () {
+test("admin page: top-level modes separate today, queues, reports, and recovery", function () {
   const html = read("admin.html");
 
   assert.match(html, /data-admin-tab="today"/);
-  assert.match(html, /Work queues/);
+  assert.match(html, />\s*Queues\s*<span class="admin-tab-count" id="navCountWorkQueues"/);
   assert.match(html, /data-admin-tab="reports"/);
   assert.match(html, /data-admin-tab="recovery"/);
   assert.doesNotMatch(html, /data-admin-tab="funnel"/);
@@ -22,11 +22,19 @@ test("admin page: top-level modes separate today, work queues, reports, and reco
 
 test("admin page: queue work is separated from the today surface", function () {
   const html = read("admin.html");
+  const adminJs = read("assets/admin.js");
 
   assert.match(html, /id="todayRegion" data-view-group="today"/);
   assert.match(html, /id="supplyReviewRegion" data-view-group="listings"/);
   assert.match(html, /id="workQueuesRegion" data-view-group="listings"/);
-  assert.match(html, /Pick one queue and stay in that operating mode/);
+  assert.match(html, /Choose a queue with clear counts and enter it on purpose/);
+  assert.match(html, /id="workQueuesSummary" class="admin-mode-summary"/);
+  assert.match(html, /id="workQueuesIndex" class="queue-index-grid"/);
+  assert.match(adminJs, /function renderWorkQueueIndex/);
+  assert.match(adminJs, /activeQueues/);
+  assert.match(adminJs, /total backlog items/);
+  assert.match(adminJs, /label: "Live listing maintenance"/);
+  assert.match(adminJs, /label: "Import blockers"/);
 });
 
 test("admin page: therapist signups pill opens the visible signup review lane", function () {
