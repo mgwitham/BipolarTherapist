@@ -1187,16 +1187,492 @@ function formatAnalyticsPeriodLabel(periodKey, periodStart) {
   return "This week";
 }
 
-function renderAnalyticsStat(number, subLabel) {
+function renderAnalyticsStat(number, subLabel, detail) {
   return (
-    '<div style="padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
-    '<div style="font-size:1.55rem;font-weight:700;color:var(--navy);line-height:1.1">' +
+    '<div class="portal-analytics-stat" style="padding:0.8rem 0.9rem;border:1px solid var(--border);border-radius:14px;background:#fbfefe">' +
+    '<div style="font-size:1.65rem;font-weight:800;color:var(--navy);line-height:1.05">' +
     escapeHtml(String(number)) +
     "</div>" +
-    '<div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem">' +
+    '<div style="font-size:0.78rem;color:var(--muted);margin-top:0.18rem">' +
     escapeHtml(subLabel) +
-    "</div></div>"
+    "</div>" +
+    (detail
+      ? '<div style="font-size:0.76rem;color:var(--teal-dark, #155f70);font-weight:700;margin-top:0.35rem">' +
+        escapeHtml(detail) +
+        "</div>"
+      : "") +
+    "</div>"
   );
+}
+
+function formatAnalyticsPercent(value) {
+  if (!Number.isFinite(value)) return "0%";
+  if (value > 0 && value < 1) return "<1%";
+  return Math.round(value) + "%";
+}
+
+function formatAnalyticsRate(part, total) {
+  const denominator = Number(total || 0);
+  if (!denominator) return "Not enough data";
+  return formatAnalyticsPercent((Number(part || 0) / denominator) * 100);
+}
+
+function getAnalyticsTrend(currentValue, previousValue) {
+  const current = Number(currentValue || 0);
+  const previous = Number(previousValue || 0);
+  if (!previous && current > 0) return { direction: "new", label: "new activity" };
+  if (!previous && !current) return { direction: "flat", label: "no activity yet" };
+  const diff = current - previous;
+  if (Math.abs(diff) < 1) return { direction: "flat", label: "unchanged" };
+  const pct = Math.round((Math.abs(diff) / previous) * 100);
+  return {
+    direction: diff > 0 ? "up" : "down",
+    label: (diff > 0 ? "up " : "down ") + pct + "% vs last week",
+    diff: diff,
+  };
+}
+
+function getPreviousAnalyticsSummary(summaries, currentPeriodKey) {
+  const sorted = (Array.isArray(summaries) ? summaries : []).slice().sort(function (a, b) {
+    return String(a.periodKey || "").localeCompare(String(b.periodKey || ""));
+  });
+  const currentIndex = sorted.findIndex(function (item) {
+    return item && item.periodKey === currentPeriodKey;
+  });
+  if (currentIndex > 0) {
+    return sorted[currentIndex - 1];
+  }
+  return sorted.length > 1 ? sorted[sorted.length - 2] : null;
+}
+
+function getAnalyticsSignalLabel(views, clicks) {
+  const total = Number(views || 0) + Number(clicks || 0);
+  if (total < 5) return "Low-signal week";
+  if (total < 15) return "Directional signal";
+  return "Strong enough for weekly decisions";
+}
+
+function getAnalyticsSignalCopy(views, clicks) {
+  const total = Number(views || 0) + Number(clicks || 0);
+  if (total < 5) {
+    return "Activity is light, so treat changes as directional. Use the readiness checks below instead of over-reading one quiet week.";
+  }
+  if (total < 15) {
+    return "There is enough activity to spot direction, but one or two patient actions can still move the percentages.";
+  }
+  return "This week has enough activity to compare source mix, contact behavior, and next-step opportunities.";
+}
+
+function buildAnalyticsBreakdown(items, total, label) {
+  const safeTotal = Math.max(Number(total || 0), 0);
+  const ranked = items
+    .map(function (item) {
+      return Object.assign({}, item, { count: Number(item.count || 0) });
+    })
+    .sort(function (a, b) {
+      return b.count - a.count;
+    });
+  const top = ranked.find(function (item) {
+    return item.count > 0;
+  });
+  return {
+    label: label,
+    total: safeTotal,
+    items: ranked,
+    top: top || null,
+  };
+}
+
+function renderAnalyticsBreakdownCard(title, breakdown, emptyCopy, insightCopy) {
+  const max = breakdown.items.reduce(function (highest, item) {
+    return Math.max(highest, item.count);
+  }, 0);
+  const rows = breakdown.items
+    .map(function (item) {
+      const width = max > 0 ? Math.max(4, Math.round((item.count / max) * 100)) : 0;
+      const percent = breakdown.total ? formatAnalyticsRate(item.count, breakdown.total) : "0%";
+      return (
+        '<div style="display:grid;grid-template-columns:minmax(7rem,0.7fr) minmax(6rem,1fr) 3.4rem;gap:0.6rem;align-items:center;font-size:0.88rem">' +
+        '<span style="color:var(--navy);font-weight:650">' +
+        escapeHtml(item.label) +
+        "</span>" +
+        '<span style="height:0.7rem;border-radius:999px;background:#e5eef1;overflow:hidden" aria-hidden="true"><span style="display:block;height:100%;width:' +
+        width +
+        '%;border-radius:999px;background:linear-gradient(90deg,var(--teal),#72b7c7)"></span></span>' +
+        '<span style="color:var(--muted);text-align:right">' +
+        escapeHtml(String(item.count)) +
+        " · " +
+        escapeHtml(percent) +
+        "</span></div>"
+      );
+    })
+    .join("");
+  return (
+    '<section aria-label="' +
+    escapeAttr(title) +
+    '" style="padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.65rem"><h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
+    escapeHtml(title) +
+    '</h3><span style="font-size:0.78rem;color:var(--muted)">ranked by volume</span></div>' +
+    (breakdown.total
+      ? '<div style="display:grid;gap:0.55rem">' + rows + "</div>"
+      : '<p class="portal-subtle" style="margin:0">' + escapeHtml(emptyCopy) + "</p>") +
+    (insightCopy
+      ? '<p style="margin:0.75rem 0 0;color:var(--slate);font-size:0.88rem;line-height:1.5">' +
+        escapeHtml(insightCopy) +
+        "</p>"
+      : "") +
+    "</section>"
+  );
+}
+
+function buildAnalyticsRecommendations(data) {
+  const actions = [];
+  const rate = data.views > 0 ? (data.clicks / data.views) * 100 : 0;
+  const topGap = data.readiness.gaps[0] || null;
+  const secondGap = data.readiness.gaps[1] || null;
+
+  if (data.views >= 8 && data.clicks === 0 && topGap) {
+    actions.push({
+      label: "Action 1",
+      title: topGap.actionLabel,
+      text: "You had " + data.views + " profile views but no contact clicks. " + topGap.reason,
+      benefit: "Expected benefit: clearer next steps for patients who already found you.",
+      ctaLabel: topGap.actionLabel,
+      ctaKey: topGap.key,
+    });
+  } else if (topGap) {
+    actions.push({
+      label: "Action 1",
+      title: topGap.actionLabel,
+      text: topGap.reason,
+      benefit:
+        "Expected benefit: stronger listing readiness for future match and contact activity.",
+      ctaLabel: topGap.actionLabel,
+      ctaKey: topGap.key,
+    });
+  } else if (data.topContact) {
+    actions.push({
+      label: "Action 1",
+      title: "Protect the strongest contact path",
+      text:
+        data.topContact.label +
+        " drove the clearest patient intent this week with " +
+        data.topContact.count +
+        " clicks.",
+      benefit:
+        "Expected benefit: preserve what is already working while you refine the rest of the profile.",
+      ctaLabel: "Review contact options",
+      ctaKey: "contact_path",
+    });
+  } else {
+    actions.push({
+      label: "Action 1",
+      title: "Review profile clarity",
+      text: "No single signal is dominant yet, so use this week to tighten the profile before volume increases.",
+      benefit: "Expected benefit: stronger readiness before the next meaningful traffic week.",
+      ctaLabel: "Edit profile",
+      ctaKey: "profile_clarity",
+    });
+  }
+
+  if (data.topSource && data.topSource.key === "match") {
+    actions.push({
+      label: "Action 2",
+      title: "Strengthen match-fit language",
+      text: "Match flow is your strongest discovery source, so specialty wording and bipolar-fit signals likely matter more than broad browse traffic right now.",
+      benefit: "Expected benefit: improve how confidently patients choose you in guided matching.",
+      ctaLabel: "Review specialties",
+      ctaKey: "bipolar_fit",
+    });
+  } else if (secondGap) {
+    actions.push({
+      label: "Action 2",
+      title: secondGap.actionLabel,
+      text: secondGap.reason,
+      benefit: "Expected benefit: remove another point of hesitation before contact.",
+      ctaLabel: secondGap.actionLabel,
+      ctaKey: secondGap.key,
+    });
+  } else if (data.topSource && data.topSource.key === "directory") {
+    actions.push({
+      label: "Action 2",
+      title: "Tighten browse-facing clarity",
+      text: "Directory discovery is leading this week. Patients browsing tend to respond best to clear specialties, fees, and availability.",
+      benefit: "Expected benefit: convert more directory views into contact intent.",
+      ctaLabel: "Edit profile",
+      ctaKey: "directory_clarity",
+    });
+  }
+
+  actions.push({
+    label: "Watch next week",
+    title: "Monitor contact intent rate",
+    text:
+      data.views < 5
+        ? "Wait for a stronger week before drawing conclusions from source mix. Use next Monday to see whether activity rises after your profile updates."
+        : "Watch whether contact intent rate stays near " +
+          formatAnalyticsPercent(rate) +
+          " as profile views change. If traffic rises but the rate falls, profile clarity is likely the next bottleneck.",
+    benefit:
+      "Why it matters: this tells you whether profile changes are improving patient action, not just visibility.",
+    ctaLabel: "Review profile",
+    ctaKey: "watch_next_week",
+  });
+  return actions;
+}
+
+function renderAnalyticsRecommendations(actions) {
+  return (
+    '<section aria-label="Top actions this week" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(31,122,143,0.24);border-radius:18px;background:linear-gradient(135deg,#e8f5f8 0%,#fff 78%)">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.75rem"><h3 style="font-family:Lora,serif;font-size:1.08rem;margin:0;color:var(--navy)">Top actions this week</h3><span style="font-size:0.78rem;color:var(--muted)">ranked by likely impact</span></div>' +
+    '<div style="display:grid;gap:0.65rem">' +
+    actions
+      .map(function (action) {
+        return (
+          '<div style="padding:0.85rem 0.9rem;border-left:4px solid var(--teal);border-radius:14px;background:#fff">' +
+          '<div style="font-size:0.76rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal-dark,#155f70)">' +
+          escapeHtml(action.label) +
+          "</div>" +
+          '<div style="margin-top:0.2rem;font-weight:800;color:var(--navy);font-size:0.98rem">' +
+          escapeHtml(action.title) +
+          "</div>" +
+          '<div style="margin-top:0.28rem;color:var(--slate);font-size:0.9rem;line-height:1.5">' +
+          escapeHtml(action.text) +
+          "</div>" +
+          '<div style="margin-top:0.38rem;color:var(--muted);font-size:0.82rem;line-height:1.45">' +
+          escapeHtml(action.benefit) +
+          "</div>" +
+          '<div style="margin-top:0.65rem"><a class="btn-secondary" href="#portalEditProfile" data-portal-editor-jump="1" data-analytics-action="' +
+          escapeAttr(action.ctaKey) +
+          '" style="padding:0.48rem 0.8rem;font-size:0.85rem">' +
+          escapeHtml(action.ctaLabel) +
+          "</a></div></div>"
+        );
+      })
+      .join("") +
+    "</div></section>"
+  );
+}
+
+function buildListingReadiness(therapist) {
+  const t = therapist || {};
+  const lastSavedAt = t.portal_last_save_at || t.portalLastSaveAt || "";
+  const lastSavedDate = lastSavedAt ? new Date(lastSavedAt) : null;
+  const now = Date.now();
+  const daysSinceSave =
+    lastSavedDate && !Number.isNaN(lastSavedDate.getTime())
+      ? Math.floor((now - lastSavedDate.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+  const specialties = Array.isArray(t.specialties) ? t.specialties : [];
+  const insuranceAccepted = Array.isArray(t.insurance_accepted || t.insuranceAccepted)
+    ? t.insurance_accepted || t.insuranceAccepted
+    : [];
+  const telehealthStates = Array.isArray(t.telehealth_states || t.telehealthStates)
+    ? t.telehealth_states || t.telehealthStates
+    : [];
+  const bipolarSignal =
+    typeof t.bipolar_years_experience === "number" ||
+    typeof t.bipolarYearsExperience === "number" ||
+    specialties.some(function (item) {
+      return String(item || "")
+        .toLowerCase()
+        .includes("bipolar");
+    });
+  const hasAvailabilityDetail = Boolean(
+    String(
+      t.estimated_wait_time || t.estimatedWaitTime || t.contact_guidance || t.contactGuidance || "",
+    ).trim().length,
+  );
+  const items = [
+    {
+      key: "booking_link",
+      label: "Booking link",
+      ok: Boolean(String(t.booking_url || t.bookingUrl || "").trim()),
+      impact: "Improves the easiest next step for high-intent patients.",
+      actionLabel: "Add booking link",
+      reason: "Patients are more likely to act when the next step is obvious.",
+      priority: 5,
+    },
+    {
+      key: "availability",
+      label: "Availability details",
+      ok: hasAvailabilityDetail,
+      impact: "Reduces uncertainty once patients land on the profile.",
+      actionLabel: "Update availability",
+      reason: "Availability language helps traffic turn into next-step action.",
+      priority: 5,
+    },
+    {
+      key: "fees",
+      label: "Fee or insurance clarity",
+      ok:
+        typeof t.session_fee_min === "number" ||
+        typeof t.sessionFeeMin === "number" ||
+        t.sliding_scale === true ||
+        t.slidingScale === true ||
+        insuranceAccepted.length > 0,
+      impact: "Helps patients decide fit before they reach out.",
+      actionLabel: "Add fee details",
+      reason: "Patients often need cost clarity before they contact.",
+      priority: 4,
+    },
+    {
+      key: "bipolar_fit",
+      label: "Bipolar fit signals",
+      ok: bipolarSignal,
+      impact: "Supports stronger performance in guided match flow.",
+      actionLabel: "Strengthen specialty language",
+      reason: "Match flow depends on credible fit signals, not just traffic.",
+      priority: 4,
+    },
+    {
+      key: "care_approach",
+      label: "Profile summary strength",
+      ok:
+        String(t.bio || "").trim().length >= 140 ||
+        String(t.care_approach || t.careApproach || "").trim().length >= 90,
+      impact: "Helps patients understand how you work before they contact.",
+      actionLabel: "Improve profile summary",
+      reason: "A stronger summary makes profile traffic more useful.",
+      priority: 3,
+    },
+    {
+      key: "care_mode",
+      label: "Care mode setup",
+      ok:
+        t.accepts_telehealth !== false ||
+        t.acceptsTelehealth !== false ||
+        t.accepts_in_person !== false ||
+        t.acceptsInPerson !== false ||
+        telehealthStates.length > 0,
+      impact: "Clarifies whether telehealth or in-person care is available.",
+      actionLabel: "Review care setup",
+      reason: "Patients need to know whether your care mode fits their needs.",
+      priority: 2,
+    },
+    {
+      key: "recency",
+      label: "Recent profile update",
+      ok: daysSinceSave !== null && daysSinceSave <= 45,
+      impact: "Keeps the listing current when profile performance changes.",
+      actionLabel: "Review profile",
+      reason:
+        daysSinceSave === null
+          ? "Recent edits are not showing yet."
+          : "The profile has not been updated in " + daysSinceSave + " days.",
+      priority: 1,
+    },
+  ];
+  const strengths = items.filter(function (item) {
+    return item.ok;
+  });
+  const gaps = items
+    .filter(function (item) {
+      return !item.ok;
+    })
+    .sort(function (a, b) {
+      return b.priority - a.priority;
+    });
+  return {
+    score: strengths.length,
+    total: items.length,
+    strengths: strengths,
+    gaps: gaps,
+    items: items,
+    summary:
+      gaps.length === 0
+        ? "Your profile is covering the main readiness signals patients need before contacting."
+        : "Profile quality still has room to improve, and those gaps can limit match confidence or next-step action.",
+  };
+}
+
+function renderListingReadiness(readiness, therapist) {
+  const readinessScore = readiness.score + " / " + readiness.total;
+  const topGap = readiness.gaps[0] || null;
+  return (
+    '<section aria-label="Profile strength" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(21,95,112,0.18);border-radius:18px;background:#fff">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:0.8rem">' +
+    '<div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Profile strength</p><h3 style="font-family:Lora,serif;font-size:1.15rem;margin:0;color:var(--navy)">Listing readiness</h3>' +
+    '<p style="margin:0.4rem 0 0;color:var(--slate);font-size:0.9rem;line-height:1.5">' +
+    escapeHtml(readiness.summary) +
+    '</p><div class="portal-actions" style="margin-top:0.75rem">' +
+    '<a class="btn-primary" href="#portalEditProfile" data-portal-editor-jump="1" data-analytics-action="open_profile_editor">Open profile editor</a>' +
+    ((therapist && therapist.slug) || ""
+      ? '<a class="btn-secondary" href="therapist.html?slug=' +
+        encodeURIComponent(therapist.slug) +
+        '" target="_blank" rel="noopener">View public listing ↗</a>'
+      : "") +
+    "</div></div>" +
+    '<div style="min-width:128px;padding:0.85rem 0.95rem;border:1px solid #b8dfe7;border-radius:16px;background:#f4fbfc;text-align:center"><div style="font-size:0.76rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal-dark,#155f70)">Signals present</div><div style="font-size:1.75rem;font-weight:800;color:var(--navy);line-height:1.1;margin-top:0.15rem">' +
+    escapeHtml(readinessScore) +
+    "</div></div></div>" +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0.65rem">' +
+    readiness.items
+      .map(function (item) {
+        return (
+          '<div style="padding:0.78rem;border:1px solid ' +
+          (item.ok ? "#b8dfe7" : "#ead0ba") +
+          ";border-radius:14px;background:" +
+          (item.ok ? "#f4fbfc" : "#fff8f0") +
+          '">' +
+          '<div style="font-weight:800;color:var(--navy);font-size:0.9rem">' +
+          (item.ok ? "Strong: " : "Missing: ") +
+          escapeHtml(item.label) +
+          "</div>" +
+          '<div style="margin-top:0.25rem;color:var(--slate);font-size:0.82rem;line-height:1.45">' +
+          escapeHtml(item.impact) +
+          "</div>" +
+          (!item.ok
+            ? '<div style="margin-top:0.55rem"><a class="btn-secondary" href="#portalEditProfile" data-portal-editor-jump="1" data-analytics-action="' +
+              escapeAttr(item.key) +
+              '" style="padding:0.48rem 0.8rem;font-size:0.85rem">' +
+              escapeHtml(item.actionLabel) +
+              "</a></div>"
+            : "") +
+          "</div>"
+        );
+      })
+      .join("") +
+    "</div>" +
+    (topGap
+      ? '<div style="margin-top:0.8rem;padding:0.8rem 0.9rem;border-radius:14px;background:#f8fbfc;border:1px dashed #b8dfe7"><strong style="color:var(--navy)">Highest-impact profile update:</strong> ' +
+        escapeHtml(topGap.actionLabel) +
+        '. <span style="color:var(--slate)">' +
+        escapeHtml(topGap.reason) +
+        "</span></div>"
+      : "") +
+    "</section>"
+  );
+}
+
+function renderAnalyticsWatchModule(action) {
+  return (
+    '<section aria-label="What to watch next week" style="grid-column:1 / -1;padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
+    '<p class="portal-eyebrow" style="margin:0 0 0.35rem">What to watch next week</p>' +
+    '<h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
+    escapeHtml(action.title) +
+    "</h3>" +
+    '<p style="margin:0.45rem 0 0;color:var(--slate);font-size:0.9rem;line-height:1.55">' +
+    escapeHtml(action.text) +
+    "</p>" +
+    '<p style="margin:0.45rem 0 0;color:var(--muted);font-size:0.82rem;line-height:1.45">' +
+    escapeHtml(action.benefit) +
+    "</p></section>"
+  );
+}
+
+function wireAnalyticsActionHandlers(therapist) {
+  document.querySelectorAll("[data-analytics-action]").forEach(function (link) {
+    if (link.dataset.analyticsWired === "1") return;
+    link.dataset.analyticsWired = "1";
+    link.addEventListener("click", function () {
+      trackFunnelEvent("portal_analytics_action_clicked", {
+        slug: (therapist && therapist.slug) || "",
+        action: link.getAttribute("data-analytics-action") || "",
+      });
+    });
+  });
 }
 
 // Inline sparkline SVG for weekly trend. Expects an array of 12 weekly
@@ -1239,86 +1715,7 @@ function renderAnalyticsSparkline(weeklyCounts) {
   );
 }
 
-function getPortalAnalyticsTopSource(current) {
-  var sources = [
-    { label: "match flow", count: Number((current && current.profileViewsMatch) || 0) },
-    { label: "directory", count: Number((current && current.profileViewsDirectory) || 0) },
-    { label: "direct / link", count: Number((current && current.profileViewsDirect) || 0) },
-    {
-      label: "other sources",
-      count:
-        Number((current && current.profileViewsOther) || 0) +
-        Number((current && current.profileViewsSearch) || 0) +
-        Number((current && current.profileViewsEmail) || 0),
-    },
-  ];
-  sources.sort(function (a, b) {
-    return b.count - a.count;
-  });
-  return sources[0] && sources[0].count > 0 ? sources[0] : null;
-}
-
-function getPortalAnalyticsTopContactPath(current) {
-  var paths = [
-    { label: "booking link", count: Number((current && current.ctaClicksBooking) || 0) },
-    { label: "email", count: Number((current && current.ctaClicksEmail) || 0) },
-    { label: "phone", count: Number((current && current.ctaClicksPhone) || 0) },
-    { label: "website", count: Number((current && current.ctaClicksWebsite) || 0) },
-  ];
-  paths.sort(function (a, b) {
-    return b.count - a.count;
-  });
-  return paths[0] && paths[0].count > 0 ? paths[0] : null;
-}
-
-function renderPortalAnalyticsInterpretation(current, previous) {
-  var currentViews = Number((current && current.profileViewsTotal) || 0);
-  var previousViews = Number((previous && previous.profileViewsTotal) || 0);
-  var currentClicks = Number((current && current.ctaClicksTotal) || 0);
-  var previousClicks = Number((previous && previous.ctaClicksTotal) || 0);
-  var topSource = getPortalAnalyticsTopSource(current);
-  var topContact = getPortalAnalyticsTopContactPath(current);
-  var headline = "Your paid analytics are building.";
-  var details = [];
-
-  if (previousViews > 0 && currentViews > previousViews && currentClicks <= previousClicks) {
-    headline = "Visibility is growing. Conversion is the next opportunity.";
-    details.push(
-      "More people viewed your profile than last week, while contact clicks did not rise at the same pace.",
-    );
-  } else if (previousViews > 0 && currentViews > previousViews && currentClicks > previousClicks) {
-    headline = "Your profile gained both visibility and patient action this week.";
-    details.push("Profile views and contact clicks both increased compared with last week.");
-  } else if (previousViews > 0 && currentViews < previousViews) {
-    headline = "Visibility softened this week.";
-    details.push(
-      "Your profile was viewed less often than last week, so discovery is worth watching.",
-    );
-  } else if (currentViews > 0) {
-    headline = "Your profile generated measurable patient activity this week.";
-  }
-
-  if (topSource) {
-    details.push("Top discovery source: " + topSource.label + " (" + topSource.count + " views).");
-  }
-  if (topContact) {
-    details.push(
-      "Most-used contact path: " + topContact.label + " (" + topContact.count + " clicks).",
-    );
-  }
-
-  return (
-    '<div style="grid-column:1 / -1;padding:0.9rem 1rem;border:1px solid #d6e8ee;border-radius:14px;background:linear-gradient(135deg,#f1fafc 0%,#fff 72%)">' +
-    '<div style="font-weight:800;color:var(--navy);margin-bottom:0.25rem">' +
-    escapeHtml(headline) +
-    "</div>" +
-    '<div style="font-size:0.9rem;color:var(--slate);line-height:1.55">' +
-    escapeHtml(details.join(" ")) +
-    "</div></div>"
-  );
-}
-
-function renderAnalyticsBlock(payload, subscription) {
+function renderAnalyticsBlock(payload, subscription, therapist) {
   const card = document.getElementById("portalAnalyticsCard");
   const body = document.getElementById("portalAnalyticsBody");
   const grid = document.getElementById("portalAnalyticsGrid");
@@ -1327,6 +1724,7 @@ function renderAnalyticsBlock(payload, subscription) {
   const isPaid = Boolean(subscription && subscription.has_active_featured);
   const current = payload && payload.current;
   const summaries = (payload && Array.isArray(payload.summaries) && payload.summaries) || [];
+  const readiness = buildListingReadiness(therapist);
   const label = formatAnalyticsPeriodLabel(
     (current && current.periodKey) || (payload && payload.current_period_key),
     current && current.periodStart,
@@ -1336,16 +1734,25 @@ function renderAnalyticsBlock(payload, subscription) {
     body.textContent =
       "No patient activity recorded for " +
       label +
-      " yet. Views and contact clicks will appear here as patients interact with your profile.";
+      " yet. Use this quiet week to check contact clarity and listing readiness.";
     grid.hidden = false;
     grid.style.display = "block";
     grid.style.marginTop = "0.65rem";
     grid.innerHTML = isPaid
-      ? ""
+      ? renderListingReadiness(readiness, therapist) +
+        renderAnalyticsWatchModule({
+          title: "Profile strength before volume returns",
+          text: "Use this quiet week to fill the biggest readiness gaps first. That way the profile is stronger before the next wave of traffic arrives.",
+          benefit:
+            "Why it matters: low-activity weeks are still useful when they help you improve contact clarity and match fit.",
+        })
       : '<p style="font-size:0.86rem;color:var(--muted);margin:0">' +
         "Once patients start viewing or contacting your profile, you'll see a weekly breakdown here. " +
         '<a href="#portalFeaturedCard" style="color:var(--teal);font-weight:600;text-decoration:none">Upgrade for the full picture →</a>' +
         "</p>";
+    if (isPaid) {
+      wireAnalyticsActionHandlers(therapist);
+    }
     return;
   }
 
@@ -1353,6 +1760,13 @@ function renderAnalyticsBlock(payload, subscription) {
 
   const views = Number(current.profileViewsTotal || 0);
   const ctaClicks = Number(current.ctaClicksTotal || 0);
+  const previous = getPreviousAnalyticsSummary(
+    summaries,
+    (current && current.periodKey) || (payload && payload.current_period_key),
+  );
+  const viewsTrend = getAnalyticsTrend(views, previous && previous.profileViewsTotal);
+  const clicksTrend = getAnalyticsTrend(ctaClicks, previous && previous.ctaClicksTotal);
+  const contactRate = views > 0 ? (ctaClicks / views) * 100 : 0;
 
   // Free tier: headline numbers only + clear upgrade CTA.
   if (!isPaid) {
@@ -1362,8 +1776,8 @@ function renderAnalyticsBlock(payload, subscription) {
     grid.style.gap = "0.85rem";
     grid.style.marginTop = "0.65rem";
     grid.innerHTML =
-      renderAnalyticsStat(views, "Profile views this week") +
-      renderAnalyticsStat(ctaClicks, "Contact clicks this week") +
+      renderAnalyticsStat(views, "Profile views this week", viewsTrend.label) +
+      renderAnalyticsStat(ctaClicks, "Contact clicks this week", clicksTrend.label) +
       '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8)">' +
       '<div style="font-weight:700;color:var(--teal-dark, #155f70);margin-bottom:0.25rem">See your full analytics</div>' +
       '<div style="font-size:0.88rem;color:var(--navy);margin-bottom:0.55rem">' +
@@ -1377,12 +1791,12 @@ function renderAnalyticsBlock(payload, subscription) {
     return;
   }
 
-  // Paid tier: full breakdown + sparkline.
+  // Paid tier: full weekly decision dashboard.
   grid.hidden = false;
   grid.style.display = "grid";
-  grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(140px, 1fr))";
-  grid.style.gap = "0.85rem";
-  grid.style.marginTop = "0.65rem";
+  grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+  grid.style.gap = "0.95rem";
+  grid.style.marginTop = "0.85rem";
 
   const viewsMatch = Number(current.profileViewsMatch || 0);
   const viewsDirectory = Number(current.profileViewsDirectory || 0);
@@ -1397,6 +1811,85 @@ function renderAnalyticsBlock(payload, subscription) {
   const ctaBooking = Number(current.ctaClicksBooking || 0);
   const ctaWebsite = Number(current.ctaClicksWebsite || 0);
 
+  const sourceBreakdown = buildAnalyticsBreakdown(
+    [
+      { key: "match", label: "Match flow", count: viewsMatch },
+      { key: "directory", label: "Directory", count: viewsDirectory },
+      { key: "direct", label: "Direct / link", count: viewsDirect },
+      { key: "other", label: "Other", count: viewsOther },
+    ],
+    views,
+    "source",
+  );
+  const contactBreakdown = buildAnalyticsBreakdown(
+    [
+      { key: "booking", label: "Booking link", count: ctaBooking },
+      { key: "phone", label: "Phone", count: ctaPhone },
+      { key: "email", label: "Email", count: ctaEmail },
+      { key: "website", label: "Website", count: ctaWebsite },
+    ],
+    ctaClicks,
+    "contact path",
+  );
+  const topSource = sourceBreakdown.top;
+  const topContact = contactBreakdown.top;
+  const signalLabel = getAnalyticsSignalLabel(views, ctaClicks);
+  const signalCopy = getAnalyticsSignalCopy(views, ctaClicks);
+  const topGap = readiness.gaps[0] || null;
+  const topTakeaway =
+    views < 5 && ctaClicks < 1
+      ? "Activity is light this week, so the best use of the dashboard is readiness: make sure contact paths, fee clarity, and availability are easy to understand."
+      : topGap && topSource && topSource.key === "match"
+        ? topSource.label +
+          " is driving discovery, but " +
+          topGap.label.toLowerCase() +
+          " is still a likely profile bottleneck."
+        : topGap && views >= 8 && ctaClicks <= 1
+          ? "Your listing is getting seen, but " +
+            topGap.label.toLowerCase() +
+            " may still be limiting patient follow-through."
+          : topContact
+            ? topContact.label +
+              " is capturing the clearest patient intent this week, while " +
+              (topSource ? topSource.label.toLowerCase() : "your visible listing") +
+              " is driving discovery."
+            : topSource
+              ? topSource.label +
+                " is driving discovery, but contact clicks have not followed yet. Treat that as a profile clarity opportunity."
+              : "This week has activity, but no single source or contact path is dominant enough to act on yet.";
+  const changedCopy =
+    viewsTrend.direction === "new"
+      ? "This is the first tracked activity for the week, so compare next Monday before treating it as a trend."
+      : viewsTrend.direction === "flat" && clicksTrend.direction === "flat"
+        ? "Performance is mostly stable. Use the recommendation below to improve contact clarity rather than reacting to noise."
+        : "Views are " +
+          viewsTrend.label +
+          " and contact clicks are " +
+          clicksTrend.label +
+          ". The useful question is whether contact intent is keeping pace with visibility.";
+  const sourceInsight = topSource
+    ? topSource.label +
+      " accounts for " +
+      formatAnalyticsRate(topSource.count, views) +
+      " of profile views this week."
+    : "No source has enough activity to interpret yet.";
+  const contactInsight = topContact
+    ? topContact.label +
+      " accounts for " +
+      formatAnalyticsRate(topContact.count, ctaClicks) +
+      " of contact clicks this week."
+    : views
+      ? "Patients are viewing the profile, but no contact path has activity yet."
+      : "Contact path performance will appear once patients click phone, email, booking, or website.";
+  const recommendations = buildAnalyticsRecommendations({
+    views: views,
+    clicks: ctaClicks,
+    topSource: topSource,
+    topContact: topContact,
+    readiness: readiness,
+  });
+  const watchAction = recommendations[recommendations.length - 1];
+
   const weeklyViews = summaries
     .slice()
     .sort(function (a, b) {
@@ -1405,40 +1898,75 @@ function renderAnalyticsBlock(payload, subscription) {
     .map(function (s) {
       return Number(s.profileViewsTotal || 0);
     });
+  const latestWeeklyViews = weeklyViews.length ? weeklyViews[weeklyViews.length - 1] : views;
+  const previousWeeklyViews =
+    weeklyViews.length > 1
+      ? weeklyViews[weeklyViews.length - 2]
+      : previous && previous.profileViewsTotal;
 
   grid.innerHTML =
-    renderPortalAnalyticsInterpretation(current, payload && payload.previous) +
-    renderAnalyticsStat(views, "Profile views this week") +
-    renderAnalyticsStat(ctaClicks, "Contact clicks this week") +
-    // 12-week trendline spans the full row so it reads as a trend, not a stat.
-    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
-    '<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:0.82rem;color:var(--muted);font-weight:600">Profile views · last 12 weeks</div>' +
-    '<div style="font-size:0.78rem;color:var(--muted)">peak ' +
-    escapeHtml(String(Math.max.apply(null, weeklyViews.length ? weeklyViews : [0]))) +
-    "/wk</div></div>" +
-    renderAnalyticsSparkline(weeklyViews) +
-    "</div>" +
-    // Source breakdown
-    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
-    '<div style="font-size:0.82rem;color:var(--muted);font-weight:600;margin-bottom:0.4rem">How patients found you this week</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.5rem">' +
-    renderAnalyticsStat(viewsMatch, "From match flow") +
-    renderAnalyticsStat(viewsDirectory, "From directory") +
-    renderAnalyticsStat(viewsDirect, "Direct / link") +
-    renderAnalyticsStat(viewsOther, "Other sources") +
-    "</div></div>" +
-    // Contact-intent breakdown
-    '<div style="grid-column:1 / -1;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:12px;background:#fafdfd">' +
-    '<div style="font-size:0.82rem;color:var(--muted);font-weight:600;margin-bottom:0.4rem">How patients tried to reach you this week</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.5rem">' +
-    renderAnalyticsStat(ctaPhone, "Phone") +
-    renderAnalyticsStat(ctaEmail, "Email") +
-    renderAnalyticsStat(ctaBooking, "Booking link") +
-    renderAnalyticsStat(ctaWebsite, "Website") +
-    "</div></div>";
+    '<section aria-label="Top insight" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(31,122,143,0.28);border-radius:18px;background:#fff">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap"><div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Most important takeaway</p><h3 style="font-family:Lora,serif;font-size:1.25rem;margin:0;color:var(--navy)">' +
+    escapeHtml(topTakeaway) +
+    '</h3></div><span style="border:1px solid #b8dfe7;border-radius:999px;background:#e8f5f8;color:var(--teal-dark,#155f70);font-size:0.78rem;font-weight:800;padding:0.35rem 0.55rem">' +
+    escapeHtml(signalLabel) +
+    "</span></div>" +
+    '<p style="margin:0.75rem 0 0;color:var(--slate);font-size:0.9rem;line-height:1.55">' +
+    escapeHtml(signalCopy) +
+    "</p></section>" +
+    renderListingReadiness(readiness, therapist) +
+    renderAnalyticsRecommendations(recommendations.slice(0, 2)) +
+    '<section aria-label="Performance summary" style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.75rem;padding:0.95rem;border:1px solid rgba(31,122,143,0.25);border-radius:18px;background:linear-gradient(135deg,#f4fbfc 0%,#fff 72%)">' +
+    renderAnalyticsStat(views, "Profile views", viewsTrend.label) +
+    renderAnalyticsStat(ctaClicks, "Contact clicks", clicksTrend.label) +
+    renderAnalyticsStat(
+      formatAnalyticsPercent(contactRate),
+      "Contact intent rate",
+      "clicks / views",
+    ) +
+    renderAnalyticsStat(
+      topSource ? topSource.label : "No clear source",
+      "Top discovery source",
+      topSource ? topSource.count + " views" : "",
+    ) +
+    renderAnalyticsStat(
+      topContact ? topContact.label : "No clear path",
+      "Top contact path",
+      topContact ? topContact.count + " clicks" : "",
+    ) +
+    "</section>" +
+    '<section aria-label="What changed this week" style="grid-column:1 / -1;padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
+    '<p class="portal-eyebrow" style="margin:0 0 0.35rem">What changed this week</p>' +
+    '<p style="margin:0;color:var(--slate);font-size:0.92rem;line-height:1.55">' +
+    escapeHtml(changedCopy) +
+    "</p></section>" +
+    renderAnalyticsBreakdownCard(
+      "How patients found you",
+      sourceBreakdown,
+      "Source data will appear once patients discover your profile.",
+      sourceInsight,
+    ) +
+    renderAnalyticsBreakdownCard(
+      "How patients tried to reach you",
+      contactBreakdown,
+      "Contact-path data will appear once patients click phone, email, booking, or website.",
+      contactInsight,
+    ) +
+    '<section aria-label="12-week trend" style="grid-column:1 / -1;padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:0.4rem"><h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">12-week profile-view trend</h3>' +
+    '<span style="font-size:0.78rem;color:var(--muted)">current ' +
+    escapeHtml(String(latestWeeklyViews || views)) +
+    " / previous " +
+    escapeHtml(String(previousWeeklyViews || 0)) +
+    "</span></div>" +
+    renderAnalyticsSparkline(weeklyViews.length ? weeklyViews : [views]) +
+    '<p style="margin:0.65rem 0 0;color:var(--slate);font-size:0.88rem;line-height:1.5">Use this as direction, not a guarantee. A single high week can be a spike; repeated movement across several Mondays is a stronger trend.</p>' +
+    "</section>" +
+    renderAnalyticsWatchModule(watchAction);
+  wireAnalyticsActionHandlers(therapist);
 }
 
-async function loadAnalyticsIntoPortal() {
+async function loadAnalyticsIntoPortal(therapist) {
   if (!document.getElementById("portalAnalyticsCard")) {
     return;
   }
@@ -1462,9 +1990,19 @@ async function loadAnalyticsIntoPortal() {
       }
       return;
     }
+    trackFunnelEvent("portal_analytics_viewed", {
+      slug: (therapist && therapist.slug) || "",
+      has_current_week_data: Boolean(analyticsResult && analyticsResult.current),
+      paid_dashboard: Boolean(
+        subscriptionResult &&
+        subscriptionResult.subscription &&
+        subscriptionResult.subscription.has_active_featured,
+      ),
+    });
     renderAnalyticsBlock(
       analyticsResult,
       (subscriptionResult && subscriptionResult.subscription) || null,
+      therapist,
     );
   } catch (_error) {
     const body = document.getElementById("portalAnalyticsBody");
@@ -2958,7 +3496,7 @@ function renderPortal(therapist, options) {
       '" data-therapist-email="' +
       escapeHtml(claimedEmail) +
       '"><p class="portal-eyebrow">Your plan</p><h2 style="margin:0 0 0.4rem">Subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status…</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>' +
-      '<article class="portal-card" id="portalAnalyticsCard"><p class="portal-eyebrow">This week at a glance</p><h2 style="margin:0 0 0.4rem">Activity</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading your profile activity…</p><div id="portalAnalyticsGrid" hidden></div></article>' +
+      '<article class="portal-card" id="portalAnalyticsCard"><p class="portal-eyebrow">Weekly decision dashboard</p><h2 style="margin:0 0 0.4rem">Your listing performance this week</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading patient discovery, contact paths, and next-step guidance…</p><div id="portalAnalyticsGrid" hidden></div></article>' +
       "</section>"
     : "";
 
@@ -3200,7 +3738,7 @@ function renderPortal(therapist, options) {
 
   if (verifiedClaim) {
     wireEditProfileHandlers(therapist);
-    loadAnalyticsIntoPortal();
+    loadAnalyticsIntoPortal(therapist);
     loadSubscriptionIntoFeaturedCard();
   } else if (sessionMode === "claim_token") {
     // Still reveal the welcome-upsell banner on the unverified claim-token
