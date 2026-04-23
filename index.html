@@ -593,12 +593,35 @@
       }
       .waitlist-panel {
         display: none;
+        position: relative;
         margin-top: 0.7rem;
         padding: 0.85rem;
         border-radius: 12px;
         border: 1px solid var(--border);
         background: #fafdfd;
         text-align: left;
+      }
+      .waitlist-panel-close {
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+        width: 1.75rem;
+        height: 1.75rem;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.1rem;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .waitlist-panel-close:hover {
+        background: rgba(107, 130, 144, 0.1);
+        color: var(--slate);
       }
       .waitlist-panel.is-open {
         display: block;
@@ -1740,6 +1763,14 @@
               </button>
             </div>
             <div class="waitlist-panel" id="waitlistPanel" aria-hidden="true">
+              <button
+                type="button"
+                class="waitlist-panel-close"
+                id="waitlistClose"
+                aria-label="Close waitlist and go back"
+              >
+                ×
+              </button>
               <div class="waitlist-panel-row">
                 <input
                   type="email"
@@ -2064,8 +2095,8 @@
         }
 
         var findCareBtn = document.getElementById("searchButton");
-        toggle.addEventListener("click", function () {
-          var opening = !panel.classList.contains("is-open");
+        var closeBtn = document.getElementById("waitlistClose");
+        function setPanelOpen(opening) {
           panel.classList.toggle("is-open", opening);
           panel.setAttribute("aria-hidden", opening ? "false" : "true");
           if (findCareBtn) {
@@ -2075,8 +2106,19 @@
             setTimeout(function () {
               emailInput.focus();
             }, 0);
+          } else {
+            setStatus("", "");
+            toggle.focus();
           }
+        }
+        toggle.addEventListener("click", function () {
+          setPanelOpen(!panel.classList.contains("is-open"));
         });
+        if (closeBtn) {
+          closeBtn.addEventListener("click", function () {
+            setPanelOpen(false);
+          });
+        }
 
         function setStatus(text, kind) {
           status.textContent = text || "";
