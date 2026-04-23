@@ -5844,20 +5844,6 @@ function renderIngestionScorecard() {
   });
 }
 
-function renderSourcePerformance() {
-  withLazyAdminModule("./admin-sourcing-intelligence.js", function (module) {
-    module.renderSourcePerformancePanel({
-      root: document.getElementById("sourcePerformance"),
-      authRequired: authRequired,
-      candidates: dataMode === "sanity" ? remoteCandidates : [],
-      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-      inferCoverageRole: inferCoverageRole,
-      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-      escapeHtml: escapeHtml,
-    });
-  });
-}
-
 function renderFunnelInsights() {
   const root = document.getElementById("funnelInsights");
   if (!root) {
@@ -7394,7 +7380,6 @@ function renderAll() {
   renderAdminSection("ingestion scorecard", renderIngestionScorecard);
   renderAdminSection("ops inbox", renderOpsInbox);
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);
-  renderAdminSection("source performance", renderSourcePerformance);
   renderAdminSection("funnel insights", renderFunnelInsights);
   renderAdminSection("listings", renderListings);
   renderAdminSection("licensure queue", renderLicensureQueue);
