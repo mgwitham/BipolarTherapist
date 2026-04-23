@@ -21,6 +21,8 @@ test("buildWeeklyDigest computes trend + top source when there is activity", () 
       profileViewsDirectory: 7,
       profileViewsDirect: 2,
       ctaClicksTotal: 4,
+      ctaClicksBooking: 3,
+      ctaClicksEmail: 1,
       lastEventAt: "2026-04-19T12:00:00.000Z",
     },
     previous: { profileViewsTotal: 15, ctaClicksTotal: 3 },
@@ -33,6 +35,8 @@ test("buildWeeklyDigest computes trend + top source when there is activity", () 
   assert.equal(digest.clicksTrend.direction, "up");
   assert.equal(digest.topSource.key, "match");
   assert.equal(digest.topSource.count, 18);
+  assert.equal(digest.topContact.key, "booking");
+  assert.equal(digest.topContact.count, 3);
 });
 
 test("buildWeeklyDigest marks 'new' when prior week is zero but current has activity", () => {
@@ -63,6 +67,8 @@ test("renderWeeklyDigestEmail produces subject + body anchored on numbers", () =
       profileViewsMatch: 8,
       profileViewsDirectory: 4,
       ctaClicksTotal: 2,
+      ctaClicksBooking: 1,
+      ctaClicksPhone: 1,
     },
     previous: { profileViewsTotal: 10, ctaClicksTotal: 2 },
   });
@@ -77,6 +83,9 @@ test("renderWeeklyDigestEmail produces subject + body anchored on numbers", () =
   assert.match(email.text, /12 profile views/);
   assert.match(email.text, /up 20% vs last week/);
   assert.match(email.text, /Top source: match flow \(8 views\)/);
+  assert.match(email.text, /Source breakdown: match flow: 8 • directory: 4/);
+  assert.match(email.text, /Contact path breakdown: booking link: 1 • phone: 1/);
+  assert.match(email.text, /Most-used contact path: booking link \(1 clicks\)/);
   assert.match(email.text, /\/portal\?slug=foo/);
 });
 
