@@ -122,6 +122,18 @@ export function bindApplicationPanelInteractions(root, options) {
     });
   });
 
+  root.querySelectorAll("[data-open-review-details]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-open-review-details");
+      var details = root.querySelector('[data-review-details-id="' + id + '"]');
+      if (details) {
+        details.open = true;
+        details.scrollIntoView({ behavior: "smooth", block: "start" });
+        options.spotlightSection(details);
+      }
+    });
+  });
+
   root.querySelector("[data-application-clear-filters]")?.addEventListener("click", function () {
     options.applicationFilters.q = "";
     options.applicationFilters.status = "";
