@@ -265,13 +265,13 @@ async function main() {
   const template = loadTemplate();
   const prompt = renderPrompt(template, {
     city: options.city,
-    zipsDisplay: zips.join(", "),
+    zipsDisplay: zips.length ? ` Prioritize ZIPs: ${zips.join(", ")}.` : "",
     count: options.count,
     exclusionBlock,
   });
   const fileBody = buildOutputFile(prompt, {
     city: options.city,
-    zipsDisplay: zips.join(", "),
+    zipsDisplay: zips.length ? zips.join(", ") : "(none specified)",
     count: options.count,
     exclusionCount,
   });
