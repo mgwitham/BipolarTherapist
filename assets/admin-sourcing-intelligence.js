@@ -81,167 +81,6 @@ export function buildCoverageInsights(therapists, helpers) {
   };
 }
 
-function buildCoverageSourcingRecommendations(insights) {
-  const concentratedDomains = (insights.sourceConcentration || [])
-    .filter(function (item) {
-      return item.count >= 2;
-    })
-    .map(function (item) {
-      return item.domain;
-    });
-
-  return (insights.thinnestCities || []).slice(0, 4).map(function (row) {
-    const missingPsychiatry = row.psychiatry === 0;
-    const missingTelehealth = row.telehealth === 0;
-    const missingAccepting = row.accepting === 0;
-    const role = missingPsychiatry ? "psychiatrist" : "therapist";
-    const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
-    const searchParts = ["bipolar", role, cityLabel];
-    if (missingTelehealth) {
-      searchParts.push("telehealth");
-    }
-    if (missingAccepting) {
-      searchParts.push("accepting new patients");
-    }
-
-    const avoidNote = concentratedDomains.length
-      ? "Lean away from overused domains like " + concentratedDomains.slice(0, 2).join(", ") + "."
-      : "Add net-new source domains if possible.";
-
-    return {
-      city: cityLabel,
-      role: role,
-      gaps: []
-        .concat(missingPsychiatry ? ["psychiatry"] : [])
-        .concat(missingTelehealth ? ["telehealth"] : [])
-        .concat(missingAccepting ? ["accepting"] : []),
-      query: searchParts.join(" "),
-      targetSources: missingPsychiatry
-        ? "Practice sites, psychiatry clinics, medication-management groups"
-        : "Private practice sites, therapy group practices, bipolar-focused clinician pages",
-      avoidNote: avoidNote,
-    };
-  });
-}
-
-function buildCoverageSourcingPacket(recommendations) {
-  const rows = Array.isArray(recommendations) ? recommendations : [];
-  if (!rows.length) {
-    return "";
-  }
-
-  return [
-    "# Coverage Sourcing Packet",
-    "",
-    "Use these recommendations to guide the next therapist discovery wave.",
-    "",
-  ]
-    .concat(
-      rows.map(function (item, index) {
-        return [
-          index + 1 + ". " + item.city,
-          "- Role to prioritize: " + item.role,
-          "- Gaps: " + (item.gaps.length ? item.gaps.join(", ") : "general coverage"),
-          "- Search query: " + item.query,
-          "- Target sources: " + item.targetSources,
-          "- Operator note: " + item.avoidNote,
-          "",
-        ].join("\n");
-      }),
-    )
-    .join("\n");
-}
-
-function buildCoverageSourceSeedCsv(recommendations, helpers) {
-  const rows = Array.isArray(recommendations) ? recommendations : [];
-  if (!rows.length) {
-    return "";
-  }
-
-  const headers = [
-    "sourceUrl",
-    "sourceType",
-    "name",
-    "credentials",
-    "title",
-    "practiceName",
-    "city",
-    "state",
-    "zip",
-    "country",
-    "licenseState",
-    "licenseNumber",
-    "email",
-    "phone",
-    "website",
-    "bookingUrl",
-    "supportingSourceUrls",
-    "clientPopulations",
-    "insuranceAccepted",
-    "telehealthStates",
-    "estimatedWaitTime",
-    "sessionFeeMin",
-    "sessionFeeMax",
-    "slidingScale",
-    "notes",
-  ];
-
-  const lines = [headers.join(",")];
-  rows.forEach(function (item) {
-    const parts = String(item.city || "")
-      .split(",")
-      .map(function (part) {
-        return part.trim();
-      });
-    const city = parts[0] || "";
-    const state = parts[1] || "";
-    const values = [
-      "",
-      "manual_research",
-      "",
-      "",
-      item.role === "psychiatrist" ? "Psychiatrist" : "Therapist",
-      "",
-      city,
-      state,
-      "",
-      "US",
-      state,
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      item.gaps.includes("telehealth") ? state : "",
-      "",
-      "",
-      "",
-      "false",
-      [
-        "Coverage-guided sourcing target",
-        "Role: " + item.role,
-        "Gaps: " + (item.gaps.length ? item.gaps.join("|") : "general_coverage"),
-        "Query: " + item.query,
-        "Target sources: " + item.targetSources,
-      ].join(" · "),
-    ];
-    lines.push(values.map(helpers.csvEscape).join(","));
-  });
-
-  return lines.join("\n");
-}
-
-function buildCoverageDiscoveryCommand() {
-  return [
-    "npm run cms:discover:candidates -- data/import/generated-coverage-source-seeds.csv",
-    "npm run cms:import:candidates -- data/import/generated-discovered-therapist-candidates.csv",
-    "npm run cms:generate:candidate-review-queue",
-  ].join("\n");
-}
-
 function buildSourcePerformanceInsights(candidates) {
   const bySourceType = new Map();
 
@@ -405,7 +244,6 @@ export function renderCoverageIntelligencePanel(options) {
     inferCoverageRole: options.inferCoverageRole,
     getTherapistFieldTrustAttentionCount: options.getTherapistFieldTrustAttentionCount,
   });
-  const sourcingRecommendations = buildCoverageSourcingRecommendations(insights);
 
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians.</div><div class="queue-insights-grid">' +
@@ -430,37 +268,6 @@ export function renderCoverageIntelligencePanel(options) {
           ) +
           '</div><div class="queue-insight-note">' +
           options.escapeHtml(gaps.join(" · ") || "Balanced coverage") +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></div>" +
-    '<div class="queue-actions" style="margin-bottom:0.8rem">' +
-    '<button class="btn-primary" data-coverage-export="packet">Copy sourcing packet</button>' +
-    '<button class="btn-secondary" data-coverage-export="seed-csv">Copy source-seed CSV</button>' +
-    '<button class="btn-secondary" data-coverage-export="download-packet">Download packet</button>' +
-    '<button class="btn-secondary" data-coverage-export="download-seed-csv">Download seed CSV</button>' +
-    '<button class="btn-secondary" data-coverage-export="command">Copy discovery command</button>' +
-    '</div><div class="review-coach-status" id="coverageSourcingStatus"></div>' +
-    '<div class="queue-insights"><div class="queue-insights-title">Recommended sourcing moves</div><div class="subtle" style="margin-bottom:0.7rem">Use these as the next founder-ops queries when you want to add therapists efficiently.</div><div class="queue-insights-grid">' +
-    sourcingRecommendations
-      .map(function (item) {
-        return (
-          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-          options.escapeHtml(item.city) +
-          '</strong></div><div class="queue-insight-note">' +
-          options.escapeHtml(
-            "Go get more " +
-              item.role +
-              " coverage" +
-              (item.gaps.length ? " for " + item.gaps.join(", ") : ""),
-          ) +
-          '</div><div class="queue-insight-note"><strong>Query:</strong> ' +
-          options.escapeHtml(item.query) +
-          '</div><div class="queue-insight-note"><strong>Target sources:</strong> ' +
-          options.escapeHtml(item.targetSources) +
-          '</div><div class="queue-insight-note">' +
-          options.escapeHtml(item.avoidNote) +
           "</div></div>"
         );
       })
@@ -511,55 +318,6 @@ export function renderCoverageIntelligencePanel(options) {
       })
       .join("") +
     "</div></div>";
-
-  root.querySelectorAll("[data-coverage-export]").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const mode = button.getAttribute("data-coverage-export");
-      const packetText = buildCoverageSourcingPacket(sourcingRecommendations);
-      const seedCsvText = buildCoverageSourceSeedCsv(sourcingRecommendations, {
-        csvEscape: options.csvEscape,
-      });
-      const commandText = buildCoverageDiscoveryCommand();
-      const status = root.querySelector("#coverageSourcingStatus");
-      let success = false;
-      let message = "";
-
-      if (mode === "seed-csv") {
-        success = seedCsvText ? await options.copyText(seedCsvText) : false;
-        message = success ? "Source-seed CSV copied." : "Could not copy source-seed CSV.";
-      } else if (mode === "packet") {
-        success = packetText ? await options.copyText(packetText) : false;
-        message = success ? "Sourcing packet copied." : "Could not copy sourcing packet.";
-      } else if (mode === "download-packet") {
-        success = packetText
-          ? options.downloadText(
-              "coverage-sourcing-packet.md",
-              packetText,
-              "text/markdown;charset=utf-8",
-            )
-          : false;
-        message = success ? "Sourcing packet downloaded." : "Could not download sourcing packet.";
-      } else if (mode === "download-seed-csv") {
-        success = seedCsvText
-          ? options.downloadText(
-              "generated-coverage-source-seeds.csv",
-              seedCsvText,
-              "text/csv;charset=utf-8",
-            )
-          : false;
-        message = success ? "Source-seed CSV downloaded." : "Could not download source-seed CSV.";
-      } else if (mode === "command") {
-        success = commandText ? await options.copyText(commandText) : false;
-        message = success
-          ? "Discovery command sequence copied."
-          : "Could not copy discovery command sequence.";
-      }
-
-      if (status) {
-        status.textContent = message;
-      }
-    });
-  });
 }
 
 export function renderSourcePerformancePanel(options) {
