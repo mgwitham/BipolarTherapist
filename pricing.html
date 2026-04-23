@@ -9,7 +9,7 @@
     <title>Pricing — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Every therapist is listed and matched by fit for free. All claimed therapists can edit their profile directly. Paid is $19 a month and unlocks a weekly analytics dashboard and a Monday digest email. Paid does not buy placement."
+      content="Every therapist can be listed and ranked by fit for free. Paid is $19/month and adds visibility and contact insights, a Monday digest email, and a 14-day free trial. Paid does not buy placement."
     />
     <link rel="canonical" href="https://www.bipolartherapyhub.com/pricing" />
     <meta property="og:type" content="website" />
@@ -18,7 +18,7 @@
     <meta property="og:title" content="Pricing — BipolarTherapyHub" />
     <meta
       property="og:description"
-      content="Listed free. Edit your profile directly for free. $19/mo unlocks analytics and a Monday digest email. 14-day free trial. Paid does not buy placement."
+      content="Get listed for free. Upgrade for clearer insight into how patients find and contact you. $19/month with a 14-day free trial. Paid does not buy placement."
     />
     <meta property="og:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
@@ -27,7 +27,7 @@
     <meta name="twitter:title" content="Pricing — BipolarTherapyHub" />
     <meta
       name="twitter:description"
-      content="Listed free. Direct profile editing for free. $19/mo unlocks analytics and a Monday digest email."
+      content="Every therapist can be listed and ranked by fit for free. Paid adds visibility and contact insights plus a Monday digest email."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -41,27 +41,40 @@
       body {
         background: #f7fbfc;
       }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
       .pricing-wrap {
         max-width: 1080px;
         margin: 0 auto;
-        padding: 2rem 1.5rem 4rem;
+        padding: 2.25rem 1.5rem 4rem;
       }
       .pricing-hero {
-        text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
+        display: grid;
+        gap: 1.35rem;
       }
       .pricing-hero h1 {
         font-family: "Lora", serif;
         font-size: clamp(2rem, 4vw, 3rem);
         line-height: 1.1;
-        margin: 0.5rem 0;
+        margin: 0;
+        max-width: 820px;
       }
       .pricing-hero p {
         color: var(--muted);
         font-size: 1rem;
         line-height: 1.6;
-        max-width: 620px;
-        margin: 0 auto;
+        max-width: 760px;
+        margin: 0;
       }
       .pricing-eyebrow {
         margin: 0;
@@ -71,11 +84,67 @@
         letter-spacing: 0.08em;
         color: var(--teal);
       }
+      .pricing-hero-panel {
+        background: linear-gradient(
+          180deg,
+          rgba(232, 245, 248, 0.9) 0%,
+          rgba(255, 255, 255, 0.95) 100%
+        );
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 26px;
+        padding: 2rem;
+        box-shadow: 0 18px 40px rgba(15, 65, 78, 0.06);
+      }
+      .pricing-hero-points {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .pricing-hero-points li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+      .pricing-hero-points li::before {
+        content: "";
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--teal);
+        flex: 0 0 auto;
+      }
+      .pricing-comparison-intro {
+        display: grid;
+        gap: 0.9rem;
+        margin: 0 0 1.25rem;
+      }
+      .pricing-comparison-intro h2,
+      .pricing-support h2,
+      .pricing-fairness h2 {
+        font-family: "Lora", serif;
+        font-size: 1.55rem;
+        margin: 0;
+      }
+      .pricing-comparison-intro p,
+      .pricing-support p,
+      .pricing-fairness p {
+        margin: 0;
+        color: var(--muted);
+      }
       .pricing-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1.25rem;
-        margin-top: 2rem;
       }
       .pricing-card {
         background: #fff;
@@ -86,15 +155,44 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        min-height: 100%;
       }
       .pricing-card.is-paid {
         border: 2px solid #bde3e9;
         background: linear-gradient(180deg, #ecf7f9 0%, #fff 70%);
       }
+      .pricing-card.is-current {
+        box-shadow:
+          0 0 0 4px rgba(26, 122, 143, 0.12),
+          0 18px 36px rgba(15, 65, 78, 0.08);
+      }
+      .pricing-card-header {
+        display: grid;
+        gap: 0.45rem;
+      }
+      .pricing-card-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
       .pricing-card h2 {
         font-family: "Lora", serif;
         font-size: 1.5rem;
         margin: 0;
+      }
+      .pricing-card-kicker {
+        margin: 0;
+        color: var(--teal-dark);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .pricing-card-summary {
+        margin: 0;
+        font-size: 0.96rem;
+        color: var(--navy);
       }
       .pricing-price {
         font-size: 2.4rem;
@@ -107,6 +205,12 @@
         font-weight: 500;
         color: var(--muted);
         margin-left: 0.35rem;
+      }
+      .pricing-price-row {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.2rem;
       }
       .pricing-note {
         color: var(--muted);
@@ -137,6 +241,11 @@
       .pricing-features li strong {
         color: var(--navy);
       }
+      .pricing-card-footer {
+        margin-top: auto;
+        display: grid;
+        gap: 0.8rem;
+      }
       .pricing-cta {
         appearance: none;
         border: 0;
@@ -151,6 +260,13 @@
         text-decoration: none;
         display: inline-block;
       }
+      .pricing-cta:hover {
+        background: var(--teal-dark);
+      }
+      .pricing-cta:focus-visible {
+        outline: 3px solid rgba(26, 122, 143, 0.24);
+        outline-offset: 3px;
+      }
       .pricing-cta:disabled {
         background: #b8c7cb;
         cursor: not-allowed;
@@ -159,6 +275,9 @@
         background: #fff;
         color: var(--teal);
         border: 1px solid var(--teal);
+      }
+      .pricing-cta-secondary:hover {
+        background: rgba(26, 122, 143, 0.06);
       }
       .pricing-tag {
         display: inline-flex;
@@ -173,24 +292,157 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
+      .pricing-tag.is-neutral {
+        background: rgba(29, 58, 74, 0.08);
+        color: var(--navy);
+      }
       .pricing-feedback {
         min-height: 1.2rem;
         color: var(--muted);
         font-size: 0.86rem;
       }
-      .pricing-note-small {
-        margin-top: 0.55rem;
-        text-align: center;
+      .pricing-feedback[data-tone="success"] {
+        color: var(--teal-dark);
+      }
+      .pricing-feedback[data-tone="error"] {
+        color: #9a3a2c;
+      }
+      .pricing-trial-box {
+        display: grid;
+        gap: 0.4rem;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(26, 122, 143, 0.15);
+      }
+      .pricing-trial-box strong {
+        color: var(--navy);
+        font-size: 0.9rem;
+      }
+      .pricing-trial-box p,
+      .pricing-note-small,
+      .pricing-plan-state {
+        margin: 0;
         color: var(--muted);
-        font-size: 0.8rem;
+        font-size: 0.82rem;
+        line-height: 1.55;
       }
       .pricing-note-small a {
         color: var(--teal);
       }
+      .pricing-preview {
+        margin-top: 2rem;
+        padding: 1.6rem;
+        border-radius: 22px;
+        background: #fff;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        box-shadow: 0 12px 28px rgba(15, 65, 78, 0.05);
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 1.35rem;
+        align-items: start;
+      }
+      .pricing-preview-copy {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .pricing-preview-copy h2 {
+        font-family: "Lora", serif;
+        font-size: 1.45rem;
+        margin: 0;
+      }
+      .pricing-preview-copy p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .pricing-preview-chip {
+        display: inline-flex;
+        width: fit-content;
+        padding: 0.28rem 0.7rem;
+        border-radius: 999px;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .pricing-preview-card {
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(236, 247, 249, 0.95) 0%, #fff 100%);
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        padding: 1.1rem;
+        display: grid;
+        gap: 0.9rem;
+      }
+      .pricing-preview-card h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .pricing-preview-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .pricing-preview-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+      .pricing-preview-metric {
+        padding: 0.8rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(26, 122, 143, 0.08);
+      }
+      .pricing-preview-metric-label {
+        margin: 0 0 0.2rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .pricing-preview-metric-value {
+        margin: 0;
+        color: var(--navy);
+        font-size: 0.96rem;
+        font-weight: 700;
+      }
+      .pricing-support,
+      .pricing-fairness {
+        margin-top: 2rem;
+        padding: 1.45rem 1.5rem;
+        border-radius: 20px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: rgba(255, 255, 255, 0.88);
+        display: grid;
+        gap: 0.85rem;
+      }
+      .pricing-support-grid,
+      .pricing-fairness-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+      .pricing-support-item,
+      .pricing-fairness-item {
+        padding: 1rem;
+        border-radius: 16px;
+        background: rgba(232, 245, 248, 0.45);
+        border: 1px solid rgba(26, 122, 143, 0.08);
+      }
+      .pricing-support-item h3,
+      .pricing-fairness-item h3 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+      }
+      .pricing-support-item p,
+      .pricing-fairness-item p {
+        margin: 0;
+        font-size: 0.92rem;
+      }
       .pricing-disclaimer {
-        margin: 2rem auto 0;
-        max-width: 680px;
-        text-align: center;
+        margin: 1.1rem 0 0;
         color: var(--muted);
         font-size: 0.92rem;
         line-height: 1.6;
@@ -199,8 +451,32 @@
         color: var(--navy);
       }
       @media (max-width: 720px) {
+        .pricing-wrap {
+          padding: 1.5rem 1rem 3rem;
+        }
+        .pricing-hero-panel,
+        .pricing-preview,
+        .pricing-support,
+        .pricing-fairness {
+          padding: 1.25rem;
+        }
         .pricing-grid {
           grid-template-columns: 1fr;
+        }
+        .pricing-preview,
+        .pricing-support-grid,
+        .pricing-fairness-grid {
+          grid-template-columns: 1fr;
+        }
+        .pricing-preview-metrics {
+          grid-template-columns: 1fr;
+        }
+        .pricing-card {
+          padding: 1.35rem;
+        }
+        .pricing-card-topline {
+          align-items: flex-start;
+          flex-direction: column;
         }
       }
     </style>
@@ -218,68 +494,237 @@
     </nav>
     <main class="pricing-wrap">
       <header class="pricing-hero">
-        <p class="pricing-eyebrow">Pricing</p>
-        <h1>Listed free. $19 for the intel to grow.</h1>
-        <p>
-          Every therapist is listed and ranked in match results by fit, for free. All claimed
-          therapists can edit their profile directly, no review queue. Paid unlocks a weekly
-          analytics dashboard and a Monday digest email. Match results are always ranked by fit, not
-          by who pays.
-        </p>
+        <div class="pricing-hero-panel">
+          <p class="pricing-eyebrow">Pricing</p>
+          <h1>
+            Get listed for free. Upgrade when you want clearer insight into how patients find and
+            contact you.
+          </h1>
+          <p id="pricingHeroSupport">
+            Every therapist can claim a directory listing, show a verified California license badge
+            when available, manage core profile details, and rank by fit for free. Paid adds weekly
+            visibility and contact insights, plus a Monday digest email. Paying never changes
+            placement in match results.
+          </p>
+          <ul class="pricing-hero-points" aria-label="Pricing highlights">
+            <li>Free listing for every therapist</li>
+            <li>Ranked by fit, not payment</li>
+            <li>14-day paid trial, no charge until day 15</li>
+          </ul>
+        </div>
       </header>
 
-      <section class="pricing-grid" id="pricingGrid">
+      <section class="pricing-comparison-intro" aria-labelledby="pricingPlansHeading">
+        <h2 id="pricingPlansHeading">Choose the level of visibility that fits how you work</h2>
+        <p>
+          Free is enough if you want to be listed, stay current, and let fit-based ranking do the
+          work. Paid is useful if you want ongoing visibility into where interest comes from, which
+          contact methods patients use, and how activity changes week to week.
+        </p>
+      </section>
+
+      <section class="pricing-grid" id="pricingGrid" aria-label="Pricing plans">
         <article class="pricing-card" data-plan-card="free">
-          <h2>Free</h2>
-          <div>
-            <span class="pricing-price">$0</span>
-            <span class="pricing-price-unit">forever</span>
+          <div class="pricing-card-header">
+            <div class="pricing-card-topline">
+              <div>
+                <p class="pricing-card-kicker">For getting listed</p>
+                <h2>Free</h2>
+              </div>
+              <span class="pricing-tag is-neutral" id="pricingFreePlanBadge">Always available</span>
+            </div>
+            <div class="pricing-price-row">
+              <span class="pricing-price">$0</span>
+              <span class="pricing-price-unit">forever</span>
+            </div>
+            <p class="pricing-card-summary">
+              Real directory presence and core profile management, without changing how you rank.
+            </p>
           </div>
-          <p class="pricing-note">No credit card. Free claim stays free forever.</p>
+          <p class="pricing-note">No credit card. Your free listing stays free.</p>
           <ul class="pricing-features">
-            <li>Listed in the directory with verified license badge</li>
-            <li>Ranked in match results by fit, same as everyone</li>
-            <li>Direct profile editing from your dashboard (bio, accepting status, fees, more)</li>
-            <li>Weekly view and contact-click count on your dashboard</li>
+            <li><strong>Directory listing</strong> with verified license badge when available</li>
+            <li>
+              <strong>Fit-based ranking</strong> in match results, the same as every therapist
+            </li>
+            <li><strong>Claim and manage your listing</strong> from the dashboard</li>
+            <li>
+              <strong>Core dashboard access</strong> with weekly views and contact-click totals
+            </li>
           </ul>
-          <a href="claim.html" class="pricing-cta pricing-cta-secondary">Claim your profile</a>
+          <div class="pricing-card-footer">
+            <a
+              href="claim.html"
+              class="pricing-cta pricing-cta-secondary"
+              data-plan-cta="free"
+              id="pricingFreeCta"
+            >
+              Claim free listing
+            </a>
+            <p class="pricing-plan-state" id="pricingFreeState">
+              Best if you want to be listed and keep your profile current.
+            </p>
+            <p class="pricing-feedback" id="pricingFreeFeedback" aria-live="polite"></p>
+          </div>
         </article>
 
         <article class="pricing-card is-paid" data-plan-card="paid">
-          <span class="pricing-tag">14-day free trial</span>
-          <h2>Paid</h2>
-          <div>
-            <span class="pricing-price">$19</span>
-            <span class="pricing-price-unit">per month</span>
+          <div class="pricing-card-header">
+            <div class="pricing-card-topline">
+              <div>
+                <p class="pricing-card-kicker">For understanding performance</p>
+                <h2>Paid</h2>
+              </div>
+              <span class="pricing-tag" id="pricingPaidPlanBadge">14-day free trial</span>
+            </div>
+            <div class="pricing-price-row">
+              <span class="pricing-price">$19</span>
+              <span class="pricing-price-unit">per month</span>
+            </div>
+            <p class="pricing-card-summary">
+              Actionable visibility into how patients find you, how they reach out, and what changes
+              over time.
+            </p>
           </div>
-          <p class="pricing-note">No charge until day 15. Cancel anytime from your dashboard.</p>
+          <p class="pricing-note">
+            Paid adds insight. It does not buy placement and it does not gate your listing.
+          </p>
           <ul class="pricing-features">
             <li>Everything in Free</li>
             <li>
-              <strong>Weekly analytics dashboard</strong> 12-week view trend, how patients found you
-              (match flow, directory, direct), and which contact methods they actually used (phone,
-              email, booking link)
+              <strong>See how patients found you</strong> with source visibility across match flow,
+              directory, and direct visits
             </li>
             <li>
-              <strong>Monday digest email</strong> your week's numbers delivered automatically:
-              views, contact clicks, top source, and trend vs last week
+              <strong>See which contact path they used</strong> including phone, email, or booking
+              link
             </li>
-            <li>Cancel in one click from your dashboard</li>
+            <li>
+              <strong>Track weekly change over time</strong> with 12-week visibility and contact
+              trends
+            </li>
+            <li>
+              <strong>Get a Monday digest email</strong> summarizing views, contact clicks, and
+              trend vs last week
+            </li>
           </ul>
-          <a href="signup.html" class="pricing-cta" data-paid-cta>Get started</a>
-          <p class="pricing-note-small">
-            Already listed? You'll start your trial today. New to the directory? We verify your CA
-            license on the spot, then you land in your dashboard and go live after adding a bio.
-          </p>
+          <div class="pricing-card-footer">
+            <a
+              href="signup.html"
+              class="pricing-cta"
+              data-plan-cta="paid"
+              data-paid-cta
+              id="pricingPaidCta"
+            >
+              Start free trial
+            </a>
+            <div class="pricing-trial-box" id="pricingTrialBox">
+              <strong>Start with 14 days free.</strong>
+              <p id="pricingTrialClarity">
+                Card required to start. No charge until day 15. Cancel anytime from your dashboard
+                before billing begins.
+              </p>
+            </div>
+            <p class="pricing-plan-state" id="pricingPaidState">
+              Useful if you want better visibility into how patients find and contact you.
+            </p>
+            <p class="pricing-feedback" id="pricingPaidFeedback" aria-live="polite"></p>
+            <p class="pricing-note-small" id="pricingPaidHelper">
+              Already listed and signed in? You can start the trial without repeating onboarding.
+            </p>
+          </div>
         </article>
       </section>
 
-      <p class="pricing-disclaimer">
-        <strong>Paid does not buy placement.</strong> Match results are always ranked by fit to the
-        patient. Paid unlocks visibility into how patients found and reached you. It does not move
-        you up in anyone's list, and it does not gate profile editing — every claimed therapist owns
-        their listing.
-      </p>
+      <section class="pricing-preview" aria-labelledby="pricingPreviewHeading">
+        <div class="pricing-preview-copy">
+          <span class="pricing-preview-chip">Paid preview</span>
+          <h2 id="pricingPreviewHeading">What the paid dashboard helps you see</h2>
+          <p>
+            This is the practical difference: not better placement, but better visibility into what
+            is already happening around your listing.
+          </p>
+          <p>
+            The paid dashboard is designed to answer a clinician’s common questions: Are patients
+            finding me through match results or the directory? Are they calling, emailing, or using
+            my booking link? Is activity changing week to week?
+          </p>
+        </div>
+        <button
+          type="button"
+          class="pricing-preview-card"
+          id="pricingPreviewCard"
+          aria-describedby="pricingPreviewNote"
+        >
+          <span class="sr-only">Open pricing dashboard preview details</span>
+          <div>
+            <h3>Example weekly visibility snapshot</h3>
+            <p id="pricingPreviewNote">Illustrative layout based on the current paid dashboard.</p>
+          </div>
+          <div class="pricing-preview-metrics" aria-hidden="true">
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Top source</p>
+              <p class="pricing-preview-metric-value">Match flow vs directory vs direct</p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Contact route</p>
+              <p class="pricing-preview-metric-value">Phone, email, or booking link</p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Weekly trend</p>
+              <p class="pricing-preview-metric-value">12-week view and contact changes</p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Digest email</p>
+              <p class="pricing-preview-metric-value">Monday summary of last week’s changes</p>
+            </div>
+          </div>
+        </button>
+      </section>
+
+      <section class="pricing-fairness" aria-labelledby="pricingFairnessHeading">
+        <h2 id="pricingFairnessHeading">What paid does and does not change</h2>
+        <div class="pricing-fairness-grid">
+          <div class="pricing-fairness-item">
+            <h3>What stays fair</h3>
+            <p>
+              <strong>Paid does not buy placement.</strong> Match results stay ranked by fit to the
+              patient. Free and paid therapists are evaluated by the same relevance rules.
+            </p>
+          </div>
+          <div class="pricing-fairness-item">
+            <h3>What paid adds</h3>
+            <p>
+              Paid gives you more context: how patients found you, which contact route they used,
+              and how visibility changes over time so you can make better profile decisions.
+            </p>
+          </div>
+        </div>
+        <p class="pricing-disclaimer">
+          Every claimed therapist keeps ownership of their listing and core profile editing. Paid is
+          for insight, not placement.
+        </p>
+      </section>
+
+      <section class="pricing-support" aria-labelledby="pricingSupportHeading">
+        <h2 id="pricingSupportHeading">How to decide</h2>
+        <div class="pricing-support-grid">
+          <div class="pricing-support-item">
+            <h3>Choose Free if</h3>
+            <p>
+              You want to be listed, manage your profile, and let fit-based ranking work without
+              paying.
+            </p>
+          </div>
+          <div class="pricing-support-item">
+            <h3>Choose Paid if</h3>
+            <p>
+              You want ongoing visibility into how patients find you and which contact methods they
+              actually use.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
     <script type="module" src="assets/pricing.js"></script>
   </body>
