@@ -220,14 +220,19 @@ function renderDashboard(container, logData) {
     '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><details class="admin-funnel-recent-details"><summary><h3 style="display:inline;margin:0">Recent events (last 50)</h3></summary>' +
-    renderRecentEvents(events) +
-    "</details></section>" +
     '<p class="admin-funnel-meta">Buffer holds last 500 events · ' +
     totalAppended +
     " total appended · updated " +
     escapeHtml(updatedAt) +
     "</p>";
+
+  const recentContainer = document.getElementById("adminFunnelRecentEvents");
+  if (recentContainer) {
+    recentContainer.innerHTML =
+      '<section class="admin-funnel-section"><details class="admin-funnel-recent-details"><summary><h3 style="display:inline;margin:0">Recent events (last 50)</h3></summary>' +
+      renderRecentEvents(events) +
+      "</details></section>";
+  }
 }
 
 async function loadFunnelDashboard() {

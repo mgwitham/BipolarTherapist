@@ -2589,6 +2589,7 @@
       }
       .panel.section-spotlight,
       .workflow-section.section-spotlight,
+      .admin-region-shell.section-spotlight,
       #importBlockerSprint.section-spotlight,
       #californiaPriorityConfirmationWave.section-spotlight,
       #confirmationSprint.section-spotlight,
@@ -5852,6 +5853,35 @@
                 </div>
               </div>
             </section>
+            <section
+              class="admin-region-shell"
+              id="funnelRegion"
+              data-view-group="reports"
+              style="margin-top: 1.5rem"
+            >
+              <header class="admin-funnel-header">
+                <div>
+                  <h2 style="margin: 0">Signup + claim funnel</h2>
+                  <p class="subtle" style="margin: 0.25rem 0 0">
+                    Live event log from /signup and /claim. Last 500 events held in a ring buffer.
+                    Events auto-flush from the browser every 2 seconds or on page hide.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center">
+                  <span
+                    class="admin-funnel-status"
+                    id="adminFunnelStatus"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                  ></span>
+                  <button type="button" class="btn-secondary" id="adminFunnelRefresh">
+                    Refresh
+                  </button>
+                </div>
+              </header>
+              <div id="adminFunnelDashboard"></div>
+            </section>
             <details
               class="admin-collapsible-group"
               data-view-group="reports"
@@ -5916,35 +5946,11 @@
                 </div>
               </div>
             </details>
-            <section
-              class="admin-region-shell"
-              id="funnelRegion"
+            <div
+              id="adminFunnelRecentEvents"
               data-view-group="reports"
               style="margin-top: 1.5rem"
-            >
-              <header class="admin-funnel-header">
-                <div>
-                  <h2 style="margin: 0">Signup + claim funnel</h2>
-                  <p class="subtle" style="margin: 0.25rem 0 0">
-                    Live event log from /signup and /claim. Last 500 events held in a ring buffer.
-                    Events auto-flush from the browser every 2 seconds or on page hide.
-                  </p>
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center">
-                  <span
-                    class="admin-funnel-status"
-                    id="adminFunnelStatus"
-                    role="status"
-                    aria-live="polite"
-                    hidden
-                  ></span>
-                  <button type="button" class="btn-secondary" id="adminFunnelRefresh">
-                    Refresh
-                  </button>
-                </div>
-              </header>
-              <div id="adminFunnelDashboard"></div>
-            </section>
+            ></div>
             <section
               class="admin-region-shell"
               id="recoveryRegion"
