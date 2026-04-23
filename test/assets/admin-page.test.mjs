@@ -64,6 +64,18 @@ test("admin page: secondary filters are progressively revealed", function () {
   assert.match(html, /Fine-tune signups, claim flow, and review goals/);
 });
 
+test("confirmation queue cards stay action-first instead of repeating ask scaffolding", function () {
+  const confirmationQueueJs = read("assets/admin-confirmation-queue.js");
+
+  assert.match(confirmationQueueJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationQueueJs, /<strong>Next step:<\/strong>/);
+  assert.match(confirmationQueueJs, /Copy live update brief/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Ordered ask flow:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /Copy operator checklist/);
+});
+
 test("admin page: shared delayed-hover tooltips explain high-frequency admin actions", function () {
   const html = read("admin.html");
   const tooltipJs = read("assets/admin-tooltips.js");
