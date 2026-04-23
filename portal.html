@@ -505,6 +505,150 @@
       .checkout-success-resend-status {
         color: var(--muted);
       }
+      .portal-signin-card {
+        max-width: 520px;
+        margin: 1.5rem auto 1rem;
+        padding: 1.9rem 1.75rem 1.75rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.08);
+      }
+      .portal-signin-head {
+        margin: 0 0 1.1rem;
+      }
+      .portal-signin-title {
+        font-family: "Lora", serif;
+        font-size: clamp(1.6rem, 3.2vw, 2.1rem);
+        line-height: 1.15;
+        margin: 0.25rem 0 0.45rem;
+        color: var(--navy);
+      }
+      .portal-signin-lede {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+        line-height: 1.5;
+      }
+      .portal-signin-form {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0.25rem 0 0.75rem;
+      }
+      .portal-signin-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .portal-signin-input {
+        width: 100%;
+        padding: 0.78rem 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 1rem;
+        color: var(--navy);
+        background: #fff;
+      }
+      .portal-signin-input:focus {
+        outline: 2px solid var(--teal);
+        outline-offset: 1px;
+        border-color: var(--teal);
+      }
+      .portal-signin-helper {
+        margin: 0.15rem 0 0.35rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .portal-signin-submit {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        margin-top: 0.2rem;
+      }
+      .portal-signin-submit:disabled {
+        opacity: 0.7;
+        cursor: progress;
+      }
+      .portal-signin-feedback {
+        margin: 0.35rem 0 0;
+        min-height: 1.2rem;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .portal-signin-feedback[data-tone="success"] {
+        color: #155f70;
+        font-weight: 600;
+      }
+      .portal-signin-feedback[data-tone="error"] {
+        color: #b03636;
+      }
+      .portal-signin-feedback[data-tone="info"] {
+        color: #1d3a4a;
+      }
+      .portal-signin-security {
+        margin: 0.75rem 0 0;
+        padding-top: 0.9rem;
+        border-top: 1px solid #e6eef0;
+        font-size: 0.82rem;
+        color: #6b8290;
+        line-height: 1.5;
+      }
+      .portal-signin-help {
+        max-width: 520px;
+        margin: 0 auto 2rem;
+        padding: 1.1rem 1.4rem;
+        background: #fafdfd;
+      }
+      .portal-signin-help-title {
+        margin: 0 0 0.5rem;
+        font-size: 0.95rem;
+        color: var(--navy);
+      }
+      .portal-signin-help-list {
+        margin: 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.9rem;
+        color: var(--navy);
+        line-height: 1.5;
+      }
+      .portal-signin-help-list a {
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+      .portal-signin-flash {
+        max-width: 520px;
+        margin: 0 auto 1rem;
+        padding: 0.85rem 1.05rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .portal-signin-flash p {
+        margin: 0.1rem 0;
+      }
+      .portal-signin-flash--info {
+        border-color: #9ecdd4;
+        background: #ecf7f9;
+        color: #155f70;
+      }
+      .portal-signin-flash--warn {
+        border-color: #f2d69a;
+        background: #fff8ec;
+        color: #5f4418;
+      }
+      @media (max-width: 540px) {
+        .portal-signin-card,
+        .portal-signin-help,
+        .portal-signin-flash {
+          margin-left: 0;
+          margin-right: 0;
+        }
+      }
     </style>
   </head>
   <body>
