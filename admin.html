@@ -3236,250 +3236,97 @@
       .application-head h3 {
         margin: 0;
       }
-      .application-identity-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-      .application-identity-main {
+      .application-card-shell {
         display: grid;
-        gap: 0.35rem;
-        min-width: 0;
+        gap: 0.75rem;
       }
-      .application-identity-main h3 {
-        margin: 0;
-        font-size: 1rem;
-        color: var(--navy);
+      .application-card-topline {
+        display: flex;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        align-items: center;
       }
-      .application-identity-meta {
-        margin: 0;
-      }
-      .application-identity-time {
-        flex: 0 0 auto;
+      .application-priority-chip {
         display: inline-flex;
         align-items: center;
-        padding: 0.34rem 0.58rem;
+        padding: 0.24rem 0.58rem;
         border-radius: 999px;
-        background: #eef4f6;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        color: #456474;
-        font-size: 0.74rem;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .application-status-row {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.7rem;
-        margin-top: 0.8rem;
-      }
-      .application-status-cell {
-        display: grid;
-        gap: 0.34rem;
-        padding: 0.76rem 0.82rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.1);
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
-      }
-      .application-status-label {
+        background: rgba(26, 122, 143, 0.1);
+        color: var(--teal-dark);
         font-size: 0.68rem;
         font-weight: 800;
-        color: #648293;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.03em;
       }
-      .application-status-note {
-        font-size: 0.76rem;
-        color: #587484;
-        line-height: 1.45;
-      }
-      .queue-chip {
-        display: inline-flex;
-        align-items: center;
-        width: fit-content;
-        padding: 0.28rem 0.56rem;
-        border-radius: 999px;
-        font-size: 0.74rem;
-        font-weight: 800;
-        letter-spacing: 0.01em;
-      }
-      .queue-chip--neutral {
+      .application-priority-chip.is-neutral {
         background: #eef4f6;
-        color: #264351;
+        color: #46616d;
       }
-      .queue-chip--ownership {
-        background: rgba(59, 130, 246, 0.14);
-        color: #1745a1;
-      }
-      .queue-chip--trust {
-        background: rgba(245, 158, 11, 0.16);
-        color: #8a4d00;
-      }
-      .queue-chip--publish {
+      .application-priority-chip.is-publish {
         background: rgba(34, 197, 94, 0.14);
-        color: #15653a;
+        color: #166534;
       }
-      .application-recommendation-block {
-        margin-top: 0.82rem;
-        padding: 0.95rem 1rem;
-        border-radius: 16px;
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        background:
-          linear-gradient(180deg, rgba(248, 252, 253, 0.98), rgba(255, 255, 255, 0.98)), #fff;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.82),
-          0 10px 22px rgba(29, 58, 74, 0.04);
+      .application-priority-chip.is-trust {
+        background: rgba(245, 158, 11, 0.16);
+        color: #9a6700;
       }
-      .application-recommendation-label {
-        font-size: 0.68rem;
-        font-weight: 900;
-        color: #648293;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+      .application-priority-chip.is-ownership {
+        background: rgba(59, 130, 246, 0.14);
+        color: #1d4ed8;
       }
-      .application-recommendation-title {
-        margin-top: 0.26rem;
-        font-size: 1.02rem;
-        line-height: 1.35;
-        font-weight: 800;
+      .application-card-summary {
+        margin: 0;
         color: var(--navy);
-      }
-      .application-recommendation-copy {
-        margin-top: 0.38rem;
-        font-size: 0.88rem;
-        line-height: 1.58;
-        color: #29404c;
-      }
-      .application-recommendation-evidence {
-        margin-top: 0.62rem;
-        padding-top: 0.62rem;
-        border-top: 1px solid rgba(26, 122, 143, 0.1);
-        font-size: 0.8rem;
-        color: #587484;
+        font-size: 0.95rem;
         line-height: 1.5;
       }
-      .application-action-row {
-        display: grid;
-        gap: 0.55rem;
-        margin-top: 0.78rem;
-        padding: 0.85rem 0.95rem;
-        border: 1px solid rgba(26, 122, 143, 0.1);
-        border-radius: 15px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+      .application-card-subsummary {
+        margin: 0;
+        color: #547283;
+        font-size: 0.84rem;
+        line-height: 1.55;
       }
-      .application-action-main {
+      .application-card-actions {
         display: flex;
         gap: 0.55rem;
         flex-wrap: wrap;
         align-items: center;
       }
-      .application-action-note {
-        font-size: 0.8rem;
-        line-height: 1.52;
-        color: #587484;
+      .application-card-actions .btn-primary,
+      .application-card-actions .btn-secondary,
+      .application-card-actions .btn-secondary.btn-inline {
+        min-height: 40px;
       }
-      .btn-danger-quiet {
+      .application-compact-facts {
+        display: flex;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .application-fact-pill {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        padding: 0.72rem 0.9rem;
-        border-radius: 14px;
-        border: 1px solid rgba(185, 28, 28, 0.2);
-        background: rgba(255, 255, 255, 0.84);
-        color: #b42318;
-        font: inherit;
-        font-size: 0.78rem;
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
+        background: #eef4f6;
+        color: #46616d;
+        font-size: 0.72rem;
         font-weight: 700;
-        cursor: pointer;
-        transition:
-          transform 0.16s ease,
-          border-color 0.16s ease,
-          background-color 0.16s ease;
       }
-      .btn-danger-quiet:hover,
-      .btn-danger-quiet:focus-visible {
-        border-color: rgba(185, 28, 28, 0.36);
-        background: rgba(254, 242, 242, 0.96);
-        transform: translateY(-1px);
+      .application-fact-pill.is-publish {
+        background: rgba(34, 197, 94, 0.12);
+        color: #166534;
       }
-      .application-readiness-block {
-        margin-top: 0.82rem;
-        padding: 0.9rem 0.95rem;
-        border-radius: 16px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
-        display: grid;
-        gap: 0.8rem;
+      .application-fact-pill.is-trust {
+        background: rgba(245, 158, 11, 0.16);
+        color: #9a6700;
       }
-      .application-readiness-metrics {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.7rem;
+      .application-fact-pill.is-ownership {
+        background: rgba(59, 130, 246, 0.14);
+        color: #1d4ed8;
       }
-      .application-metric-card {
-        padding: 0.82rem 0.86rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: rgba(255, 255, 255, 0.92);
-      }
-      .application-metric-label {
-        font-size: 0.68rem;
-        font-weight: 900;
-        color: #648293;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      .application-metric-value {
-        margin-top: 0.22rem;
-        font-size: 1rem;
-        font-weight: 800;
-        color: var(--navy);
-      }
-      .application-metric-note {
-        margin-top: 0.24rem;
-        font-size: 0.8rem;
-        line-height: 1.5;
-        color: #587484;
-      }
-      .application-issues-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.7rem;
-      }
-      .application-issue-column {
-        padding: 0.85rem 0.9rem;
-        border-radius: 14px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: rgba(255, 255, 255, 0.95);
-        display: grid;
-        gap: 0.4rem;
-      }
-      .application-issue-label {
-        font-size: 0.7rem;
-        font-weight: 900;
-        color: var(--navy);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      .application-issue-copy {
-        font-size: 0.78rem;
-        line-height: 1.5;
-        color: #587484;
-      }
-      .application-issue-list {
-        margin: 0;
-        padding-left: 1rem;
-        display: grid;
-        gap: 0.34rem;
-        color: #29404c;
-        font-size: 0.82rem;
-        line-height: 1.45;
-      }
-      .application-issue-empty {
-        font-size: 0.8rem;
-        color: #648293;
+      .application-fact-pill.is-neutral {
+        background: #eef4f6;
+        color: #46616d;
       }
       .card-state-strip {
         margin: 0.78rem 0 0.82rem;
@@ -4211,22 +4058,36 @@
       .review-details-summary {
         list-style: none;
         cursor: pointer;
-        padding: 0.85rem 1rem;
-        font-size: 0.84rem;
+        padding: 0.72rem 0.95rem;
+        font-size: 0.78rem;
         font-weight: 800;
         color: var(--navy);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         background: linear-gradient(180deg, #ffffff 0%, #f9fcfd 100%);
-      }
-      .review-details[open] .review-details-summary {
-        border-bottom: 1px solid rgba(26, 122, 143, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
       .review-details-summary::-webkit-details-marker {
         display: none;
       }
+      .review-details-summary::after {
+        content: "+";
+        font-size: 1rem;
+        line-height: 1;
+        color: #648293;
+      }
+      .review-details[open] .review-details-summary::after {
+        content: "−";
+      }
       .review-details-body {
         padding: 0 1rem 1rem;
+      }
+      .review-details-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0.8rem 0 0.25rem;
       }
       .status {
         display: inline-flex;
@@ -4256,13 +4117,6 @@
       .status.requested_changes {
         background: #fff7ed;
         color: var(--red);
-      }
-      @media (max-width: 860px) {
-        .application-status-row,
-        .application-issues-grid,
-        .application-readiness-metrics {
-          grid-template-columns: 1fr;
-        }
       }
       .empty {
         position: relative;
@@ -5323,8 +5177,6 @@
               <a href="#applicationsPanel">Therapist signups</a>
               <a href="#reviewRegion">On hold</a>
               <a href="#requestsRegion">Inbox</a>
-              <a href="#confirmationRegion">Awaiting reply</a>
-              <a href="#liveListingsRegion">Listing maintenance</a>
             </nav>
           </section>
           <aside
@@ -5678,8 +5530,7 @@
                       <h2>Therapist signups</h2>
                       <p class="panel-intro">
                         Profiles submitted directly by therapists. Decide:
-                        <strong>Approve</strong>, <strong>Request changes</strong>, or
-                        <strong>Reject</strong>.
+                        <strong>Publish</strong> or <strong>Delete</strong>.
                       </p>
                       <div id="applicationsGuidance"></div>
                       <div class="sop-note" hidden>
@@ -5780,7 +5631,7 @@
                         <summary class="workflow-guidance-summary">
                           <span class="workflow-guidance-summary-kicker">Advanced filters</span>
                           <span class="workflow-guidance-summary-title">
-                            Fine-tune signups, claim flow, and review goals
+                            Narrow the signup decision queue
                           </span>
                           <span class="workflow-guidance-summary-badge">Secondary</span>
                         </summary>
@@ -5789,8 +5640,7 @@
                             <select id="applicationReviewGoal">
                               <option value="balanced">Balanced review</option>
                               <option value="publish_now">Clear publish-ready work</option>
-                              <option value="fix_weak">Clean up weak applications</option>
-                              <option value="refresh_first">Handle refresh updates</option>
+                              <option value="fix_weak">Review weaker submissions</option>
                             </select>
                             <button
                               type="button"
