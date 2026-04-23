@@ -2119,6 +2119,9 @@
                 );
                 emailInput.value = "";
                 stateSelect.value = "";
+                setTimeout(function () {
+                  window.location.reload();
+                }, 2000);
               } else {
                 setStatus((result.body && result.body.error) || "Something went wrong.", "error");
               }
