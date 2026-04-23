@@ -4416,6 +4416,9 @@ function getHeroFitChips(therapist, entry) {
   var chips = [];
   var check =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  if (therapist.license_number) {
+    chips.push({ icon: check, label: "Verified CA license" });
+  }
   if (therapist.accepting_new_patients) {
     chips.push({ icon: check, label: "Accepting new patients" });
   }
@@ -4490,15 +4493,16 @@ function renderLeadResultCard(entry, _backupName, options) {
   var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
   var ctaLabel =
     routeType === "booking"
-      ? "Book a consultation"
+      ? "Book consultation"
       : routeType === "phone"
-        ? "Call this provider"
+        ? "Call therapist"
         : routeType === "email"
-          ? "Email this provider"
-          : routeType === "website"
-            ? "Visit provider site"
-            : "Reach out";
+          ? "Email therapist"
+          : "Contact therapist";
   var chips = getHeroFitChips(therapist, entry);
+  var fitReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
+    ? entry.evaluation.reasons.filter(Boolean).slice(0, 3)
+    : [];
   var chipsHtml = chips
     .map(function (chip) {
       return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
@@ -4556,6 +4560,15 @@ function renderLeadResultCard(entry, _backupName, options) {
     "</span>" +
     "</div>" +
     "</div>" +
+    (fitReasons.length
+      ? '<div class="mx-hero-fit"><h4 class="mx-hero-fit-title">Why this may be a good fit</h4><ul class="mx-hero-fit-list">' +
+        fitReasons
+          .map(function (reason) {
+            return "<li>" + escapeHtml(reason) + "</li>";
+          })
+          .join("") +
+        "</ul></div>"
+      : "") +
     '<div class="mx-hero-actions">' +
     (preferredRoute
       ? '<a href="' +
@@ -4574,8 +4587,9 @@ function renderLeadResultCard(entry, _backupName, options) {
     encodeURIComponent(therapist.slug || "") +
     '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">See full profile</a>' +
+    '" data-profile-link-context="primary-card">View details</a>' +
     "</div>" +
+    '<p class="mx-hero-reassure">You do not need to get this perfect. Start with your top match.</p>' +
     "</div>" +
     "</article>"
   );
@@ -4600,9 +4614,7 @@ function renderSupportingResultCard(entry, _rank, options) {
         ? "Call"
         : routeType === "email"
           ? "Email"
-          : routeType === "website"
-            ? "Visit"
-            : "Reach out";
+          : "Contact";
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
   var metaParts = [];
   if (availabilityLabel) {
@@ -4632,7 +4644,11 @@ function renderSupportingResultCard(entry, _rank, options) {
     renderSaveIcon() +
     "</button>" +
     "</div>" +
-    (explanation ? '<p class="mx-card-reason">' + escapeHtml(explanation) + "</p>" : "") +
+    (explanation
+      ? '<div class="mx-card-fit"><span class="mx-card-fit-label">Why this may be a good fit</span><p class="mx-card-reason">' +
+        escapeHtml(explanation) +
+        "</p></div>"
+      : "") +
     (metaHtml ? '<div class="mx-card-meta">' + metaHtml + "</div>" : "") +
     '<div class="mx-card-actions">' +
     (preferredRoute
@@ -4905,6 +4921,185 @@ function safeRenderResults(entries, profile) {
   }
 }
 
+var matchEntriesBySlug = Object.create(null);
+
+function rememberEntriesForDetails(entries) {
+  matchEntriesBySlug = Object.create(null);
+  (entries || []).forEach(function (entry) {
+    if (entry && entry.therapist && entry.therapist.slug) {
+      matchEntriesBySlug[entry.therapist.slug] = entry;
+    }
+  });
+}
+
+function renderDetailsBody(entry) {
+  var therapist = entry.therapist || {};
+  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
+  var locLine =
+    [therapist.city, therapist.state].filter(Boolean).join(", ") +
+    (therapist.zip ? " " + therapist.zip : "");
+  var chips = getHeroFitChips(therapist, entry);
+  var chipsHtml = chips
+    .map(function (chip) {
+      return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
+    })
+    .join("");
+
+  var availability = getCompareTimingLabel(therapist);
+  var cost = getCompareCostLabel(therapist);
+  var format = getCareFormatLabel(therapist);
+  var insurance = Array.isArray(therapist.insurance_accepted)
+    ? therapist.insurance_accepted.filter(Boolean).slice(0, 6).join(", ")
+    : "";
+
+  var gridItems = [];
+  if (availability) gridItems.push(["Availability", availability]);
+  if (format) gridItems.push(["Format", format]);
+  if (cost) gridItems.push(["Session fee", cost]);
+  if (insurance) gridItems.push(["Insurance", insurance]);
+  if (therapist.license_number) {
+    gridItems.push(["License", "CA " + therapist.license_number]);
+  }
+  var gridHtml = gridItems.length
+    ? '<div class="mx-details-grid">' +
+      gridItems
+        .map(function (pair) {
+          return (
+            '<div class="mx-details-grid-item">' +
+            '<span class="mx-details-grid-label">' +
+            escapeHtml(pair[0]) +
+            "</span>" +
+            '<span class="mx-details-grid-value">' +
+            escapeHtml(pair[1]) +
+            "</span>" +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    : "";
+
+  var reasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
+    ? entry.evaluation.reasons.filter(Boolean).slice(0, 4)
+    : [];
+  var fitHtml = reasons.length
+    ? '<div class="mx-details-section"><h4>Why this may be a good fit</h4><ul>' +
+      reasons
+        .map(function (reason) {
+          return "<li>" + escapeHtml(reason) + "</li>";
+        })
+        .join("") +
+      "</ul></div>"
+    : "";
+
+  var specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  var specialtiesHtml = specialties.length
+    ? '<div class="mx-details-section"><h4>Specialties</h4><p>' +
+      escapeHtml(specialties.slice(0, 8).join(", ")) +
+      "</p></div>"
+    : "";
+
+  var populations = Array.isArray(therapist.client_populations) ? therapist.client_populations : [];
+  var populationsHtml = populations.length
+    ? '<div class="mx-details-section"><h4>Populations served</h4><p>' +
+      escapeHtml(populations.slice(0, 6).join(", ")) +
+      "</p></div>"
+    : "";
+
+  var approach = therapist.care_approach || therapist.bio_preview || "";
+  var approachHtml = approach
+    ? '<div class="mx-details-section"><h4>Approach</h4><p>' +
+      escapeHtml(String(approach).slice(0, 420)) +
+      "</p></div>"
+    : "";
+
+  var preferredRoute = getPreferredOutreach(entry);
+  var routeType = getPreferredRouteType(entry);
+  var ctaLabel =
+    routeType === "booking"
+      ? "Book consultation"
+      : routeType === "phone"
+        ? "Call therapist"
+        : routeType === "email"
+          ? "Email therapist"
+          : "Contact therapist";
+
+  var actionsHtml =
+    '<div class="mx-details-actions">' +
+    (preferredRoute
+      ? '<a href="' +
+        escapeHtml(preferredRoute.href) +
+        '" class="mx-btn-primary" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(ctaLabel) +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ">" +
+        escapeHtml(ctaLabel) +
+        "</a>"
+      : "") +
+    '<a href="therapist.html?slug=' +
+    encodeURIComponent(therapist.slug || "") +
+    '" class="mx-btn-secondary">Full profile</a>' +
+    "</div>";
+
+  return (
+    '<p class="mx-details-kicker">Therapist details</p>' +
+    '<h3 class="mx-details-name" id="matchDetailsTitle">' +
+    escapeHtml(therapist.name || "") +
+    "</h3>" +
+    (credLine || locLine
+      ? '<p class="mx-details-cred">' +
+        escapeHtml([credLine, locLine].filter(Boolean).join(" · ")) +
+        "</p>"
+      : "") +
+    (chipsHtml ? '<div class="mx-details-chips">' + chipsHtml + "</div>" : "") +
+    gridHtml +
+    fitHtml +
+    specialtiesHtml +
+    populationsHtml +
+    approachHtml +
+    actionsHtml
+  );
+}
+
+function openMatchDetails(slug) {
+  var entry = matchEntriesBySlug[slug];
+  if (!entry) return false;
+  var dialog = document.getElementById("matchDetailsDialog");
+  var body = document.getElementById("matchDetailsBody");
+  if (!dialog || !body || typeof dialog.showModal !== "function") return false;
+  body.innerHTML = renderDetailsBody(entry);
+  if (!dialog.open) dialog.showModal();
+  return true;
+}
+
+function bindMatchDetailsDialog() {
+  var dialog = document.getElementById("matchDetailsDialog");
+  var close = document.getElementById("matchDetailsClose");
+  if (!dialog || !close) return;
+  close.addEventListener("click", function () {
+    if (dialog.open) dialog.close();
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) dialog.close();
+  });
+  document.addEventListener("click", function (event) {
+    var link =
+      event.target && event.target.closest
+        ? event.target.closest("a[data-match-profile-link]")
+        : null;
+    if (!link) return;
+    var slug = link.getAttribute("data-match-profile-link");
+    if (!slug) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
+    if (openMatchDetails(slug)) {
+      event.preventDefault();
+    }
+  });
+}
+
 function renderResults(entries, profile) {
   var refs = getMatchShellRefs();
   var root = refs.resultsRoot;
@@ -4937,6 +5132,7 @@ function renderResults(entries, profile) {
     currentJourneyId = buildJourneyId(profile, entries);
   }
   persistMatchRequest(profile, entries);
+  rememberEntriesForDetails(entries);
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
@@ -5131,6 +5327,7 @@ function refreshIntakeUiFromForm() {
   latestAdaptiveSignals = getMatchAdaptiveStrategy();
   var refs = getMatchShellRefs();
   initMatchCareDropdown();
+  bindMatchDetailsDialog();
   bindRefineButtons();
   bindRefineTeaserShortcuts();
   var matchForm = refs.form;
