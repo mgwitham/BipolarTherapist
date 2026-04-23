@@ -266,10 +266,18 @@ aggregator profile or a per-clinician bio on a group-practice site.
 Rejecting them for lack of a personal domain leaves real specialists
 out of the directory.
 
-You MAY use a **per-clinician** aggregator profile URL (Psychology
-Today, Headway, Grow Therapy, Alma, TherapyDen, Rula) as `sourceUrl`
-— NOT a listing page (see DRILL-THROUGH RULE above) — when all
-four of these hold:
+You MAY use a **per-clinician** aggregator profile URL as
+`sourceUrl` — NOT a listing page (see DRILL-THROUGH RULE above) —
+when all four of these hold. An "aggregator" is a consumer-facing
+therapist directory or therapy platform with per-clinician profile
+pages. Known examples (non-exhaustive):
+
+- Psychology Today, TherapyDen, Zocdoc, Tebra, GoodTherapy
+- Headway, Alma, Grow Therapy, Rula, Lyra, Path, Spring Health
+
+If a platform fits the type (consumer-facing directory with
+per-clinician pages) but isn't on the list, you may still invoke
+the carve-out — note the platform name in `clinicalNotes`.
 
 1. **License verified independently.** You located the CA license
    number via NPI Registry or npiprofile.com (source b or c in the
@@ -608,12 +616,20 @@ sourceUrl,name,credentials,practiceName,city,state,zip,licenseState,licenseNumbe
   "MD, Psychiatrist" or "LMFT"
 - practiceName: the business name if different from the clinician's
   name; otherwise blank
-- city: their office city (may differ from {CITY} for telehealth)
+- city: their office city (may differ from {CITY} for telehealth).
+  LEAVE BLANK if the aggregator profile does not surface a specific
+  city — do NOT put "California" or any state name here. Blank is
+  fine; "California" as a city is a data-quality failure.
 - state: always "CA"
 - zip: five digits
 - licenseState: always "CA"
 - licenseNumber: with prefix, e.g. "PSY 28456" or "LMFT 121234"
-- email, phone, bookingUrl: only if directly visible
+- email, phone, bookingUrl: only if directly visible and real.
+  NEVER emit a placeholder or synthetic-looking phone number —
+  patterns like "(XXX) 000-0000", all-zero suffix, "555-01XX",
+  all-repeating digits, or an area code with a blank local number
+  are data-quality failures. If the phone isn't visible or is
+  obviously a template, leave it BLANK.
 - website: practice homepage (can equal sourceUrl for solo practices)
 - acceptsTelehealth: TRUE if stated, FALSE only if explicitly in-person-
   only, BLANK if unmentioned
@@ -839,6 +855,9 @@ For each row, ask:
  12. For carve-out rows, is `sourcingConfidence=low` and does
      `clinicalNotes` start with "Aggregator carve-out (low-
      confidence bipolar signal):"?
+ 13. Is `city` either a real city name or blank? Never a state name
+     like "California." Is `phone` either a real visible number or
+     blank? Never a placeholder pattern (all-zero suffix, 555-01XX).
 
 If any answer is no, fix the row or move it to the rejection log.
 
