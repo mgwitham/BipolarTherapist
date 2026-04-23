@@ -389,7 +389,6 @@
       body:not([data-admin-view="today"]) [data-view-group="today"],
       body:not([data-admin-view="listings"]) [data-view-group="listings"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
-      body:not([data-admin-view="funnel"]) [data-view-group="funnel"],
       body:not([data-admin-view="recovery"]) [data-view-group="recovery"] {
         display: none !important;
       }
@@ -1065,6 +1064,181 @@
       }
       .admin-now-scorecard .stat-action-note {
         font-size: 0.72rem;
+      }
+      .admin-today-grid {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .admin-today-rail {
+        padding: 1rem 1.05rem;
+        border-radius: 16px;
+        border: 1px solid rgba(132, 163, 178, 0.2);
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+      }
+      .admin-today-rail--urgent {
+        background: linear-gradient(180deg, rgba(248, 252, 253, 0.98), rgba(237, 248, 250, 0.98));
+        border-color: rgba(26, 122, 143, 0.22);
+      }
+      .admin-today-rail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        margin-bottom: 0.7rem;
+      }
+      .admin-today-rail-title {
+        margin: 0;
+        font-size: 1rem;
+        color: #103b4e;
+      }
+      .admin-tier-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 1.65rem;
+        padding: 0.18rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .admin-tier-pill.is-urgent {
+        background: rgba(160, 74, 74, 0.12);
+        color: #7a2f2f;
+      }
+      .admin-tier-pill.is-recommended {
+        background: rgba(26, 122, 143, 0.12);
+        color: #155f70;
+      }
+      .admin-tier-pill.is-informational {
+        background: rgba(132, 163, 178, 0.16);
+        color: #4a6570;
+      }
+      .admin-action-stack {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .admin-action-card {
+        padding: 0.95rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(132, 163, 178, 0.22);
+        background: #fff;
+        display: grid;
+        gap: 0.45rem;
+        text-align: left;
+        font: inherit;
+        width: 100%;
+      }
+      button.admin-action-card {
+        cursor: pointer;
+      }
+      .admin-action-card strong {
+        color: #103b4e;
+        font-size: 1rem;
+      }
+      .admin-action-card p,
+      .admin-action-list,
+      .admin-quick-actions-copy,
+      .admin-metric-summary {
+        margin: 0;
+        color: #4a6570;
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+      .admin-action-list {
+        display: grid;
+        gap: 0.55rem;
+        padding-left: 1.1rem;
+      }
+      .admin-quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.65rem;
+      }
+      .admin-quick-action {
+        display: grid;
+        gap: 0.35rem;
+        width: 100%;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 252, 0.98));
+        text-align: left;
+        cursor: pointer;
+      }
+      .admin-quick-action strong {
+        color: #103b4e;
+      }
+      .admin-today-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.65rem;
+      }
+      .admin-today-metric {
+        padding: 0.9rem 0.95rem;
+        border-radius: 14px;
+        border: 1px solid rgba(132, 163, 178, 0.18);
+        background: #fff;
+      }
+      .admin-today-metric-value {
+        margin: 0 0 0.1rem;
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: #103b4e;
+        letter-spacing: -0.03em;
+      }
+      .admin-today-metric-label {
+        margin: 0;
+        color: #547283;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .admin-mode-shell {
+        margin-bottom: 1rem;
+        padding: 1.1rem 1.15rem;
+        border-radius: 18px;
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        background:
+          radial-gradient(circle at top right, rgba(26, 122, 143, 0.09), transparent 28%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 252, 0.98));
+      }
+      .admin-mode-kicker {
+        margin: 0 0 0.35rem;
+        color: #628192;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .admin-mode-title {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #103b4e;
+      }
+      .admin-mode-copy {
+        margin: 0.25rem 0 0.85rem;
+        max-width: 52rem;
+        color: #4a6570;
+      }
+      .admin-mode-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+      .admin-mode-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        text-decoration: none;
+        color: #0f3f4a;
+        background: rgba(26, 122, 143, 0.08);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        font-size: 0.82rem;
+        font-weight: 700;
       }
       .region-playbook-toggle {
         appearance: none;
@@ -3880,6 +4054,37 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.75),
           0 10px 24px rgba(31, 56, 70, 0.035);
       }
+      .auth-gate-kicker {
+        margin: 0 0 0.35rem;
+        color: #628192;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .auth-gate-title {
+        margin: 0;
+        font-size: 1.55rem;
+        color: #103b4e;
+      }
+      .auth-gate-copy {
+        margin: 0.45rem 0 1rem;
+        color: #547283;
+        font-size: 0.93rem;
+        line-height: 1.5;
+      }
+      .auth-gate-trust {
+        display: grid;
+        gap: 0.45rem;
+        margin: 0 0 1rem;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(26, 122, 143, 0.14);
+        background: rgba(244, 250, 252, 0.9);
+      }
+      .auth-gate-trust strong {
+        color: #103b4e;
+      }
       .auth-form {
         display: grid;
         gap: 0.72rem;
@@ -3982,6 +4187,10 @@
           grid-template-columns: 1fr;
         }
         .workflow-guidance-grid {
+          grid-template-columns: 1fr;
+        }
+        .admin-quick-actions,
+        .admin-today-metrics {
           grid-template-columns: 1fr;
         }
         .grid {
@@ -4363,6 +4572,40 @@
         font-weight: 800;
         color: var(--navy);
       }
+      .edit-drawer-header-copy {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .edit-drawer-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+      }
+      .edit-drawer-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.55rem;
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .edit-drawer-badge.is-clean {
+        background: rgba(26, 122, 143, 0.12);
+        color: #155f70;
+      }
+      .edit-drawer-badge.is-dirty {
+        background: rgba(160, 74, 74, 0.12);
+        color: #7a2f2f;
+      }
+      .edit-drawer-context {
+        margin: 0;
+        color: #547283;
+        font-size: 0.84rem;
+      }
       .edit-drawer-close {
         background: none;
         border: none;
@@ -4487,6 +4730,13 @@
       }
       .edit-save-status.is-error {
         color: #dc2626;
+      }
+      .edit-visibility-note {
+        margin-left: auto;
+        color: #547283;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        text-align: right;
       }
       .edit-hint {
         font-size: 0.74rem;
@@ -4669,8 +4919,8 @@
           role="tab"
           aria-selected="false"
         >
-          Listings
-          <span class="admin-tab-count" id="navCountLive"></span>
+          Work queues
+          <span class="admin-tab-count" id="navCountWorkQueues"></span>
         </button>
         <button
           type="button"
@@ -4680,15 +4930,6 @@
           aria-selected="false"
         >
           Reports
-        </button>
-        <button
-          type="button"
-          class="admin-tab"
-          data-admin-tab="funnel"
-          role="tab"
-          aria-selected="false"
-        >
-          Funnel
         </button>
         <button
           type="button"
@@ -4708,7 +4949,7 @@
             <div>
               <h2 class="admin-today-title">Today</h2>
               <p class="admin-today-subtitle">
-                What needs your attention right now. Start at the top and work down.
+                Start here, clear the highest-risk work, then enter one queue on purpose.
               </p>
             </div>
             <a class="admin-signups-pill is-empty" id="adminSignupsPill" href="#applicationsPanel">
@@ -4719,7 +4960,7 @@
         </header>
         <div class="admin-start-here" id="adminStartHere">
           <div class="admin-start-here-copy">
-            <div class="admin-start-here-kicker">Start here</div>
+            <div class="admin-start-here-kicker">Urgent next action</div>
             <h3 class="admin-start-here-headline" id="adminStartHereHeadline">
               Review new therapist candidates
             </h3>
@@ -4735,6 +4976,19 @@
       <div class="auth-gate" id="adminAuthGate" style="display: none">
         <div class="auth-gate-layout">
           <div class="auth-gate-panel">
+            <p class="auth-gate-kicker">Secure admin access</p>
+            <h2 class="auth-gate-title">Sign in to the operator workspace</h2>
+            <p class="auth-gate-copy">
+              Review urgent queues, handle recovery safely, and edit listings with a clear audit
+              path. Only approved operators can access live actions and reports.
+            </p>
+            <div class="auth-gate-trust">
+              <strong>Before you sign in</strong>
+              <span>
+                Use your operator login and password. Failed attempts, loading states, and retries
+                stay visible here so you never have to guess what happened.
+              </span>
+            </div>
             <form class="auth-form" id="adminAuthForm">
               <div class="auth-input-group">
                 <label class="auth-input-label" for="adminUsername">Login</label>
@@ -4761,7 +5015,7 @@
                 </div>
               </div>
               <div class="auth-form-action">
-                <button class="btn-primary btn-inline" type="submit">Login</button>
+                <button class="btn-primary btn-inline" type="submit">Secure sign in</button>
               </div>
             </form>
             <div class="error-note" id="authError">
@@ -4773,6 +5027,22 @@
 
       <div id="adminApp" class="admin-stack" style="display: none">
         <div class="grid" style="grid-template-columns: 1fr">
+          <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="listings">
+            <p class="admin-mode-kicker">Work queues</p>
+            <h2 class="admin-mode-title">Pick one queue and stay in that operating mode</h2>
+            <p class="admin-mode-copy">
+              Queue work lives here on purpose. Enter a lane, make a run of decisions, then come
+              back to Today when you need a fresh priority call.
+            </p>
+            <nav class="admin-mode-links" aria-label="Work queue shortcuts">
+              <a href="#candidateQueuePanel">New candidates</a>
+              <a href="#applicationsPanel">Therapist signups</a>
+              <a href="#reviewRegion">On hold</a>
+              <a href="#requestsRegion">Inbox</a>
+              <a href="#confirmationRegion">Awaiting reply</a>
+              <a href="#liveListingsRegion">Listing maintenance</a>
+            </nav>
+          </section>
           <aside
             class="admin-region sidebar-panel"
             id="liveListingsRegion"
@@ -5056,7 +5326,7 @@
           </aside>
 
           <main class="admin-region">
-            <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="today">
+            <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="listings">
               <header class="admin-live-header">
                 <h2 class="admin-live-title">New candidates</h2>
                 <p class="admin-live-subtitle">
@@ -5085,15 +5355,6 @@
                           <option value="published">Published</option>
                           <option value="archived">Deleted</option>
                         </select>
-                        <select id="candidateDedupeStatusFilter">
-                          <option value="">All dedupe states</option>
-                          <option value="unreviewed">Unreviewed</option>
-                          <option value="unique">Unique</option>
-                          <option value="definite_duplicate">Definite duplicate</option>
-                          <option value="possible_duplicate">Possible duplicate</option>
-                          <option value="rejected_duplicate">Rejected duplicate</option>
-                          <option value="merged">Merged</option>
-                        </select>
                         <div class="subtle" id="candidateQueueCount"></div>
                         <button
                           type="button"
@@ -5105,6 +5366,28 @@
                           Focus mode
                         </button>
                       </div>
+                      <details class="workflow-guidance-details" id="candidateFilterDetails">
+                        <summary class="workflow-guidance-summary">
+                          <span class="workflow-guidance-summary-kicker">Advanced filters</span>
+                          <span class="workflow-guidance-summary-title">
+                            Show duplicate and merge states
+                          </span>
+                          <span class="workflow-guidance-summary-badge">Secondary</span>
+                        </summary>
+                        <div class="workflow-guidance-card">
+                          <div class="toolbar" style="margin: 0">
+                            <select id="candidateDedupeStatusFilter">
+                              <option value="">All dedupe states</option>
+                              <option value="unreviewed">Unreviewed</option>
+                              <option value="unique">Unique</option>
+                              <option value="definite_duplicate">Definite duplicate</option>
+                              <option value="possible_duplicate">Possible duplicate</option>
+                              <option value="rejected_duplicate">Rejected duplicate</option>
+                              <option value="merged">Merged</option>
+                            </select>
+                          </div>
+                        </div>
+                      </details>
                       <div id="candidateQueue"></div>
                     </div>
                     <div class="panel" id="applicationsPanel" style="display: none">
@@ -5181,7 +5464,7 @@
                           <option value="rejected">Rejected</option>
                         </select>
                         <select id="applicationFocusFilter">
-                          <option value="">All review focus</option>
+                          <option value="">All queue views</option>
                           <option value="claim_follow_up_due">Follow-up due now</option>
                           <option value="stalled_after_claim_review">
                             Stalled after-claim review
@@ -5199,15 +5482,6 @@
                           <option value="confirmation_refresh">Confirmation refreshes</option>
                           <option value="active_review">Active review</option>
                         </select>
-                        <select id="applicationReviewGoal">
-                          <option value="balanced">Balanced review</option>
-                          <option value="publish_now">Clear publish-ready work</option>
-                          <option value="fix_weak">Clean up weak applications</option>
-                          <option value="refresh_first">Handle refresh updates</option>
-                        </select>
-                        <button type="button" class="btn-secondary" id="applicationClearFilters">
-                          Clear filters
-                        </button>
                         <button
                           type="button"
                           class="btn-secondary"
@@ -5218,6 +5492,32 @@
                           Focus mode
                         </button>
                       </div>
+                      <details class="workflow-guidance-details" id="applicationFilterDetails">
+                        <summary class="workflow-guidance-summary">
+                          <span class="workflow-guidance-summary-kicker">Advanced filters</span>
+                          <span class="workflow-guidance-summary-title">
+                            Fine-tune signups, claim flow, and review goals
+                          </span>
+                          <span class="workflow-guidance-summary-badge">Secondary</span>
+                        </summary>
+                        <div class="workflow-guidance-card">
+                          <div class="toolbar" style="margin: 0">
+                            <select id="applicationReviewGoal">
+                              <option value="balanced">Balanced review</option>
+                              <option value="publish_now">Clear publish-ready work</option>
+                              <option value="fix_weak">Clean up weak applications</option>
+                              <option value="refresh_first">Handle refresh updates</option>
+                            </select>
+                            <button
+                              type="button"
+                              class="btn-secondary"
+                              id="applicationClearFilters"
+                            >
+                              Clear filters
+                            </button>
+                          </div>
+                        </div>
+                      </details>
                     </div>
                     <div id="applicationsList" style="display: none"></div>
                   </div>
@@ -5294,6 +5594,23 @@
                   <div id="portalRequestsQueue"></div>
                 </div>
               </div>
+            </section>
+            <section class="admin-mode-shell" id="reportsModeShell" data-view-group="reports">
+              <p class="admin-mode-kicker">Reports</p>
+              <h2 class="admin-mode-title">
+                Analyze patterns without competing with active queue work
+              </h2>
+              <p class="admin-mode-copy">
+                Reporting, exports, and funnel analysis stay in this mode so urgent operational work
+                keeps a cleaner first view.
+              </p>
+              <nav class="admin-mode-links" aria-label="Report shortcuts">
+                <a href="#ingestionScorecardPanel">Pipeline health</a>
+                <a href="#coverageIntelligencePanel">Coverage</a>
+                <a href="#sourcePerformancePanel">Source quality</a>
+                <a href="#funnelRegion">Funnel analysis</a>
+                <a href="#reviewActivityPanel">Activity log</a>
+              </nav>
             </section>
             <section class="admin-region-shell" id="intelligenceRegion" data-view-group="reports">
               <header class="admin-live-header">
@@ -5404,7 +5721,7 @@
             <section
               class="admin-region-shell"
               id="funnelRegion"
-              data-view-group="funnel"
+              data-view-group="reports"
               style="margin-top: 1.5rem"
             >
               <header class="admin-funnel-header">
@@ -5505,7 +5822,15 @@
     >
       <div class="edit-drawer-panel">
         <div class="edit-drawer-header">
-          <div class="edit-drawer-title" id="editDrawerTitle">Edit profile</div>
+          <div class="edit-drawer-header-copy">
+            <div class="edit-drawer-meta">
+              <span class="edit-drawer-badge is-clean" id="editDrawerDirty">All changes saved</span>
+            </div>
+            <div class="edit-drawer-title" id="editDrawerTitle">Edit profile</div>
+            <p class="edit-drawer-context" id="editDrawerContext">
+              Editing mode keeps full profile changes separate from queue scanning.
+            </p>
+          </div>
           <button class="edit-drawer-close" aria-label="Close">&times;</button>
         </div>
         <div class="edit-drawer-body">
@@ -5658,6 +5983,9 @@
             Save changes
           </button>
           <span class="edit-save-status"></span>
+          <div class="edit-visibility-note" id="editDrawerVisibility">
+            Saved changes update the current record with a clear success or failure state.
+          </div>
         </div>
       </div>
     </div>
