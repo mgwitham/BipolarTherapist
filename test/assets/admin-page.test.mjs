@@ -63,3 +63,17 @@ test("admin page: secondary filters are progressively revealed", function () {
   assert.match(html, /id="applicationFilterDetails"/);
   assert.match(html, /Fine-tune signups, claim flow, and review goals/);
 });
+
+test("admin page: shared delayed-hover tooltips explain high-frequency admin actions", function () {
+  const html = read("admin.html");
+  const tooltipJs = read("assets/admin-tooltips.js");
+
+  assert.match(html, /assets\/admin-tooltips\.js/);
+  assert.match(html, /\.admin-hover-tooltip/);
+  assert.match(tooltipJs, /const HOVER_DELAY_MS = 450/);
+  assert.match(tooltipJs, /selector: "#candidateQueueFocusToggle"/);
+  assert.match(tooltipJs, /selector: '\[data-candidate-next="publish"\]'/);
+  assert.match(tooltipJs, /selector: '\[data-action="requested_changes"\]'/);
+  assert.match(tooltipJs, /selector: "\[data-confirmation-copy\]"/);
+  assert.match(tooltipJs, /Jump into the recommended next workflow step/);
+});

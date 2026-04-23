@@ -386,6 +386,29 @@
       .admin-tab.is-active .admin-tab-count {
         background: rgba(26, 122, 143, 0.22);
       }
+      .admin-hover-tooltip {
+        position: fixed;
+        z-index: 1200;
+        max-width: min(280px, calc(100vw - 16px));
+        padding: 0.7rem 0.8rem;
+        border-radius: 12px;
+        background: rgba(15, 34, 43, 0.96);
+        color: #f3fbfd;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        box-shadow: 0 16px 30px rgba(15, 34, 43, 0.28);
+        border: 1px solid rgba(152, 209, 221, 0.18);
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+      }
+      .admin-hover-tooltip.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
       body:not([data-admin-view="today"]) [data-view-group="today"],
       body:not([data-admin-view="listings"]) [data-view-group="listings"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
@@ -5808,6 +5831,7 @@
     </div>
 
     <script type="module" src="assets/admin-view-tabs.js"></script>
+    <script type="module" src="assets/admin-tooltips.js"></script>
     <script type="module" src="assets/admin-funnel.js"></script>
     <script type="module" src="assets/admin-recovery.js"></script>
     <script type="module" src="assets/admin.js"></script>
