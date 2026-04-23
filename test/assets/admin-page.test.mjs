@@ -89,3 +89,29 @@ test("admin page: shared delayed-hover tooltips explain high-frequency admin act
   assert.match(tooltipJs, /selector: "\[data-confirmation-copy\]"/);
   assert.match(tooltipJs, /Jump into the recommended next workflow step/);
 });
+
+test("confirmation sprint cards stay action-first and email-forward", function () {
+  const confirmationSprintJs = read("assets/admin-confirmation-sprint.js");
+
+  assert.match(confirmationSprintJs, /Email therapist to confirm profile/);
+  assert.match(confirmationSprintJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationSprintJs, /<strong>Next step:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Ordered ask flow:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /\[ \] Review current profile and source trail/);
+  assert.doesNotMatch(confirmationSprintJs, /Copy therapist request/);
+});
+
+test("california priority wave cards stay action-first and email-forward", function () {
+  const confirmationWorkspaceJs = read("assets/admin-confirmation-workspace.js");
+
+  assert.match(confirmationWorkspaceJs, /Email therapist to confirm profile/);
+  assert.match(confirmationWorkspaceJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationWorkspaceJs, /<strong>Next step:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>First action:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Follow-up rule:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /Copy request/);
+});
