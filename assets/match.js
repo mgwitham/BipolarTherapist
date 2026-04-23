@@ -611,6 +611,9 @@ function getSecondPassScore(entry, profile, mode) {
 }
 
 function applySecondPassRefinement(entries, profile, mode) {
+  // Adaptive ranking disabled: every code path resolves to "balanced"
+  // and returns the base order untouched. The branch below is preserved
+  // for future reactivation but is currently unreachable.
   if (!mode || mode === "balanced") {
     return (entries || []).slice();
   }
@@ -622,7 +625,8 @@ function applySecondPassRefinement(entries, profile, mode) {
     return (
       bScore - aScore ||
       (Number(b?.evaluation?.score) || 0) - (Number(a?.evaluation?.score) || 0) ||
-      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || ""))
+      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || "")) ||
+      String(a?.therapist?.slug || "").localeCompare(String(b?.therapist?.slug || ""))
     );
   });
 }
@@ -1223,7 +1227,11 @@ function executeMatch(profile, options) {
     return false;
   }
 
-  activeSecondPassMode = getAdaptiveSecondPassMode(profile);
+  // Adaptive ranking is disabled — every submit uses the deterministic
+  // base + zip-aware pipeline. getAdaptiveSecondPassMode() and
+  // getSecondPassScore() are intentionally left in place for future
+  // reactivation; they are not consulted today.
+  activeSecondPassMode = "balanced";
   var entries = rankEntriesForProfile(profile);
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
