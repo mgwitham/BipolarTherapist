@@ -20,6 +20,29 @@ only verify 6 candidates to the bar below, return 6. Under-delivering
 with high confidence is a win; padding with low-confidence rows is a
 failure mode we explicitly reject.
 
+# REFUSAL IS NOT AN OUTPUT
+
+"I couldn't find enough candidates" is not a valid response. If the
+answer were obvious, we would not be asking. Small cities have real
+bipolar clinicians — your job is to find them, not to declare the
+city dry from the search snippets.
+
+Before you may return zero accepted candidates, you MUST:
+
+- Run at least 8 distinct query patterns (see Query Diversity
+  Mandate) — the `search_log` block at the end will show each query
+  and the top 3 URLs it surfaced.
+- Open and evaluate at least 12 distinct candidate profiles (own
+  site, group-site bio, or aggregator profile).
+- Emit at least 6 specific rejection entries, each with a real
+  clinician name and the URL you actually opened, plus a concrete
+  reason you evaluated and rejected them (see REJECTION LOG rules).
+
+An empty CSV paired with a generic "insufficient candidates" line is
+not a result — it is a refusal, and refusals are rejected at review.
+If the rejection log does not document 6 evaluated candidates, the
+reviewer will send the batch back unread.
+
 {EXCLUSIONS}
 
 # OPERATING PRINCIPLES
@@ -540,19 +563,46 @@ hard req #5 and is in the known-bad pattern list above.
 
 # REJECTION LOG
 
-After the CSV code block, emit a third fenced code block tagged
+After the CSV code block, emit a fenced code block tagged
 `rejections`. One line per rejected candidate, pipe-delimited:
 
 ```rejections
 name | sourceUrl | reason
 ```
 
-Reasons should be specific and diagnostic. Good: "Bipolar listed only
-in specialties bullet; no dedicated content; no training named."
-Bad: "Not a good fit."
+Rules:
 
-Aim for at least 3 rejection lines — if you found zero rejects, you
-are probably not searching broadly enough.
+- **Minimum 6 entries.** If you have fewer accepted candidates than
+  {N}, the gap must be explained in this log — not waved away in one
+  generic line. Each entry must document a real clinician you opened
+  a page for.
+- **Specific reasons only.** Good: "Bipolar listed only in
+  specialties bullet; no dedicated content; no training named."
+  Bad: "Not a good fit."
+- **Banned reason phrases** — if your line matches any of these
+  patterns, the reviewer treats it as a refusal, not a rejection:
+  - "Insufficient verified candidates"
+  - "Unable to meet bipolar-specific evidence"
+  - "Market is dry"
+  - "Could not find enough"
+  - Any line where the `name` field is "N/A" or "(none)"
+- **URLs must be real.** If you never opened a URL for the
+  candidate, you did not evaluate them — do not fabricate a
+  rejection entry.
+
+# SEARCH LOG
+
+After the rejection log, emit a fenced code block tagged
+`search_log`. Document the searches you actually ran. One line per
+query, pipe-delimited, listing the top 3 URLs the query surfaced:
+
+```search_log
+query | url1 | url2 | url3
+```
+
+Minimum 8 distinct queries (Query Diversity Mandate). If fewer
+appear, the reviewer treats the batch as skipped work. "Same query
+with a different city" counts as one query, not many.
 
 # ADVERSARIAL SELF-CRITIQUE (required final step)
 
@@ -579,6 +629,12 @@ The target is UP TO {N}. If you cannot verify {N} candidates to this
 bar, return fewer. Do not weaken the criteria to hit the number. Do
 not invent license numbers to fill missing fields. The reviewer would
 rather see 5 high-confidence rows than 10 mixed-confidence rows.
+
+**Zero accepts is only a valid result when the rejection log
+documents at least 6 specific candidates you actually evaluated
+and the search log shows at least 8 distinct queries were run.**
+Zero accepts with a single generic rejection line is a refusal, not
+a result.
 
 # COMMON FAILURE MODES TO AVOID
 
@@ -626,12 +682,15 @@ If any answer is no, fix the row or move it to the rejection log.
 
 # OUTPUT ORDER (strict)
 
-Emit exactly three fenced code blocks, in this order, nothing else
+Emit exactly four fenced code blocks, in this order, nothing else
 between them:
 
-1. ```trace``` — one verification entry per accepted candidate
+1. ```trace``` — one verification entry per accepted candidate (may
+   be empty only when the rejection log has ≥6 evaluated candidates)
 2. ```csv``` — header row + one data row per accepted candidate
-3. ```rejections``` — one line per rejected candidate
+   (header row is required even when there are zero data rows)
+3. ```rejections``` — one line per rejected candidate, minimum 6
+4. ```search_log``` — one line per query run, minimum 8
 
 Nothing outside the fences. No commentary, no "Here's the data:" lead-
 in, no summary at the end. The reviewer's tooling parses the fences
