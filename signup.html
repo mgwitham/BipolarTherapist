@@ -212,6 +212,74 @@
         font-weight: 700;
       }
 
+      /* Step clarity near CTA */
+      .new-listing-steps {
+        display: grid;
+        gap: 0.5rem;
+        padding: 0.85rem 0.95rem;
+        background: var(--teal-faint);
+        border: 1px solid rgba(26, 122, 143, 0.25);
+        border-radius: 10px;
+      }
+      .new-listing-steps-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+      }
+      .new-listing-steps-list {
+        list-style: none;
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.9rem;
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .new-listing-steps-list li {
+        display: flex;
+        gap: 0.55rem;
+        align-items: baseline;
+      }
+      .new-listing-steps-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        transform: translateY(2px);
+      }
+      .new-listing-reassure {
+        font-size: 0.82rem;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.45;
+      }
+      .signup-claim-aside {
+        margin-top: 0.85rem;
+        padding: 0.6rem 0.85rem;
+        border: 1px dashed var(--border);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+      .signup-claim-aside a {
+        color: var(--teal-dark);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .signup-claim-aside a:hover {
+        text-decoration: underline;
+      }
+
       /* =========================
          New-listing form card
          ========================= */
@@ -559,7 +627,7 @@
       </a>
       <ul class="nav-links">
         <li><a href="signup.html" class="nav-link-current">List Your Practice</a></li>
-        <li><a href="claim.html">Claim a Listing</a></li>
+        <li><a href="claim.html" class="nav-signin-link">Claim a Listing</a></li>
         <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
         <li class="nav-zone-switch-item">
           <a href="directory.html" class="nav-zone-switch">← For patients</a>
@@ -570,13 +638,14 @@
     <main class="signup-main">
       <section class="signup-hero">
         <div class="signup-hero-copy">
-          <h1>List your California practice on BipolarTherapyHub</h1>
+          <h1>Reach Californians looking for bipolar-informed care</h1>
           <p class="signup-hero-sub">
-            The verified bipolar-specialist directory for California. Patients reach you through
-            guided matching and intent-driven searches — not generic browsing.
+            Patients find you through guided matching built for bipolar disorder, not a generic
+            browse-and-hope directory. Setup takes five fields and an instant license check.
           </p>
           <ul class="signup-hero-proof">
-            <li>Free to list, no credit card required</li>
+            <li>California-only, bipolar-focused, verified directory</li>
+            <li>Free listing. No credit card to start.</li>
             <li>Instant CA license verification</li>
             <li>Cancel or remove your listing anytime</li>
           </ul>
@@ -584,10 +653,23 @@
 
         <div>
           <section class="signup-form-card" aria-label="List your practice">
-            <h2>List your practice</h2>
+            <h2>Start your listing</h2>
             <p class="signup-form-card-sub">
-              Five fields. License verified instantly. You choose paid or free right after.
+              Five fields, about 60 seconds. No credit card required.
             </p>
+            <div class="new-listing-steps" aria-label="What happens next">
+              <span class="new-listing-steps-title">What happens next</span>
+              <ol class="new-listing-steps-list">
+                <li>
+                  <span class="new-listing-steps-num">1</span>
+                  <span>Verify your California license (instant)</span>
+                </li>
+                <li>
+                  <span class="new-listing-steps-num">2</span>
+                  <span>Choose free listing or 14-day free trial</span>
+                </li>
+              </ol>
+            </div>
             <form id="newListingForm" class="new-listing-form" novalidate>
               <label>
                 <span>Full name</span>
@@ -651,11 +733,11 @@
               </label>
               <label class="new-listing-checkbox">
                 <input type="checkbox" name="treats_bipolar" required />
-                <span>
-                  I'm a California-licensed clinician and I treat bipolar disorder in my practice.
-                </span>
+                <span> I'm licensed in California and treat bipolar disorder in my practice. </span>
               </label>
-              <button type="submit" class="new-listing-submit">Verify my license →</button>
+              <button type="submit" class="new-listing-submit">
+                Check my license and continue →
+              </button>
               <div
                 class="new-listing-status"
                 id="newListingStatus"
@@ -663,10 +745,15 @@
                 aria-live="polite"
                 hidden
               ></div>
-              <p class="new-listing-fineprint">
-                Free listing or 14-day paid trial. You pick after your license verifies.
+              <p class="new-listing-reassure">
+                We only use this to verify your license and set up your listing. You pick free or
+                trial on the next step. No credit card required to start.
               </p>
             </form>
+            <p class="signup-claim-aside">
+              Already listed on BipolarTherapyHub?
+              <a href="claim.html">Claim your profile →</a>
+            </p>
 
             <section
               class="new-listing-plan-choice"
@@ -718,27 +805,22 @@
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">1</div>
           <h3>Submit 5 fields</h3>
-          <p>
-            Name, email, CA license, practice ZIP, and a confirmation that you treat bipolar
-            disorder. No bio or photo needed yet.
-          </p>
+          <p>Name, email, CA license, practice ZIP, bipolar confirmation. No bio or photo yet.</p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">2</div>
-          <h3>We verify your license instantly</h3>
+          <h3>Instant California license check</h3>
           <p>
-            Real-time check against the California Board of Behavioral Sciences, Board of
-            Psychology, and Medical Board. If your license is valid, you move straight to the next
-            step.
+            Real-time check against the CA Boards of Behavioral Sciences, Psychology, and Medicine.
+            Valid license, straight to the next step.
           </p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">3</div>
-          <h3>Pick free or trial, edit your profile, go live</h3>
+          <h3>Choose free or trial and go live</h3>
           <p>
-            Choose a 14-day free trial (no charge until day 15) or stay on the free tier. Either way
-            you land in your dashboard and add a short bio to publish your listing. You can upgrade
-            from free to trial anytime.
+            Stay free forever, or try the 14-day free trial (no charge until day 15). Edit your
+            profile in the portal anytime.
           </p>
         </div>
       </div>
@@ -778,11 +860,6 @@
         </p>
       </details>
     </section>
-
-    <p class="signup-footer-path">
-      Already listed on BipolarTherapyHub?
-      <a href="claim.html">Claim your listing →</a>
-    </p>
 
     <script type="module" src="assets/signup-new-listing.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
