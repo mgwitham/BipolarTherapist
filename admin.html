@@ -409,10 +409,9 @@
         opacity: 1;
         transform: translateY(0);
       }
-      body:not([data-admin-view="today"]) [data-view-group="today"],
-      body:not([data-admin-view="listings"]) [data-view-group="listings"],
+      body:not([data-admin-view="review"]) [data-view-group="review"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
-      body:not([data-admin-view="recovery"]) [data-view-group="recovery"] {
+      body [data-view-group="hidden"] {
         display: none !important;
       }
       .admin-funnel-section {
@@ -1294,6 +1293,20 @@
         border-radius: 16px;
         border: 1px solid rgba(26, 122, 143, 0.12);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 252, 0.96));
+        cursor: pointer;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+      .queue-index-card:hover {
+        border-color: rgba(26, 122, 143, 0.28);
+        box-shadow: 0 10px 18px rgba(29, 58, 74, 0.06);
+        transform: translateY(-1px);
+      }
+      .queue-index-card:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
       }
       .queue-index-card.is-empty {
         opacity: 0.72;
@@ -1342,7 +1355,7 @@
         font-weight: 700;
         text-decoration: none;
         font: inherit;
-        cursor: pointer;
+        pointer-events: none;
       }
       .queue-index-card-action:hover {
         border-color: rgba(26, 122, 143, 0.32);
@@ -3312,6 +3325,30 @@
         color: var(--navy);
         background: var(--white);
       }
+      .review-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0;
+      }
+      .review-summary-card {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--white);
+      }
+      .review-summary-value {
+        font-size: 1.35rem;
+        font-weight: 900;
+        color: var(--navy);
+      }
+      .review-summary-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #547283;
+      }
       .application-head {
         display: flex;
         justify-content: space-between;
@@ -5122,22 +5159,12 @@
         <button
           type="button"
           class="admin-tab is-active"
-          data-admin-tab="today"
+          data-admin-tab="review"
           role="tab"
           aria-selected="true"
         >
-          Today
-          <span class="admin-tab-count" id="navCountCandidates"></span>
-        </button>
-        <button
-          type="button"
-          class="admin-tab"
-          data-admin-tab="listings"
-          role="tab"
-          aria-selected="false"
-        >
-          Queues
-          <span class="admin-tab-count" id="navCountWorkQueues"></span>
+          Review
+          <span class="admin-tab-count" id="navCountReview"></span>
         </button>
         <button
           type="button"
@@ -5148,19 +5175,15 @@
         >
           Reports
         </button>
-        <button
-          type="button"
-          class="admin-tab"
-          data-admin-tab="recovery"
-          role="tab"
-          aria-selected="false"
-        >
-          Recovery
-          <span class="admin-tab-count" id="navCountRecovery"></span>
-        </button>
       </div>
 
-      <section class="admin-today" id="todayRegion" data-view-group="today" style="display: none">
+      <section
+        class="admin-today"
+        id="todayRegion"
+        data-view-group="hidden"
+        style="display: none"
+        hidden
+      >
         <header class="admin-today-header">
           <div class="admin-today-header-row">
             <div>
@@ -5202,8 +5225,8 @@
             <p class="auth-gate-kicker">Secure admin access</p>
             <h2 class="auth-gate-title">Sign in to the operator workspace</h2>
             <p class="auth-gate-copy">
-              Review urgent queues, handle recovery safely, and edit listings with a clear audit
-              path. Only approved operators can access live actions and reports.
+              Review therapist signups and check pipeline reports. Only approved operators can
+              access review actions and analytics.
             </p>
             <div class="auth-gate-trust">
               <strong>Before you sign in</strong>
@@ -5250,7 +5273,7 @@
 
       <div id="adminApp" class="admin-stack" style="display: none">
         <div class="grid" style="grid-template-columns: 1fr">
-          <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="listings">
+          <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="hidden" hidden>
             <p class="admin-mode-kicker">Queues</p>
             <h2 class="admin-mode-title">
               Choose a queue with clear counts and enter it on purpose
@@ -5272,7 +5295,8 @@
           <aside
             class="admin-region sidebar-panel"
             id="liveListingsRegion"
-            data-view-group="listings"
+            data-view-group="hidden"
+            hidden
           >
             <header class="admin-live-header">
               <h2 class="admin-live-title">Live listings</h2>
@@ -5552,22 +5576,18 @@
           </aside>
 
           <main class="admin-region">
-            <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="listings">
+            <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="review">
               <header class="admin-live-header">
-                <h2 class="admin-live-title">New candidates</h2>
+                <h2 class="admin-live-title">Review</h2>
                 <p class="admin-live-subtitle">
-                  Scraped profiles and therapist signups waiting for a decision. For each:
-                  <strong>Publish</strong>, <strong>Hold</strong>, or <strong>Delete</strong>.
+                  Review therapist signups first. Publish strong profiles, request changes for
+                  fixable ones, and reject weak submissions without leaving the workflow.
                 </p>
-                <nav class="admin-live-chips" aria-label="New candidate sections">
-                  <a href="#candidateQueuePanel">Scraped</a>
-                  <a href="#applicationsPanel">Therapist signups</a>
-                </nav>
               </header>
               <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
                 <div class="admin-workspace-main">
                   <div class="admin-region-grid">
-                    <div class="panel" id="candidateQueuePanel" style="margin-bottom: 1rem">
+                    <div class="panel" id="candidateQueuePanel" style="display: none" hidden>
                       <div id="candidateQueueGuidance"></div>
                       <div class="toolbar" style="margin-bottom: 0.8rem">
                         <input
@@ -5619,8 +5639,8 @@
                     <div class="panel" id="applicationsPanel">
                       <h2>Therapist signups</h2>
                       <p class="panel-intro">
-                        Profiles submitted directly by therapists. Decide:
-                        <strong>Publish</strong> or <strong>Delete</strong>.
+                        The active signup queue. Review the strongest opportunities first, then move
+                        weaker submissions to changes or rejection with a clear reason.
                       </p>
                       <div id="applicationsGuidance"></div>
                       <div class="sop-note" hidden>
@@ -5679,76 +5699,34 @@
                         <input
                           type="search"
                           id="applicationSearch"
-                          placeholder="Search applicants, cities, specialties..."
+                          placeholder="Search therapists, cities, or specialties..."
                         />
                         <select id="applicationStatusFilter">
-                          <option value="">All statuses</option>
-                          <option value="pending">Pending</option>
-                          <option value="reviewing">Reviewing</option>
-                          <option value="approved">Approved</option>
+                          <option value="">All</option>
+                          <option value="publish_ready">Publish-ready</option>
+                          <option value="needs_changes">Needs fixes</option>
+                          <option value="on_hold">On hold</option>
                           <option value="rejected">Rejected</option>
-                        </select>
-                        <select id="applicationFocusFilter">
-                          <option value="">All queue views</option>
-                          <option value="claim_follow_up_due">Follow-up due now</option>
-                          <option value="stalled_after_claim_review">
-                            Stalled after-claim review
-                          </option>
-                          <option value="claimed_ready_for_profile">
-                            Approved claims awaiting full profile
-                          </option>
-                          <option value="claim_conversion">
-                            Full profiles submitted after claim approval
-                          </option>
-                          <option value="claim_flow">Claim submissions</option>
-                          <option value="full_profile_flow">Full-profile submissions</option>
-                          <option value="publish_ready">Publish-ready first</option>
-                          <option value="needs_changes">Needs fixes first</option>
-                          <option value="confirmation_refresh">Confirmation refreshes</option>
-                          <option value="active_review">Active review</option>
                         </select>
                         <button
                           type="button"
                           class="btn-secondary"
-                          id="applicationsFocusToggle"
+                          id="applicationClearFilters"
                           style="margin-left: auto"
-                          title="One-at-a-time keyboard review. Press F to toggle."
                         >
-                          Focus mode
+                          Clear filters
                         </button>
                       </div>
-                      <details class="workflow-guidance-details" id="applicationFilterDetails">
-                        <summary class="workflow-guidance-summary">
-                          <span class="workflow-guidance-summary-kicker">Advanced filters</span>
-                          <span class="workflow-guidance-summary-title">
-                            Narrow the signup decision queue
-                          </span>
-                          <span class="workflow-guidance-summary-badge">Secondary</span>
-                        </summary>
-                        <div class="workflow-guidance-card">
-                          <div class="toolbar" style="margin: 0">
-                            <select id="applicationReviewGoal">
-                              <option value="balanced">Balanced review</option>
-                              <option value="publish_now">Clear publish-ready work</option>
-                              <option value="fix_weak">Review weaker submissions</option>
-                            </select>
-                            <button
-                              type="button"
-                              class="btn-secondary"
-                              id="applicationClearFilters"
-                            >
-                              Clear filters
-                            </button>
-                          </div>
-                        </div>
-                      </details>
+                      <p class="subtle" id="applicationSortNote">
+                        Sorted by publish confidence first, then newest submissions.
+                      </p>
                     </div>
                     <div id="applicationsList"></div>
                   </div>
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="reviewRegion" data-view-group="listings">
+            <section class="admin-region-shell" id="reviewRegion" data-view-group="hidden" hidden>
               <header class="admin-live-header">
                 <h2 class="admin-live-title">On hold</h2>
                 <p class="admin-live-subtitle">
@@ -5783,7 +5761,7 @@
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="requestsRegion" data-view-group="listings">
+            <section class="admin-region-shell" id="requestsRegion" data-view-group="hidden" hidden>
               <header class="admin-live-header">
                 <h2 class="admin-live-title">Inbox</h2>
                 <p class="admin-live-subtitle">
@@ -5974,7 +5952,8 @@
             <section
               class="admin-region-shell"
               id="recoveryRegion"
-              data-view-group="recovery"
+              data-view-group="hidden"
+              hidden
               style="margin-top: 1.5rem"
             >
               <header class="admin-funnel-header">

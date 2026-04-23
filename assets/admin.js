@@ -5183,36 +5183,32 @@ function updateHeroStatus(context) {
   if (!heroStatus) return;
   var ctx = context || {};
   var parts = [];
-  if (ctx.priorityCount) {
-    parts.push(
-      ctx.priorityCount + " priority action" + (ctx.priorityCount === 1 ? "" : "s") + " active",
-    );
-  } else {
-    parts.push("Clear for now");
-  }
-  if (ctx.candidateReviewCount) {
-    parts.push(
-      ctx.candidateReviewCount +
-        " new candidate" +
-        (ctx.candidateReviewCount === 1 ? "" : "s") +
-        " waiting",
-    );
-  }
   if (ctx.pendingApplicationsCount) {
     parts.push(
       ctx.pendingApplicationsCount +
-        " pending application" +
-        (ctx.pendingApplicationsCount === 1 ? "" : "s"),
+        " signup" +
+        (ctx.pendingApplicationsCount === 1 ? "" : "s") +
+        " waiting for review",
     );
+  } else {
+    parts.push("No signups waiting right now");
+  }
+  if (ctx.publishReadyApplicationsCount) {
+    parts.push(
+      ctx.publishReadyApplicationsCount +
+        " publish-ready" +
+        (ctx.publishReadyApplicationsCount === 1 ? "" : " profiles"),
+    );
+  }
+  if (ctx.needsFixesCount) {
+    parts.push(ctx.needsFixesCount + " needing fixes");
   }
   heroStatus.textContent = parts.join(" · ");
 }
 
 function updateNavCounts(counts) {
   var mapping = {
-    navCountCandidates: counts.today,
-    navCountWorkQueues: counts.workQueues,
-    navCountRecovery: counts.recovery,
+    navCountReview: counts.review,
   };
   Object.keys(mapping).forEach(function (id) {
     var node = document.getElementById(id);
@@ -5272,6 +5268,8 @@ function buildQueueIndexCard(queue) {
   return (
     '<article class="queue-index-card' +
     (queue.count > 0 ? "" : " is-empty") +
+    '" role="button" tabindex="0" data-admin-scroll-target="' +
+    escapeAdminHtml(queue.targetId || "") +
     '">' +
     '<div class="queue-index-card-top"><div class="queue-index-card-label">' +
     escapeAdminHtml(queue.label) +
@@ -5281,11 +5279,9 @@ function buildQueueIndexCard(queue) {
     '<div class="queue-index-card-copy">' +
     escapeAdminHtml(queue.copy || "") +
     "</div>" +
-    '<button class="queue-index-card-action" type="button" data-admin-scroll-target="' +
-    escapeAdminHtml(queue.targetId || "") +
-    '">' +
+    '<span class="queue-index-card-action" aria-hidden="true">' +
     escapeAdminHtml(queue.actionLabel || "Open queue") +
-    "</button></article>"
+    "</span></article>"
   );
 }
 
@@ -5702,14 +5698,14 @@ function renderStats() {
     }
 
     updateHeroStatus({
-      priorityCount: topActions.length,
-      candidateReviewCount: candidateReviewCount,
       pendingApplicationsCount: pendingApplicationsCount,
+      publishReadyApplicationsCount: publishReadyApplicationsCount,
+      needsFixesCount: applications.filter(function (item) {
+        return reviewModels.getApplicationReviewSnapshot(item).focus === "needs_changes";
+      }).length,
     });
     updateNavCounts({
-      today: topActions.length + pendingApplicationsCount,
-      workQueues: activeQueueCount,
-      recovery: 0,
+      review: pendingApplicationsCount,
     });
     renderWorkQueueIndex({
       queues: queueIndex,
@@ -7492,8 +7488,8 @@ function setAuthUiState() {
     authError.style.display = "none";
   }
   authErrorVisible = false;
-  trackFunnelEvent("admin_today_view_loaded", {
-    mode: document.body.getAttribute("data-admin-view") || "today",
+  trackFunnelEvent("admin_review_view_loaded", {
+    mode: document.body.getAttribute("data-admin-view") || "review",
   });
 }
 
@@ -7754,49 +7750,65 @@ document.getElementById("navLogout").addEventListener("click", async function ()
   window.location.href = "admin.html";
 });
 
-document.getElementById("applicationSearch").addEventListener("input", function (event) {
-  applicationFilters.q = event.target.value.trim();
-  renderApplications();
-});
+var applicationSearchEl = document.getElementById("applicationSearch");
+if (applicationSearchEl) {
+  applicationSearchEl.addEventListener("input", function (event) {
+    applicationFilters.q = event.target.value.trim();
+    trackFunnelEvent("admin_review_filter_changed", {
+      filter: "search",
+      value_present: Boolean(applicationFilters.q),
+    });
+    renderApplications();
+  });
+}
 
-document.getElementById("applicationStatusFilter").addEventListener("change", function (event) {
-  applicationFilters.status = event.target.value;
-  renderApplications();
-});
+var applicationStatusFilterEl = document.getElementById("applicationStatusFilter");
+if (applicationStatusFilterEl) {
+  applicationStatusFilterEl.addEventListener("change", function (event) {
+    applicationFilters.status = event.target.value;
+    applicationFilters.focus = event.target.value === "on_hold" ? "active_review" : "";
+    trackFunnelEvent("admin_review_filter_changed", {
+      filter: "status",
+      value: applicationFilters.status || "all",
+    });
+    renderApplications();
+  });
+}
 
-document.getElementById("applicationFocusFilter").addEventListener("change", function (event) {
-  applicationFilters.focus = event.target.value;
-  renderApplications();
-});
+var applicationFocusFilterEl = document.getElementById("applicationFocusFilter");
+if (applicationFocusFilterEl) {
+  applicationFocusFilterEl.addEventListener("change", function (event) {
+    applicationFilters.focus = event.target.value;
+    renderApplications();
+  });
+}
 
-document.getElementById("applicationReviewGoal").addEventListener("change", function (event) {
-  applicationFilters.goal = event.target.value || "balanced";
-  renderApplications();
-});
+var applicationReviewGoalEl = document.getElementById("applicationReviewGoal");
+if (applicationReviewGoalEl) {
+  applicationReviewGoalEl.addEventListener("change", function (event) {
+    applicationFilters.goal = event.target.value || "balanced";
+    renderApplications();
+  });
+}
 
-document.getElementById("applicationClearFilters").addEventListener("click", function () {
-  applicationFilters.q = "";
-  applicationFilters.status = "";
-  applicationFilters.focus = "";
-  applicationFilters.goal = "balanced";
-  var searchInput = document.getElementById("applicationSearch");
-  if (searchInput) {
-    searchInput.value = "";
-  }
-  var statusFilter = document.getElementById("applicationStatusFilter");
-  if (statusFilter) {
-    statusFilter.value = "";
-  }
-  var focusFilter = document.getElementById("applicationFocusFilter");
-  if (focusFilter) {
-    focusFilter.value = "";
-  }
-  var goalFilter = document.getElementById("applicationReviewGoal");
-  if (goalFilter) {
-    goalFilter.value = "balanced";
-  }
-  renderApplications();
-});
+var applicationClearFiltersEl = document.getElementById("applicationClearFilters");
+if (applicationClearFiltersEl) {
+  applicationClearFiltersEl.addEventListener("click", function () {
+    applicationFilters.q = "";
+    applicationFilters.status = "";
+    applicationFilters.focus = "";
+    applicationFilters.goal = "balanced";
+    var searchInput = document.getElementById("applicationSearch");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+    var statusFilter = document.getElementById("applicationStatusFilter");
+    if (statusFilter) {
+      statusFilter.value = "";
+    }
+    renderApplications();
+  });
+}
 
 (function wireApplicationsFocusMode() {
   const toggleBtn = document.getElementById("applicationsFocusToggle");
@@ -8014,9 +8026,12 @@ document.addEventListener("click", function (event) {
   var tab = event.target.closest("[data-admin-tab]");
   if (tab) {
     var nextView = tab.getAttribute("data-admin-tab") || "";
-    trackFunnelEvent(nextView === "reports" ? "admin_report_view_opened" : "admin_queue_entry", {
-      view: nextView,
-    });
+    trackFunnelEvent(
+      nextView === "reports" ? "admin_report_view_opened" : "admin_review_view_opened",
+      {
+        view: nextView,
+      },
+    );
   }
   var primaryActionButton = event.target.closest("[data-workflow-primary-action]");
   if (primaryActionButton) {

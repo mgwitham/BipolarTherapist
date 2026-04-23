@@ -1,6 +1,6 @@
 const STORAGE_KEY = "admin:active-view";
-const DEFAULT_VIEW = "today";
-const VALID_VIEWS = ["today", "listings", "reports", "recovery"];
+const DEFAULT_VIEW = "review";
+const VALID_VIEWS = ["review", "reports"];
 
 function readStoredView() {
   try {
