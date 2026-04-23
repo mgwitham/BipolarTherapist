@@ -228,10 +228,34 @@ are met:
 - `<groupsite>.com/clinicians/<first-last>` or
   `<groupsite>.com/about/<first-last>`
 
-If a listing page names 10 clinicians you haven't yet evaluated,
-open each of those clinicians' per-profile pages and evaluate them
-individually. Emitting a listing URL in a rejection log is fine (it
-documents the search path); emitting it as `sourceUrl` is a reviewer
+## MANDATORY DRILL-THROUGH COUNT
+
+When a listing page surfaces in your search results, you MUST open
+at least **5 per-clinician profile URLs** from that listing before
+the batch can end. If Headway's `/specialty/bipolar?page=2` lists 20
+clinicians, you open 5 of their individual `care.headway.co/providers/
+<slug>` profiles and evaluate each against the graduated bar — you do
+not cite the listing URL as a rejection reason for those names.
+
+Enforcement in the search log: for each listing-page URL in your
+`search_log`, add a parenthetical `(drilled: <N>)` indicating how
+many per-clinician profiles you opened from it. The minimum is 5.
+Example:
+
+```
+"bipolar specialist Headway redlands" | https://care.headway.co/therapists/california/redlands/specialty/bipolar?page=2 (drilled: 6) | https://care.headway.co/providers/jane-doe-123 | https://care.headway.co/providers/alex-smith-456
+```
+
+Rejection reasons that cite "no drill-through," "listing page only,"
+"did not resolve to per-clinician profile," or any variant that
+implies you did not open the clinician's individual page are
+refusals, not rejections. If the clinician's name appears in your
+rejection log, you MUST have opened their per-clinician page and
+evaluated what was there. "Couldn't find their profile after
+looking" is acceptable if you searched — say so explicitly and cite
+the search that failed.
+
+Emitting a listing URL as a row's `sourceUrl` is a reviewer
 auto-reject.
 
 # AGGREGATOR CARVE-OUT (narrow exception)
@@ -288,38 +312,49 @@ testimonials. `sourcingConfidence`: `high` or `medium`.
 
 ## For per-clinician aggregator-profile sourceUrls (carve-out path)
 
-Reduced bar. Emit the row when ALL of these hold, and mark
-`sourcingConfidence=low`:
+Reduced bar. This is intentionally permissive so underserved metros
+get populated. The reviewer is the second filter; your job is to
+surface plausible candidates, not to apply the aesthetic bar
+appropriate for own-site profiles.
 
-- Bipolar is listed as a **primary/top specialty** on the profile
-  (not one of 15+ tags). "Primary" means: named in the specialty
-  callout, shown in the profile's headline/hero area, or marked as
-  a focus area by the aggregator's UI.
-- AND at least ONE of these signals is visible on the profile:
-  - A clinician-authored sentence or paragraph mentioning bipolar
-    (even one sentence counts)
-  - A bipolar-relevant treatment modality named in the "approach"
-    or "treatment" section: IPSRT, FFT, STEP-BD, mood-stabilizer
-    management, psychoeducation for bipolar
+Emit the row when ALL of these hold, and mark `sourcingConfidence=low`:
+
+- **Bipolar is listed in the profile's specialties/issues section.**
+  Anywhere — not just "primary." A specialty tag is enough.
+- **The clinician is real and active.** NPI-verified as an active CA
+  licensee (or the "Needs license lookup" blank-license exception in
+  Hard Req 2 applies — the pipeline will resolve it post-ingest).
+- **At least one supporting signal is on the profile.** ONE of:
+  - Any clinician-written sentence or paragraph in their bio
+    (doesn't need to mention bipolar — shows there is authored
+    content on the profile at all)
+  - A bipolar-relevant treatment modality named: IPSRT, FFT,
+    STEP-BD, mood-stabilizer management, psychoeducation
   - Bipolar-relevant credential: MD / DO / PMHNP (prescribers can
     medication-manage bipolar regardless of on-profile narrative)
-  - Years of bipolar-specific experience stated (even without
-    other narrative)
+  - Stated years of clinical experience (any, not necessarily
+    bipolar-specific)
+
+That's the bar. "Bipolar is listed + clinician is real + there's
+evidence they wrote their own profile" is sufficient for `low`
+confidence. We're not accepting a live directory listing — we're
+accepting a review-queue candidate.
 
 Rows emitted under this reduced bar MUST:
 - Use `sourcingConfidence=low` in the CSV
 - Prefix `clinicalNotes` with `Aggregator carve-out (low-confidence
   bipolar signal):`
-- Include the specific signal you relied on (e.g. "primary specialty
-  + IPSRT listed" or "primary specialty + PMHNP prescriber")
-- Include the NPI number once resolved
+- Cite the specific signal you relied on (e.g. "bipolar specialty
+  listed + IPSRT named" or "bipolar specialty listed + PMHNP
+  prescriber + 8 years experience")
+- Include the NPI number (or `Needs license lookup: NPI ######`)
 
 These rows land in the candidate review queue, not direct-publish —
 the reviewer is the final filter. Your job is to surface real
 clinicians; theirs is to confirm fit.
 
-Rows that fail even the reduced bar (bipolar is one of many tags,
-no clinical narrative, no prescribing credential) stay in the
+Rows that fail even this bar (bipolar not mentioned at all, no NPI
+match, no authored content, no prescriber credential) stay in the
 rejection log.
 
 # SIGNALS THAT BOOST CONFIDENCE (capture when visible)
@@ -684,10 +719,20 @@ Rules:
   - "Unable to meet bipolar-specific evidence"
   - "Market is dry"
   - "Could not find enough"
+  - "Listing page only" / "no drill-through" / "did not resolve
+    to per-clinician profile" — these describe YOUR failure to
+    open the candidate's individual page, not a reason to reject
+    them. Open the page and evaluate what's there, or do not
+    include them in your rejection log at all.
+  - "No independent license verification" (alone) — if the
+    clinician is NPI-matched as active CA, the "Needs license
+    lookup" exception applies; the pipeline resolves license
+    numbers automatically.
   - Any line where the `name` field is "N/A" or "(none)"
-- **URLs must be real.** If you never opened a URL for the
-  candidate, you did not evaluate them — do not fabricate a
-  rejection entry.
+- **URLs must be real per-clinician profile pages.** If the URL
+  is a listing page (see DRILL-THROUGH RULE), you did not evaluate
+  the named clinician — fetch their individual page first, or do
+  not include them in the rejection log.
 
 # SEARCH LOG
 
@@ -702,6 +747,16 @@ query | url1 | url2 | url3
 Minimum 8 distinct queries (Query Diversity Mandate). If fewer
 appear, the reviewer treats the batch as skipped work. "Same query
 with a different city" counts as one query, not many.
+
+**Listing-page drill-through accounting.** When a URL in the log is
+a listing page (matches any pattern in the DRILL-THROUGH RULE), it
+must be followed by ` (drilled: <N>)` where N is the number of
+per-clinician profile URLs you opened from that listing. Minimum
+N=5 per listing page unless the listing has fewer than 5 clinicians
+listed (note the cap, e.g. "drilled: 3 of 3"). If a listing page
+appears in your search log with no `(drilled: N)` annotation or
+with N < 5, the reviewer treats every rejection line tied to names
+on that listing as a refusal.
 
 # ADVERSARIAL SELF-CRITIQUE (required final step)
 
