@@ -6131,3 +6131,183 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .match-feedback-bar .feedback-btn {
   box-shadow: none;
 }
+
+/* Contact therapist modal — sibling of .mx-details-dialog. */
+.mx-contact-dialog {
+  width: min(480px, 94vw);
+  max-height: 88vh;
+  border: 0;
+  border-radius: 18px;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 30px 70px rgba(15, 31, 40, 0.25);
+  overflow: hidden;
+}
+.mx-contact-dialog::backdrop {
+  background: rgba(15, 31, 40, 0.45);
+}
+.mx-contact-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+.mx-contact-body {
+  padding: 1.6rem 1.5rem 1.4rem;
+  overflow-y: auto;
+}
+.mx-contact-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(15, 31, 40, 0.06);
+  color: #0f1f28;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 2;
+}
+.mx-contact-close:hover {
+  background: rgba(15, 31, 40, 0.12);
+}
+.mx-contact-header {
+  margin: 0 2.5rem 1rem 0;
+}
+.mx-contact-name {
+  margin: 0 0 0.2rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f1f28;
+}
+.mx-contact-meta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #52707c;
+}
+.mx-contact-method {
+  background: rgba(26, 122, 143, 0.05);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin: 0 0 0.8rem;
+}
+.mx-contact-method-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0e4d5f;
+  margin-bottom: 0.25rem;
+}
+.mx-contact-method-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #0f1f28;
+  user-select: text;
+  word-break: break-word;
+}
+.mx-contact-method-value--mono {
+  font-size: 1.05rem;
+}
+.mx-contact-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+.mx-contact-actions .mx-btn-primary {
+  flex: 1;
+}
+.mx-contact-actions .mx-btn-primary.is-copied {
+  background: #0e4d5f;
+}
+.mx-contact-others {
+  margin: 0 0 1.1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #e1ecef;
+  border-radius: 10px;
+}
+.mx-contact-others-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #52707c;
+  margin-bottom: 0.35rem;
+}
+.mx-contact-others-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mx-contact-others-list a {
+  font-size: 0.88rem;
+  color: #155f70;
+  text-decoration: none;
+  word-break: break-word;
+}
+.mx-contact-others-list a:hover {
+  text-decoration: underline;
+}
+.mx-contact-other-label {
+  color: #5a6f77;
+  font-weight: 600;
+}
+.mx-contact-draft {
+  margin: 0 0 1rem;
+}
+.mx-contact-draft-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #52707c;
+  margin-bottom: 0.4rem;
+}
+.mx-contact-draft-textarea {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #0f1f28;
+  background: #fff;
+  border: 1px solid #c9dce1;
+  border-radius: 10px;
+  resize: vertical;
+  min-height: 110px;
+  box-sizing: border-box;
+}
+.mx-contact-draft-textarea:focus {
+  outline: 2px solid rgba(26, 122, 143, 0.35);
+  outline-offset: 1px;
+  border-color: #1a7a8f;
+}
+.mx-contact-draft-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.mx-contact-draft-actions .mx-btn-secondary {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+}
+.mx-contact-draft-actions .mx-btn-secondary.is-copied {
+  border-color: #1a7a8f;
+  color: #0e4d5f;
+}
+.mx-contact-reassure {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #6b8089;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .mx-contact-body {
+    padding: 1.3rem 1.1rem 1.2rem;
+  }
+  .mx-contact-method-value {
+    font-size: 1.25rem;
+  }
+}
