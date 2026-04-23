@@ -130,7 +130,7 @@ export function renderShortlistQueueSection(options) {
 
   var queueEntries = settings.queueEntries || [];
   var escapeHtml = settings.escapeHtml || String;
-  var profileBaseHref = settings.profileBaseHref || "therapist.html?slug=";
+  var profileBaseHref = settings.profileBaseHref || "/therapists/";
   var formatTherapistLocationLine =
     settings.formatTherapistLocationLine ||
     function () {
@@ -171,6 +171,7 @@ export function renderShortlistQueueSection(options) {
           '<a href="' +
           profileBaseHref +
           encodeURIComponent(therapist.slug) +
+          "/" +
           '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
           escapeHtml(therapist.slug) +
           '" data-profile-link-context="queue">View Profile</a></article>'

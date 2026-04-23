@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "vite",
     "api:dev": "node server/review-api.mjs",
-    "build": "npm run build:sitemap && vite build",
+    "build": "npm run build:sitemap && vite build && npm run build:seo-pages",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
+    "build:seo-pages": "node scripts/generate-seo-profile-pages.mjs",
     "preview": "vite preview",
     "cms:dev": "npm --prefix studio run dev",
     "cms:build": "npm --prefix studio run build",

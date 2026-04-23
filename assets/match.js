@@ -190,6 +190,11 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function buildTherapistProfileHref(slug) {
+  var cleanSlug = String(slug || "").trim();
+  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/" : "/directory";
+}
+
 function startZipcodesPreload() {
   if (!zipcodesPreloadPromise) {
     zipcodesPreloadPromise = preloadZipcodes().catch(function () {
@@ -1449,9 +1454,7 @@ function buildPrimaryResultAction(entry) {
             : "Open " + therapist.name + "'s profile";
 
   return {
-    href: preferredRoute
-      ? preferredRoute.href
-      : "therapist.html?slug=" + encodeURIComponent(therapist.slug || ""),
+    href: preferredRoute ? preferredRoute.href : buildTherapistProfileHref(therapist.slug),
     label: label,
     external: Boolean(preferredRoute && preferredRoute.external),
     therapistSlug: therapist.slug || "",
@@ -2096,8 +2099,8 @@ function renderCompareDecisionCards(topEntries, profile) {
               : "neutral") +
           '">' +
           escapeHtml(role) +
-          '</span><a class="compare-decision-link" href="therapist.html?slug=' +
-          encodeURIComponent(therapist.slug) +
+          '</span><a class="compare-decision-link" href="' +
+          escapeHtml(buildTherapistProfileHref(therapist.slug)) +
           '">View profile</a></div><div class="compare-decision-name">' +
           escapeHtml(therapist.name) +
           '</div><div class="compare-decision-meta">' +
@@ -4086,7 +4089,7 @@ function renderShortlistQueue(entries) {
     root: root,
     queueEntries: queueEntries,
     escapeHtml: escapeHtml,
-    profileBaseHref: "therapist.html?slug=",
+    profileBaseHref: "/therapists/",
     formatTherapistLocationLine: formatTherapistLocationLine,
     buildQueueReserveCopy: buildQueueReserveCopy,
     shortlistLimit: PRIMARY_SHORTLIST_LIMIT,
@@ -4648,8 +4651,8 @@ function renderLeadResultCard(entry, _backupName, options) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
     '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="primary-card">View details</a>' +
@@ -4729,8 +4732,8 @@ function renderSupportingResultCard(entry, _rank, options) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
     '" class="mx-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="' +
@@ -5102,8 +5105,8 @@ function renderDetailsBody(entry) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    '<a href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug || "") +
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
     '" class="mx-btn-secondary">Full profile</a>' +
     "</div>";
 

@@ -8,12 +8,17 @@ function escapeHtml(value) {
 }
 
 function buildTherapistProfileHref(slug, source) {
+  var cleanSlug = String(slug || "").trim();
+  if (cleanSlug && !source) {
+    return "/therapists/" + encodeURIComponent(cleanSlug) + "/";
+  }
   var params = new URLSearchParams();
-  params.set("slug", String(slug || ""));
   if (source) {
     params.set("source", String(source));
   }
-  return "therapist.html?" + params.toString();
+  return source && cleanSlug
+    ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?" + params.toString()
+    : "therapist.html?slug=" + encodeURIComponent(cleanSlug);
 }
 
 function getTherapistDisplayName(name) {
