@@ -54,6 +54,9 @@ export async function handleCandidateRoutes(context) {
       ["booking_url", "bookingUrl"],
       ["care_approach", "careApproach"],
       ["estimated_wait_time", "estimatedWaitTime"],
+      ["availability_posture", "availabilityPosture"],
+      ["prescribing_mode", "prescribingMode"],
+      ["crisis_posture", "crisisPosture"],
     ];
     for (const [bodyKey, sanityKey] of stringFields) {
       if (typeof body[bodyKey] === "string") {
@@ -93,6 +96,9 @@ export async function handleCandidateRoutes(context) {
     }
     if (typeof body.session_fee_max === "number") {
       allowedUpdates.sessionFeeMax = body.session_fee_max;
+    }
+    if (typeof body.waitlist_weeks === "number") {
+      allowedUpdates.waitlistWeeks = body.waitlist_weeks;
     }
 
     if (typeof body.notes === "string") {
