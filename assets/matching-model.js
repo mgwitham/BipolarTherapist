@@ -1009,7 +1009,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
         text:
           telehealthSupport === "unknown"
             ? "Offers telehealth, though state coverage should be confirmed."
-            : "Offers telehealth in the requested state.",
+            : "Available by telehealth in California.",
         weight: 30,
       });
       if (telehealthSupport === "unknown") {
@@ -1025,7 +1025,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     } else {
       breakdown.access += 30;
       reasons.push({
-        text: "Offers in-person care in the requested state.",
+        text: "Sees patients in person nearby.",
         weight: 30,
       });
     }

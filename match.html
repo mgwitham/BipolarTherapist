@@ -5648,25 +5648,64 @@
       .mx-meta-value.is-available {
         color: #3aaa7a;
       }
+      .mx-hero-fit {
+        margin: 0.2rem 0 0.1rem;
+        padding: 0.7rem 0.9rem;
+        background: rgba(26, 122, 143, 0.05);
+        border-left: 3px solid #1a7a8f;
+        border-radius: 0 10px 10px 0;
+      }
+      .mx-hero-fit-title {
+        margin: 0 0 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #0e4d5f;
+      }
+      .mx-hero-fit-list {
+        margin: 0;
+        padding: 0 0 0 1.1rem;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: #0f1f28;
+      }
+      .mx-hero-fit-list li + li {
+        margin-top: 0.15rem;
+      }
+      .mx-hero-reassure {
+        margin: 0.5rem 0 0;
+        font-size: 0.82rem;
+        color: #5a6f77;
+        text-align: center;
+      }
       .mx-hero-actions {
         display: flex;
         gap: 0.6rem;
       }
       .mx-btn-primary {
-        flex: 1;
+        flex: 2;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.8rem 1.1rem;
+        padding: 1rem 1.2rem;
+        min-height: 56px;
         background: #1a7a8f;
         color: #fff;
         border: 0;
-        border-radius: 10px;
-        font-size: 0.9rem;
-        font-weight: 600;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         text-decoration: none;
         cursor: pointer;
-        transition: background 0.15s ease;
+        box-shadow: 0 10px 24px rgba(26, 122, 143, 0.22);
+        transition:
+          background 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .mx-hero-actions .mx-btn-secondary {
+        flex: 1;
       }
       .mx-btn-primary:hover {
         background: #155f70;
@@ -5785,6 +5824,18 @@
       .mx-card-save svg {
         width: 14px;
         height: 14px;
+      }
+      .mx-card-fit {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .mx-card-fit-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #0e4d5f;
       }
       .mx-card-reason {
         font-size: 0.85rem;
