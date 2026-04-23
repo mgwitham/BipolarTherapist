@@ -129,10 +129,68 @@ async function fetchNpi({ first, last, state = "CA" }) {
   return response.json();
 }
 
+function deriveCaLicensePrefix(taxonomyDesc) {
+  const desc = String(taxonomyDesc || "").toLowerCase();
+  if (desc.includes("psychologist")) return "PSY";
+  if (desc.includes("marriage") || desc.includes("family therapist")) return "LMFT";
+  if (desc.includes("clinical social worker") || desc.includes("social worker, clinical"))
+    return "LCSW";
+  if (desc.includes("clinical counselor") || desc.includes("mental health counselor"))
+    return "LPCC";
+  if (desc.includes("educational psychologist")) return "LEP";
+  if (desc.includes("psychiatric") && desc.includes("nurse")) return "PMHNP";
+  if (desc.includes("psychiatry") || desc.includes("physician") || desc.includes("medicine"))
+    return "MD";
+  return "";
+}
+
+function discoverLicense(npi, rowName) {
+  if (!npi.results || !npi.results.length) {
+    return { ok: false, note: `no NPI match for name "${rowName}" in CA` };
+  }
+  const candidates = [];
+  for (const result of npi.results) {
+    const basic = result.basic || {};
+    const status = basic.status;
+    if (status && status !== "A") continue;
+    for (const taxonomy of result.taxonomies || []) {
+      if (taxonomy.state !== "CA") continue;
+      if (!taxonomy.license) continue;
+      candidates.push({
+        npi: result.number,
+        license: taxonomy.license,
+        prefix: deriveCaLicensePrefix(taxonomy.desc),
+        desc: taxonomy.desc,
+        primary: Boolean(taxonomy.primary_taxonomy || taxonomy.primary),
+      });
+    }
+  }
+  if (!candidates.length) {
+    return { ok: false, note: `NPI match found but no active CA license in taxonomies` };
+  }
+  const best = candidates.find((c) => c.primary) || candidates[0];
+  const formatted = best.prefix ? `${best.prefix} ${best.license}` : best.license;
+  return {
+    ok: true,
+    licenseNumber: formatted,
+    npi: best.npi,
+    note: `auto-resolved via NPI ${best.npi} (${best.desc})`,
+  };
+}
+
 function verifyRow(row, npi) {
   const givenLicense = normalizeLicense(row.licenseNumber);
   if (!givenLicense) {
-    return { verified: false, note: "no license number in CSV" };
+    const discovered = discoverLicense(npi, row.name);
+    if (discovered.ok) {
+      return {
+        verified: true,
+        note: discovered.note,
+        npi: discovered.npi,
+        discoveredLicense: discovered.licenseNumber,
+      };
+    }
+    return { verified: false, note: discovered.note };
   }
   if (!npi.results || !npi.results.length) {
     return { verified: false, note: `no NPI match for name "${row.name}" in CA` };
@@ -222,6 +280,10 @@ async function main() {
     try {
       const npi = await fetchNpi({ first, last });
       const check = verifyRow(row, npi);
+      if (check.discoveredLicense) {
+        row.licenseNumber = check.discoveredLicense;
+        if (!row.licenseState) row.licenseState = "CA";
+      }
       row.licenseVerified = check.verified ? "true" : "false";
       row.verificationNotes = check.note + (check.npi ? ` (NPI ${check.npi})` : "");
       results.push({
@@ -230,6 +292,7 @@ async function main() {
         verified: check.verified,
         note: check.note,
         npi: check.npi,
+        discovered: Boolean(check.discoveredLicense),
       });
       if (check.verified) {
         passed += 1;

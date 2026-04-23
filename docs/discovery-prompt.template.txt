@@ -97,8 +97,22 @@ License-number sources, in order of reliability:
      as a last resort and only if you can actually load it.
 
 If after these four paths you cannot find a CA license number for a
-candidate, REJECT them. Do not guess, do not skip the field and emit
-the row anyway.
+candidate, prefer to reject them. ONE narrow exception: if you
+located the clinician on NPI Registry (confirming they are a real
+CA-practicing provider) but the NPPES profile didn't surface the
+state license number in a form you could read, you MAY emit the row
+with `licenseNumber` BLANK. In that case:
+
+- Set `licenseState` to "CA".
+- Prefix `clinicalNotes` with `Needs license lookup:` and include
+  the NPI number you found (e.g. "Needs license lookup: NPI 1234567890").
+- Hard Requirement 3 (bipolar signal) still applies in full.
+- Limit: at most 2 blank-license rows per batch. The post-import
+  pipeline will attempt to auto-resolve via the NPI API; any that
+  don't resolve go to the reviewer.
+
+Do not use the blank-license exception as a shortcut. If you did not
+actually open the NPI record, the row is a refusal, not an exception.
 
 ## 3. Substantive bipolar specialization
 

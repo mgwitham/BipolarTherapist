@@ -98,6 +98,13 @@ function run() {
     options.inputPath,
   ]);
 
+  runStep("Resolve and verify licenses via NPI", "node", [
+    "scripts/verify-candidate-licenses.mjs",
+    DISCOVERED_CSV_PATH,
+    "--out",
+    DISCOVERED_CSV_PATH,
+  ]);
+
   if (!options.skipImport) {
     runStep("Import candidates", "node", [
       "scripts/import-therapist-candidates.mjs",
