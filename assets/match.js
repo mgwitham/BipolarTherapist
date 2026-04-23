@@ -217,6 +217,25 @@ function maybeWarmZipcodesForValue(value) {
   });
 }
 
+function syncMirroredFieldValues(changedNode) {
+  if (!changedNode || !changedNode.name) {
+    return;
+  }
+  if (changedNode.type === "radio" || changedNode.type === "checkbox") {
+    return;
+  }
+  var form = document.getElementById("matchForm");
+  if (!form) {
+    return;
+  }
+  Array.from(form.querySelectorAll('[name="' + changedNode.name + '"]')).forEach(function (node) {
+    if (node === changedNode || node.type === "radio" || node.type === "checkbox") {
+      return;
+    }
+    node.value = changedNode.value;
+  });
+}
+
 async function ensureZipcodesReadyForProfile(profile) {
   if (!normalizeLocationQuery(profile && profile.location_query)) {
     return;
@@ -4882,9 +4901,7 @@ function renderPrimaryMatchCards(entries, profile) {
 
   // Wire the results-header Refine button and the smart-refine chips
   // ("Takes my insurance" / "Telehealth only" / "Language") to open the
-  // refine drawer. Previously these only toggled the <details open>
-  // attribute, which skipped the drawer CSS state and left the panel
-  // invisible or rendered inline in a broken position.
+  // refine drawer.
   root.querySelectorAll("[data-mx-refine-open]").forEach(function (chip) {
     chip.addEventListener("click", function () {
       setRefineDrawerOpen(true);
@@ -5377,11 +5394,13 @@ function refreshIntakeUiFromForm() {
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function (event) {
+    syncMirroredFieldValues(event.target);
     maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
     maybeLiveRecompute(event);
   });
   matchForm.addEventListener("change", function (event) {
+    syncMirroredFieldValues(event.target);
     maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
     maybeLiveRecompute(event);
