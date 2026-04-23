@@ -5629,7 +5629,8 @@ function renderStats() {
     collapseRegionSopNotes();
 
     document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
-      button.addEventListener("click", function () {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
         var targetId = button.getAttribute("data-admin-scroll-target");
         var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
         var applicationStatus = button.getAttribute("data-admin-application-status");

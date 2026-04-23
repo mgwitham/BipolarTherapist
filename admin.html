@@ -4975,7 +4975,13 @@
                 Start here, clear the highest-risk work, then enter one queue on purpose.
               </p>
             </div>
-            <a class="admin-signups-pill is-empty" id="adminSignupsPill" href="#applicationsPanel">
+            <a
+              class="admin-signups-pill is-empty"
+              id="adminSignupsPill"
+              href="#applicationsPanel"
+              data-admin-scroll-target="applicationsPanel"
+              data-admin-focus-target-id="applicationReviewStartHere"
+            >
               <span class="admin-signups-pill-label">Therapist signups</span>
               <span class="admin-signups-pill-count" id="adminSignupsPillCount">0</span>
             </a>
@@ -5413,7 +5419,7 @@
                       </details>
                       <div id="candidateQueue"></div>
                     </div>
-                    <div class="panel" id="applicationsPanel" style="display: none">
+                    <div class="panel" id="applicationsPanel">
                       <h2>Therapist signups</h2>
                       <p class="panel-intro">
                         Profiles submitted directly by therapists. Decide:
@@ -5542,7 +5548,7 @@
                         </div>
                       </details>
                     </div>
-                    <div id="applicationsList" style="display: none"></div>
+                    <div id="applicationsList"></div>
                   </div>
                 </div>
               </div>
