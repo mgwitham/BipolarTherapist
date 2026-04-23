@@ -1714,7 +1714,7 @@ function renderLeadMatchSnapshot(entry) {
   ];
 
   return (
-    '<div class="match-section"><h4>Why this recommendation is worth trusting</h4><div class="match-snapshot-grid">' +
+    '<div class="match-section"><h4>Why this may be a good fit</h4><div class="match-snapshot-grid">' +
     snapshots
       .map(function (item) {
         return (
@@ -3157,7 +3157,7 @@ function renderFeedbackInsights() {
 
   if (!feedback.length && !outreachOutcomes.length) {
     root.innerHTML =
-      '<div class="feedback-insights-header"><h3>Internal Match Insights</h3><p>Local-only summary of the feedback captured on this device.</p></div><div class="insight-empty">No feedback captured yet.</div>';
+      '<div class="feedback-insights-header"><h3>Your feedback so far</h3><p>A quick summary of what you have flagged on this device.</p></div><div class="insight-empty">No feedback captured yet.</div>';
     return;
   }
 
@@ -3391,7 +3391,7 @@ function renderFeedbackInsights() {
     .filter(Boolean);
 
   root.innerHTML =
-    '<div class="feedback-insights-header"><h3>Internal Match Insights</h3><p>Local-only summary of the feedback captured on this device.</p></div>' +
+    '<div class="feedback-insights-header"><h3>Your feedback so far</h3><p>A quick summary of what you have flagged on this device.</p></div>' +
     '<div class="insight-stats">' +
     '<div class="insight-stat"><div class="insight-stat-value">' +
     feedback.length +
