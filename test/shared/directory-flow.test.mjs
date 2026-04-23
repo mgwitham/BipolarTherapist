@@ -53,7 +53,7 @@ test("directory flow harness applies controls, sorts results, and renders the to
   assert.equal(flow.renderState.backupTherapists.length, 2);
   assert.equal(flow.renderState.pageItems[0].slug, "riley-ng");
   assert.equal(flow.renderState.activePreviewSlug, "avery-chen");
-  assert.equal(flow.renderState.activeFilterCount, 5);
+  assert.equal(flow.renderState.activeFilterCount, 6);
   assert.match(flow.html, /Riley Ng/);
   assert.match(flow.html, /Contact therapist/);
   assert.match(flow.html, /Save/);

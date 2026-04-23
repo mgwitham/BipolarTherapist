@@ -23,6 +23,8 @@ test("buildDirectoryRenderState separates featured, backups, and browse results"
       verification: "",
       bipolar_experience: "",
       insurance: "",
+      therapist: true,
+      psychiatrist: false,
       telehealth: true,
       in_person: false,
       accepting: false,
@@ -51,7 +53,7 @@ test("buildDirectoryRenderState separates featured, backups, and browse results"
   assert.equal(state.activePreviewSlug, "a");
   assert.equal(state.resultsSuffix, "matches found");
   assert.equal(state.singularSuffix, "matches found");
-  assert.equal(state.activeFilterCount, 2);
+  assert.equal(state.activeFilterCount, 3);
 });
 
 test("applyDirectoryFiltersAction reads controls and resets paging", function () {
@@ -65,6 +67,8 @@ test("applyDirectoryFiltersAction reads controls and resets paging", function ()
     bipolar_experience: { value: "" },
     insurance: { value: "" },
     sortBy: { value: "best_match" },
+    therapist: { checked: true },
+    psychiatrist: { checked: false },
     telehealth: { checked: true },
     in_person: { checked: false },
     accepting: { checked: false },
@@ -83,6 +87,7 @@ test("applyDirectoryFiltersAction reads controls and resets paging", function ()
   assert.equal(state.currentPage, 1);
   assert.equal(state.filters.state, "CA");
   assert.equal(state.filters.zip, "90210");
+  assert.equal(state.filters.therapist, true);
   assert.equal(state.filters.telehealth, true);
   assert.equal(state.filters.responsive_contact, true);
 });

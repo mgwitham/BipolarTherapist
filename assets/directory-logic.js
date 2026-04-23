@@ -8,12 +8,36 @@ import {
 } from "./matching-model.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js";
 
 var responsivenessRankCache = new WeakMap();
 var freshnessBadgeCache = new WeakMap();
 var freshnessRankCache = new WeakMap();
 var decisionReadyScoreCache = new WeakMap();
 var merchandisingQualityCache = new WeakMap();
+
+function getRankingZip(filterState) {
+  var rankingZip = String(
+    (filterState && (filterState.explicit_zip || filterState.ranking_zip || filterState.zip)) || "",
+  ).trim();
+  return /^\d{5}$/.test(rankingZip) ? rankingZip : "";
+}
+
+function getTherapistZip(therapist) {
+  var zip = String((therapist && therapist.zip) || "").trim();
+  return /^\d{5}$/.test(zip) ? zip : "";
+}
+
+function getDirectoryProximityBoost(filterState, therapist) {
+  var rankingZip = getRankingZip(filterState);
+  var therapistZip = getTherapistZip(therapist);
+
+  if (!rankingZip || !therapistZip || !therapist.accepts_in_person) {
+    return 0;
+  }
+
+  return getInPersonProximityBonus(getZipDistanceMiles(rankingZip, therapistZip));
+}
 
 function getCachedMerchandisingQuality(therapist) {
   if (!therapist || typeof therapist !== "object") {
@@ -649,6 +673,7 @@ export function getMatchScore(filterState, therapist) {
   score += Math.round(quality.score * 0.45);
   score += getFreshnessRank(therapist) * 5;
   score += Math.round(getDecisionReadyScore(therapist) * 0.35);
+  score += getDirectoryProximityBoost(filterState, therapist);
   if (responsivenessRank === 2) {
     score += 4;
   } else if (responsivenessRank === 1) {
