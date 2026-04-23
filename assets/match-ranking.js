@@ -1,5 +1,20 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
+function normalizeExternalUrl(value) {
+  var raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw;
+  if (/^\/\//.test(raw)) return "https:" + raw;
+  return "https://" + raw.replace(/^\/+/, "");
+}
+
+function normalizeTelHref(value) {
+  var raw = String(value || "").trim();
+  if (!raw) return "";
+  var cleaned = raw.replace(/[^\d+]/g, "");
+  return cleaned ? "tel:" + cleaned : "";
+}
+
 function buildRouteLearningMap(outcomes, buildLearningSegments) {
   var entries = Array.isArray(outcomes) ? outcomes : [];
   var learning = {};
@@ -219,27 +234,30 @@ export function getPreferredOutreach(entry, options) {
 
   // Build every working route in priority order
   var available = [];
-  if (therapist.booking_url && bookingHealthy) {
+  var bookingHref = normalizeExternalUrl(therapist.booking_url);
+  if (bookingHref && bookingHealthy) {
     available.push({
       type: "booking",
       label: "Book consultation",
-      href: therapist.booking_url,
+      href: bookingHref,
       external: true,
     });
   }
-  if (therapist.website && websiteHealthy) {
+  var websiteHref = normalizeExternalUrl(therapist.website);
+  if (websiteHref && websiteHealthy) {
     available.push({
       type: "website",
       label: "Visit website",
-      href: therapist.website,
+      href: websiteHref,
       external: true,
     });
   }
-  if (therapist.phone) {
+  var telHref = normalizeTelHref(therapist.phone);
+  if (telHref) {
     available.push({
       type: "phone",
       label: "Call therapist",
-      href: "tel:" + therapist.phone,
+      href: telHref,
       external: false,
     });
   }
@@ -273,9 +291,9 @@ export function getPreferredRouteType(entry) {
 
   // Build working types in priority order (mirrors getPreferredOutreach)
   var available = [];
-  if (therapist.booking_url && bookingHealthy) available.push("booking");
-  if (therapist.website && websiteHealthy) available.push("website");
-  if (therapist.phone) available.push("phone");
+  if (normalizeExternalUrl(therapist.booking_url) && bookingHealthy) available.push("booking");
+  if (normalizeExternalUrl(therapist.website) && websiteHealthy) available.push("website");
+  if (normalizeTelHref(therapist.phone)) available.push("phone");
   if (therapist.email && therapist.email !== "contact@example.com") available.push("email");
 
   if (!available.length) return "profile";

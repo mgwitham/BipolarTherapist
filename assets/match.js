@@ -3872,12 +3872,12 @@ function getTherapistContactEmailLink(entry) {
     return "";
   }
 
-  var subject = buildEntryOutreachSubject(entry, latestProfile);
+  var subject = "Inquiry from BipolarTherapyHub";
   var body = buildEntryOutreachDraft(entry, latestProfile);
 
   return (
     "mailto:" +
-    encodeURIComponent(entry.therapist.email) +
+    entry.therapist.email +
     "?subject=" +
     encodeURIComponent(subject) +
     "&body=" +
@@ -4646,7 +4646,7 @@ function renderLeadResultCard(entry, _backupName, options) {
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
@@ -4727,7 +4727,7 @@ function renderSupportingResultCard(entry, _rank, options) {
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
@@ -4814,7 +4814,14 @@ function renderPrimaryMatchCards(entries, profile) {
     return;
   }
 
-  var allEntries = (entries || []).slice(0, 10);
+  // Hide entries with no working contact method — never render a card whose
+  // only action would 404 or dead-end. A card must have at least one of:
+  // booking_url, website, phone, or email.
+  var allEntries = (entries || [])
+    .filter(function (entry) {
+      return Boolean(getPreferredOutreach(entry));
+    })
+    .slice(0, 10);
 
   if (!allEntries.length) {
     root.className = "match-empty";
@@ -5100,7 +5107,7 @@ function renderDetailsBody(entry) {
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
