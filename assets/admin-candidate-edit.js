@@ -78,7 +78,10 @@ function syncDirtyState() {
 
   _isDirty = serializeForm(getForm()) !== _initialSnapshot;
   drawer.setAttribute("data-edit-dirty", _isDirty ? "true" : "false");
-  document.body.setAttribute("data-admin-mode", drawer.classList.contains("is-open") ? "editing" : "workspace");
+  document.body.setAttribute(
+    "data-admin-mode",
+    drawer.classList.contains("is-open") ? "editing" : "workspace",
+  );
   dirtyBadge.textContent = _isDirty ? "Unsaved changes" : "All changes saved";
   dirtyBadge.className = "edit-drawer-badge " + (_isDirty ? "is-dirty" : "is-clean");
 
