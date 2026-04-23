@@ -29,6 +29,20 @@ test("admin page: queue work is separated from the today surface", function () {
   assert.match(html, /Pick one queue and stay in that operating mode/);
 });
 
+test("admin page: therapist signups pill opens the visible signup review lane", function () {
+  const html = read("admin.html");
+  const adminJs = read("assets/admin.js");
+
+  assert.match(html, /id="adminSignupsPill"[\s\S]*data-admin-scroll-target="applicationsPanel"/);
+  assert.match(
+    html,
+    /id="adminSignupsPill"[\s\S]*data-admin-focus-target-id="applicationReviewStartHere"/,
+  );
+  assert.match(html, /<div class="panel" id="applicationsPanel">/);
+  assert.match(html, /<div id="applicationsList"><\/div>/);
+  assert.match(adminJs, /data-admin-scroll-target[\s\S]*event\.preventDefault\(\)/);
+});
+
 test("admin page: reports absorb funnel analysis instead of using a separate mode", function () {
   const html = read("admin.html");
   const funnelJs = read("assets/admin-funnel.js");
