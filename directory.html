@@ -73,124 +73,125 @@
 
     <header class="dir-header">
       <div class="dir-hero-shell">
-        <div class="dir-hero-kicker">Browse the directory</div>
-        <h1 id="directoryHeroTitle">
-          Find a bipolar-informed therapist you would actually consider contacting.
-        </h1>
-        <p id="directoryHeroDescription">
-          Filter by what matters, compare the strongest options side by side, and save the
-          therapists worth a second look.
-        </p>
+        <div class="dir-hero-copy">
+          <div class="dir-hero-kicker">Find care</div>
+          <h1 id="directoryHeroTitle">Find one strong therapist to contact next.</h1>
+          <p id="directoryHeroDescription">
+            Start with the best match at the top, keep two backups nearby, and use details only if
+            you need more reassurance before reaching out.
+          </p>
+        </div>
+        <aside class="dir-hero-panel" aria-label="Care guidance">
+          <div class="dir-hero-panel-card">
+            <div class="dir-hero-panel-kicker">Start here</div>
+            <div class="dir-hero-panel-title">You do not need to get this perfect.</div>
+            <div class="dir-hero-panel-copy">
+              Begin with one strong match. You can contact one now and come back if needed.
+            </div>
+          </div>
+        </aside>
       </div>
     </header>
 
-    <div class="dir-vb-bar-wrap">
-      <div class="dir-vb-bar" role="region" aria-label="Quick filters">
-        <button type="button" class="dir-vb-filters-btn" id="dirVbModalOpen" aria-haspopup="dialog">
-          <span class="dir-vb-filters-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M2 4h12M4 8h8M6 12h4"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-            </svg>
-          </span>
-          <span>Filters</span>
-          <span class="dir-vb-filters-count" id="filterCount"></span>
-        </button>
-
-        <div class="dir-vb-chips" id="dirVbChips">
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="accepting"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span id="acceptingLabelText">Accepting new</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="telehealth"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span id="telehealthLabelText">Telehealth</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="in_person"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span id="inPersonLabelText">In-person</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="therapist"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span>Therapist</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="psychiatrist"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span>Psychiatrist</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="medication_management"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span>Medication mgmt</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="responsive_contact"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span>Easy to contact</span>
-          </button>
-          <button
-            type="button"
-            class="dir-vb-chip"
-            data-chip-for="recently_confirmed"
-            aria-pressed="false"
-            onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-          >
-            <span>Recently updated</span>
-          </button>
-        </div>
-        <!-- Hidden checkboxes backing the chips; directory.js reads .checked off these by id. -->
-        <div class="dir-vb-hidden-inputs" aria-hidden="true">
-          <input type="checkbox" id="accepting" />
-          <input type="checkbox" id="telehealth" />
-          <input type="checkbox" id="in_person" />
-          <input type="checkbox" id="therapist" />
-          <input type="checkbox" id="psychiatrist" />
-          <input type="checkbox" id="medication_management" />
-          <input type="checkbox" id="responsive_contact" />
-          <input type="checkbox" id="recently_confirmed" />
-        </div>
-      </div>
-    </div>
-
     <main class="dir-vb-main">
       <div class="dir-vb-canvas">
+        <section id="directoryRecommendationZone" aria-live="polite"></section>
+
+        <div class="dir-vb-bar-wrap">
+          <div class="dir-vb-bar" role="region" aria-label="Quick filters">
+            <div class="dir-vb-bar-copy">
+              <div class="dir-vb-bar-label">Quick filters</div>
+              <p>Use a few practical filters after you have looked at the top matches.</p>
+            </div>
+            <button
+              type="button"
+              class="dir-vb-filters-btn"
+              id="dirVbModalOpen"
+              aria-haspopup="dialog"
+            >
+              <span class="dir-vb-filters-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 4h12M4 8h8M6 12h4"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <span>More filters</span>
+              <span class="dir-vb-filters-count" id="filterCount"></span>
+            </button>
+
+            <div class="dir-vb-chips" id="dirVbChips">
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="accepting"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="acceptingLabelText">Accepting new</span>
+              </button>
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="telehealth"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="telehealthLabelText">Telehealth</span>
+              </button>
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="in_person"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="inPersonLabelText">In person</span>
+              </button>
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="therapist"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span>Therapist</span>
+              </button>
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="psychiatrist"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span>Psychiatrist</span>
+              </button>
+              <button
+                type="button"
+                class="dir-vb-chip"
+                data-chip-for="medication_management"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span>Medication support</span>
+              </button>
+            </div>
+            <div class="dir-vb-hidden-inputs" aria-hidden="true">
+              <input type="checkbox" id="accepting" />
+              <input type="checkbox" id="telehealth" />
+              <input type="checkbox" id="in_person" />
+              <input type="checkbox" id="therapist" />
+              <input type="checkbox" id="psychiatrist" />
+              <input type="checkbox" id="medication_management" />
+              <input type="checkbox" id="responsive_contact" />
+              <input type="checkbox" id="recently_confirmed" />
+            </div>
+          </div>
+        </div>
+
         <div class="results-focus-banner">
           <div class="results-focus-banner-pill-group">
             <div class="results-focus-banner-label">Current focus</div>
@@ -221,7 +222,6 @@
         </div>
 
         <p class="directory-section-copy" id="directoryJourneySummary" hidden></p>
-        <div class="directory-tradeoff-preview" id="directoryTradeoffPreview"></div>
 
         <a
           class="dir-sparse-nudge"
@@ -382,6 +382,32 @@
           Show results
         </button>
       </div>
+    </div>
+
+    <div class="directory-details-scrim" id="directoryDetailsScrim" hidden></div>
+    <div
+      class="directory-details-modal"
+      id="directoryDetailsModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="directoryDetailsHeading"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="directory-details-modal-head">
+        <div class="directory-details-modal-label" id="directoryDetailsHeading">
+          Provider details
+        </div>
+        <button
+          type="button"
+          class="directory-details-close"
+          id="directoryDetailsClose"
+          aria-label="Close details"
+        >
+          ×
+        </button>
+      </div>
+      <div class="directory-details-body" id="directoryDetailsBody"></div>
     </div>
     <!-- directory.js references these IDs on load; keep them in DOM even if unused visually. -->
     <button
