@@ -106,7 +106,9 @@ with `licenseNumber` BLANK. In that case:
 - Set `licenseState` to "CA".
 - Prefix `clinicalNotes` with `Needs license lookup:` and include
   the NPI number you found (e.g. "Needs license lookup: NPI 1234567890").
-- Hard Requirement 3 (bipolar signal) still applies in full.
+- Hard Requirement 3 (bipolar signal) still applies — apply the
+  full bar for own-site/group-site sourceUrls or the reduced bar
+  for aggregator carve-out sourceUrls per GRADUATED BIPOLAR SIGNAL.
 - Limit: at most 2 blank-license rows per batch. The post-import
   pipeline will attempt to auto-resolve via the NPI API; any that
   don't resolve go to the reviewer.
@@ -119,7 +121,9 @@ actually open the NPI record, the row is a refusal, not an exception.
 The bipolar signal must be visible on whatever page becomes the
 `sourceUrl` — their own site, their per-clinician bio page on a
 group site, or their aggregator profile if you are invoking the
-carve-out below. BOTH (a) and (b) must be true.
+carve-out. For own-site/group-site sourceUrls, BOTH (a) and (b)
+below must be true. For aggregator-carve-out sourceUrls, the
+reduced bar in GRADUATED BIPOLAR SIGNAL applies instead.
 
 (a) Bipolar-specific vocabulary appears on the page. At least one of:
     bipolar I, bipolar II, manic, hypomanic, mixed episode, cyclothymia,
@@ -197,45 +201,126 @@ failure modes from prior batches.
 - Any page whose URL slug is a plain specialty term ("/bipolar",
   "/depression") on a group-practice site — service page
 
+# DRILL-THROUGH RULE (mandatory on aggregators and group sites)
+
+When a search result points at a **listing page** (specialty-filtered
+directory view, city+specialty slug, paginated results, staff grid),
+that URL is NEVER a valid `sourceUrl`. You must click through to the
+individual clinician's page and use THAT URL.
+
+Listing-page URL patterns — these must be drilled through, never
+emitted as sourceUrl:
+
+- `care.headway.co/therapists/california/<city>/specialty/bipolar`
+- `growtherapy.com/therapists/california/<city>/...`
+- `therapytribe.com/therapist/california-ca-<city>/<specialty>/`
+- `therapist.com/us/california/<city>/?category=...`
+- `psychologytoday.com/us/therapists/ca/<city>` (without an
+  individual `<name>-<city>-ca/<id>` slug)
+- Any URL ending in `?page=<n>`, `?category=...`, `/specialty/...`,
+  or `/search?...`
+
+Per-clinician URL patterns — these ARE valid when other requirements
+are met:
+
+- `psychologytoday.com/us/therapists/<first-last>-<city>-ca/<id>`
+- `care.headway.co/providers/<first-last>-<id>`
+- `<groupsite>.com/clinicians/<first-last>` or
+  `<groupsite>.com/about/<first-last>`
+
+If a listing page names 10 clinicians you haven't yet evaluated,
+open each of those clinicians' per-profile pages and evaluate them
+individually. Emitting a listing URL in a rejection log is fine (it
+documents the search path); emitting it as `sourceUrl` is a reviewer
+auto-reject.
+
 # AGGREGATOR CARVE-OUT (narrow exception)
 
 Small CA cities (Highland, Redlands, Visalia, Chico, etc.) often have
 legitimate solo bipolar clinicians whose only web presence is an
 aggregator profile or a per-clinician bio on a group-practice site.
 Rejecting them for lack of a personal domain leaves real specialists
-out of the directory. The carve-out below is intentionally narrow —
-do NOT use it as a shortcut on your first city.
+out of the directory.
 
-You MAY use an aggregator profile URL (Psychology Today, Headway,
-Grow Therapy, Alma, TherapyDen, Rula) as `sourceUrl` ONLY when ALL
-FOUR of these hold:
+You MAY use a **per-clinician** aggregator profile URL (Psychology
+Today, Headway, Grow Therapy, Alma, TherapyDen, Rula) as `sourceUrl`
+— NOT a listing page (see DRILL-THROUGH RULE above) — when all
+four of these hold:
 
 1. **License verified independently.** You located the CA license
    number via NPI Registry or npiprofile.com (source b or c in the
-   license hierarchy), not from the aggregator itself. Aggregator-
-   stated license numbers are not trustworthy on their own.
-2. **Bipolar signal is substantial on the aggregator profile.**
-   Hard requirement #3 still applies — dedicated bipolar paragraph,
-   named training, or case language. A bipolar checkbox in the
-   aggregator's specialty list is NOT enough.
+   license hierarchy), not from the aggregator itself. If the LLM
+   cannot extract the number, the "needs license lookup" exception
+   in Hard Req 2 applies — mark the row accordingly and our pipeline
+   will resolve it post-ingest.
+2. **Bipolar signal is present on the per-clinician profile** (see
+   GRADUATED BIPOLAR SIGNAL below — the bar is reduced for aggregator
+   profiles because their templates don't allow long bios).
 3. **Clinician is solo or effectively solo.** They are not one of
-   ten clinicians listed under a group practice umbrella on the
-   aggregator. Look for "individual practice," "solo practitioner,"
-   or a single-person aggregator profile with no clinic branding.
+   ten clinicians listed under a group practice umbrella.
 4. **No own site exists.** You searched by "name + city + therapy"
-   and did not find a personal website or group-site bio page. If
-   they have their own site, use that instead.
+   and did not find a personal website or group-site bio page.
 
 When you invoke the carve-out, add a note in `clinicalNotes` starting
 with "Aggregator carve-out:" so the reviewer sees the flag. Example:
-`"Aggregator carve-out: PT-only; NPI license verified; solo Highland
-practitioner."`
+`"Aggregator carve-out (low-confidence bipolar signal): Headway-only;
+NPI 1234567890; bipolar listed as primary specialty."`
 
 Group-practice per-clinician bio pages (e.g.
 `inlandpsychredlands.com/clinicians/dr-jane-smith`) are NOT subject
 to the carve-out rules — they are valid `sourceUrl` values by default
 under hard requirement #1, provided the bio contains the bipolar
 signal and a discoverable license number.
+
+# GRADUATED BIPOLAR SIGNAL (by sourceUrl type)
+
+The bar for hard requirement #3 depends on where the profile lives.
+Aggregator templates don't allow long clinician-authored paragraphs,
+so demanding "dedicated bipolar page" on PT/Headway means rejecting
+nearly every real bipolar specialist in that market. Instead:
+
+## For own-site or group-site bio sourceUrls
+
+Full bar applies. Both (a) bipolar-specific vocabulary AND (b) at
+least one of: dedicated bipolar page, 3+ sentences on clinical
+approach, named bipolar-specific training, or bipolar-specific
+testimonials. `sourcingConfidence`: `high` or `medium`.
+
+## For per-clinician aggregator-profile sourceUrls (carve-out path)
+
+Reduced bar. Emit the row when ALL of these hold, and mark
+`sourcingConfidence=low`:
+
+- Bipolar is listed as a **primary/top specialty** on the profile
+  (not one of 15+ tags). "Primary" means: named in the specialty
+  callout, shown in the profile's headline/hero area, or marked as
+  a focus area by the aggregator's UI.
+- AND at least ONE of these signals is visible on the profile:
+  - A clinician-authored sentence or paragraph mentioning bipolar
+    (even one sentence counts)
+  - A bipolar-relevant treatment modality named in the "approach"
+    or "treatment" section: IPSRT, FFT, STEP-BD, mood-stabilizer
+    management, psychoeducation for bipolar
+  - Bipolar-relevant credential: MD / DO / PMHNP (prescribers can
+    medication-manage bipolar regardless of on-profile narrative)
+  - Years of bipolar-specific experience stated (even without
+    other narrative)
+
+Rows emitted under this reduced bar MUST:
+- Use `sourcingConfidence=low` in the CSV
+- Prefix `clinicalNotes` with `Aggregator carve-out (low-confidence
+  bipolar signal):`
+- Include the specific signal you relied on (e.g. "primary specialty
+  + IPSRT listed" or "primary specialty + PMHNP prescriber")
+- Include the NPI number once resolved
+
+These rows land in the candidate review queue, not direct-publish —
+the reviewer is the final filter. Your job is to surface real
+clinicians; theirs is to confirm fit.
+
+Rows that fail even the reduced bar (bipolar is one of many tags,
+no clinical narrative, no prescribing credential) stay in the
+rejection log.
 
 # SIGNALS THAT BOOST CONFIDENCE (capture when visible)
 
@@ -688,9 +773,17 @@ For each row, ask:
   9. Are specialties and treatmentModalities drawn only from the
      canonical lists? No invented categories?
  10. If the sourceUrl is an aggregator domain, have I met ALL four
-     AGGREGATOR CARVE-OUT conditions (NPI-verified license,
-     substantial bipolar signal on the profile, solo clinician, no
-     own site)? Did I tag clinicalNotes with "Aggregator carve-out:"?
+     AGGREGATOR CARVE-OUT conditions (NPI-verified license OR Needs
+     license lookup tag, bipolar signal per GRADUATED BIPOLAR
+     SIGNAL, solo clinician, no own site)? Did I tag clinicalNotes
+     with "Aggregator carve-out:"?
+ 11. Is this a **per-clinician profile URL** and not a listing
+     page? (See DRILL-THROUGH RULE.) Listing URLs are never valid
+     sourceUrls — if the search result was a listing, did I click
+     through to each clinician's individual profile?
+ 12. For carve-out rows, is `sourcingConfidence=low` and does
+     `clinicalNotes` start with "Aggregator carve-out (low-
+     confidence bipolar signal):"?
 
 If any answer is no, fix the row or move it to the rejection log.
 
