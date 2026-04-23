@@ -33,6 +33,7 @@ import {
   buildDirectoryRecommendationModel,
 } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
+import { lookupZipPlace, preloadZipcodes } from "./zip-lookup.js";
 
 (async function () {
   initValuePillPopover();
@@ -46,15 +47,21 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var activePreviewSlug = "";
   var activeDetailsSlug = "";
   var lastDetailsTrigger = null;
+  var DIRECTORY_IP_LOCATION_CACHE_KEY = "bth_directory_ip_location_v1";
+  var DIRECTORY_IP_LOCATION_TTL_MS = 12 * 60 * 60 * 1000;
   var defaultFilters = {
     state: "CA",
     zip: "",
+    explicit_zip: "",
+    ranking_zip: "",
+    ranking_label: "",
+    ranking_source: "",
     specialty: "",
     modality: "",
     population: "",
     bipolar_experience: "",
     insurance: "",
-    therapist: false,
+    therapist: true,
     psychiatrist: false,
     telehealth: false,
     in_person: false,
@@ -93,8 +100,201 @@ import { initValuePillPopover } from "./therapist-pills.js";
       .replace(/'/g, "&#39;");
   }
 
+  function normalizeZip(value) {
+    var normalized = String(value || "").trim();
+    return /^\d{5}$/.test(normalized) ? normalized : "";
+  }
+
+  function getRankingLocationLabel(zip, fallbackLabel) {
+    var place = lookupZipPlace(zip);
+    if (place && place.label) {
+      return place.label;
+    }
+    return String(fallbackLabel || "").trim();
+  }
+
+  function applyRankingLocationContext(options) {
+    var zip = normalizeZip(options && options.zip);
+    var label = getRankingLocationLabel(zip, options && options.label);
+    var source = String((options && options.source) || "").trim();
+
+    filters = Object.assign({}, filters, {
+      explicit_zip: source === "explicit_zip" ? zip : normalizeZip(filters.explicit_zip),
+      ranking_zip: zip,
+      ranking_label: label,
+      ranking_source: source,
+    });
+  }
+
+  function clearRankingLocationContext() {
+    filters = Object.assign({}, filters, {
+      explicit_zip: normalizeZip(filters.zip),
+      ranking_zip: "",
+      ranking_label: "",
+      ranking_source: "",
+    });
+  }
+
+  function syncRankingLocationFromUserZip() {
+    var explicitZip = normalizeZip(filters.zip);
+    if (explicitZip) {
+      applyRankingLocationContext({
+        zip: explicitZip,
+        source: "explicit_zip",
+      });
+      return true;
+    }
+
+    filters = Object.assign({}, filters, {
+      explicit_zip: "",
+    });
+
+    if (filters.ranking_source === "explicit_zip") {
+      clearRankingLocationContext();
+    }
+    return false;
+  }
+
+  function readCachedIpLocation() {
+    try {
+      var raw = window.localStorage.getItem(DIRECTORY_IP_LOCATION_CACHE_KEY);
+      if (!raw) {
+        return null;
+      }
+      var parsed = JSON.parse(raw);
+      if (
+        !parsed ||
+        typeof parsed.cached_at !== "number" ||
+        Date.now() - parsed.cached_at >= DIRECTORY_IP_LOCATION_TTL_MS
+      ) {
+        window.localStorage.removeItem(DIRECTORY_IP_LOCATION_CACHE_KEY);
+        return null;
+      }
+      return parsed;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeCachedIpLocation(value) {
+    try {
+      window.localStorage.setItem(
+        DIRECTORY_IP_LOCATION_CACHE_KEY,
+        JSON.stringify({
+          cached_at: Date.now(),
+          zip: value.zip,
+          label: value.label,
+        }),
+      );
+    } catch (_error) {
+      return;
+    }
+  }
+
+  async function fetchIpRankingLocation() {
+    var cached = readCachedIpLocation();
+    if (cached && normalizeZip(cached.zip)) {
+      return {
+        zip: normalizeZip(cached.zip),
+        label: getRankingLocationLabel(cached.zip, cached.label),
+      };
+    }
+
+    if (typeof window === "undefined" || typeof window.fetch !== "function") {
+      return null;
+    }
+
+    try {
+      var controller =
+        typeof window.AbortController === "function" ? new window.AbortController() : null;
+      var timeoutId = controller
+        ? window.setTimeout(function () {
+            controller.abort();
+          }, 2500)
+        : 0;
+      var response = await window.fetch("https://ipapi.co/json/", {
+        signal: controller ? controller.signal : undefined,
+      });
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      if (!response.ok) {
+        return null;
+      }
+
+      var payload = await response.json();
+      var ipZip = normalizeZip(payload && payload.postal);
+      var regionCode = String((payload && payload.region_code) || "").trim().toUpperCase();
+      var countryCode = String((payload && payload.country_code) || "").trim().toUpperCase();
+      if (!ipZip || regionCode !== "CA" || countryCode !== "US") {
+        return null;
+      }
+
+      var label = getRankingLocationLabel(
+        ipZip,
+        [payload.city, regionCode].filter(Boolean).join(", "),
+      );
+      var result = {
+        zip: ipZip,
+        label: label,
+      };
+      writeCachedIpLocation(result);
+      return result;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  async function ensureIpRankingLocation() {
+    if (normalizeZip(filters.zip) || filters.ranking_source === "explicit_zip") {
+      return false;
+    }
+
+    var inferredLocation = await fetchIpRankingLocation();
+    if (!inferredLocation || !normalizeZip(inferredLocation.zip)) {
+      return false;
+    }
+
+    applyRankingLocationContext({
+      zip: inferredLocation.zip,
+      label: inferredLocation.label,
+      source: "ip",
+    });
+    return true;
+  }
+
+  function buildRecommendationPresentation() {
+    var rankingSource = String(filters.ranking_source || "");
+    var rankingLabel = String(filters.ranking_label || "");
+
+    if (rankingSource === "explicit_zip" && rankingLabel) {
+      return {
+        kicker: "Strong starting options near " + rankingLabel,
+        context: "Based on the zip you entered.",
+      };
+    }
+
+    if (rankingSource === "ip" && rankingLabel) {
+      return {
+        kicker: "Strong starting options near " + rankingLabel,
+        context: "Based on your general area. You can change this anytime.",
+      };
+    }
+
+    return {
+      kicker: "Strong starting options",
+      context:
+        "Starting with therapists only. Use location or filters to narrow this list if you want something closer.",
+    };
+  }
+
   function buildFilterCacheKey(filterState) {
-    return FILTER_VALUE_KEYS.concat(FILTER_BOOLEAN_KEYS)
+    return FILTER_VALUE_KEYS.concat(FILTER_BOOLEAN_KEYS, [
+      "explicit_zip",
+      "ranking_zip",
+      "ranking_label",
+      "ranking_source",
+    ])
       .map(function (key) {
         return key + ":" + String(filterState[key] || "");
       })
@@ -468,7 +668,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     }
   }
 
-  function uniqueCounts(field, nested) {
+  function uniqueCounts(field, _nested) {
     var counts =
       field === "treatment_modalities"
         ? optionIndexes.modality
@@ -558,6 +758,9 @@ import { initValuePillPopover } from "./therapist-pills.js";
         : defaultFilters.sortBy;
       getElement("sortBy").value = filters.sortBy;
     }
+
+    syncFilterControlsFromState(filters, getElement);
+    syncRankingLocationFromUserZip();
   }
 
   function updateUrl() {
@@ -615,6 +818,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
         filters: filters,
         shortlist: shortlist,
         isShortlisted: isShortlisted,
+        presentation: buildRecommendationPresentation(),
       }),
     });
   }
@@ -699,7 +903,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     dialog.hidden = false;
     scrim.hidden = false;
 
-    requestAnimationFrame(function () {
+    window.requestAnimationFrame(function () {
       dialog.setAttribute("data-open", "true");
       scrim.setAttribute("data-open", "true");
       if (closeButton) {
@@ -855,11 +1059,17 @@ import { initValuePillPopover } from "./therapist-pills.js";
     });
     filters = nextState.filters;
     currentPage = nextState.currentPage;
+    syncRankingLocationFromUserZip();
     trackFunnelEvent("directory_filters_applied", {
       active_filter_count: countActiveFilters(filters),
       sort_by: filters.sortBy,
     });
     render();
+    ensureIpRankingLocation().then(function (didUpdate) {
+      if (didUpdate) {
+        render();
+      }
+    });
   }
 
   function applyFiltersLive() {
@@ -869,7 +1079,13 @@ import { initValuePillPopover } from "./therapist-pills.js";
     });
     filters = nextState.filters;
     currentPage = nextState.currentPage;
+    syncRankingLocationFromUserZip();
     render();
+    ensureIpRankingLocation().then(function (didUpdate) {
+      if (didUpdate) {
+        render();
+      }
+    });
   }
 
   function scheduleLiveFilters() {
@@ -884,7 +1100,13 @@ import { initValuePillPopover } from "./therapist-pills.js";
     filters = nextState.filters;
     currentPage = nextState.currentPage;
     syncFilterControlsFromState(filters, getElement);
+    syncRankingLocationFromUserZip();
     render();
+    ensureIpRankingLocation().then(function (didUpdate) {
+      if (didUpdate) {
+        render();
+      }
+    });
   }
 
   function updateFilterToggleState() {
@@ -1143,6 +1365,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     });
     filters = nextState.filters;
     currentPage = nextState.currentPage;
+    syncRankingLocationFromUserZip();
     trackFunnelEvent("directory_sort_changed", {
       sort_by: filters.sortBy,
     });
@@ -1175,7 +1398,13 @@ import { initValuePillPopover } from "./therapist-pills.js";
 
   applySiteSettings();
   applyDirectoryCopy();
+  await preloadZipcodes();
   initializeFilters();
   syncSidebarForViewport();
   render();
+  ensureIpRankingLocation().then(function (didUpdate) {
+    if (didUpdate) {
+      render();
+    }
+  });
 })();

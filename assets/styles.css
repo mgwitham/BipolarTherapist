@@ -3503,6 +3503,13 @@ body.dir-vb .t-card::before {
   color: var(--slate);
 }
 
+.directory-recommendations-context {
+  margin: 0.45rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--teal-dark);
+}
+
 .directory-recommendations-reassurance {
   padding: 1rem 1.05rem;
   border-radius: 18px;

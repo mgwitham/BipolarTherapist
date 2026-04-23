@@ -349,8 +349,17 @@ export function buildDirectoryRecommendationModel(options) {
   var filters = options.filters || {};
   var shortlist = options.shortlist || [];
   var isShortlisted = options.isShortlisted;
+  var presentation = options.presentation || {};
 
   return {
+    recommendationKicker: presentation.kicker || "Strong starting options",
+    recommendationTitle:
+      presentation.title || "Start with one strong option, then use the backups if needed.",
+    recommendationCopy:
+      presentation.copy || "You do not need to get this perfect. These are strong options to begin with.",
+    recommendationContext: presentation.context || "",
+    recommendationReassurance:
+      presentation.reassurance || "You can contact one now and come back if needed.",
     featured: featured
       ? buildDirectoryDecisionPreviewModel({
           therapist: featured,

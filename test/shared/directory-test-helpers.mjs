@@ -64,6 +64,7 @@ export function buildDirectoryTestFilters(overrides) {
 export function buildDirectoryTestControls(overrides) {
   return {
     state: { value: "CA" },
+    zip: { value: "" },
     specialty: { value: "Bipolar II" },
     modality: { value: "" },
     population: { value: "" },
@@ -71,6 +72,8 @@ export function buildDirectoryTestControls(overrides) {
     bipolar_experience: { value: "" },
     insurance: { value: "Aetna" },
     sortBy: { value: "best_match" },
+    therapist: { checked: true },
+    psychiatrist: { checked: false },
     telehealth: { checked: true },
     in_person: { checked: false },
     accepting: { checked: true },

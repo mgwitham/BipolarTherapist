@@ -814,6 +814,21 @@ export function createConfirmationWorkspace(options) {
     );
   }
 
+  function buildConfirmationEmailHref(item, subject, message, link) {
+    if (!item || !item.email) {
+      return "";
+    }
+    var body = [message || "", "", "Confirmation form:", link || ""].filter(Boolean).join("\n");
+    return (
+      "mailto:" +
+      encodeURIComponent(item.email) +
+      "?subject=" +
+      encodeURIComponent(subject || ("Quick profile confirmation for " + (item.name || "this therapist"))) +
+      "&body=" +
+      encodeURIComponent(body)
+    );
+  }
+
   function buildCaliforniaPriorityWavePacket(rows) {
     var lines = [
       "# California Priority Confirmation Wave",
@@ -1003,7 +1018,7 @@ export function createConfirmationWorkspace(options) {
     root.innerHTML =
       '<div class="queue-summary"><strong>This is the current highest-leverage California confirmation wave.</strong></div><div class="queue-summary subtle">These profiles are visible, strategically important, and now mostly blocked on therapist-confirmed operational truth, not more source work.</div><div class="queue-summary"><strong>' +
       escapeHtml(getCaliforniaPriorityWaveHealth(rows)) +
-      '</strong></div><div class="queue-summary subtle">' +
+      '</strong></div><div class="queue-summary subtle"><strong>Best next move:</strong> ' +
       escapeHtml(getCaliforniaPriorityWaveBottleneck(rows)) +
       "</div>" +
       (followUpSummary
@@ -1042,18 +1057,51 @@ export function createConfirmationWorkspace(options) {
             .join("") +
           "</div></div>"
         : "") +
-      '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" data-california-priority-export="packet">Copy wave packet</button><button class="btn-secondary" data-california-priority-export="tracker">Copy wave tracker CSV</button>' +
+      '<div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-secondary" data-california-priority-export="tracker">Copy wave tracker CSV</button>' +
       (sharedAsk
         ? '<button class="btn-secondary" data-california-priority-export="shared-ask">Copy shared ask packet</button>'
         : "") +
       (readyToApplyRows.length
-        ? '<button class="btn-secondary" data-california-priority-export="apply-packet">Copy apply packet</button><button class="btn-secondary" data-california-priority-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-california-priority-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-california-priority-export="apply-checklist">Copy apply checklist</button>'
+        ? '<button class="btn-secondary" data-california-priority-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-california-priority-export="apply-summary">Copy apply summary</button>'
         : "") +
       '</div><div class="review-coach-status" id="californiaPriorityWaveStatus"></div>' +
       rows
         .map(function (row) {
           var item = row.item;
           var workflow = row.workflow;
+          var emailHref = buildConfirmationEmailHref(
+            item,
+            row.request_subject || ("Quick profile confirmation for " + item.name + " on BipolarTherapyHub"),
+            row.request_message || buildOrderedConfirmationRequestMessage(item, row.agenda.unknown_fields || [], row.primaryAskField),
+            buildConfirmationLink(item.slug),
+          );
+          var waitingOnSummary = [row.primaryAskField]
+            .concat(row.addOnAskFields || [])
+            .filter(Boolean)
+            .map(formatFieldLabel)
+            .join(", ");
+          var nextStepLabel =
+            workflow.status === "confirmed" || workflow.status === "applied"
+              ? "Prepare the live update brief so confirmed details can be applied cleanly."
+              : emailHref
+                ? workflow.status === "waiting_on_therapist" || workflow.status === "sent"
+                  ? "Send a follow-up email and keep the reply state current."
+                  : "Send the confirmation email and move this profile into active follow-up."
+                : row.firstAction;
+          var primaryActionHtml =
+            workflow.status === "confirmed" || workflow.status === "applied"
+              ? '<button class="btn-primary" data-california-priority-apply-brief="' +
+                escapeHtml(item.slug) +
+                '">Copy apply brief</button>'
+              : emailHref
+                ? '<a class="btn-primary btn-inline" href="' +
+                  escapeHtml(emailHref) +
+                  '" data-california-priority-email="' +
+                  escapeHtml(item.slug) +
+                  '">Email therapist to confirm profile</a>'
+                : '<button class="btn-primary" data-california-priority-copy="' +
+                  escapeHtml(item.slug) +
+                  '">Prepare confirmation request</button>';
           return (
             '<article class="queue-card" data-admin-therapist-slug="' +
             escapeHtml(item.slug) +
@@ -1065,22 +1113,14 @@ export function createConfirmationWorkspace(options) {
             escapeHtml(formatStatusLabel(workflow.status)) +
             '</span><span class="tag">' +
             escapeHtml(getConfirmationResultLabel(workflow.status)) +
-            '</span></div></div><div class="queue-summary"><strong>Primary ask:</strong> ' +
-            escapeHtml(formatFieldLabel(row.primaryAskField)) +
-            "</div>" +
-            (row.addOnAskFields.length
-              ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-                escapeHtml(row.addOnAskFields.map(formatFieldLabel).join(", ")) +
-                "</div>"
-              : "") +
-            '<div class="queue-summary"><strong>Target:</strong> ' +
+            '</span></div></div><div class="queue-summary"><strong>Waiting on:</strong> ' +
+            escapeHtml(waitingOnSummary || "No outstanding confirmation fields.") +
+            '</div><div class="queue-summary"><strong>Next step:</strong> ' +
+            escapeHtml(nextStepLabel) +
+            '</div><div class="queue-summary"><strong>Target:</strong> ' +
             escapeHtml(getConfirmationTarget(item)) +
             '</div><div class="queue-summary"><strong>Last action:</strong> ' +
             escapeHtml(getConfirmationLastActionNote(workflow).replace(/^Last action:\s*/, "")) +
-            '</div><div class="queue-summary"><strong>First action:</strong> ' +
-            escapeHtml(row.firstAction) +
-            '</div><div class="queue-summary"><strong>Follow-up rule:</strong> ' +
-            escapeHtml(row.followUpRule) +
             (getCaliforniaPriorityFollowUpNote(row)
               ? '</div><div class="queue-summary"><strong>Follow-up timing:</strong> ' +
                 escapeHtml(getCaliforniaPriorityFollowUpNote(row))
@@ -1101,9 +1141,9 @@ export function createConfirmationWorkspace(options) {
                   row.addOnAskFields,
                 )
               : "") +
-            '<div class="queue-actions"><button class="btn-secondary" data-california-priority-copy="' +
-            escapeHtml(item.slug) +
-            '">Copy request</button><button class="btn-secondary" data-california-priority-link="' +
+            '<div class="queue-actions">' +
+            primaryActionHtml +
+            '<button class="btn-secondary" data-california-priority-link="' +
             escapeHtml(item.slug) +
             '">Copy confirmation link</button><button class="btn-secondary" data-california-priority-status="' +
             escapeHtml(item.slug) +
@@ -1113,9 +1153,7 @@ export function createConfirmationWorkspace(options) {
             escapeHtml(item.slug) +
             '" data-next-status="confirmed">Mark confirmed</button>' +
             (workflow.status === "confirmed" || workflow.status === "applied"
-              ? '<button class="btn-secondary" data-california-priority-apply-brief="' +
-                escapeHtml(item.slug) +
-                '">Copy apply brief</button><button class="btn-secondary" data-california-priority-status="' +
+              ? '<button class="btn-secondary" data-california-priority-status="' +
                 escapeHtml(item.slug) +
                 '" data-next-status="applied">Mark applied</button>'
               : "") +
@@ -1127,6 +1165,24 @@ export function createConfirmationWorkspace(options) {
           );
         })
         .join("");
+
+    root.querySelectorAll("[data-california-priority-email]").forEach(function (link) {
+      link.addEventListener("click", function () {
+        var slug = link.getAttribute("data-california-priority-email");
+        setConfirmationActionStatus(root, slug, "Email draft opened for this therapist.");
+        if (slug) {
+          updateConfirmationQueueEntry(slug, {
+            status: "sent",
+            last_sent_at: new Date().toISOString(),
+          });
+          renderStats();
+          renderCaliforniaPriorityConfirmationWave();
+          renderImportBlockerSprint();
+          renderConfirmationSprint();
+          renderConfirmationQueue();
+        }
+      });
+    });
 
     root.querySelectorAll("[data-california-priority-copy]").forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -1201,11 +1257,7 @@ export function createConfirmationWorkspace(options) {
                   ? "California apply CSV copied."
                   : mode === "apply-summary"
                     ? "California apply summary copied."
-                    : mode === "apply-checklist"
-                      ? "California apply checklist copied."
-                      : mode === "apply-packet"
-                        ? "California wave apply packet copied."
-                        : "California wave packet copied."
+                    : "California wave packet copied."
             : "Could not copy the California wave export.";
         }
       });

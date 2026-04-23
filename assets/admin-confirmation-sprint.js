@@ -1,3 +1,20 @@
+function buildConfirmationSprintEmailHref(options, item, sprintRow) {
+  if (!item || !item.email || !sprintRow) {
+    return "";
+  }
+  var body = [sprintRow.request_message || "", "", "Confirmation form:", options.buildConfirmationLink(item.slug)]
+    .filter(Boolean)
+    .join("\n");
+  return (
+    "mailto:" +
+    encodeURIComponent(item.email) +
+    "?subject=" +
+    encodeURIComponent(sprintRow.request_subject || ("Quick profile confirmation for " + item.name)) +
+    "&body=" +
+    encodeURIComponent(body)
+  );
+}
+
 export function renderConfirmationSprintPanel(options) {
   const root = document.getElementById("confirmationSprint");
   if (!root) {
@@ -31,52 +48,14 @@ export function renderConfirmationSprintPanel(options) {
     '<div class="queue-summary"><strong>' +
     options.escapeHtml(options.getConfirmationSprintHealthSummary(sprintRows)) +
     '</strong></div><div class="queue-summary subtle">' +
-    options.escapeHtml(options.getConfirmationSprintBottleneckSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    options.escapeHtml(
-      options.getPrimaryAskHeaderLine(
-        options.getConfirmationSprintThemeDetails(sprintRows)?.field || "",
-      ),
-    ) +
-    '</div><div class="queue-summary subtle">' +
     options.escapeHtml(options.getConfirmationSprintThemeSummary(sprintRows)) +
-    '</div><div class="queue-summary subtle">' +
-    options.escapeHtml(options.getBlockerConfirmationThemeBridge(blockerRows, sprintRows)) +
+    '</div><div class="queue-summary subtle"><strong>Best next move:</strong> ' +
+    options.escapeHtml(recommendation.note) +
     "</div>" +
-    (overlappingAsk
-      ? '<div class="queue-summary subtle">' +
-        options.escapeHtml(
-          options.getOutreachChannelMixSummary(
-            options.getTopOutreachWaveRows(blockerRows, sprintRows, 3),
-          ),
-        ) +
-        '</div><div class="queue-summary subtle">' +
-        options.escapeHtml(
-          options.getOutreachChannelNextMoveSummary(
-            options.getTopOutreachWaveRows(blockerRows, sprintRows, 3),
-          ),
-        ) +
-        "</div>"
-      : "") +
     (overlappingAsk
       ? '<div class="queue-summary"><span class="tag">Shared Theme Active</span> <span class="subtle">Both sprints are currently led by ' +
         options.escapeHtml(options.formatFieldLabel(overlappingAsk.field)) +
         ".</span></div>"
-      : "") +
-    (overlappingAsk
-      ? '<div class="queue-insights"><div class="queue-insights-title">Shared Ask Wave</div><div class="subtle" style="margin-bottom:0.7rem">This same ask currently spans ' +
-        options.escapeHtml(String(overlappingAsk.blocker_count)) +
-        " blocker profile" +
-        (overlappingAsk.blocker_count === 1 ? "" : "s") +
-        " and " +
-        options.escapeHtml(String(overlappingAsk.confirmation_count)) +
-        " confirmation sprint profile" +
-        (overlappingAsk.confirmation_count === 1 ? "" : "s") +
-        '.</div><div class="subtle" style="margin-bottom:0.7rem">Primary shared ask right now: ' +
-        options.escapeHtml(options.formatFieldLabel(overlappingAsk.field)) +
-        '.</div><div class="queue-insights-grid"><div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-        options.escapeHtml(options.formatFieldLabel(overlappingAsk.field)) +
-        '</strong></div><div class="queue-insight-note">Shared ask across both queues</div><div class="queue-insight-action"><button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button></div></div></div></div>'
       : "") +
     '</div><div class="queue-actions" style="margin-bottom:0.8rem"><button class="btn-primary" data-confirmation-sprint-recommendation="' +
     options.escapeHtml(recommendation.mode) +
@@ -91,13 +70,11 @@ export function renderConfirmationSprintPanel(options) {
     (overlappingAsk
       ? '<button class="btn-secondary" data-confirmation-copy-overlap>Copy unified outreach wave</button><button class="btn-secondary" data-confirmation-copy-top-wave>Copy top outreach wave</button>'
       : "") +
-    '<button class="btn-secondary" data-confirmation-sprint-export="markdown">Copy sprint markdown</button><button class="btn-secondary" data-confirmation-sprint-export="csv">Copy sprint CSV</button>' +
+    '<button class="btn-secondary" data-confirmation-sprint-export="csv">Copy sprint CSV</button>' +
     (readySprintRows.length
-      ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button><button class="btn-secondary" data-confirmation-sprint-export="apply-checklist">Copy apply checklist</button>'
+      ? '<button class="btn-secondary" data-confirmation-sprint-export="apply-csv">Copy apply CSV</button><button class="btn-secondary" data-confirmation-sprint-export="apply-summary">Copy apply summary</button>'
       : "") +
-    '</div><div class="queue-summary subtle">' +
-    options.escapeHtml(recommendation.note) +
-    "</div>" +
+    '</div>' +
     (miniLanes.length
       ? miniLanes
           .map(function (lane) {
@@ -159,6 +136,32 @@ export function renderConfirmationSprintPanel(options) {
               })
               .filter(Boolean)
           : orderedUnknownFields.slice(1);
+        const waitingOnSummary = (agenda.unknown_fields || []).map(options.formatFieldLabel).join(", ");
+        const emailHref = buildConfirmationSprintEmailHref(options, item, sprintRow);
+        const nextStepLabel =
+          workflow.status === "confirmed" || workflow.status === "applied"
+            ? "Prepare the live update brief for confirmed details."
+            : emailHref
+              ? workflow.status === "waiting_on_therapist" || workflow.status === "sent"
+                ? "Send a follow-up email and keep the reply state current."
+                : "Send the confirmation email and move this profile into active follow-up."
+              : workflow.status === "waiting_on_therapist" || workflow.status === "sent"
+                ? "Prepare the follow-up request and keep the reply state current."
+                : "Prepare the confirmation request and move this profile into active follow-up.";
+        const primaryActionHtml =
+          workflow.status === "confirmed" || workflow.status === "applied"
+            ? '<button class="btn-primary" data-confirmation-apply-brief="' +
+              options.escapeHtml(item.slug) +
+              '">Copy apply brief</button>'
+            : emailHref
+              ? '<a class="btn-primary btn-inline" href="' +
+                options.escapeHtml(emailHref) +
+                '" data-confirmation-email="' +
+                options.escapeHtml(item.slug) +
+                '">Email therapist to confirm profile</a>'
+              : '<button class="btn-primary" data-confirmation-copy="' +
+                options.escapeHtml(item.slug) +
+                '">Prepare confirmation request</button>';
         return (
           '<article class="queue-card' +
           (index === 0 ? " is-start-here" : "") +
@@ -166,20 +169,18 @@ export function renderConfirmationSprintPanel(options) {
           (index === 0 ? ' id="confirmationSprintStartHere"' : "") +
           ">" +
           (index === 0
-            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this confirmation sprint row first. It is the top outreach task in the current sprint packet.</div><div class="start-here-action">Do this now: confirm the primary ask, send or update the outreach state, and move this profile out of the unsent sprint pile.</div>'
+            ? '<div class="start-here-chip">Start here</div><div class="start-here-copy">Work this confirmation sprint row first because it is the strongest next outreach task in the current packet.</div>'
             : "") +
           '<div class="queue-head"><div><h3>' +
           options.escapeHtml(String(index + 1) + ". " + item.name) +
           '</h3><div class="subtle">' +
-          options.escapeHtml(agenda.summary) +
+          options.escapeHtml(options.formatStatusLabel(agenda.priority) + " priority") +
           '</div></div><div class="queue-head-actions"><span class="tag">' +
-          options.escapeHtml(options.formatStatusLabel(agenda.priority)) +
-          ' priority</span><span class="tag">' +
           options.escapeHtml(options.formatStatusLabel(workflow.status)) +
-          '</span></div></div><div class="queue-summary"><strong>Status:</strong> ' +
-          options.escapeHtml(options.formatStatusLabel(workflow.status)) +
-          '</div><div class="queue-summary"><strong>Result:</strong> ' +
-          options.escapeHtml(options.getConfirmationResultLabel(workflow.status)) +
+          '</span></div></div><div class="queue-summary"><strong>Waiting on:</strong> ' +
+          options.escapeHtml(waitingOnSummary || "No outstanding confirmation fields.") +
+          '</div><div class="queue-summary"><strong>Next step:</strong> ' +
+          options.escapeHtml(nextStepLabel) +
           '</div><div class="queue-summary"><strong>Target:</strong> ' +
           options.escapeHtml(options.getConfirmationTarget(item)) +
           '</div><div class="queue-summary"><strong>Last action:</strong> ' +
@@ -190,22 +191,6 @@ export function renderConfirmationSprintPanel(options) {
             ? '</div><div class="queue-summary"><strong>Grace window:</strong> ' +
               options.escapeHtml(graceWindowNote)
             : "") +
-          '</div><div class="queue-summary"><strong>Needs:</strong> ' +
-          options.escapeHtml(agenda.unknown_fields.map(options.formatFieldLabel).join(", ")) +
-          "</div>" +
-          (primaryAskField
-            ? '<div class="queue-summary"><strong>Primary ask:</strong> ' +
-              options.escapeHtml(options.formatFieldLabel(primaryAskField)) +
-              "</div>"
-            : "") +
-          (addOnAskFields.length
-            ? '<div class="queue-summary"><strong>Add-on asks:</strong> ' +
-              options.escapeHtml(addOnAskFields.map(options.formatFieldLabel).join(", ")) +
-              "</div>"
-            : "") +
-          '<div class="queue-summary"><strong>Ordered ask flow:</strong> ' +
-          options.escapeHtml(orderedUnknownFields.map(options.formatFieldLabel).join(" -> ")) +
-          "</div>" +
           (workflow.status === "confirmed" || workflow.status === "applied"
             ? options.buildConfirmationResponseCaptureHtml(
                 item.slug,
@@ -233,16 +218,11 @@ export function renderConfirmationSprintPanel(options) {
           options.escapeHtml(item.slug) +
           '" data-current-status="' +
           options.escapeHtml(workflow.status) +
-          '">Show in queue</button></div><div class="queue-shortlist"><div class="queue-shortlist-item">[ ] Review current profile and source trail</div><div class="queue-shortlist-item">[ ] Send request through preferred channel</div><div class="queue-shortlist-item">[ ] Record send state in admin</div><div class="queue-shortlist-item">[ ] Mark reply or follow-up outcome</div></div><div class="queue-actions"><button class="btn-secondary" data-confirmation-copy="' +
-          options.escapeHtml(item.slug) +
-          '">Copy therapist request</button><button class="btn-secondary" data-confirmation-link="' +
+          '">Show in queue</button></div><div class="queue-actions">' +
+          primaryActionHtml +
+          '<button class="btn-secondary" data-confirmation-link="' +
           options.escapeHtml(item.slug) +
           '">Copy confirmation link</button>' +
-          (workflow.status === "confirmed" || workflow.status === "applied"
-            ? '<button class="btn-secondary" data-confirmation-apply-brief="' +
-              options.escapeHtml(item.slug) +
-              '">Copy apply brief</button>'
-            : "") +
           '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(confirmationLink) +
           '" target="_blank" rel="noopener">Open confirmation form</a></div>' +
@@ -291,6 +271,27 @@ export function renderConfirmationSprintPanel(options) {
               : mode === "apply-checklist"
                 ? "Could not copy confirmation sprint apply checklist."
                 : "Could not copy confirmation sprint " + mode.toUpperCase() + ".";
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-confirmation-email]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var slug = link.getAttribute("data-confirmation-email");
+      var status = root.querySelector('[data-confirmation-status-id="' + slug + '"]');
+      if (status) {
+        status.textContent = "Email draft opened for this therapist.";
+      }
+      if (slug) {
+        options.updateConfirmationQueueEntry(slug, {
+          status: "sent",
+          last_sent_at: new Date().toISOString(),
+        });
+        options.renderStats();
+        options.renderImportBlockerSprint();
+        options.renderCaliforniaPriorityConfirmationWave();
+        options.renderConfirmationSprint();
+        options.renderConfirmationQueue();
       }
     });
   });

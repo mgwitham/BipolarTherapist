@@ -63,3 +63,69 @@ test("admin page: secondary filters are progressively revealed", function () {
   assert.match(html, /id="applicationFilterDetails"/);
   assert.match(html, /Fine-tune signups, claim flow, and review goals/);
 });
+
+test("confirmation queue cards stay action-first instead of repeating ask scaffolding", function () {
+  const confirmationQueueJs = read("assets/admin-confirmation-queue.js");
+
+  assert.match(confirmationQueueJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationQueueJs, /<strong>Next step:<\/strong>/);
+  assert.match(confirmationQueueJs, /Copy live update brief/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /<strong>Ordered ask flow:<\/strong>/);
+  assert.doesNotMatch(confirmationQueueJs, /Copy operator checklist/);
+});
+
+test("missing-details sprint stays email-first and avoids summary overload", function () {
+  const importBlockerJs = read("assets/admin-import-blocker-sprint.js");
+
+  assert.match(importBlockerJs, /Email top missing-details request/);
+  assert.match(importBlockerJs, /Email therapist to update profile/);
+  assert.match(importBlockerJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(importBlockerJs, /<strong>Next step:<\/strong>/);
+  assert.doesNotMatch(importBlockerJs, /Copy shared ask/);
+  assert.doesNotMatch(importBlockerJs, /Copy unified outreach wave/);
+  assert.doesNotMatch(importBlockerJs, /<strong>Strict gate impact:<\/strong>/);
+  assert.doesNotMatch(importBlockerJs, /<strong>Source-first:<\/strong>/);
+  assert.doesNotMatch(importBlockerJs, /<strong>Therapist-confirmation:<\/strong>/);
+});
+
+test("confirmation sprint cards stay action-first and email-forward", function () {
+  const confirmationSprintJs = read("assets/admin-confirmation-sprint.js");
+
+  assert.match(confirmationSprintJs, /Email therapist to confirm profile/);
+  assert.match(confirmationSprintJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationSprintJs, /<strong>Next step:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /<strong>Ordered ask flow:<\/strong>/);
+  assert.doesNotMatch(confirmationSprintJs, /\[ \] Review current profile and source trail/);
+  assert.doesNotMatch(confirmationSprintJs, /Copy therapist request/);
+});
+
+test("california priority wave cards stay action-first and email-forward", function () {
+  const confirmationWorkspaceJs = read("assets/admin-confirmation-workspace.js");
+
+  assert.match(confirmationWorkspaceJs, /Email therapist to confirm profile/);
+  assert.match(confirmationWorkspaceJs, /<strong>Waiting on:<\/strong>/);
+  assert.match(confirmationWorkspaceJs, /<strong>Next step:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Primary ask:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Add-on asks:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>First action:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Follow-up rule:<\/strong>/);
+  assert.doesNotMatch(confirmationWorkspaceJs, /Copy request/);
+});
+
+test("admin page: shared delayed-hover tooltips explain high-frequency admin actions", function () {
+  const html = read("admin.html");
+  const tooltipJs = read("assets/admin-tooltips.js");
+
+  assert.match(html, /assets\/admin-tooltips\.js/);
+  assert.match(html, /\.admin-hover-tooltip/);
+  assert.match(tooltipJs, /const HOVER_DELAY_MS = 450/);
+  assert.match(tooltipJs, /selector: "#candidateQueueFocusToggle"/);
+  assert.match(tooltipJs, /selector: '\[data-candidate-next="publish"\]'/);
+  assert.match(tooltipJs, /selector: '\[data-action="requested_changes"\]'/);
+  assert.match(tooltipJs, /selector: "\[data-confirmation-copy\]"/);
+  assert.match(tooltipJs, /Jump into the recommended next workflow step/);
+});
