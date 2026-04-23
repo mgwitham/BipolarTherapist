@@ -141,6 +141,227 @@ function renderApplicationActionClusters(config) {
   );
 }
 
+function getReviewAgeDays(value) {
+  if (!value) {
+    return null;
+  }
+  var timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  var delta = Date.now() - timestamp;
+  if (delta < 0) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(delta / 86400000));
+}
+
+function getOperationalTimestampLabel(item, formatDate) {
+  if (!item) {
+    return "";
+  }
+  var pendingAgeDays = getReviewAgeDays(item.created_at);
+  var reviewAgeDays = getReviewAgeDays(item.updated_at || item.created_at);
+  if (item.status === "pending" && pendingAgeDays !== null) {
+    return "Awaiting review " + pendingAgeDays + "d";
+  }
+  if (item.status === "reviewing" && reviewAgeDays !== null) {
+    return "In review " + reviewAgeDays + "d";
+  }
+  if (item.updated_at && item.updated_at !== item.created_at) {
+    return "Updated " + formatDate(item.updated_at);
+  }
+  if (item.created_at) {
+    return "Submitted " + formatDate(item.created_at);
+  }
+  return "Review timing unavailable";
+}
+
+function getWorkflowStateTone(status) {
+  if (status === "approved") {
+    return "publish";
+  }
+  if (status === "reviewing") {
+    return "ownership";
+  }
+  if (status === "requested_changes" || status === "rejected") {
+    return "trust";
+  }
+  return "neutral";
+}
+
+function getWorkflowStateLabel(status, formatStatusLabel) {
+  if (status === "pending") {
+    return "Pending review";
+  }
+  if (status === "reviewing") {
+    return "In review";
+  }
+  if (status === "requested_changes") {
+    return "Needs changes";
+  }
+  if (status === "approved") {
+    return "Approved";
+  }
+  if (status === "rejected") {
+    return "Blocked";
+  }
+  return formatStatusLabel(status || "pending");
+}
+
+function getWorkTypeMeta(item, reviewSnapshot, isClaimFlow, isConfirmationRefresh) {
+  if (isConfirmationRefresh) {
+    return {
+      value: "Confirmation update",
+      tone: "trust",
+    };
+  }
+  if (reviewSnapshot && reviewSnapshot.focus === "claim_conversion") {
+    return {
+      value: "Post-claim profile",
+      tone: "publish",
+    };
+  }
+  if (isClaimFlow) {
+    return {
+      value: "Claim review",
+      tone: "ownership",
+    };
+  }
+  return {
+    value: "Signup",
+    tone: "neutral",
+  };
+}
+
+function getPriorityMeta(index, reviewSnapshot, claimFollowUpUrgency, afterClaimReviewStall) {
+  if (index === 0) {
+    return {
+      value: "Start here",
+      tone: "ownership",
+      note: "Top queue target",
+    };
+  }
+  if (
+    (claimFollowUpUrgency && claimFollowUpUrgency.tone === "urgent") ||
+    (afterClaimReviewStall && afterClaimReviewStall.stalled)
+  ) {
+    return {
+      value: "Urgent",
+      tone: "trust",
+      note: "Aging or overdue",
+    };
+  }
+  if (reviewSnapshot && reviewSnapshot.focus === "publish_ready") {
+    return {
+      value: "High leverage",
+      tone: "publish",
+      note: "Close to publish",
+    };
+  }
+  return {
+    value: "Normal",
+    tone: "neutral",
+    note: "Standard review",
+  };
+}
+
+function uniqueIssueList(items) {
+  var seen = new Set();
+  return (Array.isArray(items) ? items : []).filter(function (item) {
+    var value = String(item || "").trim();
+    var key = value.toLowerCase();
+    if (!value || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function getIssueBuckets(config) {
+  var reviewSnapshot = config.reviewSnapshot;
+  var readiness = config.readiness;
+  var freshness = config.freshness;
+  var claimFollowUpUrgency = config.claimFollowUpUrgency;
+  var afterClaimReviewStall = config.afterClaimReviewStall;
+  var liveSyncSnapshot = config.liveSyncSnapshot;
+
+  var blocking = uniqueIssueList(
+    (reviewSnapshot && reviewSnapshot.missingCriticalFields) || [],
+  ).map(function (item) {
+    return item.charAt(0).toUpperCase() + item.slice(1);
+  });
+
+  var recommended = uniqueIssueList((readiness && readiness.missing_items) || [])
+    .filter(function (item) {
+      return !blocking.some(function (blockingItem) {
+        return blockingItem.toLowerCase().includes(String(item).toLowerCase());
+      });
+    })
+    .slice(0, 4);
+
+  var advisory = [];
+  if (readiness && Number(readiness.score) < 60) {
+    advisory.push("Match-readiness is still low at " + readiness.score + "/100.");
+  }
+  if (freshness && freshness.note) {
+    advisory.push(freshness.note);
+  }
+  if (claimFollowUpUrgency && claimFollowUpUrgency.tone === "urgent" && claimFollowUpUrgency.note) {
+    advisory.push(claimFollowUpUrgency.note);
+  }
+  if (afterClaimReviewStall && afterClaimReviewStall.stalled && afterClaimReviewStall.note) {
+    advisory.push(afterClaimReviewStall.note);
+  }
+  if (liveSyncSnapshot && liveSyncSnapshot.changedCount) {
+    advisory.push(liveSyncSnapshot.syncLabel + ".");
+  }
+
+  return {
+    blocking: blocking,
+    recommended: recommended,
+    advisory: uniqueIssueList(advisory).slice(0, 3),
+  };
+}
+
+function renderStatusCell(config) {
+  return (
+    '<div class="application-status-cell"><div class="application-status-label">' +
+    config.escapeHtml(config.label) +
+    '</div><span class="queue-chip queue-chip--' +
+    config.escapeHtml(config.tone || "neutral") +
+    '">' +
+    config.escapeHtml(config.value) +
+    "</span>" +
+    (config.note
+      ? '<div class="application-status-note">' + config.escapeHtml(config.note) + "</div>"
+      : "") +
+    "</div>"
+  );
+}
+
+function renderIssueColumn(config) {
+  var items = Array.isArray(config.items) ? config.items : [];
+  return (
+    '<div class="application-issue-column"><div class="application-issue-label">' +
+    config.escapeHtml(config.label) +
+    '</div><div class="application-issue-copy">' +
+    config.escapeHtml(config.copy) +
+    "</div>" +
+    (items.length
+      ? '<ul class="application-issue-list">' +
+        items
+          .map(function (item) {
+            return "<li>" + config.escapeHtml(item) + "</li>";
+          })
+          .join("") +
+        "</ul>"
+      : '<div class="application-issue-empty">None right now.</div>') +
+    "</div>"
+  );
+}
+
 export function renderApplicationsPanel(options) {
   const applications =
     options.dataMode === "sanity" ? options.remoteApplications : options.getApplications();
@@ -753,121 +974,100 @@ export function renderApplicationsPanel(options) {
           })
           .join("");
 
-        const primaryActionHtml =
-          item.status === "pending" || item.status === "reviewing"
-            ? '<button class="btn-primary" data-action="' +
-              (isClaimFlow ? "approve_claim" : "publish") +
-              '" data-id="' +
-              item.id +
-              '">' +
-              (isClaimFlow ? "Approve claim now" : "Publish now") +
-              "</button>"
-            : "";
-        const actionFlash = getApplicationActionFlash(item.id);
-        const firstActionWhy = isClaimFlow
-          ? reviewSnapshot.note ||
-            "This claim is the strongest current ownership decision in the filtered view."
-          : reviewSnapshot.note ||
-            "This application is the strongest current publish decision in the filtered view.";
-        const firstActionDoneWhen = isClaimFlow
-          ? "The claim is approved, sent back for fixes, rejected, or moved out of active review."
-          : isConfirmationRefresh
-            ? "The update is applied, sent back for fixes, rejected, or moved out of active review."
-            : "The application is published, sent back for fixes, rejected, or moved out of active review.";
-        const decisionGuide = {
-          recommended: reviewSnapshot.nextMove,
-          approvePath: isClaimFlow
-            ? "Approve the claim and move this therapist into the fuller profile path."
-            : isConfirmationRefresh
-              ? "Apply or publish this update so the live listing moves forward."
-              : "Publish now and move this therapist out of the active applications lane.",
-          requestPath: isConfirmationRefresh
-            ? "Request fixes when a therapist-confirmed update is useful but still incomplete."
-            : "Request fixes when the application is promising but still missing trust-critical details.",
-          rejectPath:
-            "Reject when the submission is not trustworthy enough or is not a fit to keep moving.",
+        const operationalTimestamp = getOperationalTimestampLabel(item, options.formatDate);
+        const workflowState = {
+          label: "Workflow state",
+          value: getWorkflowStateLabel(item.status, options.formatStatusLabel),
+          tone: getWorkflowStateTone(item.status),
         };
-        const commandTitle = isClaimFlow
-          ? item.status === "approved"
-            ? "Keep this claim converting into a full profile"
-            : "Move this claim decisively, not slowly"
-          : isConfirmationRefresh
-            ? "Land this live-profile update with confidence"
-            : reviewSnapshot.focus === "publish_ready"
-              ? "This application is close to becoming live supply"
-              : "Turn this application into a clean decision";
-        const commandCopy = isClaimFlow
-          ? "Claims are intent signals. Treat them like warm growth opportunities: verify ownership, keep follow-up moving, and do not let approved claims cool off."
-          : isConfirmationRefresh
-            ? "This is upkeep on existing inventory. The win is preserving trust on live supply without creating review drag."
-            : "This therapist already did the work to submit. The best outcome is a clear next state that respects both quality and speed.";
-        const commandLane = isConfirmationRefresh
-          ? "Live profile refresh"
-          : item.submission_intent === "claim"
-            ? "Claim conversion"
-            : "Full profile review";
-        const commandGoal = reviewSnapshot.label || "Balanced review";
-        const commandSuccess = isClaimFlow
-          ? "Approved claims keep moving, weak claims get clear fixes, and nothing warm stalls in limbo."
-          : isConfirmationRefresh
-            ? "The update is applied, routed to fixes, or moved out of active review with a clear reason."
-            : "The application leaves this pass approved, published, fix-requested, or rejected with clarity.";
-        const commandCallout = isClaimFlow
-          ? claimFollowUpUrgency.tone === "urgent"
-            ? "This therapist is already at risk of cooling off. Fast, specific action here can protect a low-cost conversion opportunity."
-            : "Claim flow is an efficient supply lever because the therapist already raised a hand; slow review is usually the bigger risk than low intent."
-          : isConfirmationRefresh
-            ? "This work protects the credibility of live inventory. A quick, accurate maintenance decision preserves trust without over-investing operator time."
-            : reviewSnapshot.focus === "publish_ready"
-              ? "This is close to revenue-producing inventory. A decisive pass here is usually worth more than browsing lower-signal applications."
-              : "Application throughput shapes therapist trust in the product. Clear decisions compound; indecision creates quiet funnel loss.";
-        const stateStripHtml = renderApplicationStateStrip({
-          escapeHtml: options.escapeHtml,
-          isClaimFlow: isClaimFlow,
-          isConfirmationRefresh: isConfirmationRefresh,
-          isPublishReady: reviewSnapshot.focus === "publish_ready",
-          isUrgent: claimFollowUpUrgency.tone === "urgent" || afterClaimReviewStall.stalled,
+        const workType = Object.assign(
+          {
+            label: "Work type",
+          },
+          getWorkTypeMeta(item, reviewSnapshot, isClaimFlow, isConfirmationRefresh),
+        );
+        const priorityMeta = Object.assign(
+          {
+            label: "Priority",
+          },
+          getPriorityMeta(index, reviewSnapshot, claimFollowUpUrgency, afterClaimReviewStall),
+        );
+        const issueBuckets = getIssueBuckets({
+          reviewSnapshot: reviewSnapshot,
+          readiness: readiness,
+          freshness: freshness,
+          claimFollowUpUrgency: claimFollowUpUrgency,
+          afterClaimReviewStall: afterClaimReviewStall,
+          liveSyncSnapshot: liveSyncSnapshot,
         });
-        const secondaryActionList = [];
-        if (
+        const recommendationTitle = String(reviewSnapshot.nextMove || "Review this submission now.")
+          .replace(/\.+$/, "")
+          .trim();
+        const recommendationReason = issueBuckets.blocking.length
+          ? "Blocking issues visible on this card: " + issueBuckets.blocking.join(", ") + "."
+          : issueBuckets.recommended.length
+            ? "Best improvements before publish: " +
+              issueBuckets.recommended.slice(0, 2).join(", ") +
+              "."
+            : reviewSnapshot.note;
+        const readinessMeaning =
+          Number(readiness.score) >= 75
+            ? "Strong enough to support confident matching if trust checks also pass."
+            : Number(readiness.score) >= 60
+              ? "Usable, but match confidence still depends on tightening a few profile details."
+              : "Still weak for matching. Profile quality likely needs work before publish confidence is high.";
+        const completenessMeaning =
+          Number(readiness.completeness_score) >= 75
+            ? "Most core profile inputs are present."
+            : Number(readiness.completeness_score) >= 60
+              ? "Core profile basics are partly there, but some operational trust details are still thin."
+              : "Too many basics are still missing for a clean publish decision.";
+        const detailsSummaryLabel = "View submission details";
+        const reviewDetailsId = "application-details-" + item.id;
+        const reviewPrimaryActionHtml =
+          item.status === "pending"
+            ? '<button class="btn-primary" data-action="reviewing" data-id="' +
+              item.id +
+              '">Review</button>'
+            : item.status === "requested_changes"
+              ? '<button class="btn-primary" data-action="reviewing" data-id="' +
+                item.id +
+                '">Resume review</button>'
+              : item.status === "reviewing"
+                ? '<button class="btn-primary" data-action="' +
+                  (isClaimFlow ? "approve_claim" : "publish") +
+                  '" data-id="' +
+                  item.id +
+                  '">' +
+                  (isClaimFlow ? "Approve claim" : "Publish") +
+                  "</button>"
+                : '<span class="status ' + item.status + '">' + workflowState.value + "</span>";
+        const requestChangesActionHtml =
           item.status === "pending" ||
           item.status === "reviewing" ||
           item.status === "requested_changes"
-        ) {
-          if (!(item.status === "pending" && !isClaimFlow && false)) {
-            if (item.status === "pending") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="reviewing" data-id="' +
-                  item.id +
-                  '">Start review now</button>',
-              );
-            }
-            secondaryActionList.push(
-              '<button class="btn-secondary" data-action="requested_changes" data-id="' +
-                item.id +
-                '" data-request="' +
-                options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
-                '" data-link="' +
-                options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                '">' +
-                (isClaimFlow ? "Request fixes" : "Request fixes") +
-                "</button>",
-            );
-            if (item.status === "reviewing" || item.status === "requested_changes") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="pending" data-id="' +
-                  item.id +
-                  '">Move to Pending</button>',
-              );
-            }
-            if (item.status !== "requested_changes") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="reject" data-id="' +
-                  item.id +
-                  '">Reject</button>',
-              );
-            }
-          }
+            ? '<button class="btn-secondary" data-action="requested_changes" data-id="' +
+              item.id +
+              '" data-request="' +
+              options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
+              '" data-link="' +
+              options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
+              '">Request changes</button>'
+            : "";
+        const rejectActionHtml =
+          item.status === "pending" || item.status === "reviewing"
+            ? '<button class="btn-danger-quiet" data-action="reject" data-id="' +
+              item.id +
+              '">Reject</button>'
+            : "";
+        const actionFlash = getApplicationActionFlash(item.id);
+        const secondaryActionList = [];
+        if (item.status === "reviewing" || item.status === "requested_changes") {
+          secondaryActionList.push(
+            '<button class="btn-secondary" data-action="pending" data-id="' +
+              item.id +
+              '">Move to pending</button>',
+          );
         }
         const contextActionList = [];
         if (item.email) {
@@ -913,159 +1113,115 @@ export function renderApplicationsPanel(options) {
           '"' +
           (index === 0 ? ' id="applicationReviewStartHere"' : "") +
           ">" +
-          renderActionFirstIntro({
-            active: index === 0,
-            title:
-              "Open this application first. It is the top review target for the current goal and filters.",
-            action:
-              "Do this now: review trust-critical details first, then approve, request changes, reject, or publish before leaving the card.",
-            escapeHtml: options.escapeHtml,
-          }) +
-          '<div class="application-head"><div><h3>' +
+          '<div class="application-identity-row">' +
+          '<div class="application-identity-main">' +
+          (index === 0 ? '<div class="start-here-chip">Start here</div>' : "") +
+          "<div><h3>" +
           options.escapeHtml(item.name) +
-          '</h3><p class="subtle">' +
+          '</h3><p class="subtle application-identity-meta">' +
           options.escapeHtml(item.credentials) +
           (item.title ? " · " + options.escapeHtml(item.title) : "") +
           " · " +
           options.escapeHtml(item.city) +
           ", " +
           options.escapeHtml(item.state) +
-          '</p></div><div class="subtle">' +
-          options.formatDate(item.created_at) +
+          '</p></div></div><div class="application-identity-time">' +
+          options.escapeHtml(operationalTimestamp) +
           "</div></div>" +
-          stateStripHtml +
-          '<div class="tag-row"><span class="tag">' +
-          options.escapeHtml(item.verification_status || "under_review").replace(/_/g, " ") +
-          "</span>" +
-          '<span class="tag is-neutral">' +
-          options.escapeHtml(
-            item.submission_intent === "claim" ? "Profile claim" : "Full profile",
-          ) +
-          "</span>" +
-          (isConfirmationRefresh
-            ? '<span class="tag is-trust">Live profile confirmation update</span>'
-            : "") +
-          '<span class="tag is-neutral">' +
-          options.escapeHtml(portalStateLabel) +
-          "</span>" +
-          '<span class="tag ' +
-          options.escapeHtml(
-            reviewSnapshot.focus === "publish_ready"
-              ? "is-publish"
-              : isClaimFlow
-                ? "is-ownership"
-                : "is-trust",
-          ) +
-          '">' +
-          options.escapeHtml(reviewSnapshot.label) +
-          "</span>" +
-          (item.bipolar_years_experience
-            ? '<span class="tag is-neutral">' +
-              options.escapeHtml(item.bipolar_years_experience) +
-              " yrs bipolar care</span>"
-            : "") +
-          '<span class="tag is-neutral">' +
-          options.escapeHtml(reviewSnapshot.photoStatusLabel) +
-          "</span>" +
-          (item.medication_management
-            ? '<span class="tag is-neutral">Medication management</span>'
-            : "") +
-          '<span class="tag ' +
-          options.escapeHtml(
-            reviewSnapshot.focus === "publish_ready" ? "is-publish" : "is-neutral",
-          ) +
-          '">' +
-          options.escapeHtml(readiness.label) +
-          " · " +
-          options.escapeHtml(readiness.score) +
-          "/100</span>" +
-          (liveSyncSnapshot && liveSyncSnapshot.lastAppliedLabel
-            ? '<span class="tag is-neutral">' +
-              options.escapeHtml(liveSyncSnapshot.lastAppliedLabel) +
-              "</span>"
-            : "") +
-          (liveSyncSnapshot
-            ? '<span class="tag is-trust">' +
-              options.escapeHtml(liveSyncSnapshot.syncLabel) +
-              "</span>"
-            : "") +
-          (afterClaimReviewStall.stalled
-            ? '<span class="tag is-ownership">' +
-              options.escapeHtml("Review age · " + afterClaimReviewStall.ageDays + " days") +
-              "</span>"
-            : "") +
-          "</div>" +
-          (index === 0 && primaryActionHtml
-            ? renderRecommendedActionBar({
-                why: firstActionWhy,
-                doneWhen: firstActionDoneWhen,
-                primaryActionHtml: primaryActionHtml,
-                secondaryActionHtml: "",
-                escapeHtml: options.escapeHtml,
-              })
-            : "") +
-          renderApplicationCommandStrip({
-            title: commandTitle,
-            copy: commandCopy,
-            lane: commandLane,
-            goal: commandGoal,
-            success: commandSuccess,
-            callout: commandCallout,
+          '<div class="application-status-row">' +
+          renderStatusCell({
+            label: workflowState.label,
+            value: workflowState.value,
+            tone: workflowState.tone,
             escapeHtml: options.escapeHtml,
           }) +
-          (index === 0
-            ? renderDecisionGuide({
-                items: [
-                  { label: "Recommended next move", value: decisionGuide.recommended },
-                  { label: "If it is strong enough", value: decisionGuide.approvePath },
-                  {
-                    label: "If it is close but incomplete",
-                    value: decisionGuide.requestPath,
-                  },
-                  { label: "If it is not a fit", value: decisionGuide.rejectPath },
-                ],
-                escapeHtml: options.escapeHtml,
-              })
-            : "") +
-          (index === 0 && actionFlash
+          renderStatusCell({
+            label: workType.label,
+            value: workType.value,
+            tone: workType.tone,
+            escapeHtml: options.escapeHtml,
+          }) +
+          renderStatusCell({
+            label: priorityMeta.label,
+            value: priorityMeta.value,
+            note: priorityMeta.note,
+            tone: priorityMeta.tone,
+            escapeHtml: options.escapeHtml,
+          }) +
+          "</div>" +
+          '<div class="application-recommendation-block"><div class="application-recommendation-label">Recommended action</div><div class="application-recommendation-title">' +
+          options.escapeHtml(recommendationTitle) +
+          '</div><div class="application-recommendation-copy">' +
+          options.escapeHtml(recommendationReason) +
+          '</div><div class="application-recommendation-evidence"><strong>Why:</strong> ' +
+          options.escapeHtml(reviewSnapshot.note) +
+          "</div></div>" +
+          '<div class="application-action-row"><div class="application-action-main">' +
+          reviewPrimaryActionHtml +
+          requestChangesActionHtml +
+          '<button class="btn-secondary" type="button" data-review-details-open="' +
+          options.escapeHtml(reviewDetailsId) +
+          '" aria-expanded="false">View details</button>' +
+          rejectActionHtml +
+          '</div><div class="application-action-note">' +
+          options.escapeHtml(
+            item.status === "pending"
+              ? "Open the submission, verify the trust-critical basics, then move it into a clear review state."
+              : portalNextStep,
+          ) +
+          "</div></div>" +
+          '<div class="application-readiness-block"><div class="application-readiness-metrics"><div class="application-metric-card"><div class="application-metric-label">Completion</div><div class="application-metric-value">' +
+          options.escapeHtml(String(readiness.completeness_score) + "/100") +
+          '</div><div class="application-metric-note">' +
+          options.escapeHtml(completenessMeaning) +
+          '</div></div><div class="application-metric-card"><div class="application-metric-label">Match readiness</div><div class="application-metric-value">' +
+          options.escapeHtml(String(readiness.score) + "/100") +
+          '</div><div class="application-metric-note">' +
+          options.escapeHtml(readinessMeaning) +
+          '</div></div></div><div class="application-issues-grid">' +
+          renderIssueColumn({
+            label: "Blocking",
+            copy: "These issues should stop a safe publish or approval decision until they are resolved.",
+            items: issueBuckets.blocking,
+            escapeHtml: options.escapeHtml,
+          }) +
+          renderIssueColumn({
+            label: "Recommended before publish",
+            copy: "These improvements increase confidence and match quality, but they are lower-severity than blockers.",
+            items: issueBuckets.recommended,
+            escapeHtml: options.escapeHtml,
+          }) +
+          renderIssueColumn({
+            label: "Advisory",
+            copy: "These are watchouts that help explain the recommendation without blocking the next action by themselves.",
+            items: issueBuckets.advisory,
+            escapeHtml: options.escapeHtml,
+          }) +
+          "</div>" +
+          (actionFlash && index !== 0
             ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
             : "") +
+          '<details class="review-details" data-review-details-id="' +
+          options.escapeHtml(reviewDetailsId) +
+          '"><summary class="review-details-summary">' +
+          detailsSummaryLabel +
+          '</summary><div class="review-details-body">' +
+          '<div class="queue-actions application-context-actions" style="margin-top:0.75rem">' +
+          contextActionList.join("") +
+          secondaryActionList.join("") +
+          "</div>" +
           (item.care_approach
             ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
               options.escapeHtml(item.care_approach) +
               "</p>"
             : "") +
-          '<div class="review-snapshot-box"><div class="review-snapshot-title">Therapist-facing lifecycle</div><div class="review-snapshot-copy"><strong>' +
+          '<div class="review-snapshot-box"><div class="review-snapshot-title">Review snapshot</div><div class="review-snapshot-copy"><strong>' +
           options.escapeHtml(portalStateLabel) +
           ":</strong> " +
           options.escapeHtml(portalNextStep) +
           '</div><div class="review-snapshot-copy">' +
-          options.escapeHtml(
-            item.submission_intent === "claim"
-              ? "This therapist is still in the claim-first path. Keep the review focused on ownership, licensure, and core profile trust."
-              : "This therapist has already submitted the fuller profile, so the review can focus on publish readiness, fit clarity, and trust details.",
-          ) +
-          (item.upgrade_eligible
-            ? '</div><div class="review-snapshot-copy"><strong>Upgrade eligibility:</strong> This profile can be offered growth features after review.</div>'
-            : "") +
-          "</div>" +
-          '<div class="review-snapshot-box"><div class="review-snapshot-title">Recommended next move</div><div class="review-snapshot-copy">' +
-          options.escapeHtml(reviewSnapshot.nextMove) +
-          '</div><div class="review-snapshot-copy">' +
-          options.escapeHtml(reviewSnapshot.note) +
-          '</div><div class="review-snapshot-copy"><strong>Photo status:</strong> ' +
           options.escapeHtml(reviewSnapshot.photoNextMove) +
-          "</div>" +
-          (reviewSnapshot.missingCriticalFields.length
-            ? '<div class="tag-row">' +
-              reviewSnapshot.missingCriticalFields
-                .map(function (field) {
-                  return '<span class="tag">' + options.escapeHtml(field) + "</span>";
-                })
-                .join("") +
-              "</div>"
-            : "") +
-          "</div>" +
+          "</div></div>" +
           applicationDiffHtml +
           '<p class="application-bio">' +
           options.escapeHtml(item.bio) +
@@ -1143,37 +1299,10 @@ export function renderApplicationsPanel(options) {
           "<div><strong>Telehealth states:</strong> " +
           options.escapeHtml((item.telehealth_states || []).join(", ") || "Not provided") +
           "</div>" +
-          "<div><strong>Match readiness:</strong> " +
-          options.escapeHtml(readiness.label) +
-          " (" +
-          options.escapeHtml(readiness.score) +
-          "/100)</div>" +
-          "<div><strong>Profile completeness:</strong> " +
-          options.escapeHtml(readiness.completeness_score) +
-          "/100</div>" +
           "<div><strong>Upgrade eligible:</strong> " +
           options.escapeHtml(item.upgrade_eligible ? "Yes" : "Not yet") +
           "</div>" +
           "</div>" +
-          '<div class="action-row is-decision-cluster">' +
-          renderApplicationActionClusters({
-            primaryActionHtml:
-              primaryActionHtml ||
-              '<span class="status ' + item.status + '">' + item.status + "</span>",
-            primaryCopy: firstActionDoneWhen,
-            secondaryActions: secondaryActionList,
-            secondaryCopy:
-              "Use these when the primary path fails trust, fit, or timing review and you still need the card to leave with clarity.",
-            contextActions: contextActionList,
-            contextCopy:
-              "Communication tools stay nearby so you can keep momentum without leaving the review surface.",
-            escapeHtml: options.escapeHtml,
-          }) +
-          "</div>" +
-          (actionFlash && index !== 0
-            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
-            : "") +
-          '<details class="review-details"><summary class="review-details-summary">Review details</summary><div class="review-details-body">' +
           (item.portal_state === "claimed_ready_for_profile"
             ? '<div class="notes-box"><label><strong>Approved-claim follow-up</strong></label><div class="subtle"><strong>Status:</strong> ' +
               options.escapeHtml(claimFollowUpLabel) +
