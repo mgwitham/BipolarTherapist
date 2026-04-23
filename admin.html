@@ -1734,6 +1734,7 @@
       }
       .admin-region-grid.two-column {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
       }
       .admin-collapsible-group {
         border: 1px solid rgba(26, 122, 143, 0.12);
@@ -2594,11 +2595,15 @@
       #confirmationQueue.section-spotlight,
       #conciergeQueue.section-spotlight,
       #applicationsList.section-spotlight {
-        box-shadow: 0 0 0 3px rgba(42, 156, 179, 0.18);
-        border-color: rgba(26, 122, 143, 0.35);
+        box-shadow:
+          0 0 0 4px rgba(42, 156, 179, 0.55),
+          0 12px 32px rgba(26, 122, 143, 0.18);
+        border-color: rgba(26, 122, 143, 0.75);
+        background: linear-gradient(180deg, #f0fbfd 0%, #e6f6fa 100%);
         transition:
-          box-shadow 220ms ease,
-          border-color 220ms ease;
+          box-shadow 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
       }
       .panel h2 {
         margin: 0 0 0.9rem;

@@ -353,7 +353,7 @@ export function renderApplicationsPanel(options) {
         return false;
       }
 
-      return item.status !== "approved";
+      return item.status !== "approved" && item.status !== "rejected";
     })
     .sort(function (a, b) {
       const sortGoal =
