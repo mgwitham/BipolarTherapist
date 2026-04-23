@@ -162,6 +162,69 @@ function renderHeadlineCounts(events) {
   );
 }
 
+function renderWaitlistByState(events) {
+  var signups = events.filter(function (e) {
+    return e.type === "waitlist_signup";
+  });
+  if (!signups.length) {
+    return '<p class="admin-funnel-empty">No out-of-state waitlist signups yet.</p>';
+  }
+  var byState = {};
+  signups.forEach(function (e) {
+    var p = parsePayload(e.payload);
+    var state = (p && p.state) || "—";
+    if (!byState[state]) byState[state] = { count: 0, recent: [] };
+    byState[state].count += 1;
+    if (byState[state].recent.length < 5) {
+      byState[state].recent.push({
+        email: (p && p.email) || "",
+        at: e.occurredAt || "",
+      });
+    }
+  });
+  var sorted = Object.keys(byState).sort(function (a, b) {
+    return byState[b].count - byState[a].count;
+  });
+  var rows = sorted
+    .map(function (state) {
+      var bucket = byState[state];
+      var recentBits = bucket.recent
+        .map(function (r) {
+          return (
+            escapeHtml(r.email) +
+            ' <span style="color:#6b8290">(' +
+            escapeHtml(r.at.slice(0, 10)) +
+            ")</span>"
+          );
+        })
+        .join("<br>");
+      return (
+        "<tr>" +
+        '<td class="admin-funnel-step">' +
+        escapeHtml(state) +
+        "</td>" +
+        '<td class="r">' +
+        bucket.count +
+        "</td>" +
+        "<td>" +
+        recentBits +
+        "</td>" +
+        "</tr>"
+      );
+    })
+    .join("");
+  return (
+    '<table class="admin-funnel-table">' +
+    '<thead><tr><th>State</th><th class="r">Signups</th><th>Recent emails</th></tr></thead>' +
+    "<tbody>" +
+    rows +
+    "</tbody></table>" +
+    '<p class="admin-funnel-caption">' +
+    signups.length +
+    " total out-of-state signups</p>"
+  );
+}
+
 function renderRecentEvents(events) {
   if (!events.length) {
     return '<p class="admin-funnel-empty">No events logged yet. Trigger one by visiting /signup or /claim.</p>';
@@ -219,6 +282,9 @@ function renderDashboard(container, logData) {
     "</section>" +
     '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +
+    renderWaitlistByState(events) +
     "</section>" +
     '<p class="admin-funnel-meta">Buffer holds last 500 events · ' +
     totalAppended +
