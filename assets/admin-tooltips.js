@@ -256,13 +256,8 @@ function positionTooltip(trigger) {
   const tooltipRect = tooltip.getBoundingClientRect();
   const idealTop = triggerRect.bottom + OFFSET_PX;
   const fitsBelow = idealTop + tooltipRect.height <= window.innerHeight - 8;
-  const top = fitsBelow
-    ? idealTop
-    : Math.max(8, triggerRect.top - tooltipRect.height - OFFSET_PX);
-  const left = Math.min(
-    Math.max(8, triggerRect.left),
-    window.innerWidth - tooltipRect.width - 8,
-  );
+  const top = fitsBelow ? idealTop : Math.max(8, triggerRect.top - tooltipRect.height - OFFSET_PX);
+  const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - tooltipRect.width - 8);
   tooltip.style.top = Math.round(top) + "px";
   tooltip.style.left = Math.round(left) + "px";
 }
