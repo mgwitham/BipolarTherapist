@@ -1,10 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import {
   compareTherapistsWithFilters,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
+import { preloadZipcodes } from "../../assets/zip-lookup.js";
+
+const zipUrl = new URL("../../assets/ca-zipcodes.json", import.meta.url);
+const zipData = JSON.parse(readFileSync(fileURLToPath(zipUrl), "utf8"));
+globalThis.fetch = async () => ({ ok: true, json: async () => zipData });
+await preloadZipcodes();
 
 test("compareTherapistsWithFilters favors the stronger specialty match in best-match sorting", function () {
   const filters = {
@@ -109,4 +117,55 @@ test("matchesDirectoryFilters applies the shared directory predicate consistentl
 
   assert.equal(matchesDirectoryFilters(filters, matchingTherapist), true);
   assert.equal(matchesDirectoryFilters(filters, nonMatchingTherapist), false);
+});
+
+test("compareTherapistsWithFilters uses ranking zip as a soft proximity boost", function () {
+  const filters = {
+    state: "CA",
+    zip: "",
+    ranking_zip: "92101",
+    specialty: "",
+    modality: "",
+    population: "",
+    verification: "",
+    bipolar_experience: "",
+    insurance: "",
+    therapist: true,
+    psychiatrist: false,
+    telehealth: false,
+    in_person: false,
+    accepting: false,
+    medication_management: false,
+    responsive_contact: false,
+    recently_confirmed: false,
+    sortBy: "best_match",
+  };
+
+  const nearTherapist = {
+    name: "Near Therapist",
+    slug: "near-therapist",
+    zip: "92103",
+    title: "Therapist",
+    state: "CA",
+    city: "San Diego",
+    accepts_in_person: true,
+    accepts_telehealth: true,
+    specialties: [],
+    treatment_modalities: [],
+    client_populations: [],
+    insurance_accepted: [],
+    field_review_states: {},
+    verification_status: "",
+    bipolar_years_experience: 2,
+  };
+
+  const farTherapist = {
+    ...nearTherapist,
+    name: "Far Therapist",
+    slug: "far-therapist",
+    zip: "94103",
+    city: "San Francisco",
+  };
+
+  assert.ok(compareTherapistsWithFilters(filters, nearTherapist, farTherapist) < 0);
 });

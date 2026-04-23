@@ -158,7 +158,28 @@ export function renderDirectoryRecommendationsMarkup(options) {
   }
 
   return (
-    '<section class="directory-recommendations" aria-labelledby="directoryRecommendationsTitle"><div class="directory-recommendations-head"><div><div class="directory-recommendations-kicker">Top matches</div><h2 id="directoryRecommendationsTitle">Start with one strong option, then use the backups if needed.</h2><p class="directory-recommendations-copy">You do not need to get this perfect. These are strong options to begin with.</p></div><p class="directory-recommendations-reassurance">You can contact one now and come back if needed.</p></div>' +
+    '<section class="directory-recommendations" aria-labelledby="directoryRecommendationsTitle"><div class="directory-recommendations-head"><div><div class="directory-recommendations-kicker">' +
+    escapeHtml(model.recommendationKicker || "Strong starting options") +
+    '</div><h2 id="directoryRecommendationsTitle">' +
+    escapeHtml(
+      model.recommendationTitle || "Start with one strong option, then use the backups if needed.",
+    ) +
+    '</h2><p class="directory-recommendations-copy">' +
+    escapeHtml(
+      model.recommendationCopy ||
+        "You do not need to get this perfect. These are strong options to begin with.",
+    ) +
+    "</p>" +
+    (model.recommendationContext
+      ? '<p class="directory-recommendations-context">' +
+        escapeHtml(model.recommendationContext) +
+        "</p>"
+      : "") +
+    '</div><p class="directory-recommendations-reassurance">' +
+    escapeHtml(
+      model.recommendationReassurance || "You can contact one now and come back if needed.",
+    ) +
+    "</p></div>" +
     renderDirectoryDecisionPreviewMarkup({ model: model.featured }) +
     (model.backups.length
       ? '<div class="directory-backups"><div class="directory-backups-label">Backup options</div><div class="directory-backups-grid">' +

@@ -52,7 +52,7 @@ test("recommendation render smoke highlights featured and backup hierarchy", fun
     }),
   });
 
-  assert.match(html, /Start here/);
+  assert.match(html, /Strong starting options/);
   assert.match(html, /Backup options/);
   assert.match(html, /Why this may be a good fit/);
   assert.match(html, /data-cta-tier="featured"/);
