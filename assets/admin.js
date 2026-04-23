@@ -933,7 +933,7 @@ function renderFallbackStats() {
       copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
       steps: [
         "Open the applications lane and start with the oldest or strongest pending item.",
-        "Approve, request changes, reject, or publish so the application leaves limbo.",
+        "Publish strong submissions and delete weak ones so the queue leaves limbo quickly.",
       ],
       done: "The application has a clear decision.",
       actionLabel: "Open applications overview",
@@ -941,21 +941,6 @@ function renderFallbackStats() {
       targetId: "applicationsPanel",
       focusTargetId: "applicationReviewStartHere",
       targetSummary: "Review Applications -> top pending application",
-    }),
-    buildOperatorGuideCard({
-      kicker: "Verify Trust",
-      title: "Fix Missing Listing Details",
-      copy: "Fix missing listing details so live profiles can become fully trusted and ready for use.",
-      steps: [
-        "Open the missing-details lane and start with the top listing.",
-        "Verify the first missing detail or move the listing into confirmation if therapist input is required.",
-      ],
-      done: "The listing is no longer blocked by its top missing detail.",
-      actionLabel: "Open missing-details overview",
-      directActionLabel: "Start with first listing",
-      targetId: "importBlockerSprintSection",
-      focusTargetId: "importBlockerStartHere",
-      targetSummary: "Fix Missing Listing Details -> first listing row",
     }),
   ];
   statsRoot.innerHTML =
@@ -5509,8 +5494,6 @@ function renderStats() {
     var topActions = nextBestActions.slice(0, 3);
     var blockers = [
       { count: claimFollowUpCount, label: "claim follow-up due" },
-      { count: readyToApplyCount, label: "confirmed replies ready to apply" },
-      { count: strictImportBlockerCount, label: "trust-critical listing blockers" },
       { count: openPortalRequestCount, label: "portal requests waiting" },
     ].filter(function (item) {
       return item.count > 0;
@@ -5567,11 +5550,11 @@ function renderStats() {
         "applicationsPanel",
       ) +
       buildTodayQuickAction(
-        "Open confirmations",
-        profilesNeedingConfirmation + awaitingConfirmationCount + readyToApplyCount
-          ? "Reply tracking and apply-ready work stay together here."
-          : "Confirmation work is stable for now.",
-        "confirmationRegion",
+        "Open inbox",
+        openConciergeCount + openPortalRequestCount
+          ? "Requests and operator issues are waiting here."
+          : "Inbox is clear right now.",
+        "requestsRegion",
       ) +
       buildTodayQuickAction(
         "Open reports",
@@ -5586,8 +5569,8 @@ function renderStats() {
           value: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
           label: "Requests and signups",
         },
-        { value: profilesNeedingRefresh + strictImportBlockerCount, label: "Maintenance pressure" },
-        { value: readyToApplyCount, label: "Ready to apply" },
+        { value: reviewingApplicationsCount + claimFollowUpCount, label: "Active reviews" },
+        { value: publishReadyApplicationsCount, label: "Ready to publish" },
       ]
         .map(function (metric) {
           return (
