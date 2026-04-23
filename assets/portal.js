@@ -717,58 +717,176 @@ function buildPortalReviewTiming(application) {
   return null;
 }
 
-function renderLookupState() {
+var EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var SIGNIN_RESEND_COOLDOWN_MS = 30 * 1000;
+
+function renderSignInFlash(kind) {
+  if (!kind) return "";
+  if (kind === "signed_out") {
+    return (
+      '<section class="portal-signin-flash portal-signin-flash--info" role="status">' +
+      "<p><strong>You're signed out.</strong></p>" +
+      "<p>Sign back in below whenever you want to manage your listing.</p>" +
+      "</section>"
+    );
+  }
+  if (kind === "invalid_link") {
+    return (
+      '<section class="portal-signin-flash portal-signin-flash--warn" role="alert">' +
+      "<p><strong>That sign-in link is expired or already used.</strong></p>" +
+      "<p>Enter your email below and we'll send a fresh link. Links expire 15 minutes after sending.</p>" +
+      "</section>"
+    );
+  }
+  if (kind === "not_found") {
+    return (
+      '<section class="portal-signin-flash portal-signin-flash--warn" role="alert">' +
+      "<p><strong>We couldn't find that profile.</strong></p>" +
+      "<p>Sign in below, or open this page from your public listing.</p>" +
+      "</section>"
+    );
+  }
+  return "";
+}
+
+function renderLookupState(options) {
   var shell = document.getElementById("portalShell");
   if (!shell) {
     return;
   }
 
-  var signedOut = new URLSearchParams(window.location.search).get("signed_out") === "1";
-  var signedOutToast = signedOut
-    ? '<section class="portal-card" style="border:1px solid #2a9cb3;background:#ecf7f9;margin-bottom:1rem">' +
-      '<p style="margin:0;color:#155f70;font-weight:600">You\'re signed out.</p>' +
-      '<p class="portal-subtle" style="margin:0.25rem 0 0">Sign back in below whenever you want to manage your listing.</p>' +
-      "</section>"
-    : "";
+  var opts = options || {};
+  var flashKind =
+    opts.flash ||
+    (new URLSearchParams(window.location.search).get("signed_out") === "1" ? "signed_out" : "");
 
   shell.innerHTML =
-    signedOutToast +
-    '<section class="portal-card">' +
-    "<h2>Sign in to your listing</h2>" +
-    '<p class="portal-subtle">Enter the email you claimed with. We\'ll send you a sign-in link.</p>' +
-    '<form id="portalSignInForm" class="portal-form">' +
-    '<label>Email<input type="email" id="portalSignInEmail" placeholder="you@example.com" autocomplete="email" required /></label>' +
-    '<button class="btn-primary" type="submit">Email me a sign-in link</button>' +
-    '<div class="portal-feedback" id="portalSignInFeedback"></div>' +
-    "</form>" +
-    '<p class="portal-subtle" style="margin-top:1rem;font-size:0.88rem;">' +
-    'Haven\'t claimed yet? <a href="claim.html">Claim your profile</a>. ' +
-    "Don't remember which email you used? <a href=\"claim.html\">Re-claim your profile</a> — we'll send a link to the email on your public listing." +
+    renderSignInFlash(flashKind) +
+    '<section class="portal-card portal-signin-card" aria-labelledby="portalSignInHeading">' +
+    '<header class="portal-signin-head">' +
+    '<p class="portal-eyebrow">Therapist portal</p>' +
+    '<h1 id="portalSignInHeading" class="portal-signin-title">Sign in to manage your listing</h1>' +
+    '<p class="portal-signin-lede">Manage your listing, availability, and dashboard activity.</p>' +
+    "</header>" +
+    '<form id="portalSignInForm" class="portal-signin-form" novalidate>' +
+    '<label for="portalSignInEmail" class="portal-signin-label">Work email</label>' +
+    '<input type="email" id="portalSignInEmail" name="email" class="portal-signin-input" ' +
+    'placeholder="you@practice.com" autocomplete="email" inputmode="email" ' +
+    'autocapitalize="none" spellcheck="false" required ' +
+    'aria-describedby="portalSignInHelper portalSignInFeedback" />' +
+    '<p id="portalSignInHelper" class="portal-signin-helper">' +
+    "We'll email a secure sign-in link to the address on your listing. It usually arrives within a minute." +
     "</p>" +
+    '<button class="btn-primary portal-signin-submit" type="submit" id="portalSignInSubmit">' +
+    "Email me a sign-in link" +
+    "</button>" +
+    '<p id="portalSignInFeedback" class="portal-signin-feedback" role="status" aria-live="polite"></p>' +
+    "</form>" +
+    '<p class="portal-signin-security">' +
+    "For security, we use one-time email links instead of passwords. Links expire after 15 minutes." +
+    "</p>" +
+    "</section>" +
+    '<section class="portal-card portal-signin-help" aria-labelledby="portalSignInHelpHeading">' +
+    '<h2 id="portalSignInHelpHeading" class="portal-signin-help-title">Need help accessing your listing?</h2>' +
+    '<ul class="portal-signin-help-list">' +
+    '<li>Haven\'t claimed your profile yet? <a href="claim.html">Claim your profile</a>.</li>' +
+    '<li>Used a different email? <a href="claim.html">Re-claim your profile</a> and we\'ll send a link to the email on your public listing.</li>' +
+    '<li>Still stuck? <a href="mailto:support@bipolartherapyhub.com">Email support</a>.</li>' +
+    "</ul>" +
     "</section>";
 
-  trackFunnelEvent("portal_signin_viewed", {});
+  if (flashKind === "invalid_link") {
+    trackFunnelEvent("portal_signin_expired_link_shown", {});
+  }
+  trackFunnelEvent("portal_signin_viewed", { flash: flashKind || "none" });
 
-  document.getElementById("portalSignInForm").addEventListener("submit", function (event) {
+  var form = document.getElementById("portalSignInForm");
+  var emailInput = document.getElementById("portalSignInEmail");
+  var submitBtn = document.getElementById("portalSignInSubmit");
+  var feedback = document.getElementById("portalSignInFeedback");
+  var lastSentAt = 0;
+
+  if (opts.prefillEmail && emailInput) {
+    emailInput.value = opts.prefillEmail;
+  }
+
+  function setFeedback(message, tone) {
+    if (!feedback) return;
+    feedback.textContent = message || "";
+    feedback.dataset.tone = tone || "";
+  }
+
+  function setBusy(isBusy, sentEmail) {
+    if (!submitBtn) return;
+    submitBtn.disabled = isBusy;
+    if (isBusy) {
+      submitBtn.dataset.labelRest = submitBtn.dataset.labelRest || submitBtn.textContent;
+      submitBtn.textContent = "Sending sign-in link...";
+    } else if (sentEmail) {
+      submitBtn.textContent = "Resend sign-in link";
+    } else if (submitBtn.dataset.labelRest) {
+      submitBtn.textContent = submitBtn.dataset.labelRest;
+    }
+  }
+
+  if (emailInput) {
+    emailInput.addEventListener("input", function () {
+      if (feedback && feedback.dataset.tone === "error") {
+        setFeedback("", "");
+      }
+    });
+  }
+
+  form.addEventListener("submit", function (event) {
     event.preventDefault();
-    var emailInput = document.getElementById("portalSignInEmail");
     var email = String((emailInput && emailInput.value) || "").trim();
-    var feedback = document.getElementById("portalSignInFeedback");
     if (!email) {
-      feedback.textContent = "Enter the email you claimed with.";
+      setFeedback("Enter the email on your listing.", "error");
+      emailInput && emailInput.focus();
       return;
     }
-    feedback.textContent = "Sending sign-in link...";
+    if (!EMAIL_REGEX.test(email)) {
+      setFeedback("That doesn't look like a valid email. Double-check and try again.", "error");
+      trackFunnelEvent("portal_signin_invalid_email", {});
+      emailInput && emailInput.focus();
+      return;
+    }
+
+    var now = Date.now();
+    var sinceLast = now - lastSentAt;
+    if (lastSentAt && sinceLast < SIGNIN_RESEND_COOLDOWN_MS) {
+      var wait = Math.ceil((SIGNIN_RESEND_COOLDOWN_MS - sinceLast) / 1000);
+      setFeedback(
+        "You just requested a link. Check your inbox, or try again in " + wait + " seconds.",
+        "info",
+      );
+      trackFunnelEvent("portal_signin_resend_rate_limited", {});
+      return;
+    }
+
+    setBusy(true, false);
+    setFeedback("Sending sign-in link...", "info");
     trackFunnelEvent("portal_signin_requested", { email_domain: email.split("@")[1] || "" });
     requestTherapistSignIn(email)
       .then(function () {
-        feedback.textContent =
-          "Check your inbox. If that email matches a claimed profile, we just sent a sign-in link. It expires in 15 minutes.";
+        lastSentAt = Date.now();
+        setBusy(false, email);
+        setFeedback(
+          "Check your inbox. If " +
+            email +
+            " matches a claimed profile, we just sent a sign-in link. It usually arrives within a minute and expires in 15 minutes.",
+          "success",
+        );
         trackFunnelEvent("portal_signin_link_sent", {});
       })
       .catch(function (error) {
-        feedback.textContent =
-          (error && error.message) || "We couldn't send a sign-in link. Try again in a moment.";
+        setBusy(false, false);
+        setFeedback(
+          (error && error.message) ||
+            "We couldn't send a sign-in link right now. Try again in a moment, or email support@bipolartherapyhub.com if it keeps failing.",
+          "error",
+        );
+        trackFunnelEvent("portal_signin_failure_shown", {});
       });
   });
 }
@@ -3103,14 +3221,7 @@ function renderPortal(therapist, options) {
       });
       return;
     } catch (_error) {
-      renderLookupState();
-      var tokenShell = document.getElementById("portalShell");
-      if (tokenShell) {
-        tokenShell.insertAdjacentHTML(
-          "afterbegin",
-          '<section class="portal-card"><p class="portal-subtle">That manage link is invalid or expired. Request a new one below.</p></section>',
-        );
-      }
+      renderLookupState({ flash: "invalid_link" });
       return;
     }
   }
@@ -3170,14 +3281,7 @@ function renderPortal(therapist, options) {
 
   var therapist = await fetchPublicTherapistBySlug(slug);
   if (!therapist) {
-    renderLookupState();
-    var shell = document.getElementById("portalShell");
-    if (shell) {
-      shell.insertAdjacentHTML(
-        "afterbegin",
-        '<section class="portal-card"><p class="portal-subtle">We could not find that profile. Double-check the slug or open this page from the live therapist profile.</p></section>',
-      );
-    }
+    renderLookupState({ flash: "not_found" });
     return;
   }
 
