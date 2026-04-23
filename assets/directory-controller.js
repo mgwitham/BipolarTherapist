@@ -7,17 +7,30 @@ export function buildDirectoryRenderState(options) {
   var filters = options.filters || {};
   var directoryPage = options.directoryPage || null;
   var activePreviewSlug = options.activePreviewSlug || "";
+  var featuredTherapist = results[0] || null;
+  var backupTherapists = results.slice(1, 3);
+  var browseResults = results.slice(featuredTherapist ? 3 : 0);
   var start = (currentPage - 1) * pageSize;
-  var pageItems = results.slice(start, start + pageSize);
+  var pageItems = browseResults.slice(start, start + pageSize);
   var resultsSuffix = (directoryPage && directoryPage.resultsSuffix) || "specialists found";
 
   return {
     results: results,
+    featuredTherapist: featuredTherapist,
+    backupTherapists: backupTherapists,
+    browseResults: browseResults,
     pageItems: pageItems,
     resultsSuffix: resultsSuffix,
     singularSuffix: resultsSuffix === "specialists found" ? "specialist found" : resultsSuffix,
     activeFilterCount: countActiveFilters(filters),
-    activePreviewSlug: results[0] ? results[0].slug : "",
+    activePreviewSlug:
+      results.some(function (item) {
+        return item.slug === activePreviewSlug;
+      }) && activePreviewSlug
+        ? activePreviewSlug
+        : featuredTherapist
+          ? featuredTherapist.slug
+          : "",
   };
 }
 

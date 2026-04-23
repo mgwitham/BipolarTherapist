@@ -8,9 +8,9 @@ import {
   resetDirectoryFiltersAction,
 } from "../../assets/directory-controller.js";
 
-test("buildDirectoryRenderState derives page items and preview slug", function () {
+test("buildDirectoryRenderState separates featured, backups, and browse results", function () {
   const state = buildDirectoryRenderState({
-    results: [{ slug: "a" }, { slug: "b" }, { slug: "c" }],
+    results: [{ slug: "a" }, { slug: "b" }, { slug: "c" }, { slug: "d" }, { slug: "e" }],
     currentPage: 1,
     pageSize: 2,
     filters: {
@@ -38,7 +38,16 @@ test("buildDirectoryRenderState derives page items and preview slug", function (
   });
 
   assert.equal(state.pageItems.length, 2);
-  assert.equal(state.pageItems[0].slug, "a");
+  assert.equal(state.featuredTherapist.slug, "a");
+  assert.deepEqual(
+    state.backupTherapists.map((item) => item.slug),
+    ["b", "c"],
+  );
+  assert.deepEqual(
+    state.browseResults.map((item) => item.slug),
+    ["d", "e"],
+  );
+  assert.equal(state.pageItems[0].slug, "d");
   assert.equal(state.activePreviewSlug, "a");
   assert.equal(state.resultsSuffix, "matches found");
   assert.equal(state.singularSuffix, "matches found");

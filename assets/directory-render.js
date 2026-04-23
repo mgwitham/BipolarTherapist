@@ -22,6 +22,41 @@ function getTherapistDisplayName(name) {
     .trim();
 }
 
+function renderTrustSignals(signals, className) {
+  if (!Array.isArray(signals) || !signals.length) {
+    return "";
+  }
+
+  return (
+    '<div class="' +
+    escapeHtml(className) +
+    '">' +
+    signals
+      .map(function (signal) {
+        return '<span class="trust-signal">' + escapeHtml(signal) + "</span>";
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function renderFitReasons(model, limit) {
+  var items = (model.fitReasons || []).slice(0, limit || 2);
+  if (!items.length) {
+    return "";
+  }
+
+  return (
+    '<div class="card-fit-block"><div class="card-fit-title">Why this may be a good fit</div><ul class="card-fit-list">' +
+    items
+      .map(function (item) {
+        return "<li>" + escapeHtml(item) + "</li>";
+      })
+      .join("") +
+    "</ul></div>"
+  );
+}
+
 export function renderEmptyStateMarkup(directoryPage) {
   return (
     '<div class="empty-state"><div class="empty-state-kicker">No strong fit yet</div><h3>' +
@@ -44,19 +79,29 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
   return (
     '<section class="directory-decision-preview" data-preview-slug="' +
     escapeHtml(model.therapist.slug) +
-    '"><div class="directory-decision-preview-main"><div class="directory-decision-preview-kicker">Recommended profile</div><div class="directory-decision-preview-title">' +
+    '"><div class="directory-decision-preview-main"><div class="directory-decision-preview-kicker">Start here</div><div class="directory-decision-preview-title">' +
     escapeHtml(getTherapistDisplayName(model.therapist.name)) +
     '</div><div class="directory-decision-preview-creds">' +
     escapeHtml(model.therapist.credentials || "") +
     (model.therapist.title ? " " + escapeHtml(model.therapist.title) : "") +
-    '</div><div class="directory-decision-preview-proof">📍 ' +
-    escapeHtml(model.therapist.city || "") +
-    (model.therapist.city && model.therapist.state ? ", " : "") +
-    escapeHtml(model.therapist.state || "") +
+    '</div><div class="directory-decision-preview-proof">' +
+    escapeHtml(model.locationSummary || "") +
+    (model.locationSummary && model.careFormatSummary ? " • " : "") +
+    escapeHtml(model.careFormatSummary || "") +
     "</div>" +
-    '<div class="directory-decision-preview-subtitle">' +
+    renderTrustSignals(model.trustSignals, "directory-decision-preview-trust") +
+    '<div class="directory-decision-preview-fit-label">Why this may be a good fit</div><div class="directory-decision-preview-subtitle">' +
     escapeHtml(model.openReason) +
     "</div>" +
+    (model.secondaryReasons && model.secondaryReasons.length
+      ? '<div class="directory-decision-preview-supporting">' +
+        model.secondaryReasons
+          .map(function (reason) {
+            return '<span class="directory-decision-preview-supporting-item">' + escapeHtml(reason) + "</span>";
+          })
+          .join("") +
+        "</div>"
+      : "") +
     (model.valuePillHtml ? '<div class="value-pill-row">' + model.valuePillHtml + "</div>" : "") +
     '</div><div class="directory-decision-preview-actions"><div class="directory-decision-preview-stats">' +
     model.quickStats
@@ -78,27 +123,88 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
         );
       })
       .join("") +
-    '</div><div class="directory-decision-preview-cta-group"><a href="' +
-    escapeHtml(buildTherapistProfileHref(model.therapist.slug, "preview")) +
-    '" class="card-action-primary" data-preview-open-profile="' +
+    '</div><div class="directory-decision-preview-next-step">These are strong options to begin with. Contact one now, then come back if you need a backup.</div><div class="directory-decision-preview-cta-group"><a href="' +
+    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(model.therapist.slug, "preview_contact")) +
+    '"' +
+    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+    ' class="card-action-primary" data-primary-cta="' +
     escapeHtml(model.therapist.slug) +
-    '">Open profile</a><button type="button" class="card-action-btn' +
+    '" data-cta-tier="featured">' +
+    escapeHtml(model.contactLabel || "Contact therapist") +
+    '</a><button type="button" class="card-action-secondary" data-view-details="' +
+    escapeHtml(model.therapist.slug) +
+    '" data-details-tier="featured">View details</button><button type="button" class="card-save-link' +
     (model.shortlisted ? " active" : "") +
     '" data-preview-shortlist="' +
     escapeHtml(model.therapist.slug) +
     '">' +
-    (model.shortlisted ? "Saved to list" : "Save to list") +
+    (model.shortlisted ? "Saved" : "Save") +
     "</button></div></div></section>"
+  );
+}
+
+export function renderDirectoryRecommendationsMarkup(options) {
+  var model = options.model;
+  if (!model || !model.featured) {
+    return "";
+  }
+
+  return (
+    '<section class="directory-recommendations" aria-labelledby="directoryRecommendationsTitle"><div class="directory-recommendations-head"><div><div class="directory-recommendations-kicker">Top matches</div><h2 id="directoryRecommendationsTitle">Start with one strong option, then use the backups if needed.</h2><p class="directory-recommendations-copy">You do not need to get this perfect. These are strong options to begin with.</p></div><p class="directory-recommendations-reassurance">You can contact one now and come back if needed.</p></div>' +
+    renderDirectoryDecisionPreviewMarkup({ model: model.featured }) +
+    (model.backups.length
+      ? '<div class="directory-backups"><div class="directory-backups-label">Backup options</div><div class="directory-backups-grid">' +
+        model.backups
+          .map(function (backup) {
+            return renderBackupCardMarkup({ model: backup });
+          })
+          .join("") +
+        "</div></div>"
+      : "") +
+    "</section>"
+  );
+}
+
+export function renderBackupCardMarkup(options) {
+  var model = options.model;
+  var therapist = model.therapist;
+
+  return (
+    '<article class="directory-backup-card" data-card-slug="' +
+    escapeHtml(therapist.slug) +
+    '"><div class="directory-backup-card-label">Backup</div><div class="directory-backup-card-name">' +
+    escapeHtml(getTherapistDisplayName(therapist.name)) +
+    '</div><div class="directory-backup-card-creds">' +
+    escapeHtml(therapist.credentials || "") +
+    (therapist.title ? " " + escapeHtml(therapist.title) : "") +
+    '</div><div class="directory-backup-card-meta">' +
+    escapeHtml(model.locationSummary || "") +
+    (model.locationSummary && model.careFormatSummary ? " • " : "") +
+    escapeHtml(model.careFormatSummary || "") +
+    "</div>" +
+    renderTrustSignals(model.trustSignals.slice(0, 3), "directory-backup-card-trust") +
+    renderFitReasons(model, 2) +
+    '<div class="directory-backup-card-actions"><a href="' +
+    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(therapist.slug, "backup_contact")) +
+    '"' +
+    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+    ' class="card-action-primary" data-primary-cta="' +
+    escapeHtml(therapist.slug) +
+    '" data-cta-tier="backup">Contact therapist</a><button type="button" class="card-action-secondary" data-view-details="' +
+    escapeHtml(therapist.slug) +
+    '" data-details-tier="backup">View details</button><button type="button" class="card-save-link' +
+    (model.shortlisted ? " active" : "") +
+    '" data-shortlist-slug="' +
+    escapeHtml(therapist.slug) +
+    '">' +
+    (model.shortlisted ? "Saved" : "Save") +
+    "</button></div></article>"
   );
 }
 
 export function renderCardMarkup(options) {
   var model = options.model;
   var therapist = model.therapist;
-  var profileHref = buildTherapistProfileHref(
-    therapist.slug,
-    model.shortlisted ? "card_profile_saved" : "card_profile",
-  );
   var initials = therapist.name
     .split(" ")
     .map(function (part) {
@@ -120,26 +226,14 @@ export function renderCardMarkup(options) {
       (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
       ' class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
-      '">' +
-      escapeHtml(model.contactRoute.label) +
+      '" data-cta-tier="browse">' +
+      escapeHtml(model.contactLabel || "Contact therapist") +
       "</a>"
     : '<a href="' +
       escapeHtml(buildTherapistProfileHref(therapist.slug, "card_primary")) +
       '" class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
-      '">See best next step</a>';
-  var headerStatus =
-    '<div class="card-header-status"><div class="card-header-meta"><div class="card-header-availability ' +
-    escapeHtml(model.acceptanceTone) +
-    '"><span class="card-header-availability-text">' +
-    escapeHtml(model.acceptance) +
-    '</span></div><div class="card-header-fee">' +
-    escapeHtml(model.feeSummary) +
-    '</div></div><a href="' +
-    escapeHtml(profileHref) +
-    '" class="card-inline-link" data-review-fit="' +
-    escapeHtml(therapist.slug) +
-    '">Open profile</a></div>';
+      '" data-cta-tier="browse">Contact therapist</a>';
 
   return (
     '<article class="t-card" data-card-slug="' +
@@ -147,46 +241,92 @@ export function renderCardMarkup(options) {
     '">' +
     '<div class="t-card-top"><div class="t-card-head"><div class="t-avatar">' +
     avatar +
-    "</div>" +
-    headerStatus +
     '</div><div class="t-info"><div class="t-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
     '</div><div class="t-creds">' +
     escapeHtml(therapist.credentials) +
     (therapist.title ? " " + escapeHtml(therapist.title) : "") +
-    '</div><div class="t-loc">📍 ' +
-    escapeHtml(therapist.city) +
-    ", " +
-    escapeHtml(therapist.state) +
+    '</div><div class="t-loc">' +
+    escapeHtml(model.locationSummary || "") +
+    (model.locationSummary && model.careFormatSummary ? " • " : "") +
+    escapeHtml(model.careFormatSummary || "") +
+    '</div></div><div class="card-header-status"><div class="card-header-availability ' +
+    escapeHtml(model.acceptanceTone) +
+    '">' +
+    escapeHtml(model.acceptance) +
+    '</div><div class="card-header-fee">' +
+    escapeHtml(model.availabilitySummary || model.feeSummary) +
     "</div></div></div>" +
+    renderTrustSignals(model.trustSignals.slice(0, 2), "card-trust-signals") +
+    '<p class="card-fit-summary">' +
+    escapeHtml(model.fitSummary) +
+    '</p><div class="card-highlights"><span>' +
+    escapeHtml(model.feeSummary) +
+    "</span>" +
     (model.valuePillHtml ? '<div class="value-pill-row">' + model.valuePillHtml + "</div>" : "") +
-    '<div class="card-actions"><a href="' +
-    escapeHtml(profileHref) +
-    '" class="card-open-profile-btn" data-review-fit="' +
+    "</div>" +
+    '<div class="card-actions"><button type="button" class="card-action-secondary" data-view-details="' +
     escapeHtml(therapist.slug) +
-    '">Open full profile</a><button class="card-action-btn' +
+    '" data-details-tier="browse">View details</button>' +
+    primaryAction +
+    '<button class="card-save-link' +
     (model.shortlisted ? " active" : "") +
     '" data-shortlist-slug="' +
     escapeHtml(therapist.slug) +
     '" type="button">' +
-    (model.shortlisted ? "Saved to list" : "Save to list") +
-    "</button>" +
-    primaryAction +
+    (model.shortlisted ? "Saved" : "Save") +
     "</div>" +
-    (model.shortlisted
-      ? '<div class="card-note-row"><label class="card-priority-label" for="note-' +
-        escapeHtml(therapist.slug) +
-        '">Note</label><input class="card-note-input" id="note-' +
-        escapeHtml(therapist.slug) +
-        '" data-shortlist-note="' +
-        escapeHtml(therapist.slug) +
-        '" type="text" maxlength="120" placeholder="Add a quick reminder..." value="' +
-        escapeHtml(
-          model.shortlistEntry && model.shortlistEntry.note ? model.shortlistEntry.note : "",
-        ) +
-        '" /></div>'
-      : "") +
     "</article>"
+  );
+}
+
+export function renderDirectoryDetailsMarkup(options) {
+  var model = options.model;
+  if (!model || !model.therapist) {
+    return "";
+  }
+
+  return (
+    '<div class="directory-details-sheet"><div class="directory-details-intro"><div><div class="directory-details-kicker">View details</div><h2 class="directory-details-name">' +
+    escapeHtml(getTherapistDisplayName(model.therapist.name)) +
+    '</h2><div class="directory-details-creds">' +
+    escapeHtml(model.therapist.credentials || "") +
+    (model.therapist.title ? " " + escapeHtml(model.therapist.title) : "") +
+    '</div><div class="directory-details-meta">' +
+    escapeHtml(model.locationSummary || "") +
+    (model.locationSummary && model.careFormatSummary ? " • " : "") +
+    escapeHtml(model.careFormatSummary || "") +
+    "</div></div>" +
+    renderTrustSignals(model.trustSignals, "directory-details-trust") +
+    '<div class="directory-details-actions"><a href="' +
+    escapeHtml(model.contactRoute ? model.contactRoute.href : buildTherapistProfileHref(model.therapist.slug, "details_contact")) +
+    '"' +
+    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+    ' class="card-action-primary" data-primary-cta="' +
+    escapeHtml(model.therapist.slug) +
+    '" data-cta-tier="details">Contact therapist</a><button type="button" class="card-save-link' +
+    (model.shortlisted ? " active" : "") +
+    '" data-shortlist-slug="' +
+    escapeHtml(model.therapist.slug) +
+    '">' +
+    (model.shortlisted ? "Saved" : "Save") +
+    '</button></div></div><div class="directory-details-reassurance">' +
+    escapeHtml(model.reassurance) +
+    "</div>" +
+    renderFitReasons(model, 3) +
+    '<div class="directory-details-grid">' +
+    model.detailSections
+      .map(function (section) {
+        return (
+          '<div class="directory-details-item"><div class="directory-details-item-label">' +
+          escapeHtml(section.label) +
+          '</div><div class="directory-details-item-value">' +
+          escapeHtml(section.value) +
+          "</div></div>"
+        );
+      })
+      .join("") +
+    "</div></div>"
   );
 }
 

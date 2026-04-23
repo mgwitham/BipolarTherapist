@@ -27,16 +27,36 @@ test("directory flow harness applies controls, sorts results, and renders the to
       booking_url: "",
       website: "https://example.com/site",
     }),
+    buildDirectoryTestTherapist({
+      slug: "avery-chen",
+      name: "Avery Chen",
+      session_fee_min: 190,
+      accepts_in_person: true,
+    }),
+    buildDirectoryTestTherapist({
+      slug: "riley-ng",
+      name: "Riley Ng",
+      session_fee_min: 175,
+      accepts_in_person: true,
+    }),
+    buildDirectoryTestTherapist({
+      slug: "morgan-patel",
+      name: "Morgan Patel",
+      session_fee_min: 150,
+      accepts_in_person: true,
+    }),
   ];
 
   const flow = runDirectoryTestFlow({ therapists });
 
-  assert.equal(flow.renderState.pageItems[0].slug, "jamie-rivera");
-  assert.equal(flow.renderState.activePreviewSlug, "jamie-rivera");
+  assert.equal(flow.renderState.featuredTherapist.slug, "avery-chen");
+  assert.equal(flow.renderState.backupTherapists.length, 2);
+  assert.equal(flow.renderState.pageItems[0].slug, "riley-ng");
+  assert.equal(flow.renderState.activePreviewSlug, "avery-chen");
   assert.equal(flow.renderState.activeFilterCount, 5);
-  assert.match(flow.html, /Jamie Rivera/);
-  assert.match(flow.html, /Book intro/);
-  assert.match(flow.html, /Save to list/);
+  assert.match(flow.html, /Riley Ng/);
+  assert.match(flow.html, /Contact therapist/);
+  assert.match(flow.html, /Save/);
 });
 
 test("directory flow harness exposes empty results when filters overconstrain the list", function () {
@@ -88,5 +108,5 @@ test("directory flow harness responds to sort changes in controller state", func
   });
 
   assert.equal(flow.sortChanged.filters.sortBy, "soonest_availability");
-  assert.equal(flow.renderState.pageItems[0].slug, "fast-option");
+  assert.equal(flow.renderState.featuredTherapist.slug, "fast-option");
 });

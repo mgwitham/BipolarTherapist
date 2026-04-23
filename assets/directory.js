@@ -1,6 +1,7 @@
 import { fetchDirectoryPageContent } from "./cms.js";
 import {
   readFunnelEvents,
+  rememberTherapistContactRoute,
   trackFunnelEvent,
   summarizeAdaptiveSignals,
 } from "./funnel-analytics.js";
@@ -20,12 +21,17 @@ import { compareTherapistsWithFilters, matchesDirectoryFilters } from "./directo
 
 var DIRECTORY_LIST_LIMIT = 50;
 import {
-  renderDirectoryDecisionPreviewMarkup,
+  renderDirectoryRecommendationsMarkup,
   renderCardMarkup,
+  renderDirectoryDetailsMarkup,
   renderEmptyStateMarkup,
   renderPaginationMarkup,
 } from "./directory-render.js";
-import { buildCardViewModel, buildDirectoryDecisionPreviewModel } from "./directory-view-model.js";
+import {
+  buildCardViewModel,
+  buildDirectoryDetailsViewModel,
+  buildDirectoryRecommendationModel,
+} from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 
 (async function () {
@@ -38,6 +44,8 @@ import { initValuePillPopover } from "./therapist-pills.js";
   var currentPage = 1;
   var pageSize = 12;
   var activePreviewSlug = "";
+  var activeDetailsSlug = "";
+  var lastDetailsTrigger = null;
   var defaultFilters = {
     state: "CA",
     zip: "",
@@ -588,32 +596,27 @@ import { initValuePillPopover } from "./therapist-pills.js";
     return getFilteredWithFilters(filters);
   }
 
-  function renderDirectoryTradeoffPreview(results) {
-    var root = getElement("directoryTradeoffPreview");
+  function getTherapistBySlug(slug) {
+    return therapists.find(function (therapist) {
+      return therapist.slug === slug;
+    });
+  }
+
+  function renderDirectoryRecommendations(renderState) {
+    var root = getElement("directoryRecommendationZone");
     if (!root) {
       return;
     }
 
-    var list = Array.isArray(results) ? results : [];
-    var previewTherapist =
-      list.find(function (item) {
-        return item.slug === activePreviewSlug;
-      }) ||
-      list[0] ||
-      null;
-    var previewMarkup = previewTherapist
-      ? renderDirectoryDecisionPreviewMarkup({
-          model: buildDirectoryDecisionPreviewModel({
-            therapist: previewTherapist,
-            filters: filters,
-            shortlist: shortlist,
-            isShortlisted: isShortlisted,
-          }),
-        })
-      : "";
-
-    root.classList.toggle("is-empty", !previewMarkup);
-    root.innerHTML = previewMarkup;
+    root.innerHTML = renderDirectoryRecommendationsMarkup({
+      model: buildDirectoryRecommendationModel({
+        featuredTherapist: renderState.featuredTherapist,
+        backupTherapists: renderState.backupTherapists,
+        filters: filters,
+        shortlist: shortlist,
+        isShortlisted: isShortlisted,
+      }),
+    });
   }
 
   function renderCard(therapist) {
@@ -639,6 +642,106 @@ import { initValuePillPopover } from "./therapist-pills.js";
     }
 
     grid.innerHTML = pageItems.map(renderCard).join("");
+  }
+
+  function renderBrowseEmptyState() {
+    var grid = getElement("resultsGrid");
+    if (!grid) {
+      return;
+    }
+
+    grid.innerHTML =
+      '<section class="directory-browse-empty"><div class="directory-browse-empty-kicker">More options</div><h3>You already have the strongest options at the top.</h3><p>Start with one of those therapists first. You can still change filters or come back for more results later.</p></section>';
+  }
+
+  function renderDetailsModal(slug) {
+    var body = getElement("directoryDetailsBody");
+    var dialog = getElement("directoryDetailsModal");
+    if (!body || !dialog) {
+      return;
+    }
+
+    if (!slug) {
+      body.innerHTML = "";
+      dialog.setAttribute("aria-hidden", "true");
+      return;
+    }
+
+    var therapist = getTherapistBySlug(slug);
+    if (!therapist) {
+      body.innerHTML = "";
+      dialog.setAttribute("aria-hidden", "true");
+      return;
+    }
+
+    body.innerHTML = renderDirectoryDetailsMarkup({
+      model: buildDirectoryDetailsViewModel({
+        therapist: therapist,
+        filters: filters,
+        shortlist: shortlist,
+        isShortlisted: isShortlisted,
+      }),
+    });
+    dialog.setAttribute("aria-hidden", "false");
+  }
+
+  function openDetailsModal(slug, trigger) {
+    var dialog = getElement("directoryDetailsModal");
+    var scrim = getElement("directoryDetailsScrim");
+    var closeButton = getElement("directoryDetailsClose");
+    if (!dialog || !scrim || !slug) {
+      return;
+    }
+
+    activeDetailsSlug = slug;
+    lastDetailsTrigger = trigger || document.activeElement || null;
+    renderDetailsModal(slug);
+    dialog.hidden = false;
+    scrim.hidden = false;
+
+    requestAnimationFrame(function () {
+      dialog.setAttribute("data-open", "true");
+      scrim.setAttribute("data-open", "true");
+      if (closeButton) {
+        closeButton.focus();
+      }
+    });
+
+    document.body.style.overflow = "hidden";
+    trackFunnelEvent("directory_view_details_clicked", {
+      therapist_slug: slug,
+      sort_by: filters.sortBy,
+    });
+  }
+
+  function closeDetailsModal() {
+    var dialog = getElement("directoryDetailsModal");
+    var scrim = getElement("directoryDetailsScrim");
+    if (!dialog || !scrim) {
+      return;
+    }
+
+    if (!activeDetailsSlug && dialog.hidden) {
+      return;
+    }
+
+    trackFunnelEvent("directory_return_from_details_to_results", {
+      therapist_slug: activeDetailsSlug,
+      sort_by: filters.sortBy,
+    });
+    activeDetailsSlug = "";
+    renderDetailsModal("");
+    dialog.removeAttribute("data-open");
+    scrim.removeAttribute("data-open");
+    window.setTimeout(function () {
+      dialog.hidden = true;
+      scrim.hidden = true;
+    }, 220);
+    document.body.style.overflow = "";
+
+    if (lastDetailsTrigger && typeof lastDetailsTrigger.focus === "function") {
+      lastDetailsTrigger.focus();
+    }
   }
 
   function pulsePendingCard() {
@@ -672,8 +775,14 @@ import { initValuePillPopover } from "./therapist-pills.js";
       activePreviewSlug: activePreviewSlug,
     });
 
-    renderResultsGrid(renderState.pageItems);
-    renderPagination(renderState.results.length);
+    if (!renderState.results.length) {
+      renderResultsGrid([]);
+    } else if (!renderState.pageItems.length) {
+      renderBrowseEmptyState();
+    } else {
+      renderResultsGrid(renderState.pageItems);
+    }
+    renderPagination(renderState.browseResults.length);
     pulsePendingCard();
   }
 
@@ -688,7 +797,6 @@ import { initValuePillPopover } from "./therapist-pills.js";
     });
     var results = renderState.results;
     var pageItems = renderState.pageItems;
-    var grid = getElement("resultsGrid");
     var count = getElement("resultsCount");
     var filterCount = getElement("filterCount");
     var resultsSuffix = renderState.resultsSuffix;
@@ -705,26 +813,39 @@ import { initValuePillPopover } from "./therapist-pills.js";
     renderJourneySummary(results.length, activeFilterCount);
     updateSparseMatchNudge(results.length, activeFilterCount);
 
-    if (!pageItems.length) {
+    if (!results.length) {
+      renderDirectoryRecommendations(renderState);
       renderResultsGrid([]);
-      renderDirectoryTradeoffPreview([]);
       renderPagination(0);
       updateUrl();
       return;
     }
 
     activePreviewSlug = renderState.activePreviewSlug;
-    renderDirectoryTradeoffPreview(results);
-    renderResultsGrid(pageItems);
+    renderDirectoryRecommendations(renderState);
+    if (!pageItems.length) {
+      renderBrowseEmptyState();
+    } else {
+      renderResultsGrid(pageItems);
+    }
     pulsePendingCard();
-    renderPagination(results.length);
+    renderPagination(renderState.browseResults.length);
     updateUrl();
   }
 
   function refreshShortlistViews() {
     var results = getFiltered();
-    renderDirectoryTradeoffPreview(results);
+    var renderState = buildDirectoryRenderState({
+      results: results,
+      currentPage: currentPage,
+      pageSize: pageSize,
+      filters: filters,
+      directoryPage: directoryPage,
+      activePreviewSlug: activePreviewSlug,
+    });
+    renderDirectoryRecommendations(renderState);
     renderCurrentPageOnly(results);
+    renderDetailsModal(activeDetailsSlug);
   }
 
   function applyFilters() {
@@ -819,21 +940,29 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return;
     }
 
-    var primaryLink = event.target.closest("[data-primary-cta]");
-    if (primaryLink) {
-      trackFunnelEvent("directory_primary_cta_clicked", {
-        therapist_slug: primaryLink.getAttribute("data-primary-cta"),
-        sort_by: filters.sortBy,
-      });
+    var detailsButton = event.target.closest("[data-view-details]");
+    if (detailsButton) {
+      openDetailsModal(detailsButton.getAttribute("data-view-details"), detailsButton);
       return;
     }
 
-    var reviewLink = event.target.closest("[data-review-fit]");
-    if (reviewLink) {
-      trackFunnelEvent("directory_profile_review_clicked", {
-        therapist_slug: reviewLink.getAttribute("data-review-fit"),
+    var primaryLink = event.target.closest("[data-primary-cta]");
+    if (primaryLink) {
+      var primarySlug = primaryLink.getAttribute("data-primary-cta");
+      var therapist = getTherapistBySlug(primarySlug);
+      var ctaTier = primaryLink.getAttribute("data-cta-tier") || "browse";
+      if (therapist) {
+        rememberTherapistContactRoute(
+          primarySlug,
+          primaryLink.getAttribute("href"),
+          "directory_" + ctaTier,
+        );
+      }
+      trackFunnelEvent("directory_" + ctaTier + "_contact_cta_clicked", {
+        therapist_slug: primarySlug,
         sort_by: filters.sortBy,
       });
+      return;
     }
   }
 
@@ -853,6 +982,10 @@ import { initValuePillPopover } from "./therapist-pills.js";
     }
 
     currentPage = Number(pageButton.getAttribute("data-page"));
+    trackFunnelEvent("directory_paginated_results", {
+      page: currentPage,
+      sort_by: filters.sortBy,
+    });
     renderCurrentPageOnly(getFiltered());
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -866,7 +999,7 @@ import { initValuePillPopover } from "./therapist-pills.js";
     removeActiveFilter(removeButton.getAttribute("data-remove-filter"));
   }
 
-  function handlePreviewClick(event) {
+  function handleRecommendationClick(event) {
     var shortlistButton = event.target.closest("[data-preview-shortlist]");
     if (shortlistButton) {
       var previewSlug = shortlistButton.getAttribute("data-preview-shortlist");
@@ -879,10 +1012,31 @@ import { initValuePillPopover } from "./therapist-pills.js";
       return;
     }
 
-    var openLink = event.target.closest("[data-preview-open-profile]");
-    if (openLink) {
-      trackFunnelEvent("directory_preview_profile_opened", {
-        therapist_slug: openLink.getAttribute("data-preview-open-profile"),
+    var backupShortlistButton = event.target.closest(".directory-backup-card [data-shortlist-slug]");
+    if (backupShortlistButton) {
+      var backupSlug = backupShortlistButton.getAttribute("data-shortlist-slug");
+      if (!backupSlug) {
+        return;
+      }
+      pendingMotionSlug = backupSlug;
+      toggleShortlist(backupSlug);
+      refreshShortlistViews();
+      return;
+    }
+
+    var detailsButton = event.target.closest("[data-view-details]");
+    if (detailsButton) {
+      openDetailsModal(detailsButton.getAttribute("data-view-details"), detailsButton);
+      return;
+    }
+
+    var primaryLink = event.target.closest("[data-primary-cta]");
+    if (primaryLink) {
+      var slug = primaryLink.getAttribute("data-primary-cta");
+      var tier = primaryLink.getAttribute("data-cta-tier") || "featured";
+      rememberTherapistContactRoute(slug, primaryLink.getAttribute("href"), "directory_" + tier);
+      trackFunnelEvent("directory_" + tier + "_contact_cta_clicked", {
+        therapist_slug: slug,
         sort_by: filters.sortBy,
       });
     }
@@ -922,9 +1076,25 @@ import { initValuePillPopover } from "./therapist-pills.js";
     pagination.addEventListener("click", handlePaginationClick);
   }
 
-  var tradeoffPreview = getElement("directoryTradeoffPreview");
-  if (tradeoffPreview) {
-    tradeoffPreview.addEventListener("click", handlePreviewClick);
+  var recommendationZone = getElement("directoryRecommendationZone");
+  if (recommendationZone) {
+    recommendationZone.addEventListener("click", handleRecommendationClick);
+  }
+
+  var detailsBody = getElement("directoryDetailsBody");
+  if (detailsBody) {
+    detailsBody.addEventListener("click", handleResultsGridClick);
+    detailsBody.addEventListener("change", handleResultsGridChange);
+  }
+
+  var detailsClose = getElement("directoryDetailsClose");
+  if (detailsClose) {
+    detailsClose.addEventListener("click", closeDetailsModal);
+  }
+
+  var detailsScrim = getElement("directoryDetailsScrim");
+  if (detailsScrim) {
+    detailsScrim.addEventListener("click", closeDetailsModal);
   }
 
   FILTER_VALUE_KEYS.filter(function (key) {
@@ -981,7 +1151,20 @@ import { initValuePillPopover } from "./therapist-pills.js";
 
   window.addEventListener("resize", scheduleViewportSync);
 
+  var filtersOpenButton = getElement("dirVbModalOpen");
+  if (filtersOpenButton) {
+    filtersOpenButton.addEventListener("click", function () {
+      trackFunnelEvent("directory_filters_opened", {
+        active_filter_count: countActiveFilters(filters),
+      });
+    });
+  }
+
   document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && activeDetailsSlug) {
+      closeDetailsModal();
+      return;
+    }
     if (
       event.key === "Enter" &&
       (event.target.tagName === "INPUT" || event.target.tagName === "SELECT")
