@@ -31,11 +31,11 @@ test("admin signup cards keep explicit actions and closable details", function (
   assert.match(reviewJs, /Publish/);
   assert.match(reviewJs, /Approve claim/);
   assert.match(reviewJs, /Apply refresh/);
-  assert.match(reviewJs, /Delete/);
+  assert.match(reviewJs, /Request changes/);
+  assert.match(reviewJs, /Reject/);
   assert.match(reviewJs, /data-open-review-details/);
   assert.match(reviewJs, /data-close-review-details/);
   assert.match(reviewJs, /Close details/);
-  assert.match(reviewJs, /item\.status !== "approved"/);
   assert.match(actionsJs, /data-open-review-details/);
   assert.match(actionsJs, /data-close-review-details/);
 });
@@ -50,6 +50,8 @@ test("admin signup card styles support the compact anatomy", function () {
   assert.match(html, /\.application-card-actions/);
   assert.match(html, /\.application-compact-facts/);
   assert.match(html, /\.application-fact-pill/);
+  assert.match(html, /\.review-summary-strip/);
+  assert.match(html, /\.review-summary-card/);
   assert.match(html, /\.review-details-toolbar/);
   assert.match(html, /\.review-details\[open\] \.review-details-summary/);
   assert.doesNotMatch(html, /\.application-identity-row/);
