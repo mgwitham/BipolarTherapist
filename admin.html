@@ -4084,6 +4084,11 @@
       .review-details-body {
         padding: 0 1rem 1rem;
       }
+      .review-details-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0.8rem 0 0.25rem;
+      }
       .status {
         display: inline-flex;
         padding: 0.35rem 0.7rem;
@@ -5172,8 +5177,6 @@
               <a href="#applicationsPanel">Therapist signups</a>
               <a href="#reviewRegion">On hold</a>
               <a href="#requestsRegion">Inbox</a>
-              <a href="#confirmationRegion">Awaiting reply</a>
-              <a href="#liveListingsRegion">Listing maintenance</a>
             </nav>
           </section>
           <aside
@@ -5527,8 +5530,7 @@
                       <h2>Therapist signups</h2>
                       <p class="panel-intro">
                         Profiles submitted directly by therapists. Decide:
-                        <strong>Approve</strong>, <strong>Request changes</strong>, or
-                        <strong>Reject</strong>.
+                        <strong>Publish</strong> or <strong>Delete</strong>.
                       </p>
                       <div id="applicationsGuidance"></div>
                       <div class="sop-note" hidden>
@@ -5629,7 +5631,7 @@
                         <summary class="workflow-guidance-summary">
                           <span class="workflow-guidance-summary-kicker">Advanced filters</span>
                           <span class="workflow-guidance-summary-title">
-                            Fine-tune signups, claim flow, and review goals
+                            Narrow the signup decision queue
                           </span>
                           <span class="workflow-guidance-summary-badge">Secondary</span>
                         </summary>
@@ -5638,8 +5640,7 @@
                             <select id="applicationReviewGoal">
                               <option value="balanced">Balanced review</option>
                               <option value="publish_now">Clear publish-ready work</option>
-                              <option value="fix_weak">Clean up weak applications</option>
-                              <option value="refresh_first">Handle refresh updates</option>
+                              <option value="fix_weak">Review weaker submissions</option>
                             </select>
                             <button
                               type="button"

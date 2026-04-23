@@ -75,7 +75,7 @@ test("admin page: secondary filters are progressively revealed", function () {
   assert.match(html, /id="candidateFilterDetails"/);
   assert.match(html, /Show duplicate and merge states/);
   assert.match(html, /id="applicationFilterDetails"/);
-  assert.match(html, /Fine-tune signups, claim flow, and review goals/);
+  assert.match(html, /Narrow the signup decision queue/);
 });
 
 test("application review cards are compact and keep deeper context behind details", function () {
@@ -83,10 +83,18 @@ test("application review cards are compact and keep deeper context behind detail
   const applicationActionsJs = read("assets/admin-application-actions.js");
 
   assert.match(applicationReviewJs, /Apply refresh/);
+  assert.match(applicationReviewJs, /Publish/);
+  assert.match(applicationReviewJs, /Delete/);
   assert.match(applicationReviewJs, /data-open-review-details/);
-  assert.match(applicationReviewJs, /Details, coaching, and notes/);
+  assert.match(applicationReviewJs, /data-close-review-details/);
+  assert.match(applicationReviewJs, /Close details/);
+  assert.match(applicationReviewJs, /Submitted profile details/);
   assert.match(applicationActionsJs, /data-open-review-details/);
+  assert.match(applicationActionsJs, /data-close-review-details/);
   assert.doesNotMatch(applicationReviewJs, /Review command/);
+  assert.doesNotMatch(applicationReviewJs, /Request fixes/);
+  assert.doesNotMatch(applicationReviewJs, /Reviewer coaching prompts/);
+  assert.doesNotMatch(applicationReviewJs, /Internal notes/);
 });
 
 test("confirmation queue cards stay action-first instead of repeating ask scaffolding", function () {

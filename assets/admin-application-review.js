@@ -60,7 +60,7 @@ function getApplicationStateMeta(config) {
 
 function getPrimaryApplicationActionLabel(config) {
   if (!config) {
-    return "Publish now";
+    return "Publish";
   }
   if (config.isClaimFlow) {
     return "Approve claim";
@@ -68,7 +68,7 @@ function getPrimaryApplicationActionLabel(config) {
   if (config.isConfirmationRefresh) {
     return "Apply refresh";
   }
-  return "Publish now";
+  return "Publish";
 }
 
 function buildCompactApplicationFacts(options, config) {
@@ -684,8 +684,6 @@ export function renderApplicationsPanel(options) {
     filteredApplications
       .map(function (item, index) {
         const readiness = options.getTherapistMatchReadiness(item);
-        const freshness = options.getDataFreshnessSummary(item);
-        const coaching = options.getTherapistReviewCoaching(item);
         const reviewSnapshot = options.getApplicationReviewSnapshot(item);
         const afterClaimReviewStall = options.getAfterClaimReviewStall(item);
         const portalStateLabel =
@@ -695,39 +693,7 @@ export function renderApplicationsPanel(options) {
         const claimFollowUpLabel = options.getClaimFollowUpLabel(item.claim_follow_up_status);
         const claimFollowUpUrgency = options.getClaimFollowUpUrgency(item);
         const isConfirmationRefresh = options.isConfirmationRefreshApplication(item);
-        const therapistReportedFields = Array.isArray(item.therapist_reported_fields)
-          ? item.therapist_reported_fields
-          : [];
-        const therapistReportedDate = item.therapist_reported_confirmed_at
-          ? options.formatDate(item.therapist_reported_confirmed_at)
-          : "";
-        const editorialFollowUps = therapistReportedFields.filter(function (fieldName) {
-          return !item[fieldName] && item[fieldName] !== false;
-        });
-        const improvementRequest = options.buildImprovementRequest(item, coaching);
-        const claimRequest = options.buildClaimReviewRequest(item);
         const claimFollowUpMessage = options.buildClaimFollowUpMessage(item);
-        const reviewEvents = options.getReviewEventsForApplication(item);
-        const revisionLink = new URL(
-          "signup.html?revise=" + encodeURIComponent(item.id),
-          window.location.href,
-        ).toString();
-        const confirmationLink = item.slug ? options.buildConfirmationLink(item.slug) : "";
-        const linkedTherapist = options.getApplicationLinkedTherapist(item);
-        const liveSyncSnapshot =
-          linkedTherapist &&
-          ["claim_existing", "update_existing", "confirmation_update"].includes(
-            String(item.intake_type || ""),
-          )
-            ? options.getApplicationLiveSyncSnapshot(item, linkedTherapist)
-            : null;
-        const applicationDiffHtml =
-          linkedTherapist &&
-          ["claim_existing", "update_existing", "confirmation_update"].includes(
-            String(item.intake_type || ""),
-          )
-            ? options.renderApplicationDiffHtml(item, linkedTherapist)
-            : "";
         const fitTags = []
           .concat(item.treatment_modalities || [])
           .concat(item.client_populations || [])
@@ -768,88 +734,17 @@ export function renderApplicationsPanel(options) {
           isClaimFlow: isClaimFlow,
           isConfirmationRefresh: isConfirmationRefresh,
         });
-        const secondaryActionList = [];
-        if (
-          item.status === "pending" ||
-          item.status === "reviewing" ||
-          item.status === "requested_changes"
-        ) {
-          if (!(item.status === "pending" && !isClaimFlow && false)) {
-            if (item.status === "pending") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="reviewing" data-id="' +
-                  item.id +
-                  '">Start review now</button>',
-              );
-            }
-            secondaryActionList.push(
-              '<button class="btn-secondary" data-action="requested_changes" data-id="' +
-                item.id +
-                '" data-request="' +
-                options.escapeHtml(isClaimFlow ? claimRequest : improvementRequest) +
-                '" data-link="' +
-                options.escapeHtml(isConfirmationRefresh ? confirmationLink : revisionLink) +
-                '">' +
-                (isClaimFlow ? "Request fixes" : "Request fixes") +
-                "</button>",
-            );
-            if (item.status === "reviewing" || item.status === "requested_changes") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="pending" data-id="' +
-                  item.id +
-                  '">Move to Pending</button>',
-              );
-            }
-            if (item.status !== "requested_changes") {
-              secondaryActionList.push(
-                '<button class="btn-secondary" data-action="reject" data-id="' +
-                  item.id +
-                  '">Reject</button>',
-              );
-            }
-          }
-        }
-        const contextActionList = [];
-        if (item.email) {
-          contextActionList.push(
-            '<a class="btn-secondary btn-inline" href="mailto:' +
-              options.escapeHtml(item.email) +
-              '">Email therapist</a>',
-          );
-        }
-        if (item.status === "requested_changes" || item.status === "approved") {
-          contextActionList.push(
-            '<button class="btn-secondary" data-action="copy-revision-link" data-id="' +
+        const deleteActionHtml =
+          item.status === "approved"
+            ? ""
+            : '<button class="btn-secondary" data-action="reject" data-id="' +
               item.id +
-              '" data-link="' +
-              options.escapeHtml(
-                item.status === "approved" && isClaimFlow
-                  ? revisionLink
-                  : isConfirmationRefresh
-                    ? confirmationLink
-                    : revisionLink,
-              ) +
               '">' +
-              options.escapeHtml(
-                item.status === "approved" && isClaimFlow
-                  ? "Copy full-profile invite"
-                  : isConfirmationRefresh
-                    ? "Copy confirmation link"
-                    : isClaimFlow
-                      ? "Copy claim fix link"
-                      : "Copy fix request link",
-              ) +
-              "</button>",
-          );
-        }
-        const compactSecondaryActions = secondaryActionList
-          .filter(function (actionHtml) {
-            return !/Move to Pending/.test(actionHtml);
-          })
-          .slice(0, 2);
+              options.escapeHtml(isClaimFlow ? "Reject" : "Delete") +
+              "</button>";
         const compactActions = []
           .concat(primaryActionHtml ? [primaryActionHtml] : [])
-          .concat(compactSecondaryActions)
+          .concat(deleteActionHtml ? [deleteActionHtml] : [])
           .concat([
             '<button class="btn-secondary btn-inline" type="button" data-open-review-details="' +
               options.escapeHtml(item.id) +
@@ -925,7 +820,9 @@ export function renderApplicationsPanel(options) {
           "</div>" +
           '<details class="review-details" data-review-details-id="' +
           options.escapeHtml(item.id) +
-          '"><summary class="review-details-summary">Details, coaching, and notes</summary><div class="review-details-body">' +
+          '"><summary class="review-details-summary">Submitted profile details</summary><div class="review-details-body"><div class="review-details-toolbar"><button class="btn-secondary btn-inline" type="button" data-close-review-details="' +
+          options.escapeHtml(item.id) +
+          '">Close details</button></div>' +
           '<div class="review-snapshot-box"><div class="review-snapshot-title">Why this is in queue</div><div class="review-snapshot-copy"><strong>' +
           options.escapeHtml(stateMeta.title) +
           ":</strong> " +
@@ -972,12 +869,6 @@ export function renderApplicationsPanel(options) {
               "</div>"
             : "") +
           "</div>" +
-          (contextActionList.length
-            ? '<div class="notes-box"><label><strong>Quick tools</strong></label><div class="review-coach-actions">' +
-              contextActionList.join("") +
-              "</div></div>"
-            : "") +
-          applicationDiffHtml +
           (item.care_approach
             ? '<p class="application-bio"><strong>How they help bipolar clients:</strong> ' +
               options.escapeHtml(item.care_approach) +
@@ -1060,9 +951,6 @@ export function renderApplicationsPanel(options) {
           options.escapeHtml((item.telehealth_states || []).join(", ") || "Not provided") +
           "</div>" +
           "</div>" +
-          (actionFlash && index !== 0
-            ? '<div class="review-coach-status">' + options.escapeHtml(actionFlash) + "</div>"
-            : "") +
           (item.portal_state === "claimed_ready_for_profile"
             ? '<div class="notes-box"><label><strong>Approved-claim follow-up</strong></label><div class="subtle"><strong>Status:</strong> ' +
               options.escapeHtml(claimFollowUpLabel) +
@@ -1097,114 +985,7 @@ export function renderApplicationsPanel(options) {
               item.id +
               '">Ready for follow-up</span></div></div>'
             : "") +
-          (isConfirmationRefresh
-            ? '<div class="notes-box"><label><strong>Confirmation refresh</strong></label><div class="subtle">This submission is tied to an existing live therapist profile and is meant to refresh high-value operational details without creating a brand-new listing.</div>' +
-              (item.published_therapist_id
-                ? '<div class="subtle">Linked live therapist ID: ' +
-                  options.escapeHtml(item.published_therapist_id) +
-                  "</div>"
-                : "") +
-              (confirmationLink
-                ? '<div class="subtle">Therapist update link: <a href="' +
-                  options.escapeHtml(confirmationLink) +
-                  '" target="_blank" rel="noopener">Open confirmation form</a></div>'
-                : "") +
-              "</div>"
-            : "") +
-          (therapistReportedFields.length
-            ? '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="tag-row">' +
-              therapistReportedFields
-                .map(function (fieldName) {
-                  return (
-                    '<span class="tag">' +
-                    options.escapeHtml(options.formatFieldLabel(fieldName)) +
-                    " · therapist confirmed</span>"
-                  );
-                })
-                .join("") +
-              '</div><div class="subtle">Last specialist confirmation: ' +
-              options.escapeHtml(therapistReportedDate || "Not provided") +
-              "</div>" +
-              (editorialFollowUps.length
-                ? '<div class="subtle">Still worth editorial follow-up: ' +
-                  options.escapeHtml(
-                    editorialFollowUps.map(options.formatFieldLabel).join(", ") ||
-                      "None currently flagged",
-                  ) +
-                  "</div>"
-                : "")
-            : '<div class="notes-box"><label><strong>Source clarity</strong></label><div class="subtle">No therapist-confirmed operational fields are marked yet.</div>') +
-          "</div>" +
-          '<div class="notes-box"><label><strong>Field-level review states</strong></label>' +
-          options.buildFieldReviewControls(item) +
-          '<div class="subtle">Use this to distinguish details that are still therapist-confirmed from details your team has independently verified.</div></div>' +
-          '<div class="notes-box"><label><strong>Freshness audit</strong></label><div class="subtle"><strong>' +
-          options.escapeHtml(freshness.label) +
-          ":</strong> " +
-          options.escapeHtml(freshness.note) +
-          "</div></div>" +
-          (readiness.strengths.length
-            ? '<div class="notes-box"><label><strong>Already strong for matching</strong></label><div class="tag-row">' +
-              readiness.strengths
-                .map(function (strength) {
-                  return '<span class="tag">' + options.escapeHtml(strength) + "</span>";
-                })
-                .join("") +
-              "</div></div>"
-            : "") +
-          (readiness.missing_items.length
-            ? '<div class="notes-box"><label><strong>Best next fixes for match quality</strong></label><div class="tag-row">' +
-              readiness.missing_items
-                .map(function (itemText) {
-                  return '<span class="tag">' + options.escapeHtml(itemText) + "</span>";
-                })
-                .join("") +
-              "</div></div>"
-            : "") +
-          (coaching.length
-            ? '<div class="notes-box review-coach-box"><label><strong>Reviewer coaching prompts</strong></label><div class="review-coach-list">' +
-              coaching
-                .map(function (itemText) {
-                  return (
-                    '<div class="review-coach-item">' + options.escapeHtml(itemText) + "</div>"
-                  );
-                })
-                .join("") +
-              '</div><div class="review-coach-actions"><button class="btn-secondary" data-action="copy-improvement-request" data-id="' +
-              item.id +
-              '" data-request="' +
-              options.escapeHtml(improvementRequest) +
-              '">Copy improvement request</button><button class="btn-secondary" data-action="append-improvement-request" data-id="' +
-              item.id +
-              '" data-request="' +
-              options.escapeHtml(improvementRequest) +
-              '">Add request to notes</button><span class="review-coach-status" data-coach-status-id="' +
-              item.id +
-              '">Ready to reuse</span></div>' +
-              "</div></div>"
-            : "") +
-          options.renderReviewEventSnippetHtml(reviewEvents, {
-            escapeHtml: options.escapeHtml,
-            formatDate: options.formatDate,
-          }) +
-          options.renderReviewEventTimelineHtml(reviewEvents, {
-            escapeHtml: options.escapeHtml,
-            formatDate: options.formatDate,
-          }) +
-          options.renderReviewEntityTaskHtml("application", item.id, {
-            escapeHtml: options.escapeHtml,
-            formatDate: options.formatDate,
-          }) +
-          options.buildRevisionHistoryHtml(item) +
-          '<div class="notes-box"><label><strong>Internal notes</strong></label><textarea data-notes-id="' +
-          item.id +
-          '" placeholder="Add review notes, follow-up items, or context for later...">' +
-          (item.notes || "") +
-          '</textarea><div class="notes-actions"><button class="btn-secondary" data-action="save-notes" data-id="' +
-          item.id +
-          '">Save Notes</button><span class="mini-status">' +
-          (item.notes ? "Notes saved" : "No notes yet") +
-          "</span></div></div></div></details>" +
+          "</div></details>" +
           "</article>"
         );
       })

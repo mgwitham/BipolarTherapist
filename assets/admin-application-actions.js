@@ -127,9 +127,26 @@ export function bindApplicationPanelInteractions(root, options) {
       var id = button.getAttribute("data-open-review-details");
       var details = root.querySelector('[data-review-details-id="' + id + '"]');
       if (details) {
-        details.open = true;
-        details.scrollIntoView({ behavior: "smooth", block: "start" });
-        options.spotlightSection(details);
+        var nextOpen = !details.open;
+        details.open = nextOpen;
+        if (nextOpen) {
+          details.scrollIntoView({ behavior: "smooth", block: "start" });
+          options.spotlightSection(details);
+        }
+      }
+    });
+  });
+
+  root.querySelectorAll("[data-close-review-details]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var id = button.getAttribute("data-close-review-details");
+      var details = root.querySelector('[data-review-details-id="' + id + '"]');
+      var card = root.querySelector('[data-application-card-id="' + id + '"]');
+      if (details) {
+        details.open = false;
+      }
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
