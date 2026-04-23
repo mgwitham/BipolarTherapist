@@ -84,7 +84,6 @@ import {
   createRemoteAuthRequiredState,
   createRemoteSignedInState,
 } from "./admin-state.js";
-import { buildCoverageInsights } from "./admin-sourcing-intelligence.js";
 import {
   bindCandidateEditDrawer,
   openCandidateEditDrawer,
@@ -5648,7 +5647,12 @@ function renderIngestionScorecard() {
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
-  withLazyAdminModule("./admin-ingestion-scorecard.js", function (module) {
+  Promise.all([
+    loadAdminLazyModule("./admin-ingestion-scorecard.js"),
+    loadAdminLazyModule("./admin-sourcing-intelligence.js"),
+  ]).then(function (loadedModules) {
+    var module = loadedModules[0];
+    var sourcingIntelligenceModule = loadedModules[1];
     module.renderIngestionScorecardPanel({
       root: document.getElementById("ingestionScorecard"),
       authRequired: authRequired,
@@ -5660,7 +5664,7 @@ function renderIngestionScorecard() {
       licensureRefreshQueue: licensureRefreshQueue,
       licensureActivityFeed: licensureActivityFeed,
       buildCoverageInsights: function (therapists) {
-        return buildCoverageInsights(therapists, {
+        return sourcingIntelligenceModule.buildCoverageInsights(therapists, {
           inferCoverageRole: inferCoverageRole,
           getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
         });

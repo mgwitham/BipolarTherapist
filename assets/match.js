@@ -85,6 +85,7 @@ var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
 var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+var zipcodesPreloadPromise = null;
 var activeSecondPassMode = "balanced";
 var activeMatchExperimentVariant = "control";
 var OUTREACH_OUTCOME_OPTIONS = [
@@ -187,6 +188,40 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function startZipcodesPreload() {
+  if (!zipcodesPreloadPromise) {
+    zipcodesPreloadPromise = preloadZipcodes().catch(function () {
+      return null;
+    });
+  }
+  return zipcodesPreloadPromise;
+}
+
+function maybeWarmZipcodesForValue(value) {
+  var normalizedZip = normalizeLocationQuery(value);
+  if (!normalizedZip) {
+    return;
+  }
+
+  startZipcodesPreload().then(function () {
+    var form = document.getElementById("matchForm");
+    if (!form || !form.elements || !form.elements.location_query) {
+      return;
+    }
+    if (normalizeLocationQuery(form.elements.location_query.value) !== normalizedZip) {
+      return;
+    }
+    refreshIntakeUiFromForm();
+  });
+}
+
+async function ensureZipcodesReadyForProfile(profile) {
+  if (!normalizeLocationQuery(profile && profile.location_query)) {
+    return;
+  }
+  await startZipcodesPreload();
 }
 
 function readShortlistReshapeHistory() {
@@ -761,7 +796,7 @@ function maybeLiveRecompute(event) {
       : event && event.target && event.target.id
         ? event.target.id
         : "";
-  liveRecomputeTimer = window.setTimeout(function () {
+  liveRecomputeTimer = window.setTimeout(async function () {
     liveRecomputeTimer = null;
     // The drawer now lives at its original DOM position (inside
     // .match-layout), NOT inside #matchResults — so wiping
@@ -769,6 +804,7 @@ function maybeLiveRecompute(event) {
     // the drawer subtree. Live recompute is safe again: cards under
     // the dimmed backdrop animate as the user tweaks filters.
     var profile = readCurrentIntakeProfile();
+    await ensureZipcodesReadyForProfile(profile);
     executeMatch(profile, {
       scroll: false,
       source: "match_live_refine",
@@ -5165,9 +5201,10 @@ function renderResults(entries, profile) {
   }
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
   var profile = readCurrentIntakeProfile();
+  await ensureZipcodesReadyForProfile(profile);
   executeMatch(profile, {
     scroll: true,
     source: currentJourneyId ? "match_refine" : "match_page",
@@ -5323,8 +5360,9 @@ function refreshIntakeUiFromForm() {
 
 (async function init() {
   initValuePillPopover();
-  await preloadZipcodes();
-  therapists = await fetchPublicTherapists();
+  startZipcodesPreload();
+  var therapistsPromise = fetchPublicTherapists();
+  therapists = await therapistsPromise;
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
   trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {
@@ -5339,10 +5377,12 @@ function refreshIntakeUiFromForm() {
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function (event) {
+    maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
     maybeLiveRecompute(event);
   });
   matchForm.addEventListener("change", function (event) {
+    maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
     maybeLiveRecompute(event);
   });
@@ -5373,6 +5413,7 @@ function refreshIntakeUiFromForm() {
   refreshIntakeUiFromForm();
   if (restoredProfile) {
     hydrateForm(restoredProfile);
+    await ensureZipcodesReadyForProfile(restoredProfile);
     executeMatch(restoredProfile, {
       scroll: false,
       source: "homepage_handoff",
@@ -5392,6 +5433,7 @@ function refreshIntakeUiFromForm() {
     fallbackProfile &&
     fallbackProfile.care_state
   ) {
+    await ensureZipcodesReadyForProfile(fallbackProfile);
     executeMatch(fallbackProfile, {
       scroll: false,
       source: "restored_fallback",

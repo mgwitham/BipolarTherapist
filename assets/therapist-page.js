@@ -1738,7 +1738,7 @@ function updateShortlistAction(slugValue) {
   }
 }
 
-async function resolveTherapistForProfile(slugValue) {
+async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) {
   var exact = await fetchPublicTherapistBySlug(slugValue);
   if (exact) {
     return exact;
@@ -1751,7 +1751,9 @@ async function resolveTherapistForProfile(slugValue) {
     return null;
   }
 
-  var therapists = await fetchPublicTherapists();
+  var therapists = therapistDirectoryPromise
+    ? await therapistDirectoryPromise
+    : await fetchPublicTherapists();
   return (
     therapists.find(function (item) {
       var itemSlug = String((item && item.slug) || "").toLowerCase();
@@ -1768,8 +1770,9 @@ async function resolveTherapistForProfile(slugValue) {
       return;
     }
 
-    var therapist = await resolveTherapistForProfile(slug);
-    var therapistDirectory = await fetchPublicTherapists();
+    var therapistDirectoryPromise = fetchPublicTherapists();
+    var therapist = await resolveTherapistForProfile(slug, therapistDirectoryPromise);
+    var therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
