@@ -28,9 +28,11 @@ failure mode we explicitly reject.
    on the clinician's own site or a public license registry. Never
    invent, never infer. Blank beats wrong.
 2. Quality floor, not quota. Stop emitting when the well runs dry.
-3. Own-site only. Aggregator URLs (Psychology Today, TherapyDen,
-   Zocdoc, Headway, Alma, Grow Therapy, GoodTherapy) are never a
-   sourceUrl. Use them only as a lead to find the clinician's own site.
+3. Prefer own-site URLs. Aggregator URLs (Psychology Today, TherapyDen,
+   Zocdoc, Headway, Alma, Grow Therapy, GoodTherapy) are NOT acceptable
+   by default. A narrow carve-out exists (see AGGREGATOR CARVE-OUT
+   below) for solo clinicians in small/underserved markets when license
+   and bipolar signal are both verifiable.
 4. One at a time. Research → verify → emit one candidate fully before
    starting the next. Batching causes hallucinated license numbers.
 5. Verbatim or blank. Every quoted field must be copied from the
@@ -43,11 +45,16 @@ A row is useless if any of these is missing.
 ## 1. Individual licensed clinician
 
 ACCEPT: a named person with their own page, their own license, their
-own bio. Solo practice OR a distinct profile within a group.
+own bio. Solo practice OR a distinct per-clinician bio page within a
+group practice site (e.g. `groupsite.com/about/dr-jane-smith`). If
+the group site links to per-clinician pages, those are valid
+`sourceUrl` values — dig into the pages, do not reject at the group
+level.
 
 REJECT: group-practice homepages, clinic service pages, hospital
 department pages, treatment-center sites, "meet the team" grids
-without per-clinician pages, SEO content that could apply to anyone.
+that do not link to per-clinician bio pages, SEO content that could
+apply to anyone.
 
 ## 2. Active California license, license number captured
 
@@ -70,18 +77,21 @@ If after these four paths you cannot find a CA license number for a
 candidate, REJECT them. Do not guess, do not skip the field and emit
 the row anyway.
 
-## 3. Substantive bipolar specialization on their own site
+## 3. Substantive bipolar specialization
 
-BOTH (a) and (b) must be true.
+The bipolar signal must be visible on whatever page becomes the
+`sourceUrl` — their own site, their per-clinician bio page on a
+group site, or their aggregator profile if you are invoking the
+carve-out below. BOTH (a) and (b) must be true.
 
-(a) Bipolar-specific vocabulary appears on the site. At least one of:
+(a) Bipolar-specific vocabulary appears on the page. At least one of:
     bipolar I, bipolar II, manic, hypomanic, mixed episode, cyclothymia,
     mood stabilizer, lithium, lamotrigine, IPSRT, interpersonal social
     rhythm therapy, family-focused therapy (FFT), STEP-BD, DBSA,
     psychoeducation for bipolar, prodromal, relapse prevention for
     bipolar. "Mood disorders" alone is NOT enough.
 
-(b) Substantive focus, verifiable on the site — at least ONE of:
+(b) Substantive focus, verifiable on the page — at least ONE of:
     - A page, blog post, or on-page section centered on bipolar
       disorder specifically (not a generic mental-health page that
       mentions it in one bullet)
@@ -141,13 +151,54 @@ failure modes from prior batches.
   city-targeted SEO landing pages; the clinicians are real but the
   URLs don't identify them
 - "care.headway.co/*", "growtherapy.com/*", "alma.com/*",
-  "headway.co/*" — aggregators, never a valid sourceUrl
+  "headway.co/*" — aggregators, not a default `sourceUrl` (see the
+  AGGREGATOR CARVE-OUT below for the narrow exception)
 - "calmedeval.com/wp-content/uploads/*.pdf" — CV PDFs of medical
   evaluators, not practicing clinicians
 - "*/wp-content/uploads/*.pdf" on any site — CV PDFs, not profile pages
 - "linkedin.com/*" — not a profile page in the sense we mean
 - Any page whose URL slug is a plain specialty term ("/bipolar",
   "/depression") on a group-practice site — service page
+
+# AGGREGATOR CARVE-OUT (narrow exception)
+
+Small CA cities (Highland, Redlands, Visalia, Chico, etc.) often have
+legitimate solo bipolar clinicians whose only web presence is an
+aggregator profile or a per-clinician bio on a group-practice site.
+Rejecting them for lack of a personal domain leaves real specialists
+out of the directory. The carve-out below is intentionally narrow —
+do NOT use it as a shortcut on your first city.
+
+You MAY use an aggregator profile URL (Psychology Today, Headway,
+Grow Therapy, Alma, TherapyDen, Rula) as `sourceUrl` ONLY when ALL
+FOUR of these hold:
+
+1. **License verified independently.** You located the CA license
+   number via NPI Registry or npiprofile.com (source b or c in the
+   license hierarchy), not from the aggregator itself. Aggregator-
+   stated license numbers are not trustworthy on their own.
+2. **Bipolar signal is substantial on the aggregator profile.**
+   Hard requirement #3 still applies — dedicated bipolar paragraph,
+   named training, or case language. A bipolar checkbox in the
+   aggregator's specialty list is NOT enough.
+3. **Clinician is solo or effectively solo.** They are not one of
+   ten clinicians listed under a group practice umbrella on the
+   aggregator. Look for "individual practice," "solo practitioner,"
+   or a single-person aggregator profile with no clinic branding.
+4. **No own site exists.** You searched by "name + city + therapy"
+   and did not find a personal website or group-site bio page. If
+   they have their own site, use that instead.
+
+When you invoke the carve-out, add a note in `clinicalNotes` starting
+with "Aggregator carve-out:" so the reviewer sees the flag. Example:
+`"Aggregator carve-out: PT-only; NPI license verified; solo Highland
+practitioner."`
+
+Group-practice per-clinician bio pages (e.g.
+`inlandpsychredlands.com/clinicians/dr-jane-smith`) are NOT subject
+to the carve-out rules — they are valid `sourceUrl` values by default
+under hard requirement #1, provided the bio contains the bipolar
+signal and a discoverable license number.
 
 # SIGNALS THAT BOOST CONFIDENCE (capture when visible)
 
@@ -456,7 +507,13 @@ Each of these would pass a naive read but fails the real bar:
 ```csv
 https://www.psychologytoday.com/us/therapists/ca/los-angeles/98765,Casey Morgan,LMFT,,Los Angeles,CA,90025,CA,LMFT 98765,,,,,,,Bipolar Disorder|Anxiety,,,,,,,low,,
 ```
-REJECT: sourceUrl is Psychology Today (aggregator hard-exclusion).
+REJECT: Psychology Today URL without the AGGREGATOR CARVE-OUT
+conditions met — license is not independently verified (blank), the
+specialty is a generic "Bipolar Disorder|Anxiety" tag list (no
+substantive bipolar paragraph visible), and there is no carve-out
+note in clinicalNotes. A valid carve-out row would have an NPI-
+verified license number, a bipolar-specific quote pulled from the PT
+profile, and `clinicalNotes` beginning "Aggregator carve-out:".
 
 ```csv
 https://westsidemoodclinic.com/services/bipolar,Alex Chen,MD,Westside Mood Clinic,Los Angeles,CA,90025,CA,MD A99999,,,,,,,Bipolar I|Bipolar II,Medication management,,,,,,,medium,"We treat bipolar disorder, depression, and anxiety.",
@@ -560,6 +617,10 @@ For each row, ask:
      insurance)? Blank is fine; skipped is not.
   9. Are specialties and treatmentModalities drawn only from the
      canonical lists? No invented categories?
+ 10. If the sourceUrl is an aggregator domain, have I met ALL four
+     AGGREGATOR CARVE-OUT conditions (NPI-verified license,
+     substantial bipolar signal on the profile, solo clinician, no
+     own site)? Did I tag clinicalNotes with "Aggregator carve-out:"?
 
 If any answer is no, fix the row or move it to the rejection log.
 
