@@ -1,3 +1,79 @@
+import discoveryPromptTemplate from "../docs/discovery-prompt.template.txt?raw";
+
+const DEFAULT_DISCOVERY_COUNT = 10;
+
+function buildCityIndex(therapists) {
+  const index = new Map();
+  (therapists || []).forEach(function (item) {
+    const city = item.city || "";
+    const state = item.state || "";
+    if (!city) return;
+    const key = [city, state].filter(Boolean).join(", ");
+    const entry = index.get(key) || { city: city, state: state, zips: new Set(), entries: [] };
+    if (item.zip) entry.zips.add(String(item.zip).slice(0, 5));
+    entry.entries.push({
+      name: item.name || "",
+      credentials: item.credentials || "",
+      sourceUrl: item.source_url || item.sourceUrl || item.website || "",
+    });
+    index.set(key, entry);
+  });
+  return index;
+}
+
+function formatCoveredZips(zips) {
+  if (!zips || !zips.size) return "";
+  return Array.from(zips).sort().join(", ");
+}
+
+function buildZipsClause(cityEntry, cityLabel) {
+  if (!cityEntry || !cityEntry.zips.size) {
+    return (
+      "neighborhoods across " +
+      cityLabel +
+      " — we have no clinicians in this city yet; spread results across 4-5 distinct neighborhoods"
+    );
+  }
+  const covered = formatCoveredZips(cityEntry.zips);
+  return (
+    "neighborhoods across " +
+    cityLabel +
+    " — already covered ZIPs: " +
+    covered +
+    "; prioritize candidates in ZIPs we do NOT yet cover, spread across 4-5 distinct neighborhoods"
+  );
+}
+
+function buildExclusionsClause(cityEntry) {
+  if (!cityEntry || !cityEntry.entries.length) {
+    return "# ALREADY IN OUR DATABASE\n\nNo existing listings in this city yet.";
+  }
+  const lines = cityEntry.entries
+    .slice(0, 30)
+    .map(function (item) {
+      const parts = [item.name];
+      if (item.credentials) parts.push("(" + item.credentials + ")");
+      if (item.sourceUrl) parts.push("— " + item.sourceUrl);
+      return "- " + parts.filter(Boolean).join(" ");
+    })
+    .join("\n");
+  return (
+    "# ALREADY IN OUR DATABASE (do not re-propose)\n\nThe following clinicians are already in the directory. Do not propose them again:\n\n" +
+    lines
+  );
+}
+
+export function buildDiscoveryPromptForCity(cityLabel, cityEntry, count) {
+  const n = Number(count) > 0 ? Math.floor(Number(count)) : DEFAULT_DISCOVERY_COUNT;
+  const zipsClause = buildZipsClause(cityEntry, cityLabel);
+  const exclusions = buildExclusionsClause(cityEntry);
+  return discoveryPromptTemplate
+    .replace(/\{CITY\}/g, cityLabel)
+    .replace(/\{N\}/g, String(n))
+    .replace(/\{ZIPS\}/g, zipsClause)
+    .replace(/\{EXCLUSIONS\}/g, exclusions);
+}
+
 export function buildCoverageInsights(therapists, helpers) {
   const byCity = new Map();
   const sourceDomains = new Map();
@@ -103,11 +179,13 @@ export function renderCoverageIntelligencePanel(options) {
     inferCoverageRole: options.inferCoverageRole,
     getTherapistFieldTrustAttentionCount: options.getTherapistFieldTrustAttentionCount,
   });
+  const cityIndex = buildCityIndex(therapists);
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians. Click Copy discovery prompt to pull a ChatGPT-ready brief that skips the ZIPs we already cover.</div><div class="queue-insights-grid">' +
     insights.thinnestCities
       .map(function (row) {
+        const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
         const gaps = [];
         if (row.psychiatry === 0) gaps.push("No psychiatry");
         if (row.telehealth === 0) gaps.push("No telehealth");
@@ -115,7 +193,7 @@ export function renderCoverageIntelligencePanel(options) {
         if (row.trustRisk > 0) gaps.push(String(row.trustRisk) + " trust-risk listings");
         return (
           '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-          options.escapeHtml([row.city, row.state].filter(Boolean).join(", ")) +
+          options.escapeHtml(cityLabel) +
           '</strong></div><div class="queue-insight-note">' +
           options.escapeHtml(
             row.total +
@@ -127,11 +205,13 @@ export function renderCoverageIntelligencePanel(options) {
           ) +
           '</div><div class="queue-insight-note">' +
           options.escapeHtml(gaps.join(" · ") || "Balanced coverage") +
-          "</div></div>"
+          '</div><button type="button" class="btn-secondary btn-inline" data-discovery-city="' +
+          options.escapeHtml(cityLabel) +
+          '" style="margin-top:0.6rem">Copy discovery prompt</button></div>'
         );
       })
       .join("") +
-    "</div></div>" +
+    '</div><div class="review-coach-status" id="coverageDiscoveryStatus" style="margin-top:0.6rem"></div></div>' +
     '<div class="queue-insights"><div class="queue-insights-title">Graph balance</div><div class="queue-insights-grid">' +
     [
       {
@@ -177,4 +257,20 @@ export function renderCoverageIntelligencePanel(options) {
       })
       .join("") +
     "</div></div>";
+
+  root.querySelectorAll("[data-discovery-city]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const cityLabel = button.getAttribute("data-discovery-city") || "";
+      if (!cityLabel) return;
+      const cityEntry = cityIndex.get(cityLabel);
+      const prompt = buildDiscoveryPromptForCity(cityLabel, cityEntry, DEFAULT_DISCOVERY_COUNT);
+      const status = root.querySelector("#coverageDiscoveryStatus");
+      const success = await options.copyText(prompt);
+      if (status) {
+        status.textContent = success
+          ? "Discovery prompt copied for " + cityLabel + ". Paste into ChatGPT."
+          : "Could not copy prompt for " + cityLabel + ".";
+      }
+    });
+  });
 }

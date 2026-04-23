@@ -304,6 +304,52 @@ export const therapistCandidateType = defineType({
       initialValue: false,
     }),
     defineField({
+      name: "availabilityPosture",
+      title: "Availability posture",
+      type: "string",
+      group: "fit",
+      options: {
+        list: [
+          { title: "Accepting now", value: "accepting_now" },
+          { title: "Waitlist", value: "waitlist" },
+          { title: "Not accepting", value: "not_accepting" },
+        ],
+      },
+    }),
+    defineField({
+      name: "waitlistWeeks",
+      title: "Waitlist duration (weeks)",
+      type: "number",
+      group: "fit",
+    }),
+    defineField({
+      name: "prescribingMode",
+      title: "Prescribing mode",
+      description: "Only applies to MD/DO/PMHNP clinicians.",
+      type: "string",
+      group: "fit",
+      options: {
+        list: [
+          { title: "Medication management only", value: "med_mgmt_only" },
+          { title: "Medication management + psychotherapy", value: "med_mgmt_plus_therapy" },
+          { title: "Collaborative care", value: "collaborative_care" },
+        ],
+      },
+    }),
+    defineField({
+      name: "crisisPosture",
+      title: "Crisis posture",
+      type: "string",
+      group: "fit",
+      options: {
+        list: [
+          { title: "Acute / high-acuity", value: "acute" },
+          { title: "Stable maintenance", value: "stable_maintenance" },
+          { title: "Both", value: "both" },
+        ],
+      },
+    }),
+    defineField({
       name: "dedupeStatus",
       title: "Dedupe status",
       type: "string",

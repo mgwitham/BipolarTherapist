@@ -536,6 +536,10 @@ function buildCandidateDocument(row, context, index) {
     sessionFeeMin: parseNumber(row.sessionFeeMin),
     sessionFeeMax: parseNumber(row.sessionFeeMax),
     slidingScale: parseBoolean(row.slidingScale, false),
+    availabilityPosture: (row.availabilityPosture || "").toLowerCase() || "",
+    waitlistWeeks: parseNumber(row.waitlistWeeks),
+    prescribingMode: (row.prescribingMode || "").toLowerCase() || "",
+    crisisPosture: (row.crisisPosture || "").toLowerCase() || "",
     dedupeStatus: dedupeStatus,
     dedupeReasons: bestReasons,
     dedupeConfidence:
