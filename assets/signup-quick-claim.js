@@ -149,35 +149,35 @@ function renderSearchResults(container, results, onPick) {
   container.innerHTML =
     stateLabel +
     results
-    .map(function (result, index) {
-      const location = [result.city, result.state].filter(Boolean).join(", ");
-      const credentialBit = result.credentials ? " · " + escapeHtml(result.credentials) : "";
-      const licenseBit = result.license_number
-        ? " · License " + escapeHtml(result.license_number)
-        : "";
-      const emailBit = result.email_hint
-        ? " · Email: " + escapeHtml(result.email_hint)
-        : " · No email on file";
-      const claimedBadge =
-        result.claim_status === "claimed" ? " · <strong>Already claimed</strong>" : "";
-      return (
-        '<button type="button" class="quick-claim-search-result" data-result-index="' +
-        index +
-        '">' +
-        '<span class="result-name">' +
-        escapeHtml(result.name) +
-        credentialBit +
-        "</span>" +
-        '<span class="result-meta">' +
-        escapeHtml(location) +
-        licenseBit +
-        emailBit +
-        claimedBadge +
-        "</span>" +
-        "</button>"
-      );
-    })
-    .join("");
+      .map(function (result, index) {
+        const location = [result.city, result.state].filter(Boolean).join(", ");
+        const credentialBit = result.credentials ? " · " + escapeHtml(result.credentials) : "";
+        const licenseBit = result.license_number
+          ? " · License " + escapeHtml(result.license_number)
+          : "";
+        const emailBit = result.email_hint
+          ? " · Email: " + escapeHtml(result.email_hint)
+          : " · No email on file";
+        const claimedBadge =
+          result.claim_status === "claimed" ? " · <strong>Already claimed</strong>" : "";
+        return (
+          '<button type="button" class="quick-claim-search-result" data-result-index="' +
+          index +
+          '">' +
+          '<span class="result-name">' +
+          escapeHtml(result.name) +
+          credentialBit +
+          "</span>" +
+          '<span class="result-meta">' +
+          escapeHtml(location) +
+          licenseBit +
+          emailBit +
+          claimedBadge +
+          "</span>" +
+          "</button>"
+        );
+      })
+      .join("");
 
   container.querySelectorAll(".quick-claim-search-result").forEach(function (button) {
     button.addEventListener("click", function () {
@@ -1058,11 +1058,7 @@ function initQuickClaim() {
     try {
       const payload = await searchTherapistQuickClaim(trimmed);
       const results = payload && payload.results ? payload.results : [];
-      renderSearchResults(
-        searchResults,
-        results,
-        applyPickedResult,
-      );
+      renderSearchResults(searchResults, results, applyPickedResult);
       wireSearchStateActions();
       if (!results.length) {
         trackFunnelEvent("claim_no_result_state_shown", { query_length: trimmed.length });

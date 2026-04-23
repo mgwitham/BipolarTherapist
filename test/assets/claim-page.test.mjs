@@ -53,7 +53,10 @@ test("claim page: confirmation state builds confidence without billing anxiety",
   assert.match(claimHtml, /Selected listing/);
   assert.match(claimHtml, /Claiming unlocks/);
   assert.match(claimHtml, /Edit your listing details and profile controls/);
-  assert.match(claimHtml, /Continue to free access first, with optional trial choices later if available/);
+  assert.match(
+    claimHtml,
+    /Continue to free access first, with optional trial choices later if available/,
+  );
   assert.match(claimJs, /Activation link sent\./);
   assert.match(claimJs, /It usually arrives within 1 to 2 minutes/);
   assert.match(claimJs, /choose free access or any optional trial from the next step/);
