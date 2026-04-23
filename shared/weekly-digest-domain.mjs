@@ -29,6 +29,40 @@ function topSourceLabel(current) {
   return buckets[0];
 }
 
+function sourceBreakdown(current) {
+  return [
+    { key: "match", label: "match flow", count: num(current && current.profileViewsMatch) },
+    { key: "directory", label: "directory", count: num(current && current.profileViewsDirectory) },
+    { key: "direct", label: "direct / link", count: num(current && current.profileViewsDirect) },
+    {
+      key: "other",
+      label: "other",
+      count:
+        num(current && current.profileViewsOther) +
+        num(current && current.profileViewsSearch) +
+        num(current && current.profileViewsEmail),
+    },
+  ];
+}
+
+function contactBreakdown(current) {
+  return [
+    { key: "booking", label: "booking link", count: num(current && current.ctaClicksBooking) },
+    { key: "email", label: "email", count: num(current && current.ctaClicksEmail) },
+    { key: "phone", label: "phone", count: num(current && current.ctaClicksPhone) },
+    { key: "website", label: "website", count: num(current && current.ctaClicksWebsite) },
+  ];
+}
+
+function topContactLabel(current) {
+  const buckets = contactBreakdown(current).slice();
+  buckets.sort(function (a, b) {
+    return b.count - a.count;
+  });
+  if (!buckets[0] || buckets[0].count === 0) return null;
+  return buckets[0];
+}
+
 function pctChange(currentValue, priorValue) {
   const c = num(currentValue);
   const p = num(priorValue);
@@ -61,6 +95,9 @@ export function buildWeeklyDigest(options) {
   const viewsTrend = pctChange(currentViews, priorViews);
   const clicksTrend = pctChange(currentClicks, priorClicks);
   const topSource = topSourceLabel(current);
+  const sources = sourceBreakdown(current);
+  const contacts = contactBreakdown(current);
+  const topContact = topContactLabel(current);
 
   return {
     periodKey: current && current.periodKey ? String(current.periodKey) : "",
@@ -72,6 +109,9 @@ export function buildWeeklyDigest(options) {
     viewsTrend,
     clicksTrend,
     topSource,
+    sources,
+    contacts,
+    topContact,
     generatedAt: nowIso,
   };
 }
@@ -111,6 +151,29 @@ export function renderWeeklyDigestEmail(options) {
   const sourceLine = digest.topSource
     ? "Top source: " + digest.topSource.label + " (" + digest.topSource.count + " views)"
     : "";
+  const sourceBreakdownLine = Array.isArray(digest.sources)
+    ? digest.sources
+        .filter(function (item) {
+          return item && item.count > 0;
+        })
+        .map(function (item) {
+          return item.label + ": " + item.count;
+        })
+        .join(" • ")
+    : "";
+  const contactBreakdownLine = Array.isArray(digest.contacts)
+    ? digest.contacts
+        .filter(function (item) {
+          return item && item.count > 0;
+        })
+        .map(function (item) {
+          return item.label + ": " + item.count;
+        })
+        .join(" • ")
+    : "";
+  const topContactLine = digest.topContact
+    ? "Most-used contact path: " + digest.topContact.label + " (" + digest.topContact.count + " clicks)"
+    : "";
 
   const subject =
     "Your BipolarTherapyHub week: " +
@@ -133,6 +196,15 @@ export function renderWeeklyDigestEmail(options) {
   if (sourceLine) {
     bodyLines.push("  - " + sourceLine);
   }
+  if (sourceBreakdownLine) {
+    bodyLines.push("  - Source breakdown: " + sourceBreakdownLine);
+  }
+  if (contactBreakdownLine) {
+    bodyLines.push("  - Contact path breakdown: " + contactBreakdownLine);
+  }
+  if (topContactLine) {
+    bodyLines.push("  - " + topContactLine);
+  }
   bodyLines.push("");
   if (portalUrl) {
     bodyLines.push("See the full breakdown (12-week trend, sources, contact methods):");
@@ -150,4 +222,10 @@ export function renderWeeklyDigestEmail(options) {
 }
 
 // Exported for tests.
-export const _internals = { topSourceLabel, pctChange };
+export const _internals = {
+  topSourceLabel,
+  topContactLabel,
+  sourceBreakdown,
+  contactBreakdown,
+  pctChange,
+};
