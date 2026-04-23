@@ -231,7 +231,7 @@ function resolveTooltipText(trigger) {
 }
 
 function getTrigger(eventTarget) {
-  if (!eventTarget || !(eventTarget instanceof Element)) return null;
+  if (!eventTarget || !(eventTarget instanceof window.Element)) return null;
   return eventTarget.closest(
     "button, a, select, summary, [role='button'], [data-workflow-primary-action]",
   );
@@ -320,7 +320,7 @@ function bindTooltipDelegation() {
     }
     const related = event.relatedTarget;
     if (
-      related instanceof Element &&
+      related instanceof window.Element &&
       (activeTrigger.contains(related) || getTooltipEl().contains(related))
     ) {
       return;
