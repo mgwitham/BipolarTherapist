@@ -156,3 +156,18 @@ test("california priority wave cards stay action-first and email-forward", funct
   assert.doesNotMatch(confirmationWorkspaceJs, /<strong>Follow-up rule:<\/strong>/);
   assert.doesNotMatch(confirmationWorkspaceJs, /Copy request/);
 });
+
+test("missing details lane is condensed to therapist outreach, not human review", function () {
+  const html = read("admin.html");
+  const importBlockerJs = read("assets/admin-import-blocker-sprint.js");
+
+  assert.match(html, /Email therapists for the missing profile details/);
+  assert.match(importBlockerJs, /Email therapist/);
+  assert.match(importBlockerJs, /data-import-blocker-email/);
+  assert.match(importBlockerJs, /window\.location\.href = href/);
+  assert.doesNotMatch(importBlockerJs, /Copy top missing-details request/);
+  assert.doesNotMatch(importBlockerJs, /Copy shared ask/);
+  assert.doesNotMatch(importBlockerJs, /Copy shared ask packet/);
+  assert.doesNotMatch(importBlockerJs, /Copy unified outreach wave/);
+  assert.doesNotMatch(importBlockerJs, /manual channel review/i);
+});

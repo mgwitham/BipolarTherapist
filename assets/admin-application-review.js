@@ -704,7 +704,7 @@ export function renderApplicationsPanel(options) {
           .join("");
 
         const primaryActionHtml =
-          item.status === "pending" || item.status === "reviewing"
+          item.status !== "approved"
             ? '<button class="btn-primary" data-action="' +
               (isClaimFlow ? "approve_claim" : "publish") +
               '" data-id="' +
