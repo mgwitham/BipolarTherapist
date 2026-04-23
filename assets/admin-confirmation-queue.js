@@ -1,7 +1,4 @@
-import {
-  renderActionFirstIntro,
-  renderRecommendedActionBar,
-} from "./admin-action-first.js";
+import { renderActionFirstIntro, renderRecommendedActionBar } from "./admin-action-first.js";
 import { createActionFlashStore } from "./admin-action-flash.js";
 
 const confirmationActionFlash = createActionFlashStore();
@@ -173,7 +170,7 @@ export function renderConfirmationQueuePanel(options) {
           options.escapeHtml(options.formatStatusLabel(agenda.priority)) +
           ' priority</span><span class="tag">' +
           options.escapeHtml(options.formatStatusLabel(workflow.status)) +
-          '</span></div></div>' +
+          "</span></div></div>" +
           (index === 0
             ? renderRecommendedActionBar({
                 why: firstActionWhy,
