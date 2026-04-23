@@ -5268,6 +5268,59 @@ function buildTodayQuickAction(title, copy, targetId) {
   );
 }
 
+function buildQueueIndexCard(queue) {
+  return (
+    '<article class="queue-index-card' +
+    (queue.count > 0 ? "" : " is-empty") +
+    '">' +
+    '<div class="queue-index-card-top"><div class="queue-index-card-label">' +
+    escapeAdminHtml(queue.label) +
+    '</div><div class="queue-index-card-count">' +
+    escapeAdminHtml(String(queue.count || 0)) +
+    "</div></div>" +
+    '<div class="queue-index-card-copy">' +
+    escapeAdminHtml(queue.copy || "") +
+    "</div>" +
+    '<button class="queue-index-card-action" type="button" data-admin-scroll-target="' +
+    escapeAdminHtml(queue.targetId || "") +
+    '">' +
+    escapeAdminHtml(queue.actionLabel || "Open queue") +
+    "</button></article>"
+  );
+}
+
+function renderWorkQueueIndex(config) {
+  var summaryNode = document.getElementById("workQueuesSummary");
+  var gridNode = document.getElementById("workQueuesIndex");
+  if (!summaryNode || !gridNode) return;
+
+  var queues = (config && config.queues) || [];
+  var activeQueues = queues.filter(function (queue) {
+    return Number(queue.count) > 0;
+  }).length;
+  var totalItems = queues.reduce(function (sum, queue) {
+    return sum + (Number(queue.count) || 0);
+  }, 0);
+
+  summaryNode.innerHTML =
+    "<strong>" +
+    escapeAdminHtml(
+      String(activeQueues) +
+        " active " +
+        (activeQueues === 1 ? "queue" : "queues") +
+        " • " +
+        String(totalItems) +
+        " total backlog items",
+    ) +
+    "</strong><span>" +
+    escapeAdminHtml(
+      "This replaces the old mystery badge. Each card below shows the exact bucket behind the count and opens directly into that lane.",
+    ) +
+    "</span>";
+
+  gridNode.innerHTML = queues.map(buildQueueIndexCard).join("");
+}
+
 function updateSignupsPill(pendingCount) {
   var pill = document.getElementById("adminSignupsPill");
   var countNode = document.getElementById("adminSignupsPillCount");
@@ -5498,6 +5551,65 @@ function renderStats() {
     ].filter(function (item) {
       return item.count > 0;
     });
+    var queueIndex = [
+      {
+        label: "New candidates",
+        count: candidateReviewCount,
+        targetId: "candidateQueuePanel",
+        copy: "Fresh scraped profiles waiting for triage decisions.",
+      },
+      {
+        label: "Therapist signups",
+        count: pendingApplicationsCount,
+        targetId: "applicationsPanel",
+        copy: "Submitted signup profiles waiting for Publish or Delete decisions.",
+      },
+      {
+        label: "On hold",
+        count: candidateParkedReviewCount,
+        targetId: "reviewRegion",
+        copy: "Parked candidate reviews that still need a deliberate next pass.",
+      },
+      {
+        label: "Inbox",
+        count: openConciergeCount + openPortalRequestCount,
+        targetId: "requestsRegion",
+        copy: "Operator requests, concierge issues, and portal asks waiting on response.",
+      },
+      {
+        label: "Needs confirmation",
+        count: profilesNeedingConfirmation,
+        targetId: "confirmationQueueSection",
+        copy: "Published listings that need therapist confirmation work started.",
+      },
+      {
+        label: "Awaiting confirmation",
+        count: awaitingConfirmationCount,
+        targetId: "confirmationQueueSection",
+        copy: "Confirmation requests already sent and waiting on therapist reply.",
+      },
+      {
+        label: "Ready to apply",
+        count: readyToApplyCount,
+        targetId: "confirmationQueueSection",
+        copy: "Confirmed updates that are ready to be applied to live listings.",
+      },
+      {
+        label: "Live listing maintenance",
+        count: profilesNeedingRefresh,
+        targetId: "publishedListingsSection",
+        copy: "Published profiles with freshness drift or trust fields that need attention.",
+      },
+      {
+        label: "Import blockers",
+        count: strictImportBlockerCount,
+        targetId: "licensureQueueSection",
+        copy: "Trust-critical listing blockers that can slow safe publishing and maintenance.",
+      },
+    ];
+    var activeQueueCount = queueIndex.filter(function (queue) {
+      return queue.count > 0;
+    }).length;
 
     document.getElementById("adminStats").innerHTML =
       '<div class="admin-today-grid">' +
@@ -5506,7 +5618,7 @@ function renderStats() {
       '</span></div><div class="admin-action-stack">' +
       buildTodayRailAction(topActions[0], "urgent", {
         title: "No urgent work waiting",
-        copy: "Use Work queues to choose the next deliberate review block or open Reports for analysis.",
+        copy: "Use Queues to choose the next deliberate review block or open Reports for analysis.",
       }) +
       buildTodayRailAction(topActions[1], "recommended", {
         title: "No second-priority action",
@@ -5596,18 +5708,11 @@ function renderStats() {
     });
     updateNavCounts({
       today: topActions.length + pendingApplicationsCount,
-      workQueues:
-        candidateReviewCount +
-        candidateParkedReviewCount +
-        pendingApplicationsCount +
-        openConciergeCount +
-        openPortalRequestCount +
-        profilesNeedingConfirmation +
-        awaitingConfirmationCount +
-        readyToApplyCount +
-        profilesNeedingRefresh +
-        strictImportBlockerCount,
+      workQueues: activeQueueCount,
       recovery: 0,
+    });
+    renderWorkQueueIndex({
+      queues: queueIndex,
     });
     collapseRegionSopNotes();
 

@@ -1245,6 +1245,24 @@
         max-width: 52rem;
         color: #4a6570;
       }
+      .admin-mode-summary {
+        display: grid;
+        gap: 0.3rem;
+        margin: 0 0 0.85rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 251, 252, 0.92));
+      }
+      .admin-mode-summary strong {
+        font-size: 0.95rem;
+        color: #123e4d;
+      }
+      .admin-mode-summary span {
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: #547283;
+      }
       .admin-mode-links {
         display: flex;
         flex-wrap: wrap;
@@ -1262,6 +1280,73 @@
         border: 1px solid rgba(26, 122, 143, 0.12);
         font-size: 0.82rem;
         font-weight: 700;
+      }
+      .queue-index-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.7rem;
+        margin-top: 0.85rem;
+      }
+      .queue-index-card {
+        display: grid;
+        gap: 0.55rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 252, 0.96));
+      }
+      .queue-index-card.is-empty {
+        opacity: 0.72;
+      }
+      .queue-index-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.7rem;
+      }
+      .queue-index-card-label {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #123e4d;
+      }
+      .queue-index-card-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.6rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.12);
+        color: var(--teal-dark);
+        font-size: 0.84rem;
+        font-weight: 800;
+        flex: 0 0 auto;
+      }
+      .queue-index-card-copy {
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: #547283;
+      }
+      .queue-index-card-action {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.72rem;
+        border-radius: 999px;
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--teal-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+        font: inherit;
+        cursor: pointer;
+      }
+      .queue-index-card-action:hover {
+        border-color: rgba(26, 122, 143, 0.32);
+        color: #103b4e;
       }
       .region-playbook-toggle {
         appearance: none;
@@ -5051,7 +5136,7 @@
           role="tab"
           aria-selected="false"
         >
-          Work queues
+          Queues
           <span class="admin-tab-count" id="navCountWorkQueues"></span>
         </button>
         <button
@@ -5166,18 +5251,23 @@
       <div id="adminApp" class="admin-stack" style="display: none">
         <div class="grid" style="grid-template-columns: 1fr">
           <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="listings">
-            <p class="admin-mode-kicker">Work queues</p>
-            <h2 class="admin-mode-title">Pick one queue and stay in that operating mode</h2>
+            <p class="admin-mode-kicker">Queues</p>
+            <h2 class="admin-mode-title">
+              Choose a queue with clear counts and enter it on purpose
+            </h2>
             <p class="admin-mode-copy">
-              Queue work lives here on purpose. Enter a lane, make a run of decisions, then come
-              back to Today when you need a fresh priority call.
+              This view breaks the backlog into named lanes so the badge is inspectable. Pick a
+              queue, make a run of decisions, then come back to Today when you need a fresh priority
+              call.
             </p>
+            <div id="workQueuesSummary" class="admin-mode-summary"></div>
             <nav class="admin-mode-links" aria-label="Work queue shortcuts">
               <a href="#candidateQueuePanel">New candidates</a>
               <a href="#applicationsPanel">Therapist signups</a>
               <a href="#reviewRegion">On hold</a>
               <a href="#requestsRegion">Inbox</a>
             </nav>
+            <div id="workQueuesIndex" class="queue-index-grid"></div>
           </section>
           <aside
             class="admin-region sidebar-panel"
@@ -5255,8 +5345,8 @@
               <div class="workflow-section" id="importBlockerSprintSection" style="margin-top: 0">
                 <h2>Missing details</h2>
                 <p class="panel-intro">
-                  Fix the highest-value missing fields — license, insurance, wait time, bipolar
-                  experience — so the profile earns a trusted-live badge.
+                  Email therapists for the missing profile details that still keep a live listing
+                  from being fully trusted.
                 </p>
                 <div class="sop-note" hidden>
                   <div class="sop-note-row">

@@ -35,6 +35,7 @@ test("admin signup cards keep explicit actions and closable details", function (
   assert.match(reviewJs, /data-open-review-details/);
   assert.match(reviewJs, /data-close-review-details/);
   assert.match(reviewJs, /Close details/);
+  assert.match(reviewJs, /item\.status !== "approved"/);
   assert.match(actionsJs, /data-open-review-details/);
   assert.match(actionsJs, /data-close-review-details/);
 });
