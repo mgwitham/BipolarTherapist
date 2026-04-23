@@ -161,6 +161,20 @@
       .nav-zone-switch-item {
         margin-left: auto;
       }
+      .nav-crisis-item {
+        margin-left: auto;
+      }
+      .nav-crisis-item + .nav-zone-switch-item {
+        margin-left: 0;
+      }
+      .nav-crisis-link {
+        color: rgba(255, 255, 255, 0.72) !important;
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+      }
+      .nav-crisis-link:hover {
+        color: white !important;
+      }
       .nav-zone-switch {
         display: inline-flex;
         align-items: center;
@@ -272,13 +286,11 @@
       .hero-expectation {
         margin-top: 0.7rem;
         text-align: center;
-        font-size: 0.78rem;
+        font-size: clamp(0.62rem, 3vw, 0.78rem);
         color: var(--muted);
         font-weight: 600;
-      }
-      .hero-expectation::before {
-        content: "⏱ ";
-        opacity: 0.7;
+        white-space: nowrap;
+        overflow: visible;
       }
       .search-btn[aria-busy="true"] {
         opacity: 0.85;
@@ -563,6 +575,86 @@
         color: var(--muted);
         font-size: 0.78rem;
         line-height: 1.4;
+      }
+      .search-launch-waitlist {
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-color: rgba(107, 130, 144, 0.5);
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+      }
+      .search-launch-waitlist:hover {
+        color: var(--slate);
+        text-decoration-color: var(--slate);
+      }
+      .waitlist-panel {
+        display: none;
+        margin-top: 0.7rem;
+        padding: 0.85rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fafdfd;
+        text-align: left;
+      }
+      .waitlist-panel.is-open {
+        display: block;
+      }
+      .waitlist-panel-row {
+        display: grid;
+        grid-template-columns: 1fr 100px;
+        gap: 0.5rem;
+      }
+      .waitlist-panel input,
+      .waitlist-panel select {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.55rem 0.65rem;
+        font-size: 0.88rem;
+        font-family: inherit;
+        color: var(--navy);
+        background: var(--white);
+        outline: none;
+        width: 100%;
+      }
+      .waitlist-panel input:focus,
+      .waitlist-panel select:focus {
+        border-color: var(--teal);
+      }
+      .waitlist-panel-submit {
+        margin-top: 0.5rem;
+        width: 100%;
+        background: var(--teal);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .waitlist-panel-submit:hover {
+        background: var(--teal-dark);
+      }
+      .waitlist-panel-submit[disabled] {
+        opacity: 0.6;
+        cursor: progress;
+      }
+      .waitlist-panel-status {
+        margin-top: 0.45rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        min-height: 1rem;
+      }
+      .waitlist-panel-status.is-success {
+        color: var(--green);
+      }
+      .waitlist-panel-status.is-error {
+        color: #b43545;
       }
       .hero-validation-popup {
         display: none;
@@ -1585,10 +1677,8 @@
       <ul class="nav-links">
         <li><a href="directory.html">Find a Therapist</a></li>
         <li><a href="match.html">Get Matched</a></li>
-        <li>
-          <a href="directory.html" class="nav-shortlist" data-shortlist-link
-            >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
-          >
+        <li class="nav-crisis-item">
+          <a href="tel:988" class="nav-crisis-link">In crisis? Call or text 988</a>
         </li>
         <li class="nav-zone-switch-item">
           <a href="signup.html" class="nav-zone-switch">For therapists →</a>
@@ -1610,7 +1700,6 @@
       <div class="tool-shell">
         <div class="tool-card">
           <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
-            <div class="hero-validation-title">Almost there</div>
             <div class="hero-validation-list" id="heroValidationList"></div>
           </div>
           <form class="search-box" id="homeSearchForm" action="match.html" method="get" novalidate>
@@ -1644,63 +1733,34 @@
               name="needs_medication_management"
               value=""
             />
-            <div class="search-launch-note">Currently matching California ZIP codes.</div>
+            <div class="search-launch-note">
+              California only for now —
+              <button type="button" class="search-launch-waitlist" id="waitlistToggle">
+                other states: join waitlist
+              </button>
+            </div>
+            <div class="waitlist-panel" id="waitlistPanel" aria-hidden="true">
+              <div class="waitlist-panel-row">
+                <input
+                  type="email"
+                  id="waitlistEmail"
+                  placeholder="your@email.com"
+                  autocomplete="email"
+                />
+                <select id="waitlistState" aria-label="Your state">
+                  <option value="">State</option>
+                </select>
+              </div>
+              <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
+                Join waitlist
+              </button>
+              <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
+            </div>
             <button type="submit" class="search-btn" id="searchButton">Find care</button>
           </form>
-          <p class="hero-expectation">About 3 minutes. No account required.</p>
-          <div class="hero-process" aria-label="What happens next">
-            <div class="hero-process-step">
-              <span class="hero-process-num" aria-hidden="true">1</span>
-              <span class="hero-process-title">A few quick questions</span>
-              <span class="hero-process-copy">Care type, location, what matters most.</span>
-            </div>
-            <div class="hero-process-step">
-              <span class="hero-process-num" aria-hidden="true">2</span>
-              <span class="hero-process-title">See matched specialists</span>
-              <span class="hero-process-copy">Ranked by fit, not by who paid.</span>
-            </div>
-            <div class="hero-process-step">
-              <span class="hero-process-num" aria-hidden="true">3</span>
-              <span class="hero-process-title">Reach out directly</span>
-              <span class="hero-process-copy">Email, phone, or booking link.</span>
-            </div>
-          </div>
+          <p class="hero-expectation">About 10 seconds. No account required.</p>
           <div class="hero-browse-link">
             <a href="directory.html">Or browse specialists instead</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section--why">
-      <div class="home-section-inner">
-        <p class="home-section-eyebrow">Why BipolarTherapyHub</p>
-        <h2 class="home-section-title">Not a generalist directory. A bipolar specialist one.</h2>
-        <div class="home-why-grid">
-          <div class="home-why-card">
-            <div class="home-why-icon" aria-hidden="true">✓</div>
-            <h3>Bipolar focus required</h3>
-            <p>
-              Every therapist listed has documented bipolar work in their practice. We verify the
-              signal before anyone appears. Then the therapist personally confirms the details that
-              matter to you.
-            </p>
-          </div>
-          <div class="home-why-card">
-            <div class="home-why-icon" aria-hidden="true">✓</div>
-            <h3>California-licensed, verified</h3>
-            <p>
-              We cross-check every license against the California Department of Consumer Affairs. No
-              expired credentials. No mystery out-of-state clinicians.
-            </p>
-          </div>
-          <div class="home-why-card">
-            <div class="home-why-icon" aria-hidden="true">✓</div>
-            <h3>Direct contact, no middleman</h3>
-            <p>
-              Reach out however the therapist prefers. Email, phone, booking link. No intake team,
-              no matchmaker fee, no third party between you and the therapist.
-            </p>
           </div>
         </div>
       </div>
@@ -1709,14 +1769,14 @@
     <section class="home-section home-section--how">
       <div class="home-section-inner">
         <p class="home-section-eyebrow">How it works</p>
-        <h2 class="home-section-title">Three steps. About three minutes.</h2>
+        <h2 class="home-section-title">Three steps. About 10 seconds.</h2>
         <ol class="home-how-steps">
           <li class="home-how-step">
             <div class="home-how-num">1</div>
             <h3>Tell us about you</h3>
             <p>
               A few questions: what kind of support you need, where you are, what matters most.
-              Thirty seconds, no account required.
+              About 10 seconds, no account required.
             </p>
           </li>
           <li class="home-how-step">
@@ -1795,13 +1855,6 @@
             </p>
           </details>
           <details class="home-faq-item">
-            <summary>What if I'm not in California?</summary>
-            <p>
-              We're California-only for now. Building a directory right means starting narrow and
-              expanding deliberately. Email us and we'll let you know when we launch in your state.
-            </p>
-          </details>
-          <details class="home-faq-item">
             <summary>How are therapists vetted?</summary>
             <p>
               Every profile is license-verified against the California Department of Consumer
@@ -1817,7 +1870,7 @@
     <section class="home-section home-section--closing">
       <div class="home-section-inner home-closing-inner">
         <h2 class="home-section-title">Find a therapist who gets bipolar.</h2>
-        <p class="home-closing-sub">About 60 seconds. No account. No insurance needed to search.</p>
+        <p class="home-closing-sub">About 10 seconds.</p>
         <a href="#startMatch" class="home-closing-btn">Find care →</a>
         <p style="margin-top: 1rem; font-size: 0.82rem; color: rgba(255, 255, 255, 0.78)">
           Or
@@ -1933,6 +1986,148 @@
             syncHiddenFields();
           });
         }
+      })();
+    </script>
+    <script>
+      (function () {
+        var toggle = document.getElementById("waitlistToggle");
+        var panel = document.getElementById("waitlistPanel");
+        var stateSelect = document.getElementById("waitlistState");
+        var emailInput = document.getElementById("waitlistEmail");
+        var submit = document.getElementById("waitlistSubmit");
+        var status = document.getElementById("waitlistStatus");
+        if (!toggle || !panel || !stateSelect || !emailInput || !submit) return;
+
+        var STATES = [
+          ["AL", "Alabama"],
+          ["AK", "Alaska"],
+          ["AZ", "Arizona"],
+          ["AR", "Arkansas"],
+          ["CO", "Colorado"],
+          ["CT", "Connecticut"],
+          ["DE", "Delaware"],
+          ["DC", "District of Columbia"],
+          ["FL", "Florida"],
+          ["GA", "Georgia"],
+          ["HI", "Hawaii"],
+          ["ID", "Idaho"],
+          ["IL", "Illinois"],
+          ["IN", "Indiana"],
+          ["IA", "Iowa"],
+          ["KS", "Kansas"],
+          ["KY", "Kentucky"],
+          ["LA", "Louisiana"],
+          ["ME", "Maine"],
+          ["MD", "Maryland"],
+          ["MA", "Massachusetts"],
+          ["MI", "Michigan"],
+          ["MN", "Minnesota"],
+          ["MS", "Mississippi"],
+          ["MO", "Missouri"],
+          ["MT", "Montana"],
+          ["NE", "Nebraska"],
+          ["NV", "Nevada"],
+          ["NH", "New Hampshire"],
+          ["NJ", "New Jersey"],
+          ["NM", "New Mexico"],
+          ["NY", "New York"],
+          ["NC", "North Carolina"],
+          ["ND", "North Dakota"],
+          ["OH", "Ohio"],
+          ["OK", "Oklahoma"],
+          ["OR", "Oregon"],
+          ["PA", "Pennsylvania"],
+          ["RI", "Rhode Island"],
+          ["SC", "South Carolina"],
+          ["SD", "South Dakota"],
+          ["TN", "Tennessee"],
+          ["TX", "Texas"],
+          ["UT", "Utah"],
+          ["VT", "Vermont"],
+          ["VA", "Virginia"],
+          ["WA", "Washington"],
+          ["WV", "West Virginia"],
+          ["WI", "Wisconsin"],
+          ["WY", "Wyoming"],
+        ];
+        STATES.forEach(function (s) {
+          var opt = document.createElement("option");
+          opt.value = s[0];
+          opt.textContent = s[1];
+          stateSelect.appendChild(opt);
+        });
+
+        function apiBase() {
+          var h = window.location.hostname;
+          if (h === "localhost" || h === "127.0.0.1") return "http://localhost:8787";
+          return "/api/review";
+        }
+
+        var findCareBtn = document.getElementById("searchButton");
+        toggle.addEventListener("click", function () {
+          var opening = !panel.classList.contains("is-open");
+          panel.classList.toggle("is-open", opening);
+          panel.setAttribute("aria-hidden", opening ? "false" : "true");
+          if (findCareBtn) {
+            findCareBtn.style.display = opening ? "none" : "";
+          }
+          if (opening) {
+            setTimeout(function () {
+              emailInput.focus();
+            }, 0);
+          }
+        });
+
+        function setStatus(text, kind) {
+          status.textContent = text || "";
+          status.classList.remove("is-success", "is-error");
+          if (kind === "success") status.classList.add("is-success");
+          if (kind === "error") status.classList.add("is-error");
+        }
+
+        submit.addEventListener("click", function () {
+          var email = String(emailInput.value || "").trim();
+          var state = String(stateSelect.value || "").trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setStatus("Enter a valid email.", "error");
+            emailInput.focus();
+            return;
+          }
+          if (!state) {
+            setStatus("Pick your state.", "error");
+            stateSelect.focus();
+            return;
+          }
+          submit.disabled = true;
+          setStatus("Sending…", "");
+          fetch(apiBase() + "/waitlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, state: state }),
+          })
+            .then(function (res) {
+              return res.json().then(function (body) {
+                return { ok: res.ok, body: body };
+              });
+            })
+            .then(function (result) {
+              submit.disabled = false;
+              if (result.ok) {
+                setStatus(
+                  "You're on the list. We'll email you when we launch in " + state + ".",
+                  "success",
+                );
+                emailInput.value = "";
+                stateSelect.value = "";
+              } else {
+                setStatus((result.body && result.body.error) || "Something went wrong.", "error");
+              }
+            })
+            .catch(function () {
+              submit.disabled = false;
+              setStatus("Network error. Try again in a moment.", "error");
+            });
+        });
       })();
     </script>
     <script type="module" src="assets/home.js"></script>

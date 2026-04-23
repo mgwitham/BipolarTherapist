@@ -21,6 +21,7 @@ import { handleAnalyticsRoutes } from "./review-analytics-routes.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
+import { handleWaitlistRoutes } from "./review-waitlist-routes.mjs";
 import {
   cancelSubscriptionImmediately,
   createBillingPortalSession,
@@ -30,6 +31,7 @@ import {
 } from "./stripe-client.mjs";
 import {
   hasEmailConfig,
+  sendEmail as sendRawEmail,
   notifyAdminOfRecoveryRequest,
   notifyAdminOfSubmission,
   notifyApplicantOfDecision,
@@ -606,6 +608,14 @@ function createReviewRouteModules() {
         isAuthorized,
         parseBody,
         sendJson,
+      },
+    },
+    {
+      handler: handleWaitlistRoutes,
+      deps: {
+        parseBody,
+        sendJson,
+        sendEmail: sendRawEmail,
       },
     },
     {
