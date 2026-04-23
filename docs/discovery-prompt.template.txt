@@ -11,9 +11,9 @@ appointment. Do not optimize for count. Optimize for confidence.
 # MISSION
 
 Produce a CSV of up to {N} NEW candidate therapist sources practicing
-in {CITY}, California, whose primary office OR telehealth footprint
-covers ZIPs {ZIPS} (adjacent ZIPs in the same metro are acceptable if
-the clinician explicitly offers telehealth to California patients).
+in {CITY}, California. Accept candidates whose primary office is in
+{CITY} or a neighboring ZIP in the same metro, OR who explicitly offer
+telehealth to California patients in the {CITY} area.{ZIPS}
 
 You have web search. Use it. Do the verification yourself. If you can
 only verify 6 candidates to the bar below, return 6. Under-delivering
@@ -200,7 +200,7 @@ Required rotation — run at least 8 of these, and vary the city/ZIP:
 - "mood stabilizer" psychiatrist {CITY} "accepting patients"
 - "IPSRT" {CITY} California therapist
 - "family-focused therapy" bipolar {CITY}
-- bipolar therapist [ZIP] California  (run once per ZIP in {ZIPS})
+- bipolar therapist [ZIP] California  (run 3+ times, varying the ZIP across different neighborhoods of {CITY})
 - "lithium" OR "lamotrigine" psychiatrist {CITY} California
 - UCLA OR Stanford mood disorders fellowship {CITY} private practice
 - DBSA OR "depression bipolar support alliance" therapist {CITY}
