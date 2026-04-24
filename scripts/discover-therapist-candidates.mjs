@@ -178,15 +178,34 @@ function pickMeta(html, patterns) {
   return "";
 }
 
+// Honorific prefixes that should never land in the stored name field.
+// "Dr. Jane Doe" breaks downstream NPI lookups and also shows up awkward
+// in the review UI. We strip a leading honorific + optional period, and
+// only at the start of the name so middle-name prefixes are preserved.
+const NAME_HONORIFICS = /^(?:Dr|Doctor|Prof|Professor|Mr|Mrs|Ms|Mx|Miss)\.?\s+/i;
+
+export function stripNameHonorifics(rawName) {
+  let value = normalizeWhitespace(rawName);
+  if (!value) return "";
+  // Loop so "Dr. Prof. Jane" collapses cleanly in the rare concatenated case.
+  let previous;
+  do {
+    previous = value;
+    value = value.replace(NAME_HONORIFICS, "").trim();
+  } while (value !== previous);
+  return value;
+}
+
 function inferName(rawName) {
   const value = normalizeWhitespace(rawName);
   if (!value) {
     return "";
   }
-  return value
+  const cleaned = value
     .split(/\s+[|\-–—]\s+/)[0]
     .replace(/\s+(Home|About|Contact)$/i, "")
     .trim();
+  return stripNameHonorifics(cleaned);
 }
 
 function inferCredentials(name, hint) {
@@ -665,7 +684,10 @@ async function run() {
   );
 }
 
-run().catch((error) => {
-  console.error(error.message || error);
-  process.exitCode = 1;
-});
+const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+if (invokedDirectly) {
+  run().catch((error) => {
+    console.error(error.message || error);
+    process.exitCode = 1;
+  });
+}
