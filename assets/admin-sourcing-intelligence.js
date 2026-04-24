@@ -81,7 +81,25 @@ export function buildIngestCommandForCity(cityLabel) {
   return buildIngestCommandForCityFromConfig(cityLabel, discoveryZipsConfig);
 }
 
-export function buildCoverageInsights(therapists, helpers) {
+/**
+ * Pull the configured CA metros as seed rows for the coverage picker.
+ * Each entry becomes a synthetic zero-coverage row if the city isn't
+ * present in the live therapist graph — the goal is to surface large
+ * uncovered metros (Oakland, San Jose) ahead of small suburbs with 1-2
+ * therapists.
+ */
+function getSeedCitiesFromConfig() {
+  const cities = (discoveryZipsConfig && discoveryZipsConfig.cities) || {};
+  return Object.values(cities).map(function (entry) {
+    return {
+      name: entry && entry.name ? entry.name : "",
+      state: "CA",
+      population: entry && entry.population ? Number(entry.population) : 0,
+    };
+  });
+}
+
+export function buildCoverageInsights(therapists, helpers, seedCities) {
   const byCity = new Map();
   const sourceDomains = new Map();
 
@@ -96,6 +114,7 @@ export function buildCoverageInsights(therapists, helpers) {
       telehealth: 0,
       accepting: 0,
       trustRisk: 0,
+      population: 0,
     };
     entry.total += 1;
     entry[helpers.inferCoverageRole(item)] += 1;
@@ -123,6 +142,32 @@ export function buildCoverageInsights(therapists, helpers) {
     }
   });
 
+  // Seed major metros that aren't yet in the therapist graph so a large
+  // uncovered city (e.g. Oakland at 440k population, 0 listings) beats a
+  // tiny suburb with 1-2 therapists. Seeds only inject when the city is
+  // absent — they never overwrite real coverage data.
+  (seedCities || []).forEach(function (seed) {
+    if (!seed || !seed.name) return;
+    const state = seed.state || "CA";
+    const cityKey = [seed.name, state].filter(Boolean).join(", ");
+    if (byCity.has(cityKey)) {
+      const existing = byCity.get(cityKey);
+      if (!existing.population && seed.population) existing.population = seed.population;
+      return;
+    }
+    byCity.set(cityKey, {
+      city: seed.name,
+      state,
+      total: 0,
+      therapy: 0,
+      psychiatry: 0,
+      telehealth: 0,
+      accepting: 0,
+      trustRisk: 0,
+      population: Number(seed.population) || 0,
+    });
+  });
+
   const cityRows = Array.from(byCity.values()).sort(function (a, b) {
     const aNeedsPsychiatry = a.psychiatry === 0 ? 2 : 0;
     const bNeedsPsychiatry = b.psychiatry === 0 ? 2 : 0;
@@ -130,7 +175,12 @@ export function buildCoverageInsights(therapists, helpers) {
     const bNeedsTelehealth = b.telehealth === 0 ? 1 : 0;
     const aScore = aNeedsPsychiatry + aNeedsTelehealth + (a.accepting === 0 ? 1 : 0);
     const bScore = bNeedsPsychiatry + bNeedsTelehealth + (b.accepting === 0 ? 1 : 0);
-    return bScore - aScore || a.total - b.total || a.city.localeCompare(b.city);
+    return (
+      bScore - aScore ||
+      a.total - b.total ||
+      (b.population || 0) - (a.population || 0) ||
+      a.city.localeCompare(b.city)
+    );
   });
 
   const thinnestCities = cityRows
@@ -205,34 +255,41 @@ export function renderCoverageIntelligencePanel(options) {
     return;
   }
 
-  const insights = buildCoverageInsights(therapists, {
-    inferCoverageRole: options.inferCoverageRole,
-    getTherapistFieldTrustAttentionCount: options.getTherapistFieldTrustAttentionCount,
-  });
+  const insights = buildCoverageInsights(
+    therapists,
+    {
+      inferCoverageRole: options.inferCoverageRole,
+      getTherapistFieldTrustAttentionCount: options.getTherapistFieldTrustAttentionCount,
+    },
+    getSeedCitiesFromConfig(),
+  );
   const cityIndex = buildCityIndex(therapists);
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians. For configured cities, use Copy ingest command and paste into your terminal — that runs the canonical pipeline. The ChatGPT fallback copies the same prompt the CLI would generate.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritizes (1) large CA metros with zero coverage, (2) cities light on psychiatry / telehealth / accepting listings. For configured cities, Copy ingest command runs the canonical CLI pipeline; the ChatGPT fallback copies the same prompt.</div><div class="queue-insights-grid">' +
     insights.thinnestCities
       .map(function (row) {
         const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
         const gaps = [];
-        if (row.psychiatry === 0) gaps.push("No psychiatry");
-        if (row.telehealth === 0) gaps.push("No telehealth");
-        if (row.accepting === 0) gaps.push("No accepting listings");
+        if (row.total === 0) gaps.push("No coverage yet");
+        if (row.total > 0 && row.psychiatry === 0) gaps.push("No psychiatry");
+        if (row.total > 0 && row.telehealth === 0) gaps.push("No telehealth");
+        if (row.total > 0 && row.accepting === 0) gaps.push("No accepting listings");
         if (row.trustRisk > 0) gaps.push(String(row.trustRisk) + " trust-risk listings");
-        return (
-          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
-          options.escapeHtml(cityLabel) +
-          '</strong></div><div class="queue-insight-note">' +
-          options.escapeHtml(
-            row.total +
+        const statsLine =
+          row.total === 0 && row.population
+            ? "Pop. " + Math.round(row.population / 1000) + "k · uncovered metro"
+            : row.total +
               " listings · " +
               row.therapy +
               " therapy · " +
               row.psychiatry +
-              " psychiatry",
-          ) +
+              " psychiatry";
+        return (
+          '<div class="queue-insight-card"><div class="queue-insight-label"><strong>' +
+          options.escapeHtml(cityLabel) +
+          '</strong></div><div class="queue-insight-note">' +
+          options.escapeHtml(statsLine) +
           '</div><div class="queue-insight-note">' +
           options.escapeHtml(gaps.join(" · ") || "Balanced coverage") +
           "</div>" +
