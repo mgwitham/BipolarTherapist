@@ -5202,6 +5202,17 @@ function updateHeroStatus(context) {
   } else {
     parts.push("No signups waiting right now");
   }
+  if (ctx.candidateReviewCount) {
+    // Newly discovered/sourced listings live in the candidate queue (a
+    // separate panel from therapist-submitted signups). Surfacing the
+    // count in the header so a fresh ingestion isn't invisible.
+    parts.push(
+      ctx.candidateReviewCount +
+        " new listing" +
+        (ctx.candidateReviewCount === 1 ? "" : "s") +
+        " to review",
+    );
+  }
   if (ctx.publishReadyApplicationsCount) {
     parts.push(
       ctx.publishReadyApplicationsCount +
@@ -5708,11 +5719,24 @@ function renderStats() {
 
     updateHeroStatus({
       pendingApplicationsCount: pendingApplicationsCount,
+      candidateReviewCount: candidateReviewCount,
       publishReadyApplicationsCount: publishReadyApplicationsCount,
       needsFixesCount: applications.filter(function (item) {
         return reviewModels.getApplicationReviewSnapshot(item).focus === "needs_changes";
       }).length,
     });
+    // When there are newly-discovered listings, auto-render the
+    // candidate queue panel so a fresh ingestion is visible without
+    // requiring the user to navigate to it. The panel is hidden by
+    // default in the HTML to keep the workspace quiet on a clean queue.
+    if (candidateReviewCount > 0) {
+      var candidatePanelEl = document.getElementById("candidateQueuePanel");
+      if (candidatePanelEl) {
+        candidatePanelEl.style.display = "";
+        candidatePanelEl.removeAttribute("hidden");
+      }
+      renderCandidateQueue();
+    }
     updateNavCounts({
       review: pendingApplicationsCount,
     });
