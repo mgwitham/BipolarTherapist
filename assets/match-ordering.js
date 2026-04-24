@@ -76,6 +76,10 @@ export function applyZipAwareOrdering(entries, options) {
     if (Number.isFinite(aDistance) !== Number.isFinite(bDistance) && scoreDiff <= 10) {
       return Number(Number.isFinite(aDistance)) - Number(Number.isFinite(bDistance));
     }
+    // Returning 0 preserves input order via the engine's stable sort.
+    // The subsequent sortByRankScore call below re-sorts with a complete
+    // tiebreak chain (score, confidence, name, slug), so the final order
+    // is fully deterministic regardless of what happens here.
     return 0;
   });
 }
@@ -88,7 +92,8 @@ function sortByRankScore(entries) {
       bScore - aScore ||
       (Number(b?.evaluation?.confidence_score) || 0) -
         (Number(a?.evaluation?.confidence_score) || 0) ||
-      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || ""))
+      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || "")) ||
+      String(a?.therapist?.slug || "").localeCompare(String(b?.therapist?.slug || ""))
     );
   });
 }

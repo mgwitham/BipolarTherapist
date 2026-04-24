@@ -797,28 +797,22 @@ function sortReasonsByWeight(reasons) {
     });
 }
 
-function getReasonWeight(signals, reason) {
-  if (!signals || !signals.reason_weights) {
-    return 0;
-  }
+// Learning-signal contribution to ranking is currently disabled. The
+// underlying signals (feedback + outreach outcomes) are still captured
+// and stored — only their effect on the score is held to 0 so rankings
+// stay deterministic. The original implementations are preserved below
+// for future reactivation; the live readers short-circuit to 0.
 
-  return Number(signals.reason_weights[reason] || 0) || 0;
+function getReasonWeight(_signals, _reason) {
+  return 0;
 }
 
-function getTherapistFeedbackAdjustment(signals, slug) {
-  if (!signals || !signals.therapist_adjustments) {
-    return 0;
-  }
-
-  return Number(signals.therapist_adjustments[slug] || 0) || 0;
+function getTherapistFeedbackAdjustment(_signals, _slug) {
+  return 0;
 }
 
-function getOutreachAdjustment(signals, slug) {
-  if (!signals || !signals.outreach_adjustments) {
-    return 0;
-  }
-
-  return Number(signals.outreach_adjustments[slug] || 0) || 0;
+function getOutreachAdjustment(_signals, _slug) {
+  return 0;
 }
 
 function getLearningSegments(profile) {
@@ -1412,7 +1406,8 @@ export function rankTherapistsForUser(therapists, userProfile, learningSignals) 
         Number(b.therapist.bipolar_years_experience || 0) -
           Number(a.therapist.bipolar_years_experience || 0) ||
         b.evaluation.completeness_score - a.evaluation.completeness_score ||
-        a.therapist.name.localeCompare(b.therapist.name)
+        a.therapist.name.localeCompare(b.therapist.name) ||
+        String(a.therapist.slug || "").localeCompare(String(b.therapist.slug || ""))
       );
     });
 }
