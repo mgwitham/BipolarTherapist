@@ -93,7 +93,7 @@ test("findConfiguredCity resolves slug, name, and aliases against the real confi
 });
 
 test("findConfiguredCity returns null for unknown cities and empty input", () => {
-  assert.equal(findConfiguredCity("Fresno", realConfig), null);
+  assert.equal(findConfiguredCity("Modesto", realConfig), null);
   assert.equal(findConfiguredCity("", realConfig), null);
   assert.equal(findConfiguredCity(null, realConfig), null);
   assert.equal(findConfiguredCity("Anywhere", { cities: {} }), null);
@@ -108,5 +108,5 @@ test("buildIngestCommandForCity emits the canonical one-command string for confi
     buildIngestCommandForCity("sf", realConfig),
     "npm run cms:ingest -- --city san-francisco",
   );
-  assert.equal(buildIngestCommandForCity("Fresno", realConfig), "");
+  assert.equal(buildIngestCommandForCity("Modesto", realConfig), "");
 });

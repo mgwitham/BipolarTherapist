@@ -1,27 +1,10 @@
 {
-  "_comment": "City → prioritized ZIPs for discovery-prompt generation. Add new cities here as one-line entries. Short codes and aliases resolve to the same canonical entry.",
+  "_comment": "City → prioritized ZIPs + rough population for discovery-prompt generation and coverage-gap ranking. 'population' is the approximate city-proper population; it drives the admin coverage picker's preference for large uncovered metros over tiny covered suburbs. Add new cities here as one-line entries. Short codes and aliases resolve to the same canonical entry.",
   "cities": {
-    "san-francisco": {
-      "name": "San Francisco",
-      "aliases": ["sf", "san francisco"],
-      "zips": [
-        "94102",
-        "94103",
-        "94107",
-        "94110",
-        "94114",
-        "94117",
-        "94118",
-        "94121",
-        "94122",
-        "94123",
-        "94131",
-        "94133"
-      ]
-    },
     "los-angeles": {
       "name": "Los Angeles",
       "aliases": ["la", "los angeles"],
+      "population": 3900000,
       "zips": [
         "90004",
         "90019",
@@ -38,6 +21,7 @@
     "san-diego": {
       "name": "San Diego",
       "aliases": ["sd", "san diego"],
+      "population": 1380000,
       "zips": [
         "92037",
         "92101",
@@ -51,9 +35,52 @@
         "92130"
       ]
     },
+    "san-jose": {
+      "name": "San Jose",
+      "aliases": ["sj", "san jose"],
+      "population": 970000,
+      "zips": [
+        "95110",
+        "95112",
+        "95113",
+        "95116",
+        "95117",
+        "95118",
+        "95125",
+        "95126",
+        "95128",
+        "95129"
+      ]
+    },
+    "san-francisco": {
+      "name": "San Francisco",
+      "aliases": ["sf", "san francisco"],
+      "population": 810000,
+      "zips": [
+        "94102",
+        "94103",
+        "94107",
+        "94110",
+        "94114",
+        "94117",
+        "94118",
+        "94121",
+        "94122",
+        "94123",
+        "94131",
+        "94133"
+      ]
+    },
+    "fresno": {
+      "name": "Fresno",
+      "aliases": ["fresno"],
+      "population": 545000,
+      "zips": ["93701", "93703", "93704", "93705", "93710", "93711", "93720", "93722", "93726"]
+    },
     "sacramento": {
       "name": "Sacramento",
       "aliases": ["sac", "sacramento"],
+      "population": 525000,
       "zips": [
         "95811",
         "95814",
@@ -66,6 +93,54 @@
         "95833",
         "95864"
       ]
+    },
+    "long-beach": {
+      "name": "Long Beach",
+      "aliases": ["lb", "long beach"],
+      "population": 455000,
+      "zips": ["90802", "90803", "90804", "90806", "90807", "90808", "90813", "90814", "90815"]
+    },
+    "oakland": {
+      "name": "Oakland",
+      "aliases": ["oak", "oakland"],
+      "population": 440000,
+      "zips": ["94606", "94609", "94610", "94611", "94612", "94618", "94619"]
+    },
+    "bakersfield": {
+      "name": "Bakersfield",
+      "aliases": ["bakersfield"],
+      "population": 420000,
+      "zips": ["93301", "93304", "93305", "93308", "93309", "93311", "93312", "93314"]
+    },
+    "anaheim": {
+      "name": "Anaheim",
+      "aliases": ["anaheim"],
+      "population": 345000,
+      "zips": ["92801", "92802", "92804", "92805", "92806", "92807", "92808"]
+    },
+    "stockton": {
+      "name": "Stockton",
+      "aliases": ["stockton"],
+      "population": 320000,
+      "zips": ["95202", "95204", "95205", "95207", "95209", "95210", "95212", "95219"]
+    },
+    "riverside": {
+      "name": "Riverside",
+      "aliases": ["riverside"],
+      "population": 320000,
+      "zips": ["92501", "92503", "92504", "92506", "92507", "92508", "92509"]
+    },
+    "santa-ana": {
+      "name": "Santa Ana",
+      "aliases": ["santa ana"],
+      "population": 310000,
+      "zips": ["92701", "92703", "92704", "92705", "92706", "92707"]
+    },
+    "irvine": {
+      "name": "Irvine",
+      "aliases": ["irvine"],
+      "population": 310000,
+      "zips": ["92602", "92603", "92604", "92606", "92612", "92614", "92618", "92620"]
     }
   }
 }
