@@ -75,7 +75,6 @@
     "cms:verify-licenses": "node scripts/verify-candidate-licenses.mjs",
     "cms:rejection-report": "node scripts/report-rejection-patterns.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
-    "cms:ingest": "node scripts/run-pilot-ingestion.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
@@ -105,7 +104,6 @@
     "vite": "^8.0.8"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
     "@vercel/analytics": "^2.0.1",
     "stripe": "^22.0.2"
   }

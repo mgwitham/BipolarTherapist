@@ -109,30 +109,27 @@ To clean up: `node scripts/seed-dev-test-therapists.mjs --delete`.
 - Generated operational packets should be reproducible from scripts, not hand-edited after generation.
 - If a script mutates source-of-truth data, document the command in the pull request.
 
-## One-Command Ingestion
+## Therapist Discovery (paste-flow)
 
-For routine candidate discovery, use the pilot runner rather than wiring the steps by hand:
+Discovery is a two-step flow. No paid API. Pick one of two paths from the admin Coverage Intelligence panel:
+
+### Path A — Copy Claude Code command
+
+Click **Copy Claude Code command** on a city card. That copies a natural-language instruction like _"Run therapist discovery for San Francisco (use WebSearch — no paid API) and ingest results into the candidate review queue."_
+
+Paste it into your Claude Code chat. The agent uses its own WebSearch tool to run the discovery, writes the CSV to `data/import/therapist-source-seeds.csv`, and runs `npm run cms:get-more-therapists` to populate the candidate review queue.
+
+### Path B — Copy discovery prompt
+
+Click **Copy discovery prompt** on a city card. That copies the full prompt (same ZIPs, same exclusion list, same quality bar as Path A).
+
+Paste into Claude.ai or ChatGPT with web search enabled. Copy the fenced `csv` block from the response into `data/import/therapist-source-seeds.csv`, then have Claude Code run:
 
 ```sh
-npm run cms:ingest -- --city "San Francisco"
-npm run cms:ingest -- --city sf            # aliases work
-npm run cms:ingest -- --city sf --dry-run  # skip Sanity write; just generate + validate
+npm run cms:get-more-therapists
 ```
 
-The runner:
-
-1. Resolves `--city` against `config/discovery-zips.json` (accepts canonical slug, full name, or alias).
-2. Generates the discovery prompt with the city's prioritized ZIPs.
-3. Calls Anthropic with `web_search` enabled and saves the full agent output to `/tmp/ingestion-<city>-<timestamp>.md`.
-4. Extracts the CSV block, normalizes it to the seed-CSV schema, archives any pre-existing seed CSV, and writes the new one.
-5. Runs a quality scan (placeholder phones, "California" as city, aggregator listing URLs, missing license numbers without the "Needs license lookup" tag). Issues are logged, never silently filtered.
-6. Invokes `scripts/get-more-therapists.mjs` end-to-end so records land as `therapistCandidate` documents in the admin review queue.
-7. Queries Sanity for therapistCandidate docs created during the run and prints the final summary.
-
-Requirements:
-
-- `ANTHROPIC_API_KEY` in `.env`
-- `SANITY_API_TOKEN` in `.env` with write scope
+That kicks off `scripts/get-more-therapists.mjs`, which does: scrape → DCA license verify → write `therapistCandidate` docs to Sanity → regenerate review queue.
 
 ### Adding a new city
 
@@ -142,20 +139,25 @@ Append an entry to `config/discovery-zips.json`:
 "oakland": {
   "name": "Oakland",
   "aliases": ["oak"],
+  "population": 440000,
   "zips": ["94606", "94609", "94610", "94611", "94612", "94618"]
 }
 ```
 
-No code changes needed — the next `npm run cms:ingest -- --city oakland` will pick it up.
+No code changes needed — the next render of the admin panel will surface Oakland in the picker and both buttons will work.
 
-### Admin Coverage Intelligence panel
+### Admin Coverage Intelligence ranking
 
-The admin UI's "Where to source next" cards use the same prompt template and the same city config as the CLI.
+The picker surfaces up to six cities, ordered by:
 
-- If the surfaced city is in `config/discovery-zips.json`, the primary button copies the canonical `npm run cms:ingest -- --city <slug>` command. A secondary button copies the ChatGPT-paste prompt as a fallback — that prompt is rendered from the same template, same exclusion format, and same ZIP prioritization the CLI would produce.
-- If the surfaced city is NOT in config, only the ChatGPT-paste prompt is available, and the card hints to add the city to config for one-command support.
+1. Score desc: 2 pts for missing psychiatry, 1 pt for missing telehealth, 1 pt for missing accepting. Zero-coverage cities score 4.
+2. Lower `total` wins.
+3. Larger `population` wins (tiebreak among zero-coverage metros).
+4. Alphabetical.
 
-In short: every entry point (CLI, admin panel, "ask me in chat") routes through `cms:ingest` for configured cities. The ChatGPT-paste prompt is now a byte-identical fallback, not a separate prompt variant.
+Then filtered to cities where `total ≤ 3` or any role gap exists.
+
+Seeded metros from `config/discovery-zips.json` appear as zero-coverage rows if the therapist graph doesn't yet include them, so large uncovered metros (Oakland, San Jose, Fresno) rank ahead of small suburbs with 1–2 therapists.
 
 ## Commit Rules
 

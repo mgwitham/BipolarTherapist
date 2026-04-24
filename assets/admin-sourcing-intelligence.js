@@ -2,7 +2,6 @@ import discoveryPromptTemplate from "../docs/discovery-prompt.template.txt?raw";
 import discoveryZipsConfig from "../config/discovery-zips.json";
 import {
   buildExclusionBlock,
-  buildIngestCommandForCity as buildIngestCommandForCityFromConfig,
   buildZipsPhrase,
   findConfiguredCity as findConfiguredCityFromConfig,
   renderDiscoveryPrompt,
@@ -75,10 +74,6 @@ export function buildDiscoveryPromptForCity(cityLabel, options) {
     count,
     exclusionBlock,
   });
-}
-
-export function buildIngestCommandForCity(cityLabel) {
-  return buildIngestCommandForCityFromConfig(cityLabel, discoveryZipsConfig);
 }
 
 /**
@@ -217,23 +212,23 @@ export function buildCoverageInsights(therapists, helpers, seedCities) {
 function renderCityActions(cityLabel, escapeHtml) {
   const configured = findConfiguredCityFromConfig(cityLabel, discoveryZipsConfig);
   if (configured) {
-    const command = `npm run cms:ingest -- --city ${configured.slug}`;
+    const claudeCodeCommand = `Run therapist discovery for ${configured.name} (use WebSearch — no paid API) and ingest results into the candidate review queue.`;
     return (
-      '<button type="button" class="btn-primary btn-inline" data-ingest-command="' +
-      escapeHtml(command) +
+      '<button type="button" class="btn-primary btn-inline" data-claude-code-command="' +
+      escapeHtml(claudeCodeCommand) +
       '" data-discovery-city="' +
       escapeHtml(cityLabel) +
-      '" style="margin-top:0.6rem">Copy ingest command</button>' +
+      '" style="margin-top:0.6rem">Copy Claude Code command</button>' +
       '<button type="button" class="btn-secondary btn-inline" data-discovery-prompt="' +
       escapeHtml(cityLabel) +
-      '" style="margin-top:0.6rem;margin-left:0.4rem">Copy prompt (ChatGPT fallback)</button>'
+      '" style="margin-top:0.6rem;margin-left:0.4rem">Copy discovery prompt</button>'
     );
   }
   return (
     '<button type="button" class="btn-secondary btn-inline" data-discovery-prompt="' +
     escapeHtml(cityLabel) +
-    '" style="margin-top:0.6rem">Copy prompt (ChatGPT)</button>' +
-    '<div class="subtle" style="margin-top:0.4rem;font-size:0.85em">Add this city to config/discovery-zips.json to enable one-command <code>cms:ingest</code>.</div>'
+    '" style="margin-top:0.6rem">Copy discovery prompt</button>' +
+    '<div class="subtle" style="margin-top:0.4rem;font-size:0.85em">Add this city to <code>config/discovery-zips.json</code> to enable the Claude Code shortcut.</div>'
   );
 }
 
@@ -266,7 +261,7 @@ export function renderCoverageIntelligencePanel(options) {
   const cityIndex = buildCityIndex(therapists);
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritizes (1) large CA metros with zero coverage, (2) cities light on psychiatry / telehealth / accepting listings. For configured cities, Copy ingest command runs the canonical CLI pipeline; the ChatGPT fallback copies the same prompt.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritizes (1) large CA metros with zero coverage, (2) cities light on psychiatry / telehealth / accepting listings. Copy Claude Code command to paste into this chat and have the agent run discovery here; Copy discovery prompt to paste into Claude.ai or ChatGPT externally.</div><div class="queue-insights-grid">' +
     insights.thinnestCities
       .map(function (row) {
         const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
@@ -350,15 +345,15 @@ export function renderCoverageIntelligencePanel(options) {
     if (status) status.textContent = message;
   }
 
-  root.querySelectorAll("[data-ingest-command]").forEach(function (button) {
+  root.querySelectorAll("[data-claude-code-command]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      const command = button.getAttribute("data-ingest-command") || "";
+      const command = button.getAttribute("data-claude-code-command") || "";
       const cityLabel = button.getAttribute("data-discovery-city") || "";
       if (!command) return;
       const success = await options.copyText(command);
       setStatus(
         success
-          ? "Command copied for " + cityLabel + ". Paste into a terminal from the repo root."
+          ? "Command copied for " + cityLabel + ". Paste into your Claude Code chat."
           : "Could not copy command for " + cityLabel + ".",
       );
     });
