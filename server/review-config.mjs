@@ -109,6 +109,11 @@ export function getReviewApiConfig() {
       process.env.REVIEW_API_ALLOW_LEGACY_KEY || rootEnv.REVIEW_API_ALLOW_LEGACY_KEY,
       false,
     ),
+    // Dev-only login bypass flag. Read through this parser (not just
+    // process.env) so the project's .env pattern works the same way the
+    // other secrets do. isDevLoginEnabled still requires NODE_ENV=development
+    // at call time, so setting this alone cannot re-enable the bypass in prod.
+    allowDevLogin: parseBooleanEnv(process.env.ALLOW_DEV_LOGIN || rootEnv.ALLOW_DEV_LOGIN, false),
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
