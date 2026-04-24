@@ -104,11 +104,19 @@ function toCsv(headers, rows) {
   return `${headerLine}\n${rowLines.join("\n")}\n`;
 }
 
-function normalizeLicense(raw) {
-  return String(raw || "")
+export function normalizeLicense(raw) {
+  const alphanum = String(raw || "")
     .replace(/^(MD|DO|PSY|LMFT|MFT|LCSW|LPCC|LEP|PMHNP)\s*/i, "")
     .replace(/[^A-Z0-9]/gi, "")
     .toUpperCase();
+  // Strip leading zeros from the numeric tail so "G58999" and "G058999"
+  // compare equal. Physician licenses in particular come in both forms
+  // depending on the source (DCA raw vs directory-printed).
+  const match = alphanum.match(/^([A-Z]*)(\d+)$/);
+  if (!match) return alphanum;
+  const [, letters, digits] = match;
+  const trimmed = digits.replace(/^0+/, "") || "0";
+  return `${letters}${trimmed}`;
 }
 
 function splitName(full) {
@@ -328,7 +336,10 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+if (invokedDirectly) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
