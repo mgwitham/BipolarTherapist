@@ -290,8 +290,19 @@ the carve-out — note the platform name in `clinicalNotes`.
    profiles because their templates don't allow long bios).
 3. **Clinician is solo or effectively solo.** They are not one of
    ten clinicians listed under a group practice umbrella.
-4. **No own site exists.** You searched by "name + city + therapy"
-   and did not find a personal website or group-site bio page.
+4. **No fetchable own site.** EITHER you searched by "name + city +
+   therapy" and found no personal website or group-site bio page, OR
+   the own-site URL that exists repeatedly refused your fetch
+   (HTTP 403 / 404 / 429 / 503, a captcha wall, or a Cloudflare
+   interstitial you cannot get past). A site that exists but blocks
+   scrapers is functionally the same as no site from the verification
+   standpoint — what matters is whether you can independently confirm
+   the clinician is real and bipolar-focused. When you invoke this
+   branch, say so explicitly in `clinicalNotes` — e.g.
+   `"Aggregator carve-out (own-site blocked: 403 on
+   barnhartpsychiatry.com); NPI 1234567890; bipolar listed as Expertise
+   on PT profile."` The reviewer decides whether to chase the own-site
+   by hand.
 
 When you invoke the carve-out, add a note in `clinicalNotes` starting
 with "Aggregator carve-out:" so the reviewer sees the flag. Example:
@@ -463,6 +474,23 @@ Confidence criteria:
 
 If BIPOLAR_EVIDENCE_QUOTE cannot be copied verbatim from the page (you
 paraphrased, or you inferred), remove the candidate from the batch.
+
+**Exception — blocked own-site fallback.** When the aggregator carve-out
+triggers because the own-site URL is unfetchable (403/404/429/503/
+captcha), a verbatim quote from the own-site obviously isn't possible.
+In that case, copy the verbatim quote from (in order of preference):
+
+1. The per-clinician aggregator profile page you opened successfully.
+2. A search-snippet that was returned by one of your logged queries —
+   include the query in the trace's `SURFACED_VIA` line and prefix the
+   quote with `[search snippet]` so provenance is clear.
+3. The clinician's DCA license record itself (e.g. an "active bipolar
+   clinic" practice setting field) if the registry exposes it.
+
+The verbatim-quote rule still applies — you still must copy, not
+paraphrase — only the allowed *source* of the quote is widened. The
+reviewer sees the carve-out note in `clinicalNotes` and verifies the
+own-site by hand.
 
 # COMPLETENESS PASSES (required before CSV)
 
@@ -818,7 +846,10 @@ a result.
 - Trusting a "fellow of the American Academy of Psychiatry" line as
   bipolar-specific training — it isn't
 - Using an aggregator URL (PT, TherapyDen, Headway) as sourceUrl
-  because the clinician doesn't have their own site. Reject instead.
+  when the own-site IS fetchable and you just didn't bother. Open the
+  own-site. The aggregator is a fallback, not a shortcut. (The
+  exception is a genuine carve-out case — see AGGREGATOR CARVE-OUT
+  above — where the own-site either doesn't exist or blocked you.)
 - Stating a license number you "believe" is correct. If you didn't
   read it directly, omit the row.
 - Paraphrasing a bipolarEvidenceQuote. If you can't copy-paste it
@@ -829,12 +860,18 @@ a result.
 # FINAL SELF-CHECK BEFORE YOU EMIT
 
 For each row, ask:
-  1. Did I load this person's own site, not just a directory?
+  1. Did I load this person's own site, not just a directory? (If the
+     own-site blocked me, did I document the 403/503 in clinicalNotes
+     and invoke the blocked-own-site carve-out?)
   2. Did I see their license number with my own eyes (on their site,
      NPI Registry, or npiprofile)?
-  3. Does their site show substantive bipolar focus — a dedicated page
-     or named training — not just a specialty bullet?
-  4. Is the bipolarEvidenceQuote a verbatim copy from their own page?
+  3. Does their profile show substantive bipolar focus — dedicated
+     page, named training, or (for the carve-out path) bipolar
+     explicitly listed in specialties + at least one supporting signal
+     — not just a keyword in a long list?
+  4. Is the bipolarEvidenceQuote a verbatim copy from a fetchable
+     page I actually opened (own-site preferred; aggregator or
+     `[search snippet]` allowed only on the blocked-own-site path)?
   5. Is every field I populated verified, with blanks where I'm unsure?
   6. Does the trace entry match this CSV row exactly?
   7. Does my confidence rating honestly reflect the evidence strength?
