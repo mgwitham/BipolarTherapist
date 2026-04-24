@@ -6303,6 +6303,40 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   color: #6b8089;
   text-align: center;
 }
+.mx-contact-body-copy {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #2a3f48;
+}
+.mx-contact-phone-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.mx-contact-phone-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 1rem;
+  line-height: 1;
+}
+.mx-contact-phone-number {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.mx-contact-phone-subcopy {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.82rem;
+  color: #6b8089;
+  text-align: center;
+}
 @media (max-width: 480px) {
   .mx-contact-body {
     padding: 1.3rem 1.1rem 1.2rem;

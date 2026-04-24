@@ -11,6 +11,7 @@ import {
   validatePublicContactPresence,
   validateWebsite,
 } from "../shared/contact-validation.mjs";
+import { resolvePreferredContactMethod } from "../shared/contact-modal-content.mjs";
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
@@ -397,6 +398,13 @@ async function run() {
       console.warn(`Skipped: ${document.name} — no valid public contact method after validation.`);
       return;
     }
+
+    // Default-picker: if the CSV didn't set preferredContactMethod (or
+    // set it to a field that ended up empty after validation-clearing),
+    // fill it in with the first non-empty of booking > website > phone
+    // > email. This matches the contact modal's layout-selection order
+    // so a published record always has a deterministic primary CTA.
+    document.preferredContactMethod = resolvePreferredContactMethod(document) || "";
 
     documents.push(document);
   });
