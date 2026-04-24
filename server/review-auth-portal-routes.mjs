@@ -469,8 +469,12 @@ const DEV_LOGIN_ALLOWED_EMAILS = new Set([
   "test-empty@dev.bipolartherapyhub.invalid",
 ]);
 
-function isDevLoginEnabled() {
-  return process.env.NODE_ENV === "development" && process.env.ALLOW_DEV_LOGIN === "true";
+function isDevLoginEnabled(config) {
+  if (process.env.NODE_ENV !== "development") return false;
+  // Accept either a parsed config flag (loaded from .env via review-config)
+  // or a directly-set process env var (used by tests and shell overrides).
+  if (config && config.allowDevLogin === true) return true;
+  return process.env.ALLOW_DEV_LOGIN === "true";
 }
 
 export async function handleAuthAndPortalRoutes(context) {
@@ -517,7 +521,7 @@ export async function handleAuthAndPortalRoutes(context) {
       sendJson(response, 404, { error: "Not found." }, origin, config);
       return true;
     }
-    if (!isDevLoginEnabled()) {
+    if (!isDevLoginEnabled(config)) {
       sendJson(response, 404, { error: "Not found." }, origin, config);
       return true;
     }
