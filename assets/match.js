@@ -71,6 +71,7 @@ import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-
 import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
+import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
 
 var therapists = [];
 var latestProfile = null;
@@ -5219,43 +5220,6 @@ function getDomainFromUrl(url) {
   }
 }
 
-var HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
-var CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
-
-function extractFirstName(name) {
-  var raw = String(name || "").trim();
-  if (!raw) return "";
-  // Drop everything after a comma — credentials almost always follow one.
-  var beforeComma = raw.split(",")[0];
-  var tokens = beforeComma.split(/\s+/).filter(Boolean);
-  while (tokens.length && HONORIFIC_PATTERN.test(tokens[0])) {
-    tokens.shift();
-  }
-  while (tokens.length && CREDENTIAL_PATTERN.test(tokens[tokens.length - 1])) {
-    tokens.pop();
-  }
-  var first = tokens[0] || "";
-  if (!first || HONORIFIC_PATTERN.test(first) || CREDENTIAL_PATTERN.test(first)) {
-    return "";
-  }
-  return first;
-}
-
-function getFirstName(name) {
-  return extractFirstName(name) || "your therapist";
-}
-
-function buildContactDraftMessage(therapist) {
-  var first = extractFirstName(therapist.name);
-  var greeting = first ? "Hi " + first + "," : "Hi there,";
-  return (
-    greeting +
-    " I found you through BipolarTherapyHub. " +
-    "I'm looking for a bipolar-informed therapist and saw your profile. " +
-    "Are you currently accepting new patients?"
-  );
-}
-
 function formatPhoneDisplay(phone) {
   var digits = String(phone || "").replace(/[^\d]/g, "");
   if (digits.length === 11 && digits.charAt(0) === "1") {
@@ -5316,157 +5280,26 @@ function getContactRoutes(entry) {
   return routes;
 }
 
-function pickPrimaryContactRoute(entry) {
-  var routes = getContactRoutes(entry);
-  if (!routes.length) return null;
-  var preferred = String(
-    (entry && entry.therapist && entry.therapist.preferred_contact_method) || "",
-  ).trim();
-  if (preferred) {
-    var match = routes.find(function (r) {
-      return r.type === preferred;
-    });
-    if (match) return match;
-  }
-  // Default priority: phone → email → booking → website
-  var order = ["phone", "email", "booking", "website"];
-  for (var i = 0; i < order.length; i += 1) {
-    var found = routes.find(function (r) {
-      return r.type === order[i];
-    });
-    if (found) return found;
-  }
-  return routes[0];
+// Maps the frontend's snake_case therapist viewmodel to the camelCase
+// shape the shared contact-modal module accepts.
+function toSharedContactTherapist(therapist) {
+  var t = therapist || {};
+  return {
+    name: t.name || "",
+    phone: t.phone || "",
+    email: t.email || "",
+    website: t.website || "",
+    bookingUrl: t.booking_url || t.bookingUrl || "",
+    preferredContactMethod: t.preferred_contact_method || t.preferredContactMethod || "",
+  };
 }
 
 function renderContactDialogBody(entry) {
   var therapist = entry.therapist || {};
-  var primary = pickPrimaryContactRoute(entry);
-  var routes = getContactRoutes(entry);
-  var others = routes.filter(function (r) {
-    return r !== primary;
+  var result = buildContactModalContent(toSharedContactTherapist(therapist), {
+    isMobile: isMobileViewport(),
   });
-  var firstName = getFirstName(therapist.name);
-  var mobile = isMobileViewport();
-
-  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
-  var metaLine = [credLine, locLine].filter(Boolean).join(" · ");
-
-  // Primary method block
-  var primaryBlockHtml = "";
-  if (primary) {
-    if (primary.type === "phone") {
-      primaryBlockHtml =
-        '<div class="mx-contact-method"><div class="mx-contact-method-label">Phone</div>' +
-        '<div class="mx-contact-method-value" data-contact-copy-source="phone">' +
-        escapeHtml(primary.display) +
-        "</div></div>";
-    } else if (primary.type === "email") {
-      primaryBlockHtml =
-        '<div class="mx-contact-method"><div class="mx-contact-method-label">Email</div>' +
-        '<div class="mx-contact-method-value mx-contact-method-value--mono" data-contact-copy-source="email">' +
-        escapeHtml(primary.display) +
-        "</div></div>";
-    } else {
-      primaryBlockHtml =
-        '<div class="mx-contact-method"><div class="mx-contact-method-label">' +
-        escapeHtml(primary.label) +
-        "</div>" +
-        '<div class="mx-contact-method-value mx-contact-method-value--mono">' +
-        escapeHtml(primary.display) +
-        "</div></div>";
-    }
-  }
-
-  // Device-aware primary action button(s)
-  var actionsHtml = "";
-  if (primary) {
-    if (primary.type === "phone") {
-      actionsHtml = mobile
-        ? '<a class="mx-btn-primary" href="' + escapeHtml(primary.href) + '">Call now</a>'
-        : '<button type="button" class="mx-btn-primary" data-contact-copy="phone" data-contact-copy-value="' +
-          escapeHtml(primary.display) +
-          '">Copy number</button>';
-    } else if (primary.type === "email") {
-      actionsHtml = mobile
-        ? '<a class="mx-btn-primary" href="' +
-          escapeHtml(primary.href) +
-          "?subject=" +
-          encodeURIComponent("Inquiry from BipolarTherapyHub") +
-          '">Email now</a>'
-        : '<button type="button" class="mx-btn-primary" data-contact-copy="email" data-contact-copy-value="' +
-          escapeHtml(primary.raw) +
-          '">Copy email</button>';
-    } else {
-      actionsHtml =
-        '<a class="mx-btn-primary" href="' +
-        escapeHtml(primary.href) +
-        '" target="_blank" rel="noopener noreferrer">Open booking page</a>';
-    }
-  }
-
-  // Other-methods strip
-  var othersHtml = "";
-  if (others.length) {
-    othersHtml =
-      '<div class="mx-contact-others"><div class="mx-contact-others-label">Other ways to reach ' +
-      escapeHtml(firstName) +
-      ':</div><ul class="mx-contact-others-list">' +
-      others
-        .map(function (r) {
-          var external = r.type === "booking" || r.type === "website";
-          return (
-            '<li><a href="' +
-            escapeHtml(r.href) +
-            '"' +
-            (external ? ' target="_blank" rel="noopener noreferrer"' : "") +
-            ' data-contact-other-route="' +
-            escapeHtml(r.type) +
-            '"><span class="mx-contact-other-label">' +
-            escapeHtml(r.label) +
-            ':</span> <span class="mx-contact-other-value">' +
-            escapeHtml(r.display) +
-            "</span></a></li>"
-          );
-        })
-        .join("") +
-      "</ul></div>";
-  }
-
-  // Pre-written outreach message
-  var draft = buildContactDraftMessage(therapist);
-  var draftHtml =
-    '<div class="mx-contact-draft">' +
-    '<label for="contactDraftMessage" class="mx-contact-draft-label">A message to get you started — edit or use as-is</label>' +
-    '<textarea id="contactDraftMessage" class="mx-contact-draft-textarea" rows="5">' +
-    escapeHtml(draft) +
-    "</textarea>" +
-    '<div class="mx-contact-draft-actions">' +
-    '<button type="button" class="mx-btn-secondary" data-contact-copy-message>Copy message</button>' +
-    (primary && primary.type === "email" && therapist.email
-      ? '<button type="button" class="mx-btn-secondary" data-contact-send-email="' +
-        escapeHtml(therapist.email) +
-        '">Send as email</button>'
-      : "") +
-    "</div></div>";
-
-  var reassureHtml =
-    '<p class="mx-contact-reassure">Most bipolar-informed therapists respond within 2-3 business days.</p>';
-
-  return (
-    '<header class="mx-contact-header">' +
-    '<h3 class="mx-contact-name" id="contactDialogTitle">' +
-    escapeHtml(therapist.name || "") +
-    "</h3>" +
-    (metaLine ? '<p class="mx-contact-meta">' + escapeHtml(metaLine) + "</p>" : "") +
-    "</header>" +
-    primaryBlockHtml +
-    (actionsHtml ? '<div class="mx-contact-actions">' + actionsHtml + "</div>" : "") +
-    othersHtml +
-    draftHtml +
-    reassureHtml
-  );
+  return result.html;
 }
 
 function flashCopyConfirmation(button) {
