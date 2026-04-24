@@ -5,10 +5,19 @@ import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
 import { PORTAL_PICKER_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
+  normalizeUrl,
+  validateBookingUrl,
+  validateEmail,
+  validatePhone,
+  validatePublicContactPresence,
+  validateWebsite,
+} from "../shared/contact-validation.mjs";
+import {
   acceptTherapistClaim,
   clearTherapistSessionToken,
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
+  devLoginAsTherapist,
   fetchPortalAnalytics,
   fetchTherapistClaimSession,
   fetchTherapistMe,
@@ -17,6 +26,7 @@ import {
   patchTherapistProfile,
   requestTherapistClaimLink,
   requestTherapistSignIn,
+  setTherapistSessionToken,
   signOutTherapistSession,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -2233,6 +2243,7 @@ function getProjectedTherapist(baseTherapist, form) {
       });
   }
   return Object.assign({}, baseTherapist, {
+    email: str("email") || baseTherapist.email || "",
     phone: str("phone") || baseTherapist.phone || "",
     website: str("website") || baseTherapist.website || "",
     booking_url: str("booking_url") || baseTherapist.booking_url || "",
@@ -2246,8 +2257,6 @@ function getProjectedTherapist(baseTherapist, form) {
     estimated_wait_time: str("estimated_wait_time") || baseTherapist.estimated_wait_time || "",
     preferred_contact_method:
       str("preferred_contact_method") || baseTherapist.preferred_contact_method || "",
-    preferred_contact_label:
-      str("preferred_contact_label") || baseTherapist.preferred_contact_label || "",
     accepting_new_patients: bool("accepting_new_patients"),
     accepts_telehealth: bool("accepts_telehealth"),
     accepts_in_person: bool("accepts_in_person"),
@@ -2598,7 +2607,7 @@ function buildEditProfileHtml(therapist) {
         '" target="_blank" rel="noopener">View public listing ↗</a>'
       : "") +
     "</div>" +
-    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name, license, and public email are locked. To change those, use the request form below.</p>' +
+    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name and license are locked. To change those, use the request form below.</p>' +
     reviewBannerHtml +
     coachingBannerHtml +
     buildReadinessSectionHtml() +
@@ -2695,17 +2704,25 @@ function buildEditProfileHtml(therapist) {
     textInput("estimated_wait_time", "Estimated wait time", t.estimated_wait_time, {
       hint: '"2 weeks", "Immediately available", "4–6 weeks". Patients triage urgent vs. exploratory by this.',
     }) +
+    textInput("email", "Public email", t.email, {
+      type: "email",
+      attrs: 'autocomplete="email" maxlength="254"',
+      hint: "This is the email patients will see on your public profile. It can be the same as your login email or different. Leave blank if you don't want patients to email you directly.",
+    }) +
+    '<p class="portal-subtle portal-login-email-note" style="margin:-0.25rem 0 0.75rem;font-size:0.82rem">' +
+    "You log in with <strong>" +
+    escapeHtml(t.claimed_by_email || "") +
+    "</strong>. This email is private and never shown to patients. To change it, email support." +
+    "</p>" +
     textInput("phone", "Public phone", t.phone, {
       hint: "Shown on your public profile. Leave blank to keep it private.",
     }) +
     textInput("website", "Website", t.website, {
-      type: "url",
-      attrs: 'placeholder="https://"',
-      hint: "Builds trust and supports independent verification.",
+      attrs: 'placeholder="yourpractice.com" inputmode="url"',
+      hint: "Builds trust and supports independent verification. You can type yourpractice.com and we'll add https:// for you.",
     }) +
     textInput("booking_url", "Booking URL", t.booking_url, {
-      type: "url",
-      attrs: 'placeholder="https://"',
+      attrs: 'placeholder="calendly.com/you" inputmode="url"',
       hint: "Optional. Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
     }) +
     select(
@@ -2721,9 +2738,6 @@ function buildEditProfileHtml(therapist) {
       ],
       "What the primary CTA button on your profile routes to.",
     ) +
-    textInput("preferred_contact_label", "Contact button label", t.preferred_contact_label, {
-      hint: '"Book a consultation", "Request an intake", "Email me". Overrides the default label.',
-    }) +
     textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3, {
       hint: "Tell patients what to send up front — state they're in, therapy vs. med needs, insurance. Reduces back-and-forth.",
       minLen: 60,
@@ -2789,11 +2803,11 @@ function collectEditProfileUpdates(form) {
     "bio",
     "credentials",
     "practice_name",
+    "email",
     "phone",
     "website",
     "booking_url",
     "preferred_contact_method",
-    "preferred_contact_label",
     "contact_guidance",
     "first_step_expectation",
     "estimated_wait_time",
@@ -3066,12 +3080,103 @@ function applyDraftToForm(form, state) {
   });
 }
 
+var PORTAL_CONTACT_VALIDATORS = {
+  email: validateEmail,
+  phone: validatePhone,
+  website: validateWebsite,
+  booking_url: validateBookingUrl,
+};
+
+function setPortalFieldError(field, message) {
+  if (!field) return;
+  var label = field.closest("label.portal-edit-field") || field.parentElement;
+  if (!label) return;
+  var existing = label.querySelector(".portal-field-error");
+  if (!message) {
+    if (existing) existing.remove();
+    field.removeAttribute("aria-invalid");
+    return;
+  }
+  if (!existing) {
+    existing = document.createElement("small");
+    existing.className = "portal-field-error";
+    existing.setAttribute("role", "alert");
+    existing.style.color = "#b03636";
+    existing.style.display = "block";
+    existing.style.marginTop = "0.25rem";
+    label.appendChild(existing);
+  }
+  existing.textContent = message;
+  field.setAttribute("aria-invalid", "true");
+}
+
+function setPortalFormError(form, message) {
+  var host = form.querySelector(".portal-form-error");
+  if (!message) {
+    if (host) host.remove();
+    return;
+  }
+  if (!host) {
+    host = document.createElement("div");
+    host.className = "portal-form-error";
+    host.setAttribute("role", "alert");
+    host.style.color = "#b03636";
+    host.style.border = "1px solid #e7b4b4";
+    host.style.background = "#fbeeee";
+    host.style.padding = "0.6rem 0.75rem";
+    host.style.borderRadius = "6px";
+    host.style.margin = "0 0 0.75rem";
+    form.insertBefore(host, form.firstChild);
+  }
+  host.textContent = message;
+}
+
+function runPortalContactFieldValidation(form) {
+  var firstError = null;
+  Object.keys(PORTAL_CONTACT_VALIDATORS).forEach(function (name) {
+    var el = form.elements[name];
+    if (!el) return;
+    var result = PORTAL_CONTACT_VALIDATORS[name](el.value);
+    if (result.valid) {
+      setPortalFieldError(el, "");
+    } else {
+      setPortalFieldError(el, result.error);
+      if (!firstError) firstError = { name: name, el: el, error: result.error };
+    }
+  });
+  return firstError;
+}
+
+function runPortalPresenceValidation(form) {
+  var values = {};
+  ["email", "phone", "website", "booking_url"].forEach(function (name) {
+    var el = form.elements[name];
+    values[name === "booking_url" ? "bookingUrl" : name] = el ? String(el.value || "").trim() : "";
+  });
+  return validatePublicContactPresence(values);
+}
+
 function wireEditProfileHandlers(therapist) {
   var form = document.getElementById("portalEditForm");
   if (!form) return;
 
   attachAllChipPickers(form);
   attachAllCharCounters(form);
+
+  Object.keys(PORTAL_CONTACT_VALIDATORS).forEach(function (name) {
+    var el = form.elements[name];
+    if (!el) return;
+    el.addEventListener("blur", function () {
+      var result = PORTAL_CONTACT_VALIDATORS[name](el.value);
+      setPortalFieldError(el, result.valid ? "" : result.error);
+    });
+    el.addEventListener("input", function () {
+      if (el.getAttribute("aria-invalid") === "true") {
+        var result = PORTAL_CONTACT_VALIDATORS[name](el.value);
+        if (result.valid) setPortalFieldError(el, "");
+      }
+    });
+  });
 
   // Coaching banner "jump" link — focus the bio field and scroll it
   // into view. Only lives on the page for fresh/empty profiles.
@@ -3227,6 +3332,24 @@ function wireEditProfileHandlers(therapist) {
     var feedback = document.getElementById("portalEditFeedback");
     var submitBtn = form.querySelector('button[type="submit"]');
 
+    setPortalFormError(form, "");
+    var fieldError = runPortalContactFieldValidation(form);
+    if (fieldError) {
+      feedback.textContent = fieldError.error;
+      feedback.style.color = "#b03636";
+      if (fieldError.el && typeof fieldError.el.focus === "function") {
+        fieldError.el.focus();
+      }
+      return;
+    }
+    var presence = runPortalPresenceValidation(form);
+    if (!presence.valid) {
+      setPortalFormError(form, presence.error);
+      feedback.textContent = presence.error;
+      feedback.style.color = "#b03636";
+      return;
+    }
+
     var snapshotNow = currentFormState(form);
     var changedNames = Object.keys(snapshotNow).filter(function (name) {
       return snapshotNow[name] !== initialSnapshot[name];
@@ -3243,6 +3366,15 @@ function wireEditProfileHandlers(therapist) {
     // place (collectEditProfileUpdates) and limits the request to
     // fields the user actually touched.
     var fullPayload = collectEditProfileUpdates(form);
+    // Auto-prepend https:// for URL fields so therapists can type bare
+    // domains like "practice.com". Matches server-side normalization in
+    // validatePortalTherapistUpdates so stored values always have a protocol.
+    if (typeof fullPayload.website === "string" && fullPayload.website) {
+      fullPayload.website = normalizeUrl(fullPayload.website);
+    }
+    if (typeof fullPayload.booking_url === "string" && fullPayload.booking_url) {
+      fullPayload.booking_url = normalizeUrl(fullPayload.booking_url);
+    }
     var payload = {};
     changedNames.forEach(function (name) {
       if (name in fullPayload) payload[name] = fullPayload[name];
@@ -3807,6 +3939,39 @@ function renderPortal(therapist, options) {
 }
 
 (async function init() {
+  // Dev-only login bypass. Triggered by ?dev_login=<email>. Calls the
+  // server's /portal/dev-login endpoint, which is guarded server-side
+  // by NODE_ENV + ALLOW_DEV_LOGIN + an email allowlist + an inactive-
+  // listing assertion. On success we install the returned session and
+  // redirect to a clean ?slug=<slug> URL.
+  //
+  // The whole block is wrapped in `if (import.meta.env.DEV)` so Vite
+  // statically replaces it with `if (false)` in production builds and
+  // tree-shakes the body out of the shipped bundle. The server-side
+  // guards are the authoritative security boundary; this wrapper is
+  // belt-and-braces so zero dev-login code ever reaches end users.
+  if (import.meta.env && import.meta.env.DEV) {
+    var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
+    if (devLoginEmail) {
+      try {
+        clearTherapistSessionToken();
+        var devResult = await devLoginAsTherapist(devLoginEmail);
+        if (devResult && devResult.therapist_session_token) {
+          setTherapistSessionToken(devResult.therapist_session_token);
+          var nextParams = new URLSearchParams();
+          if (devResult.slug) nextParams.set("slug", devResult.slug);
+          window.location.replace(
+            window.location.pathname + (nextParams.toString() ? "?" + nextParams.toString() : ""),
+          );
+          return;
+        }
+      } catch (_devLoginError) {
+        // Fall through — server returned 404 (env not allowed, allowlist
+        // miss, or inactive-listing assertion refused the match).
+      }
+    }
+  }
+
   renderStripeReturnBanner();
 
   if (token) {

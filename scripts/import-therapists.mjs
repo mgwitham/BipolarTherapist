@@ -3,6 +3,15 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
 
+import {
+  normalizeUrl,
+  validateBookingUrl,
+  validateEmail,
+  validatePhone,
+  validatePublicContactPresence,
+  validateWebsite,
+} from "../shared/contact-validation.mjs";
+
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
 const API_VERSION = "2026-04-02";
@@ -332,7 +341,73 @@ async function run() {
     throw new Error(`No therapist rows found in ${csvPath}.`);
   }
 
-  const documents = rows.map(buildTherapistDocument);
+  const rawDocuments = rows.map(buildTherapistDocument);
+
+  const CONTACT_VALIDATORS = [
+    { field: "email", validate: validateEmail },
+    { field: "phone", validate: validatePhone },
+    { field: "website", validate: validateWebsite },
+    { field: "bookingUrl", validate: validateBookingUrl },
+  ];
+
+  const documents = [];
+  let clearedRecordCount = 0;
+  let skippedCount = 0;
+
+  rawDocuments.forEach(function (document) {
+    // Normalize scraped URL fields so a bare domain ("practice.com")
+    // becomes "https://practice.com" before both validation and insert.
+    if (document.website) {
+      document.website = normalizeUrl(document.website);
+    }
+    if (document.bookingUrl) {
+      document.bookingUrl = normalizeUrl(document.bookingUrl);
+    }
+
+    const clearedFields = [];
+    CONTACT_VALIDATORS.forEach(function (spec) {
+      const value = document[spec.field];
+      if (value === undefined || value === null || value === "") {
+        return;
+      }
+      const result = spec.validate(value);
+      if (!result.valid) {
+        clearedFields.push({ field: spec.field, value: value, reason: result.error });
+        document[spec.field] = "";
+      }
+    });
+
+    if (clearedFields.length) {
+      clearedRecordCount += 1;
+      clearedFields.forEach(function (entry) {
+        console.warn(
+          `WARN cleared ${entry.field} on "${document.name}" (slug: ${document.slug && document.slug.current}): ${JSON.stringify(entry.value)} — ${entry.reason}`,
+        );
+      });
+    }
+
+    const presence = validatePublicContactPresence({
+      email: document.email,
+      phone: document.phone,
+      website: document.website,
+      bookingUrl: document.bookingUrl,
+    });
+    if (!presence.valid) {
+      skippedCount += 1;
+      console.warn(`Skipped: ${document.name} — no valid public contact method after validation.`);
+      return;
+    }
+
+    documents.push(document);
+  });
+
+  if (!documents.length) {
+    console.log(
+      `Ingestion summary: 0 records ingested, ${clearedRecordCount} had fields cleared, ${skippedCount} skipped.`,
+    );
+    return;
+  }
+
   const transaction = client.transaction();
 
   documents.forEach(function (document) {
@@ -347,6 +422,9 @@ async function run() {
 
   console.log(
     `Imported ${documents.length} therapist record(s) into Sanity dataset "${config.dataset}" and cleaned up any legacy therapist IDs.`,
+  );
+  console.log(
+    `Ingestion summary: ${documents.length} records ingested, ${clearedRecordCount} had fields cleared, ${skippedCount} skipped entirely.`,
   );
 }
 

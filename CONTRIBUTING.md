@@ -39,6 +39,67 @@ Run the smallest useful set for the area you changed:
 - Cross-cutting or release-ready changes: `npm run check`
 - Critical flows: test the affected path in the browser, especially signup, admin review, and therapist rendering
 
+## Dev Login Bypass
+
+For repeated local testing of authenticated portal flows, a dev-only
+bypass mints a session JWT without the magic-link email round-trip.
+
+**This must never be accessible in production. Do not remove the env guards.**
+
+How it works — five layers of defense; every server check must pass:
+
+1. **Prod tripwire.** If `NODE_ENV === "production"` the handler logs
+   `[DEV LOGIN] Route hit in production from <ip> at <ts>` at `console.warn`
+   and returns 404. Any probe in prod leaves a trace.
+2. **Env gate.** `NODE_ENV === "development"` AND `ALLOW_DEV_LOGIN === "true"`
+   must both be set. Add `ALLOW_DEV_LOGIN=true` to your local `.env` only;
+   `NODE_ENV=development` is set by `npm run api:dev`.
+3. **Email allowlist.** The submitted email must be in
+   `DEV_LOGIN_ALLOWED_EMAILS` inside `server/review-auth-portal-routes.mjs`.
+   Fixture emails use the reserved `.invalid` TLD so they cannot collide
+   with any real claimed therapist.
+4. **Inactive-listing assertion.** The matched therapist must have both
+   `listingActive === false` AND `status === "inactive"`. A fixture email
+   pointing at a live record is refused with a `[DEV LOGIN] REFUSED` log
+   and a 404.
+5. **Client tree-shaking.** The `?dev_login=<email>` init shim in
+   `assets/portal.js` is wrapped in `if (import.meta.env.DEV)`, which Vite
+   folds to `if (false)` and eliminates from the production bundle. Zero
+   dev-login code ships to users.
+
+Every successful bypass writes `[DEV LOGIN] Bypass used for <email> ...`
+to stderr so accidental use is loud and traceable.
+
+### Enabling
+
+1. Add to your local `.env` (never commit this):
+   ```
+   ALLOW_DEV_LOGIN=true
+   ```
+2. Seed the test therapist records:
+   ```
+   node scripts/seed-dev-test-therapists.mjs
+   ```
+3. Start the API (`NODE_ENV=development` is set by the script):
+   ```
+   npm run api:dev
+   ```
+
+### Test accounts
+
+| Email                                         | State                                                                    | URL                                                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `test-complete@dev.bipolartherapyhub.invalid` | All contact fields populated, `preferredContactMethod` = email, verified | `http://localhost:5173/portal.html?dev_login=test-complete@dev.bipolartherapyhub.invalid` |
+| `test-minimal@dev.bipolartherapyhub.invalid`  | Only phone populated, no email/website/booking, no preferred method      | `http://localhost:5173/portal.html?dev_login=test-minimal@dev.bipolartherapyhub.invalid`  |
+| `test-empty@dev.bipolartherapyhub.invalid`    | Claimed but zero public contacts — exercises the presence rule           | `http://localhost:5173/portal.html?dev_login=test-empty@dev.bipolartherapyhub.invalid`    |
+
+All three are gated off the public directory via `listingActive=false` plus `status=inactive`, so patients never see them.
+
+Switching accounts is a URL change — the dev-login path clears the
+existing session before installing the new one.
+
+To clean up: `node scripts/seed-dev-test-therapists.mjs --delete`.
+
 ## Quality Guardrails
 
 - Prettier formats the codebase.
