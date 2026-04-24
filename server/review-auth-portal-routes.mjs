@@ -2,6 +2,14 @@ import crypto from "node:crypto";
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
+import {
+  normalizeUrl,
+  validateBookingUrl,
+  validateEmail,
+  validatePhone,
+  validatePublicContactPresence,
+  validateWebsite,
+} from "../shared/contact-validation.mjs";
 
 function normalizeNameForMatch(value) {
   return String(value || "")
@@ -233,10 +241,15 @@ function validatePortalTherapistUpdates(body) {
   const stringFields = {
     credentials: { max: 200 },
     title: { max: 120 },
-    phone: { max: 40 },
-    website: { max: 500, url: true },
-    bookingUrl: { max: 500, url: true, bodyKey: "booking_url" },
-    preferredContactLabel: { max: 60, bodyKey: "preferred_contact_label" },
+    email: { max: 254, validator: validateEmail },
+    phone: { max: 40, validator: validatePhone },
+    website: { max: 500, normalize: normalizeUrl, validator: validateWebsite },
+    bookingUrl: {
+      max: 500,
+      bodyKey: "booking_url",
+      normalize: normalizeUrl,
+      validator: validateBookingUrl,
+    },
     contactGuidance: { max: 600, bodyKey: "contact_guidance" },
     firstStepExpectation: { max: 600, bodyKey: "first_step_expectation" },
     estimatedWaitTime: { max: 120, bodyKey: "estimated_wait_time" },
@@ -255,12 +268,18 @@ function validatePortalTherapistUpdates(body) {
       touchedBodyKeys.add(bodyKey);
       continue;
     }
-    const value = String(raw).trim();
+    let value = String(raw).trim();
+    if (spec.normalize) {
+      value = spec.normalize(value);
+    }
     if (value.length > spec.max) {
       return { error: `${bodyKey} is too long.`, field: bodyKey };
     }
-    if (spec.url && !/^https?:\/\//i.test(value)) {
-      return { error: `${bodyKey} must start with http:// or https://.`, field: bodyKey };
+    if (spec.validator) {
+      const result = spec.validator(value);
+      if (!result.valid) {
+        return { error: result.error, field: bodyKey };
+      }
     }
     setFields[field] = value;
     touchedBodyKeys.add(bodyKey);
@@ -424,6 +443,36 @@ function validatePortalTherapistUpdates(body) {
   };
 }
 
+// POST /portal/dev-login — BYPASSES the magic-link email flow for local
+// testing. Mints a therapist session JWT for one of a small, hardcoded
+// set of test emails, as long as three independent guards all pass:
+//
+//   1. process.env.NODE_ENV === "development"
+//   2. process.env.ALLOW_DEV_LOGIN === "true"
+//   3. the requested email is in DEV_LOGIN_ALLOWED_EMAILS below
+//
+// If guard 1 or 2 fails, the endpoint returns 404 with no logging so it
+// is indistinguishable from "this route does not exist." If guard 3
+// fails, it returns 404 for the same reason — even with the bypass
+// accidentally enabled in a real env, it cannot be aimed at a real
+// claimed therapist.
+//
+// When the bypass IS used, a conspicuous line is written to stderr so
+// it's loud and traceable if it ever fires somewhere it shouldn't.
+//
+// To add a new test therapist to the allowlist, add the email here AND
+// seed the doc via scripts/seed-dev-test-therapists.mjs. Do not remove
+// this allowlist — it is the third layer of defense.
+const DEV_LOGIN_ALLOWED_EMAILS = new Set([
+  "test-complete@dev.bipolartherapyhub.invalid",
+  "test-minimal@dev.bipolartherapyhub.invalid",
+  "test-empty@dev.bipolartherapyhub.invalid",
+]);
+
+function isDevLoginEnabled() {
+  return process.env.NODE_ENV === "development" && process.env.ALLOW_DEV_LOGIN === "true";
+}
+
 export async function handleAuthAndPortalRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
@@ -449,6 +498,94 @@ export async function handleAuthAndPortalRoutes(context) {
     sendPortalWelcomeEmail,
     updatePortalRequestFields,
   } = deps;
+
+  // Dev-only login bypass. See comment block above DEV_LOGIN_ALLOWED_EMAILS.
+  // Placed first so it short-circuits before any other auth path, and so
+  // a misconfigured env fails closed (404) before touching Sanity.
+  if (request.method === "POST" && routePath === "/portal/dev-login") {
+    // Guard 0 (tripwire): if this route is ever hit in production, log
+    // loudly. Runs before the silent guard-1 check so probing leaves a
+    // trace in the prod logs. Still returns 404 — no behavioral leak.
+    if (process.env.NODE_ENV === "production") {
+      const probeIp =
+        (request.socket && request.socket.remoteAddress) ||
+        request.headers["x-forwarded-for"] ||
+        "unknown";
+      console.warn(
+        `[DEV LOGIN] Route hit in production from ${probeIp} at ${new Date().toISOString()}`,
+      );
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+    if (!isDevLoginEnabled()) {
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+    const body = await parseBody(request);
+    const email = String((body && body.email) || "")
+      .trim()
+      .toLowerCase();
+    if (!email || !DEV_LOGIN_ALLOWED_EMAILS.has(email)) {
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && lower(claimedByEmail) == $email][0]{
+        _id, name, "slug": slug.current, claimedByEmail, listingActive, status
+      }`,
+      { email },
+    );
+    const slug =
+      therapist && therapist.slug && typeof therapist.slug === "object"
+        ? therapist.slug.current || ""
+        : therapist && therapist.slug
+          ? therapist.slug
+          : "";
+    if (!therapist || !slug) {
+      sendJson(
+        response,
+        404,
+        { error: "No claimed therapist for that dev email. Run the seed script." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    // Defense-in-depth: even if the allowlist were ever bypassed, the
+    // matched record must be off the public directory. A fixture email
+    // on a live record is a configuration bug that should fail closed
+    // and be loudly traceable.
+    if (therapist.listingActive !== false || therapist.status !== "inactive") {
+      console.error(
+        `[DEV LOGIN] REFUSED: ${email} matched therapist ${therapist._id} which is not inactive ` +
+          `(listingActive=${therapist.listingActive}, status=${therapist.status})`,
+      );
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+    const ip =
+      (request.socket && request.socket.remoteAddress) ||
+      request.headers["x-forwarded-for"] ||
+      "unknown";
+    console.error(`[DEV LOGIN] Bypass used for ${email} at ${new Date().toISOString()} from ${ip}`);
+    const sessionToken = createTherapistSession(config, {
+      slug,
+      email: therapist.claimedByEmail || email,
+    });
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        therapist_session_token: sessionToken,
+        slug,
+        email: therapist.claimedByEmail || email,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
 
   if (request.method === "POST" && routePath === "/auth/login") {
     if (!canAttemptLogin(request, config)) {
@@ -2474,7 +2611,8 @@ export async function handleAuthAndPortalRoutes(context) {
       `*[_type == "therapist" && slug.current == $slug][0]{
         _id, claimStatus, therapistReportedFields,
         portalFirstSaveAt, portalSaveCount,
-        listingActive, status, bio
+        listingActive, status, bio,
+        email, phone, website, bookingUrl
       }`,
       { slug: session.slug },
     );
@@ -2484,6 +2622,29 @@ export async function handleAuthAndPortalRoutes(context) {
     }
     if (existing.claimStatus !== "claimed") {
       sendJson(response, 403, { error: "Claim this profile before editing it." }, origin, config);
+      return true;
+    }
+
+    // Presence check against the after-state: the patch must not leave
+    // the therapist with zero public contact methods. Compute effective
+    // values by layering validation.setFields and unsetFields on top of
+    // the existing doc, then run the presence validator.
+    const contactAfter = {
+      email: existing.email || "",
+      phone: existing.phone || "",
+      website: existing.website || "",
+      bookingUrl: existing.bookingUrl || "",
+    };
+    ["email", "phone", "website", "bookingUrl"].forEach(function (key) {
+      if (key in validation.setFields) {
+        contactAfter[key] = validation.setFields[key];
+      } else if (validation.unsetFields.includes(key)) {
+        contactAfter[key] = "";
+      }
+    });
+    const presence = validatePublicContactPresence(contactAfter);
+    if (!presence.valid) {
+      sendJson(response, 400, { error: presence.error, field: "email" }, origin, config);
       return true;
     }
 

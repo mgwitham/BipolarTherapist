@@ -270,7 +270,7 @@ test("PATCH /portal/therapist promotes touched fields into therapist_reported_fi
   const response = await runHandlerRequest(handler, {
     body: {
       bio: "Updated bio with plenty of characters to pass the fifty char minimum here.",
-      phone: "555-123-4567",
+      phone: "415-867-2345",
       specialties: "Bipolar II, Mood stabilization",
     },
     headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
@@ -318,6 +318,97 @@ test("PATCH /portal/therapist appends to an existing therapist_reported_fields l
   assert.ok(reported.has("estimated_wait_time"));
 });
 
+test("PATCH /portal/therapist rejects a placeholder phone number", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": buildClaimedTherapistFixture() });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { phone: "555-555-5555" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.field, "phone");
+  assert.match(response.payload.error, /placeholder/i);
+});
+
+test("PATCH /portal/therapist rejects a placeholder email and accepts a real one", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      phone: "415-867-2345",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const bad = await runHandlerRequest(handler, {
+    body: { email: "jamie@example.com" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+  assert.equal(bad.statusCode, 400);
+  assert.equal(bad.payload.field, "email");
+
+  const good = await runHandlerRequest(handler, {
+    body: { email: "jamie@bipolartherapyhub.com" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+  assert.equal(good.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.email, "jamie@bipolartherapyhub.com");
+});
+
+test("PATCH /portal/therapist rejects a PATCH that would clear every public contact", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      email: "jamie@bipolartherapyhub.com",
+      phone: "",
+      website: "",
+      bookingUrl: "",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { email: "" },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /at least one way/i);
+});
+
+test("PATCH /portal/therapist silently ignores claimedByEmail in the body", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      claimedByEmail: "jamie@original.com",
+      email: "jamie@bipolartherapyhub.com",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      bio: "Updated bio copy here that is plenty long enough to pass the fifty char minimum.",
+      claimedByEmail: "hijacker@attacker.com",
+      claimed_by_email: "hijacker@attacker.com",
+    },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@original.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.claimedByEmail, "jamie@original.com");
+});
+
 test("PATCH /portal/therapist unsets optional fields when given an empty value", async () => {
   const { client } = createMemoryClient({
     "therapist-jamie": buildClaimedTherapistFixture({
@@ -338,6 +429,262 @@ test("PATCH /portal/therapist unsets optional fields when given an empty value",
   const raw = await client.getDocument("therapist-jamie");
   assert.equal(raw.estimatedWaitTime, undefined);
   assert.equal(raw.specialties, undefined);
+});
+
+test("POST /portal/dev-login returns 404 in production regardless of ALLOW_DEV_LOGIN", async () => {
+  const { client } = createMemoryClient({
+    "therapist-test-complete": {
+      _id: "therapist-test-complete",
+      _type: "therapist",
+      name: "Dev Test Complete",
+      slug: { current: "dev-test-complete" },
+      claimStatus: "claimed",
+      claimedByEmail: "test-complete@dev.bipolartherapyhub.invalid",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "production";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login returns 404 when ALLOW_DEV_LOGIN is unset, even in development", async () => {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "development";
+  delete process.env.ALLOW_DEV_LOGIN;
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login returns 404 for an email not in the allowlist", async () => {
+  const { client } = createMemoryClient({
+    "therapist-attack": {
+      _id: "therapist-attack",
+      _type: "therapist",
+      name: "Real Therapist",
+      slug: { current: "real-therapist" },
+      claimStatus: "claimed",
+      claimedByEmail: "real-therapist@practice.com",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "development";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "real-therapist@practice.com" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login issues a valid session when all three guards pass", async () => {
+  const { client } = createMemoryClient({
+    "therapist-test-complete": {
+      _id: "therapist-test-complete",
+      _type: "therapist",
+      name: "Dev Test Complete",
+      slug: { current: "dev-test-complete" },
+      claimStatus: "claimed",
+      claimedByEmail: "test-complete@dev.bipolartherapyhub.invalid",
+      listingActive: false,
+      status: "inactive",
+    },
+  });
+  const config = createTestApiConfig();
+  const handler = createReviewApiHandler(config, client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "development";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.payload.slug, "dev-test-complete");
+    const sessionToken = response.payload.therapist_session_token;
+    assert.equal(typeof sessionToken, "string");
+
+    const meResponse = await runHandlerRequest(handler, {
+      headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+      method: "GET",
+      url: "/portal/me",
+    });
+    assert.equal(meResponse.statusCode, 200);
+    assert.equal(meResponse.payload.therapist.slug, "dev-test-complete");
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login refuses a fixture email on a listingActive=true record", async () => {
+  const { client } = createMemoryClient({
+    "therapist-test-complete": {
+      _id: "therapist-test-complete",
+      _type: "therapist",
+      name: "Dev Test Complete",
+      slug: { current: "dev-test-complete" },
+      claimStatus: "claimed",
+      claimedByEmail: "test-complete@dev.bipolartherapyhub.invalid",
+      listingActive: true,
+      status: "inactive",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "development";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login refuses a fixture email on a status=active record", async () => {
+  const { client } = createMemoryClient({
+    "therapist-test-complete": {
+      _id: "therapist-test-complete",
+      _type: "therapist",
+      name: "Dev Test Complete",
+      slug: { current: "dev-test-complete" },
+      claimStatus: "claimed",
+      claimedByEmail: "test-complete@dev.bipolartherapyhub.invalid",
+      listingActive: false,
+      status: "active",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "development";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
+});
+
+test("POST /portal/dev-login logs a warning when the route is hit in production", async () => {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_DEV_LOGIN;
+  process.env.NODE_ENV = "production";
+  process.env.ALLOW_DEV_LOGIN = "true";
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = function (...args) {
+    warnings.push(args.join(" "));
+  };
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: { email: "test-complete@dev.bipolartherapyhub.invalid" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/portal/dev-login",
+    });
+    assert.equal(response.statusCode, 404);
+    assert.equal(
+      warnings.some((msg) => msg.startsWith("[DEV LOGIN] Route hit in production")),
+      true,
+      "expected a '[DEV LOGIN] Route hit in production' warning",
+    );
+  } finally {
+    console.warn = originalWarn;
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_DEV_LOGIN;
+    } else {
+      process.env.ALLOW_DEV_LOGIN = originalAllow;
+    }
+  }
 });
 
 test("/portal/analytics returns current-week engagement summary for the authenticated therapist", async () => {

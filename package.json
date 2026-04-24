@@ -6,7 +6,7 @@
   "description": "BipolarTherapyHub local product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.",
   "scripts": {
     "dev": "vite",
-    "api:dev": "node server/review-api.mjs",
+    "api:dev": "NODE_ENV=development node server/review-api.mjs",
     "build": "npm run build:sitemap && vite build && npm run build:seo-pages",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "build:seo-pages": "node scripts/generate-seo-profile-pages.mjs",

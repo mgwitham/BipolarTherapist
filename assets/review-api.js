@@ -391,6 +391,17 @@ export async function requestTherapistSignIn(email) {
   });
 }
 
+// Dev-only. Calls the server's /portal/dev-login bypass endpoint. The
+// server returns 404 unless NODE_ENV=development AND ALLOW_DEV_LOGIN=true
+// AND the email is in the server's hardcoded allowlist, so this is a
+// no-op in any real environment.
+export async function devLoginAsTherapist(email) {
+  return request("/portal/dev-login", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function requestTherapistQuickClaim(payload) {
   return request("/portal/quick-claim", {
     method: "POST",
