@@ -148,6 +148,15 @@ Append an entry to `config/discovery-zips.json`:
 
 No code changes needed — the next `npm run cms:ingest -- --city oakland` will pick it up.
 
+### Admin Coverage Intelligence panel
+
+The admin UI's "Where to source next" cards use the same prompt template and the same city config as the CLI.
+
+- If the surfaced city is in `config/discovery-zips.json`, the primary button copies the canonical `npm run cms:ingest -- --city <slug>` command. A secondary button copies the ChatGPT-paste prompt as a fallback — that prompt is rendered from the same template, same exclusion format, and same ZIP prioritization the CLI would produce.
+- If the surfaced city is NOT in config, only the ChatGPT-paste prompt is available, and the card hints to add the city to config for one-command support.
+
+In short: every entry point (CLI, admin panel, "ask me in chat") routes through `cms:ingest` for configured cities. The ChatGPT-paste prompt is now a byte-identical fallback, not a separate prompt variant.
+
 ## Commit Rules
 
 Commit these:

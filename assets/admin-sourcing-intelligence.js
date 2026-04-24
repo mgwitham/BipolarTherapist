@@ -1,4 +1,12 @@
 import discoveryPromptTemplate from "../docs/discovery-prompt.template.txt?raw";
+import discoveryZipsConfig from "../config/discovery-zips.json";
+import {
+  buildExclusionBlock,
+  buildIngestCommandForCity as buildIngestCommandForCityFromConfig,
+  buildZipsPhrase,
+  findConfiguredCity as findConfiguredCityFromConfig,
+  renderDiscoveryPrompt,
+} from "../shared/discovery-prompt-domain.mjs";
 
 const DEFAULT_DISCOVERY_COUNT = 10;
 
@@ -14,6 +22,7 @@ function buildCityIndex(therapists) {
     entry.entries.push({
       name: item.name || "",
       credentials: item.credentials || "",
+      licenseNumber: item.license_number || item.licenseNumber || "",
       sourceUrl: item.source_url || item.sourceUrl || item.website || "",
     });
     index.set(key, entry);
@@ -21,57 +30,55 @@ function buildCityIndex(therapists) {
   return index;
 }
 
-function formatCoveredZips(zips) {
-  if (!zips || !zips.size) return "";
-  return Array.from(zips).sort().join(", ");
-}
-
 function extractCityName(cityLabel) {
   const comma = String(cityLabel || "").indexOf(",");
   return comma >= 0 ? cityLabel.slice(0, comma).trim() : String(cityLabel || "").trim();
 }
 
-function buildCoverageContext(cityEntry) {
-  if (!cityEntry || !cityEntry.zips.size) {
-    return "# COVERAGE CONTEXT\n\nWe have no clinicians in this city yet. Spread candidates across 4-5 distinct neighborhoods so the first batch represents the full city rather than one cluster.";
-  }
-  const covered = formatCoveredZips(cityEntry.zips);
-  return (
-    "# COVERAGE CONTEXT\n\nAlready covered ZIPs in this city: " +
-    covered +
-    ". Prioritize candidates in ZIPs we do NOT yet cover; spread across 4-5 distinct neighborhoods so we broaden the footprint rather than deepen existing coverage."
-  );
+export function findConfiguredCity(cityLabel) {
+  return findConfiguredCityFromConfig(cityLabel, discoveryZipsConfig);
 }
 
-function buildExistingClinicianList(cityEntry) {
-  if (!cityEntry || !cityEntry.entries.length) {
-    return "# ALREADY IN OUR DATABASE\n\nNo existing listings in this city yet.";
-  }
-  const lines = cityEntry.entries
-    .slice(0, 30)
-    .map(function (item) {
-      const parts = [item.name];
-      if (item.credentials) parts.push("(" + item.credentials + ")");
-      if (item.sourceUrl) parts.push("— " + item.sourceUrl);
-      return "- " + parts.filter(Boolean).join(" ");
-    })
-    .join("\n");
-  return (
-    "# ALREADY IN OUR DATABASE (do not re-propose)\n\nThe following clinicians are already in the directory. Do not propose them again:\n\n" +
-    lines
-  );
+/**
+ * Build an all-cities exclusion block from the therapist graph the admin
+ * already has loaded. Matches the CLI's shape exactly (delegates to the
+ * shared helper), so the prompt an admin paste-user ships is identical
+ * to what `npm run cms:ingest` would ship.
+ *
+ * Known gap: admin only has live therapists in memory; the CLI also
+ * includes pending candidates + applications. Downstream dedupe still
+ * catches those, but the admin-copied prompt surfaces a strict subset.
+ */
+function buildExclusionBlockFromTherapists(therapists) {
+  const entries = (therapists || []).map((item) => ({
+    name: item.name || "",
+    licenseNumber: item.license_number || item.licenseNumber || "",
+    city: item.city || "",
+    website: item.website || "",
+    sourceUrl: item.source_url || item.sourceUrl || "",
+  }));
+  return buildExclusionBlock({ therapists: entries });
 }
 
-export function buildDiscoveryPromptForCity(cityLabel, cityEntry, count) {
-  const n = Number(count) > 0 ? Math.floor(Number(count)) : DEFAULT_DISCOVERY_COUNT;
+export function buildDiscoveryPromptForCity(cityLabel, options) {
+  const count =
+    options && Number(options.count) > 0
+      ? Math.floor(Number(options.count))
+      : DEFAULT_DISCOVERY_COUNT;
   const cityName = extractCityName(cityLabel) || cityLabel;
-  const exclusions =
-    buildCoverageContext(cityEntry) + "\n\n" + buildExistingClinicianList(cityEntry);
-  return discoveryPromptTemplate
-    .replace(/\{CITY\}/g, cityName)
-    .replace(/\{N\}/g, String(n))
-    .replace(/\{ZIPS\}/g, "")
-    .replace(/\{EXCLUSIONS\}/g, exclusions);
+  const configured = findConfiguredCityFromConfig(cityLabel, discoveryZipsConfig);
+  const zips = configured ? configured.zips : [];
+  const exclusionBlock = buildExclusionBlockFromTherapists((options && options.therapists) || []);
+  return renderDiscoveryPrompt(discoveryPromptTemplate, {
+    city: cityName,
+    zipsPhrase: buildZipsPhrase(zips),
+    count,
+    exclusionBlock,
+  });
+}
+
+export function buildIngestCommandForCity(cityLabel) {
+  return buildIngestCommandForCityFromConfig(cityLabel, discoveryZipsConfig);
 }
 
 export function buildCoverageInsights(therapists, helpers) {
@@ -157,6 +164,29 @@ export function buildCoverageInsights(therapists, helpers) {
   };
 }
 
+function renderCityActions(cityLabel, escapeHtml) {
+  const configured = findConfiguredCityFromConfig(cityLabel, discoveryZipsConfig);
+  if (configured) {
+    const command = `npm run cms:ingest -- --city ${configured.slug}`;
+    return (
+      '<button type="button" class="btn-primary btn-inline" data-ingest-command="' +
+      escapeHtml(command) +
+      '" data-discovery-city="' +
+      escapeHtml(cityLabel) +
+      '" style="margin-top:0.6rem">Copy ingest command</button>' +
+      '<button type="button" class="btn-secondary btn-inline" data-discovery-prompt="' +
+      escapeHtml(cityLabel) +
+      '" style="margin-top:0.6rem;margin-left:0.4rem">Copy prompt (ChatGPT fallback)</button>'
+    );
+  }
+  return (
+    '<button type="button" class="btn-secondary btn-inline" data-discovery-prompt="' +
+    escapeHtml(cityLabel) +
+    '" style="margin-top:0.6rem">Copy prompt (ChatGPT)</button>' +
+    '<div class="subtle" style="margin-top:0.4rem;font-size:0.85em">Add this city to config/discovery-zips.json to enable one-command <code>cms:ingest</code>.</div>'
+  );
+}
+
 export function renderCoverageIntelligencePanel(options) {
   const root = options.root;
   if (!root) {
@@ -182,7 +212,7 @@ export function renderCoverageIntelligencePanel(options) {
   const cityIndex = buildCityIndex(therapists);
 
   root.innerHTML =
-    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians. Click Copy discovery prompt to pull a ChatGPT-ready brief that skips the ZIPs we already cover.</div><div class="queue-insights-grid">' +
+    '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritize cities that are light on psychiatry, telehealth coverage, or accepting clinicians. For configured cities, use Copy ingest command and paste into your terminal — that runs the canonical pipeline. The ChatGPT fallback copies the same prompt the CLI would generate.</div><div class="queue-insights-grid">' +
     insights.thinnestCities
       .map(function (row) {
         const cityLabel = [row.city, row.state].filter(Boolean).join(", ");
@@ -205,9 +235,9 @@ export function renderCoverageIntelligencePanel(options) {
           ) +
           '</div><div class="queue-insight-note">' +
           options.escapeHtml(gaps.join(" · ") || "Balanced coverage") +
-          '</div><button type="button" class="btn-secondary btn-inline" data-discovery-city="' +
-          options.escapeHtml(cityLabel) +
-          '" style="margin-top:0.6rem">Copy discovery prompt</button></div>'
+          "</div>" +
+          renderCityActions(cityLabel, options.escapeHtml) +
+          "</div>"
         );
       })
       .join("") +
@@ -258,19 +288,39 @@ export function renderCoverageIntelligencePanel(options) {
       .join("") +
     "</div></div>";
 
-  root.querySelectorAll("[data-discovery-city]").forEach(function (button) {
+  function setStatus(message) {
+    const status = root.querySelector("#coverageDiscoveryStatus");
+    if (status) status.textContent = message;
+  }
+
+  root.querySelectorAll("[data-ingest-command]").forEach(function (button) {
     button.addEventListener("click", async function () {
+      const command = button.getAttribute("data-ingest-command") || "";
       const cityLabel = button.getAttribute("data-discovery-city") || "";
+      if (!command) return;
+      const success = await options.copyText(command);
+      setStatus(
+        success
+          ? "Command copied for " + cityLabel + ". Paste into a terminal from the repo root."
+          : "Could not copy command for " + cityLabel + ".",
+      );
+    });
+  });
+
+  root.querySelectorAll("[data-discovery-prompt]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const cityLabel = button.getAttribute("data-discovery-prompt") || "";
       if (!cityLabel) return;
-      const cityEntry = cityIndex.get(cityLabel);
-      const prompt = buildDiscoveryPromptForCity(cityLabel, cityEntry, DEFAULT_DISCOVERY_COUNT);
-      const status = root.querySelector("#coverageDiscoveryStatus");
+      const prompt = buildDiscoveryPromptForCity(cityLabel, {
+        therapists,
+        count: DEFAULT_DISCOVERY_COUNT,
+      });
       const success = await options.copyText(prompt);
-      if (status) {
-        status.textContent = success
+      setStatus(
+        success
           ? "Discovery prompt copied for " + cityLabel + ". Paste into ChatGPT."
-          : "Could not copy prompt for " + cityLabel + ".";
-      }
+          : "Could not copy prompt for " + cityLabel + ".",
+      );
     });
   });
 }
