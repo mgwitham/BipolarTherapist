@@ -34,6 +34,7 @@ import {
 } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import { lookupZipPlace, preloadZipcodes } from "./zip-lookup.js";
+import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 
 (async function () {
   initValuePillPopover();
@@ -42,6 +43,36 @@ import { lookupZipPlace, preloadZipcodes } from "./zip-lookup.js";
   var therapists = content.therapists || [];
   var directoryPage = content.directoryPage || null;
   var siteSettings = content.siteSettings || null;
+
+  if (isDatasetEmpty(therapists)) {
+    var emptyHideIds = [
+      "directoryRecommendationZone",
+      "directoryJourneySummary",
+      "directorySparseNudge",
+      "pagination",
+      "resultsCount",
+      "filterCount",
+      "activeFilterSummary",
+      "activeFilterChips",
+    ];
+    emptyHideIds.forEach(function (id) {
+      var node = document.getElementById(id);
+      if (node) node.setAttribute("hidden", "");
+    });
+    var emptyHideSelectors = [".dir-vb-bar-wrap", ".results-focus-banner", ".results-header"];
+    emptyHideSelectors.forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (node) {
+        node.setAttribute("hidden", "");
+        node.style.display = "none";
+      });
+    });
+    var emptyGrid = document.getElementById("resultsGrid");
+    if (emptyGrid) {
+      emptyGrid.className = "dataset-empty-state-grid";
+      emptyGrid.innerHTML = renderDatasetEmptyStateMarkup();
+    }
+    return;
+  }
   var currentPage = 1;
   var pageSize = 12;
   var activePreviewSlug = "";
