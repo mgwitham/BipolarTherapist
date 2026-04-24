@@ -70,6 +70,7 @@ import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
 import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
+import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -5842,6 +5843,23 @@ function refreshIntakeUiFromForm() {
   startZipcodesPreload();
   var therapistsPromise = fetchPublicTherapists();
   therapists = await therapistsPromise;
+
+  if (isDatasetEmpty(therapists)) {
+    var emptyResultsRoot = document.getElementById("matchResults");
+    if (emptyResultsRoot) {
+      emptyResultsRoot.className = "match-results";
+      emptyResultsRoot.innerHTML = renderDatasetEmptyStateMarkup();
+    }
+    var emptyHideSelectors = [".match-layout", ".match-refine-backdrop"];
+    emptyHideSelectors.forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (node) {
+        node.setAttribute("hidden", "");
+        node.style.display = "none";
+      });
+    });
+    return;
+  }
+
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
   trackExperimentExposure("match_ranking", activeMatchExperimentVariant, {
