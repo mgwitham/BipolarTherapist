@@ -109,6 +109,45 @@ To clean up: `node scripts/seed-dev-test-therapists.mjs --delete`.
 - Generated operational packets should be reproducible from scripts, not hand-edited after generation.
 - If a script mutates source-of-truth data, document the command in the pull request.
 
+## One-Command Ingestion
+
+For routine candidate discovery, use the pilot runner rather than wiring the steps by hand:
+
+```sh
+npm run cms:ingest -- --city "San Francisco"
+npm run cms:ingest -- --city sf            # aliases work
+npm run cms:ingest -- --city sf --dry-run  # skip Sanity write; just generate + validate
+```
+
+The runner:
+
+1. Resolves `--city` against `config/discovery-zips.json` (accepts canonical slug, full name, or alias).
+2. Generates the discovery prompt with the city's prioritized ZIPs.
+3. Calls Anthropic with `web_search` enabled and saves the full agent output to `/tmp/ingestion-<city>-<timestamp>.md`.
+4. Extracts the CSV block, normalizes it to the seed-CSV schema, archives any pre-existing seed CSV, and writes the new one.
+5. Runs a quality scan (placeholder phones, "California" as city, aggregator listing URLs, missing license numbers without the "Needs license lookup" tag). Issues are logged, never silently filtered.
+6. Invokes `scripts/get-more-therapists.mjs` end-to-end so records land as `therapistCandidate` documents in the admin review queue.
+7. Queries Sanity for therapistCandidate docs created during the run and prints the final summary.
+
+Requirements:
+
+- `ANTHROPIC_API_KEY` in `.env`
+- `SANITY_API_TOKEN` in `.env` with write scope
+
+### Adding a new city
+
+Append an entry to `config/discovery-zips.json`:
+
+```json
+"oakland": {
+  "name": "Oakland",
+  "aliases": ["oak"],
+  "zips": ["94606", "94609", "94610", "94611", "94612", "94618"]
+}
+```
+
+No code changes needed — the next `npm run cms:ingest -- --city oakland` will pick it up.
+
 ## Commit Rules
 
 Commit these:
