@@ -97,16 +97,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@sanity/client": "^7.21.0",
+    "@sanity/client": "^7.22.0",
     "eslint": "^10.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
-    "vite": "^8.0.8"
+    "vite": "^8.0.10"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.91.0",
     "@vercel/analytics": "^2.0.1",
-    "stripe": "^22.0.2"
+    "stripe": "^22.1.0"
   }
 }
