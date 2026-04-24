@@ -5,6 +5,13 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
 
+import {
+  buildExclusionBlock,
+  buildZipsPhrase,
+  normalizeZips,
+  renderDiscoveryPrompt,
+} from "../shared/discovery-prompt-domain.mjs";
+
 const ROOT = process.cwd();
 const TEMPLATE_PATH = path.join(ROOT, "docs", "discovery-prompt.template.txt");
 const DEFAULT_OUT_PATH = path.join(ROOT, "data", "import", "generated-discovery-prompt.md");
@@ -121,68 +128,6 @@ async function fetchExistingClinicians() {
   return { ok: true, ...result };
 }
 
-function normalizeKey(entry) {
-  const license = String(entry.licenseNumber || "")
-    .replace(/\s+/g, "")
-    .toUpperCase();
-  const name = String(entry.name || "")
-    .trim()
-    .toLowerCase();
-  return license || name;
-}
-
-function buildExclusionBlock(clinicians) {
-  const all = [
-    ...(clinicians.therapists || []),
-    ...(clinicians.candidates || []),
-    ...(clinicians.applications || []),
-  ];
-  const seen = new Map();
-  for (const entry of all) {
-    const key = normalizeKey(entry);
-    if (!key) continue;
-    if (!seen.has(key)) seen.set(key, entry);
-  }
-  const rows = Array.from(seen.values())
-    .filter((entry) => entry.name)
-    .map((entry) => {
-      const parts = [entry.name];
-      if (entry.licenseNumber) parts.push(entry.licenseNumber);
-      if (entry.city) parts.push(entry.city);
-      if (entry.website || entry.source) parts.push(entry.website || entry.source);
-      return `- ${parts.join(" | ")}`;
-    })
-    .sort();
-  if (!rows.length) return "";
-  return `# ALREADY IN OUR DATABASE — DO NOT RE-SURFACE THESE
-
-The clinicians below are already in Bipolar Therapy Hub. Any row you
-emit for them will be rejected as a duplicate. Use this list as an
-EXCLUSION FILTER during research — if you find one of these names at
-the top of search results, skip and keep hunting for new specialists.
-
-This list is also a hint: if every top search result is on this list,
-the obvious well is dry. Go deeper — try narrower queries (specific
-modalities, subpopulations, non-SEO neighborhoods, academic
-affiliations), different license types (LCSW/LPCC if you've been
-finding MDs), or rotate to ZIPs you haven't hit yet.
-
-${rows.join("\n")}
-
-End of exclusion list. The names above are OFF LIMITS — every row in
-your output CSV must be a clinician whose name or license number does
-not appear above.
-`;
-}
-
-function renderPrompt(template, options) {
-  return template
-    .replaceAll("{CITY}", options.city)
-    .replaceAll("{ZIPS}", options.zipsDisplay)
-    .replaceAll("{N}", String(options.count))
-    .replaceAll("{EXCLUSIONS}", options.exclusionBlock || "");
-}
-
 function buildOutputFile(prompt, options) {
   const today = new Date().toISOString().slice(0, 10);
   return `# Discovery prompt: ${options.city}
@@ -202,16 +147,6 @@ data/import/therapist-source-seeds.csv, then run:
 ---
 
 ${prompt}`;
-}
-
-function normalizeZips(raw) {
-  const zips = String(raw || "")
-    .split(/[,\s]+/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const unique = Array.from(new Set(zips));
-  const invalid = unique.filter((zip) => !/^\d{5}$/.test(zip));
-  return { zips: unique, invalid };
 }
 
 function loadTemplate() {
@@ -263,9 +198,9 @@ async function main() {
   }
 
   const template = loadTemplate();
-  const prompt = renderPrompt(template, {
+  const prompt = renderDiscoveryPrompt(template, {
     city: options.city,
-    zipsDisplay: zips.length ? ` Prioritize ZIPs: ${zips.join(", ")}.` : "",
+    zipsPhrase: buildZipsPhrase(zips),
     count: options.count,
     exclusionBlock,
   });
