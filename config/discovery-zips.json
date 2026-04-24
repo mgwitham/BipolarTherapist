@@ -1,0 +1,71 @@
+{
+  "_comment": "City → prioritized ZIPs for discovery-prompt generation. Add new cities here as one-line entries. Short codes and aliases resolve to the same canonical entry.",
+  "cities": {
+    "san-francisco": {
+      "name": "San Francisco",
+      "aliases": ["sf", "san francisco"],
+      "zips": [
+        "94102",
+        "94103",
+        "94107",
+        "94110",
+        "94114",
+        "94117",
+        "94118",
+        "94121",
+        "94122",
+        "94123",
+        "94131",
+        "94133"
+      ]
+    },
+    "los-angeles": {
+      "name": "Los Angeles",
+      "aliases": ["la", "los angeles"],
+      "zips": [
+        "90004",
+        "90019",
+        "90026",
+        "90027",
+        "90034",
+        "90036",
+        "90046",
+        "90048",
+        "90064",
+        "90066"
+      ]
+    },
+    "san-diego": {
+      "name": "San Diego",
+      "aliases": ["sd", "san diego"],
+      "zips": [
+        "92037",
+        "92101",
+        "92103",
+        "92104",
+        "92107",
+        "92109",
+        "92116",
+        "92117",
+        "92122",
+        "92130"
+      ]
+    },
+    "sacramento": {
+      "name": "Sacramento",
+      "aliases": ["sac", "sacramento"],
+      "zips": [
+        "95811",
+        "95814",
+        "95816",
+        "95817",
+        "95818",
+        "95819",
+        "95820",
+        "95825",
+        "95833",
+        "95864"
+      ]
+    }
+  }
+}
