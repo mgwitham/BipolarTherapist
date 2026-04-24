@@ -1,8 +1,8 @@
 /**
  * Pure helpers for rendering the therapist-discovery prompt.
  *
- * Shared between the CLI runner (scripts/generate-discovery-prompt.mjs,
- * scripts/run-pilot-ingestion.mjs) and the admin panel
+ * Shared between the CLI prompt generator
+ * (scripts/generate-discovery-prompt.mjs) and the admin panel
  * (assets/admin-sourcing-intelligence.js) so a discovery prompt generated
  * from either entry point has the same shape — same ROLE/MISSION
  * (template), same ZIP-prioritization string, same exclusion block
@@ -44,12 +44,6 @@ export function findConfiguredCity(cityLabel, config) {
     }
   }
   return null;
-}
-
-export function buildIngestCommandForCity(cityLabel, config) {
-  const configured = findConfiguredCity(cityLabel, config);
-  if (!configured) return "";
-  return `npm run cms:ingest -- --city ${configured.slug}`;
 }
 
 export function normalizeZips(raw) {

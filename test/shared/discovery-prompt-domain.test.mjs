@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import {
   buildExclusionBlock,
-  buildIngestCommandForCity,
   buildZipsPhrase,
   findConfiguredCity,
   normalizeZips,
@@ -97,16 +96,4 @@ test("findConfiguredCity returns null for unknown cities and empty input", () =>
   assert.equal(findConfiguredCity("", realConfig), null);
   assert.equal(findConfiguredCity(null, realConfig), null);
   assert.equal(findConfiguredCity("Anywhere", { cities: {} }), null);
-});
-
-test("buildIngestCommandForCity emits the canonical one-command string for configured cities", () => {
-  assert.equal(
-    buildIngestCommandForCity("San Francisco", realConfig),
-    "npm run cms:ingest -- --city san-francisco",
-  );
-  assert.equal(
-    buildIngestCommandForCity("sf", realConfig),
-    "npm run cms:ingest -- --city san-francisco",
-  );
-  assert.equal(buildIngestCommandForCity("Modesto", realConfig), "");
 });
