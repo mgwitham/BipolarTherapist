@@ -23,21 +23,28 @@ const LICENSE_TYPE_CODES = {
   "Licensed Educational Psychologist": "2003",
   Psychologist: "6001",
   "Physician and Surgeon": "8002",
+  "Osteopathic Physician and Surgeon": "9001",
+  "Nurse Practitioner": "4004",
   LMFT: "2001",
   LCSW: "2002",
   LPCC: "2005",
   LEP: "2003",
   "Psychiatrist (MD)": "8002",
+  "Osteopathic Physician (DO)": "9001",
 };
 
 export function cleanLicenseNumber(raw) {
   let s = String(raw || "").trim();
   // Drop leading credential-prefix tokens followed by space ("LMFT 103986", "MD A117442").
   s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  // Drop leading non-alphanumeric and remaining alpha prefix (handles "# PSY28157" → "28157", "MFC47803" → "47803", "A117442" → "117442").
-  s = s.replace(/^[^A-Za-z0-9]+/, "").replace(/^[A-Za-z]+/, "");
+  // Drop leading non-alphanumerics ("# PSY28157" → "PSY28157").
+  s = s.replace(/^[^A-Za-z0-9]+/, "");
+  // Take only the trailing digit run — handles "MFC47803" → "47803",
+  // "A117442" → "117442", "20A20064" (DO) → "20064", "PSY28157" → "28157".
+  const tail = s.match(/(\d+)$/);
+  if (!tail) return "";
   // DCA rejects leading zeros (verified: "060666" empty vs "60666" hit).
-  return s.replace(/^0+/, "");
+  return tail[1].replace(/^0+/, "") || "0";
 }
 
 export async function runDcaFreshnessCheck({
