@@ -174,6 +174,52 @@ export const therapistRecoveryRequestType = defineType({
       description: "First three octets only, for abuse pattern detection.",
     }),
     defineField({
+      name: "verificationMethods",
+      title: "Verification methods used at approval",
+      type: "array",
+      description:
+        "Structured record of how the admin verified the requester's identity. At least one strong method required on cold-takeover approvals.",
+      of: [
+        {
+          type: "string",
+          options: {
+            list: [
+              {
+                title: "Phone call to practice number on DCA address-of-record",
+                value: "phone_call_dca",
+              },
+              {
+                title: "Phone call to practice number on therapist's website",
+                value: "phone_call_website",
+              },
+              { title: "Government-issued ID + selfie match", value: "id_selfie" },
+              {
+                title: "Live video verification (face vs public photos)",
+                value: "video_call",
+              },
+              {
+                title: "Postal mail code to DCA address-of-record",
+                value: "postal_code",
+              },
+              {
+                title: "Domain-control challenge (meta tag on practice site)",
+                value: "domain_challenge",
+              },
+              {
+                title: "Cross-channel email match (mailto on practice website)",
+                value: "cross_channel_email",
+              },
+              {
+                title: "Therapist self-confirm via prior contact channel",
+                value: "self_confirm",
+              },
+              { title: "Other (describe in note)", value: "other" },
+            ],
+          },
+        },
+      ],
+    }),
+    defineField({
       name: "createdAt",
       title: "Created at",
       type: "datetime",

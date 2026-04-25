@@ -264,7 +264,7 @@ test("POST /recovery-requests/:id/approve rejects short identity verification (<
   assert.equal(response.payload.reason, "identity_verification_required");
 });
 
-test("POST /recovery-requests/:id/approve accepts cold takeover with identity verification", async () => {
+test("POST /recovery-requests/:id/approve accepts cold takeover with identity verification + strong method", async () => {
   const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
   const { response, context } = buildAdminApproveContext({
     client,
@@ -272,6 +272,7 @@ test("POST /recovery-requests/:id/approve accepts cold takeover with identity ve
       outcome_message: "approved",
       identity_verification:
         "Called 415-555-0100 from DCA record. Confirmed license and new email with Jamie.",
+      verification_methods: ["phone_call_dca"],
     },
     routePath: "/recovery-requests/recovery-1/approve",
   });
@@ -283,6 +284,41 @@ test("POST /recovery-requests/:id/approve accepts cold takeover with identity ve
     updated.identityVerification.includes("415-555-0100"),
     "identity verification note is persisted on the recovery doc",
   );
+  assert.deepEqual(
+    updated.verificationMethods,
+    ["phone_call_dca"],
+    "verification methods are persisted as structured audit trail",
+  );
+});
+
+test("POST /recovery-requests/:id/approve rejects cold takeover when no strong method is checked", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      identity_verification:
+        "Looked at their LinkedIn, seems plausible — going to approve based on that.",
+      verification_methods: ["other"],
+    },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.reason, "verification_method_required");
+});
+
+test("POST /recovery-requests/:id/approve rejects cold takeover with no methods at all", async () => {
+  const { client } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: {
+      identity_verification: "I just have a hunch this is the real person, I'm going to trust it.",
+    },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.payload.reason, "verification_method_required");
 });
 
 test("POST /recovery-requests/:id/approve does NOT require identity verification for stale-email case", async () => {
