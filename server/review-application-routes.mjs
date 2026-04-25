@@ -152,6 +152,66 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
+    // Active-status gate. DCA returns verified=true for any record on
+    // file (including revoked/cancelled/surrendered/expired). Reject
+    // anything that isn't currently active in good standing.
+    if (!verification.isActive) {
+      const status =
+        (verification.licensureVerification && verification.licensureVerification.primaryStatus) ||
+        "unknown";
+      sendJson(
+        response,
+        422,
+        {
+          error: `That CA license shows status "${status}" with the state board. Only active, in-good-standing licenses can be listed. If this looks wrong, contact CA DCA to update your record, then try again.`,
+          reason: "license_not_active",
+          dca_status: status,
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Discipline gate. Block if CA DCA shows any public disciplinary
+    // actions, citations, convictions, etc. on the license.
+    if (verification.hasDiscipline) {
+      sendJson(
+        response,
+        422,
+        {
+          error:
+            "That CA license has public disciplinary actions on record with the state board. We cannot list providers with active discipline. If you believe this is in error, email support.",
+          reason: "license_has_discipline",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    // Name-match gate. The licensee on file at DCA must match the
+    // applicant's submitted name. Stops someone from looking up a
+    // colleague's license number and registering under their own name.
+    if (!applicantNameMatchesDcaLicensee(name, verification.licenseeName)) {
+      const dcaName = verification.licenseeName
+        ? `${verification.licenseeName.firstName} ${verification.licenseeName.lastName}`.trim()
+        : "(not returned)";
+      sendJson(
+        response,
+        422,
+        {
+          error: `The name on that CA license (${dcaName}) doesn't match the name you submitted. Please use your legal name as it appears on your CA license, or double-check the license number.`,
+          reason: "license_name_mismatch",
+          submitted_name: name,
+          dca_name: dcaName,
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     intakeBody.licensure_verification = verification.licensureVerification;
     intakeBody.license_type = verification.licenseTypeLabel || "";
     // Persist primaryStatus so the admin audit trail shows DCA
@@ -753,8 +813,10 @@ async function runDcaVerification(client, config, application, body) {
 // number since license numbers aren't unique across types but the
 // DCA search will return zero results for a mismatched type.
 //
-// Returns { verified, licensureVerification, licenseTypeLabel } on
-// hit, or { verified: false, error } on miss / all-types-fail.
+// Returns { verified, licensureVerification, licenseTypeLabel, isActive,
+// hasDiscipline, licenseeName } on hit, or { verified: false, error } on
+// miss / all-types-fail. Caller is responsible for enforcing isActive +
+// !hasDiscipline + name match before approving.
 async function verifyLicenseAcrossCaTypes(config, licenseNumber) {
   const { verifyLicense, getLicenseTypeOptions } = await import("./dca-license-client.mjs");
   const types = getLicenseTypeOptions();
@@ -781,7 +843,49 @@ async function verifyLicenseAcrossCaTypes(config, licenseNumber) {
   }
   return {
     verified: true,
+    isActive: hit.result.isActive,
+    hasDiscipline: hit.result.hasDiscipline,
+    licenseeName: hit.result.licenseeName,
     licensureVerification: hit.result.licensureVerification,
     licenseTypeLabel: hit.option.label,
   };
+}
+
+// Fuzzy name match for DCA licensee vs applicant-submitted name.
+// Last name must match exactly (case/punct/space-insensitive). First
+// name must share at least 2 leading chars OR one wholly contains the
+// other (handles Mike/Michael, Liz/Elizabeth). Hyphens and middle
+// names are tolerated. Returns true if names plausibly belong to the
+// same person.
+function applicantNameMatchesDcaLicensee(submittedFullName, dcaLicensee) {
+  if (!submittedFullName || !dcaLicensee) return false;
+  const norm = (s) =>
+    String(s || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
+  // Strip honorifics + credential suffixes (Dr./Mr./Ms./Mrs./Prof. and trailing
+  // PhD/PsyD/MD/LMFT/etc) so we tokenize only the legal-name portion.
+  const HONORIFIC = /^(DR\.?|MR\.?|MRS\.?|MS\.?|PROF\.?)\s+/i;
+  const SUFFIX =
+    /,?\s*(PHD|PSYD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EDD|JD|RN|MFC|JR|SR|II|III|IV)\.?\s*$/i;
+  let cleaned = String(submittedFullName).trim();
+  while (HONORIFIC.test(cleaned)) cleaned = cleaned.replace(HONORIFIC, "");
+  while (SUFFIX.test(cleaned)) cleaned = cleaned.replace(SUFFIX, "");
+  const submittedTokens = cleaned.trim().split(/\s+/).filter(Boolean);
+  if (submittedTokens.length < 2) return false;
+  const submittedFirst = norm(submittedTokens[0]);
+  const submittedLast = norm(submittedTokens[submittedTokens.length - 1]);
+  const dcaFirst = norm(dcaLicensee.firstName);
+  const dcaLast = norm(dcaLicensee.lastName);
+  if (!submittedFirst || !submittedLast || !dcaFirst || !dcaLast) return false;
+  if (submittedLast !== dcaLast) return false;
+  if (submittedFirst === dcaFirst) return true;
+  if (submittedFirst.length < 2 || dcaFirst.length < 2) return false;
+  if (
+    submittedFirst.startsWith(dcaFirst.slice(0, 2)) ||
+    dcaFirst.startsWith(submittedFirst.slice(0, 2))
+  )
+    return true;
+  if (submittedFirst.includes(dcaFirst) || dcaFirst.includes(submittedFirst)) return true;
+  return false;
 }
