@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const ROOT = process.cwd();
 const DEFAULT_INPUT_PATH = path.join(ROOT, "data", "import", "therapist-source-seeds.csv");
@@ -684,7 +685,14 @@ async function run() {
   );
 }
 
-const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+// Use fileURLToPath + path.resolve so the comparison is byte-stable
+// regardless of how `node` was invoked (relative vs absolute path) and
+// regardless of characters that need URL-encoding in import.meta.url
+// (spaces, parens, etc. — the repo path "Main_Bipolar Therapist
+// Directory" has a literal space that would silently break a naive
+// `file://${process.argv[1]}` comparison).
+const invokedDirectly =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (invokedDirectly) {
   run().catch((error) => {
     console.error(error.message || error);
