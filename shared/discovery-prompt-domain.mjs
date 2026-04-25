@@ -123,18 +123,78 @@ not appear above.
 }
 
 /**
- * Render a discovery prompt from the template by substituting the four
- * placeholders. `options.exclusionBlock` is the already-rendered string
- * from buildExclusionBlock (or "" if none).
+ * Pull queries out of an agent's `search_log` fenced block. Tolerates
+ * both bucket-prefixed (`[B] perinatal bipolar...`) and unprefixed
+ * lines, and the pipe-delimited URL trail. Returns an array of unique
+ * query strings (with bucket prefix stripped).
+ */
+export function extractSearchQueriesFromAgentOutput(text) {
+  if (typeof text !== "string" || !text) return [];
+  const fence = text.match(/```search_log\s*\n([\s\S]*?)\n```/);
+  if (!fence) return [];
+  const seen = new Set();
+  const queries = [];
+  fence[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const beforePipe = line.split("|")[0].trim();
+      const stripped = beforePipe.replace(/^\[[A-Ea-e]\]\s*/, "").trim();
+      if (!stripped || seen.has(stripped)) return;
+      seen.add(stripped);
+      queries.push(stripped);
+    });
+  return queries;
+}
+
+/**
+ * Render the "PRIOR QUERIES TO AVOID" block. The agent reads this and
+ * is expected to vary its query patterns — running the exact same 8
+ * queries twice on the same city hits the same SEO ceiling and surfaces
+ * the same already-known clinicians.
+ */
+export function buildPriorQueriesBlock(queries) {
+  const list = Array.isArray(queries) ? queries.filter(Boolean) : [];
+  if (!list.length) {
+    return `# PRIOR QUERIES — FIRST RUN FOR THIS CITY
+
+(No prior runs found. Pick query patterns freely from the buckets above.)`;
+  }
+  const sorted = Array.from(new Set(list)).sort();
+  return `# PRIOR QUERIES — DO NOT REPEAT THESE EXACT PATTERNS
+
+Earlier runs for this city used the queries below. Repeating them
+hits the same Google rankings and re-surfaces clinicians we already
+have (or already rejected). Stay in the bucket structure but reach
+for variants — different modalities, different populations,
+neighborhood-scoped, training-affiliation, etc.
+
+A query that overlaps in 2+ keywords with a prior query counts as a
+repeat. "bipolar disorder LMFT San Francisco" and "bipolar LMFT San
+Francisco private practice" are the same query for this purpose.
+
+${sorted.map((query) => `- ${query}`).join("\n")}
+
+End of prior-query list. Your search_log must show queries that are
+materially different from these.`;
+}
+
+/**
+ * Render a discovery prompt from the template by substituting the
+ * placeholders. `options.exclusionBlock` and `options.priorQueriesBlock`
+ * are already-rendered strings (or empty).
  */
 export function renderDiscoveryPrompt(template, options) {
   const city = (options && options.city) || "";
   const zipsPhrase = (options && options.zipsPhrase) || "";
   const count = (options && options.count) || 10;
   const exclusionBlock = (options && options.exclusionBlock) || "";
+  const priorQueriesBlock = (options && options.priorQueriesBlock) || "";
   return String(template)
     .replaceAll("{CITY}", city)
     .replaceAll("{ZIPS}", zipsPhrase)
     .replaceAll("{N}", String(count))
-    .replaceAll("{EXCLUSIONS}", exclusionBlock);
+    .replaceAll("{EXCLUSIONS}", exclusionBlock)
+    .replaceAll("{PRIOR_QUERIES}", priorQueriesBlock);
 }

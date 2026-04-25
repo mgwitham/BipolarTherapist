@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   buildExclusionBlock,
+  buildPriorQueriesBlock,
   buildZipsPhrase,
+  extractSearchQueriesFromAgentOutput,
   findConfiguredCity,
   normalizeZips,
   renderDiscoveryPrompt,
@@ -96,4 +98,67 @@ test("findConfiguredCity returns null for unknown cities and empty input", () =>
   assert.equal(findConfiguredCity("", realConfig), null);
   assert.equal(findConfiguredCity(null, realConfig), null);
   assert.equal(findConfiguredCity("Anywhere", { cities: {} }), null);
+});
+
+test("extractSearchQueriesFromAgentOutput parses the search_log fence with bucket prefixes", () => {
+  const sample = [
+    "```trace",
+    "(blah)",
+    "```",
+    "```search_log",
+    "[A] IPSRT San Francisco | url1 | url2 | url3",
+    "[B] perinatal bipolar San Francisco | url1 | url2",
+    "[C] LMFT bipolar SF private practice | url1 | url2",
+    "[A] IPSRT San Francisco | url1 | url2 | url3",
+    "no-prefix raw query | url1",
+    "```",
+  ].join("\n");
+  const queries = extractSearchQueriesFromAgentOutput(sample);
+  // Bucket prefix stripped, exact-duplicate IPSRT line collapsed.
+  assert.deepEqual(queries, [
+    "IPSRT San Francisco",
+    "perinatal bipolar San Francisco",
+    "LMFT bipolar SF private practice",
+    "no-prefix raw query",
+  ]);
+});
+
+test("extractSearchQueriesFromAgentOutput returns empty on missing or malformed input", () => {
+  assert.deepEqual(extractSearchQueriesFromAgentOutput(""), []);
+  assert.deepEqual(extractSearchQueriesFromAgentOutput(null), []);
+  assert.deepEqual(extractSearchQueriesFromAgentOutput("no fences here"), []);
+});
+
+test("buildPriorQueriesBlock renders the empty case clearly when no prior runs", () => {
+  const block = buildPriorQueriesBlock([]);
+  assert.match(block, /FIRST RUN FOR THIS CITY/);
+  assert.match(block, /No prior runs found/);
+});
+
+test("buildPriorQueriesBlock dedupes, sorts, and includes guardrails", () => {
+  const block = buildPriorQueriesBlock([
+    "IPSRT San Francisco",
+    "LMFT bipolar SF",
+    "IPSRT San Francisco",
+    "perinatal bipolar SF",
+  ]);
+  assert.match(block, /DO NOT REPEAT THESE EXACT PATTERNS/);
+  assert.match(block, /End of prior-query list/);
+  // Alphabetical order, deduped: IPSRT, LMFT, perinatal.
+  const ipsrtIdx = block.indexOf("- IPSRT");
+  const lmftIdx = block.indexOf("- LMFT");
+  const perinatalIdx = block.indexOf("- perinatal");
+  assert.ok(ipsrtIdx > 0 && lmftIdx > ipsrtIdx && perinatalIdx > lmftIdx);
+  // Single IPSRT line, not two.
+  const ipsrtMatches = block.match(/- IPSRT San Francisco/g) || [];
+  assert.equal(ipsrtMatches.length, 1);
+});
+
+test("renderDiscoveryPrompt substitutes {PRIOR_QUERIES} placeholder", () => {
+  const template = "{CITY}|{PRIOR_QUERIES}";
+  const rendered = renderDiscoveryPrompt(template, {
+    city: "SF",
+    priorQueriesBlock: "<<PRIOR>>",
+  });
+  assert.equal(rendered, "SF|<<PRIOR>>");
 });

@@ -7,7 +7,9 @@ import { createClient } from "@sanity/client";
 
 import {
   buildExclusionBlock,
+  buildPriorQueriesBlock,
   buildZipsPhrase,
+  extractSearchQueriesFromAgentOutput,
   normalizeZips,
   renderDiscoveryPrompt,
 } from "../shared/discovery-prompt-domain.mjs";
@@ -25,6 +27,7 @@ function parseArgs(argv) {
     count: DEFAULT_COUNT,
     out: DEFAULT_OUT_PATH,
     skipExclusions: false,
+    skipPriorQueries: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -46,6 +49,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === "--no-exclusions") {
       options.skipExclusions = true;
+    } else if (arg === "--no-prior-queries") {
+      options.skipPriorQueries = true;
     } else if (arg === "--help" || arg === "-h") {
       options.help = true;
     }
@@ -54,7 +59,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`Usage: node scripts/generate-discovery-prompt.mjs --city <name> --zips <csv> [--count N] [--out path] [--no-exclusions]
+  console.log(`Usage: node scripts/generate-discovery-prompt.mjs --city <name> --zips <csv> [--count N] [--out path] [--no-exclusions] [--no-prior-queries]
 
 Required:
   --city "Pasadena"            California city or metro name
@@ -64,6 +69,7 @@ Optional:
   --count 10                   How many candidate rows to request (1-100, default 10)
   --out path/to/file.md        Where to write the prompt (default: data/import/generated-discovery-prompt.md)
   --no-exclusions              Skip the Sanity query for already-known clinicians
+  --no-prior-queries           Skip the auto-load of prior queries from /tmp agent-output files
 
 Example:
   npm run cms:discovery-prompt -- --city "Pasadena" --zips "91101,91103,91105" --count 10
@@ -128,6 +134,44 @@ async function fetchExistingClinicians() {
   return { ok: true, ...result };
 }
 
+function citySlug(name) {
+  return String(name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Auto-load queries from any prior agent-output files for this city
+ * sitting in /tmp (the canonical save location for paste-flow runs).
+ * Returns a deduped list; empty if no prior runs exist or /tmp is not
+ * accessible. Failure is silent so a missing /tmp doesn't block prompt
+ * generation.
+ */
+function loadPriorQueriesFromTmp(slug) {
+  const tmpDir = "/tmp";
+  if (!slug || !fs.existsSync(tmpDir)) return [];
+  let entries;
+  try {
+    entries = fs.readdirSync(tmpDir);
+  } catch (_error) {
+    return [];
+  }
+  const pattern = new RegExp(`^ingestion-${slug}-.*-agent-output\\.md$`);
+  const matches = entries.filter((name) => pattern.test(name));
+  const queries = [];
+  for (const file of matches) {
+    try {
+      const text = fs.readFileSync(path.join(tmpDir, file), "utf8");
+      queries.push(...extractSearchQueriesFromAgentOutput(text));
+    } catch (_error) {
+      // best-effort; ignore unreadable files
+    }
+  }
+  return queries;
+}
+
 function buildOutputFile(prompt, options) {
   const today = new Date().toISOString().slice(0, 10);
   return `# Discovery prompt: ${options.city}
@@ -137,6 +181,7 @@ City: ${options.city}
 ZIPs: ${options.zipsDisplay}
 Target count: ${options.count}
 Known-clinician exclusions: ${options.exclusionCount}
+Prior queries to avoid: ${options.priorQueryCount || 0}
 
 Copy everything below the divider and paste it into an LLM with web
 search enabled (Claude, ChatGPT, etc.). Save the CSV response to
@@ -197,18 +242,33 @@ async function main() {
     }
   }
 
+  const slug = citySlug(options.city);
+  const priorQueries = options.skipPriorQueries ? [] : loadPriorQueriesFromTmp(slug);
+  const priorQueriesBlock = options.skipPriorQueries ? "" : buildPriorQueriesBlock(priorQueries);
+  if (!options.skipPriorQueries) {
+    if (priorQueries.length) {
+      console.log(
+        `Loaded ${priorQueries.length} prior search queries from /tmp agent-output files for "${options.city}".`,
+      );
+    } else {
+      console.log(`No prior runs found for "${options.city}" — first-run query rotation.`);
+    }
+  }
+
   const template = loadTemplate();
   const prompt = renderDiscoveryPrompt(template, {
     city: options.city,
     zipsPhrase: buildZipsPhrase(zips),
     count: options.count,
     exclusionBlock,
+    priorQueriesBlock,
   });
   const fileBody = buildOutputFile(prompt, {
     city: options.city,
     zipsDisplay: zips.length ? zips.join(", ") : "(none specified)",
     count: options.count,
     exclusionCount,
+    priorQueryCount: priorQueries.length,
   });
 
   const outDir = path.dirname(options.out);
