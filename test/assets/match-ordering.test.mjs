@@ -39,11 +39,15 @@ test("orderMatchEntries — in-person 94941 search ranks local therapist above h
   });
 
   assert.equal(
+    ordered.length,
+    1,
+    "Pasadena (>60mi from Mill Valley) should be filtered out for in-person",
+  );
+  assert.equal(
     ordered[0].therapist.slug,
     "kokoska-mill-valley",
-    "nearby Mill Valley therapist should outrank Pasadena on a 94941 in-person search",
+    "nearby Mill Valley therapist should be the only in-person match for a 94941 search",
   );
-  assert.equal(ordered[1].therapist.slug, "valone-pasadena");
 });
 
 test("applyZipAwareOrdering — stamps ordering_score used by prominence pass", () => {
@@ -60,6 +64,42 @@ test("applyZipAwareOrdering — stamps ordering_score used by prominence pass", 
     entries[1].ordering_score > entries[0].ordering_score,
     "near (Mill Valley) should have a higher ordering_score than far (Pasadena)",
   );
+});
+
+test("orderMatchEntries — in-person 90401 search drops far-away (>60mi) therapists so empty-state triggers", () => {
+  // Real-world bug: searching In-Person Therapy from Santa Monica (90401)
+  // surfaced San Francisco (94110) therapists as "BEST MATCH FOR YOU" because
+  // when no local supply exists, every entry gets the same -500 penalty and
+  // the highest-base-score far-away therapist still wins. Filter them out.
+  var entries = [
+    makeEntry({ slug: "sf-jeff", zip: "94110", score: 140 }),
+    makeEntry({ slug: "oakland-mark", zip: "94601", score: 110 }),
+  ];
+
+  var ordered = orderMatchEntries(entries, {
+    locationQuery: "90401",
+    careFormat: "In-Person",
+  });
+
+  assert.equal(
+    ordered.length,
+    0,
+    "no Bay Area therapists should survive a Santa Monica in-person search",
+  );
+});
+
+test("orderMatchEntries — in-person filter keeps therapists with unknown zip (no false drops)", () => {
+  var entries = [
+    makeEntry({ slug: "no-zip", zip: "", score: 100 }),
+    makeEntry({ slug: "near", zip: "94941", score: 80 }),
+  ];
+
+  var ordered = orderMatchEntries(entries, {
+    locationQuery: "94941",
+    careFormat: "In-Person",
+  });
+
+  assert.equal(ordered.length, 2, "unknown-distance entries should not be filtered out");
 });
 
 test("orderMatchEntries — telehealth search preserves evaluation.score ordering", () => {
