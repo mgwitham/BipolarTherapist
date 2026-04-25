@@ -474,52 +474,90 @@ are the same each time, and we already have most of them (see
 exclusion list). Diverse queries surface the specialists Google ranks
 below page 1.
 
-The required mix forces credential balance. Past runs skewed
-overwhelmingly psychiatrist because "bipolar specialist" SEO rewards
-prescribers who write condition-centric pages. Therapists market by
-modality and population, not condition, so we need queries shaped to
-how they actually describe themselves online.
+The required mix forces input diversity along TWO axes: credential
+type AND search angle. Past runs hit one or two "bipolar therapist
+{CITY}" SEO patterns and got the same psychiatrist-heavy top-5
+results every time. The bucket structure below pushes the agent to
+search the way real clinicians actually describe themselves:
+prescribers by condition, therapists by modality and population.
 
-Required rotation — run at least 8 total, with the **per-credential
-minimums** below enforced:
+Run at least 8 total queries, **distributed across all 5 buckets**.
+A run that satisfies a 12-query total but skips a bucket is a
+sourcing failure even if the accept count looks fine. The reviewer
+audits the search_log for bucket coverage.
 
-**At least 4 therapist-targeted queries** (PsyD / PhD / LMFT / LCSW /
-LPCC / MA / MFT). Pick from:
+### Bucket A — Modality-targeted (≥2 queries)
+
+Bipolar-specific therapy approaches. These surface clinicians who
+write about *how* they treat bipolar, not just *that* they treat it.
+
+- "IPSRT" {CITY} California
+- "family-focused therapy" bipolar {CITY}
+- "CBT for bipolar" {CITY} therapist
+- "STEP-BD" OR "psychoeducation" bipolar {CITY}
+- "prodrome" OR "mood charting" bipolar therapist {CITY}
+- "lifestyle regulation" OR "social rhythm" bipolar {CITY}
+
+### Bucket B — Population-targeted (≥2 queries)
+
+Subpopulations with distinct bipolar care needs. Clinicians who serve
+these niches are often deeply specialized but invisible to "bipolar
+specialist" SEO.
+
+- LGBTQ+ bipolar therapist {CITY}
+- "perinatal bipolar" OR "postpartum bipolar" {CITY} California
+- "adolescent bipolar" therapist {CITY}
+- "young adult" OR "college" bipolar therapist {CITY}
+- "older adult" OR "geriatric" bipolar therapist {CITY}
+- "first responder" OR "veteran" bipolar {CITY}
+- "couples" OR "family member" bipolar {CITY}
+- "post-hospitalization" OR "discharge" bipolar therapist {CITY}
+
+### Bucket C — Therapist-credential queries (≥2 queries)
+
+Direct credential targeting. Use both broad-credential and
+sub-credential variants — PsyD/PhD niches differ from LMFT/LCSW/LPCC
+niches.
 
 - "bipolar disorder" LMFT {CITY} "private practice"
 - "bipolar II" PsyD {CITY} California -directory -staff
 - LCSW OR LPCC bipolar specialist {CITY} California
-- "IPSRT" {CITY} California therapist
-- "family-focused therapy" bipolar {CITY}
+- PsyD OR PhD "mood disorders" {CITY}
 - "psychotherapy for bipolar" {CITY}
 - "mood disorders" therapist {CITY} private practice -psychiatrist
-- "couples therapy" bipolar {CITY} California
-- DBSA OR "depression bipolar support alliance" therapist {CITY}
-- "adolescent bipolar" therapist {CITY}  (therapist, not psychiatrist)
-- bipolar therapist [ZIP] California -psychiatrist  (run for 2+ ZIPs)
+- bipolar therapist [ZIP] California -psychiatrist (run for 2+ ZIPs)
 
-**At least 2 prescriber-targeted queries** (MD / DO / PMHNP / NP):
+### Bucket D — Prescriber-targeted (≥1 query)
+
+Lower minimum than before — recent runs hit prescribers heavily and
+skew the output. Keep one or two but don't over-weight.
 
 - "mood stabilizer" psychiatrist {CITY} "accepting patients"
 - "lithium" OR "lamotrigine" psychiatrist {CITY} California
 - PMHNP "bipolar" {CITY} California medication
-- UCLA OR Stanford mood disorders fellowship {CITY} private practice
-- "perinatal bipolar" OR "postpartum bipolar" {CITY} California
+- UCLA OR Stanford OR UCSF mood disorders fellowship {CITY}
 
-**At least 2 cross-credential / population queries**:
+### Bucket E — Catchall / SEO escape (≥1 query)
+
+A small allotment for queries that don't fit the buckets above —
+neighborhood-scoped, training-program affiliation, etc.
 
 - "bipolar specialist" {CITY} California
-- bipolar therapist [ZIP] California (run 3+ times, varying the ZIP)
-- LGBTQ+ bipolar therapist {CITY}
-- "first responder" OR "veteran" bipolar {CITY}
+- bipolar therapist [ZIP] California (rotate 3+ ZIPs across the run)
+- DBSA OR "depression bipolar support alliance" therapist {CITY}
+- bipolar [neighborhood-name] {CITY}
 
-Do NOT restrict to site:.com — legitimate clinicians use .net, .org,
-.me, .health, etc.
+### Rules across buckets
 
-When the search_log is emitted, the reviewer will check that at least
-4 of the queries are therapist-targeted. A run with only 1-2
-therapist queries is a sourcing failure even if the accept count is
-high.
+- Do NOT restrict to site:.com — legitimate clinicians use .net,
+  .org, .me, .health, etc.
+- Reuse of the exact same query text twice does not count as two
+  queries. Vary at least one term.
+- The search_log emit must show which bucket each query targeted
+  (prefix the query line with `[A]`, `[B]`, ... `[E]` or the bucket
+  name).
+
+{PRIOR_QUERIES}
 
 # DEDUPLICATION
 
@@ -864,15 +902,20 @@ Rules:
 
 After the rejection log, emit a fenced code block tagged
 `search_log`. Document the searches you actually ran. One line per
-query, pipe-delimited, listing the top 3 URLs the query surfaced:
+query, prefixed with the bucket the query targeted (`[A]` modality,
+`[B]` population, `[C]` therapist-credential, `[D]` prescriber, `[E]`
+catchall), pipe-delimited, listing the top 3 URLs the query surfaced:
 
 ```search_log
-query | url1 | url2 | url3
+[B] perinatal bipolar therapist San Francisco | url1 | url2 | url3
+[A] IPSRT San Francisco California | url1 | url2 | url3
 ```
 
-Minimum 8 distinct queries (Query Diversity Mandate). If fewer
-appear, the reviewer treats the batch as skipped work. "Same query
-with a different city" counts as one query, not many.
+Minimum 8 distinct queries (Query Diversity Mandate) AND coverage of
+all 5 buckets per the per-bucket minimums. If fewer queries appear,
+or any bucket is empty (other than D and E with their relaxed
+minimums), the reviewer treats the batch as skipped work. "Same
+query with a different city" counts as one query, not many.
 
 **Listing-page drill-through accounting.** When a URL in the log is
 a listing page (matches any pattern in the DRILL-THROUGH RULE), it
