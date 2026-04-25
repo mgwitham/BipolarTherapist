@@ -32,8 +32,12 @@ const LICENSE_TYPE_CODES = {
 
 export function cleanLicenseNumber(raw) {
   let s = String(raw || "").trim();
+  // Drop leading credential-prefix tokens followed by space ("LMFT 103986", "MD A117442").
   s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  return s.replace(/^[A-Za-z]+/, "");
+  // Drop leading non-alphanumeric and remaining alpha prefix (handles "# PSY28157" → "28157", "MFC47803" → "47803", "A117442" → "117442").
+  s = s.replace(/^[^A-Za-z0-9]+/, "").replace(/^[A-Za-z]+/, "");
+  // DCA rejects leading zeros (verified: "060666" empty vs "60666" hit).
+  return s.replace(/^0+/, "");
 }
 
 export async function runDcaFreshnessCheck({

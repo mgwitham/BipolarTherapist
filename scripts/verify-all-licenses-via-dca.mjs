@@ -37,11 +37,14 @@ function credentialToLicenseTypeLabel(creds, title) {
   return null;
 }
 
+// Mirrors server/dca-freshness-check.mjs cleanLicenseNumber. Imported
+// here would be cleaner but the script is intended to be runnable
+// without server-side imports.
 function cleanLicenseNumber(raw) {
-  // DCA API wants license number with NO prefix in all cases (verified: "A117442" returns empty, "117442" works).
   let s = String(raw || "").trim();
   s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  return s.replace(/^[A-Za-z]+/, "");
+  s = s.replace(/^[^A-Za-z0-9]+/, "").replace(/^[A-Za-z]+/, "");
+  return s.replace(/^0+/, "");
 }
 
 async function main() {
