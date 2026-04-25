@@ -74,6 +74,7 @@
     "cms:discovery-prompt": "node scripts/generate-discovery-prompt.mjs",
     "cms:verify-licenses": "node scripts/verify-candidate-licenses.mjs",
     "cms:rejection-report": "node scripts/report-rejection-patterns.mjs",
+    "cms:report:search-coverage": "node scripts/report-search-coverage.mjs",
     "cms:get-more-therapists": "node scripts/get-more-therapists.mjs",
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
