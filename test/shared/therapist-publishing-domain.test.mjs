@@ -6,9 +6,29 @@ import {
   buildCandidateReviewEvent,
   buildPublishEventId,
   buildTherapistOpsEvent,
+  ensureBipolarSpecialty,
   isIntakeStub,
   scrubIntakeStub,
 } from "../../shared/therapist-publishing-domain.mjs";
+
+test("ensureBipolarSpecialty appends Bipolar disorder when no bipolar tag exists", () => {
+  assert.deepEqual(ensureBipolarSpecialty(["Trauma", "Anxiety"]), [
+    "Trauma",
+    "Anxiety",
+    "Bipolar disorder",
+  ]);
+});
+
+test("ensureBipolarSpecialty leaves the list alone when any bipolar tag is present", () => {
+  assert.deepEqual(ensureBipolarSpecialty(["Bipolar I", "Anxiety"]), ["Bipolar I", "Anxiety"]);
+  assert.deepEqual(ensureBipolarSpecialty(["bipolar disorder"]), ["bipolar disorder"]);
+  assert.deepEqual(ensureBipolarSpecialty(["Bipolar NOS"]), ["Bipolar NOS"]);
+});
+
+test("ensureBipolarSpecialty handles missing/empty input", () => {
+  assert.deepEqual(ensureBipolarSpecialty(null), ["Bipolar disorder"]);
+  assert.deepEqual(ensureBipolarSpecialty([]), ["Bipolar disorder"]);
+});
 
 // Sanity's document ID ceiling. Any builder that composes an _id from an
 // entity slug risks blowing past this for long-slug records.

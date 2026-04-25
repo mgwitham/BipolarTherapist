@@ -97,6 +97,22 @@ export function buildTherapistObservationDocuments(therapistDocument) {
   });
 }
 
+// Bipolar Therapy Hub is bipolar-focused, so every published therapist should
+// list a bipolar-related specialty. If the incoming list already mentions
+// bipolar in any form (Bipolar I / II / NOS / disorder / spectrum), leave it
+// alone. Otherwise append the canonical "Bipolar disorder" tag so directory
+// rendering, matching, and search treat the listing as bipolar-informed.
+export const DEFAULT_BIPOLAR_SPECIALTY_LABEL = "Bipolar disorder";
+
+export function ensureBipolarSpecialty(list, label) {
+  const safe = Array.isArray(list) ? list.slice() : [];
+  if (safe.some((value) => /bipolar/i.test(String(value || "")))) {
+    return safe;
+  }
+  safe.push(label || DEFAULT_BIPOLAR_SPECIALTY_LABEL);
+  return safe;
+}
+
 export function buildTherapistDocument(application, existingId, helpers) {
   const slug =
     application.submittedSlug ||
@@ -118,7 +134,7 @@ export function buildTherapistDocument(application, existingId, helpers) {
     bookingUrl: application.bookingUrl,
     careApproach: scrubIntakeStub(application.careApproach),
     bio: scrubIntakeStub(application.bio),
-    specialties: helpers.splitList(application.specialties),
+    specialties: ensureBipolarSpecialty(helpers.splitList(application.specialties)),
     insuranceAccepted: helpers.splitList(application.insuranceAccepted),
     languages: helpers.splitList(application.languages),
   };
@@ -160,7 +176,7 @@ export function buildTherapistDocument(application, existingId, helpers) {
     licensureVerification: helpers.normalizeLicensureVerification(
       application.licensureVerification,
     ),
-    specialties: helpers.splitList(application.specialties),
+    specialties: ensureBipolarSpecialty(helpers.splitList(application.specialties)),
     treatmentModalities: helpers.splitList(application.treatmentModalities),
     clientPopulations: helpers.splitList(application.clientPopulations),
     insuranceAccepted: helpers.splitList(application.insuranceAccepted),
@@ -225,7 +241,7 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
     bookingUrl: candidate.bookingUrl,
     careApproach: candidate.careApproach,
     bio: candidate.careApproach,
-    specialties: helpers.splitList(candidate.specialties),
+    specialties: ensureBipolarSpecialty(helpers.splitList(candidate.specialties)),
     insuranceAccepted: helpers.splitList(candidate.insuranceAccepted),
     languages: helpers.splitList(candidate.languages),
   };
@@ -261,7 +277,7 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
     licenseState: candidate.licenseState || "",
     licenseNumber: candidate.licenseNumber || "",
     licensureVerification: helpers.normalizeLicensureVerification(candidate.licensureVerification),
-    specialties: helpers.splitList(candidate.specialties),
+    specialties: ensureBipolarSpecialty(helpers.splitList(candidate.specialties)),
     treatmentModalities: helpers.splitList(candidate.treatmentModalities),
     clientPopulations: helpers.splitList(candidate.clientPopulations),
     insuranceAccepted: helpers.splitList(candidate.insuranceAccepted),
