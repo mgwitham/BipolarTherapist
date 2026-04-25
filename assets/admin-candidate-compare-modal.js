@@ -124,6 +124,7 @@ export function createCandidateCompareModal(config) {
       return null;
     };
   const onDecisionComplete = options.onDecisionComplete || function () {};
+  const fetchMatchedTherapist = options.fetchMatchedTherapist || null;
 
   let modalRoot = null;
   let closeButtonNode = null;
@@ -175,12 +176,20 @@ export function createCandidateCompareModal(config) {
     );
   }
 
-  function renderMatchColumnFallback(candidate) {
+  function renderMatchColumnFallback(candidate, fallbackState) {
     const pointer =
       candidate.matched_therapist_slug ||
       candidate.matched_therapist_id ||
       candidate.matched_application_id ||
       "";
+    if (fallbackState === "loading") {
+      return (
+        '<div class="compare-fallback">' +
+        '<div class="compare-fallback-title">Loading the possible match\u2026</div>' +
+        '<div class="compare-fallback-copy">Fetching the existing record so you can compare side by side.</div>' +
+        "</div>"
+      );
+    }
     const openLinkHtml = pointer
       ? '<a class="btn-secondary btn-inline" href="#' +
         escapeHtml(pointer) +
@@ -191,7 +200,7 @@ export function createCandidateCompareModal(config) {
       '<div class="compare-fallback-title">Can\u2019t load the possible match</div>' +
       '<div class="compare-fallback-copy">The system flagged this against <strong>' +
       escapeHtml(pointer || "an existing record") +
-      "</strong> but that record isn\u2019t in the current admin view. It may be a draft, archived, or on an unloaded page.</div>" +
+      "</strong> but that record could not be loaded. It may be deleted or out of scope for the current admin view.</div>" +
       '<div class="compare-fallback-actions">' +
       openLinkHtml +
       "</div></div>"
@@ -315,7 +324,7 @@ export function createCandidateCompareModal(config) {
     );
   }
 
-  function buildModalHtml(candidate, matchTarget, reasons) {
+  function buildModalHtml(candidate, matchTarget, reasons, fallbackState) {
     const hasMatch = Boolean(matchTarget && matchTarget.record);
     const rows = hasMatch
       ? buildFieldRows(candidate, matchTarget.record)
@@ -347,7 +356,7 @@ export function createCandidateCompareModal(config) {
       "</div>" +
       (hasMatch
         ? renderFieldRows(rows, true)
-        : renderFieldRows(rows, false) + renderMatchColumnFallback(candidate)) +
+        : renderFieldRows(rows, false) + renderMatchColumnFallback(candidate, fallbackState)) +
       "</div>" +
       renderSourceLinks(candidate, matchTarget) +
       '<div class="compare-modal-error" data-compare-error hidden></div>' +
@@ -453,12 +462,8 @@ export function createCandidateCompareModal(config) {
     returnFocusNode = null;
   }
 
-  function open(candidate, matchTarget, reasons, triggerNode) {
-    if (!candidate) return;
-    const root = ensureModalRoot();
-    returnFocusNode = triggerNode || document.activeElement;
-    currentItemId = String(candidate.id || "");
-    root.innerHTML = buildModalHtml(candidate, matchTarget, reasons);
+  function renderModal(root, candidate, matchTarget, reasons, fallbackState) {
+    root.innerHTML = buildModalHtml(candidate, matchTarget, reasons, fallbackState);
     closeButtonNode = root.querySelector(".compare-modal-close");
     errorSlotNode = root.querySelector("[data-compare-error]");
     root.querySelectorAll("[data-compare-close]").forEach(function (node) {
@@ -472,9 +477,53 @@ export function createCandidateCompareModal(config) {
         }
       });
     });
+  }
+
+  function open(candidate, matchTarget, reasons, triggerNode) {
+    if (!candidate) return;
+    const root = ensureModalRoot();
+    returnFocusNode = triggerNode || document.activeElement;
+    currentItemId = String(candidate.id || "");
+
+    const shouldAttemptFetch =
+      !matchTarget &&
+      typeof fetchMatchedTherapist === "function" &&
+      (candidate.matched_therapist_id || candidate.matched_therapist_slug);
+
+    renderModal(root, candidate, matchTarget, reasons, shouldAttemptFetch ? "loading" : "missing");
+
     root.classList.add("is-open");
     document.body.classList.add("drawer-open");
     isOpen = true;
+
+    if (shouldAttemptFetch) {
+      const itemIdAtFetchStart = currentItemId;
+      Promise.resolve()
+        .then(function () {
+          return fetchMatchedTherapist(candidate);
+        })
+        .then(function (record) {
+          // Bail if the user closed the modal or moved to a different candidate
+          // while the fetch was in-flight.
+          if (!isOpen || currentItemId !== itemIdAtFetchStart) return;
+          if (!record) {
+            renderModal(root, candidate, null, reasons, "missing");
+            return;
+          }
+          renderModal(
+            root,
+            candidate,
+            { kind: "therapist", label: "Existing therapist", record: record },
+            reasons,
+            null,
+          );
+        })
+        .catch(function () {
+          if (!isOpen || currentItemId !== itemIdAtFetchStart) return;
+          renderModal(root, candidate, null, reasons, "missing");
+        });
+    }
+
     if (closeButtonNode && typeof closeButtonNode.focus === "function") {
       window.setTimeout(function () {
         closeButtonNode.focus({ preventScroll: true });

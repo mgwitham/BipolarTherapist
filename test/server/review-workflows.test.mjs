@@ -315,6 +315,80 @@ test("workflow: application approval is blocked without a license number", async
   assert.match(response.payload.error, /license number/i);
 });
 
+test("workflow: merge_to_therapist fills missing fields without overwriting existing data", async function () {
+  // A fresh ingest produced a candidate that's a duplicate of an existing
+  // therapist who has a sparse profile (only the basics). The merge should
+  // top up the existing therapist with new fields the candidate has, but
+  // never overwrite values the existing therapist already has.
+  const { client, state } = createMemoryClient({
+    "therapist-katie": {
+      _id: "therapist-katie",
+      _type: "therapist",
+      name: "Katie Unverferth",
+      slug: { _type: "slug", current: "katie-unverferth-santa-monica-ca" },
+      city: "Santa Monica",
+      state: "CA",
+      licenseState: "CA",
+      licenseNumber: "A149627",
+      // Existing email — must not be overwritten by the candidate's email.
+      email: "originalcontact@example.com",
+      // Empty fields that the candidate should fill in.
+      phone: "",
+      website: "",
+      specialties: [],
+      insuranceAccepted: [],
+      listingActive: true,
+      status: "active",
+    },
+    "candidate-katie-fresh": {
+      _id: "candidate-katie-fresh",
+      _type: "therapistCandidate",
+      name: "Katie Unverferth",
+      city: "Santa Monica",
+      state: "CA",
+      licenseState: "CA",
+      licenseNumber: "A149627",
+      email: "info@drkatiemd.com",
+      phone: "(424) 259-2766",
+      website: "https://www.drkatiemd.com",
+      specialties: ["Psychosis", "Medication Management", "Anxiety"],
+      insuranceAccepted: ["Self-Pay"],
+      sourceUrl: "https://www.drkatiemd.com/",
+      reviewStatus: "queued",
+      matchedTherapistId: "therapist-katie",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { decision: "merge_to_therapist" },
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/candidates/candidate-katie-fresh/decision",
+  });
+
+  assert.equal(response.statusCode, 200);
+
+  const therapist = state.documents.get("therapist-katie");
+
+  // Existing email is preserved — never overwritten.
+  assert.equal(therapist.email, "originalcontact@example.com");
+
+  // Empty fields are filled from the candidate.
+  assert.equal(therapist.phone, "(424) 259-2766");
+  assert.equal(therapist.website, "https://www.drkatiemd.com");
+  assert.deepEqual(therapist.specialties, ["Psychosis", "Medication Management", "Anxiety"]);
+  assert.deepEqual(therapist.insuranceAccepted, ["Self-Pay"]);
+
+  const candidate = state.documents.get("candidate-katie-fresh");
+  assert.equal(candidate.dedupeStatus, "merged");
+  assert.equal(candidate.reviewStatus, "archived");
+});
+
 // --- /applications/intake (short-form new-therapist signup) ---
 
 // Helpers for DCA mocking in the new synchronous-verify intake flow.

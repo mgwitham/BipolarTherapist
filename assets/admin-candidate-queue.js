@@ -500,6 +500,7 @@ export function renderCandidateQueuePanel(options) {
     decideTherapistCandidate: options.decideTherapistCandidate,
     loadData: options.loadData,
     escapeHtml: options.escapeHtml,
+    fetchMatchedTherapist: options.fetchMatchedTherapist,
     getQueueRoot: function () {
       return root;
     },
