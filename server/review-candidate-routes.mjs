@@ -398,11 +398,7 @@ export async function handleCandidateRoutes(context) {
     // so a fresh ingest tops up an existing profile instead of being discarded.
     // Existing values are never overwritten — claimed therapists may have
     // human-edited data that should win over scraped candidate data.
-    const fillMissing = buildCandidateMergeFillFields(
-      therapist,
-      candidate,
-      publishingHelpers,
-    );
+    const fillMissing = buildCandidateMergeFillFields(therapist, candidate, publishingHelpers);
     Object.assign(mergedTherapistDraft, fillMissing);
 
     transaction.patch(therapistId, function (patch) {
