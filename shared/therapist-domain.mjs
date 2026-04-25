@@ -40,7 +40,17 @@ export function normalizeLower(value) {
 }
 
 export function normalizeLicense(value) {
-  return normalizeLower(value).replace(/[^a-z0-9]/g, "");
+  const alphanum = normalizeLower(value).replace(/[^a-z0-9]/g, "");
+  // Strip leading zeros from the numeric tail so e.g. "g58999" and
+  // "g058999" compare equal. Physician licenses in particular show up
+  // in both zero-padded and unpadded forms across sources, and a
+  // dedupe comparator that doesn't collapse the two will silently
+  // miss real duplicates.
+  const match = alphanum.match(/^([a-z]*)(\d+)$/);
+  if (!match) return alphanum;
+  const [, letters, digits] = match;
+  const trimmed = digits.replace(/^0+/, "") || "0";
+  return `${letters}${trimmed}`;
 }
 
 export function normalizeKeySegment(value) {
