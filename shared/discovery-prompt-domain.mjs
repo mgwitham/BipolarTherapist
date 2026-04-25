@@ -128,6 +128,89 @@ not appear above.
  * lines, and the pipe-delimited URL trail. Returns an array of unique
  * query strings (with bucket prefix stripped).
  */
+/**
+ * Per-bucket floors for the Query Diversity Mandate. Stays in this
+ * shared module so the prompt template, the auto-rotation auto-load,
+ * and the coverage report all read the same numbers.
+ */
+export const SEARCH_BUCKET_FLOORS = Object.freeze({
+  A: 2, // modality
+  B: 2, // population
+  C: 2, // therapist credential
+  D: 1, // prescriber
+  E: 1, // catchall / SEO escape
+});
+
+export const SEARCH_BUCKET_LABELS = Object.freeze({
+  A: "Modality",
+  B: "Population",
+  C: "Therapist credential",
+  D: "Prescriber",
+  E: "Catchall / SEO escape",
+});
+
+export const SEARCH_BUCKET_TOTAL_FLOOR = 8;
+
+/**
+ * Count how many search-log lines the agent emitted in each bucket.
+ * Tolerates malformed input (returns zeros). Lines without a bucket
+ * prefix are tracked separately as `unbucketed` so coverage warnings
+ * can flag them.
+ */
+export function bucketizeSearchLog(text) {
+  const counts = { A: 0, B: 0, C: 0, D: 0, E: 0, unbucketed: 0, total: 0 };
+  if (typeof text !== "string" || !text) return counts;
+  const fence = text.match(/```search_log\s*\n([\s\S]*?)\n```/);
+  if (!fence) return counts;
+  fence[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      counts.total += 1;
+      const match = line.match(/^\[([A-Ea-e])\]/);
+      if (match) {
+        counts[match[1].toUpperCase()] += 1;
+      } else {
+        counts.unbucketed += 1;
+      }
+    });
+  return counts;
+}
+
+/**
+ * Compare bucket counts against the mandate floors. Returns:
+ *   - meetsTotal:   total ≥ SEARCH_BUCKET_TOTAL_FLOOR
+ *   - bucketsMet:   how many of A-E met their floor
+ *   - missingBuckets: array of {bucket, label, floor, actual} entries
+ *   - allBucketsMet: every bucket cleared its floor
+ */
+export function evaluateSearchCoverage(counts) {
+  const safe = counts || { A: 0, B: 0, C: 0, D: 0, E: 0, unbucketed: 0, total: 0 };
+  const missing = [];
+  let bucketsMet = 0;
+  for (const bucket of ["A", "B", "C", "D", "E"]) {
+    const floor = SEARCH_BUCKET_FLOORS[bucket];
+    const actual = Number(safe[bucket]) || 0;
+    if (actual >= floor) {
+      bucketsMet += 1;
+    } else {
+      missing.push({
+        bucket,
+        label: SEARCH_BUCKET_LABELS[bucket],
+        floor,
+        actual,
+      });
+    }
+  }
+  return {
+    meetsTotal: (Number(safe.total) || 0) >= SEARCH_BUCKET_TOTAL_FLOOR,
+    bucketsMet,
+    missingBuckets: missing,
+    allBucketsMet: missing.length === 0,
+  };
+}
+
 export function extractSearchQueriesFromAgentOutput(text) {
   if (typeof text !== "string" || !text) return [];
   const fence = text.match(/```search_log\s*\n([\s\S]*?)\n```/);

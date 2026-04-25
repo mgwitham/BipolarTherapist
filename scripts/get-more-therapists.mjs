@@ -116,6 +116,16 @@ function run() {
     runStep("Generate review queue", "node", ["scripts/generate-candidate-review-queue.mjs"]);
   }
 
+  // Advisory coverage report. Looks for the most recent
+  // /tmp/ingestion-*-agent-output.md and prints how the run's
+  // search_log measured against the 5-bucket Query Diversity Mandate.
+  // Best-effort — never fails the pipeline.
+  try {
+    runStep("Report search coverage", "node", ["scripts/report-search-coverage.mjs"]);
+  } catch (error) {
+    console.warn(`(coverage report skipped: ${error && error.message ? error.message : error})`);
+  }
+
   printSummary(options);
 }
 

@@ -2,9 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  SEARCH_BUCKET_FLOORS,
+  SEARCH_BUCKET_TOTAL_FLOOR,
+  bucketizeSearchLog,
   buildExclusionBlock,
   buildPriorQueriesBlock,
   buildZipsPhrase,
+  evaluateSearchCoverage,
   extractSearchQueriesFromAgentOutput,
   findConfiguredCity,
   normalizeZips,
@@ -161,4 +165,66 @@ test("renderDiscoveryPrompt substitutes {PRIOR_QUERIES} placeholder", () => {
     priorQueriesBlock: "<<PRIOR>>",
   });
   assert.equal(rendered, "SF|<<PRIOR>>");
+});
+
+test("bucketizeSearchLog counts queries per [A]-[E] prefix and tracks unbucketed", () => {
+  const sample = [
+    "```search_log",
+    "[A] IPSRT San Francisco | url1",
+    "[a] alternate-case bucket A | url1",
+    "[B] perinatal bipolar | url1",
+    "[C] LMFT bipolar SF | url1",
+    "[C] PsyD mood disorders SF | url1",
+    "[D] mood stabilizer psychiatrist SF | url1",
+    "[E] bipolar specialist SF | url1",
+    "no-prefix legacy line | url1",
+    "```",
+  ].join("\n");
+  const counts = bucketizeSearchLog(sample);
+  assert.equal(counts.A, 2);
+  assert.equal(counts.B, 1);
+  assert.equal(counts.C, 2);
+  assert.equal(counts.D, 1);
+  assert.equal(counts.E, 1);
+  assert.equal(counts.unbucketed, 1);
+  assert.equal(counts.total, 8);
+});
+
+test("bucketizeSearchLog returns zero counts on missing or malformed input", () => {
+  const empty = bucketizeSearchLog("");
+  assert.deepEqual(empty, { A: 0, B: 0, C: 0, D: 0, E: 0, unbucketed: 0, total: 0 });
+  assert.deepEqual(bucketizeSearchLog(null), empty);
+  assert.deepEqual(bucketizeSearchLog("no fences here"), empty);
+});
+
+test("evaluateSearchCoverage flags missing buckets and total", () => {
+  const result = evaluateSearchCoverage({
+    A: 2,
+    B: 0,
+    C: 2,
+    D: 0,
+    E: 1,
+    unbucketed: 0,
+    total: 5,
+  });
+  assert.equal(result.bucketsMet, 3);
+  assert.equal(result.allBucketsMet, false);
+  assert.equal(result.meetsTotal, false);
+  const bucketsFlagged = result.missingBuckets.map((m) => m.bucket).sort();
+  assert.deepEqual(bucketsFlagged, ["B", "D"]);
+});
+
+test("evaluateSearchCoverage reports allBucketsMet when every floor is cleared", () => {
+  const result = evaluateSearchCoverage({
+    A: SEARCH_BUCKET_FLOORS.A,
+    B: SEARCH_BUCKET_FLOORS.B,
+    C: SEARCH_BUCKET_FLOORS.C,
+    D: SEARCH_BUCKET_FLOORS.D,
+    E: SEARCH_BUCKET_FLOORS.E,
+    unbucketed: 0,
+    total: SEARCH_BUCKET_TOTAL_FLOOR,
+  });
+  assert.equal(result.allBucketsMet, true);
+  assert.equal(result.meetsTotal, true);
+  assert.deepEqual(result.missingBuckets, []);
 });
