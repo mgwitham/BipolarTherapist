@@ -79,17 +79,12 @@ async function main() {
   for (let i = 0; i < docs.length; i += 1) {
     const doc = docs[i];
     const label = credentialToLicenseTypeLabel(doc.credentials, doc.title);
-    if (!label || label === "PMHNP_RN") {
+    if (!label) {
       results.unknownType.push({
         doc,
-        reason:
-          label === "PMHNP_RN"
-            ? "PMHNP/RN — DCA Search API does not expose Board of Registered Nursing licenses"
-            : `cannot map credentials="${doc.credentials}" title="${doc.title}"`,
+        reason: `cannot map credentials="${doc.credentials}" title="${doc.title}"`,
       });
-      console.log(
-        `[${i + 1}/${docs.length}] SKIP  ${doc.name} — ${label === "PMHNP_RN" ? "PMHNP (RN board not in API)" : "unknown license type"}`,
-      );
+      console.log(`[${i + 1}/${docs.length}] SKIP  ${doc.name} — unknown license type`);
       continue;
     }
     const code = resolveLicenseTypeCode(label);

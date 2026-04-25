@@ -730,6 +730,7 @@ function createReviewRouteModules() {
         parseBody,
         publishingHelpers,
         sendJson,
+        verifyLicense,
       },
     },
     {

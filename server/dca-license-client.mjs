@@ -7,6 +7,8 @@ const LICENSE_TYPE_MAP = {
   LEP: "2003",
   Psychologist: "6001",
   "Psychiatrist (MD)": "8002",
+  "Osteopathic Physician (DO)": "9001",
+  "Nurse Practitioner": "4004",
 };
 
 const BOARD_NAME_MAP = {
@@ -16,6 +18,8 @@ const BOARD_NAME_MAP = {
   2005: "California Board of Behavioral Sciences",
   6001: "Board of Psychology",
   8002: "Medical Board of California",
+  9001: "Osteopathic Medical Board of California",
+  4004: "Board of Registered Nursing",
 };
 
 const LICENSE_LABEL_MAP = {
@@ -25,6 +29,8 @@ const LICENSE_LABEL_MAP = {
   2005: "Licensed Professional Clinical Counselor",
   6001: "Psychologist",
   8002: "Physician and Surgeon",
+  9001: "Osteopathic Physician and Surgeon",
+  4004: "Nurse Practitioner",
 };
 
 const STATUS_MAP = {

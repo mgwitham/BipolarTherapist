@@ -1,3 +1,79 @@
+// Mirrors server/dca-freshness-check.mjs cleanLicenseNumber. Strips
+// credential-prefix tokens, leading non-alnum, and reduces to the
+// trailing digit run with leading zeros removed (DCA API rejects
+// "060666" but accepts "60666").
+function cleanLicenseNumberForDca(raw) {
+  let s = String(raw || "").trim();
+  s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
+  s = s.replace(/^[^A-Za-z0-9]+/, "");
+  const tail = s.match(/(\d+)$/);
+  if (!tail) return "";
+  return tail[1].replace(/^0+/, "") || "0";
+}
+
+// Re-verify a candidate's CA license against DCA at publish time. The
+// stored licensureVerification snapshot may be stale; re-checking
+// catches revocations / discipline that landed between ingest and
+// admin promotion. Returns:
+//   { block: false } — allowed to publish (verification skipped or passed)
+//   { block: true, body } — error response 422 to send back
+//   licensureVerification — refreshed snapshot to write to the new
+//     therapist doc, when verification succeeded
+async function reverifyCandidateAtPublish(candidate, config, verifyLicense) {
+  if (!verifyLicense) return { block: false }; // dep not wired (test harnesses)
+  const boardCode =
+    (candidate.licensureVerification && candidate.licensureVerification.boardCode) || "";
+  if (!boardCode) {
+    // No prior DCA verification on file. Don't block — admin will have
+    // already had to add a license number; a candidate without a board
+    // code likely belongs to a board the API can't reach (out-of-state,
+    // unmapped license type) and admin discretion takes over.
+    return { block: false };
+  }
+  const cleanNumber = cleanLicenseNumberForDca(candidate.licenseNumber);
+  if (!cleanNumber) return { block: false };
+
+  let result;
+  try {
+    result = await verifyLicense(config, boardCode, cleanNumber);
+  } catch (err) {
+    // Soft-fail on transient API issues — don't block admin's publish
+    // decision because of a temporary DCA outage. Cron freshness check
+    // will catch any actual status problem on the next run.
+    console.error("DCA reverify threw at publish; allowing publish", err);
+    return { block: false };
+  }
+  if (!result || !result.verified) {
+    // License was previously verified but DCA now returns no record.
+    // Could be transient or could be a real issue — soft-fail like
+    // above; the freshness cron is the safety net.
+    return { block: false };
+  }
+  if (!result.isActive) {
+    const status =
+      (result.licensureVerification && result.licensureVerification.primaryStatus) || "unknown";
+    return {
+      block: true,
+      body: {
+        error: `Cannot publish — DCA shows this candidate's CA license as "${status}" (no longer active in good standing). The license status changed since this candidate was ingested. Refresh the candidate or archive it.`,
+        reason: "license_not_active_at_publish",
+        dca_status: status,
+      },
+    };
+  }
+  if (result.hasDiscipline) {
+    return {
+      block: true,
+      body: {
+        error:
+          "Cannot publish — DCA now shows public disciplinary actions on this candidate's CA license. Review the discipline summary in the licensure record before deciding.",
+        reason: "license_has_discipline_at_publish",
+      },
+    };
+  }
+  return { block: false, licensureVerification: result.licensureVerification };
+}
+
 export async function handleCandidateRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
 
@@ -18,6 +94,7 @@ export async function handleCandidateRoutes(context) {
     parseBody,
     publishingHelpers,
     sendJson,
+    verifyLicense,
   } = deps;
 
   const candidateDecisionMatch = routePath.match(/^\/candidates\/([^/]+)\/decision$/);
@@ -300,12 +377,29 @@ export async function handleCandidateRoutes(context) {
       );
       return true;
     }
+    // Re-verify license against DCA at publish time. The licensureVerification
+    // snapshot on the candidate may be hours/days/weeks stale by the time
+    // admin clicks Publish — re-checking catches statuses that changed
+    // between ingest and review (revocation, surrender, new discipline).
+    // We trust the boardCode the candidate already has (set by the
+    // ingest-time verification); if absent, skip the gate rather than
+    // block — admin can manually verify.
+    const reverifyResult = await reverifyCandidateAtPublish(candidate, config, verifyLicense);
+    if (reverifyResult && reverifyResult.block) {
+      sendJson(response, 422, reverifyResult.body, origin, config);
+      return true;
+    }
     const nextTherapist = buildTherapistDocumentFromCandidate(
       candidate,
       candidate.matchedTherapistId,
       publishingHelpers,
     );
     therapistId = nextTherapist._id;
+    // Refresh the candidate's licensureVerification with what DCA returned
+    // just now so the published therapist doc carries the freshest snapshot.
+    if (reverifyResult && reverifyResult.licensureVerification) {
+      candidate.licensureVerification = reverifyResult.licensureVerification;
+    }
     reviewStatus = "archived";
     publishRecommendation = "ready";
     eventType = "candidate_published";

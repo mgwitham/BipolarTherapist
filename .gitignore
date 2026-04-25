@@ -26,3 +26,4 @@ public/sitemap.xml
 
 # Claude Code local worktrees — embedded git checkouts, not content
 .claude/worktrees/
+.claude/scheduled_tasks.lock
