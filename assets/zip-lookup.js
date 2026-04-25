@@ -223,10 +223,75 @@ export function getZipCoords(zip) {
   return { lat: entry.lat, lng: entry.lng };
 }
 
+var cityCoordsCache = null;
+
+// Many therapist records list city/state but no ZIP. To rank them by proximity
+// for in-person searches we compute a city centroid (average lat/lng across all
+// ZIPs in that city) once and cache it. Keyed on lower-cased "city|state".
+function getCityCoordsMap() {
+  if (cityCoordsCache) return cityCoordsCache;
+  var sums = {};
+  for (var zip in californiaZipcodes) {
+    var entry = californiaZipcodes[zip];
+    if (!entry || entry.lat === undefined || entry.lng === undefined) continue;
+    var key =
+      String(entry.city || "")
+        .trim()
+        .toLowerCase() +
+      "|" +
+      String(entry.state || "")
+        .trim()
+        .toUpperCase();
+    if (!sums[key]) sums[key] = { lat: 0, lng: 0, n: 0 };
+    sums[key].lat += entry.lat;
+    sums[key].lng += entry.lng;
+    sums[key].n += 1;
+  }
+  cityCoordsCache = {};
+  for (var k in sums) {
+    cityCoordsCache[k] = { lat: sums[k].lat / sums[k].n, lng: sums[k].lng / sums[k].n };
+  }
+  return cityCoordsCache;
+}
+
+export function getCityCoords(city, state) {
+  var cityKey = String(city || "")
+    .trim()
+    .toLowerCase();
+  if (!cityKey) return null;
+  var stateKey = String(state || "")
+    .trim()
+    .toUpperCase();
+  var map = getCityCoordsMap();
+  if (stateKey) {
+    var hit = map[cityKey + "|" + stateKey];
+    if (hit) return hit;
+  }
+  // Without a state, fall back to any city match (CA-only dataset, so safe).
+  for (var k in map) {
+    if (k.indexOf(cityKey + "|") === 0) return map[k];
+  }
+  return null;
+}
+
 export function getZipDistanceMiles(fromZip, toZip) {
   var from = getZipCoords(fromZip);
   var to = getZipCoords(toZip);
   if (!from || !to) return Number.POSITIVE_INFINITY;
+  return haversine(from.lat, from.lng, to.lat, to.lng);
+}
+
+// Distance from a requested ZIP to a therapist using ZIP first, then city
+// centroid as a fallback when the therapist record has no ZIP on file.
+export function getDistanceMilesFromZipToTherapist(fromZip, therapist) {
+  var from = getZipCoords(fromZip);
+  if (!from) return Number.POSITIVE_INFINITY;
+  var therapistZip = String((therapist && therapist.zip) || "").trim();
+  var to = /^\d{5}$/.test(therapistZip) ? getZipCoords(therapistZip) : null;
+  if (!to) {
+    to = getCityCoords(therapist && therapist.city, therapist && therapist.state);
+  }
+  if (!to) return Number.POSITIVE_INFINITY;
   return haversine(from.lat, from.lng, to.lat, to.lng);
 }
 

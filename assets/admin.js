@@ -7,7 +7,24 @@ import {
   rejectApplication,
   updateApplicationReviewMetadata,
 } from "./store.js";
-import { fetchPublicTherapists } from "./cms.js";
+import {
+  fetchAdminTherapistById,
+  fetchAdminTherapistBySlug,
+  fetchPublicTherapists,
+} from "./cms.js";
+
+async function fetchMatchedTherapistForCandidate(candidate) {
+  if (!candidate) return null;
+  if (candidate.matched_therapist_id) {
+    const byId = await fetchAdminTherapistById(candidate.matched_therapist_id);
+    if (byId) return byId;
+  }
+  if (candidate.matched_therapist_slug) {
+    const bySlug = await fetchAdminTherapistBySlug(candidate.matched_therapist_slug);
+    if (bySlug) return bySlug;
+  }
+  return null;
+}
 import { setActiveView as setActiveAdminView } from "./admin-view-tabs.js";
 import {
   checkAdminReviewApiAvailability,
@@ -6902,6 +6919,7 @@ function renderCandidateQueue() {
       escapeHtml: escapeHtml,
       formatDate: formatDate,
       decideTherapistCandidate: decideTherapistCandidate,
+      fetchMatchedTherapist: fetchMatchedTherapistForCandidate,
       loadData: loadData,
     });
   });
@@ -6932,6 +6950,7 @@ function renderReviewQueue() {
       escapeHtml: escapeHtml,
       formatDate: formatDate,
       decideTherapistCandidate: decideTherapistCandidate,
+      fetchMatchedTherapist: fetchMatchedTherapistForCandidate,
       loadData: loadData,
     });
   });

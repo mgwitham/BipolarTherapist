@@ -540,6 +540,44 @@ export async function fetchFoundingSpotsRemaining() {
   }
 }
 
+// Admin-only fetch that ignores listingActive/status so the candidate compare
+// modal can still show a therapist that's in draft, paused, or archived state.
+export async function fetchAdminTherapistById(id) {
+  if (!cmsEnabled || !id) {
+    return null;
+  }
+  try {
+    const doc = await fetchFromSanity(
+      `*[_id == $id][0] ${therapistProjection}`,
+      { id: String(id) },
+      { fresh: true },
+    );
+    if (!doc) return null;
+    return normalizeTherapist(doc);
+  } catch (error) {
+    console.error("Failed to load admin therapist by id from Sanity.", error);
+    return null;
+  }
+}
+
+export async function fetchAdminTherapistBySlug(slug) {
+  if (!cmsEnabled || !slug) {
+    return null;
+  }
+  try {
+    const doc = await fetchFromSanity(
+      `*[_type == "therapist" && slug.current == $slug][0] ${therapistProjection}`,
+      { slug: String(slug) },
+      { fresh: true },
+    );
+    if (!doc) return null;
+    return normalizeTherapist(doc);
+  } catch (error) {
+    console.error("Failed to load admin therapist by slug from Sanity.", error);
+    return null;
+  }
+}
+
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {
     return getTherapistBySlug(slug);

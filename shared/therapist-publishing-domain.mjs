@@ -304,6 +304,62 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
   };
 }
 
+// When merging a fresh candidate into an existing therapist, fill *only* the
+// fields where the therapist has nothing on file. Never overwrite existing
+// data — claimed therapists may have human-edited values that should win.
+export function buildCandidateMergeFillFields(therapist, candidate, helpers) {
+  const fill = {};
+  const existing = therapist || {};
+  const incoming = candidate || {};
+
+  function isEmpty(value) {
+    if (value == null) return true;
+    if (typeof value === "string") return value.trim() === "";
+    if (Array.isArray(value)) return value.length === 0;
+    return false;
+  }
+
+  function takeScalar(field, value) {
+    const cleaned = typeof value === "string" ? value.trim() : value;
+    if (cleaned == null || cleaned === "") return;
+    if (!isEmpty(existing[field])) return;
+    fill[field] = cleaned;
+  }
+
+  function takeList(field, value) {
+    const cleaned = helpers.splitList(value);
+    if (!cleaned.length) return;
+    if (!isEmpty(existing[field])) return;
+    fill[field] = cleaned;
+  }
+
+  takeScalar("title", incoming.title);
+  takeScalar("credentials", incoming.credentials);
+  takeScalar("practiceName", incoming.practiceName);
+  takeScalar("bio", incoming.careApproach);
+  takeScalar("bioPreview", incoming.careApproach);
+  takeScalar("careApproach", incoming.careApproach);
+  takeScalar("email", incoming.email);
+  takeScalar("phone", incoming.phone);
+  takeScalar("website", incoming.website);
+  takeScalar("bookingUrl", incoming.bookingUrl);
+  takeScalar("city", incoming.city);
+  takeScalar("state", incoming.state);
+  takeScalar("zip", incoming.zip);
+  takeScalar("licenseState", incoming.licenseState);
+  takeScalar("licenseNumber", incoming.licenseNumber);
+  takeScalar("estimatedWaitTime", incoming.estimatedWaitTime);
+
+  takeList("specialties", incoming.specialties);
+  takeList("treatmentModalities", incoming.treatmentModalities);
+  takeList("clientPopulations", incoming.clientPopulations);
+  takeList("insuranceAccepted", incoming.insuranceAccepted);
+  takeList("languages", incoming.languages);
+  takeList("telehealthStates", incoming.telehealthStates);
+
+  return fill;
+}
+
 export function normalizePortableCandidate(doc, helpers) {
   return {
     id: doc._id,

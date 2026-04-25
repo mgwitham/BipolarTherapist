@@ -82,6 +82,7 @@ import {
   buildTherapistApplicationFieldPatch,
   buildTherapistDocument,
   buildTherapistDocumentFromCandidate,
+  buildCandidateMergeFillFields,
   buildTherapistObservationDocuments,
   buildTherapistOpsEvent,
   normalizePortableApplicationDocument,
@@ -715,6 +716,7 @@ function createReviewRouteModules() {
       deps: {
         addDays,
         buildCandidateReviewEvent,
+        buildCandidateMergeFillFields,
         buildFieldTrustMeta,
         buildTherapistDocumentFromCandidate,
         buildTherapistObservationDocuments,

@@ -1,4 +1,4 @@
-import { getZipDistanceMiles, getInPersonProximityBonus } from "./zip-lookup.js";
+import { getDistanceMilesFromZipToTherapist, getInPersonProximityBonus } from "./zip-lookup.js";
 
 // In-person searches with a known ZIP should not surface therapists beyond
 // realistic commute range. Penalizing their score is not enough on its own —
@@ -41,8 +41,9 @@ export function applyZipAwareOrdering(entries, options) {
   list.forEach(function (entry) {
     if (!entry) return;
     var baseScore = Number(entry?.evaluation?.score) || 0;
-    var therapistZip = getTherapistZipValue(entry.therapist);
-    var distance = getZipDistanceMiles(requestedZip, therapistZip);
+    // Prefer ZIP, fall back to city centroid so therapists with city-only
+    // records (no ZIP on file) still get a real distance, not Infinity.
+    var distance = getDistanceMilesFromZipToTherapist(requestedZip, entry.therapist);
     if (isInPerson && Number.isFinite(distance)) {
       entry.ordering_score = baseScore + getInPersonProximityBonus(distance);
     } else {
@@ -52,9 +53,13 @@ export function applyZipAwareOrdering(entries, options) {
   });
 
   if (isInPerson) {
+    // With the ZIP+city distance resolver in place, a finite distance is the
+    // norm for any CA therapist. Drop entries whose distance is unknown OR
+    // beyond commute range so an in-person search at a specific ZIP never
+    // surfaces records we can't place near the user.
     list = list.filter(function (entry) {
       var distance = entry?.ordering_distance;
-      return !Number.isFinite(distance) || distance <= MAX_IN_PERSON_MILES;
+      return Number.isFinite(distance) && distance <= MAX_IN_PERSON_MILES;
     });
   }
 
