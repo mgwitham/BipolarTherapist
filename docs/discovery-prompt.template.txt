@@ -322,12 +322,67 @@ Aggregator templates don't allow long clinician-authored paragraphs,
 so demanding "dedicated bipolar page" on PT/Headway means rejecting
 nearly every real bipolar specialist in that market. Instead:
 
-## For own-site or group-site bio sourceUrls
+## For prescriber (MD / DO / PMHNP / NP) own-site sourceUrls
 
 Full bar applies. Both (a) bipolar-specific vocabulary AND (b) at
 least one of: dedicated bipolar page, 3+ sentences on clinical
 approach, named bipolar-specific training, or bipolar-specific
 testimonials. `sourcingConfidence`: `high` or `medium`.
+
+Why prescribers get the strict bar: most acute bipolar care leans on
+mood stabilizers, so a clinician marketing themselves as a bipolar
+specialist on the prescriber side is expected to surface that
+specialty in a substantive way (named training, dedicated page, named
+modalities like CBT-for-bipolar). When a prescriber's site treats
+bipolar as one item in a long condition list, that's the keyword-
+stuffing failure mode.
+
+## For non-prescriber therapist (PsyD / PhD / LMFT / LCSW / LPCC / MA / MFT / AMFT / APCC) own-site sourceUrls
+
+Reduced bar. Therapists market by *modality* (CBT / EMDR / IFS) and
+*population* (LGBTQ+ / first responders / new parents) far more than
+they market by *condition*. Demanding a dedicated bipolar page from a
+PsyD or LMFT means rejecting nearly every real therapist who treats
+bipolar — they wrote their site to attract clients, not to satisfy a
+sourcing checklist. Without this tier the directory is psychiatry-
+heavy by accident.
+
+Emit the row when ALL of these hold, and mark
+`sourcingConfidence=medium`:
+
+- **Bipolar is named on the site as a specialty, area of focus, or
+  treated condition.** Anywhere on their own site — specialty list,
+  "what I treat" page, FAQ, intake form — counts. A single chip in a
+  longer list is fine; that's how therapists structure their pages.
+- **At least one supporting signal of substantive bipolar work.** ONE
+  of:
+  - Authored content discussing mood disorders / depression with
+    bipolar specifically named (a paragraph, FAQ entry, blog post —
+    not just a chip)
+  - A bipolar-relevant modality named: IPSRT, FFT, STEP-BD,
+    family-focused therapy, psychoeducation for mood disorders,
+    CBT-for-bipolar, lifestyle/sleep regulation
+  - A stated population that overlaps with bipolar (e.g. "young
+    adults navigating early mood episodes," "couples affected by
+    bipolar," "post-hospitalization stabilization")
+  - Years of clinical experience explicitly with mood / bipolar /
+    severe mental illness (not generic "20 years experience")
+  - Cross-referral relationship with a psychiatrist named (e.g. "I
+    work with prescriber Dr. X for medication management") — this is
+    a strong signal of real bipolar caseload
+- **License-verified independently** (NPI Registry, npiprofile, or
+  the DCA license lookup carve-out).
+
+That's the bar. The therapist's job isn't to pre-qualify themselves
+through their website copy — your job is to identify clinicians whose
+site shows they actually treat bipolar, even when the site language
+isn't condition-centric. The reviewer is the second filter.
+
+Rows emitted under this reduced bar MUST:
+- Use `sourcingConfidence=medium` in the CSV
+- Prefix `clinicalNotes` with `Therapist tier:` and cite the specific
+  signal (e.g. `Therapist tier: bipolar listed + IPSRT named + 12 yrs
+  mood-disorder caseload`)
 
 ## For per-clinician aggregator-profile sourceUrls (carve-out path)
 
@@ -419,25 +474,52 @@ are the same each time, and we already have most of them (see
 exclusion list). Diverse queries surface the specialists Google ranks
 below page 1.
 
-Required rotation — run at least 8 of these, and vary the city/ZIP:
+The required mix forces credential balance. Past runs skewed
+overwhelmingly psychiatrist because "bipolar specialist" SEO rewards
+prescribers who write condition-centric pages. Therapists market by
+modality and population, not condition, so we need queries shaped to
+how they actually describe themselves online.
 
-- "bipolar specialist" therapist {CITY} California
+Required rotation — run at least 8 total, with the **per-credential
+minimums** below enforced:
+
+**At least 4 therapist-targeted queries** (PsyD / PhD / LMFT / LCSW /
+LPCC / MA / MFT). Pick from:
+
 - "bipolar disorder" LMFT {CITY} "private practice"
 - "bipolar II" PsyD {CITY} California -directory -staff
-- "mood stabilizer" psychiatrist {CITY} "accepting patients"
+- LCSW OR LPCC bipolar specialist {CITY} California
 - "IPSRT" {CITY} California therapist
 - "family-focused therapy" bipolar {CITY}
-- bipolar therapist [ZIP] California  (run 3+ times, varying the ZIP across different neighborhoods of {CITY})
-- "lithium" OR "lamotrigine" psychiatrist {CITY} California
-- UCLA OR Stanford mood disorders fellowship {CITY} private practice
+- "psychotherapy for bipolar" {CITY}
+- "mood disorders" therapist {CITY} private practice -psychiatrist
+- "couples therapy" bipolar {CITY} California
 - DBSA OR "depression bipolar support alliance" therapist {CITY}
-- "perinatal bipolar" OR "postpartum bipolar" {CITY} California
-- "adolescent bipolar" OR "young adult bipolar" {CITY} therapist
-- LCSW OR LPCC bipolar specialist {CITY} California
+- "adolescent bipolar" therapist {CITY}  (therapist, not psychiatrist)
+- bipolar therapist [ZIP] California -psychiatrist  (run for 2+ ZIPs)
+
+**At least 2 prescriber-targeted queries** (MD / DO / PMHNP / NP):
+
+- "mood stabilizer" psychiatrist {CITY} "accepting patients"
+- "lithium" OR "lamotrigine" psychiatrist {CITY} California
 - PMHNP "bipolar" {CITY} California medication
+- UCLA OR Stanford mood disorders fellowship {CITY} private practice
+- "perinatal bipolar" OR "postpartum bipolar" {CITY} California
+
+**At least 2 cross-credential / population queries**:
+
+- "bipolar specialist" {CITY} California
+- bipolar therapist [ZIP] California (run 3+ times, varying the ZIP)
+- LGBTQ+ bipolar therapist {CITY}
+- "first responder" OR "veteran" bipolar {CITY}
 
 Do NOT restrict to site:.com — legitimate clinicians use .net, .org,
 .me, .health, etc.
+
+When the search_log is emitted, the reviewer will check that at least
+4 of the queries are therapist-targeted. A run with only 1-2
+therapist queries is a sourcing failure even if the accept count is
+high.
 
 # DEDUPLICATION
 
