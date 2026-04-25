@@ -141,6 +141,78 @@
       "aliases": ["irvine"],
       "population": 310000,
       "zips": ["92602", "92603", "92604", "92606", "92612", "92614", "92618", "92620"]
+    },
+    "chula-vista": {
+      "name": "Chula Vista",
+      "aliases": ["chula vista", "cv"],
+      "population": 275000,
+      "zips": ["91910", "91911", "91913", "91914", "91915"]
+    },
+    "santa-clarita": {
+      "name": "Santa Clarita",
+      "aliases": ["santa clarita", "scv"],
+      "population": 230000,
+      "zips": ["91350", "91351", "91354", "91355", "91381", "91387", "91390"]
+    },
+    "fremont": {
+      "name": "Fremont",
+      "aliases": ["fremont"],
+      "population": 230000,
+      "zips": ["94536", "94538", "94539", "94555"]
+    },
+    "san-bernardino": {
+      "name": "San Bernardino",
+      "aliases": ["san bernardino", "sb"],
+      "population": 220000,
+      "zips": ["92404", "92405", "92407", "92408", "92410"]
+    },
+    "modesto": {
+      "name": "Modesto",
+      "aliases": ["modesto"],
+      "population": 220000,
+      "zips": ["95350", "95351", "95354", "95355", "95356", "95357", "95358"]
+    },
+    "oxnard": {
+      "name": "Oxnard",
+      "aliases": ["oxnard"],
+      "population": 200000,
+      "zips": ["93030", "93033", "93035", "93036"]
+    },
+    "glendale": {
+      "name": "Glendale",
+      "aliases": ["glendale"],
+      "population": 200000,
+      "zips": ["91201", "91202", "91203", "91204", "91205", "91206", "91207", "91208", "91214"]
+    },
+    "huntington-beach": {
+      "name": "Huntington Beach",
+      "aliases": ["huntington beach", "hb"],
+      "population": 200000,
+      "zips": ["92646", "92647", "92648", "92649"]
+    },
+    "santa-rosa": {
+      "name": "Santa Rosa",
+      "aliases": ["santa rosa"],
+      "population": 180000,
+      "zips": ["95401", "95403", "95404", "95405", "95407", "95409"]
+    },
+    "garden-grove": {
+      "name": "Garden Grove",
+      "aliases": ["garden grove", "gg"],
+      "population": 170000,
+      "zips": ["92840", "92841", "92843", "92844", "92845"]
+    },
+    "salinas": {
+      "name": "Salinas",
+      "aliases": ["salinas"],
+      "population": 160000,
+      "zips": ["93901", "93905", "93906", "93907", "93908"]
+    },
+    "berkeley": {
+      "name": "Berkeley",
+      "aliases": ["berkeley"],
+      "population": 125000,
+      "zips": ["94702", "94703", "94704", "94705", "94707", "94708", "94709", "94710"]
     }
   }
 }
