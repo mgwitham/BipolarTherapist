@@ -1,5 +1,12 @@
 import { getZipDistanceMiles, getInPersonProximityBonus } from "./zip-lookup.js";
 
+// In-person searches with a known ZIP should not surface therapists beyond
+// realistic commute range. Penalizing their score is not enough on its own —
+// when no local supply exists, far-away listings would still rank top because
+// every entry shares the same penalty. Filtering out these entries lets the
+// empty-state (telehealth fallback) trigger as designed.
+var MAX_IN_PERSON_MILES = 60;
+
 function getRequestedZip(locationQuery) {
   var raw = String(locationQuery || "").trim();
   return /^\d{5}$/.test(raw) ? raw : "";
@@ -43,6 +50,13 @@ export function applyZipAwareOrdering(entries, options) {
     }
     entry.ordering_distance = distance;
   });
+
+  if (isInPerson) {
+    list = list.filter(function (entry) {
+      var distance = entry?.ordering_distance;
+      return !Number.isFinite(distance) || distance <= MAX_IN_PERSON_MILES;
+    });
+  }
 
   return list.sort(function (a, b) {
     var aScore = Number(a?.evaluation?.score) || 0;
