@@ -19,7 +19,13 @@ await preloadZipcodes();
 
 function makeEntry(overrides) {
   return {
-    therapist: { slug: overrides.slug, name: overrides.slug, zip: overrides.zip },
+    therapist: {
+      slug: overrides.slug,
+      name: overrides.slug,
+      zip: overrides.zip,
+      city: overrides.city || "",
+      state: overrides.state || "",
+    },
     evaluation: {
       score: overrides.score,
       confidence_score: overrides.confidence || 70,
@@ -88,9 +94,27 @@ test("orderMatchEntries — in-person 90401 search drops far-away (>60mi) therap
   );
 });
 
-test("orderMatchEntries — in-person filter keeps therapists with unknown zip (no false drops)", () => {
+test("orderMatchEntries — in-person uses city as a fallback when therapist has no zip", () => {
+  // Many therapist records have city/state but no zip. Without a city fallback
+  // their distance came back Infinity and they survived the in-person filter,
+  // letting San Francisco therapists rank against a Santa Monica search.
   var entries = [
-    makeEntry({ slug: "no-zip", zip: "", score: 100 }),
+    makeEntry({ slug: "sf-no-zip", zip: "", city: "San Francisco", state: "CA", score: 140 }),
+    makeEntry({ slug: "santa-monica-local", zip: "90401", score: 80 }),
+  ];
+
+  var ordered = orderMatchEntries(entries, {
+    locationQuery: "90401",
+    careFormat: "In-Person",
+  });
+
+  assert.equal(ordered.length, 1, "SF (city-only) should be filtered out via city centroid");
+  assert.equal(ordered[0].therapist.slug, "santa-monica-local");
+});
+
+test("orderMatchEntries — in-person drops entries with no zip and no city (cannot place)", () => {
+  var entries = [
+    makeEntry({ slug: "no-location", zip: "", city: "", score: 100 }),
     makeEntry({ slug: "near", zip: "94941", score: 80 }),
   ];
 
@@ -99,7 +123,8 @@ test("orderMatchEntries — in-person filter keeps therapists with unknown zip (
     careFormat: "In-Person",
   });
 
-  assert.equal(ordered.length, 2, "unknown-distance entries should not be filtered out");
+  assert.equal(ordered.length, 1, "entries with no resolvable location should be filtered out");
+  assert.equal(ordered[0].therapist.slug, "near");
 });
 
 test("orderMatchEntries — telehealth search preserves evaluation.score ordering", () => {
