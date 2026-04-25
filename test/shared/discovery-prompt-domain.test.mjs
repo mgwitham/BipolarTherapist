@@ -98,7 +98,10 @@ test("findConfiguredCity resolves slug, name, and aliases against the real confi
 });
 
 test("findConfiguredCity returns null for unknown cities and empty input", () => {
-  assert.equal(findConfiguredCity("Modesto", realConfig), null);
+  // Yreka — small Siskiyou County town, used as a sentinel "unknown city"
+  // because it's unlikely to ever join the config. If it does, swap to
+  // another tiny CA town.
+  assert.equal(findConfiguredCity("Yreka", realConfig), null);
   assert.equal(findConfiguredCity("", realConfig), null);
   assert.equal(findConfiguredCity(null, realConfig), null);
   assert.equal(findConfiguredCity("Anywhere", { cities: {} }), null);
