@@ -9,9 +9,46 @@ import {
   mapFieldReviewStatesToCamelCase,
   mapFieldReviewStatesToSnakeCase,
   normalizeFieldReviewStates,
+  normalizeLicense,
   pickStrongestDuplicateMatch,
   resolveApplicationIntakeType,
 } from "../../shared/therapist-domain.mjs";
+
+test("normalizeLicense collapses leading zeros so G58999 == G058999", () => {
+  assert.equal(normalizeLicense("G58999"), normalizeLicense("G058999"));
+  assert.equal(normalizeLicense("PSY 22439"), normalizeLicense("PSY022439"));
+  assert.equal(normalizeLicense("0012345"), "12345");
+  assert.equal(normalizeLicense(""), "");
+  assert.equal(normalizeLicense(null), "");
+});
+
+test("dedupe catches license-number leading-zero variants as a definite match", () => {
+  // Same person, same name + city + state + credentials, license recorded
+  // with leading zero on one side and without on the other. Without the
+  // leading-zero collapse in normalizeLicense, the comparator returns
+  // only "name_location" (possible duplicate) and re-imports slip
+  // through.
+  const identity = buildDuplicateIdentity({
+    name: "Peter Forster",
+    city: "San Francisco",
+    state: "CA",
+    credentials: "MD",
+    license_state: "CA",
+    license_number: "G058999",
+  });
+  const reasons = compareDuplicateIdentity(identity, {
+    slug: "peter-forster-san-francisco-ca",
+    name: "Peter Forster",
+    city: "San Francisco",
+    state: "CA",
+    credentials: "MD",
+    licenseState: "CA",
+    licenseNumber: "G58999",
+  });
+  assert.ok(reasons.includes("license"), `expected license match in ${JSON.stringify(reasons)}`);
+  assert.ok(reasons.includes("name_location"));
+  assert.equal(classifyDuplicateCertainty(reasons), "definite");
+});
 
 test("duplicate identity matches by license and canonical website data", function () {
   const identity = buildDuplicateIdentity({

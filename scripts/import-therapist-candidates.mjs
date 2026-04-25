@@ -5,6 +5,7 @@ import { createClient } from "@sanity/client";
 import {
   buildProviderId,
   classifyDuplicateCertainty,
+  normalizeLicense as normalizeLicenseShared,
   pickStrongestDuplicateMatch,
 } from "../shared/therapist-domain.mjs";
 
@@ -185,11 +186,12 @@ function normalizeKeySegment(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+// Delegate to the shared normalizer so leading-zero variants
+// (e.g. "G58999" vs "G058999") collapse to a single canonical form.
+// Without this, dedupe silently misses real duplicates that differ
+// only in zero-padding across sources.
 function normalizeLicenseSegment(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
+  return normalizeLicenseShared(value);
 }
 
 function normalizeEmail(value) {
@@ -384,6 +386,32 @@ function compareIdentity(candidateIdentity, record) {
     reasons.push("name_location_phone");
   }
 
+  // Without phone, fall back to name_location confirmation when one of
+  // website / credentials / email lines up — same logic as
+  // shared/therapist-domain.mjs::compareDuplicateIdentity. Without this
+  // a phone-less candidate could match a published therapist on
+  // license + provider_id + website and still be classified as merely
+  // "possible" (no name-confirming reason), letting real duplicates
+  // back into the review queue.
+  if (sameNamePlace) {
+    const candidateCredentials = String(candidateIdentity.credentials || "")
+      .trim()
+      .toLowerCase();
+    const recordCredentials = String(record.credentials || "")
+      .trim()
+      .toLowerCase();
+    const websiteConfirms =
+      candidateIdentity.website && candidateIdentity.website === recordWebsite;
+    const credentialsConfirm = candidateCredentials && candidateCredentials === recordCredentials;
+    const emailConfirms = candidateIdentity.email && candidateIdentity.email === recordEmail;
+    if (
+      (websiteConfirms || credentialsConfirm || emailConfirms) &&
+      !reasons.includes("name_location_phone")
+    ) {
+      reasons.push("name_location");
+    }
+  }
+
   return reasons;
 }
 
@@ -427,6 +455,9 @@ function buildCandidateDocument(row, context, index) {
     name: normalizeKeySegment(row.name),
     city: normalizeKeySegment(row.city),
     state: normalizeKeySegment(row.state),
+    credentials: String(row.credentials || "")
+      .trim()
+      .toLowerCase(),
     licenseState: normalizeKeySegment(row.licenseState),
     licenseNumber: normalizeLicenseSegment(row.licenseNumber),
     website: normalizeWebsite(row.website || row.bookingUrl),
@@ -568,25 +599,46 @@ function buildCandidateDocument(row, context, index) {
 }
 
 async function fetchExistingContext(client) {
+  // Note: credentials is part of the dedupe identity (name_location
+  // match requires phone OR website OR credentials confirmation), so
+  // it must be projected here. Omitting it silently downgrades real
+  // duplicates from "definite" to "possible".
   const query = `{
     "therapists": *[_type == "therapist"]{
-      _id, providerId, name, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl,
+      _id, providerId, name, credentials, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl,
       "slug": slug.current
     },
     "applications": *[_type == "therapistApplication" && status in ["pending", "reviewing", "requested_changes", "approved"]]{
-      _id, providerId, name, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl,
+      _id, providerId, name, credentials, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl,
       "slug": submittedSlug
     },
     "candidates": *[_type == "therapistCandidate"]{
-      _id, candidateId, providerId, name, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl
+      _id, candidateId, providerId, name, credentials, city, state, licenseState, licenseNumber, email, phone, website, bookingUrl
     }
   }`;
 
   return client.fetch(query);
 }
 
+function parseFlags(argv) {
+  // Positional path (first non-flag arg) and known flags. Keeps the
+  // existing "node script <csvPath>" UX while adding opt-out for the
+  // duplicate-skip behavior.
+  const flags = { csvPath: "", includeDuplicates: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--include-duplicates") {
+      flags.includeDuplicates = true;
+    } else if (!arg.startsWith("--") && !flags.csvPath) {
+      flags.csvPath = arg;
+    }
+  }
+  return flags;
+}
+
 async function run() {
-  const csvPath = process.argv[2] ? path.resolve(ROOT, process.argv[2]) : DEFAULT_CSV_PATH;
+  const flags = parseFlags(process.argv.slice(2));
+  const csvPath = flags.csvPath ? path.resolve(ROOT, flags.csvPath) : DEFAULT_CSV_PATH;
   if (!fs.existsSync(csvPath)) {
     throw new Error(
       `Could not find CSV file at ${csvPath}. Copy data/import/therapist-candidates-template.csv to data/import/therapist-candidates.csv first.`,
@@ -619,17 +671,36 @@ async function run() {
   }
 
   const context = await fetchExistingContext(client);
-  const documents = rows.map(function (row, index) {
+  const allDocuments = rows.map(function (row, index) {
     return buildCandidateDocument(row, context, index);
   });
 
-  const transaction = client.transaction();
-  documents.forEach(function (document) {
-    transaction.createOrReplace(document);
-    transaction.delete(`drafts.${document._id}`);
-  });
+  // Definite duplicates are records where license number, provider id,
+  // website, or name+location+phone match an existing therapist or
+  // candidate. Re-importing them creates noise in the review queue —
+  // the original record already has the data. Skip by default; opt
+  // back in with --include-duplicates if a reviewer specifically wants
+  // to see them (e.g. when investigating a suspected false-positive
+  // dedupe match).
+  const skippedDuplicates = flags.includeDuplicates
+    ? []
+    : allDocuments.filter(function (document) {
+        return document.dedupeStatus === "definite_duplicate";
+      });
+  const documents = flags.includeDuplicates
+    ? allDocuments
+    : allDocuments.filter(function (document) {
+        return document.dedupeStatus !== "definite_duplicate";
+      });
 
-  await transaction.commit({ visibility: "sync" });
+  if (documents.length) {
+    const transaction = client.transaction();
+    documents.forEach(function (document) {
+      transaction.createOrReplace(document);
+      transaction.delete(`drafts.${document._id}`);
+    });
+    await transaction.commit({ visibility: "sync" });
+  }
 
   const definiteDuplicateCount = documents.filter(function (document) {
     return document.dedupeStatus === "definite_duplicate";
@@ -637,6 +708,17 @@ async function run() {
   const possibleDuplicateCount = documents.filter(function (document) {
     return document.dedupeStatus === "possible_duplicate";
   }).length;
+
+  if (skippedDuplicates.length) {
+    console.log(`Skipped ${skippedDuplicates.length} definite duplicate(s) (already in database):`);
+    skippedDuplicates.forEach(function (document) {
+      const slug = (document.slug && document.slug.current) || document._id;
+      console.log(`  - ${document.name || "(unnamed)"} (slug: ${slug})`);
+    });
+    console.log(
+      "  Pass --include-duplicates to import them anyway (e.g. when investigating a false-positive match).",
+    );
+  }
 
   console.log(
     `Imported ${documents.length} therapist candidate record(s) into Sanity dataset "${config.dataset}". ${definiteDuplicateCount} flagged as definite duplicates, ${possibleDuplicateCount} as possible duplicates.`,
