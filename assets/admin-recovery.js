@@ -71,6 +71,127 @@ function isColdTakeover(req) {
 //      different channel" affordance
 //   3. Responded → the response is already in the card's outcome copy,
 //      so nothing to render here; the card itself has moved state.
+// Verification anchors block — surfaces every signal admin can use to
+// validate the request, pulled from the linked therapist profile and
+// embedded by the server in the request payload as `req.anchor`.
+// Designed for at-a-glance scanning so the reviewer doesn't need to
+// hunt through DCA, the directory, or other tabs.
+function renderAnchorsBlock(req) {
+  const a = req.anchor;
+  if (!a) return "";
+  const dcaProfile =
+    req.licenseNumber && a.boardName
+      ? '<a href="' +
+        escapeHtml(dcaLookupUrl(req.licenseNumber)) +
+        '" target="_blank" rel="noopener">DCA ↗</a>'
+      : "";
+  const dcaAddress = [a.addressCity, a.addressState, a.addressZip].filter(Boolean).join(", ");
+  const expSoon = (() => {
+    if (!a.licenseExpDate) return "";
+    const days = Math.round((new Date(a.licenseExpDate) - Date.now()) / 86400000);
+    if (days < 0) return ' <span class="admin-recovery-flag">expired</span>';
+    if (days <= 60) return ' <span class="admin-recovery-flag">expires in ' + days + "d</span>";
+    return "";
+  })();
+  return (
+    '<dl class="admin-recovery-anchors">' +
+    '<dt class="admin-recovery-anchors-head" colspan="2"><strong>Verification anchors</strong> ' +
+    "(use these to confirm identity out-of-band)</dt>" +
+    "<dt>License status</dt><dd>" +
+    escapeHtml(a.licenseStatus || "?") +
+    expSoon +
+    (a.disciplineFlag ? ' <span class="admin-recovery-flag">discipline on file</span>' : "") +
+    (a.licenseExpDate ? " · exp " + escapeHtml(a.licenseExpDate) : "") +
+    " " +
+    dcaProfile +
+    "</dd>" +
+    "<dt>DCA address-of-record</dt><dd>" +
+    (dcaAddress ? escapeHtml(dcaAddress) : "—") +
+    "</dd>" +
+    "<dt>Phone on profile</dt><dd>" +
+    (a.phone ? '<a href="tel:' + escapeHtml(a.phone) + '">' + escapeHtml(a.phone) + "</a>" : "—") +
+    "</dd>" +
+    "<dt>Practice website</dt><dd>" +
+    (a.website
+      ? '<a href="' +
+        escapeHtml(a.website) +
+        '" target="_blank" rel="noopener">' +
+        escapeHtml(a.website) +
+        " ↗</a>"
+      : "—") +
+    "</dd>" +
+    "<dt>Email on profile</dt><dd>" +
+    escapeHtml(a.email || "—") +
+    "</dd>" +
+    (a.providerNpi ? "<dt>NPI</dt><dd><code>" + escapeHtml(a.providerNpi) + "</code></dd>" : "") +
+    "</dl>"
+  );
+}
+
+function renderFlagsBlock(req) {
+  if (!Array.isArray(req.flags) || req.flags.length === 0) return "";
+  return (
+    '<ul class="admin-recovery-auto-flags">' +
+    req.flags
+      .map(
+        (f) =>
+          '<li class="admin-recovery-auto-flag is-' +
+          escapeHtml(f.severity || "warn") +
+          '"><strong>⚠</strong> ' +
+          escapeHtml(f.message) +
+          "</li>",
+      )
+      .join("") +
+    "</ul>"
+  );
+}
+
+function renderVerificationMethodsChecklist(req, coldTakeover) {
+  if (!coldTakeover || req.status !== "pending") return "";
+  const methods = [
+    { value: "phone_call_dca", label: "Phone call to practice number on DCA address-of-record" },
+    {
+      value: "phone_call_website",
+      label: "Phone call to practice number on therapist's website",
+    },
+    { value: "id_selfie", label: "Government-issued ID + selfie match" },
+    { value: "video_call", label: "Live video verification (face vs public photos)" },
+    { value: "postal_code", label: "Postal mail code to DCA address-of-record" },
+    {
+      value: "domain_challenge",
+      label: "Domain-control challenge (meta tag on practice site)",
+    },
+    {
+      value: "cross_channel_email",
+      label: "Cross-channel email match (mailto on practice website)",
+    },
+    {
+      value: "self_confirm",
+      label: "Therapist self-confirm via prior contact channel",
+    },
+    { value: "other", label: "Other (describe in note)" },
+  ];
+  const items = methods
+    .map(
+      (m) =>
+        '<label class="admin-recovery-method-item"><input type="checkbox" name="verification_method" value="' +
+        escapeHtml(m.value) +
+        '" data-request-id="' +
+        escapeHtml(req._id) +
+        '"/> ' +
+        escapeHtml(m.label) +
+        "</label>",
+    )
+    .join("");
+  return (
+    '<fieldset class="admin-recovery-methods" data-request-id="' +
+    escapeHtml(req._id) +
+    '"><legend><strong>Verification methods used</strong> (at least one strong method required)</legend>' +
+    items +
+    "</fieldset>"
+  );
+}
+
 function renderConfirmationSection(req, coldTakeover) {
   if (!coldTakeover) return "";
   const sent = req.confirmationSentAt;
@@ -257,6 +378,8 @@ function renderRequestCard(req) {
         "</dd>"
       : "") +
     "</dl>" +
+    renderAnchorsBlock(req) +
+    renderFlagsBlock(req) +
     (req.status === "approved"
       ? '<div class="admin-recovery-resend-signin">' +
         '<button type="button" class="btn-secondary admin-recovery-resend-signin-btn" data-request-id="' +
@@ -272,17 +395,18 @@ function renderRequestCard(req) {
         renderConfirmationSection(req, coldTakeover) +
         (coldTakeover
           ? '<details class="admin-recovery-fallback"><summary>Fallback: skip therapist confirmation and approve manually</summary>' +
+            renderVerificationMethodsChecklist(req, coldTakeover) +
             '<label class="admin-recovery-verify-label" for="verify-' +
             escapeHtml(req._id) +
-            '"><strong>Identity verification (required, 20+ chars)</strong><br/>' +
-            "<small>Only use this path if you verified identity through a separate out-of-band channel " +
-            "(phone call, video, etc.) AND the therapist-self-confirm email is not an option.</small>" +
+            '"><strong>Identity verification note (required, 20+ chars)</strong><br/>' +
+            "<small>Describe the specifics of the verification method(s) you checked above " +
+            "(who you spoke to, the call-back number, ID number cross-referenced, etc.).</small>" +
             "</label>" +
             '<textarea class="admin-recovery-verify" id="verify-' +
             escapeHtml(req._id) +
             '" data-verify-for="' +
             escapeHtml(req._id) +
-            '" rows="3" placeholder="Describe the out-of-band check you performed..."></textarea>' +
+            '" rows="3" placeholder="e.g. Called (415) 555-0100 from DCA record at 14:32 PT, spoke with Dr. Rivera who confirmed she filed the request from her new email."></textarea>' +
             "</details>"
           : "") +
         '<textarea class="admin-recovery-outcome" data-for="' +
@@ -457,8 +581,32 @@ function bindCardActions(container) {
         );
         return;
       }
+      // Collect checked verification methods. Server enforces that at
+      // least one strong method is checked for cold-takeover approvals.
+      const methodInputs = container.querySelectorAll(
+        'input[name="verification_method"][data-request-id="' + id + '"]:checked',
+      );
+      const verificationMethods = Array.from(methodInputs).map((el) => el.value);
+      const STRONG = new Set([
+        "phone_call_dca",
+        "phone_call_website",
+        "id_selfie",
+        "video_call",
+        "postal_code",
+        "domain_challenge",
+        "self_confirm",
+      ]);
+      const hasStrong = verificationMethods.some((m) => STRONG.has(m));
+      if (coldTakeover && !hasStrong) {
+        setFeedback(
+          id,
+          "warn",
+          "Pick at least one strong verification method (phone, ID/selfie, video, postal, domain challenge, or self-confirm) before approving a cold takeover.",
+        );
+        return;
+      }
       const confirmMessage = coldTakeover
-        ? "Approve this COLD TAKEOVER? A sign-in link will go to the requested email, granting full profile control. Your verification note will be saved on the request."
+        ? "Approve this COLD TAKEOVER? A sign-in link will go to the requested email, granting full profile control. Verification methods + note will be saved on the request as the audit trail."
         : "Approve this recovery? This sends a sign-in link to the therapist.";
       if (!window.confirm(confirmMessage)) {
         return;
@@ -469,6 +617,7 @@ function bindCardActions(container) {
         await approveRecoveryRequest(id, {
           outcome_message: outcomeMessage,
           identity_verification: identityVerification,
+          verification_methods: verificationMethods,
         });
         setFeedback(id, "success", "Approved. Email sent.");
         window.setTimeout(loadRecoveryDashboard, 800);

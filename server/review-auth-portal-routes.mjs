@@ -863,7 +863,13 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
-  // GET /recovery-requests — admin list. Pending first.
+  // GET /recovery-requests — admin list. Pending first. Enriches each
+  // request with verification anchors pulled from the linked therapist
+  // (DCA address, license status, expiration, discipline flag, website,
+  // phone) so the admin reviewer has everything in one card without
+  // hunting around. Also flags suspicious patterns the admin should
+  // weight when deciding (same IP filing multiple recoveries, free-
+  // email requested address, recently-changed on-file email, etc.).
   if (request.method === "GET" && routePath === "/recovery-requests") {
     if (!deps.isAuthorized(request, config)) {
       sendJson(response, 401, { error: "Unauthorized." }, origin, config);
@@ -879,10 +885,108 @@ export async function handleAuthAndPortalRoutes(context) {
         profileClaimedEmail, adminNote, identityVerification, outcomeMessage,
         reviewedAt, reviewedBy, requesterIp, createdAt,
         confirmationChannel, confirmationChannelContext, confirmationSentAt,
-        confirmationResponse, confirmationRespondedAt, confirmationSendHistory
+        confirmationResponse, confirmationRespondedAt, confirmationSendHistory,
+        verificationMethods
       }`,
     );
-    sendJson(response, 200, { ok: true, requests: requests || [] }, origin, config);
+
+    const list = Array.isArray(requests) ? requests : [];
+    const therapistDocIds = [...new Set(list.map((r) => r.therapistDocId).filter(Boolean))];
+    const therapistAnchors =
+      therapistDocIds.length > 0
+        ? await client.fetch(
+            `*[_type == "therapist" && _id in $ids]{
+              _id, name, email, phone, website, claimStatus, claimedByEmail,
+              "addressCity": licensureVerification.addressCity,
+              "addressState": licensureVerification.addressState,
+              "addressZip": licensureVerification.addressZip,
+              "licenseStatus": licensureVerification.primaryStatus,
+              "licenseExpDate": licensureVerification.expirationDate,
+              "disciplineFlag": licensureVerification.disciplineFlag,
+              "boardName": licensureVerification.boardName,
+              "verifiedAt": licensureVerification.verifiedAt,
+              "providerNpi": providerId
+            }`,
+            { ids: therapistDocIds },
+          )
+        : [];
+    const anchorById = new Map(therapistAnchors.map((t) => [t._id, t]));
+
+    // Suspicious-pattern detection: count how many DIFFERENT licenses
+    // each IP has filed under in the last 30d. >1 means same person/IP
+    // is filing for multiple therapists — suspicious.
+    const ipCounts = new Map();
+    for (const r of list) {
+      if (!r.requesterIp) continue;
+      const cutoff = Date.now() - 30 * 86400000;
+      const created = new Date(r.createdAt || 0).getTime();
+      if (created < cutoff) continue;
+      if (!ipCounts.has(r.requesterIp)) ipCounts.set(r.requesterIp, new Set());
+      ipCounts.get(r.requesterIp).add(r.licenseNumber);
+    }
+
+    const FREE_EMAIL = new Set([
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "icloud.com",
+      "me.com",
+      "aol.com",
+      "proton.me",
+      "protonmail.com",
+      "mail.com",
+    ]);
+
+    const enriched = list.map((req) => {
+      const anchor = req.therapistDocId ? anchorById.get(req.therapistDocId) : null;
+      const flags = [];
+      const requestedDomain = String(req.requestedEmail || "")
+        .split("@")[1]
+        ?.toLowerCase();
+      if (requestedDomain && FREE_EMAIL.has(requestedDomain)) {
+        flags.push({
+          severity: "warn",
+          code: "free_email_provider",
+          message:
+            "Requested email is at a free provider (gmail/yahoo/etc.) — no domain anchor. Verify identity through another channel.",
+        });
+      }
+      const ipLicenses = req.requesterIp ? ipCounts.get(req.requesterIp) : null;
+      if (ipLicenses && ipLicenses.size > 1) {
+        flags.push({
+          severity: "high",
+          code: "multi_license_same_ip",
+          message: `Same IP (${req.requesterIp}) has filed recovery requests for ${ipLicenses.size} different licenses in the last 30 days. Investigate before approving.`,
+        });
+      }
+      if (anchor && anchor.disciplineFlag) {
+        flags.push({
+          severity: "high",
+          code: "discipline_on_file",
+          message:
+            "DCA shows public disciplinary actions on this license. Approval will give the requester control of a profile that may need to be unpublished.",
+        });
+      }
+      if (anchor && anchor.licenseStatus && anchor.licenseStatus !== "active") {
+        flags.push({
+          severity: "high",
+          code: "license_not_active",
+          message: `DCA shows license status as "${anchor.licenseStatus}" (not active). Verify before approving — the listing may need to be unpublished instead.`,
+        });
+      }
+      if (anchor && !anchor.email && !anchor.website) {
+        flags.push({
+          severity: "warn",
+          code: "no_anchors_available",
+          message:
+            "No email, no website on the profile — only DCA address-of-record + phone (if any) are verification channels. Consider phone verification or postal code.",
+        });
+      }
+      return { ...req, anchor: anchor || null, flags };
+    });
+
+    sendJson(response, 200, { ok: true, requests: enriched }, origin, config);
     return true;
   }
 
@@ -900,6 +1004,32 @@ export async function handleAuthAndPortalRoutes(context) {
     const customMessage = String(body.outcome_message || "").trim();
     const adminNote = String(body.admin_note || "").trim();
     const identityVerification = String(body.identity_verification || "").trim();
+    const verificationMethodsRaw = Array.isArray(body.verification_methods)
+      ? body.verification_methods
+      : [];
+    const ALLOWED_METHODS = new Set([
+      "phone_call_dca",
+      "phone_call_website",
+      "id_selfie",
+      "video_call",
+      "postal_code",
+      "domain_challenge",
+      "cross_channel_email",
+      "self_confirm",
+      "other",
+    ]);
+    const STRONG_METHODS = new Set([
+      "phone_call_dca",
+      "phone_call_website",
+      "id_selfie",
+      "video_call",
+      "postal_code",
+      "domain_challenge",
+      "self_confirm",
+    ]);
+    const verificationMethods = verificationMethodsRaw
+      .map((v) => String(v || "").trim())
+      .filter((v) => ALLOWED_METHODS.has(v));
 
     const recovery = await client.getDocument(requestId);
     if (!recovery || recovery._type !== "therapistRecoveryRequest") {
@@ -913,23 +1043,42 @@ export async function handleAuthAndPortalRoutes(context) {
 
     // Cold-takeover guard. When the original claim request came in with
     // no prior email on file, there's no pre-existing owner to disturb
-    // and public name+license is not a meaningful gate — so require the
-    // approver to record how they verified identity out-of-band (phone
-    // from DCA, practice website contact form, etc.). 20+ chars forces
-    // something substantive; a shorter "ok" or "checked" wouldn't.
-    if (recovery.reason === "no_email_on_file" && identityVerification.length < 20) {
-      sendJson(
-        response,
-        400,
-        {
-          error:
-            "Cold-takeover approval requires an identity-verification note (20+ chars). Describe the out-of-band check you performed.",
-          reason: "identity_verification_required",
-        },
-        origin,
-        config,
-      );
-      return true;
+    // and public name+license is not a meaningful gate — so require:
+    //   1. A 20+ char identity-verification note describing the check
+    //   2. At least one STRONG verification method recorded
+    // Free-form text alone is too easy to satisfy with "ok looks fine";
+    // forcing a structured method picks gives a clean audit trail and
+    // forces the admin to acknowledge what bar they actually cleared.
+    if (recovery.reason === "no_email_on_file") {
+      if (identityVerification.length < 20) {
+        sendJson(
+          response,
+          400,
+          {
+            error:
+              "Cold-takeover approval requires an identity-verification note (20+ chars). Describe the out-of-band check you performed.",
+            reason: "identity_verification_required",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+      const hasStrongMethod = verificationMethods.some((m) => STRONG_METHODS.has(m));
+      if (!hasStrongMethod) {
+        sendJson(
+          response,
+          400,
+          {
+            error:
+              "Cold-takeover approval requires at least one strong verification method. Pick one from the checklist (phone call, ID/selfie, video, postal code, domain challenge, or therapist self-confirm).",
+            reason: "verification_method_required",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
     }
 
     if (!recovery.therapistDocId || !recovery.therapistSlug) {
@@ -1018,6 +1167,8 @@ export async function handleAuthAndPortalRoutes(context) {
         outcomeMessage: customMessage,
         adminNote: adminNote || recovery.adminNote || "",
         identityVerification: identityVerification || recovery.identityVerification || "",
+        verificationMethods:
+          verificationMethods.length > 0 ? verificationMethods : recovery.verificationMethods || [],
       })
       .commit({ visibility: "sync" });
 
