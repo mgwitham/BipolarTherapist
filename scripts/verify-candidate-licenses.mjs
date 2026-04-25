@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const ROOT = process.cwd();
 const NPI_API = "https://npiregistry.cms.hhs.gov/api/?version=2.1";
@@ -336,7 +337,12 @@ async function main() {
   }
 }
 
-const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+// Use fileURLToPath + path.resolve so the comparison is byte-stable
+// regardless of how `node` was invoked (relative vs absolute path) and
+// regardless of characters that need URL-encoding in import.meta.url
+// (spaces, parens, etc.).
+const invokedDirectly =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (invokedDirectly) {
   main().catch((error) => {
     console.error(error);
