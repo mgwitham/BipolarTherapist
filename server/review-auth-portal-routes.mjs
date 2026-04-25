@@ -1732,6 +1732,9 @@ export async function handleAuthAndPortalRoutes(context) {
   if (request.method === "POST" && routePath === "/portal/claim-by-slug") {
     const body = await parseBody(request);
     const slug = String(body.slug || "").trim();
+    const requestedEmail = String(body.requested_email || "")
+      .trim()
+      .toLowerCase();
 
     if (!slug) {
       sendJson(response, 400, { error: "Slug is required." }, origin, config);
@@ -1740,7 +1743,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, claimStatus, claimedByEmail, claimLinkRequests, "slug": slug
+        _id, name, email, website, claimStatus, claimedByEmail, claimLinkRequests, "slug": slug
       }`,
       { slug },
     );
@@ -1775,8 +1778,22 @@ export async function handleAuthAndPortalRoutes(context) {
     const claimedEmail = String(therapist.claimedByEmail || "")
       .trim()
       .toLowerCase();
-    const onFileEmail =
+    let onFileEmail =
       therapist.claimStatus === "claimed" && claimedEmail ? claimedEmail : publicEmail;
+    let verificationMethod = "email_on_file";
+
+    // Domain-match auto-claim: when no email is on file but the
+    // therapist's listing has a `website` and the requester provided
+    // a `requested_email` whose domain matches that website, allow
+    // the link to go to the requested email. Proves practice-domain
+    // control — significantly stronger than name+license alone, since
+    // license numbers are public records.
+    if (!onFileEmail && requestedEmail && therapist.website) {
+      if (emailDomainMatchesWebsite(requestedEmail, therapist.website)) {
+        onFileEmail = requestedEmail;
+        verificationMethod = "domain_match";
+      }
+    }
 
     if (!onFileEmail) {
       sendJson(
@@ -1786,6 +1803,7 @@ export async function handleAuthAndPortalRoutes(context) {
           error:
             "No email is on file for this profile. Use the form below to verify ownership another way.",
           reason: "no_email_on_file",
+          domain_hint: extractRegistrableDomain(therapist.website || ""),
         },
         origin,
         config,
@@ -1843,7 +1861,7 @@ export async function handleAuthAndPortalRoutes(context) {
         message: "Claim link sent. Check your inbox.",
         therapist_slug: resolvedSlug,
         email_hint: maskEmail(onFileEmail),
-        verification_method: "email_on_file",
+        verification_method: verificationMethod,
       },
       origin,
       config,

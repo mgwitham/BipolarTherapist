@@ -532,6 +532,64 @@ test("claim-by-slug: returns 409 no_email_on_file when profile has no email", as
   assert.equal(response.payload.reason, "no_email_on_file");
 });
 
+test("claim-by-slug: domain-match auto-claim when requested_email shares website domain", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      email: "",
+      website: "https://riveratherapy.com",
+    }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera", requested_email: "jamie@riveratherapy.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.verification_method, "domain_match");
+  assert.equal(emailsSent.length, 1);
+  assert.equal(emailsSent[0].email, "jamie@riveratherapy.com");
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("claim-by-slug: rejects domain-match when requested_email is on a free email host", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      email: "",
+      website: "https://riveratherapy.com",
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera", requested_email: "jamie@gmail.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "no_email_on_file");
+});
+
+test("claim-by-slug: rejects domain-match when requested_email domain differs from website", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      email: "",
+      website: "https://riveratherapy.com",
+    }),
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-by-slug",
+    client,
+    body: { slug: "jamie-rivera", requested_email: "attacker@otherdomain.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.payload.reason, "no_email_on_file");
+});
+
 test("quick-claim/lookup: returns single therapist by slug", async () => {
   const { client } = createMemoryClient({
     "therapist-LMFT12345": seedTherapist("LMFT12345"),
