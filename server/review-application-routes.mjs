@@ -156,7 +156,9 @@ export async function handleApplicationRoutes(context) {
     // file (including revoked/cancelled/surrendered/expired). Reject
     // anything that isn't currently active in good standing.
     if (!verification.isActive) {
-      const status = (verification.licensureVerification && verification.licensureVerification.primaryStatus) || "unknown";
+      const status =
+        (verification.licensureVerification && verification.licensureVerification.primaryStatus) ||
+        "unknown";
       sendJson(
         response,
         422,
@@ -857,11 +859,15 @@ async function verifyLicenseAcrossCaTypes(config, licenseNumber) {
 // same person.
 function applicantNameMatchesDcaLicensee(submittedFullName, dcaLicensee) {
   if (!submittedFullName || !dcaLicensee) return false;
-  const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z]/g, "");
+  const norm = (s) =>
+    String(s || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
   // Strip honorifics + credential suffixes (Dr./Mr./Ms./Mrs./Prof. and trailing
   // PhD/PsyD/MD/LMFT/etc) so we tokenize only the legal-name portion.
   const HONORIFIC = /^(DR\.?|MR\.?|MRS\.?|MS\.?|PROF\.?)\s+/i;
-  const SUFFIX = /,?\s*(PHD|PSYD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EDD|JD|RN|MFC|JR|SR|II|III|IV)\.?\s*$/i;
+  const SUFFIX =
+    /,?\s*(PHD|PSYD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EDD|JD|RN|MFC|JR|SR|II|III|IV)\.?\s*$/i;
   let cleaned = String(submittedFullName).trim();
   while (HONORIFIC.test(cleaned)) cleaned = cleaned.replace(HONORIFIC, "");
   while (SUFFIX.test(cleaned)) cleaned = cleaned.replace(SUFFIX, "");
@@ -875,7 +881,11 @@ function applicantNameMatchesDcaLicensee(submittedFullName, dcaLicensee) {
   if (submittedLast !== dcaLast) return false;
   if (submittedFirst === dcaFirst) return true;
   if (submittedFirst.length < 2 || dcaFirst.length < 2) return false;
-  if (submittedFirst.startsWith(dcaFirst.slice(0, 2)) || dcaFirst.startsWith(submittedFirst.slice(0, 2))) return true;
+  if (
+    submittedFirst.startsWith(dcaFirst.slice(0, 2)) ||
+    dcaFirst.startsWith(submittedFirst.slice(0, 2))
+  )
+    return true;
   if (submittedFirst.includes(dcaFirst) || dcaFirst.includes(submittedFirst)) return true;
   return false;
 }

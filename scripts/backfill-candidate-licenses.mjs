@@ -20,7 +20,10 @@ const CA_TAXONOMY_PREFIXES = {
 function parsePersonName(rawName) {
   if (!rawName) return null;
   const stripped = rawName
-    .replace(/,?\s*(PhD|PsyD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EdD|JD|RN|MFC).*$/i, "")
+    .replace(
+      /,?\s*(PhD|PsyD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EdD|JD|RN|MFC).*$/i,
+      "",
+    )
     .replace(/^Dr\.\s+/i, "")
     .trim();
   const parts = stripped.split(/\s+/).filter(Boolean);
@@ -46,7 +49,9 @@ function pickLicense(npiResults, credentials) {
         const knownPrefix = Object.keys(CA_TAXONOMY_PREFIXES).find((p) => credUpper.includes(p));
         if (knownPrefix) {
           const expected = CA_TAXONOMY_PREFIXES[knownPrefix];
-          const matches = expected.some((needle) => tax.desc?.includes(needle) || tax.code?.startsWith(needle));
+          const matches = expected.some(
+            (needle) => tax.desc?.includes(needle) || tax.code?.startsWith(needle),
+          );
           if (!matches) continue;
         }
       }

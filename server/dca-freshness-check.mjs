@@ -36,7 +36,12 @@ export function cleanLicenseNumber(raw) {
   return s.replace(/^[A-Za-z]+/, "");
 }
 
-export async function runDcaFreshnessCheck({ client, config, dryRun = false, log = console.log } = {}) {
+export async function runDcaFreshnessCheck({
+  client,
+  config,
+  dryRun = false,
+  log = console.log,
+} = {}) {
   if (!client) {
     config = config || getReviewApiConfig();
     client = createClient({
@@ -108,7 +113,9 @@ export async function runDcaFreshnessCheck({ client, config, dryRun = false, log
     const shouldUnpublish = lostActive || newDiscipline;
 
     if (!dryRun) {
-      const patch = client.patch(t._id).set({ licensureVerification: result.licensureVerification });
+      const patch = client
+        .patch(t._id)
+        .set({ licensureVerification: result.licensureVerification });
       if (shouldUnpublish) {
         patch.set({ listingActive: false, status: "inactive" });
       }

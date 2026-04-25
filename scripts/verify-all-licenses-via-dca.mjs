@@ -9,19 +9,31 @@ import { verifyLicense, resolveLicenseTypeCode } from "../server/dca-license-cli
 const ROOT = process.cwd();
 const OUTPUT = path.join(ROOT, "data", "import", "generated-dca-verification-report.md");
 const APPLY = process.argv.includes("--apply");
-const SCOPE = (process.argv.find((a) => a.startsWith("--scope=")) || "--scope=therapists,therapistCandidate").split("=")[1].split(",");
+const SCOPE = (
+  process.argv.find((a) => a.startsWith("--scope=")) || "--scope=therapists,therapistCandidate"
+)
+  .split("=")[1]
+  .split(",");
 
 function credentialToLicenseTypeLabel(creds, title) {
   const c = (creds || "").toUpperCase();
   const t = (title || "").toLowerCase();
   // Order matters: PMHNP/NP must come BEFORE MD check (PMHNPs are RNs not MDs)
-  if (c.includes("PMHNP") || c.includes("APRN") || c.includes("NP") || t.includes("nurse practitioner")) return "PMHNP_RN";
+  if (
+    c.includes("PMHNP") ||
+    c.includes("APRN") ||
+    c.includes("NP") ||
+    t.includes("nurse practitioner")
+  )
+    return "PMHNP_RN";
   if (c.includes("LMFT") || c.includes("MFCC") || c.includes("MFC")) return "LMFT";
   if (c.includes("LCSW")) return "LCSW";
   if (c.includes("LPCC")) return "LPCC";
   if (c.includes("LEP")) return "LEP";
-  if (c.includes("PSYD") || c.includes("PHD") || c.includes("LP") || t.includes("psychologist")) return "Psychologist";
-  if (c.includes("MD") || c.includes("DO") || t.includes("psychiatrist")) return "Psychiatrist (MD)";
+  if (c.includes("PSYD") || c.includes("PHD") || c.includes("LP") || t.includes("psychologist"))
+    return "Psychologist";
+  if (c.includes("MD") || c.includes("DO") || t.includes("psychiatrist"))
+    return "Psychiatrist (MD)";
   return null;
 }
 
@@ -37,7 +49,8 @@ async function main() {
     dcaAppId: process.env.DCA_APP_ID,
     dcaAppKey: process.env.DCA_APP_KEY,
   };
-  if (!config.dcaAppId || !config.dcaAppKey) throw new Error("Missing DCA_APP_ID / DCA_APP_KEY in env");
+  if (!config.dcaAppId || !config.dcaAppKey)
+    throw new Error("Missing DCA_APP_ID / DCA_APP_KEY in env");
 
   const sanity = createClient({
     projectId: process.env.VITE_SANITY_PROJECT_ID,
@@ -64,8 +77,16 @@ async function main() {
     const doc = docs[i];
     const label = credentialToLicenseTypeLabel(doc.credentials, doc.title);
     if (!label || label === "PMHNP_RN") {
-      results.unknownType.push({ doc, reason: label === "PMHNP_RN" ? "PMHNP/RN — DCA Search API does not expose Board of Registered Nursing licenses" : `cannot map credentials="${doc.credentials}" title="${doc.title}"` });
-      console.log(`[${i + 1}/${docs.length}] SKIP  ${doc.name} — ${label === "PMHNP_RN" ? "PMHNP (RN board not in API)" : "unknown license type"}`);
+      results.unknownType.push({
+        doc,
+        reason:
+          label === "PMHNP_RN"
+            ? "PMHNP/RN — DCA Search API does not expose Board of Registered Nursing licenses"
+            : `cannot map credentials="${doc.credentials}" title="${doc.title}"`,
+      });
+      console.log(
+        `[${i + 1}/${docs.length}] SKIP  ${doc.name} — ${label === "PMHNP_RN" ? "PMHNP (RN board not in API)" : "unknown license type"}`,
+      );
       continue;
     }
     const code = resolveLicenseTypeCode(label);
@@ -81,7 +102,9 @@ async function main() {
     if (!result.verified) {
       if ((result.error || "").includes("not found")) {
         results.notFound.push({ doc, label, code, error: result.error });
-        console.log(`[${i + 1}/${docs.length}] MISS  ${doc.name} (${label} #${cleanNumber}) — ${result.error}`);
+        console.log(
+          `[${i + 1}/${docs.length}] MISS  ${doc.name} (${label} #${cleanNumber}) — ${result.error}`,
+        );
       } else {
         results.errors.push({ doc, label, error: result.error });
         console.log(`[${i + 1}/${docs.length}] ERR   ${doc.name} — ${result.error}`);
@@ -90,10 +113,14 @@ async function main() {
     }
     if (result.isActive) {
       results.active.push({ doc, label, verification: result.licensureVerification });
-      console.log(`[${i + 1}/${docs.length}] OK    ${doc.name} (${label} #${cleanNumber}) — ${result.licensureVerification.primaryStatus}`);
+      console.log(
+        `[${i + 1}/${docs.length}] OK    ${doc.name} (${label} #${cleanNumber}) — ${result.licensureVerification.primaryStatus}`,
+      );
     } else {
       results.inactive.push({ doc, label, verification: result.licensureVerification });
-      console.log(`[${i + 1}/${docs.length}] BAD   ${doc.name} (${label} #${cleanNumber}) — ${result.licensureVerification.primaryStatus}`);
+      console.log(
+        `[${i + 1}/${docs.length}] BAD   ${doc.name} (${label} #${cleanNumber}) — ${result.licensureVerification.primaryStatus}`,
+      );
     }
     if (APPLY && result.verified) {
       await sanity
@@ -119,13 +146,21 @@ async function main() {
     `- 💥 Errors: ${results.errors.length}`,
     ``,
     `## Inactive / non-active (review immediately)`,
-    ...results.inactive.map((r) => `- **${r.doc.name}** (${r.doc._type}) — ${r.label} #${r.doc.licenseNumber} — status: \`${r.verification.primaryStatus}\` (expires ${r.verification.expirationDate}, discipline: ${r.verification.disciplineFlag})`),
+    ...results.inactive.map(
+      (r) =>
+        `- **${r.doc.name}** (${r.doc._type}) — ${r.label} #${r.doc.licenseNumber} — status: \`${r.verification.primaryStatus}\` (expires ${r.verification.expirationDate}, discipline: ${r.verification.disciplineFlag})`,
+    ),
     ``,
     `## Not found in DCA`,
-    ...results.notFound.map((r) => `- **${r.doc.name}** (${r.doc._type}) — ${r.label} #${r.doc.licenseNumber}`),
+    ...results.notFound.map(
+      (r) => `- **${r.doc.name}** (${r.doc._type}) — ${r.label} #${r.doc.licenseNumber}`,
+    ),
     ``,
     `## Unknown license type`,
-    ...results.unknownType.map((r) => `- **${r.doc.name}** (${r.doc._type}) — credentials: "${r.doc.credentials || "-"}" title: "${r.doc.title || "-"}"`),
+    ...results.unknownType.map(
+      (r) =>
+        `- **${r.doc.name}** (${r.doc._type}) — credentials: "${r.doc.credentials || "-"}" title: "${r.doc.title || "-"}"`,
+    ),
     ``,
     `## Errors`,
     ...results.errors.map((r) => `- **${r.doc.name}** — ${r.error}`),
@@ -134,7 +169,9 @@ async function main() {
 
   fs.writeFileSync(OUTPUT, md, "utf8");
   console.log(`\nReport: ${OUTPUT}`);
-  console.log(`Active: ${results.active.length}, Inactive: ${results.inactive.length}, NotFound: ${results.notFound.length}, UnknownType: ${results.unknownType.length}, Errors: ${results.errors.length}`);
+  console.log(
+    `Active: ${results.active.length}, Inactive: ${results.inactive.length}, NotFound: ${results.notFound.length}, UnknownType: ${results.unknownType.length}, Errors: ${results.errors.length}`,
+  );
 }
 
 main().catch((err) => {
