@@ -33,9 +33,14 @@ const STATUS_MAP = {
   40: "delinquent",
   50: "cancelled",
   60: "revoked",
+  65: "revoked",
   70: "surrendered",
   80: "expired",
 };
+
+// Statuses that REJECT a license at intake. Anything not in this set
+// (including unknown codes) is treated as not-good-standing and blocked.
+export const ACCEPTABLE_STATUSES = new Set(["active"]);
 
 export function resolveLicenseTypeCode(label) {
   if (LICENSE_TYPE_MAP[label]) return LICENSE_TYPE_MAP[label];
@@ -174,6 +179,8 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
   return {
     verified: true,
     isActive: isActive,
+    hasDiscipline: hasDiscipline,
+    licenseeName: name,
     licensureVerification: {
       sourceSystem: "california_dca_search",
       licenseType: LICENSE_LABEL_MAP[licenseTypeCode] || licenseTypeCode,
