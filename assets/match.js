@@ -5744,6 +5744,11 @@ function renderResults(entries, profile) {
         return { therapist: therapist };
       }),
     );
+    trackFunnelEvent("match_results_empty", {
+      has_refinements: hasRefinements,
+      has_zip: Boolean(requestedZip),
+      zip_suggestion_count: zipSuggestions.length,
+    });
     setActionState(false, "Try widening your constraints before saving or sharing this result.");
     renderNoResultsState(
       profile,
@@ -5757,6 +5762,13 @@ function renderResults(entries, profile) {
     }
     return;
   }
+
+  trackFunnelEvent("match_results_viewed", {
+    result_count: entries.length,
+    primary_count: primaryEntries.length,
+    top_slug: entries[0] && entries[0].therapist ? entries[0].therapist.slug || "" : "",
+    has_refinements: hasRefinements,
+  });
 
   if (!currentJourneyId) {
     currentJourneyId = buildJourneyId(profile, entries);
@@ -5969,6 +5981,21 @@ function refreshIntakeUiFromForm() {
     });
     return;
   }
+
+  var landedSource = "direct";
+  try {
+    var landedParams = new URLSearchParams(window.location.search || "");
+    if (landedParams.has("care_state") || landedParams.has("location_query")) {
+      landedSource = "homepage_handoff";
+    } else if (landedParams.has("shortlist")) {
+      landedSource = "resumed_shortlist";
+    }
+  } catch (_landedError) {
+    /* ignore */
+  }
+  trackFunnelEvent("match_intake_landed", {
+    source: landedSource,
+  });
 
   latestLearningSignals = buildLearningSignals(readStoredFeedback(), readOutreachOutcomes());
   activeMatchExperimentVariant = getExperimentVariant("match_ranking", ["control", "adaptive"]);
