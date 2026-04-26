@@ -5541,6 +5541,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .mx-telehealth-badge {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   margin-top: 0.4rem;
   padding: 0.22rem 0.6rem;
   border-radius: 999px;
