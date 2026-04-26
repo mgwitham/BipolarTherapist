@@ -29,6 +29,16 @@ const CLAIM_STEPS = [
   { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
 ];
 
+// Removal funnel. Headline number is listing_removal_confirmed —
+// that's the only event fired server-side, so the count reflects
+// listings that actually went dark.
+const REMOVAL_STEPS = [
+  { key: "claim_remove_link_clicked", label: "Clicked hero remove link" },
+  { key: "listing_removal_section_opened", label: "Opened removal section" },
+  { key: "listing_removal_request_submitted", label: "Submitted form" },
+  { key: "listing_removal_confirmed", label: "Confirmed via email (removed)" },
+];
+
 // Patient match funnel. Tracks the demand-side path from "started a
 // search on the homepage" through "opened the contact modal." This is
 // what tells us which pillar to invest in next: drops at viewed→
@@ -420,6 +430,7 @@ function renderDashboard(container, logData) {
   const claimRows = buildFunnelRow(events, CLAIM_STEPS, lastSevenDays);
   const portalRows = buildFunnelRow(events, PORTAL_STEPS, lastSevenDays);
   const patientRows = buildFunnelRow(events, PATIENT_STEPS, lastSevenDays);
+  const removalRows = buildFunnelRow(events, REMOVAL_STEPS, lastSevenDays);
 
   const totalAppended = Number(logData.totalAppended || 0);
   const updatedAt = logData.updatedAt || "never";
@@ -436,6 +447,9 @@ function renderDashboard(container, logData) {
     "</section>" +
     '<section class="admin-funnel-section"><h3>Claim + trial funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who reached step 1", claimRows) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Removal funnel — last 7 days</h3>' +
+    renderFunnelTable("% shown relative to users who clicked the hero remove link", removalRows) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +

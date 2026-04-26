@@ -2284,6 +2284,17 @@ footer a {
   font-size: 0.78rem;
 }
 
+.footer-legal {
+  margin-top: 0.6rem;
+  opacity: 0.85;
+}
+.footer-legal a {
+  margin: 0 0.15rem;
+}
+.footer-legal a:hover {
+  color: white;
+}
+
 @media (max-width: 860px) {
   .layout,
   .profile-grid {

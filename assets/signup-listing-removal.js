@@ -10,6 +10,7 @@
 // is on file.
 
 import { searchTherapistQuickClaim } from "./review-api.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const REMOVAL_ENDPOINT = "/api/review/portal/listing-removal/request";
 
@@ -110,6 +111,7 @@ async function submitRemovalRequest(form, status) {
       "If a listing matches these details, we just sent a confirmation link to the email on file. Click the link in that email to finish removing your listing.",
       "success",
     );
+    trackFunnelEvent("listing_removal_request_submitted", {});
     form.reset();
   } catch (_error) {
     setStatus(

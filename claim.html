@@ -202,6 +202,19 @@
         font-size: 0.86rem;
         font-weight: 600;
       }
+      .claim-hero-removal-link {
+        margin-top: 0.1rem;
+        font-size: 0.85rem;
+      }
+      .claim-hero-removal-link a {
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .claim-hero-removal-link a:hover {
+        color: var(--teal-dark);
+        text-decoration: underline;
+      }
 
       .claim-session-banner {
         display: grid;
@@ -883,6 +896,24 @@
         display: none !important;
       }
 
+      .site-mini-footer {
+        max-width: 900px;
+        margin: 2.5rem auto 0;
+        padding: 1.25rem 1.5rem 2rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .site-mini-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        margin: 0 0.4rem;
+      }
+      .site-mini-footer a:hover {
+        color: var(--teal-dark);
+      }
+
       @media (max-width: 720px) {
         .claim-main,
         .claim-how-it-works,
@@ -934,6 +965,9 @@
             <li>Free to claim</li>
             <li>Your CA license verification carries over</li>
           </ul>
+          <p class="claim-hero-removal-link">
+            <a href="#claimRemovalSection">Want to remove your listing instead? →</a>
+          </p>
         </section>
 
         <section
@@ -1025,7 +1059,7 @@
           </p>
           <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
             <a
-              href="mailto:hello@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
+              href="mailto:support@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
               id="claimConfirmDispute"
               >Not your listing? Report a mistaken claim →</a
             >
@@ -1245,20 +1279,19 @@
           </p>
           <a href="signup.html" id="claimHelpNewListing">Create a new listing →</a>
         </article>
-        <article class="claim-help-card">
+        <article class="claim-help-card" id="claimRemovalSection">
           <strong>Need removal instead?</strong>
           <p>
-            Listing removal stays available, but it is a separate lower-priority request with its
-            own confirmation safeguards.
+            Removal is instant. We send a one-time confirmation link to the email on your listing,
+            and your page goes dark the moment you click it.
           </p>
           <details class="claim-remove-details" aria-label="Remove your listing">
             <summary>Open removal request</summary>
             <div class="claim-remove-body">
               <p class="claim-remove-intro">
-                We added California therapists to this directory based on verified license and
-                public bipolar-specialty indicators. If you'd rather not be listed, we send a
-                one-time confirmation link to the email on your listing and your page goes dark the
-                moment you click it.
+                Your listing was built from your CA DCA license record and publicly visible
+                bipolar-specialty information. If you'd rather not be listed, confirm via the email
+                on file and the page is removed immediately.
               </p>
               <div class="listing-removal-search">
                 <label>
@@ -1332,9 +1365,9 @@
       <details class="claim-faq-item">
         <summary>Why am I already listed?</summary>
         <p>
-          We auto-added California bipolar-specialist therapists from public records and licensed
-          practice sources. Your public profile may already exist even if you have not logged in
-          yet. Claiming simply gives you control over it.
+          Your listing was built from your CA DCA license record and publicly visible
+          bipolar-specialty information from your practice site or public directories. Claiming
+          gives you control over it. Removal is one click and instant.
         </p>
       </details>
       <details class="claim-faq-item">
@@ -1360,6 +1393,11 @@
         </p>
       </details>
     </section>
+
+    <footer class="site-mini-footer">
+      <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
     <script type="module" src="assets/signup-listing-removal.js"></script>
