@@ -63,6 +63,7 @@
         --slate: #4a6572;
         --muted: #6b8290;
         --border: #d4e4e9;
+        --border-soft: #e6eef1;
         --bg: #f7fbfc;
         --white: #ffffff;
         --green: #3aaa7a;
@@ -147,108 +148,163 @@
         border-color: rgba(26, 122, 143, 0.22);
         background: rgba(26, 122, 143, 0.06);
       }
-      .nav-shortlist {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-      }
-      .nav-shortlist-count {
-        min-width: 1.25rem;
-        height: 1.25rem;
-        padding: 0 0.35rem;
-        border-radius: 999px;
-        background: var(--teal-faint);
-        color: var(--teal-dark);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.72rem;
-        font-weight: 700;
-      }
 
       /* =========================
-         Hero + search + form
+         Hero band
          ========================= */
+      .signup-hero-band {
+        background:
+          radial-gradient(1100px 380px at 18% -10%, rgba(42, 156, 179, 0.16), transparent 60%),
+          radial-gradient(900px 320px at 92% -20%, rgba(26, 122, 143, 0.12), transparent 65%),
+          var(--bg);
+        border-bottom: 1px solid var(--border-soft);
+      }
       .signup-main {
         max-width: 1160px;
         margin: 0 auto;
-        padding: 2rem 1.5rem 4rem;
+        padding: 3rem 1.5rem 4rem;
       }
       .signup-hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-        gap: 2.5rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+        gap: 3rem;
         align-items: start;
-        margin-top: 1rem;
+      }
+      .signup-hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(26, 122, 143, 0.08);
+        color: var(--teal-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+      }
+      .signup-hero-eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
       }
       .signup-hero-copy h1 {
         font-family: "Lora", serif;
-        font-size: clamp(2rem, 3.5vw, 2.8rem);
-        line-height: 1.1;
+        font-size: clamp(2.1rem, 3.6vw, 3rem);
+        line-height: 1.08;
+        letter-spacing: -0.01em;
         color: var(--navy);
-        margin-bottom: 1rem;
+        margin-bottom: 1.1rem;
       }
-      .signup-hero-copy .signup-hero-sub {
+      .signup-hero-copy h1 em {
+        font-style: normal;
+        color: var(--teal-dark);
+      }
+      .signup-hero-sub {
         color: var(--slate);
-        font-size: 1.05rem;
-        max-width: 48ch;
-        margin-bottom: 1.5rem;
+        font-size: 1.08rem;
+        max-width: 46ch;
+        margin-bottom: 1.6rem;
       }
-      .signup-hero-proof {
-        list-style: none;
-        display: grid;
-        gap: 0.5rem;
-        margin-top: 1.25rem;
-      }
-      .signup-hero-proof li {
+      .signup-hero-pills {
         display: flex;
-        gap: 0.6rem;
-        color: var(--navy);
-        font-size: 0.96rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.6rem;
       }
-      .signup-hero-proof li::before {
+      .signup-hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .signup-hero-pill::before {
         content: "✓";
         color: var(--green);
-        font-weight: 700;
+        font-weight: 800;
+        font-size: 0.78rem;
       }
       .signup-hero-claim-note {
-        margin-top: 1.5rem;
-        padding: 0.7rem 0.9rem;
+        padding: 0.85rem 1rem;
         background: var(--white);
-        border: 1px dashed var(--border);
-        border-radius: 10px;
-        color: var(--muted);
-        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--slate);
+        font-size: 0.92rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
       }
       .signup-hero-claim-note a {
         color: var(--teal-dark);
-        font-weight: 600;
+        font-weight: 700;
         text-decoration: none;
+        white-space: nowrap;
       }
       .signup-hero-claim-note a:hover {
         text-decoration: underline;
       }
 
       /* =========================
-         New-listing form card
+         Form card
          ========================= */
       .signup-form-card {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.75rem;
-        box-shadow: 0 10px 26px rgba(15, 65, 78, 0.06);
+        border-radius: 18px;
+        padding: 1.85rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.08);
+        position: relative;
+      }
+      .signup-form-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 18px;
+        padding: 1px;
+        background: linear-gradient(180deg, rgba(42, 156, 179, 0.4), transparent 55%);
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+      .signup-form-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.75rem;
+        margin-bottom: 0.25rem;
       }
       .signup-form-card h2 {
         font-family: "Lora", serif;
-        font-size: 1.4rem;
+        font-size: 1.45rem;
         color: var(--navy);
-        margin-bottom: 0.35rem;
+      }
+      .signup-form-time {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--teal-dark);
+        background: var(--teal-faint);
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        white-space: nowrap;
       }
       .signup-form-card-sub {
         color: var(--muted);
         font-size: 0.92rem;
-        margin-bottom: 1.2rem;
+        margin-bottom: 1.3rem;
       }
       .new-listing-form {
         display: grid;
@@ -257,72 +313,88 @@
       .new-listing-form label {
         display: grid;
         gap: 0.35rem;
-        font-size: 0.86rem;
+        font-size: 0.82rem;
         font-weight: 600;
         color: var(--navy);
+        letter-spacing: 0.01em;
       }
       .new-listing-form input[type="text"],
       .new-listing-form input[type="email"] {
-        padding: 0.72rem 0.85rem;
+        padding: 0.78rem 0.9rem;
         border: 1px solid var(--border);
         border-radius: 10px;
         font: inherit;
         font-weight: 400;
         color: var(--navy);
         background: var(--white);
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .new-listing-form input:hover {
+        border-color: #b8d2da;
       }
       .new-listing-form input:focus {
         outline: none;
         border-color: var(--teal);
-        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.14);
+      }
+      .new-listing-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
       }
       .new-listing-field-hint {
         font-weight: 400;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         color: var(--muted);
       }
       .new-listing-checkbox {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 0.6rem;
+        gap: 0.65rem;
         align-items: start;
-        font-weight: 400;
+        font-weight: 500;
         font-size: 0.92rem;
         color: var(--navy);
-        padding: 0.65rem 0.85rem;
+        padding: 0.75rem 0.9rem;
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: 10px;
+        cursor: pointer;
+      }
+      .new-listing-checkbox:hover {
+        border-color: var(--teal-light);
       }
       .new-listing-checkbox input {
-        margin-top: 0.15rem;
+        margin-top: 0.18rem;
         width: 18px;
         height: 18px;
         accent-color: var(--teal);
       }
       .new-listing-photo {
         background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 0.85rem;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
       }
       .new-listing-photo-row {
         display: grid;
-        grid-template-columns: 72px 1fr;
-        gap: 0.85rem;
-        align-items: start;
+        grid-template-columns: 56px 1fr;
+        gap: 0.9rem;
+        align-items: center;
       }
       .new-listing-photo-preview {
-        width: 72px;
-        height: 72px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         background: linear-gradient(180deg, #eaf2f4, #d8e6ea);
-        border: 1px solid rgba(14, 77, 95, 0.18);
+        border: 1px solid rgba(14, 77, 95, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         color: rgba(14, 77, 95, 0.55);
       }
       .new-listing-photo-img {
@@ -332,34 +404,47 @@
       }
       .new-listing-photo-copy {
         display: grid;
-        gap: 0.35rem;
+        gap: 0.3rem;
+      }
+      .new-listing-photo-line {
+        display: flex;
+        gap: 0.5rem;
+        align-items: baseline;
+        flex-wrap: wrap;
       }
       .new-listing-photo-title {
         font-weight: 600;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         color: var(--navy);
+      }
+      .new-listing-photo-optional {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
       }
       .new-listing-photo-hint {
         font-size: 0.78rem;
         color: var(--muted);
-        line-height: 1.45;
+        line-height: 1.4;
       }
       .new-listing-photo-controls {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.4rem;
         flex-wrap: wrap;
-        margin-top: 0.15rem;
+        margin-top: 0.2rem;
       }
       .new-listing-photo-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.45rem 0.85rem;
+        padding: 0.4rem 0.75rem;
         border: 1px solid var(--teal);
         color: var(--teal);
         background: white;
         border-radius: 8px;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 600;
         cursor: pointer;
       }
@@ -367,12 +452,12 @@
         background: rgba(14, 77, 95, 0.05);
       }
       .new-listing-photo-clear {
-        padding: 0.45rem 0.7rem;
+        padding: 0.4rem 0.65rem;
         border: 1px solid var(--border);
         background: white;
         color: var(--muted);
         border-radius: 8px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         cursor: pointer;
       }
       .new-listing-photo-status {
@@ -386,58 +471,32 @@
       .new-listing-photo-status.is-error {
         color: #b3261e;
       }
-      .new-listing-steps {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-        margin-top: 0.15rem;
-      }
-      .new-listing-step {
-        background: var(--teal-faint);
-        border: 1px solid rgba(26, 122, 143, 0.18);
-        border-radius: 10px;
-        padding: 0.55rem 0.7rem;
-        display: grid;
-        gap: 0.15rem;
-      }
-      .new-listing-step-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--teal-dark);
-      }
-      .new-listing-step-text {
-        font-size: 0.86rem;
-        font-weight: 500;
-        color: var(--navy);
-        line-height: 1.35;
-      }
-      .new-listing-privacy {
-        color: var(--muted);
-        font-size: 0.8rem;
-        text-align: center;
-        margin-top: -0.25rem;
-      }
       .new-listing-submit {
         background: var(--teal);
         color: var(--white);
         border: none;
         border-radius: 12px;
-        padding: 0.95rem 1rem;
+        padding: 1rem 1rem;
         font: inherit;
         font-size: 1.02rem;
         font-weight: 700;
         cursor: pointer;
-        transition: background 0.15s ease;
-        box-shadow: 0 4px 12px rgba(26, 122, 143, 0.22);
+        transition:
+          background 0.15s ease,
+          transform 0.1s ease,
+          box-shadow 0.15s ease;
+        box-shadow: 0 6px 16px rgba(26, 122, 143, 0.28);
+        margin-top: 0.25rem;
       }
       .new-listing-submit:hover:not(:disabled) {
         background: var(--teal-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(26, 122, 143, 0.32);
       }
       .new-listing-submit:disabled {
         background: var(--muted);
         cursor: not-allowed;
+        box-shadow: none;
       }
       .new-listing-status {
         padding: 0.7rem 0.85rem;
@@ -452,16 +511,21 @@
         background: rgba(229, 62, 62, 0.08);
         color: var(--red);
       }
-      .new-listing-fineprint {
+      .new-listing-privacy {
         color: var(--muted);
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         text-align: center;
+        line-height: 1.5;
+      }
+      .new-listing-privacy strong {
+        color: var(--slate);
+        font-weight: 600;
       }
       .new-listing-dup-nudge {
         background: var(--teal-faint);
         border: 1px solid var(--teal);
         border-radius: 10px;
-        padding: 0.75rem 0.9rem;
+        padding: 0.8rem 0.95rem;
         display: grid;
         gap: 0.35rem;
       }
@@ -516,7 +580,7 @@
       }
       .new-listing-plan-option {
         text-align: left;
-        padding: 0.95rem 1rem;
+        padding: 1rem 1.1rem;
         border-radius: 12px;
         border: 2px solid transparent;
         cursor: pointer;
@@ -558,6 +622,52 @@
       }
 
       /* =========================
+         Trust strip (boards)
+         ========================= */
+      .signup-trust-strip {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 0;
+      }
+      .signup-trust-card {
+        background: var(--white);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 1.1rem 1.4rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1.25rem;
+        align-items: center;
+      }
+      .signup-trust-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .signup-trust-boards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 1rem;
+        font-size: 0.9rem;
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .signup-trust-boards span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .signup-trust-boards span::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+
+      /* =========================
          How it works
          ========================= */
       .signup-how-it-works {
@@ -567,17 +677,18 @@
       }
       .signup-how-it-works h2 {
         font-family: "Lora", serif;
-        font-size: 1.75rem;
+        font-size: 1.8rem;
         color: var(--navy);
-        margin-bottom: 0.9rem;
+        margin-bottom: 0.5rem;
         text-align: center;
+        letter-spacing: -0.01em;
       }
       .signup-how-it-works-intro {
         max-width: 44rem;
-        margin: 0 auto 1.5rem;
+        margin: 0 auto 2rem;
         text-align: center;
         color: var(--slate);
-        font-size: 0.98rem;
+        font-size: 1rem;
       }
       .signup-how-it-works-grid {
         display: grid;
@@ -588,31 +699,39 @@
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 14px;
-        padding: 1.35rem 1.5rem;
+        padding: 1.5rem 1.5rem;
+        transition:
+          transform 150ms ease,
+          box-shadow 150ms ease;
+      }
+      .signup-how-it-works-step:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(15, 65, 78, 0.08);
       }
       .signup-how-it-works-step-index {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         background: var(--teal);
         color: var(--white);
         border-radius: 999px;
         font-weight: 700;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 4px 10px rgba(26, 122, 143, 0.3);
       }
       .signup-how-it-works-step h3 {
         font-size: 1.05rem;
         color: var(--navy);
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.35rem;
       }
       .signup-how-it-works-step p {
         color: var(--slate);
         font-size: 0.94rem;
       }
       .signup-how-it-works-footnote {
-        margin-top: 1rem;
+        margin-top: 1.25rem;
         text-align: center;
         color: var(--teal-dark);
         font-size: 0.95rem;
@@ -629,17 +748,22 @@
       }
       .signup-faq h2 {
         font-family: "Lora", serif;
-        font-size: 1.75rem;
+        font-size: 1.8rem;
         color: var(--navy);
         margin-bottom: 1.25rem;
         text-align: center;
+        letter-spacing: -0.01em;
       }
       .signup-faq-item {
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 12px;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
         overflow: hidden;
+        transition: border-color 0.15s ease;
+      }
+      .signup-faq-item[open] {
+        border-color: var(--teal-light);
       }
       .signup-faq-item summary {
         padding: 1rem 1.25rem;
@@ -659,8 +783,9 @@
         top: 50%;
         transform: translateY(-50%);
         color: var(--teal);
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         font-weight: 300;
+        line-height: 1;
       }
       .signup-faq-item[open] summary::after {
         content: "−";
@@ -670,38 +795,33 @@
         color: var(--slate);
       }
 
-      /* =========================
-         Footer alt-path
-         ========================= */
-      .signup-footer-path {
-        max-width: 780px;
-        margin: 3rem auto 0;
-        padding: 0 1.5rem;
-        text-align: center;
-        color: var(--muted);
-        font-size: 0.95rem;
-      }
-      .signup-footer-path a {
-        color: var(--teal);
-        font-weight: 600;
+      .signup-bottom-spacer {
+        height: 4rem;
       }
 
       /* =========================
          Mobile
          ========================= */
       @media (max-width: 880px) {
+        .signup-main {
+          padding-top: 2rem;
+        }
         .signup-hero {
           grid-template-columns: 1fr;
-          gap: 1.5rem;
+          gap: 2rem;
         }
         .signup-how-it-works-grid {
           grid-template-columns: 1fr;
         }
         .signup-form-card {
-          padding: 1.35rem;
+          padding: 1.4rem;
         }
-        .new-listing-steps {
+        .new-listing-row-2 {
           grid-template-columns: 1fr;
+        }
+        .signup-trust-card {
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
         }
       }
     </style>
@@ -720,248 +840,251 @@
       </ul>
     </nav>
 
-    <main class="signup-main">
-      <section class="signup-hero">
-        <div class="signup-hero-copy">
-          <h1>Reach Californians searching for bipolar-informed care.</h1>
-          <p class="signup-hero-sub">
-            BipolarTherapyHub helps verified California clinicians get discovered by patients
-            looking for bipolar-informed care. More complete profiles support stronger-fit matches,
-            not just broader exposure.
-          </p>
-          <ul class="signup-hero-proof">
-            <li>5-field signup, most clinicians finish in under 2 minutes</li>
-            <li>Instant California license verification</li>
-            <li>Free listing, no credit card required</li>
-            <li>Cancel or remove your listing anytime</li>
-          </ul>
-
-          <p class="signup-hero-claim-note">
-            Already on BipolarTherapyHub and want to edit your existing profile?
-            <a href="claim.html">Claim your listing →</a>
-          </p>
-        </div>
-
-        <div>
-          <section class="signup-form-card" aria-label="List your practice">
-            <h2>Start your free listing</h2>
-            <p class="signup-form-card-sub">
-              Five short fields. We verify your California license instantly, then you pick free or
-              free trial.
+    <div class="signup-hero-band">
+      <main class="signup-main">
+        <section class="signup-hero">
+          <div class="signup-hero-copy">
+            <span class="signup-hero-eyebrow">For California clinicians</span>
+            <h1>Get found by Californians searching for <em>bipolar-informed care</em>.</h1>
+            <p class="signup-hero-sub">
+              Five short fields. Instant California license check. Most clinicians finish in under
+              two minutes.
             </p>
-            <form id="newListingForm" class="new-listing-form" novalidate>
-              <label>
-                <span>Full name</span>
-                <input
-                  type="text"
-                  name="full_name"
-                  autocomplete="name"
-                  placeholder="Jamie Rivera"
-                  required
-                />
-              </label>
-              <label>
-                <span>Email</span>
-                <input
-                  type="email"
-                  name="email"
-                  autocomplete="email"
-                  placeholder="jamie@yourpractice.com"
-                  required
-                />
-                <span class="new-listing-field-hint"> We'll send your welcome link here. </span>
-              </label>
-              <label>
-                <span>CA license number</span>
-                <input
-                  type="text"
-                  name="license_number"
-                  autocomplete="off"
-                  placeholder="e.g. 109462"
-                  required
-                />
-              </label>
-              <div
-                class="new-listing-dup-nudge"
-                id="newListingDupNudge"
-                role="status"
-                aria-live="polite"
+            <div class="signup-hero-pills">
+              <span class="signup-hero-pill">Free to list</span>
+              <span class="signup-hero-pill">No credit card</span>
+              <span class="signup-hero-pill">Cancel anytime</span>
+            </div>
+
+            <p class="signup-hero-claim-note">
+              Already on BipolarTherapyHub?
+              <a href="claim.html">Claim your existing listing →</a>
+            </p>
+          </div>
+
+          <div>
+            <section class="signup-form-card" aria-label="List your practice">
+              <div class="signup-form-head">
+                <h2>Start your free listing</h2>
+                <span class="signup-form-time">≈ 2 min</span>
+              </div>
+              <p class="signup-form-card-sub">
+                Verify your California license, then choose free or free trial.
+              </p>
+              <form id="newListingForm" class="new-listing-form" novalidate>
+                <label>
+                  <span>Full name</span>
+                  <input
+                    type="text"
+                    name="full_name"
+                    autocomplete="name"
+                    placeholder="Jamie Rivera"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    name="email"
+                    autocomplete="email"
+                    placeholder="jamie@yourpractice.com"
+                    required
+                  />
+                  <span class="new-listing-field-hint">We'll send your welcome link here.</span>
+                </label>
+                <div class="new-listing-row-2">
+                  <label>
+                    <span>CA license number</span>
+                    <input
+                      type="text"
+                      name="license_number"
+                      autocomplete="off"
+                      placeholder="e.g. 109462"
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Practice ZIP</span>
+                    <input
+                      type="text"
+                      name="zip"
+                      autocomplete="postal-code"
+                      inputmode="numeric"
+                      pattern="\d{5}"
+                      maxlength="5"
+                      placeholder="90025"
+                      required
+                    />
+                  </label>
+                </div>
+                <div
+                  class="new-listing-dup-nudge"
+                  id="newListingDupNudge"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                >
+                  <p class="new-listing-dup-nudge-title">
+                    Looks like you're already listed on BipolarTherapyHub.
+                  </p>
+                  <p class="new-listing-dup-nudge-body" id="newListingDupNudgeBody"></p>
+                  <a href="#" class="new-listing-dup-nudge-cta" id="newListingDupNudgeCta"
+                    >Claim your profile →</a
+                  >
+                </div>
+                <label class="new-listing-checkbox">
+                  <input type="checkbox" name="treats_bipolar" required />
+                  <span>I'm licensed in California and treat bipolar disorder in my practice.</span>
+                </label>
+                <div class="new-listing-photo" data-photo-control>
+                  <div class="new-listing-photo-row">
+                    <div
+                      class="new-listing-photo-preview"
+                      id="newListingPhotoPreview"
+                      aria-hidden="true"
+                    >
+                      <span class="new-listing-photo-placeholder">📷</span>
+                    </div>
+                    <div class="new-listing-photo-copy">
+                      <div class="new-listing-photo-line">
+                        <span class="new-listing-photo-title">Add a headshot</span>
+                        <span class="new-listing-photo-optional">Optional</span>
+                      </div>
+                      <span class="new-listing-photo-hint"
+                        >Profiles with a photo earn more patient trust. JPG, PNG, or WebP up to
+                        4&nbsp;MB.</span
+                      >
+                      <div class="new-listing-photo-controls">
+                        <label class="new-listing-photo-btn">
+                          <input
+                            type="file"
+                            id="newListingPhotoInput"
+                            name="photo_upload"
+                            accept="image/jpeg,image/png,image/webp"
+                            hidden
+                          />
+                          <span id="newListingPhotoBtnLabel">Choose photo</span>
+                        </label>
+                        <button
+                          type="button"
+                          class="new-listing-photo-clear"
+                          id="newListingPhotoClear"
+                          hidden
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <span
+                        class="new-listing-photo-status"
+                        id="newListingPhotoStatus"
+                        role="status"
+                        aria-live="polite"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="new-listing-submit">
+                  Verify license and continue →
+                </button>
+                <p class="new-listing-privacy">
+                  <strong>No credit card required.</strong> We use these details only to verify your
+                  license and set up your listing.
+                </p>
+                <div
+                  class="new-listing-status"
+                  id="newListingStatus"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                ></div>
+              </form>
+
+              <section
+                class="new-listing-plan-choice"
+                id="newListingPlanChoice"
+                aria-label="Choose how to start"
                 hidden
               >
-                <p class="new-listing-dup-nudge-title">
-                  Looks like you're already listed on BipolarTherapyHub.
-                </p>
-                <p class="new-listing-dup-nudge-body" id="newListingDupNudgeBody"></p>
-                <a href="#" class="new-listing-dup-nudge-cta" id="newListingDupNudgeCta"
-                  >Claim your profile →</a
-                >
-              </div>
-              <label>
-                <span>Practice ZIP code</span>
-                <input
-                  type="text"
-                  name="zip"
-                  autocomplete="postal-code"
-                  inputmode="numeric"
-                  pattern="\d{5}"
-                  maxlength="5"
-                  placeholder="90025"
-                  required
-                />
-                <span class="new-listing-field-hint"> 5-digit ZIP where you see patients. </span>
-              </label>
-              <label class="new-listing-checkbox">
-                <input type="checkbox" name="treats_bipolar" required />
-                <span> I'm licensed in California and treat bipolar disorder in my practice. </span>
-              </label>
-              <div class="new-listing-photo" data-photo-control>
-                <div class="new-listing-photo-row">
-                  <div
-                    class="new-listing-photo-preview"
-                    id="newListingPhotoPreview"
-                    aria-hidden="true"
+                <p class="new-listing-plan-eyebrow">License verified ✓</p>
+                <h3>How do you want to start?</h3>
+                <div class="new-listing-plan-options">
+                  <button
+                    type="button"
+                    id="newListingPlanTrialBtn"
+                    class="new-listing-plan-option is-primary"
                   >
-                    <span class="new-listing-photo-placeholder">📷</span>
-                  </div>
-                  <div class="new-listing-photo-copy">
-                    <span class="new-listing-photo-title">Optional: add a headshot</span>
-                    <span class="new-listing-photo-hint"
-                      >Profiles with a photo earn more patient trust. JPG, PNG, or WebP up to
-                      4&nbsp;MB.</span
-                    >
-                    <div class="new-listing-photo-controls">
-                      <label class="new-listing-photo-btn">
-                        <input
-                          type="file"
-                          id="newListingPhotoInput"
-                          name="photo_upload"
-                          accept="image/jpeg,image/png,image/webp"
-                          hidden
-                        />
-                        <span id="newListingPhotoBtnLabel">Choose photo</span>
-                      </label>
-                      <button
-                        type="button"
-                        class="new-listing-photo-clear"
-                        id="newListingPhotoClear"
-                        hidden
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <span
-                      class="new-listing-photo-status"
-                      id="newListingPhotoStatus"
-                      role="status"
-                      aria-live="polite"
-                    ></span>
-                  </div>
+                    <span class="new-listing-plan-option-title">Start 14-day free trial</span>
+                    <span class="new-listing-plan-option-body">
+                      Featured placement, analytics, and a verified badge. Cancel anytime. $19/month
+                      after the trial.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    id="newListingPlanFreeBtn"
+                    class="new-listing-plan-option is-secondary"
+                  >
+                    <span class="new-listing-plan-option-title">List free for now</span>
+                    <span class="new-listing-plan-option-body">
+                      Basic directory listing, no card required. Upgrade anytime from your portal.
+                    </span>
+                  </button>
                 </div>
-              </div>
-              <div class="new-listing-steps" aria-hidden="true">
-                <div class="new-listing-step">
-                  <span class="new-listing-step-label">Step 1</span>
-                  <span class="new-listing-step-text">Verify your California license</span>
-                </div>
-                <div class="new-listing-step">
-                  <span class="new-listing-step-label">Step 2</span>
-                  <span class="new-listing-step-text">Choose free listing or free trial</span>
-                </div>
-              </div>
-              <button type="submit" class="new-listing-submit">
-                Verify license and continue →
-              </button>
-              <p class="new-listing-privacy">
-                We only use these details to verify your license and set up your listing. No credit
-                card required to start.
-              </p>
-              <div
-                class="new-listing-status"
-                id="newListingStatus"
-                role="status"
-                aria-live="polite"
-                hidden
-              ></div>
-              <p class="new-listing-fineprint">
-                Free listing stays free. The 14-day trial is optional and you only decide after
-                verification.
-              </p>
-            </form>
-
-            <section
-              class="new-listing-plan-choice"
-              id="newListingPlanChoice"
-              aria-label="Choose how to start"
-              hidden
-            >
-              <p class="new-listing-plan-eyebrow">License verified ✓</p>
-              <h3>How do you want to start?</h3>
-              <div class="new-listing-plan-options">
-                <button
-                  type="button"
-                  id="newListingPlanTrialBtn"
-                  class="new-listing-plan-option is-primary"
-                >
-                  <span class="new-listing-plan-option-title">Start 14-day free trial</span>
-                  <span class="new-listing-plan-option-body">
-                    Featured placement, analytics, and a verified badge. Cancel anytime. $19/month
-                    after the trial.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  id="newListingPlanFreeBtn"
-                  class="new-listing-plan-option is-secondary"
-                >
-                  <span class="new-listing-plan-option-title">List free for now</span>
-                  <span class="new-listing-plan-option-body">
-                    Basic directory listing, no card required. Upgrade anytime from your portal.
-                  </span>
-                </button>
-              </div>
-              <div
-                class="new-listing-status"
-                id="newListingPlanStatus"
-                role="status"
-                aria-live="polite"
-                hidden
-              ></div>
+                <div
+                  class="new-listing-status"
+                  id="newListingPlanStatus"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                ></div>
+              </section>
             </section>
-          </section>
-        </div>
-      </section>
-    </main>
+          </div>
+        </section>
+
+        <section class="signup-trust-strip" aria-label="License sources">
+          <div class="signup-trust-card">
+            <span class="signup-trust-label">Verified against</span>
+            <div class="signup-trust-boards">
+              <span>CA Board of Behavioral Sciences</span>
+              <span>CA Board of Psychology</span>
+              <span>Medical Board of California</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
 
     <section class="signup-how-it-works" aria-label="How listing and matching work">
       <h2>How listing and matching work</h2>
       <p class="signup-how-it-works-intro">
         Signup stays short. Verification happens immediately. Once your listing is live, profile
-        detail helps drive match quality.
+        detail drives match quality.
       </p>
       <div class="signup-how-it-works-grid">
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">1</div>
-          <h3>Submit 5 fields</h3>
+          <h3>Submit five fields</h3>
           <p>
             Name, email, California license, practice ZIP, and confirmation that you treat bipolar
-            disorder. No bio or photo required yet.
+            disorder. No bio required to start.
           </p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">2</div>
-          <h3>Instant California license check</h3>
+          <h3>Instant license check</h3>
           <p>
             We verify against the Board of Behavioral Sciences, Board of Psychology, and Medical
-            Board in real time. Valid licenses move to the next step right away.
+            Board in real time. Valid licenses move forward right away.
           </p>
         </div>
         <div class="signup-how-it-works-step">
           <div class="signup-how-it-works-step-index">3</div>
-          <h3>How matching works</h3>
+          <h3>Get matched on fit</h3>
           <p>
-            We use your profile to identify fit across the factors that matter most, including
-            specialties, populations served, treatment approach, availability, insurance, location,
-            and licensure.
+            Patients are matched to you based on specialties, populations served, treatment
+            approach, availability, insurance, and location, not raw distance alone.
           </p>
         </div>
       </div>
@@ -992,7 +1115,7 @@
         <summary>Does it cost anything to be listed?</summary>
         <p>
           No. The basic listing is free forever. You can optionally start a 14-day free trial for
-          analytics, a longer bio, and profile-edit tools — $19 per month after trial, cancel
+          analytics, a longer bio, and profile-edit tools, $19 per month after trial, cancel
           anytime. Paid tier has no effect on how your listing ranks.
         </p>
       </details>
@@ -1013,10 +1136,7 @@
       </details>
     </section>
 
-    <p class="signup-footer-path">
-      Already listed on BipolarTherapyHub?
-      <a href="claim.html">Claim your listing →</a>
-    </p>
+    <div class="signup-bottom-spacer"></div>
 
     <script type="module" src="assets/signup-new-listing.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
