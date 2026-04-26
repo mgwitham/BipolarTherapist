@@ -82,6 +82,15 @@ var persistedJourneyId = "";
 var outreachFocusSlug = "";
 var starterResultsMode = false;
 var activeShortcutContext = null;
+
+// Match-session conversion tracker. The single number that matters for
+// the patient funnel is "of all sessions where matches were shown, what
+// fraction ended with at least one contact CTA click?" — this state
+// counts the in-session interactions, then emits one
+// match_session_outcome event on pagehide. funnel-analytics already
+// flushes its queue on pagehide via sendBeacon, so the event delivers
+// even when the user just closes the tab.
+var matchSessionStats = null;
 var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
 var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
@@ -902,6 +911,7 @@ function setRefineDrawerOpen(open) {
         ? (document.getElementById("matchForm").elements.care_intent || { value: "" }).value || ""
         : "",
     });
+    recordMatchSessionInteraction("refine_open");
     // Kick off an immediate recompute so results behind the drawer reflect
     // current filters before the user touches anything. Prevents the "empty
     // looking" feeling when opening Narrow results on a pre-search state.
@@ -1235,6 +1245,12 @@ function executeMatch(profile, options) {
   // reactivation; they are not consulted today.
   activeSecondPassMode = "balanced";
   var entries = rankEntriesForProfile(profile);
+  // Flush any prior session's outcome before we overwrite stats — this
+  // covers the in-tab refine flow where match_submitted fires multiple
+  // times without a navigation.
+  if (matchSessionStats && !matchSessionStats.outcome_emitted) {
+    emitMatchSessionOutcome();
+  }
   trackFunnelEvent("match_submitted", {
     care_state: profile.care_state,
     care_intent: profile.care_intent,
@@ -1242,10 +1258,12 @@ function executeMatch(profile, options) {
     priority_mode: profile.priority_mode,
     result_count: entries.length,
     top_slug: entries[0] ? entries[0].therapist.slug : "",
+    top_has_photo: Boolean(entries[0] && entries[0].therapist && entries[0].therapist.photo_url),
     strategy: buildAdaptiveStrategySnapshot(profile),
     experiments: getActiveExperimentContext(),
     source: settings.source,
   });
+  startMatchSessionTracking(profile, entries);
   latestProfile = profile;
   latestEntries = entries;
   serializeProfileToUrl(profile);
@@ -4284,6 +4302,86 @@ function getEntryRankPosition(slug) {
   );
 }
 
+function startMatchSessionTracking(profile, entries) {
+  var topEntry = Array.isArray(entries) && entries[0] ? entries[0] : null;
+  var topTherapist = topEntry && topEntry.therapist ? topEntry.therapist : {};
+  matchSessionStats = {
+    started_at: Date.now(),
+    journey_id: currentJourneyId || "",
+    result_count: Array.isArray(entries) ? entries.length : 0,
+    top_slug: topTherapist.slug || "",
+    top_has_photo: Boolean(topTherapist.photo_url),
+    top_completeness: Number(topTherapist.completeness_score || 0) || 0,
+    care_intent: (profile && profile.care_intent) || "",
+    care_format: (profile && profile.care_format) || "",
+    has_insurance: Boolean(profile && profile.insurance),
+    has_budget: Boolean(profile && profile.budget_max),
+    contact_clicks: 0,
+    profile_clicks: 0,
+    refine_opens: 0,
+    save_clicks: 0,
+    contacted_top: false,
+    contacted_slugs: [],
+    outcome_emitted: false,
+  };
+}
+
+function recordMatchSessionInteraction(kind, payload) {
+  if (!matchSessionStats) return;
+  if (kind === "contact_click") {
+    matchSessionStats.contact_clicks += 1;
+    var slug = payload && payload.slug ? String(payload.slug) : "";
+    if (slug && matchSessionStats.contacted_slugs.indexOf(slug) === -1) {
+      matchSessionStats.contacted_slugs.push(slug);
+    }
+    if (slug && slug === matchSessionStats.top_slug) {
+      matchSessionStats.contacted_top = true;
+    }
+  } else if (kind === "profile_click") {
+    matchSessionStats.profile_clicks += 1;
+  } else if (kind === "refine_open") {
+    matchSessionStats.refine_opens += 1;
+  } else if (kind === "save_click") {
+    matchSessionStats.save_clicks += 1;
+  }
+}
+
+function emitMatchSessionOutcome() {
+  if (!matchSessionStats || matchSessionStats.outcome_emitted) return;
+  matchSessionStats.outcome_emitted = true;
+  var stats = matchSessionStats;
+  var outcome =
+    stats.contact_clicks > 0 ? "contacted" : stats.profile_clicks > 0 ? "explored" : "bounced";
+  trackFunnelEvent("match_session_outcome", {
+    journey_id: stats.journey_id,
+    result_count: stats.result_count,
+    top_slug: stats.top_slug,
+    top_has_photo: stats.top_has_photo,
+    top_completeness: stats.top_completeness,
+    care_intent: stats.care_intent,
+    care_format: stats.care_format,
+    has_insurance: stats.has_insurance,
+    has_budget: stats.has_budget,
+    contact_clicks: stats.contact_clicks,
+    profile_clicks: stats.profile_clicks,
+    refine_opens: stats.refine_opens,
+    save_clicks: stats.save_clicks,
+    contacted_top: stats.contacted_top,
+    contacted_slug_count: stats.contacted_slugs.length,
+    outcome: outcome,
+    ms_on_page: Date.now() - stats.started_at,
+  });
+}
+
+if (typeof window !== "undefined" && !window.__matchSessionOutcomeBound) {
+  window.__matchSessionOutcomeBound = true;
+  // pagehide is the one event modern browsers reliably fire on tab
+  // close + bfcache navigations; beforeunload is a fallback for older
+  // Safari. funnel-analytics flushes via sendBeacon on both.
+  window.addEventListener("pagehide", emitMatchSessionOutcome);
+  window.addEventListener("beforeunload", emitMatchSessionOutcome);
+}
+
 function buildMatchTrackingPayload(slug, extra) {
   var payload = Object.assign(
     {
@@ -5088,6 +5186,7 @@ function renderPrimaryMatchCards(entries, profile) {
           route: link.getAttribute("data-match-primary-route") || "",
         }),
       );
+      recordMatchSessionInteraction("contact_click", { slug: slug });
     });
   });
 
@@ -5113,6 +5212,32 @@ function renderPrimaryMatchCards(entries, profile) {
           context: link.getAttribute("data-profile-link-context") || "result",
         }),
       );
+      recordMatchSessionInteraction("profile_click", { slug: slug });
+    });
+  });
+
+  // Save buttons render on every card but had no behavior wired. For
+  // now, instrument the click so the funnel can see save intent —
+  // wiring an actual shortlist add comes next once we know the click
+  // rate justifies the work.
+  root.querySelectorAll(".mx-save, .mx-card-save").forEach(function (btn) {
+    if (btn.dataset.boundSaveClick === "true") return;
+    btn.dataset.boundSaveClick = "true";
+    btn.addEventListener("click", function (event) {
+      var card = btn.closest("[data-match-primary-cta], .mx-hero, .mx-card");
+      var slug = "";
+      if (card) {
+        var anchor = card.querySelector("[data-match-primary-cta], [data-match-profile-link]");
+        if (anchor) {
+          slug =
+            anchor.getAttribute("data-match-primary-cta") ||
+            anchor.getAttribute("data-match-profile-link") ||
+            "";
+        }
+      }
+      trackFunnelEvent("match_card_save_clicked", buildMatchTrackingPayload(slug, {}));
+      recordMatchSessionInteraction("save_click", { slug: slug });
+      event.preventDefault();
     });
   });
 
