@@ -3565,6 +3565,198 @@ body.dir-vb .t-card::before {
   gap: 0.5rem;
 }
 
+/* Profile-page footer actions: back link + report issue trigger.
+   Discreet by design — the report button isn't an attention grabber,
+   it's a quiet signal that we take quality seriously. */
+.profile-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border, #d4e4e9);
+}
+
+.profile-foot-back {
+  color: var(--teal, #1a7a8f);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profile-foot-back:hover {
+  text-decoration: underline;
+}
+
+.profile-foot-report {
+  background: transparent;
+  border: 1px solid rgba(11, 87, 142, 0.2);
+  color: var(--muted, #6b7a8a);
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.profile-foot-report:hover {
+  background: rgba(11, 87, 142, 0.06);
+  color: var(--navy, #0b3a5e);
+}
+
+/* Report-an-issue dialog. Native <dialog>, modal-backed, accessible
+   via showModal(). Form posts an anonymous trackFunnelEvent so the
+   founder-digest cron picks it up next Monday. */
+.report-issue-dialog {
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0;
+  max-width: 32rem;
+  width: 92vw;
+  box-shadow: 0 12px 32px rgba(11, 35, 60, 0.2);
+}
+
+.report-issue-dialog::backdrop {
+  background: rgba(11, 35, 60, 0.45);
+}
+
+.report-issue-form {
+  position: relative;
+  padding: 1.6rem 1.5rem 1.4rem;
+  font-size: 0.92rem;
+  color: var(--navy, #0b3a5e);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.report-issue-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.7rem;
+  background: transparent;
+  border: 0;
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--muted, #6b7a8a);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.report-issue-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.report-issue-sub {
+  margin: 0;
+  color: var(--muted, #6b7a8a);
+  font-size: 0.88rem;
+}
+
+.report-issue-reasons {
+  border: 0;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.report-issue-legend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted, #6b7a8a);
+  padding: 0;
+}
+
+.report-issue-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.35rem;
+  transition: background 120ms ease;
+}
+
+.report-issue-radio:hover {
+  background: rgba(11, 87, 142, 0.05);
+}
+
+.report-issue-radio input {
+  margin-top: 0.22rem;
+}
+
+.report-issue-comment-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy, #0b3a5e);
+}
+
+.report-issue-form textarea {
+  border: 1px solid var(--border, #d4e4e9);
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.report-issue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.report-issue-btn-primary,
+.report-issue-btn-secondary {
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.report-issue-btn-primary {
+  background: var(--teal, #1a7a8f);
+  color: #fff;
+  border-color: var(--teal, #1a7a8f);
+}
+
+.report-issue-btn-primary:hover {
+  background: var(--teal-dark, #155f70);
+  border-color: var(--teal-dark, #155f70);
+}
+
+.report-issue-btn-secondary {
+  background: #fff;
+  color: var(--navy, #0b3a5e);
+  border-color: var(--border, #d4e4e9);
+}
+
+.report-issue-btn-secondary:hover {
+  background: rgba(11, 87, 142, 0.06);
+}
+
+.report-issue-thanks {
+  background: rgba(27, 122, 63, 0.08);
+  color: var(--accent-green, #1b7a3f);
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.4rem;
+  font-size: 0.92rem;
+}
+
 .trust-strip-hero .trust-chip {
   padding: 0.35rem 0.7rem;
 }
