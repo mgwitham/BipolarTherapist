@@ -2234,9 +2234,9 @@ function renderPartnerCompareSummary(entries, profile) {
   }
 
   return (
-    '<section class="partner-compare-summary"><div class="partner-compare-header"><div><div class="partner-compare-title">Shareable decision summary</div><p>Use this when you want to send a quick update to a partner, friend, or family member without sending the full comparison page.</p></div><button type="button" class="btn-secondary" data-copy-partner-summary>Copy summary</button></div><pre class="partner-compare-body">' +
+    '<details class="partner-compare-summary"><summary class="partner-compare-summary-toggle"><div class="partner-compare-toggle-text"><div class="partner-compare-title">Shareable decision summary</div><p>Send a quick update to a partner, friend, or family member.</p></div><svg class="partner-compare-chevron" width="11" height="7" viewBox="0 0 11 7" fill="none" aria-hidden="true"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="partner-compare-content"><div class="partner-compare-actions"><button type="button" class="btn-secondary" data-copy-partner-summary>Copy summary</button></div><pre class="partner-compare-body">' +
     escapeHtml(summary) +
-    "</pre></section>"
+    "</pre></div></details>"
   );
 }
 
