@@ -10,27 +10,21 @@ const claimJs = readFileSync(
 );
 
 test("claim page: hero frames a calm guided claim flow", () => {
-  assert.match(claimHtml, /Claim your BipolarTherapyHub listing in a few clear steps/);
+  assert.match(claimHtml, /Claim your BipolarTherapyHub listing/);
   assert.match(claimHtml, /Find your public listing/);
-  assert.match(claimHtml, /confirm the email already on file/);
-  assert.match(claimHtml, /send yourself a secure\s+activation link/);
-  assert.match(claimHtml, /Basic claim is free\./);
-  assert.match(claimHtml, /If paid features are available/);
+  assert.match(claimHtml, /send yourself a secure activation link/);
+  assert.match(claimHtml, /Claiming is free\./);
   assert.match(claimHtml, /No password required/);
-  assert.match(claimHtml, /California verification stays in place/);
+  assert.match(claimHtml, /Your CA license verification carries over/);
 });
 
-test("claim page: primary flow steps are explicit and plan choice is deferred", () => {
-  assert.match(claimHtml, />\s*1\. Find\s*</);
-  assert.match(claimHtml, />\s*2\. Confirm\s*</);
-  assert.match(claimHtml, />\s*3\. Activate\s*</);
-  assert.match(claimHtml, />\s*4\. Continue\s*</);
+test("claim page: send-activation remains the dominant action with trial visually subordinate", () => {
   assert.match(claimHtml, />\s*Send activation link\s*</);
   assert.ok(
     claimHtml.indexOf('id="claimConfirmSend"') < claimHtml.indexOf('id="claimStartTrial"'),
     "send activation must remain the dominant action before any trial button",
   );
-  assert.match(claimHtml, /id="claimStartTrial" class="claim-confirm-send" hidden/);
+  assert.match(claimHtml, /id="claimStartTrial" class="claim-trial-secondary" hidden/);
   assert.match(claimJs, /This step does not start billing/);
   assert.match(claimJs, /you’ll see it after activation/);
 });
@@ -40,6 +34,7 @@ test("claim page: search module explains what to enter and preserves clear actio
   assert.match(claimHtml, /We’ll show matching public listings\s+if we have one\./);
   assert.match(claimHtml, /Most claims finish in a few steps\./);
   assert.match(claimHtml, /id="quickClaimSearchSummary"/);
+  assert.match(claimHtml, /autofocus/);
   assert.match(claimJs, /data-search-state="no_results"/);
   assert.match(claimJs, /No listing found yet/);
   assert.match(claimJs, /1 likely match/);
@@ -51,11 +46,9 @@ test("claim page: search module explains what to enter and preserves clear actio
 
 test("claim page: confirmation state builds confidence without billing anxiety", () => {
   assert.match(claimHtml, /Selected listing/);
-  assert.match(claimHtml, /Claiming unlocks/);
-  assert.match(claimHtml, /Edit your listing details and profile controls/);
   assert.match(
     claimHtml,
-    /Continue to free access first, with optional trial choices later if available/,
+    /After activation you can edit your listing, manage availability, and update visibility\./,
   );
   assert.match(claimJs, /Activation link sent\./);
   assert.match(claimJs, /It usually arrives within 1 to 2 minutes/);
@@ -93,6 +86,6 @@ test("claim page: search, form, faq, and mobile hooks remain accessible and resp
   assert.match(claimHtml, /@media \(max-width: 720px\)/);
   assert.match(
     claimHtml,
-    /\.claim-hero-flow,\s*\.claim-how-it-works-grid,\s*\.claim-help-grid\s*\{\s*grid-template-columns: 1fr;/,
+    /\.claim-how-it-works-grid,\s*\.claim-help-grid\s*\{\s*grid-template-columns: 1fr;/,
   );
 });
