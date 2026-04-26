@@ -16,6 +16,13 @@ import { trackFunnelEvent } from "./funnel-analytics.js";
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+// Module-scoped state for the optional headshot. Set by the file-input
+// change handler; read by submitIntake into the JSON payload. Cleared on
+// successful upload so a back-button retry doesn't double-attach.
+let pendingPhoto = null;
 
 function parseZip(raw) {
   const match = String(raw || "").match(/\d{5}/);
@@ -157,6 +164,14 @@ async function submitIntake(form, status) {
     treats_bipolar: true,
     intake_source: "signup_short_form",
   };
+  if (pendingPhoto && pendingPhoto.dataUrl) {
+    payload.photo_upload_base64 = pendingPhoto.dataUrl;
+    payload.photo_filename = pendingPhoto.filename || "headshot";
+    trackFunnelEvent("signup_new_listing_photo_attached", {
+      bytes: pendingPhoto.bytes || 0,
+      mime: pendingPhoto.mime || "",
+    });
+  }
 
   const submit = form.querySelector('button[type="submit"]');
   const priorLabel = submit ? submit.textContent : "";
@@ -371,10 +386,91 @@ function revealPlanChoice(form, formStatus, intakeData, email) {
   });
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      resolve(String(reader.result || ""));
+    };
+    reader.onerror = function () {
+      reject(reader.error || new Error("Could not read the file."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function bindPhotoControl() {
+  const input = document.getElementById("newListingPhotoInput");
+  const preview = document.getElementById("newListingPhotoPreview");
+  const statusNode = document.getElementById("newListingPhotoStatus");
+  const clearBtn = document.getElementById("newListingPhotoClear");
+  const btnLabel = document.getElementById("newListingPhotoBtnLabel");
+  if (!input || !preview || !statusNode || !clearBtn || !btnLabel) return;
+
+  function setStatusLine(message, tone) {
+    statusNode.textContent = message || "";
+    statusNode.classList.remove("is-error", "is-success");
+    if (tone === "error") statusNode.classList.add("is-error");
+    if (tone === "success") statusNode.classList.add("is-success");
+  }
+
+  function reset() {
+    pendingPhoto = null;
+    input.value = "";
+    preview.innerHTML = '<span class="new-listing-photo-placeholder">📷</span>';
+    btnLabel.textContent = "Choose photo";
+    clearBtn.hidden = true;
+    setStatusLine("", null);
+  }
+
+  clearBtn.addEventListener("click", function () {
+    reset();
+    trackFunnelEvent("signup_new_listing_photo_cleared", {});
+  });
+
+  input.addEventListener("change", async function () {
+    const file = input.files && input.files[0];
+    if (!file) {
+      reset();
+      return;
+    }
+    if (!ALLOWED_PHOTO_MIMES.has(file.type)) {
+      setStatusLine("Photo must be a JPG, PNG, or WebP.", "error");
+      input.value = "";
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setStatusLine("Photo is over 4 MB. Try a smaller image.", "error");
+      input.value = "";
+      return;
+    }
+    let dataUrl;
+    try {
+      dataUrl = await readFileAsDataUrl(file);
+    } catch (_error) {
+      setStatusLine("Couldn't read that file. Try another.", "error");
+      input.value = "";
+      return;
+    }
+    pendingPhoto = {
+      dataUrl: dataUrl,
+      filename: file.name || "headshot",
+      bytes: file.size,
+      mime: file.type,
+    };
+    preview.innerHTML =
+      '<img src="' + dataUrl.replace(/"/g, "&quot;") + '" alt="" class="new-listing-photo-img" />';
+    btnLabel.textContent = "Replace photo";
+    clearBtn.hidden = false;
+    setStatusLine("Looks great. We'll attach it to your listing.", "success");
+  });
+}
+
 function bindIntakeForm() {
   const form = document.getElementById("newListingForm");
   if (!form) return;
   trackFunnelEvent("signup_page_viewed", {});
+  bindPhotoControl();
   const status = document.getElementById("newListingStatus");
   let firstInputTracked = false;
   form.addEventListener("input", function () {

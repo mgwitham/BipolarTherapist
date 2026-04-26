@@ -85,6 +85,108 @@ function buildFunnelRow(events, steps, window) {
   });
 }
 
+// Match conversion summary — the headline patient-side metric. Reads
+// match_session_outcome events emitted on pagehide and buckets by
+// outcome ("contacted" / "explored" / "bounced"). Also splits on
+// top_has_photo so we can see whether the photo signal correlates
+// with conversion once data accumulates.
+function renderMatchConversion(events) {
+  var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  var sessions = events.filter(function (e) {
+    if (e.type !== "match_session_outcome") return false;
+    var at = new Date(e.occurredAt || 0).getTime();
+    return Number.isFinite(at) && at >= cutoff;
+  });
+
+  if (!sessions.length) {
+    return '<p class="admin-funnel-empty">No match sessions logged yet. The metric appears here once /match.html sees its first visitor with results.</p>';
+  }
+
+  var outcomes = { contacted: 0, explored: 0, bounced: 0 };
+  var photoBuckets = {
+    with_photo: { sessions: 0, contacted: 0 },
+    without_photo: { sessions: 0, contacted: 0 },
+  };
+  var totalContactClicks = 0;
+  var totalProfileClicks = 0;
+
+  sessions.forEach(function (event) {
+    var p = parsePayload(event.payload);
+    var outcome = p.outcome || "bounced";
+    if (outcomes[outcome] !== undefined) {
+      outcomes[outcome] += 1;
+    } else {
+      outcomes.bounced += 1;
+    }
+    totalContactClicks += Number(p.contact_clicks || 0);
+    totalProfileClicks += Number(p.profile_clicks || 0);
+    var bucket = p.top_has_photo ? photoBuckets.with_photo : photoBuckets.without_photo;
+    bucket.sessions += 1;
+    if (p.contact_clicks > 0) bucket.contacted += 1;
+  });
+
+  var total = sessions.length;
+  function pct(value) {
+    return total ? Math.round((value / total) * 100) : 0;
+  }
+  function pctOf(num, den) {
+    return den ? Math.round((num / den) * 100) : 0;
+  }
+
+  var photoLine =
+    photoBuckets.with_photo.sessions || photoBuckets.without_photo.sessions
+      ? '<p class="admin-funnel-caption">Top match had a photo: ' +
+        photoBuckets.with_photo.sessions +
+        " session" +
+        (photoBuckets.with_photo.sessions === 1 ? "" : "s") +
+        " · " +
+        pctOf(photoBuckets.with_photo.contacted, photoBuckets.with_photo.sessions) +
+        "% contacted. No photo: " +
+        photoBuckets.without_photo.sessions +
+        " session" +
+        (photoBuckets.without_photo.sessions === 1 ? "" : "s") +
+        " · " +
+        pctOf(photoBuckets.without_photo.contacted, photoBuckets.without_photo.sessions) +
+        "% contacted.</p>"
+      : "";
+
+  return (
+    '<table class="admin-funnel-table">' +
+    '<thead><tr><th>Outcome</th><th class="r">Sessions</th><th class="r">% of total</th></tr></thead>' +
+    "<tbody>" +
+    '<tr><td class="admin-funnel-step">Contacted (≥1 CTA click)</td><td class="r">' +
+    outcomes.contacted +
+    '</td><td class="r"><strong>' +
+    pct(outcomes.contacted) +
+    "%</strong></td></tr>" +
+    '<tr><td class="admin-funnel-step">Explored (profile click only)</td><td class="r">' +
+    outcomes.explored +
+    '</td><td class="r">' +
+    pct(outcomes.explored) +
+    "%</td></tr>" +
+    '<tr><td class="admin-funnel-step">Bounced (no interaction)</td><td class="r">' +
+    outcomes.bounced +
+    '</td><td class="r"><span class="admin-funnel-dropoff">' +
+    pct(outcomes.bounced) +
+    "%</span></td></tr>" +
+    "</tbody></table>" +
+    '<p class="admin-funnel-caption">' +
+    total +
+    " session" +
+    (total === 1 ? "" : "s") +
+    " · " +
+    totalContactClicks +
+    " contact click" +
+    (totalContactClicks === 1 ? "" : "s") +
+    " · " +
+    totalProfileClicks +
+    " profile click" +
+    (totalProfileClicks === 1 ? "" : "s") +
+    "</p>" +
+    photoLine
+  );
+}
+
 function renderFunnelTable(title, rows) {
   return (
     '<table class="admin-funnel-table">' +
@@ -282,6 +384,9 @@ function renderDashboard(container, logData) {
     "</section>" +
     '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Match conversion — last 7 days</h3>' +
+    renderMatchConversion(events) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +
     renderWaitlistByState(events) +

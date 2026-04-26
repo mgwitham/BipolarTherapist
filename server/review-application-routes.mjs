@@ -96,6 +96,15 @@ export async function handleApplicationRoutes(context) {
       care_approach: STUB_VALUE,
       intake_source: "signup_instant_checkout",
       submission_intent: "intake",
+      // Optional headshot uploaded inline on the signup form.
+      // buildApplicationDocument → uploadPhotoAssetIfPresent decodes the
+      // base64 data URL and uploads it to Sanity. photoSourceType marks
+      // it as therapist-uploaded so the portal won't show the
+      // "public-source fallback" prompt.
+      photo_upload_base64: String(body.photo_upload_base64 || "").trim(),
+      photo_filename: String(body.photo_filename || "").trim(),
+      photo_source_type:
+        String(body.photo_upload_base64 || "").trim().length > 0 ? "therapist_uploaded" : "",
     };
 
     const duplicate = await findDuplicateTherapistEntity(client, intakeBody);

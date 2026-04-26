@@ -2736,6 +2736,131 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // POST /portal/photo — therapist-uploaded headshot. Accepts a base64
+  // data URL (same encoding the application intake uses), uploads to
+  // Sanity, attaches the asset reference to the authenticated
+  // therapist, and stamps photoSourceType=therapist_uploaded.
+  if (request.method === "POST" && routePath === "/portal/photo") {
+    const session = getAuthorizedTherapist(request, config);
+    if (!session) {
+      sendJson(response, 401, { error: "Not signed in." }, origin, config);
+      return true;
+    }
+
+    const body = await parseBody(request);
+    const dataUrl = String((body && body.photo_upload_base64) || "").trim();
+    const filenameRaw = String((body && body.photo_filename) || "therapist-headshot").trim();
+    const filename = filenameRaw || "therapist-headshot";
+
+    if (!dataUrl) {
+      sendJson(response, 400, { error: "Headshot upload was empty." }, origin, config);
+      return true;
+    }
+
+    const ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+    const MAX_BYTES = 4 * 1024 * 1024;
+    const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+    if (!match) {
+      sendJson(
+        response,
+        400,
+        { error: "Headshot must be a base64-encoded data URL." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const mimeType = String(match[1] || "")
+      .trim()
+      .toLowerCase();
+    if (!ALLOWED_MIMES.has(mimeType)) {
+      sendJson(
+        response,
+        400,
+        { error: "Headshot must be a JPG, PNG, or WebP image." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const buffer = Buffer.from(String(match[2] || "").trim(), "base64");
+    if (!buffer.length) {
+      sendJson(response, 400, { error: "Headshot upload was empty." }, origin, config);
+      return true;
+    }
+    if (buffer.length > MAX_BYTES) {
+      sendJson(
+        response,
+        400,
+        { error: "Headshot image is too large. Keep it under 4 MB." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{ _id, claimStatus }`,
+      { slug: session.slug },
+    );
+    if (!therapist) {
+      sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+      return true;
+    }
+    if (therapist.claimStatus !== "claimed") {
+      sendJson(
+        response,
+        403,
+        { error: "Claim this profile before uploading a headshot." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    let asset;
+    try {
+      asset = await client.assets.upload("image", buffer, {
+        filename: filename,
+        contentType: mimeType,
+      });
+    } catch (error) {
+      console.error("Sanity asset upload failed for portal photo.", error);
+      sendJson(
+        response,
+        502,
+        { error: "Couldn't upload the headshot. Try again in a moment." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
+    const nowIso = new Date().toISOString();
+    await client
+      .patch(therapist._id)
+      .set({
+        photo: { _type: "image", asset: { _type: "reference", _ref: asset._id } },
+        photoSourceType: "therapist_uploaded",
+        photoReviewedAt: nowIso,
+        photoUsagePermissionConfirmed: true,
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(
+      response,
+      200,
+      {
+        photo_url: asset.url,
+        photo_source_type: "therapist_uploaded",
+        photo_reviewed_at: nowIso,
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   // PATCH /portal/therapist — self-service profile edits for an
   // authenticated claimed therapist. Writes are direct (no admin
   // review) for the whitelisted field set below. Identity/trust fields
