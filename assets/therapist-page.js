@@ -1,4 +1,5 @@
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
+import { renderTrustEvidenceStrip } from "./trust-evidence-strip.js";
 import {
   getDataFreshnessSummary,
   getEditoriallyVerifiedOperationalCount,
@@ -2848,6 +2849,7 @@ function renderProfile(t, therapistDirectory) {
     (bipolarSpecialistBadge || licenseVerifiedBadge
       ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
       : "") +
+    renderTrustEvidenceStrip(t, { variant: "hero", className: "profile-hero-trust" }) +
     heroBipolarQuote +
     heroTelehealthLine +
     '<div class="hero-meta">' +
