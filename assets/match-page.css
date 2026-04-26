@@ -151,6 +151,34 @@
 .match-builder.is-results-mode {
   margin-top: 0.15rem;
 }
+/* The static .match-builder form is the source of truth for the refine
+   drawer (a position:fixed panel toggled by the header Refine button).
+   It must not paint a redundant card mid-page; keep it in the DOM so
+   values still submit, but hide its visual chrome. The drawer rules
+   below override this when body.match-refine-drawer-open. The page is
+   only reachable with intake params (otherwise the inline redirect in
+   match.html sends visitors back to /), so the in-page builder has no
+   reason to render. */
+.match-builder {
+  display: none;
+}
+body.match-refine-drawer-open .match-builder {
+  display: block;
+  margin: 0;
+}
+body.match-refine-drawer-open .match-tool-shell,
+body.match-refine-drawer-open .match-tool-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+body.match-refine-drawer-open .refine-primary,
+body.match-refine-drawer-open .refine-primary-divider,
+body.match-refine-drawer-open .refine-foot {
+  display: none;
+}
 .match-builder.is-inline-results {
   margin: 0.9rem 0 1.1rem;
 }
@@ -2326,30 +2354,55 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   margin: 0 0 1rem;
   border: 1px solid rgba(14, 77, 95, 0.1);
   border-radius: 18px;
-  background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  background: #fff;
   overflow: hidden;
 }
-.partner-compare-header {
+.partner-compare-summary-toggle {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.8rem;
-  flex-wrap: wrap;
-  padding: 0.95rem 1rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.partner-compare-summary-toggle::-webkit-details-marker {
+  display: none;
+}
+.partner-compare-summary[open] .partner-compare-summary-toggle {
   border-bottom: 1px solid rgba(14, 77, 95, 0.08);
-  background: rgba(255, 248, 238, 0.8);
+}
+.partner-compare-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
 }
 .partner-compare-title {
   font-size: 0.92rem;
   font-weight: 800;
   color: var(--navy);
 }
-.partner-compare-header p {
-  margin: 0.22rem 0 0;
+.partner-compare-toggle-text p {
+  margin: 0;
   font-size: 0.8rem;
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--muted);
   max-width: 62ch;
+}
+.partner-compare-chevron {
+  flex: 0 0 auto;
+  color: var(--teal-dark);
+  transition: transform 180ms ease;
+}
+.partner-compare-summary[open] .partner-compare-chevron {
+  transform: rotate(180deg);
+}
+.partner-compare-actions {
+  padding: 0.85rem 1rem 0;
+  display: flex;
+  justify-content: flex-end;
 }
 .partner-compare-body {
   margin: 0;
@@ -5417,7 +5470,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   box-shadow: 0 12px 32px rgba(15, 31, 40, 0.08);
   overflow: hidden;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 180px 1fr;
   position: relative;
 }
 .mx-hero::before {
@@ -5431,7 +5484,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   z-index: 1;
 }
 .mx-hero-photo {
-  min-height: 280px;
+  min-height: 220px;
   position: relative;
   display: flex;
   align-items: center;
@@ -5460,7 +5513,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .mx-hero-photo-initials {
   position: relative;
   font-family: "Fraunces", "Inter", serif;
-  font-size: 4.25rem;
+  font-size: 3rem;
   font-weight: 400;
   letter-spacing: 0.04em;
   opacity: 0.78;
