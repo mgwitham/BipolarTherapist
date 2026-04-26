@@ -32,13 +32,17 @@
          arbitrary defaults. Bounce to /, where the homepage form
          collects the two questions, then submits back here with params.
          ?qa=1 bypass keeps the page reachable for QA without forcing
-         the redirect dance. Inline script runs synchronously before
-         match.js loads so we never paint the misleading default state. -->
+         the redirect dance. ?shortlist=… also bypasses: that path
+         is the saved-list compare entry, which renders its own
+         side-by-side view rather than phantom matches.
+         Inline script runs synchronously before match.js loads so we
+         never paint the misleading default state. -->
     <script>
       (function () {
         try {
           var params = new URLSearchParams(window.location.search);
           if (params.get("qa") === "1") return;
+          if ((params.get("shortlist") || "").trim()) return;
           var hasCare = (params.get("care_intent") || "").trim();
           var hasZip = (params.get("location_query") || params.get("zip") || "").trim();
           if (!hasCare || !hasZip) {
