@@ -5297,22 +5297,6 @@ function renderPrimaryMatchCards(entries, profile) {
     "</span>" +
     "</div>";
 
-  var refineBand =
-    '<aside class="mx-refine-band">' +
-    '<div class="mx-refine-copy">' +
-    '<h3 class="mx-refine-title">Want a tighter fit?</h3>' +
-    '<p class="mx-refine-sub">Narrow these matches with a detail you care about.</p>' +
-    "</div>" +
-    '<div class="mx-refine-chips">' +
-    '<button type="button" class="mx-refine-chip" data-mx-refine-open="insurance">' +
-    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Takes my insurance</button>' +
-    '<button type="button" class="mx-refine-chip" data-mx-refine-open="format">' +
-    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Telehealth only</button>' +
-    '<button type="button" class="mx-refine-chip" data-mx-refine-open="language">' +
-    '<span class="mx-refine-chip-dot" aria-hidden="true"></span>Language</button>' +
-    "</div>" +
-    "</aside>";
-
   var bankHtml = bankEntries.length
     ? '<header class="mx-bank-header">' +
       '<h2 class="mx-bank-title">More strong matches</h2>' +
@@ -5338,7 +5322,6 @@ function renderPrimaryMatchCards(entries, profile) {
     renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
     runnersHtml +
     "</section>" +
-    refineBand +
     bankHtml +
     "</div>";
 
