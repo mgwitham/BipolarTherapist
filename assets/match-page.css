@@ -1336,6 +1336,44 @@ body.match-refine-drawer-open .match-refine-live-status {
 .match-refine-live-status.is-pulsing {
   animation: match-refine-pulse 380ms ease-out;
 }
+.refine-autocomplete {
+  position: relative;
+}
+.refine-autocomplete-list {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(10, 30, 40, 0.14);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 110;
+}
+.refine-autocomplete-item {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.95rem;
+  color: var(--slate);
+  cursor: pointer;
+  line-height: 1.3;
+}
+.refine-autocomplete-item.is-highlighted,
+.refine-autocomplete-item:hover {
+  background: rgba(26, 122, 143, 0.08);
+  color: var(--teal-dark);
+}
+.refine-autocomplete-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
 @keyframes match-refine-spin {
   to {
     transform: rotate(360deg);
