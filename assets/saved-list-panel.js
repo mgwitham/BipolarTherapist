@@ -14,6 +14,39 @@ import {
 } from "./saved-list.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
+const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
+function getReviewApiBase() {
+  if (env.VITE_REVIEW_API_URL) return env.VITE_REVIEW_API_URL;
+  if (typeof window !== "undefined") {
+    var host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return "http://localhost:8787";
+  }
+  return "/api/review";
+}
+
+const EMAIL_THROTTLE_KEY = "bth_saved_list_email_last_v1";
+const EMAIL_THROTTLE_MS = 5 * 60 * 1000;
+
+function isLocallyThrottled() {
+  try {
+    var raw = window.localStorage.getItem(EMAIL_THROTTLE_KEY);
+    if (!raw) return false;
+    var last = Number(raw);
+    if (!isFinite(last)) return false;
+    return Date.now() - last < EMAIL_THROTTLE_MS;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function recordLocalSend() {
+  try {
+    window.localStorage.setItem(EMAIL_THROTTLE_KEY, String(Date.now()));
+  } catch (_error) {
+    // ignore
+  }
+}
+
 var PANEL_STYLES = [
   ".saved-list-panel-locked { overflow: hidden; }",
   ".saved-list-panel-root { position: fixed; inset: 0; z-index: 1100; pointer-events: none; }",
@@ -58,6 +91,16 @@ var PANEL_STYLES = [
   ".saved-list-panel-link:hover { color: #1a7a8f; text-decoration: underline; }",
   ".saved-list-panel-status { position: absolute; left: 1.25rem; bottom: 1rem; font-size: 0.8rem; color: #155f70; background: #e6f4f6; padding: 0.4rem 0.7rem; border-radius: 999px; opacity: 0; transform: translateY(0.3rem); transition: opacity 0.15s ease, transform 0.15s ease; pointer-events: none; }",
   ".saved-list-panel-status.is-visible { opacity: 1; transform: translateY(0); }",
+  ".saved-list-panel-email { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem; border: 1px dashed #d2dde0; border-radius: 10px; background: #f9fbfb; }",
+  ".saved-list-panel-email-form { display: flex; flex-direction: column; gap: 0.4rem; }",
+  ".saved-list-panel-email-row { display: flex; gap: 0.4rem; }",
+  ".saved-list-panel-email-row input { flex: 1; min-width: 0; padding: 0.55rem 0.7rem; border: 1px solid #d2dde0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; }",
+  ".saved-list-panel-email-row input:focus { outline: none; border-color: #1a7a8f; }",
+  ".saved-list-panel-cta-compact { padding: 0 0.95rem; font-size: 0.85rem; height: auto; }",
+  ".saved-list-panel-cta:disabled { background: #98a8af; cursor: progress; }",
+  ".saved-list-panel-email-status { font-size: 0.8rem; color: #52707c; min-height: 1em; }",
+  ".saved-list-panel-email-status-error { color: #b14040; }",
+  ".saved-list-panel-email-status-success { color: #1a7a8f; }",
   "@media (max-width: 520px) { .saved-list-panel { width: 100%; box-shadow: none; } }",
 ].join("\n");
 
@@ -259,6 +302,100 @@ function handlePanelClick(event) {
     });
     return;
   }
+
+  var emailToggle = event.target.closest("[data-saved-list-email-toggle]");
+  if (emailToggle) {
+    event.preventDefault();
+    var fields = panelRoot.querySelector("[data-saved-list-email-fields]");
+    if (fields) {
+      var willOpen = fields.hasAttribute("hidden");
+      if (willOpen) {
+        fields.removeAttribute("hidden");
+        var input = fields.querySelector("[data-saved-list-email-input]");
+        if (input) input.focus();
+        trackFunnelEvent("saved_list_email_form_opened", {
+          list_size: readList().length,
+        });
+      } else {
+        fields.setAttribute("hidden", "");
+      }
+    }
+    return;
+  }
+
+  var sendBtn = event.target.closest("[data-saved-list-email-send]");
+  if (sendBtn) {
+    event.preventDefault();
+    submitEmailRequest();
+    return;
+  }
+}
+
+function setEmailStatus(message, tone) {
+  var statusNode = panelRoot && panelRoot.querySelector("[data-saved-list-email-status]");
+  if (!statusNode) return;
+  statusNode.textContent = message || "";
+  statusNode.className =
+    "saved-list-panel-email-status" + (tone ? " saved-list-panel-email-status-" + tone : "");
+}
+
+async function submitEmailRequest() {
+  var input = panelRoot.querySelector("[data-saved-list-email-input]");
+  var sendBtn = panelRoot.querySelector("[data-saved-list-email-send]");
+  if (!input || !sendBtn) return;
+  var email = String(input.value || "").trim();
+  if (!email) {
+    setEmailStatus("Enter an email address.", "error");
+    input.focus();
+    return;
+  }
+  if (isLocallyThrottled()) {
+    setEmailStatus("Just sent. Try again in a few minutes.", "error");
+    return;
+  }
+  var list = readList();
+  if (!list.length) {
+    setEmailStatus("Your list is empty.", "error");
+    return;
+  }
+  sendBtn.disabled = true;
+  setEmailStatus("Sending.", "pending");
+  trackFunnelEvent("saved_list_email_requested", { list_size: list.length });
+  try {
+    var response = await window.fetch(getReviewApiBase() + "/saved-list/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email,
+        items: list.map(function (entry) {
+          return { slug: entry.slug, note: entry.note };
+        }),
+      }),
+    });
+    var payload = await response.json().catch(function () {
+      return {};
+    });
+    if (!response.ok) {
+      throw new Error(payload && payload.error ? payload.error : "Could not send the email.");
+    }
+    recordLocalSend();
+    setEmailStatus("Sent. Check your inbox.", "success");
+    trackFunnelEvent("saved_list_email_sent", {
+      list_size: list.length,
+      count: payload && payload.count,
+    });
+  } catch (error) {
+    setEmailStatus(
+      error && error.message ? error.message : "Could not send the email. Try again.",
+      "error",
+    );
+    trackFunnelEvent("saved_list_email_failed", {
+      list_size: list.length,
+      message: error && error.message ? error.message : "",
+    });
+  } finally {
+    sendBtn.disabled = false;
+  }
 }
 
 var noteSaveTimers = Object.create(null);
@@ -363,8 +500,29 @@ function renderCard(entry, therapist) {
   );
 }
 
+function renderEmailForm() {
+  return (
+    '<div class="saved-list-panel-email" data-saved-list-email-form>' +
+    '<button type="button" class="saved-list-panel-link" data-saved-list-email-toggle>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;">' +
+    '<path d="M4 5h16v14H4z"/><path d="M4 5l8 7 8-7"/></svg>' +
+    "Email this list to me" +
+    "</button>" +
+    '<div class="saved-list-panel-email-form" data-saved-list-email-fields hidden>' +
+    '<label class="saved-list-card-note-label" for="savedListEmailInput">Send to</label>' +
+    '<div class="saved-list-panel-email-row">' +
+    '<input id="savedListEmailInput" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" data-saved-list-email-input />' +
+    '<button type="button" class="saved-list-panel-cta saved-list-panel-cta-compact" data-saved-list-email-send>Send</button>' +
+    "</div>" +
+    '<div class="saved-list-panel-email-status" data-saved-list-email-status></div>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
 function renderFooter(list) {
   if (!list.length) return "";
+  var emailFormHtml = renderEmailForm();
   if (list.length >= 2) {
     var slugs = list
       .map(function (item) {
@@ -376,6 +534,7 @@ function renderFooter(list) {
       '<a class="saved-list-panel-cta" href="match.html?shortlist=' +
       encodeURIComponent(slugs) +
       '" data-saved-list-compare>Compare in match flow</a>' +
+      emailFormHtml +
       '<a class="saved-list-panel-link" href="directory.html" data-saved-list-browse="footer">Browse more therapists</a>' +
       "</div>"
     );
@@ -383,6 +542,7 @@ function renderFooter(list) {
   return (
     '<div class="saved-list-panel-footer">' +
     '<a class="saved-list-panel-cta" href="directory.html" data-saved-list-browse="footer-single">Find your next pick</a>' +
+    emailFormHtml +
     "</div>"
   );
 }
