@@ -1,3 +1,5 @@
+import { SITE_POSTAL_ADDRESS, SITE_BRAND_LINE } from "./site-constants.mjs";
+
 const DEFAULT_SITE = "https://www.bipolartherapyhub.com";
 const DEFAULT_PORTAL_PATH = "/portal";
 
@@ -62,9 +64,20 @@ function wrapHtml(bodyHtml) {
   <body style="font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #111; line-height: 1.5; max-width: 560px; margin: 0 auto; padding: 24px;">
     ${bodyHtml}
     <hr style="margin-top: 32px; border: 0; border-top: 1px solid #eee;" />
-    <p style="color: #888; font-size: 12px;">Bipolar Therapy Hub. You receive these because your profile is listed in the directory. <a href="{{UNSUB_URL}}">Unsubscribe from this email type</a>.</p>
+    <p style="color: #888; font-size: 12px;">${SITE_BRAND_LINE}. You receive these because your profile is listed in the directory. <a href="{{UNSUB_URL}}">Unsubscribe from this email type</a>.</p>
+    <p style="color: #888; font-size: 12px; margin-top: 4px;">${SITE_BRAND_LINE} · ${SITE_POSTAL_ADDRESS}</p>
   </body>
 </html>`;
+}
+
+function plainTextFooter() {
+  return [
+    "",
+    "—",
+    `${SITE_BRAND_LINE} · ${SITE_POSTAL_ADDRESS}`,
+    "You receive these because your profile is listed in the directory.",
+    "Unsubscribe: {{UNSUB_URL}}",
+  ].join("\n");
 }
 
 function ctaButton(url, label) {
@@ -127,7 +140,7 @@ export function renderMonthlyPerformanceEmail(input) {
     `Dashboard: ${portalUrl}`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n") + plainTextFooter();
 
   return {
     kind: "monthly_performance",
@@ -173,7 +186,7 @@ export function renderUnclaimedTeaserEmail(input) {
     `Claim free: ${claimUrl}`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n") + plainTextFooter();
 
   return {
     kind: "unclaimed_teaser",
@@ -220,7 +233,7 @@ export function renderMissedMatchEmail(input) {
     `Fix it here: ${fixUrl}`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n") + plainTextFooter();
 
   return {
     kind: "missed_match",
@@ -264,7 +277,7 @@ export function renderCompletenessMomentumEmail(input) {
     `Finish: ${portalUrl}`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n") + plainTextFooter();
 
   return {
     kind: "completeness_momentum",
@@ -319,7 +332,7 @@ export function renderFeaturedUpgradeEmail(input) {
     `Start 14-day Featured trial: ${upgradeUrl}`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n") + plainTextFooter();
 
   return {
     kind: "featured_upgrade",

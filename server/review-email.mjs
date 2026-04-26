@@ -1,3 +1,5 @@
+import { SITE_POSTAL_ADDRESS, SITE_BRAND_LINE } from "../shared/site-constants.mjs";
+
 export function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
 }
@@ -297,8 +299,9 @@ function renderBrandedEmail(options) {
             ${fallbackBlock}
             ${footerBlock}
           </table>
-          <p style="margin:18px 0 0 0;font-size:11px;color:#8a9ba4;">
-            BipolarTherapyHub · California bipolar-specialist directory
+          <p style="margin:18px 0 0 0;font-size:11px;color:#8a9ba4;line-height:1.5;">
+            ${SITE_BRAND_LINE} · California bipolar-specialist directory<br />
+            ${SITE_POSTAL_ADDRESS}
           </p>
         </td>
       </tr>
@@ -334,7 +337,8 @@ function renderBrandedEmailText(options) {
   if (footerLines.length) {
     parts.push(...footerLines, "");
   }
-  parts.push("— BipolarTherapyHub");
+  parts.push(`— ${SITE_BRAND_LINE}`);
+  parts.push(SITE_POSTAL_ADDRESS);
   return parts.join("\n");
 }
 
