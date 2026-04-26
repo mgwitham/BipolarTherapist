@@ -3154,6 +3154,19 @@ body:has(.directory-sidebar-shell) .layout {
     flex-direction: column;
     align-items: flex-start;
   }
+  /* iOS Safari auto-zooms text-entry controls below 16px on focus,
+     which yanks the layout. Force 16px on the directory filter
+     controls (both the legacy sidebar layout and the dir-vb modal
+     variant the page actually serves on mobile) so taps don't
+     trigger a zoom. */
+  .directory-sidebar-shell .filter-group select,
+  .directory-sidebar-shell .filter-group input[type="text"],
+  .directory-results .results-tools select,
+  .dir-vb-modal-body .filter-group select,
+  .dir-vb-modal-body .filter-group input[type="text"],
+  .dir-vb-canvas .results-tools select {
+    font-size: 16px;
+  }
 }
 
 /* ============================================================
