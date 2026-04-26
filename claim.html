@@ -19,7 +19,7 @@
     <title>Claim your listing — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Find your BipolarTherapyHub listing, confirm the email on file, and send a secure activation link. Free claim first, optional trial later."
+      content="Find your BipolarTherapyHub listing, confirm the email on file, and send a secure activation link. Claiming is free."
     />
     <link rel="canonical" href="https://www.bipolartherapyhub.com/claim" />
     <meta property="og:type" content="website" />
@@ -202,31 +202,6 @@
         font-size: 0.86rem;
         font-weight: 600;
       }
-      .claim-hero-flow {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.8rem;
-      }
-      .claim-hero-step {
-        padding: 1rem;
-        border-radius: 16px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 245, 248, 0.72));
-      }
-      .claim-hero-step strong {
-        display: block;
-        color: var(--teal-dark);
-        font-size: 0.76rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 0.35rem;
-      }
-      .claim-hero-step span {
-        color: var(--navy);
-        font-size: 0.94rem;
-        font-weight: 600;
-        line-height: 1.35;
-      }
 
       .claim-session-banner {
         display: grid;
@@ -320,19 +295,6 @@
         outline: none;
         border-color: var(--teal);
         box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
-      }
-      .claim-search-reassurance {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-      }
-      .claim-search-reassurance span {
-        padding: 0.45rem 0.75rem;
-        border-radius: 999px;
-        background: rgba(26, 122, 143, 0.07);
-        color: var(--teal-dark);
-        font-size: 0.82rem;
-        font-weight: 700;
       }
       .quick-claim-search-summary {
         padding: 0.95rem 1rem;
@@ -473,25 +435,12 @@
         color: var(--navy);
         font-size: 0.95rem;
       }
-      .claim-confirm-unlocks {
-        display: grid;
-        gap: 0.55rem;
-        padding: 0.95rem 1rem;
+      .claim-confirm-unlocks-line {
+        padding: 0.85rem 1rem;
         background: rgba(26, 122, 143, 0.06);
         border-radius: 12px;
-      }
-      .claim-confirm-unlocks h4 {
-        font-size: 0.9rem;
-        color: var(--navy);
-      }
-      .claim-confirm-unlocks ul {
-        list-style: none;
-        display: grid;
-        gap: 0.35rem;
-      }
-      .claim-confirm-unlocks li {
         color: var(--slate);
-        font-size: 0.88rem;
+        font-size: 0.92rem;
       }
       .claim-trust-signals {
         list-style: none;
@@ -544,6 +493,27 @@
       .claim-trial-subhint {
         color: var(--muted);
         font-size: 0.86rem;
+      }
+      .claim-trial-secondary {
+        background: transparent;
+        color: var(--teal-dark);
+        border: 1px solid rgba(26, 122, 143, 0.32);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .claim-trial-secondary:hover {
+        background: rgba(26, 122, 143, 0.06);
+        border-color: var(--teal);
+      }
+      .claim-trial-secondary[hidden] {
+        display: none;
       }
       .claim-confirm-alt {
         font-size: 0.88rem;
@@ -924,7 +894,6 @@
         .claim-main {
           padding-top: 1.75rem;
         }
-        .claim-hero-flow,
         .claim-how-it-works-grid,
         .claim-help-grid {
           grid-template-columns: 1fr;
@@ -956,35 +925,15 @@
       <div class="claim-shell">
         <section class="claim-hero">
           <span class="claim-kicker">Claim your listing</span>
-          <h1>Claim your BipolarTherapyHub listing in a few clear steps</h1>
+          <h1>Claim your BipolarTherapyHub listing</h1>
           <p>
-            Find your public listing, confirm the email already on file, and send yourself a secure
-            activation link. Basic claim is free. If paid features are available, you can choose
-            them after ownership is confirmed.
+            Find your public listing and send yourself a secure activation link. Claiming is free.
           </p>
           <ul class="claim-hero-support" aria-label="Claim reassurance">
             <li>No password required</li>
-            <li>Basic claim is free</li>
-            <li>California verification stays in place</li>
+            <li>Free to claim</li>
+            <li>Your CA license verification carries over</li>
           </ul>
-          <div class="claim-hero-flow" aria-label="Claim flow overview">
-            <div class="claim-hero-step">
-              <strong>1. Find</strong>
-              <span>Search by last name or California license number.</span>
-            </div>
-            <div class="claim-hero-step">
-              <strong>2. Confirm</strong>
-              <span>Review the listing details and the masked email on file.</span>
-            </div>
-            <div class="claim-hero-step">
-              <strong>3. Activate</strong>
-              <span>Send a one-time link to the email already on the listing.</span>
-            </div>
-            <div class="claim-hero-step">
-              <strong>4. Continue</strong>
-              <span>After activation, continue with free access or any optional trial.</span>
-            </div>
-          </div>
         </section>
 
         <section
@@ -1022,15 +971,11 @@
                 type="search"
                 id="quickClaimSearchInput"
                 autocomplete="off"
+                autofocus
                 placeholder="Search by last name or California license number"
                 aria-describedby="quickClaimSearchHint quickClaimSearchSummary"
               />
             </label>
-            <div class="claim-search-reassurance" aria-label="Search reassurance">
-              <span>We only show likely matches</span>
-              <span>You can change your selection</span>
-              <span>Recovery help stays available if needed</span>
-            </div>
             <div
               class="quick-claim-search-summary"
               id="quickClaimSearchSummary"
@@ -1063,22 +1008,14 @@
           <p class="claim-confirm-destination" id="claimConfirmDestination">
             We’ll email your activation link to <strong id="claimConfirmEmail"></strong>.
           </p>
-          <div class="claim-confirm-unlocks" aria-label="What claiming unlocks">
-            <h4>Claiming unlocks</h4>
-            <ul>
-              <li>Edit your listing details and profile controls</li>
-              <li>Manage accepting-patients status and core visibility settings</li>
-              <li>Continue to free access first, with optional trial choices later if available</li>
-            </ul>
-          </div>
+          <p class="claim-confirm-destination claim-confirm-unlocks-line">
+            After activation you can edit your listing, manage availability, and update visibility.
+          </p>
           <button type="button" id="claimConfirmSend" class="claim-confirm-send">
             Send activation link
           </button>
-          <p class="claim-trial-subhint" id="claimTrialSubhint">
-            This step does not start billing. If an optional trial is available, you’ll see it after
-            activation.
-          </p>
-          <button type="button" id="claimStartTrial" class="claim-confirm-send" hidden>
+          <p class="claim-trial-subhint" id="claimTrialSubhint">No billing on this step.</p>
+          <button type="button" id="claimStartTrial" class="claim-trial-secondary" hidden>
             Start 14-day free trial — $0 today
           </button>
           <p class="claim-confirm-alt">
