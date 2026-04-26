@@ -550,12 +550,16 @@ function getFeeFloor(therapist) {
 }
 
 function getCompletenessScore(therapist) {
+  // Weights total 100. Photo is a tiebreaker signal only — it never
+  // outranks clinical fit (it doesn't appear in `breakdown.clinical`),
+  // but a complete profile rises slightly when other factors are even.
   var weightedFields = [
-    { value: therapist.phone, weight: 20 },
-    { value: therapist.email, weight: 20 },
-    { value: therapist.website, weight: 15 },
+    { value: therapist.phone, weight: 18 },
+    { value: therapist.email, weight: 18 },
+    { value: therapist.website, weight: 14 },
     { value: therapist.license_number, weight: 15 },
     { value: therapist.care_approach, weight: 10 },
+    { value: therapist.photo_url, weight: 5 },
     { value: therapist.treatment_modalities && therapist.treatment_modalities.length, weight: 5 },
     { value: therapist.client_populations && therapist.client_populations.length, weight: 5 },
     { value: therapist.insurance_accepted && therapist.insurance_accepted.length, weight: 5 },
@@ -585,6 +589,9 @@ function getMissingReadinessItems(therapist) {
   }
   if (!therapist.care_approach) {
     items.push("Add a concise bipolar care approach summary.");
+  }
+  if (!therapist.photo_url) {
+    items.push("Upload a headshot — profiles with a photo earn more patient trust.");
   }
   if (!(therapist.treatment_modalities && therapist.treatment_modalities.length)) {
     items.push("List treatment modalities to improve clinical-fit matching.");

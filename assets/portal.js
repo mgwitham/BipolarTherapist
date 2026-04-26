@@ -3415,6 +3415,111 @@ function wireEditProfileHandlers(therapist) {
   });
 }
 
+var PORTAL_PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+var PORTAL_PHOTO_ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function readFileAsDataUrl(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      resolve(String(reader.result || ""));
+    };
+    reader.onerror = function () {
+      reject(reader.error || new Error("Could not read the file."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function bindPortalPhotoUpload(therapist) {
+  var input = document.getElementById("portalPhotoInput");
+  if (!input) return;
+  var preview = document.getElementById("portalPhotoPreview");
+  var feedback = document.getElementById("portalPhotoFeedback");
+  var btnLabel = document.getElementById("portalPhotoBtnLabel");
+  if (!preview || !feedback || !btnLabel) return;
+
+  function setFeedback(message, tone) {
+    feedback.textContent = message || "";
+    feedback.classList.remove("is-error", "is-success");
+    if (tone === "error") feedback.classList.add("is-error");
+    if (tone === "success") feedback.classList.add("is-success");
+  }
+
+  input.addEventListener("change", async function () {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (!PORTAL_PHOTO_ALLOWED_MIMES.has(file.type)) {
+      setFeedback("Photo must be a JPG, PNG, or WebP.", "error");
+      input.value = "";
+      return;
+    }
+    if (file.size > PORTAL_PHOTO_MAX_BYTES) {
+      setFeedback("Photo is over 4 MB. Try a smaller image.", "error");
+      input.value = "";
+      return;
+    }
+    var dataUrl;
+    try {
+      dataUrl = await readFileAsDataUrl(file);
+    } catch (_error) {
+      setFeedback("Couldn't read that file.", "error");
+      input.value = "";
+      return;
+    }
+    btnLabel.textContent = "Uploading...";
+    setFeedback("Uploading your headshot...", null);
+    try {
+      var result = await uploadPortalPhoto(dataUrl, file.name || "headshot");
+      if (result && result.photo_url) {
+        preview.innerHTML = '<img src="' + result.photo_url.replace(/"/g, "&quot;") + '" alt="" />';
+        btnLabel.textContent = "Replace photo";
+        setFeedback("Headshot uploaded. Your live profile updates within a minute.", "success");
+        // Surface the change in any cached therapist state so the rest of
+        // the dashboard reflects it without a full reload.
+        if (therapist) {
+          therapist.photo_url = result.photo_url;
+          therapist.photo_source_type = "therapist_uploaded";
+        }
+      } else {
+        setFeedback("Upload completed but no photo URL came back. Try refreshing.", "error");
+        btnLabel.textContent = "Try again";
+      }
+    } catch (error) {
+      setFeedback(
+        (error && error.message) || "Couldn't upload the photo. Try again in a moment.",
+        "error",
+      );
+      btnLabel.textContent = "Try again";
+    } finally {
+      input.value = "";
+    }
+  });
+}
+
+async function uploadPortalPhoto(dataUrl, filename) {
+  var response = await fetch("/api/review/portal/photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      photo_upload_base64: dataUrl,
+      photo_filename: filename || "headshot",
+    }),
+  });
+  var data = null;
+  try {
+    data = await response.json();
+  } catch (_error) {
+    // ignore
+  }
+  if (!response.ok) {
+    var message = (data && data.error) || "Upload failed (HTTP " + response.status + ").";
+    throw new Error(message);
+  }
+  return data || {};
+}
+
 function renderPortal(therapist, options) {
   var shell = document.getElementById("portalShell");
   if (!shell) {
@@ -3606,6 +3711,55 @@ function renderPortal(therapist, options) {
     "</div>" +
     "</article>" +
     "</section>";
+
+  // Zone 1.5 — Headshot upload. A dedicated, prominent control so a
+  // photo is one click away from the dashboard. Only appears once the
+  // claim is verified (uploads require an authenticated session).
+  var hasPhoto = Boolean(therapist.photo_url);
+  var photoSourceType = therapist.photo_source_type || "";
+  var photoNeedsAttention =
+    !hasPhoto || photoSourceType === "public_source" || photoSourceType === "";
+  var photoEyebrow = photoNeedsAttention ? "Add your headshot" : "Your headshot";
+  var photoTitle = hasPhoto
+    ? photoSourceType === "therapist_uploaded"
+      ? "You uploaded this headshot"
+      : photoSourceType === "practice_uploaded"
+        ? "Practice-uploaded headshot on file"
+        : "Public-source fallback in use"
+    : "No headshot on your listing yet";
+  var photoBody = photoNeedsAttention
+    ? "Profiles with a clear headshot earn more patient trust and inquiries. JPG, PNG, or WebP, up to 4 MB."
+    : "Replace it any time. JPG, PNG, or WebP, up to 4 MB.";
+  var photoPreviewInner = hasPhoto
+    ? '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" />'
+    : '<span class="portal-photo-placeholder">📷</span>';
+  var photoZone = verifiedClaim
+    ? '<section class="portal-card portal-photo-card" id="portalPhotoCard">' +
+      '<p class="portal-eyebrow">' +
+      escapeHtml(photoEyebrow) +
+      "</p>" +
+      '<div class="portal-photo-row">' +
+      '<div class="portal-photo-preview" id="portalPhotoPreview">' +
+      photoPreviewInner +
+      "</div>" +
+      '<div class="portal-photo-copy">' +
+      "<h2>" +
+      escapeHtml(photoTitle) +
+      "</h2>" +
+      '<p class="portal-subtle">' +
+      escapeHtml(photoBody) +
+      "</p>" +
+      '<div class="portal-actions">' +
+      '<label class="btn-primary portal-photo-btn">' +
+      '<input type="file" id="portalPhotoInput" accept="image/jpeg,image/png,image/webp" hidden />' +
+      '<span id="portalPhotoBtnLabel">' +
+      (hasPhoto ? "Replace photo" : "Upload headshot") +
+      "</span>" +
+      "</label>" +
+      "</div>" +
+      '<div class="portal-feedback" id="portalPhotoFeedback" role="status" aria-live="polite"></div>' +
+      "</div></div></section>"
+    : "";
 
   // Zone 2 — Deep editor, collapsed unless the clinician clearly needs
   // to see it (pending-publish, claim_token, deep link, or pre-save).
@@ -3811,10 +3965,13 @@ function renderPortal(therapist, options) {
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
     priorityZone +
+    photoZone +
     editorZone +
     planZone +
     reviewZone +
     helpZone;
+
+  bindPortalPhotoUpload(therapist);
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
     event.preventDefault();

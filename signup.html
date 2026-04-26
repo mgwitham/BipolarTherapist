@@ -300,6 +300,92 @@
         height: 18px;
         accent-color: var(--teal);
       }
+      .new-listing-photo {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem;
+      }
+      .new-listing-photo-row {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 0.85rem;
+        align-items: start;
+      }
+      .new-listing-photo-preview {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #eaf2f4, #d8e6ea);
+        border: 1px solid rgba(14, 77, 95, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 1.5rem;
+        color: rgba(14, 77, 95, 0.55);
+      }
+      .new-listing-photo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .new-listing-photo-copy {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .new-listing-photo-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--navy);
+      }
+      .new-listing-photo-hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .new-listing-photo-controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.15rem;
+      }
+      .new-listing-photo-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem 0.85rem;
+        border: 1px solid var(--teal);
+        color: var(--teal);
+        background: white;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .new-listing-photo-btn:hover {
+        background: rgba(14, 77, 95, 0.05);
+      }
+      .new-listing-photo-clear {
+        padding: 0.45rem 0.7rem;
+        border: 1px solid var(--border);
+        background: white;
+        color: var(--muted);
+        border-radius: 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      .new-listing-photo-status {
+        font-size: 0.78rem;
+        color: var(--muted);
+        min-height: 1rem;
+      }
+      .new-listing-photo-status.is-success {
+        color: #1c7a47;
+      }
+      .new-listing-photo-status.is-error {
+        color: #b3261e;
+      }
       .new-listing-steps {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -728,6 +814,50 @@
                 <input type="checkbox" name="treats_bipolar" required />
                 <span> I'm licensed in California and treat bipolar disorder in my practice. </span>
               </label>
+              <div class="new-listing-photo" data-photo-control>
+                <div class="new-listing-photo-row">
+                  <div
+                    class="new-listing-photo-preview"
+                    id="newListingPhotoPreview"
+                    aria-hidden="true"
+                  >
+                    <span class="new-listing-photo-placeholder">📷</span>
+                  </div>
+                  <div class="new-listing-photo-copy">
+                    <span class="new-listing-photo-title">Optional: add a headshot</span>
+                    <span class="new-listing-photo-hint"
+                      >Profiles with a photo earn more patient trust. JPG, PNG, or WebP up to
+                      4&nbsp;MB.</span
+                    >
+                    <div class="new-listing-photo-controls">
+                      <label class="new-listing-photo-btn">
+                        <input
+                          type="file"
+                          id="newListingPhotoInput"
+                          name="photo_upload"
+                          accept="image/jpeg,image/png,image/webp"
+                          hidden
+                        />
+                        <span id="newListingPhotoBtnLabel">Choose photo</span>
+                      </label>
+                      <button
+                        type="button"
+                        class="new-listing-photo-clear"
+                        id="newListingPhotoClear"
+                        hidden
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <span
+                      class="new-listing-photo-status"
+                      id="newListingPhotoStatus"
+                      role="status"
+                      aria-live="polite"
+                    ></span>
+                  </div>
+                </div>
+              </div>
               <div class="new-listing-steps" aria-hidden="true">
                 <div class="new-listing-step">
                   <span class="new-listing-step-label">Step 1</span>
