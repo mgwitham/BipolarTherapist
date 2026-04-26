@@ -1,47 +1,11 @@
-var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
+import { readList, subscribe } from "./saved-list.js";
+
 var lastShortlistCount = null;
-var DIRECTORY_LIST_LIMIT = 6;
-
-function normalizeShortlist(value) {
-  return (Array.isArray(value) ? value : [])
-    .map(function (item) {
-      if (typeof item === "string") {
-        return {
-          slug: item,
-          priority: "",
-          note: "",
-        };
-      }
-
-      if (!item || !item.slug) {
-        return null;
-      }
-
-      return {
-        slug: String(item.slug),
-        priority: String(item.priority || ""),
-        note: String(item.note || ""),
-      };
-    })
-    .filter(Boolean)
-    .slice(0, DIRECTORY_LIST_LIMIT);
-}
-
-function readShortlist() {
-  try {
-    return normalizeShortlist(
-      JSON.parse(window.localStorage.getItem(DIRECTORY_SHORTLIST_KEY) || "[]"),
-    );
-  } catch (_error) {
-    return [];
-  }
-}
 
 function buildShortlistHref(shortlist) {
   if (!shortlist.length) {
     return "directory.html";
   }
-
   return (
     "match.html?shortlist=" +
     encodeURIComponent(
@@ -55,7 +19,7 @@ function buildShortlistHref(shortlist) {
 }
 
 function updateShortlistNav() {
-  var shortlist = readShortlist();
+  var shortlist = readList();
   var count = shortlist.length;
 
   document.querySelectorAll("[data-shortlist-count]").forEach(function (element) {
@@ -83,11 +47,5 @@ function updateShortlistNav() {
 }
 
 window.refreshShortlistNav = updateShortlistNav;
-
-window.addEventListener("storage", function (event) {
-  if (event.key === DIRECTORY_SHORTLIST_KEY) {
-    updateShortlistNav();
-  }
-});
-
+subscribe(updateShortlistNav);
 updateShortlistNav();

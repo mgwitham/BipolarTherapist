@@ -24,6 +24,14 @@ import {
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
+import {
+  MAX_ENTRIES as SAVED_LIST_MAX,
+  readList as readSavedList,
+  isSaved as isSavedSlug,
+  toggleSaved as toggleSavedSlug,
+  updateNote as updateSavedListNote,
+  updatePriority as updateSavedListPriority,
+} from "./saved-list.js";
 
 function detectProfileViewSource() {
   try {
@@ -110,9 +118,8 @@ function buildTherapistProfileUrl(slugValue) {
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname);
 var profileSource = profileParams.get("source") || "";
-var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-var DIRECTORY_LIST_LIMIT = 6;
+var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
 
@@ -1090,44 +1097,7 @@ function trackDirectoryProfileOpenQuality(therapist, readiness, freshness) {
 }
 
 function readShortlist() {
-  try {
-    return normalizeShortlist(
-      JSON.parse(window.localStorage.getItem(DIRECTORY_SHORTLIST_KEY) || "[]"),
-    );
-  } catch (_error) {
-    return [];
-  }
-}
-
-function normalizeShortlist(value) {
-  return (Array.isArray(value) ? value : [])
-    .map(function (item) {
-      if (typeof item === "string") {
-        return {
-          slug: item,
-          priority: "",
-          note: "",
-        };
-      }
-      if (!item || !item.slug) {
-        return null;
-      }
-      return {
-        slug: String(item.slug),
-        priority: String(item.priority || ""),
-        note: String(item.note || ""),
-      };
-    })
-    .filter(Boolean)
-    .slice(0, DIRECTORY_LIST_LIMIT);
-}
-
-function writeShortlist(value) {
-  try {
-    window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(value));
-  } catch (_error) {
-    return;
-  }
+  return readSavedList();
 }
 
 function readOutreachOutcomes() {
@@ -1643,56 +1613,17 @@ function renderUncertaintyCard(uncertaintyState) {
 }
 
 function toggleShortlist(slugValue) {
-  var shortlist = readShortlist();
-  if (
-    shortlist.some(function (item) {
-      return item.slug === slugValue;
-    })
-  ) {
-    var next = shortlist.filter(function (item) {
-      return item.slug !== slugValue;
-    });
-    writeShortlist(next);
-    return false;
-  }
-
-  var appended = shortlist
-    .concat({ slug: slugValue, priority: "", note: "" })
-    .slice(0, DIRECTORY_LIST_LIMIT);
-  writeShortlist(appended);
-  return true;
+  var wasSaved = isSavedSlug(slugValue);
+  toggleSavedSlug(slugValue, { surface: "therapist_profile" });
+  return !wasSaved;
 }
 
 function updateShortlistPriority(slugValue, priority) {
-  writeShortlist(
-    readShortlist().map(function (item) {
-      if (item.slug !== slugValue) {
-        return item;
-      }
-      return {
-        slug: item.slug,
-        priority: priority,
-        note: item.note || "",
-      };
-    }),
-  );
+  updateSavedListPriority(slugValue, priority);
 }
 
 function updateShortlistNote(slugValue, note) {
-  writeShortlist(
-    readShortlist().map(function (item) {
-      if (item.slug !== slugValue) {
-        return item;
-      }
-      return {
-        slug: item.slug,
-        priority: item.priority || "",
-        note: String(note || "")
-          .trim()
-          .slice(0, 120),
-      };
-    }),
-  );
+  updateSavedListNote(slugValue, note);
 }
 
 function updateShortlistNoteMeta(currentValue) {

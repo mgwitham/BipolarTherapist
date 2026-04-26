@@ -73,6 +73,14 @@ import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js"
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
+import {
+  MAX_ENTRIES as SAVED_LIST_MAX,
+  readList as readSavedList,
+  isSaved as isSavedSlug,
+  toggleSaved as toggleSavedSlug,
+  replaceList as replaceSavedList,
+  subscribe as subscribeToSavedList,
+} from "./saved-list.js";
 
 var therapists = [];
 var latestProfile = null;
@@ -92,7 +100,6 @@ var activeShortcutContext = null;
 // flushes its queue on pagehide via sendBeacon, so the event delivers
 // even when the user just closes the tab.
 var matchSessionStats = null;
-var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
 var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
 var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
@@ -1338,82 +1345,33 @@ function buildJourneyId(profile, entries) {
 }
 
 function readDirectoryShortlist() {
-  try {
-    return (JSON.parse(window.localStorage.getItem(DIRECTORY_SHORTLIST_KEY) || "[]") || [])
-      .map(function (item) {
-        if (typeof item === "string") {
-          return {
-            slug: item,
-            priority: "",
-            note: "",
-          };
-        }
-
-        if (!item || !item.slug) {
-          return null;
-        }
-
-        return {
-          slug: String(item.slug),
-          priority: String(item.priority || ""),
-          note: String(item.note || ""),
-        };
-      })
-      .filter(Boolean)
-      .slice(0, PRIMARY_SHORTLIST_LIMIT);
-  } catch (_error) {
-    return [];
-  }
-}
-
-function writeDirectoryShortlist(value) {
-  try {
-    window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(value || []));
-  } catch (_error) {
-    return;
-  }
-}
-
-function normalizeDirectoryShortlistValue(value) {
-  return (Array.isArray(value) ? value : [])
-    .map(function (item) {
-      if (!item || !item.slug) {
-        return null;
-      }
-      return {
-        slug: String(item.slug),
-        priority: String(item.priority || ""),
-        note: String(item.note || ""),
-      };
-    })
-    .filter(Boolean)
-    .slice(0, PRIMARY_SHORTLIST_LIMIT);
+  return readSavedList();
 }
 
 function persistEntriesToDirectoryShortlist(entries) {
-  var existing = readDirectoryShortlist();
-  var normalized = normalizeDirectoryShortlistValue(
-    (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT).map(function (entry) {
+  var existing = readSavedList();
+  var merged = (entries || [])
+    .slice(0, SAVED_LIST_MAX)
+    .map(function (entry) {
+      var slug = (entry && entry.therapist && entry.therapist.slug) || "";
+      if (!slug) return null;
       var saved = existing.find(function (item) {
-        return item.slug === entry?.therapist?.slug;
+        return item.slug === slug;
       });
       return {
-        slug: entry?.therapist?.slug || "",
+        slug: slug,
         priority:
-          String(entry?.evaluation?.shortlist_priority || "").trim() ||
-          String(saved?.priority || "").trim(),
+          String((entry && entry.evaluation && entry.evaluation.shortlist_priority) || "").trim() ||
+          String((saved && saved.priority) || "").trim(),
         note:
-          String(entry?.evaluation?.shortlist_note || "").trim() ||
-          String(saved?.note || "").trim(),
+          String((entry && entry.evaluation && entry.evaluation.shortlist_note) || "").trim() ||
+          String((saved && saved.note) || "").trim(),
       };
-    }),
-  );
+    })
+    .filter(Boolean);
 
-  if (normalized.length) {
-    writeDirectoryShortlist(normalized);
-  }
-
-  return normalized;
+  if (!merged.length) return readSavedList();
+  return replaceSavedList(merged);
 }
 
 function buildShortlistComparePath(entries) {
@@ -4813,11 +4771,72 @@ function renderCardPhoto(therapist) {
   );
 }
 
-function renderSaveIcon() {
+function renderSaveIcon(saved) {
+  var fill = saved ? "currentColor" : "none";
   return (
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<svg viewBox="0 0 24 24" fill="' +
+    fill +
+    '" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
     '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>' +
     "</svg>"
+  );
+}
+
+function syncSaveButtonState(btn, slug) {
+  if (!btn || !slug) return;
+  var saved = isSavedSlug(slug);
+  var baseClass = btn.classList.contains("mx-card-save") ? "mx-card-save" : "mx-save";
+  btn.className = baseClass + (saved ? " is-saved" : "");
+  btn.setAttribute("aria-pressed", saved ? "true" : "false");
+  btn.setAttribute(
+    "aria-label",
+    saved ? "Saved. Tap to remove from your list." : "Save to your list.",
+  );
+  btn.innerHTML = renderSaveIcon(saved);
+}
+
+function syncAllSaveButtons() {
+  document.querySelectorAll("[data-save-slug]").forEach(function (btn) {
+    syncSaveButtonState(btn, btn.getAttribute("data-save-slug") || "");
+  });
+}
+
+var saveAnnouncementTimer = 0;
+function announceSaveAction(message) {
+  var node = document.getElementById("matchSaveAnnouncement");
+  if (!node) {
+    node = document.createElement("div");
+    node.id = "matchSaveAnnouncement";
+    node.setAttribute("role", "status");
+    node.setAttribute("aria-live", "polite");
+    node.className = "mx-save-toast";
+    document.body.appendChild(node);
+  }
+  node.textContent = message;
+  node.classList.add("is-visible");
+  window.clearTimeout(saveAnnouncementTimer);
+  saveAnnouncementTimer = window.setTimeout(function () {
+    node.classList.remove("is-visible");
+  }, 2400);
+}
+
+subscribeToSavedList(syncAllSaveButtons);
+
+function renderSaveButton(slug, variant) {
+  var saved = isSavedSlug(slug);
+  var className = (variant === "card" ? "mx-card-save" : "mx-save") + (saved ? " is-saved" : "");
+  return (
+    '<button type="button" class="' +
+    className +
+    '" data-save-slug="' +
+    escapeHtml(slug || "") +
+    '" aria-label="' +
+    (saved ? "Saved. Tap to remove from your list." : "Save to your list.") +
+    '" aria-pressed="' +
+    (saved ? "true" : "false") +
+    '">' +
+    renderSaveIcon(saved) +
+    "</button>"
   );
 }
 
@@ -4871,9 +4890,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     "</h3>" +
     (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
-    '<button type="button" class="mx-save" aria-label="Save">' +
-    renderSaveIcon() +
-    "</button>" +
+    renderSaveButton(therapist.slug || "", "hero") +
     "</div>" +
     (chipsHtml ? '<div class="mx-fit-row">' + chipsHtml + "</div>" : "") +
     renderTrustEvidenceStrip(therapist, { variant: "card", className: "mx-hero-trust" }) +
@@ -4979,9 +4996,7 @@ function renderSupportingResultCard(entry, _rank, options) {
     "</h3>" +
     (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
     "</div>" +
-    '<button type="button" class="mx-card-save" aria-label="Save">' +
-    renderSaveIcon() +
-    "</button>" +
+    renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
     (explanation
       ? '<div class="mx-card-fit"><span class="mx-card-fit-label">Why this may be a good fit</span><p class="mx-card-reason">' +
@@ -5255,18 +5270,17 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   });
 
-  // Save buttons render on every card but had no behavior wired. For
-  // now, instrument the click so the funnel can see save intent —
-  // wiring an actual shortlist add comes next once we know the click
-  // rate justifies the work.
   root.querySelectorAll(".mx-save, .mx-card-save").forEach(function (btn) {
     if (btn.dataset.boundSaveClick === "true") return;
     btn.dataset.boundSaveClick = "true";
     btn.addEventListener("click", function (event) {
-      var card = btn.closest("[data-match-primary-cta], .mx-hero, .mx-card");
-      var slug = "";
-      if (card) {
-        var anchor = card.querySelector("[data-match-primary-cta], [data-match-profile-link]");
+      event.preventDefault();
+      var slug = btn.getAttribute("data-save-slug") || "";
+      if (!slug) {
+        var card = btn.closest(".mx-hero, .mx-card");
+        var anchor = card
+          ? card.querySelector("[data-match-primary-cta], [data-match-profile-link]")
+          : null;
         if (anchor) {
           slug =
             anchor.getAttribute("data-match-primary-cta") ||
@@ -5274,9 +5288,23 @@ function renderPrimaryMatchCards(entries, profile) {
             "";
         }
       }
+      if (!slug) return;
+
+      var result = toggleSavedSlug(slug, { surface: "match_results" });
       trackFunnelEvent("match_card_save_clicked", buildMatchTrackingPayload(slug, {}));
       recordMatchSessionInteraction("save_click", { slug: slug });
-      event.preventDefault();
+
+      if (result.reason === "full") {
+        announceSaveAction("Your list is full. Remove someone before saving another.");
+        return;
+      }
+
+      syncSaveButtonState(btn, slug);
+      announceSaveAction(
+        result.reason === "added"
+          ? "Saved to your list. Open the list from the top nav."
+          : "Removed from your list.",
+      );
     });
   });
 
