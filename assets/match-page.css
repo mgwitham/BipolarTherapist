@@ -1333,9 +1333,23 @@ body.match-refine-drawer-open .match-refine-live-status {
   animation: match-refine-spin 700ms linear infinite;
   flex: 0 0 auto;
 }
+.match-refine-live-status.is-pulsing {
+  animation: match-refine-pulse 380ms ease-out;
+}
 @keyframes match-refine-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+@keyframes match-refine-pulse {
+  0% {
+    background: var(--white);
+  }
+  35% {
+    background: rgba(26, 122, 143, 0.14);
+  }
+  100% {
+    background: var(--white);
   }
 }
 body.match-refine-drawer-open .refine-bottom-submit {
@@ -1390,6 +1404,26 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 @media (max-width: 640px) {
   body.match-refine-drawer-open .match-refinements {
     width: 100vw;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Lock the page behind the drawer so touch scroll doesn't chain
+     through to the body when the drawer reaches its end. */
+  body.match-refine-drawer-open {
+    overflow: hidden;
+    touch-action: none;
+  }
+  /* iOS Safari auto-zooms any focused input below 16px font-size,
+     which yanks the drawer out of place. Bump every drawer field to
+     16px on mobile so the viewport stays put when the keyboard opens. */
+  body.match-refine-drawer-open .refine-input,
+  body.match-refine-drawer-open .match-refinements input[type="text"],
+  body.match-refine-drawer-open .match-refinements input[type="number"],
+  body.match-refine-drawer-open .match-refinements input[type="search"],
+  body.match-refine-drawer-open .match-refinements input[type="tel"],
+  body.match-refine-drawer-open .match-refinements input[type="email"],
+  body.match-refine-drawer-open .match-refinements select {
+    font-size: 16px;
   }
 }
 
@@ -4769,23 +4803,6 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .refine-more-btn .refine-filter-icon {
   flex-shrink: 0;
-}
-.refine-filter-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  background: #1a7a8f;
-  color: #fff;
-  border-radius: 10px;
-  line-height: 1;
-}
-.refine-filter-count[hidden] {
-  display: none;
 }
 .refine-chevron {
   transition: transform 0.25s ease;

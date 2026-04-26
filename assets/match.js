@@ -826,6 +826,8 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 // the user makes choices. Keeps the panel feeling "direct-manipulation"
 // instead of the old form-submit-only flow.
 var liveRecomputeTimer = null;
+var lastLiveCount = null;
+var lastLiveTopSlug = null;
 function maybeLiveRecompute(event) {
   if (!document.body.classList.contains("match-refine-drawer-open")) return;
   var form = document.getElementById("matchForm");
@@ -861,13 +863,27 @@ function maybeLiveRecompute(event) {
       source: "match_live_refine",
     });
     var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
-    var message =
-      count === 0
-        ? "No matches with these filters. Try easing one."
-        : count === 1
-          ? "1 match showing"
-          : count + " matches showing";
+    var topSlug =
+      count > 0 && latestEntries[0] && latestEntries[0].therapist
+        ? latestEntries[0].therapist.slug
+        : "";
+    var countChanged = lastLiveCount !== null && lastLiveCount !== count;
+    var rankChanged =
+      lastLiveTopSlug !== null && lastLiveTopSlug !== "" && topSlug !== lastLiveTopSlug;
+    var message;
+    if (count === 0) {
+      message = "No matches with these filters. Try easing one.";
+    } else if (count === 1) {
+      message = "1 match showing";
+    } else if (!countChanged && rankChanged) {
+      message = count + " matches · re-ranked to fit";
+    } else {
+      message = count + " matches showing";
+    }
     setLiveStatus(message, false);
+    pulseLiveStatus();
+    lastLiveCount = count;
+    lastLiveTopSlug = topSlug;
     trackFunnelEvent("match_live_filter_applied", {
       changed_field: changedField,
       result_count: count,
@@ -880,6 +896,16 @@ function setLiveStatus(message, isUpdating) {
   if (!node) return;
   node.textContent = message;
   node.classList.toggle("is-updating", Boolean(isUpdating));
+}
+
+function pulseLiveStatus() {
+  var node = document.getElementById("matchRefineLiveStatus");
+  if (!node) return;
+  node.classList.remove("is-pulsing");
+  // Force reflow so the animation restarts even when the same class
+  // toggles back on within a single frame.
+  void node.offsetWidth;
+  node.classList.add("is-pulsing");
 }
 
 // Drawer state + keyboard handling. The refine panel renders as a
