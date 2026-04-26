@@ -513,6 +513,43 @@ function readListingRemovalToken(config, token) {
   return payload;
 }
 
+// Email-unsubscribe token — bound to therapist _id, 1-year TTL since
+// emails archived in inboxes get clicked long after they're sent. Stored
+// with sub "email-unsubscribe" so it can't be confused with claim or
+// removal tokens. The token itself is opaque to the recipient — clicking
+// the link lands on the unsubscribe handler, which validates and flips
+// engagementEmailUnsubscribedAt on the therapist doc.
+export function buildEmailUnsubscribeToken(config, therapistId) {
+  return createSignedPayload(
+    {
+      sub: "email-unsubscribe",
+      tid: String(therapistId),
+      exp: Date.now() + 1000 * 60 * 60 * 24 * 365,
+    },
+    config.sessionSecret,
+  );
+}
+
+export function readEmailUnsubscribeToken(config, token) {
+  const payload = readSignedPayload(token, config.sessionSecret);
+  if (!payload || payload.sub !== "email-unsubscribe" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  return payload;
+}
+
+// URL builder for the unsubscribe link substituted into engagement
+// emails at send time. The eventual sender mints one of these per
+// recipient and replaces {{UNSUB_URL}} in both HTML and plain-text
+// bodies before handing the payload to Resend. Also use this URL in
+// the List-Unsubscribe and List-Unsubscribe-Post headers (RFC 8058)
+// for one-click unsubscribe in Gmail/Yahoo.
+export function buildEmailUnsubscribeUrl(config, therapistId, portalBaseUrl) {
+  const token = buildEmailUnsubscribeToken(config, therapistId);
+  const base = String(portalBaseUrl || "").replace(/\/+$/, "");
+  return `${base}/api/review/email/unsubscribe?token=${encodeURIComponent(token)}`;
+}
+
 async function sendListingRemovalLink(config, therapist, portalBaseUrl) {
   return sendListingRemovalLinkEmail(config, therapist, portalBaseUrl, buildListingRemovalToken);
 }
@@ -569,6 +606,7 @@ function createReviewRouteModules() {
         notifyTherapistOfRecoveryReceived,
         parseAuthorizationHeader,
         parseBody,
+        readEmailUnsubscribeToken,
         readListingRemovalToken,
         readPortalClaimToken,
         readRecoveryConfirmToken,

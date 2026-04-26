@@ -58,25 +58,41 @@ function buildPortalUrl(base, slug, token) {
   return params.length ? `${root}?${params.join("&")}` : root;
 }
 
-function wrapHtml(bodyHtml) {
+// Required for every commercial email rendered here. Caller must mint
+// a signed unsubscribe URL via buildEmailUnsubscribeUrl in
+// server/review-handler.mjs and pass it into the input object. Throwing
+// on missing URL is intentional — silent fallback would let the
+// {{UNSUB_URL}} placeholder ship to therapists, which is a CAN-SPAM
+// violation.
+function requireUnsubscribeUrl(input) {
+  const url = input && input.unsubscribeUrl;
+  if (typeof url !== "string" || !url) {
+    throw new Error(
+      "engagement email render: missing unsubscribeUrl. Mint one via buildEmailUnsubscribeUrl before rendering.",
+    );
+  }
+  return url;
+}
+
+function wrapHtml(bodyHtml, unsubscribeUrl) {
   return `<!doctype html>
 <html>
   <body style="font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #111; line-height: 1.5; max-width: 560px; margin: 0 auto; padding: 24px;">
     ${bodyHtml}
     <hr style="margin-top: 32px; border: 0; border-top: 1px solid #eee;" />
-    <p style="color: #888; font-size: 12px;">${SITE_BRAND_LINE}. You receive these because your profile is listed in the directory. <a href="{{UNSUB_URL}}">Unsubscribe from this email type</a>.</p>
+    <p style="color: #888; font-size: 12px;">${SITE_BRAND_LINE}. You receive these because your profile is listed in the directory. <a href="${escapeHtml(unsubscribeUrl)}">Unsubscribe from these emails</a>.</p>
     <p style="color: #888; font-size: 12px; margin-top: 4px;">${SITE_BRAND_LINE} · ${SITE_POSTAL_ADDRESS}</p>
   </body>
 </html>`;
 }
 
-function plainTextFooter() {
+function plainTextFooter(unsubscribeUrl) {
   return [
     "",
     "—",
     `${SITE_BRAND_LINE} · ${SITE_POSTAL_ADDRESS}`,
     "You receive these because your profile is listed in the directory.",
-    "Unsubscribe: {{UNSUB_URL}}",
+    `Unsubscribe: ${unsubscribeUrl}`,
   ].join("\n");
 }
 
@@ -85,6 +101,7 @@ function ctaButton(url, label) {
 }
 
 export function renderMonthlyPerformanceEmail(input) {
+  const unsubUrl = requireUnsubscribeUrl(input);
   const name = String((input && input.therapistName) || "there");
   const slug = String((input && input.therapistSlug) || "");
   const period = String((input && input.periodKey) || "");
@@ -140,17 +157,18 @@ export function renderMonthlyPerformanceEmail(input) {
     `Dashboard: ${portalUrl}`,
   ]
     .filter(Boolean)
-    .join("\n") + plainTextFooter();
+    .join("\n") + plainTextFooter(unsubUrl);
 
   return {
     kind: "monthly_performance",
     subject,
-    html: wrapHtml(bodyHtml),
+    html: wrapHtml(bodyHtml, unsubUrl),
     text,
   };
 }
 
 export function renderUnclaimedTeaserEmail(input) {
+  const unsubUrl = requireUnsubscribeUrl(input);
   const name = String((input && input.therapistName) || "there");
   const slug = String((input && input.therapistSlug) || "");
   const views = safeNumber(input && input.profileViewsTotal, 0);
@@ -186,17 +204,18 @@ export function renderUnclaimedTeaserEmail(input) {
     `Claim free: ${claimUrl}`,
   ]
     .filter(Boolean)
-    .join("\n") + plainTextFooter();
+    .join("\n") + plainTextFooter(unsubUrl);
 
   return {
     kind: "unclaimed_teaser",
     subject,
-    html: wrapHtml(bodyHtml),
+    html: wrapHtml(bodyHtml, unsubUrl),
     text,
   };
 }
 
 export function renderMissedMatchEmail(input) {
+  const unsubUrl = requireUnsubscribeUrl(input);
   const name = String((input && input.therapistName) || "there");
   const slug = String((input && input.therapistSlug) || "");
   const city = String((input && input.patientCity) || "your area");
@@ -233,17 +252,18 @@ export function renderMissedMatchEmail(input) {
     `Fix it here: ${fixUrl}`,
   ]
     .filter(Boolean)
-    .join("\n") + plainTextFooter();
+    .join("\n") + plainTextFooter(unsubUrl);
 
   return {
     kind: "missed_match",
     subject,
-    html: wrapHtml(bodyHtml),
+    html: wrapHtml(bodyHtml, unsubUrl),
     text,
   };
 }
 
 export function renderCompletenessMomentumEmail(input) {
+  const unsubUrl = requireUnsubscribeUrl(input);
   const name = String((input && input.therapistName) || "there");
   const slug = String((input && input.therapistSlug) || "");
   const percent = Math.max(0, Math.min(100, safeNumber(input && input.completenessPercent, 0)));
@@ -277,17 +297,18 @@ export function renderCompletenessMomentumEmail(input) {
     `Finish: ${portalUrl}`,
   ]
     .filter(Boolean)
-    .join("\n") + plainTextFooter();
+    .join("\n") + plainTextFooter(unsubUrl);
 
   return {
     kind: "completeness_momentum",
     subject,
-    html: wrapHtml(bodyHtml),
+    html: wrapHtml(bodyHtml, unsubUrl),
     text,
   };
 }
 
 export function renderFeaturedUpgradeEmail(input) {
+  const unsubUrl = requireUnsubscribeUrl(input);
   const name = String((input && input.therapistName) || "there");
   const slug = String((input && input.therapistSlug) || "");
   const ctas = safeNumber(input && input.ctaClicksTotal, 0);
@@ -332,12 +353,12 @@ export function renderFeaturedUpgradeEmail(input) {
     `Start 14-day Featured trial: ${upgradeUrl}`,
   ]
     .filter(Boolean)
-    .join("\n") + plainTextFooter();
+    .join("\n") + plainTextFooter(unsubUrl);
 
   return {
     kind: "featured_upgrade",
     subject,
-    html: wrapHtml(bodyHtml),
+    html: wrapHtml(bodyHtml, unsubUrl),
     text,
   };
 }

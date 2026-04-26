@@ -493,6 +493,7 @@ export async function handleAuthAndPortalRoutes(context) {
     normalizePortalRequest,
     parseAuthorizationHeader,
     parseBody,
+    readEmailUnsubscribeToken,
     readListingRemovalToken,
     readPortalClaimToken,
     readSignedSession,
@@ -3240,6 +3241,65 @@ export async function handleAuthAndPortalRoutes(context) {
     });
 
     return redirect("ok");
+  }
+
+  // GET / POST /email/unsubscribe?token=... — the link in commercial
+  // email footers per CAN-SPAM and the target of the List-Unsubscribe
+  // headers per RFC 8058. POST is the one-click form Gmail/Yahoo POST
+  // to silently; GET is a human clicking the link in their inbox. Both
+  // flip engagementEmailUnsubscribedAt on the therapist doc — the send
+  // pipeline must check that field before sending any commercial email.
+  if (
+    (request.method === "GET" || request.method === "POST") &&
+    routePath === "/email/unsubscribe"
+  ) {
+    const token = String((url.searchParams && url.searchParams.get("token")) || "").trim();
+
+    if (!token) {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "text/plain; charset=utf-8");
+      response.end("Missing token.");
+      return true;
+    }
+
+    const payload = readEmailUnsubscribeToken(config, token);
+    if (!payload || !payload.tid) {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "text/plain; charset=utf-8");
+      response.end("This unsubscribe link is invalid or has expired.");
+      return true;
+    }
+
+    // Idempotent: if already unsubscribed, still treat as success.
+    const therapist = await client.fetch(
+      `*[_type == "therapist" && _id == $id][0]{ _id, engagementEmailUnsubscribedAt }`,
+      { id: payload.tid },
+    );
+
+    if (therapist && !therapist.engagementEmailUnsubscribedAt) {
+      await client
+        .patch(payload.tid)
+        .set({ engagementEmailUnsubscribedAt: new Date().toISOString() })
+        .commit({ visibility: "async" });
+    }
+
+    if (request.method === "POST") {
+      // RFC 8058 List-Unsubscribe-Post: respond with 200 and empty
+      // body. The mail provider posts to this URL on the user's
+      // behalf — there is no human to redirect or display HTML to.
+      response.statusCode = 200;
+      response.end();
+      return true;
+    }
+
+    // Human GET — return a small inline confirmation page so they
+    // know it worked without bouncing them somewhere unexpected.
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+    response.end(
+      `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Unsubscribed — BipolarTherapyHub</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1d3a4a;line-height:1.6;max-width:540px;margin:0 auto;padding:4rem 1.5rem;text-align:center}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#4a6572}a{color:#155f70}</style></head><body><h1>You're unsubscribed.</h1><p>You won't receive further BipolarTherapyHub engagement emails. Account-related messages (sign-in links, billing) will still come through.</p><p>If you also want to remove your listing from the directory, <a href="/claim#claimRemovalSection">request removal</a> — it takes one click and is instant.</p><p style="margin-top:2rem;font-size:.85rem;color:#6b8290">Changed your mind? Email <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>.</p></body></html>`,
+    );
+    return true;
   }
 
   return false;

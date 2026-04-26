@@ -9,6 +9,8 @@ import {
   renderUnclaimedTeaserEmail,
 } from "../../shared/therapist-engagement-emails.mjs";
 
+const UNSUB = "https://www.bipolartherapyhub.com/api/review/email/unsubscribe?token=test-token";
+
 test("monthly performance email: subject leads with CTA clicks when present", () => {
   const email = renderMonthlyPerformanceEmail({
     therapistName: "Dr. Jamie Rivera",
@@ -20,6 +22,7 @@ test("monthly performance email: subject leads with CTA clicks when present", ()
     rankLabel: "#5 of 9 in your area",
     areaTopContacts: 9,
     siteUrl: "https://www.bipolartherapyhub.com",
+    unsubscribeUrl: UNSUB,
   });
 
   assert.equal(email.kind, "monthly_performance");
@@ -42,6 +45,7 @@ test("monthly performance email: falls back to views subject when no CTA clicks"
     periodKey: "2026-04",
     profileViewsTotal: 12,
     ctaClicksTotal: 0,
+    unsubscribeUrl: UNSUB,
   });
   assert.match(email.subject, /12 patients viewed your profile/);
 });
@@ -52,6 +56,7 @@ test("unclaimed teaser email: leads with view count when >0", () => {
     therapistSlug: "dr-smith",
     profileViewsTotal: 12,
     missingFields: ["bio", "insurance accepted", "booking link"],
+    unsubscribeUrl: UNSUB,
   });
   assert.match(email.subject, /12 patients viewed your listing/);
   assert.match(email.html, /bio, insurance accepted, booking link/);
@@ -67,6 +72,7 @@ test("missed match email: subject names patient city, body names fix field", () 
     missedReason: "The patient filtered for Anthem, which your profile does not list",
     fixField: "insurance_accepted",
     competitorRank: 3,
+    unsubscribeUrl: UNSUB,
   });
   assert.match(email.subject, /Pasadena/);
   assert.match(email.html, /Anthem/);
@@ -80,6 +86,7 @@ test("completeness momentum email: subject includes percent", () => {
     therapistSlug: "jamie-rivera",
     completenessPercent: 62,
     missingFields: ["bio", "care approach", "insurance accepted", "booking link"],
+    unsubscribeUrl: UNSUB,
   });
   assert.match(email.subject, /62% complete/);
   assert.match(email.html, /width: 62%/);
@@ -91,7 +98,10 @@ test("completeness momentum email: subject includes percent", () => {
 });
 
 test("completeness momentum email: percent clamped to 0-100", () => {
-  const email = renderCompletenessMomentumEmail({ completenessPercent: 999 });
+  const email = renderCompletenessMomentumEmail({
+    completenessPercent: 999,
+    unsubscribeUrl: UNSUB,
+  });
   assert.match(email.subject, /100% complete/);
 });
 
@@ -102,6 +112,7 @@ test("featured upgrade email: leads with free contact count and benchmark", () =
     ctaClicksTotal: 3,
     areaFeaturedContacts: 11,
     estimatedLtvDollars: 4800,
+    unsubscribeUrl: UNSUB,
   });
   assert.match(email.subject, /3 free contacts/);
   assert.match(email.subject, /Featured therapists got 11/);
@@ -117,6 +128,7 @@ test("all emails escape HTML in user-provided fields", () => {
     patientCity: '"><img/>',
     missedReason: "<b>bold?</b>",
     missingFields: ["<b>bold</b>"],
+    unsubscribeUrl: UNSUB,
   };
   const emails = [
     renderMonthlyPerformanceEmail(payload),
@@ -129,4 +141,34 @@ test("all emails escape HTML in user-provided fields", () => {
     assert.doesNotMatch(email.html, /<script>/);
     assert.doesNotMatch(email.html, /<b>bold<\/b>/);
   });
+});
+
+test("engagement email render: throws if unsubscribeUrl is missing", () => {
+  // CAN-SPAM requires a working unsubscribe in every commercial email.
+  // The renderer fails loudly so the {{UNSUB_URL}} placeholder can
+  // never silently ship to therapists.
+  assert.throws(
+    () => renderMonthlyPerformanceEmail({ therapistName: "X" }),
+    /missing unsubscribeUrl/,
+  );
+  assert.throws(() => renderUnclaimedTeaserEmail({ therapistName: "X" }), /missing unsubscribeUrl/);
+  assert.throws(() => renderMissedMatchEmail({ therapistName: "X" }), /missing unsubscribeUrl/);
+  assert.throws(
+    () => renderCompletenessMomentumEmail({ therapistName: "X" }),
+    /missing unsubscribeUrl/,
+  );
+  assert.throws(() => renderFeaturedUpgradeEmail({ therapistName: "X" }), /missing unsubscribeUrl/);
+});
+
+test("engagement email render: unsubscribe URL appears in HTML and plain-text bodies", () => {
+  const email = renderMonthlyPerformanceEmail({
+    therapistName: "Dr. Rivera",
+    therapistSlug: "rivera",
+    periodKey: "2026-04",
+    unsubscribeUrl: UNSUB,
+  });
+  assert.ok(email.html.includes(UNSUB), "unsubscribe URL must appear in HTML body");
+  assert.ok(email.text.includes(UNSUB), "unsubscribe URL must appear in plain-text body");
+  assert.doesNotMatch(email.html, /\{\{UNSUB_URL\}\}/, "no leftover placeholder in HTML");
+  assert.doesNotMatch(email.text, /\{\{UNSUB_URL\}\}/, "no leftover placeholder in plain-text");
 });

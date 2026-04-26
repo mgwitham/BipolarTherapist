@@ -200,6 +200,15 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "engagementEmailUnsubscribedAt",
+      title: "Engagement email unsubscribed at",
+      description:
+        "Set when the therapist clicks the unsubscribe link in a commercial email footer or when Gmail/Yahoo posts to the List-Unsubscribe URL. The email send pipeline must skip any therapist with this field set.",
+      type: "datetime",
+      group: "practice",
+      readOnly: true,
+    }),
+    defineField({
       name: "portalLastSeenAt",
       title: "Portal last seen at",
       type: "datetime",
