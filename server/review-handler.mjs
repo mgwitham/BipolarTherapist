@@ -20,6 +20,7 @@ import { getReviewApiConfig } from "./review-config.mjs";
 import { handleAnalyticsRoutes } from "./review-analytics-routes.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
+import { handleSavedListRoutes } from "./review-saved-list-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
 import { handleWaitlistRoutes } from "./review-waitlist-routes.mjs";
 import {
@@ -601,6 +602,15 @@ function createReviewRouteModules() {
         parseBody,
         sendJson,
       },
+    },
+    {
+      handler: handleSavedListRoutes,
+      deps: {
+        parseBody,
+        sendJson,
+        sendEmail: sendRawEmail,
+      },
+      includeUrl: true,
     },
     {
       handler: handleAnalyticsRoutes,
