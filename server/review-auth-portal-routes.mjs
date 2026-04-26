@@ -2770,7 +2770,9 @@ export async function handleAuthAndPortalRoutes(context) {
       );
       return true;
     }
-    const mimeType = String(match[1] || "").trim().toLowerCase();
+    const mimeType = String(match[1] || "")
+      .trim()
+      .toLowerCase();
     if (!ALLOWED_MIMES.has(mimeType)) {
       sendJson(
         response,
