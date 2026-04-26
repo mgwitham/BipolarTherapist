@@ -1,4 +1,5 @@
 import { fetchPublicTherapists } from "./cms.js";
+import { renderTrustEvidenceStrip } from "./trust-evidence-strip.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -4875,6 +4876,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     "</button>" +
     "</div>" +
     (chipsHtml ? '<div class="mx-fit-row">' + chipsHtml + "</div>" : "") +
+    renderTrustEvidenceStrip(therapist, { variant: "card", className: "mx-hero-trust" }) +
     '<div class="mx-hero-meta">' +
     '<div class="mx-meta-item">' +
     '<span class="mx-meta-label">Availability</span>' +
