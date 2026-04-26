@@ -43,6 +43,47 @@
       content="A calmer way to find bipolar care. Bipolar-informed therapists, matched by fit."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.bipolartherapyhub.com/#organization",
+            "name": "BipolarTherapyHub",
+            "url": "https://www.bipolartherapyhub.com/",
+            "logo": "https://www.bipolartherapyhub.com/favicon.png",
+            "description": "A California directory of license-verified therapists who specialize in bipolar disorder. Curated for fit, evidence, and clinical relevance.",
+            "areaServed": {
+              "@type": "AdministrativeArea",
+              "name": "California, United States"
+            },
+            "knowsAbout": [
+              "Bipolar disorder",
+              "Bipolar I",
+              "Bipolar II",
+              "Mood disorder treatment",
+              "Psychotherapy"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.bipolartherapyhub.com/#website",
+            "url": "https://www.bipolartherapyhub.com/",
+            "name": "BipolarTherapyHub",
+            "publisher": { "@id": "https://www.bipolartherapyhub.com/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://www.bipolartherapyhub.com/directory?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
