@@ -24,11 +24,7 @@ import {
   syncMatchStartState as syncMatchStartStateBase,
   syncZipResolvedLabel as syncZipResolvedLabelBase,
 } from "./match-intake.js";
-import {
-  renderAdaptiveGuidanceSection,
-  renderNoResultsStateSection,
-  renderShortlistQueueSection,
-} from "./match-results.js";
+import { renderAdaptiveGuidanceSection, renderNoResultsStateSection } from "./match-results.js";
 import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
 import {
   buildFallbackLearningMap as buildFallbackLearningMapBase,
@@ -145,7 +141,6 @@ var isInternalMode = new URLSearchParams(window.location.search).get("internal")
 var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
 var queueFocusSlugFromUrl = new URLSearchParams(window.location.search).get("focus") || "";
 var PRIMARY_SHORTLIST_LIMIT = 6;
-var SHORTLIST_QUEUE_LIMIT = 24;
 var US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
@@ -4179,63 +4174,6 @@ function renderAdaptiveGuidance(profile, entries) {
   });
 }
 
-function buildQueueReserveCopy(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : {};
-  var parts = [];
-
-  if (therapist.accepting_new_patients) {
-    parts.push("Looks open to new patients");
-  }
-  if (therapist.estimated_wait_time) {
-    parts.push("availability note: " + therapist.estimated_wait_time);
-  }
-  if (therapist.bipolar_years_experience) {
-    parts.push(therapist.bipolar_years_experience + " years of bipolar-focused experience");
-  }
-  if (therapist.medication_management) {
-    parts.push("offers medication support");
-  }
-
-  if (!parts.length) {
-    return "Worth keeping in reserve if your top options do not feel quite right.";
-  }
-
-  return (
-    parts.slice(0, 2).join(" and ") +
-    ". Keep this profile in reserve if you want a broader fallback set."
-  );
-}
-
-function renderShortlistQueue(entries) {
-  var root = document.getElementById("matchQueue");
-  if (!root) {
-    return;
-  }
-
-  var queueEntries = (entries || []).slice(PRIMARY_SHORTLIST_LIMIT, SHORTLIST_QUEUE_LIMIT);
-  renderShortlistQueueSection({
-    root: root,
-    queueEntries: queueEntries,
-    escapeHtml: escapeHtml,
-    profileBaseHref: "/therapists/",
-    formatTherapistLocationLine: formatTherapistLocationLine,
-    buildQueueReserveCopy: buildQueueReserveCopy,
-    shortlistLimit: PRIMARY_SHORTLIST_LIMIT,
-  });
-
-  root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
-    link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
-      trackFunnelEvent(
-        "match_result_profile_opened",
-        buildMatchTrackingPayload(slug, {
-          context: link.getAttribute("data-profile-link-context") || "queue",
-        }),
-      );
-    });
-  });
-}
-
 function getRoutePriority(contactReadiness) {
   return getRoutePriorityBase(contactReadiness);
 }
@@ -5836,7 +5774,6 @@ function renderResults(entries, profile) {
   triggerMotion(root, "motion-enter");
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
-  renderShortlistQueue(entries);
   if (refs.feedbackBar) {
     refs.feedbackBar.hidden = false;
   }
