@@ -122,6 +122,109 @@ function setStatus(node, message, tone) {
   if (tone === "error") node.classList.add("is-error");
 }
 
+// Detect CA license type from prefix and return the verifying board name.
+// Most CA mental-health license numbers carry an alpha prefix that maps
+// 1:1 to a board (LMFT/LCSW/LPCC/LEP → BBS, PSY/PSB → BoP, A/G → MBC,
+// 20A/20G → DO board). Pure-digit input has no signal — return null.
+function detectLicenseBoard(raw) {
+  const value = String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^CA[-\s]+/, "");
+  const prefixMatch = value.match(/^([A-Z]+)/);
+  const prefix = prefixMatch ? prefixMatch[1] : "";
+  if (!prefix) return null;
+  if (/^(LMFT|MFT|MFC|IMF|AMFT)$/.test(prefix))
+    return { board: "Board of Behavioral Sciences", short: "BBS" };
+  if (/^(LCSW|ASW|LCS)$/.test(prefix))
+    return { board: "Board of Behavioral Sciences", short: "BBS" };
+  if (/^(LPCC|LPC|APCC)$/.test(prefix))
+    return { board: "Board of Behavioral Sciences", short: "BBS" };
+  if (/^(LEP)$/.test(prefix)) return { board: "Board of Behavioral Sciences", short: "BBS" };
+  if (/^(PSY|PSB|PST)$/.test(prefix)) return { board: "Board of Psychology", short: "BoP" };
+  if (/^(20A|20G|G|A)$/.test(prefix)) return { board: "Medical Board of California", short: "MBC" };
+  return null;
+}
+
+function setLiveHint(node, message, pending) {
+  if (!node) return;
+  node.textContent = message || "";
+  node.classList.toggle("is-pending", Boolean(pending));
+}
+
+// Lazy-load the CA ZIP table once, on first ZIP-input focus. Avoids
+// shipping ~200KB to every page-view; the lookup is only useful after
+// the user starts typing a ZIP. Cached after first fetch.
+let zipTablePromise = null;
+function loadZipTable() {
+  if (!zipTablePromise) {
+    zipTablePromise = fetch("/assets/ca-zipcodes.json", { headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) throw new Error("zip table fetch failed");
+        return r.json();
+      })
+      .catch(function () {
+        zipTablePromise = null; // allow retry on next focus
+        return null;
+      });
+  }
+  return zipTablePromise;
+}
+
+const PROGRESS_STEPS = ["verify", "build", "ready"];
+function setProgressStep(progressNode, activeStep) {
+  if (!progressNode) return;
+  const idx = PROGRESS_STEPS.indexOf(activeStep);
+  PROGRESS_STEPS.forEach(function (step, i) {
+    const el = progressNode.querySelector('[data-step="' + step + '"]');
+    if (!el) return;
+    el.classList.remove("is-active", "is-done");
+    if (i < idx) el.classList.add("is-done");
+    else if (i === idx) el.classList.add("is-active");
+  });
+}
+function showProgress(progressNode) {
+  if (!progressNode) return;
+  setProgressStep(progressNode, "verify");
+  progressNode.hidden = false;
+}
+function hideProgress(progressNode) {
+  if (!progressNode) return;
+  progressNode.hidden = true;
+  PROGRESS_STEPS.forEach(function (step) {
+    const el = progressNode.querySelector('[data-step="' + step + '"]');
+    if (el) el.classList.remove("is-active", "is-done");
+  });
+}
+function completeProgress(progressNode) {
+  if (!progressNode) return;
+  PROGRESS_STEPS.forEach(function (step) {
+    const el = progressNode.querySelector('[data-step="' + step + '"]');
+    if (el) {
+      el.classList.remove("is-active");
+      el.classList.add("is-done");
+    }
+  });
+}
+
+function showRecovery(licenseValue) {
+  const box = document.getElementById("newListingRecovery");
+  const cta = document.getElementById("newListingRecoveryCta");
+  if (!box) return;
+  if (cta) {
+    const normalized = normalizeLicense(licenseValue);
+    cta.setAttribute(
+      "href",
+      normalized ? "/claim.html?license=" + encodeURIComponent(normalized) : "/claim.html",
+    );
+  }
+  box.hidden = false;
+}
+function hideRecovery() {
+  const box = document.getElementById("newListingRecovery");
+  if (box) box.hidden = true;
+}
+
 async function submitIntake(form, status) {
   const treatsBipolar = Boolean(
     form.elements.treats_bipolar && form.elements.treats_bipolar.checked,
@@ -179,7 +282,27 @@ async function submitIntake(form, status) {
     submit.disabled = true;
     submit.textContent = "Verifying...";
   }
-  setStatus(status, "Verifying your California license...", null);
+  const progress = document.getElementById("newListingProgress");
+  hideRecovery();
+  setStatus(status, "", null);
+  showProgress(progress);
+  // Step the progress bar forward on a fixed cadence so users see motion
+  // even if the network call returns instantly. The actual verify happens
+  // server-side; these steps are paced for perceived progress, not gated
+  // on individual API milestones.
+  const progressTimers = [
+    window.setTimeout(function () {
+      setProgressStep(progress, "build");
+    }, 700),
+    window.setTimeout(function () {
+      setProgressStep(progress, "ready");
+    }, 1400),
+  ];
+  const clearProgressTimers = function () {
+    progressTimers.forEach(function (t) {
+      window.clearTimeout(t);
+    });
+  };
 
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
@@ -188,6 +311,8 @@ async function submitIntake(form, status) {
       body: JSON.stringify(payload),
     });
     if (response.status === 409) {
+      clearProgressTimers();
+      hideProgress(progress);
       let data = {};
       try {
         data = await response.json();
@@ -213,9 +338,12 @@ async function submitIntake(form, status) {
         (data && data.error) ||
         "A record for this therapist already exists. Try the claim flow instead.";
       setStatus(status, msg, "error");
+      showRecovery(licenseNumber);
       return;
     }
     if (response.status === 422) {
+      clearProgressTimers();
+      hideProgress(progress);
       // License couldn't be verified against the DCA database. No
       // therapist doc was created, no Stripe session, no charge.
       let data = {};
@@ -233,9 +361,12 @@ async function submitIntake(form, status) {
           "We couldn't verify that CA license. Double-check the number and try again.",
         "error",
       );
+      showRecovery(licenseNumber);
       return;
     }
     if (!response.ok) {
+      clearProgressTimers();
+      hideProgress(progress);
       let data = {};
       try {
         data = await response.json();
@@ -266,17 +397,29 @@ async function submitIntake(form, status) {
       has_stripe_url: Boolean(data && data.stripe_url),
     });
     if (data && data.therapist_slug && data.claim_token) {
+      clearProgressTimers();
+      completeProgress(progress);
+      // Brief beat so the user sees all three checkmarks settle before
+      // the plan-choice card swaps in.
+      await new Promise(function (r) {
+        window.setTimeout(r, 350);
+      });
+      hideProgress(progress);
       revealPlanChoice(form, status, data, email);
       return;
     }
     // Fallback: server didn't return enough to route the therapist
     // anywhere. Keep them on the page with a support-pointer message.
+    clearProgressTimers();
+    hideProgress(progress);
     setStatus(
       status,
       "We verified your license but couldn't finish setting up your listing. Email support@bipolartherapyhub.com and we'll sort it out.",
       "error",
     );
   } catch (_error) {
+    clearProgressTimers();
+    hideProgress(progress);
     setStatus(
       status,
       "We couldn't reach the server. Check your connection and try again.",
@@ -485,6 +628,51 @@ function bindIntakeForm() {
   });
 
   const licenseInput = form.elements.license_number;
+  const licenseHint = document.getElementById("newListingLicenseHint");
+  if (licenseInput && licenseHint) {
+    const updateLicenseHint = function () {
+      const detected = detectLicenseBoard(licenseInput.value);
+      if (detected) {
+        setLiveHint(licenseHint, "We'll check the " + detected.board, false);
+      } else {
+        setLiveHint(licenseHint, "", false);
+      }
+    };
+    licenseInput.addEventListener("input", updateLicenseHint);
+    licenseInput.addEventListener("change", updateLicenseHint);
+  }
+  const zipInput = form.elements.zip;
+  const zipHint = document.getElementById("newListingZipHint");
+  if (zipInput && zipHint) {
+    let zipDebounce = null;
+    const updateZipHint = async function () {
+      const value = String(zipInput.value || "").trim();
+      const digits = value.match(/^\d{5}$/) ? value : "";
+      if (!digits) {
+        setLiveHint(zipHint, "", false);
+        return;
+      }
+      setLiveHint(zipHint, "Looking up…", true);
+      const table = await loadZipTable();
+      if (String(zipInput.value || "").trim() !== digits) return; // user kept typing
+      if (table && table[digits] && table[digits].city) {
+        setLiveHint(zipHint, table[digits].city + ", CA", false);
+      } else if (table) {
+        setLiveHint(zipHint, "California ZIP not recognized", false);
+      } else {
+        setLiveHint(zipHint, "", false);
+      }
+    };
+    zipInput.addEventListener("input", function () {
+      if (zipDebounce) window.clearTimeout(zipDebounce);
+      zipDebounce = window.setTimeout(updateZipHint, 150);
+    });
+    zipInput.addEventListener("focus", function () {
+      // Warm the table on first focus so the lookup is instant when they finish.
+      loadZipTable();
+    });
+  }
+
   if (licenseInput) {
     // Ensure the nudge starts hidden on load even if a prior render / autofill
     // left it visible in a cached state.
