@@ -21,6 +21,36 @@
       name="description"
       content="Answer a few questions and get a clearer list of therapists or psychiatrists who may fit your bipolar-related care needs."
     />
+    <!-- Match results are intake-driven; the homepage owns SEO for the
+         "find bipolar therapist" intent. Tell crawlers /match.html is a
+         working surface, not the canonical landing page. -->
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href="https://www.bipolartherapyhub.com/" />
+    <!-- Cold-visit redirect: /match.html with no intake params is the
+         "phantom personalization" trap. The user hasn't told us care
+         type or location, so any displayed "matches FOR YOU" are
+         arbitrary defaults. Bounce to /, where the homepage form
+         collects the two questions, then submits back here with params.
+         ?qa=1 bypass keeps the page reachable for QA without forcing
+         the redirect dance. Inline script runs synchronously before
+         match.js loads so we never paint the misleading default state. -->
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get("qa") === "1") return;
+          var hasCare = (params.get("care_intent") || "").trim();
+          var hasZip = (params.get("location_query") || params.get("zip") || "").trim();
+          if (!hasCare || !hasZip) {
+            window.location.replace("/");
+          }
+        } catch (_e) {
+          // Swallow — never block render on an unexpected URL parsing
+          // failure. Worst case we render the page and the JS path
+          // takes over.
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -37,7 +67,10 @@
       </a>
       <ul class="nav-links">
         <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="match.html" class="nav-link-current">Get Matched</a></li>
+        <!-- Match landing in nav was removed in favor of single-funnel
+             entry through the homepage. The `nav-link-current` slot
+             stays empty here — directory + list still appear below. -->
+        <li hidden><a href="match.html" class="nav-link-current">Get Matched</a></li>
         <li>
           <a href="directory.html" class="nav-shortlist" data-shortlist-link
             >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a
