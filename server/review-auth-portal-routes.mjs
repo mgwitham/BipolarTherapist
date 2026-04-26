@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
+import { appendFunnelEvent } from "./review-analytics-routes.mjs";
 import {
   normalizeUrl,
   validateBookingUrl,
@@ -3231,6 +3232,12 @@ export async function handleAuthAndPortalRoutes(context) {
         listingRemovalRequestedAt: new Date().toISOString(),
       })
       .commit({ visibility: "sync" });
+
+    // Headline removal metric. Fire only on the true→false transition,
+    // not on the idempotent re-click path above.
+    appendFunnelEvent(client, "listing_removal_confirmed", {
+      therapist_slug: payload.slug,
+    });
 
     return redirect("ok");
   }

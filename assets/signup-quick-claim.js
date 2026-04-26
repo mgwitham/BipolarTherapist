@@ -1036,6 +1036,21 @@ function initQuickClaim() {
     });
   }
 
+  const heroRemovalLink = document.querySelector(".claim-hero-removal-link a");
+  if (heroRemovalLink) {
+    heroRemovalLink.addEventListener("click", function () {
+      trackFunnelEvent("claim_remove_link_clicked", { source: "hero" });
+    });
+  }
+  const removalDetails = document.querySelector(".claim-remove-details");
+  if (removalDetails) {
+    removalDetails.addEventListener("toggle", function () {
+      if (removalDetails.open) {
+        trackFunnelEvent("listing_removal_section_opened", {});
+      }
+    });
+  }
+
   initRecoveryModal();
 
   const runSearch = debounce(async function (query) {
