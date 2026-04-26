@@ -935,6 +935,29 @@
           padding: 1.25rem;
         }
       }
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 1rem;
+          height: 56px;
+        }
+        .nav-name {
+          font-size: 0.95rem;
+        }
+        .nav-zone-switch {
+          padding: 0.3rem 0.7rem !important;
+          font-size: 0.78rem !important;
+        }
+        /* Force 16px on every text-entry control so iOS Safari does
+           not auto-zoom when the user taps a field. */
+        .quick-claim-form input,
+        .claim-recovery-form input,
+        .claim-recovery-form textarea,
+        .claim-recovery-form select,
+        .listing-removal-form input,
+        .listing-removal-form textarea {
+          font-size: 16px;
+        }
+      }
     </style>
   </head>
   <body>
