@@ -1813,6 +1813,73 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
   }
 })();
 
+function bindReportIssueDialog(therapist) {
+  var dialog = document.getElementById("reportIssueDialog");
+  var trigger = document.getElementById("profileReportIssueBtn");
+  if (!dialog || !trigger || typeof dialog.showModal !== "function") return;
+
+  var form = document.getElementById("reportIssueForm");
+  var closeBtn = document.getElementById("reportIssueClose");
+  var cancelBtn = document.getElementById("reportIssueCancel");
+  var thanks = document.getElementById("reportIssueThanks");
+  var commentInput = document.getElementById("reportIssueComment");
+
+  if (trigger.dataset.reportBound === "true") return;
+  trigger.dataset.reportBound = "true";
+
+  trigger.addEventListener("click", function () {
+    if (thanks) thanks.hidden = true;
+    if (form) form.querySelectorAll(".report-issue-form-controls").forEach(function () {});
+    var fieldsetEl = form ? form.querySelector(".report-issue-reasons") : null;
+    var commentEl = commentInput;
+    var actionsEl = form ? form.querySelector(".report-issue-actions") : null;
+    if (fieldsetEl) fieldsetEl.hidden = false;
+    if (commentEl) {
+      commentEl.hidden = false;
+      commentEl.value = "";
+    }
+    if (actionsEl) actionsEl.hidden = false;
+    var checked = form ? form.querySelectorAll('input[name="reportReason"]:checked') : [];
+    checked.forEach(function (input) {
+      input.checked = false;
+    });
+    trackFunnelEvent("listing_issue_dialog_opened", {
+      slug: (therapist && therapist.slug) || "",
+    });
+    dialog.showModal();
+  });
+
+  function closeDialog() {
+    if (dialog.open) dialog.close();
+  }
+
+  if (closeBtn) closeBtn.addEventListener("click", closeDialog);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeDialog);
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var reasonEl = form.querySelector('input[name="reportReason"]:checked');
+    if (!reasonEl) return;
+    var reason = reasonEl.value;
+    var commentRaw = commentInput ? String(commentInput.value || "").trim() : "";
+    var comment = commentRaw.length > 400 ? commentRaw.slice(0, 400) : commentRaw;
+    trackFunnelEvent("listing_issue_reported", {
+      slug: (therapist && therapist.slug) || "",
+      therapist_name: (therapist && therapist.name) || "",
+      reason: reason,
+      comment: comment,
+      has_comment: Boolean(comment),
+    });
+    var fieldsetEl = form.querySelector(".report-issue-reasons");
+    var actionsEl = form.querySelector(".report-issue-actions");
+    if (fieldsetEl) fieldsetEl.hidden = true;
+    if (commentInput) commentInput.hidden = true;
+    if (actionsEl) actionsEl.hidden = true;
+    if (thanks) thanks.hidden = false;
+    window.setTimeout(closeDialog, 1800);
+  });
+}
+
 function renderProfile(t, therapistDirectory) {
   var readiness = getTherapistMatchReadiness(t);
   var freshness = getDataFreshnessSummary(t);
@@ -3006,9 +3073,15 @@ function renderProfile(t, therapistDirectory) {
     "</div>" +
     '<div class="profile-sidebar-stack">' +
     "</div>" +
-    '<div style="text-align:center;margin-top:1rem;padding-top:1rem"><a href="directory.html" style="color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:600">← Back to Directory</a></div>';
+    '<div class="profile-foot-actions">' +
+    '<a href="directory.html" class="profile-foot-back">← Back to Directory</a>' +
+    '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
+    escapeHtml(t.slug || "") +
+    '">Report an issue with this listing</button>' +
+    "</div>";
 
   document.getElementById("profileWrap").innerHTML = html;
+  bindReportIssueDialog(t);
   updateShortlistAction(t.slug);
   var shortlistButtons = Array.prototype.slice.call(
     document.querySelectorAll("[data-shortlist-trigger='profile']"),

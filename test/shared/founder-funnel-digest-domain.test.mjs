@@ -137,6 +137,78 @@ test("renderFounderFunnelEmail singularizes 1-session copy", () => {
   assert.match(subject, /1 patient session(?!s)/);
 });
 
+function issueReportEvent(payload, daysAgo) {
+  return {
+    type: "listing_issue_reported",
+    occurredAt: new Date(NOW_MS - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+    payload: JSON.stringify(payload),
+  };
+}
+
+test("buildFounderFunnelDigest includes issue reports from current window", () => {
+  const events = [
+    issueReportEvent(
+      {
+        slug: "jane-doe",
+        therapist_name: "Jane Doe",
+        reason: "closed_or_moved",
+        comment: "Office closed last month.",
+      },
+      2,
+    ),
+    issueReportEvent(
+      {
+        slug: "john-smith",
+        therapist_name: "John Smith",
+        reason: "not_bipolar_specialist",
+        comment: "",
+      },
+      4,
+    ),
+  ];
+  const result = buildFounderFunnelDigest({ events, nowIso: NOW });
+  assert.ok(result);
+  assert.equal(result.issueReports.length, 2);
+  assert.equal(result.issueReports[0].therapistName, "Jane Doe");
+  assert.equal(result.issueReports[0].reason, "closed_or_moved");
+});
+
+test("buildFounderFunnelDigest emits a digest even with only issue reports", () => {
+  const events = [issueReportEvent({ slug: "x", therapist_name: "X", reason: "wrong_contact" }, 1)];
+  const result = buildFounderFunnelDigest({ events, nowIso: NOW });
+  assert.ok(result);
+  assert.equal(result.issueReports.length, 1);
+});
+
+test("renderFounderFunnelEmail includes the issue reports section", () => {
+  const events = [
+    eventAt("home_match_started", 1),
+    issueReportEvent(
+      {
+        slug: "jane-doe",
+        therapist_name: "Jane Doe",
+        reason: "closed_or_moved",
+        comment: "Office closed",
+      },
+      2,
+    ),
+  ];
+  const digest = buildFounderFunnelDigest({ events, nowIso: NOW });
+  const { text } = renderFounderFunnelEmail({ digest });
+  assert.match(text, /Listing issues reported \(1\):/);
+  assert.match(text, /Jane Doe \[closed or moved\]/);
+  assert.match(text, /Office closed/);
+});
+
+test("buildFounderFunnelDigest excludes issue reports older than the window", () => {
+  const events = [
+    eventAt("home_match_started", 1),
+    issueReportEvent({ slug: "old-report", reason: "other" }, 30),
+  ];
+  const result = buildFounderFunnelDigest({ events, nowIso: NOW });
+  assert.equal(result.issueReports.length, 0);
+});
+
 test("internals expose step keys for cross-referencing", () => {
   assert.ok(_internals.PATIENT_STEPS.length === 6);
   assert.equal(_internals.PATIENT_STEPS[0].key, "home_match_started");

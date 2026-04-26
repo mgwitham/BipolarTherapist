@@ -95,6 +95,64 @@
       </p>
     </footer>
 
+    <dialog id="reportIssueDialog" class="report-issue-dialog" aria-labelledby="reportIssueTitle">
+      <form method="dialog" id="reportIssueForm" class="report-issue-form">
+        <button type="button" class="report-issue-close" id="reportIssueClose" aria-label="Close">
+          ×
+        </button>
+        <h2 id="reportIssueTitle" class="report-issue-title">Report an issue with this listing</h2>
+        <p class="report-issue-sub">
+          Tell us what's wrong and we'll review it. Your report is anonymous.
+        </p>
+
+        <fieldset class="report-issue-reasons">
+          <legend class="report-issue-legend">What's wrong?</legend>
+          <label class="report-issue-radio">
+            <input type="radio" name="reportReason" value="closed_or_moved" required />
+            <span>The practice has closed or moved</span>
+          </label>
+          <label class="report-issue-radio">
+            <input type="radio" name="reportReason" value="not_bipolar_specialist" />
+            <span>This therapist doesn't actually treat bipolar disorder</span>
+          </label>
+          <label class="report-issue-radio">
+            <input type="radio" name="reportReason" value="wrong_contact" />
+            <span>The contact info is wrong</span>
+          </label>
+          <label class="report-issue-radio">
+            <input type="radio" name="reportReason" value="wrong_credentials_or_license" />
+            <span>The credentials or license info looks wrong</span>
+          </label>
+          <label class="report-issue-radio">
+            <input type="radio" name="reportReason" value="other" />
+            <span>Something else</span>
+          </label>
+        </fieldset>
+
+        <label class="report-issue-comment-label" for="reportIssueComment">
+          Anything else to share? (optional)
+        </label>
+        <textarea
+          id="reportIssueComment"
+          name="reportComment"
+          rows="4"
+          maxlength="500"
+          placeholder="Optional. We read every report."
+        ></textarea>
+
+        <div class="report-issue-actions">
+          <button type="button" class="report-issue-btn-secondary" id="reportIssueCancel">
+            Cancel
+          </button>
+          <button type="submit" class="report-issue-btn-primary">Send report</button>
+        </div>
+
+        <div class="report-issue-thanks" id="reportIssueThanks" hidden>
+          <p>Thank you. We received your report and will look into it.</p>
+        </div>
+      </form>
+    </dialog>
+
     <script type="module" src="assets/therapist-page.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>

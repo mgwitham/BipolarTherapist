@@ -107,12 +107,41 @@ export function buildFounderFunnelDigest(options) {
   const claim = buildFunnelRows(events, CLAIM_STEPS, currentStart, nowMs);
   const portal = buildFunnelRows(events, PORTAL_STEPS, currentStart, nowMs);
 
+  const issueReports = events
+    .filter(function (event) {
+      return (
+        event && event.type === "listing_issue_reported" && inWindow(event, currentStart, nowMs)
+      );
+    })
+    .map(function (event) {
+      let payload = event.payload;
+      if (typeof payload === "string") {
+        try {
+          payload = JSON.parse(payload);
+        } catch (_error) {
+          payload = {};
+        }
+      }
+      return {
+        slug: (payload && payload.slug) || "",
+        therapistName: (payload && payload.therapist_name) || "",
+        reason: (payload && payload.reason) || "",
+        comment: (payload && payload.comment) || "",
+        occurredAt: event.occurredAt || "",
+      };
+    });
+
   const patientStarted = totalForFirstStep(patient);
   const patientPriorStarted = totalForFirstStep(patientPrior);
   const supplyTotal =
     totalForFirstStep(signup) + totalForFirstStep(claim) + totalForFirstStep(portal);
 
-  if (patientStarted === 0 && patientPriorStarted === 0 && supplyTotal === 0) {
+  if (
+    patientStarted === 0 &&
+    patientPriorStarted === 0 &&
+    supplyTotal === 0 &&
+    issueReports.length === 0
+  ) {
     return null;
   }
 
@@ -142,6 +171,7 @@ export function buildFounderFunnelDigest(options) {
     signup: { rows: signup, started: totalForFirstStep(signup) },
     claim: { rows: claim, started: totalForFirstStep(claim) },
     portal: { rows: portal, started: totalForFirstStep(portal) },
+    issueReports: issueReports,
   };
 }
 
@@ -212,6 +242,19 @@ export function renderFounderFunnelEmail(options) {
   lines.push("");
   lines.push("Portal completion funnel:");
   lines.push(renderFunnelLines(digest.portal.rows));
+  if (Array.isArray(digest.issueReports) && digest.issueReports.length) {
+    lines.push("");
+    lines.push("Listing issues reported (" + digest.issueReports.length + "):");
+    digest.issueReports.slice(0, 10).forEach(function (report) {
+      const therapistLabel = report.therapistName || report.slug || "(unknown)";
+      const reasonLabel = String(report.reason || "").replace(/_/g, " ");
+      const commentTail = report.comment ? " - " + report.comment.slice(0, 200) : "";
+      lines.push("  - " + therapistLabel + " [" + reasonLabel + "]" + commentTail);
+    });
+    if (digest.issueReports.length > 10) {
+      lines.push("  ... and " + (digest.issueReports.length - 10) + " more");
+    }
+  }
   if (adminUrl) {
     lines.push("");
     lines.push("Full breakdown:");
