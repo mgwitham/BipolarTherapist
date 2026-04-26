@@ -388,6 +388,86 @@ function renderWaitlistByState(events) {
   );
 }
 
+// Shortlist quality. Aggregates `shortlist_feedback` events into a
+// positive/negative rate and the top reasons the user picked when they
+// said "Not really." Lets us see whether the rank is landing.
+function renderShortlistQuality(events) {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent = events.filter(function (event) {
+    if (event.type !== "shortlist_feedback") return false;
+    const at = new Date(event.occurredAt || 0).getTime();
+    return Number.isFinite(at) && at >= cutoff;
+  });
+
+  if (!recent.length) {
+    return (
+      '<p class="admin-funnel-empty">No shortlist feedback in the last 7 days. ' +
+      "Click Yes/Not really on /match to fire one.</p>"
+    );
+  }
+
+  let positive = 0;
+  let negative = 0;
+  const reasonCounts = {};
+  recent.forEach(function (event) {
+    const payload = parsePayload(event.payload);
+    if (payload.value === "positive") {
+      positive += 1;
+    } else if (payload.value === "negative") {
+      negative += 1;
+      const reasons = Array.isArray(payload.reasons) ? payload.reasons : [];
+      reasons.forEach(function (reason) {
+        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+      });
+    }
+  });
+
+  const total = positive + negative;
+  const positiveRate = total ? Math.round((positive / total) * 100) : 0;
+  const reasons = Object.keys(reasonCounts)
+    .map(function (reason) {
+      return { reason: reason, count: reasonCounts[reason] };
+    })
+    .sort(function (a, b) {
+      return b.count - a.count;
+    });
+
+  const reasonRows = reasons.length
+    ? '<table class="admin-funnel-table">' +
+      '<thead><tr><th>Reason</th><th class="r">Picked</th></tr></thead><tbody>' +
+      reasons
+        .map(function (row) {
+          return (
+            "<tr><td>" + escapeHtml(row.reason) + '</td><td class="r">' + row.count + "</td></tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table>"
+    : '<p class="admin-funnel-caption">No reasons picked on the negative votes yet.</p>';
+
+  return (
+    '<table class="admin-funnel-table">' +
+    '<thead><tr><th>Signal</th><th class="r">Last 7 days</th></tr></thead><tbody>' +
+    '<tr><td>Yes, this felt right</td><td class="r">' +
+    positive +
+    "</td></tr>" +
+    '<tr><td>Not really</td><td class="r">' +
+    negative +
+    "</td></tr>" +
+    '<tr><td><strong>% felt right</strong></td><td class="r"><strong>' +
+    positiveRate +
+    "%</strong></td></tr>" +
+    "</tbody></table>" +
+    '<p class="admin-funnel-caption">' +
+    total +
+    " total responses across " +
+    recent.length +
+    " events.</p>" +
+    "<h4>Top reasons selected on “Not really”</h4>" +
+    reasonRows
+  );
+}
+
 function renderRecentEvents(events) {
   if (!events.length) {
     return '<p class="admin-funnel-empty">No events logged yet. Trigger one by visiting /signup or /claim.</p>';
@@ -456,6 +536,9 @@ function renderDashboard(container, logData) {
     "</section>" +
     '<section class="admin-funnel-section"><h3>Match conversion — last 7 days</h3>' +
     renderMatchConversion(events) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Shortlist quality — last 7 days</h3>' +
+    renderShortlistQuality(events) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +
     renderWaitlistByState(events) +
