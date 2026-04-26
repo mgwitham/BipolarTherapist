@@ -634,6 +634,133 @@
       }
 
       /* =========================
+         Inline field hints (live)
+         ========================= */
+      .new-listing-live-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 500;
+        font-size: 0.82rem;
+        color: var(--teal-dark);
+        min-height: 1rem;
+      }
+      .new-listing-live-hint:empty {
+        display: none;
+      }
+      .new-listing-live-hint::before {
+        content: "✓";
+        font-weight: 700;
+        color: var(--green);
+      }
+      .new-listing-live-hint.is-pending {
+        color: var(--muted);
+      }
+      .new-listing-live-hint.is-pending::before {
+        content: "…";
+        color: var(--muted);
+      }
+
+      /* =========================
+         Submit progress strip
+         ========================= */
+      .new-listing-progress {
+        display: grid;
+        gap: 0.55rem;
+        padding: 0.85rem 1rem;
+        background: var(--teal-faint);
+        border: 1px solid rgba(26, 122, 143, 0.22);
+        border-radius: 10px;
+      }
+      .new-listing-progress[hidden] {
+        display: none;
+      }
+      .new-listing-progress-step {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 0.6rem;
+        align-items: center;
+        font-size: 0.9rem;
+        color: var(--muted);
+        transition: color 0.2s ease;
+      }
+      .new-listing-progress-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: var(--white);
+        position: relative;
+        margin-left: 2px;
+        transition:
+          border-color 0.2s ease,
+          background 0.2s ease;
+      }
+      .new-listing-progress-step.is-active {
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+      .new-listing-progress-step.is-active .new-listing-progress-dot {
+        border-color: var(--teal);
+        background: var(--white);
+        animation: ntlPulse 1s ease-in-out infinite;
+      }
+      .new-listing-progress-step.is-done {
+        color: var(--navy);
+      }
+      .new-listing-progress-step.is-done .new-listing-progress-dot {
+        border-color: var(--green);
+        background: var(--green);
+      }
+      .new-listing-progress-step.is-done .new-listing-progress-dot::after {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: -1px;
+        width: 4px;
+        height: 8px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+      @keyframes ntlPulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(26, 122, 143, 0.35);
+        }
+        50% {
+          box-shadow: 0 0 0 5px rgba(26, 122, 143, 0);
+        }
+      }
+
+      /* =========================
+         Smart error recovery
+         ========================= */
+      .new-listing-recovery[hidden] {
+        display: none;
+      }
+      .new-listing-recovery {
+        margin-top: -0.4rem;
+        padding: 0.7rem 0.9rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.88rem;
+        color: var(--slate);
+        display: grid;
+        gap: 0.4rem;
+      }
+      .new-listing-recovery-cta {
+        color: var(--teal-dark);
+        font-weight: 700;
+        text-decoration: none;
+        justify-self: start;
+      }
+      .new-listing-recovery-cta:hover {
+        text-decoration: underline;
+      }
+
+      /* =========================
          Trust strip (boards)
          ========================= */
       .signup-trust-strip {
@@ -1055,6 +1182,11 @@
                       placeholder="e.g. 109462"
                       required
                     />
+                    <span
+                      class="new-listing-live-hint"
+                      id="newListingLicenseHint"
+                      aria-live="polite"
+                    ></span>
                   </label>
                   <label>
                     <span>Practice ZIP</span>
@@ -1068,6 +1200,11 @@
                       placeholder="90025"
                       required
                     />
+                    <span
+                      class="new-listing-live-hint"
+                      id="newListingZipHint"
+                      aria-live="polite"
+                    ></span>
                   </label>
                 </div>
                 <div
@@ -1097,12 +1234,40 @@
                   license and set up your listing.
                 </p>
                 <div
+                  class="new-listing-progress"
+                  id="newListingProgress"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                >
+                  <div class="new-listing-progress-step" data-step="verify">
+                    <span class="new-listing-progress-dot"></span>
+                    <span>Checking your California license</span>
+                  </div>
+                  <div class="new-listing-progress-step" data-step="build">
+                    <span class="new-listing-progress-dot"></span>
+                    <span>Building your profile</span>
+                  </div>
+                  <div class="new-listing-progress-step" data-step="ready">
+                    <span class="new-listing-progress-dot"></span>
+                    <span>Almost ready</span>
+                  </div>
+                </div>
+                <div
                   class="new-listing-status"
                   id="newListingStatus"
                   role="status"
                   aria-live="polite"
                   hidden
                 ></div>
+                <div class="new-listing-recovery" id="newListingRecovery" hidden>
+                  <span id="newListingRecoveryBody"
+                    >Already have a listing on BipolarTherapyHub? Claim it to edit instead.</span
+                  >
+                  <a class="new-listing-recovery-cta" id="newListingRecoveryCta" href="claim.html"
+                    >Claim an existing listing →</a
+                  >
+                </div>
               </form>
 
               <section
