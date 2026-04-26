@@ -3542,6 +3542,106 @@ body.dir-vb .t-card::before {
   gap: 0.45rem;
 }
 
+/* Trust evidence strip — patient-facing receipts (license number,
+   bipolar specialty source, last reviewed). Used on directory cards,
+   match cards, and the profile hero. */
+.trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0.35rem;
+  padding: 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.trust-strip-card {
+  font-size: 0.76rem;
+}
+
+.trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.45rem;
+  background: rgba(11, 87, 142, 0.06);
+  color: var(--navy, #0b3a5e);
+  text-decoration: none;
+  border: 1px solid rgba(11, 87, 142, 0.12);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.trust-chip-link {
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.trust-chip-link:hover,
+.trust-chip-link:focus-visible {
+  background: rgba(11, 87, 142, 0.11);
+  border-color: rgba(11, 87, 142, 0.28);
+  text-decoration: none;
+}
+
+.trust-chip-icon {
+  flex: none;
+  font-weight: 700;
+  color: var(--accent-green, #1b7a3f);
+}
+
+.trust-chip-text {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.trust-chip-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #6b7a8a);
+  font-weight: 600;
+}
+
+.trust-chip-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy, #0b3a5e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 22ch;
+}
+
+.trust-chip-arrow {
+  margin-left: 0.15rem;
+  opacity: 0.65;
+}
+
+.trust-chip-license {
+  background: rgba(27, 122, 63, 0.08);
+  border-color: rgba(27, 122, 63, 0.18);
+}
+
+.trust-chip-evidence.trust-chip-link .trust-chip-value {
+  color: var(--link, #0b57b8);
+}
+
+@media (max-width: 480px) {
+  .trust-chip {
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+  .trust-chip-value {
+    max-width: 100%;
+  }
+}
+
 .directory-decision-preview-subtitle {
   margin-top: 0.2rem;
   font-size: 1rem;
