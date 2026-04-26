@@ -38,5 +38,8 @@ jobs:
       - name: Build website
         run: npm run build
 
+      - name: Check bundle budgets
+        run: npm run check:bundle-budgets
+
       - name: Build CMS
         run: npm run cms:build
