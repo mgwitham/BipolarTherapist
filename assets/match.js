@@ -4065,11 +4065,25 @@ function recordShortlistFeedback(value) {
     return;
   }
 
+  var reasons = value === "negative" ? getSelectedReasonValues("shortlist") : [];
+
   saveFeedback({
     type: "shortlist_feedback",
     value: value,
-    reasons: value === "negative" ? getSelectedReasonValues("shortlist") : [],
+    reasons: reasons,
     context: buildFeedbackContext(),
+  });
+  // Forward to the admin funnel log so this signal isn't trapped in
+  // one user's localStorage. The admin Shortlist quality panel reads
+  // these events to track positive/negative rate and top reasons.
+  trackFunnelEvent("shortlist_feedback", {
+    value: value,
+    reasons: reasons,
+    care_intent: latestProfile.care_intent || "",
+    care_state: latestProfile.care_state || "",
+    result_count: latestEntries.length,
+    top_slug: latestEntries[0] && latestEntries[0].therapist ? latestEntries[0].therapist.slug : "",
+    request_id: currentJourneyId || "",
   });
   updateShortlistFeedbackUi(value);
   document.getElementById("feedbackStatus").textContent =
