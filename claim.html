@@ -896,6 +896,24 @@
         display: none !important;
       }
 
+      .site-mini-footer {
+        max-width: 900px;
+        margin: 2.5rem auto 0;
+        padding: 1.25rem 1.5rem 2rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .site-mini-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        margin: 0 0.4rem;
+      }
+      .site-mini-footer a:hover {
+        color: var(--teal-dark);
+      }
+
       @media (max-width: 720px) {
         .claim-main,
         .claim-how-it-works,
@@ -1041,7 +1059,7 @@
           </p>
           <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
             <a
-              href="mailto:hello@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
+              href="mailto:support@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
               id="claimConfirmDispute"
               >Not your listing? Report a mistaken claim →</a
             >
@@ -1375,6 +1393,11 @@
         </p>
       </details>
     </section>
+
+    <footer class="site-mini-footer">
+      <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
     <script type="module" src="assets/signup-listing-removal.js"></script>
