@@ -310,6 +310,9 @@
         display: grid;
         gap: 0.95rem;
       }
+      .new-listing-form[hidden] {
+        display: none;
+      }
       .new-listing-form label {
         display: grid;
         gap: 0.35rem;
@@ -573,6 +576,15 @@
         margin: 0;
         font-size: 1.2rem;
         color: var(--navy);
+      }
+      .new-listing-plan-nudge {
+        margin: -0.25rem 0 0;
+        padding: 0.6rem 0.85rem;
+        background: var(--teal-faint);
+        border-radius: 8px;
+        color: var(--teal-dark);
+        font-size: 0.86rem;
+        line-height: 1.45;
       }
       .new-listing-plan-options {
         display: grid;
@@ -1077,53 +1089,6 @@
                   <input type="checkbox" name="treats_bipolar" required />
                   <span>I'm licensed in California and treat bipolar disorder in my practice.</span>
                 </label>
-                <div class="new-listing-photo" data-photo-control>
-                  <div class="new-listing-photo-row">
-                    <div
-                      class="new-listing-photo-preview"
-                      id="newListingPhotoPreview"
-                      aria-hidden="true"
-                    >
-                      <span class="new-listing-photo-placeholder">📷</span>
-                    </div>
-                    <div class="new-listing-photo-copy">
-                      <div class="new-listing-photo-line">
-                        <span class="new-listing-photo-title">Add a headshot</span>
-                        <span class="new-listing-photo-optional">Optional</span>
-                      </div>
-                      <span class="new-listing-photo-hint"
-                        >Profiles with a photo earn more patient trust. JPG, PNG, or WebP up to
-                        4&nbsp;MB.</span
-                      >
-                      <div class="new-listing-photo-controls">
-                        <label class="new-listing-photo-btn">
-                          <input
-                            type="file"
-                            id="newListingPhotoInput"
-                            name="photo_upload"
-                            accept="image/jpeg,image/png,image/webp"
-                            hidden
-                          />
-                          <span id="newListingPhotoBtnLabel">Choose photo</span>
-                        </label>
-                        <button
-                          type="button"
-                          class="new-listing-photo-clear"
-                          id="newListingPhotoClear"
-                          hidden
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <span
-                        class="new-listing-photo-status"
-                        id="newListingPhotoStatus"
-                        role="status"
-                        aria-live="polite"
-                      ></span>
-                    </div>
-                  </div>
-                </div>
                 <button type="submit" class="new-listing-submit">
                   Verify license and continue →
                 </button>
@@ -1148,6 +1113,10 @@
               >
                 <p class="new-listing-plan-eyebrow">License verified ✓</p>
                 <h3>How do you want to start?</h3>
+                <p class="new-listing-plan-nudge">
+                  Tip: add your headshot from the portal next — profiles with a photo earn more
+                  patient trust.
+                </p>
                 <div class="new-listing-plan-options">
                   <button
                     type="button"
