@@ -202,6 +202,19 @@
         font-size: 0.86rem;
         font-weight: 600;
       }
+      .claim-hero-removal-link {
+        margin-top: 0.1rem;
+        font-size: 0.85rem;
+      }
+      .claim-hero-removal-link a {
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .claim-hero-removal-link a:hover {
+        color: var(--teal-dark);
+        text-decoration: underline;
+      }
 
       .claim-session-banner {
         display: grid;
@@ -934,6 +947,9 @@
             <li>Free to claim</li>
             <li>Your CA license verification carries over</li>
           </ul>
+          <p class="claim-hero-removal-link">
+            <a href="#claimRemovalSection">Want to remove your listing instead? →</a>
+          </p>
         </section>
 
         <section
@@ -1245,20 +1261,19 @@
           </p>
           <a href="signup.html" id="claimHelpNewListing">Create a new listing →</a>
         </article>
-        <article class="claim-help-card">
+        <article class="claim-help-card" id="claimRemovalSection">
           <strong>Need removal instead?</strong>
           <p>
-            Listing removal stays available, but it is a separate lower-priority request with its
-            own confirmation safeguards.
+            Removal is instant. We send a one-time confirmation link to the email on your listing,
+            and your page goes dark the moment you click it.
           </p>
           <details class="claim-remove-details" aria-label="Remove your listing">
             <summary>Open removal request</summary>
             <div class="claim-remove-body">
               <p class="claim-remove-intro">
-                We added California therapists to this directory based on verified license and
-                public bipolar-specialty indicators. If you'd rather not be listed, we send a
-                one-time confirmation link to the email on your listing and your page goes dark the
-                moment you click it.
+                Your listing was built from your CA DCA license record and publicly visible
+                bipolar-specialty information. If you'd rather not be listed, confirm via the email
+                on file and the page is removed immediately.
               </p>
               <div class="listing-removal-search">
                 <label>
@@ -1332,9 +1347,9 @@
       <details class="claim-faq-item">
         <summary>Why am I already listed?</summary>
         <p>
-          We auto-added California bipolar-specialist therapists from public records and licensed
-          practice sources. Your public profile may already exist even if you have not logged in
-          yet. Claiming simply gives you control over it.
+          Your listing was built from your CA DCA license record and publicly visible
+          bipolar-specialty information from your practice site or public directories. Claiming
+          gives you control over it. Removal is one click and instant.
         </p>
       </details>
       <details class="claim-faq-item">
