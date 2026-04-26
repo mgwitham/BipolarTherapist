@@ -5600,6 +5600,34 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   width: 16px;
   height: 16px;
 }
+.mx-save.is-saved,
+.mx-card-save.is-saved {
+  background: #e6f4f6;
+  border-color: #1a7a8f;
+  color: #155f70;
+}
+.mx-save-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(0.5rem);
+  background: #0f2a31;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 24px rgba(15, 42, 49, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 1000;
+}
+.mx-save-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 .mx-fit-row {
   display: flex;
   flex-wrap: wrap;

@@ -18,8 +18,17 @@ import {
   resetDirectoryFiltersAction,
 } from "./directory-controller.js";
 import { compareTherapistsWithFilters, matchesDirectoryFilters } from "./directory-logic.js";
+import {
+  MAX_ENTRIES as SAVED_LIST_MAX,
+  readList as readSavedList,
+  isSaved as isSavedSlug,
+  addToList as addToSavedList,
+  removeFromList as removeFromSavedList,
+  updateNote as updateSavedListNote,
+  subscribe as subscribeToSavedList,
+} from "./saved-list.js";
 
-var DIRECTORY_LIST_LIMIT = 50;
+var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 import {
   renderDirectoryRecommendationsMarkup,
   renderCardMarkup,
@@ -38,7 +47,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
 (async function () {
   initValuePillPopover();
-  var DIRECTORY_SHORTLIST_KEY = "bth_directory_shortlist_v1";
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
   var directoryPage = content.directoryPage || null;
@@ -103,7 +111,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     sortBy: "best_match",
   };
   var filters = { ...defaultFilters };
-  var shortlist = readShortlist();
+  var shortlist = readSavedList();
+  subscribeToSavedList(function (next) {
+    shortlist = next;
+  });
   var pendingMotionSlug = "";
   var liveFilterTimer = 0;
   var resizeTimer = 0;
@@ -372,96 +383,30 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     return indexes;
   }
 
-  function readShortlist() {
-    try {
-      return normalizeShortlist(
-        JSON.parse(window.localStorage.getItem(DIRECTORY_SHORTLIST_KEY) || "[]"),
-      );
-    } catch (_error) {
-      return [];
-    }
-  }
-
-  function normalizeShortlist(value) {
-    return (Array.isArray(value) ? value : [])
-      .map(function (item) {
-        if (typeof item === "string") {
-          return {
-            slug: item,
-            priority: "",
-            note: "",
-          };
-        }
-        if (!item || !item.slug) {
-          return null;
-        }
-        return {
-          slug: String(item.slug),
-          priority: String(item.priority || ""),
-          note: String(item.note || ""),
-        };
-      })
-      .filter(Boolean)
-      .slice(0, DIRECTORY_LIST_LIMIT);
-  }
-
-  function writeShortlist(value) {
-    shortlist = normalizeShortlist(value);
-    try {
-      window.localStorage.setItem(DIRECTORY_SHORTLIST_KEY, JSON.stringify(shortlist));
-    } catch (_error) {
-      return;
-    }
-    if (typeof window.refreshShortlistNav === "function") {
-      window.refreshShortlistNav();
-    }
-  }
-
   function isShortlisted(slug) {
-    return shortlist.some(function (item) {
-      return item.slug === slug;
-    });
+    return isSavedSlug(slug);
   }
 
   function toggleShortlist(slug) {
-    if (isShortlisted(slug)) {
-      trackFunnelEvent("directory_shortlist_removed", {
-        therapist_slug: slug,
-      });
-      writeShortlist(
-        shortlist.filter(function (item) {
-          return item.slug !== slug;
-        }),
-      );
+    if (isSavedSlug(slug)) {
+      var removed = removeFromSavedList(slug, { surface: "directory" });
+      shortlist = removed.list;
+      trackFunnelEvent("directory_shortlist_removed", { therapist_slug: slug });
       return false;
     }
-
-    trackFunnelEvent("directory_shortlist_saved", {
-      therapist_slug: slug,
-      shortlist_size_before: shortlist.length,
-    });
-    writeShortlist(
-      shortlist.concat({ slug: slug, priority: "", note: "" }).slice(0, DIRECTORY_LIST_LIMIT),
-    );
-    return true;
+    var added = addToSavedList(slug, { surface: "directory" });
+    shortlist = added.list;
+    if (added.changed) {
+      trackFunnelEvent("directory_shortlist_saved", {
+        therapist_slug: slug,
+        shortlist_size_before: shortlist.length - 1,
+      });
+    }
+    return added.changed;
   }
 
   function updateShortlistNote(slug, note) {
-    writeShortlist(
-      shortlist.map(function (item) {
-        if (item.slug !== slug) {
-          return item;
-        }
-
-        return {
-          slug: item.slug,
-          priority: item.priority || "",
-          note: String(note || "")
-            .trim()
-            .slice(0, 120),
-        };
-      }),
-    );
+    shortlist = updateSavedListNote(slug, note);
   }
 
   function applyDirectoryCopy() {
