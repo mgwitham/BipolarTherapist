@@ -1,5 +1,4 @@
 import { fetchPublicTherapists } from "./cms.js";
-import { renderTrustEvidenceStrip } from "./trust-evidence-strip.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -1879,10 +1878,13 @@ function getHeroFitReasons(entry, therapist, profileArg) {
           });
         })
       : specialties.filter(function (s) {
-          return /bipolar|cycl|mixed|psychos/i.test(s);
+          return /bipolar|cycl|mixed/i.test(s);
         });
-    if (matched.length) {
-      out.push("Treats " + matched.slice(0, 2).join(" + "));
+    var displayMatched = matched.filter(function (s) {
+      return !/^psychos/i.test(s);
+    });
+    if (displayMatched.length) {
+      out.push("Treats " + displayMatched.slice(0, 2).join(" + "));
     }
   }
 
@@ -5003,7 +5005,6 @@ function renderLeadResultCard(entry, _backupName, options) {
     renderSaveButton(therapist.slug || "", "hero") +
     "</div>" +
     (chipsHtml ? '<div class="mx-fit-row">' + chipsHtml + "</div>" : "") +
-    renderTrustEvidenceStrip(therapist, { variant: "card", className: "mx-hero-trust" }) +
     '<div class="mx-hero-meta">' +
     '<div class="mx-meta-item">' +
     '<span class="mx-meta-label">Availability</span>' +
