@@ -28,6 +28,20 @@ const CLAIM_STEPS = [
   { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
 ];
 
+// Patient match funnel. Tracks the demand-side path from "started a
+// search on the homepage" through "opened the contact modal." This is
+// what tells us which pillar to invest in next: drops at viewed→
+// profile_opened mean the shortlist isn't trusted; drops at
+// profile_opened→contact mean the handoff is the friction.
+const PATIENT_STEPS = [
+  { key: "home_match_started", label: "Started from home" },
+  { key: "match_intake_landed", label: "Landed on results page" },
+  { key: "match_submitted", label: "Completed intake" },
+  { key: "match_results_viewed", label: "Saw shortlist" },
+  { key: "match_result_profile_opened", label: "Opened a profile" },
+  { key: "match_contact_modal_opened", label: "Opened contact modal" },
+];
+
 // Portal edit-form funnel. Tracks the post-claim path a therapist
 // takes from "landed on portal" through "profile is match-ready."
 // This is the primary metric driver for the portal UX work — if
@@ -266,6 +280,7 @@ function renderDashboard(container, logData) {
   const signupRows = buildFunnelRow(events, SIGNUP_STEPS, lastSevenDays);
   const claimRows = buildFunnelRow(events, CLAIM_STEPS, lastSevenDays);
   const portalRows = buildFunnelRow(events, PORTAL_STEPS, lastSevenDays);
+  const patientRows = buildFunnelRow(events, PATIENT_STEPS, lastSevenDays);
 
   const totalAppended = Number(logData.totalAppended || 0);
   const updatedAt = logData.updatedAt || "never";
@@ -273,6 +288,9 @@ function renderDashboard(container, logData) {
   container.innerHTML =
     '<section class="admin-funnel-section"><h3>At a glance</h3>' +
     renderHeadlineCounts(events) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Patient match funnel — last 7 days</h3>' +
+    renderFunnelTable("% shown relative to patients who started from home", patientRows) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Signup funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who reached step 1", signupRows) +
