@@ -5580,17 +5580,23 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   background: transparent;
   border: 1px solid #c9dce1;
   border-radius: 999px;
-  width: 38px;
-  height: 38px;
+  height: 34px;
+  padding: 0 0.85rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.4rem;
   color: #52707c;
   flex-shrink: 0;
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
   transition:
+    background 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease;
+}
+.mx-save-label {
+  line-height: 1;
 }
 .mx-save:hover {
   border-color: #1a7a8f;
@@ -5834,24 +5840,31 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   margin: 0;
 }
 .mx-card-save {
-  width: 30px;
   height: 30px;
-  border-radius: 50%;
+  padding: 0 0.7rem;
+  border-radius: 999px;
   background: transparent;
-  border: 0;
-  color: #8aa3ad;
-  display: flex;
+  border: 1px solid #d2dde0;
+  color: #52707c;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.35rem;
   flex-shrink: 0;
   cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .mx-card-save:hover {
+  border-color: #1a7a8f;
   color: #155f70;
 }
 .mx-card-save svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 .mx-card-fit {
   display: flex;

@@ -4792,7 +4792,8 @@ function syncSaveButtonState(btn, slug) {
     "aria-label",
     saved ? "Saved. Tap to remove from your list." : "Save to your list.",
   );
-  btn.innerHTML = renderSaveIcon(saved);
+  btn.innerHTML =
+    renderSaveIcon(saved) + '<span class="mx-save-label">' + (saved ? "Saved" : "Save") + "</span>";
 }
 
 function syncAllSaveButtons() {
@@ -4825,6 +4826,7 @@ subscribeToSavedList(syncAllSaveButtons);
 function renderSaveButton(slug, variant) {
   var saved = isSavedSlug(slug);
   var className = (variant === "card" ? "mx-card-save" : "mx-save") + (saved ? " is-saved" : "");
+  var label = saved ? "Saved" : "Save";
   return (
     '<button type="button" class="' +
     className +
@@ -4836,6 +4838,9 @@ function renderSaveButton(slug, variant) {
     (saved ? "true" : "false") +
     '">' +
     renderSaveIcon(saved) +
+    '<span class="mx-save-label">' +
+    label +
+    "</span>" +
     "</button>"
   );
 }
