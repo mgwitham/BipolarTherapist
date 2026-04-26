@@ -4953,7 +4953,12 @@ function renderLeadResultCard(entry, _backupName, options) {
   var locLine =
     [therapist.city, therapist.state].filter(Boolean).join(", ") +
     (therapist.zip ? " " + therapist.zip : "");
-  var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
+  var telehealthSelected = latestProfile && latestProfile.care_format === "Telehealth";
+  var locDisplay = telehealthSelected && locLine ? "Based in " + locLine : locLine;
+  var metaLine = credLine + (credLine && locDisplay ? " · " : "") + locDisplay;
+  var telehealthBadgeHtml = telehealthSelected
+    ? '<span class="mx-telehealth-badge">Telehealth · serves California</span>'
+    : "";
   var ctaLabel =
     routeType === "booking"
       ? "Book consultation"
@@ -4993,6 +4998,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     escapeHtml(therapist.name || "") +
     "</h3>" +
     (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
+    telehealthBadgeHtml +
     "</div>" +
     renderSaveButton(therapist.slug || "", "hero") +
     "</div>" +
@@ -5063,7 +5069,12 @@ function renderSupportingResultCard(entry, _rank, options) {
   var explanation = getMatchCardExplanation(entry);
   var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
   var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
-  var metaLine = credLine + (credLine && locLine ? " · " : "") + locLine;
+  var telehealthSelected = latestProfile && latestProfile.care_format === "Telehealth";
+  var locDisplay = telehealthSelected && locLine ? "Based in " + locLine : locLine;
+  var metaLine = credLine + (credLine && locDisplay ? " · " : "") + locDisplay;
+  var telehealthBadgeHtml = telehealthSelected
+    ? '<span class="mx-telehealth-badge">Telehealth · serves California</span>'
+    : "";
   var availabilityLabel = getCompareTimingLabel(therapist);
   var costLabel = getCompareCostLabel(therapist);
   var formatLabel = getShortCareFormatLabel(therapist);
@@ -5099,6 +5110,7 @@ function renderSupportingResultCard(entry, _rank, options) {
     escapeHtml(therapist.name || "") +
     "</h3>" +
     (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
+    telehealthBadgeHtml +
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
@@ -5157,8 +5169,16 @@ function buildResultsHeaderHtml(profile, totalCount) {
   var format =
     profile && profile.care_format ? String(profile.care_format) : "In-person or telehealth";
   var parts = [careIntent];
-  if (zip) parts.push(zip);
-  if (format) parts.push(format);
+  // Telehealth is statewide — leading the subtitle with a ZIP makes
+  // patients think the search is filtered to that ZIP and a result
+  // from another city looks broken. Drop the ZIP and label the
+  // location coverage as California instead.
+  if (format === "Telehealth") {
+    parts.push("Telehealth", "California");
+  } else {
+    if (zip) parts.push(zip);
+    if (format) parts.push(format);
+  }
   var subDetails = parts.join(" · ");
 
   var activeCount = countActiveRefinements(profile);

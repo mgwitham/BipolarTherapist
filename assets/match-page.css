@@ -5538,6 +5538,24 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   font-size: 0.9rem;
   margin: 0;
 }
+.mx-telehealth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-top: 0.4rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.1);
+  color: #0e4d5f;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.mx-telehealth-badge::before {
+  content: "📹";
+  font-size: 0.85rem;
+  line-height: 1;
+}
 .mx-save {
   background: transparent;
   border: 1px solid #c9dce1;
