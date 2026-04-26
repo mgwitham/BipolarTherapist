@@ -182,5 +182,28 @@ export async function handleAnalyticsRoutes(context) {
   return false;
 }
 
+// Server-side append helper. Used by routes that record durable
+// outcomes (e.g. listing_removal_confirmed) without a client round-trip.
+// Fire-and-forget at the call site — failures are swallowed so the
+// caller's primary response is never blocked on analytics.
+export async function appendFunnelEvent(client, type, payload) {
+  const now = new Date().toISOString();
+  const event = sanitizeEvent({ type, payload, occurredAt: now }, now);
+  if (!event) return;
+  event.userAgent = "server";
+  try {
+    const logDoc = await getOrCreateLog(client);
+    const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
+    const merged = [event].concat(existing).slice(0, MAX_EVENTS);
+    const totalAppended = Number(logDoc.totalAppended || 0) + 1;
+    await client
+      .patch(SINGLETON_ID)
+      .set({ events: merged, updatedAt: now, totalAppended })
+      .commit({ visibility: "async" });
+  } catch (_error) {
+    // Analytics is best-effort; never block the caller.
+  }
+}
+
 // Exported for tests.
 export { MAX_EVENTS, MAX_BATCH_SIZE, sanitizeEvent, sanitizePayload };
