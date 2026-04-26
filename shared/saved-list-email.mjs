@@ -79,12 +79,7 @@ export function renderSavedListEmail(input) {
       const meta = buildMetaLine(therapist);
       const note = String(therapist.note || "").trim();
       const profileUrl = buildProfileUrl(baseUrl, therapist.slug);
-      return [
-        name,
-        meta || null,
-        note ? `Your note: ${note}` : null,
-        profileUrl,
-      ]
+      return [name, meta || null, note ? `Your note: ${note}` : null, profileUrl]
         .filter(Boolean)
         .join("\n");
     })

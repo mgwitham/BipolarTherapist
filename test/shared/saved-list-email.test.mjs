@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  renderSavedListEmail,
-  SAVED_LIST_EMAIL_SUBJECT,
-} from "../../shared/saved-list-email.mjs";
+import { renderSavedListEmail, SAVED_LIST_EMAIL_SUBJECT } from "../../shared/saved-list-email.mjs";
 
 // We chose to keep saved-list endpoint coverage at the rendering layer here.
 // A full route-level integration test was attempted but hung the runner due to
@@ -54,7 +51,7 @@ test("renderSavedListEmail escapes hostile input", function () {
     therapists: [
       {
         slug: "x",
-        name: '<script>alert(1)</script>',
+        name: "<script>alert(1)</script>",
         note: "<img src=x onerror=alert(1)>",
       },
     ],

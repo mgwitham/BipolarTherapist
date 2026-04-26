@@ -173,13 +173,7 @@ export async function handleSavedListRoutes(context) {
     });
 
     if (emailResult && emailResult.skipped) {
-      sendJson(
-        response,
-        503,
-        { error: "Email is not configured on this server." },
-        origin,
-        config,
-      );
+      sendJson(response, 503, { error: "Email is not configured on this server." }, origin, config);
       return true;
     }
   } catch (error) {
