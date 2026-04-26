@@ -1671,12 +1671,141 @@ function getShortlistSummary(entry) {
 }
 
 function getMatchCardExplanation(entry) {
+  // Prefer the specific/differentiating reasons we synthesize from the
+  // therapist record. The engine's top reasons are often hard-constraint
+  // matches (care type, format) that every result already passes, so they
+  // don't tell the user *why this one*.
+  var fit = getHeroFitReasons(entry, (entry && entry.therapist) || {}, latestProfile);
+  if (fit.length) {
+    return fit[0];
+  }
   var reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
     : [];
   return (
     reasons[0] || "This option rose because it balances fit, practical details, and follow-through."
   );
+}
+
+// Bipolar-specific modalities + how to describe them. IPSRT and FFT have
+// the strongest evidence base for bipolar; CBT-BD is the bipolar-adapted
+// CBT variant.
+var BIPOLAR_RELEVANT_MODALITIES = {
+  IPSRT: "Trained in IPSRT, a bipolar-specific therapy",
+  FFT: "Family-focused therapy (proven for bipolar)",
+  "CBT-BD": "CBT adapted for bipolar disorder",
+  "Family therapy": "Family therapy — supports bipolar households",
+  Psychoeducation: "Psychoeducation — core to bipolar self-management",
+};
+
+function reasonsInsuranceMatches(requestedRaw, acceptedList) {
+  if (!requestedRaw || !Array.isArray(acceptedList) || !acceptedList.length) return false;
+  var requested = String(requestedRaw)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!requested) return false;
+  return acceptedList.some(function (item) {
+    var n = String(item || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+    return n && (n === requested || n.includes(requested) || requested.includes(n));
+  });
+}
+
+// Build the hero card's "Why this may be a good fit" list. Prioritize
+// concrete, differentiating signals over the engine's top-weighted
+// reasons (which are usually hard-constraint matches every result
+// already passes — "Sees patients in person nearby" / "Matches the
+// requested care type"). Falls back to filtered engine reasons if the
+// therapist record is too sparse to synthesize anything specific.
+function getHeroFitReasons(entry, therapist, profileArg) {
+  var profile = profileArg || {};
+  var out = [];
+
+  // 1. Concrete bipolar experience (years, when ≥ 3) — most specific
+  //    signal a patient cares about. "8 years" beats "substantial".
+  var years = Number(therapist.bipolar_years_experience || 0);
+  if (years >= 3) {
+    out.push(years + " " + (years === 1 ? "year" : "years") + " specializing in bipolar care");
+  }
+
+  // 2. Specific bipolar specialty overlap — prefer what the user asked
+  //    for; otherwise surface bipolar-subtype specialties the therapist
+  //    actually treats.
+  var specialties = Array.isArray(therapist.specialties)
+    ? therapist.specialties.filter(Boolean)
+    : [];
+  if (specialties.length) {
+    var requestedFocus = Array.isArray(profile.bipolar_focus) ? profile.bipolar_focus : [];
+    var matched = requestedFocus.length
+      ? specialties.filter(function (s) {
+          return requestedFocus.some(function (r) {
+            return String(s).toLowerCase() === String(r).toLowerCase();
+          });
+        })
+      : specialties.filter(function (s) {
+          return /bipolar|cycl|mixed|psychos/i.test(s);
+        });
+    if (matched.length) {
+      out.push("Treats " + matched.slice(0, 2).join(" + "));
+    }
+  }
+
+  // 3. Bipolar-relevant modality (IPSRT, FFT, CBT-BD, etc.)
+  var modalities = Array.isArray(therapist.treatment_modalities)
+    ? therapist.treatment_modalities
+    : [];
+  for (var i = 0; i < modalities.length; i++) {
+    var label = BIPOLAR_RELEVANT_MODALITIES[modalities[i]];
+    if (label) {
+      out.push(label);
+      break;
+    }
+  }
+
+  // 4. Insurance match named explicitly — high practical signal
+  if (
+    profile.insurance &&
+    reasonsInsuranceMatches(profile.insurance, therapist.insurance_accepted)
+  ) {
+    out.push("In-network with " + profile.insurance);
+  }
+
+  // 5. Concrete timing — only when it's actually fast. Vague timing
+  //    isn't worth a bullet.
+  var wait = therapist.estimated_wait_time ? String(therapist.estimated_wait_time) : "";
+  if (/within\s*1\s*week|same\s*week|days|immediate/i.test(wait)) {
+    out.push("Openings " + wait.toLowerCase());
+  }
+
+  // 6. Medication management when the user asked for it
+  if (profile.needs_medication_management === "Yes" && therapist.medication_management) {
+    out.push("Provides medication management");
+  }
+
+  // 7. Editorial verification — trust signal
+  if (therapist.verification_status === "editorially_verified" && out.length < 3) {
+    out.push("Editor-verified profile");
+  }
+
+  // Backfill from engine reasons, but skip the table-stakes ones.
+  if (out.length < 2) {
+    var engineReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
+      ? entry.evaluation.reasons.filter(Boolean)
+      : [];
+    var GENERIC =
+      /^Sees patients in person|^Available by telehealth|^Matches the requested care type|^Matches at least one|^Offers telehealth/i;
+    for (var j = 0; j < engineReasons.length && out.length < 3; j++) {
+      var r = engineReasons[j].replace(/\.$/, "");
+      if (!GENERIC.test(r)) out.push(r);
+    }
+  }
+
+  return out.slice(0, 3);
 }
 
 function getMatchCardCaution(entry) {
@@ -4578,9 +4707,7 @@ function renderLeadResultCard(entry, _backupName, options) {
           ? "Email therapist"
           : "Contact therapist";
   var chips = getHeroFitChips(therapist, entry);
-  var fitReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
-    ? entry.evaluation.reasons.filter(Boolean).slice(0, 3)
-    : [];
+  var fitReasons = getHeroFitReasons(entry, therapist, latestProfile);
   var chipsHtml = chips
     .map(function (chip) {
       return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
