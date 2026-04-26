@@ -5693,6 +5693,15 @@ function openContactDialog(slug) {
   trackFunnelEvent("match_contact_modal_opened", {
     slug: entry.therapist.slug || "",
   });
+  // Modal-open is the canonical contact-intent signal on /match.html —
+  // every contact path on a card routes through this dialog. Record it
+  // as a contact click so match_session_outcome correctly classifies
+  // the session as "contacted" rather than "bounced." Without this,
+  // the dashboard read 13 modal opens as 0 contacts.
+  recordMatchSessionInteraction("contact_click", {
+    slug: entry.therapist.slug || "",
+    route: "modal",
+  });
   return true;
 }
 
