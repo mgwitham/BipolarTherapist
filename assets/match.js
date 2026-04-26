@@ -1878,10 +1878,13 @@ function getHeroFitReasons(entry, therapist, profileArg) {
           });
         })
       : specialties.filter(function (s) {
-          return /bipolar|cycl|mixed|psychos/i.test(s);
+          return /bipolar|cycl|mixed/i.test(s);
         });
-    if (matched.length) {
-      out.push("Treats " + matched.slice(0, 2).join(" + "));
+    var displayMatched = matched.filter(function (s) {
+      return !/^psychos/i.test(s);
+    });
+    if (displayMatched.length) {
+      out.push("Treats " + displayMatched.slice(0, 2).join(" + "));
     }
   }
 
