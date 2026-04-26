@@ -243,13 +243,30 @@
                       <div class="refine-quick">
                         <div class="refine-field" data-intake-field="insurance">
                           <label class="refine-field-lbl" for="insurance">Insurance</label>
-                          <input
-                            id="insurance"
-                            name="insurance"
-                            type="text"
-                            class="refine-input"
-                            placeholder="e.g. Aetna, Medi-Cal, self-pay"
-                          />
+                          <div class="refine-autocomplete" data-autocomplete="insurance">
+                            <input
+                              id="insurance"
+                              name="insurance"
+                              type="text"
+                              class="refine-input"
+                              placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                              autocomplete="off"
+                              role="combobox"
+                              aria-autocomplete="list"
+                              aria-controls="insuranceSuggestions"
+                              aria-expanded="false"
+                            />
+                            <ul
+                              id="insuranceSuggestions"
+                              class="refine-autocomplete-list"
+                              role="listbox"
+                              hidden
+                            ></ul>
+                            <p id="insuranceNoMatchHint" class="refine-autocomplete-hint" hidden>
+                              We don't recognize that plan. We'll still rank these matches and you
+                              can confirm coverage when you reach out.
+                            </p>
+                          </div>
                         </div>
                         <div class="refine-field refine-field--format">
                           <span class="refine-field-lbl" id="refineFormatLabel">Format</span>

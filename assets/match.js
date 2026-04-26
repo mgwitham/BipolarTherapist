@@ -73,6 +73,7 @@ import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js"
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
+import { INSURANCE_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   MAX_ENTRIES as SAVED_LIST_MAX,
   readList as readSavedList,
@@ -896,6 +897,126 @@ function setLiveStatus(message, isUpdating) {
   if (!node) return;
   node.textContent = message;
   node.classList.toggle("is-updating", Boolean(isUpdating));
+}
+
+function bindInsuranceAutocomplete() {
+  var input = document.getElementById("insurance");
+  var list = document.getElementById("insuranceSuggestions");
+  var emptyHint = document.getElementById("insuranceNoMatchHint");
+  if (!input || !list || !emptyHint) return;
+  if (input.dataset.autocompleteBound === "true") return;
+  input.dataset.autocompleteBound = "true";
+
+  var highlightIndex = -1;
+  var currentMatches = [];
+
+  function setExpanded(open) {
+    input.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function close() {
+    list.hidden = true;
+    list.innerHTML = "";
+    highlightIndex = -1;
+    currentMatches = [];
+    setExpanded(false);
+  }
+
+  function applyHighlight() {
+    var items = list.querySelectorAll(".refine-autocomplete-item");
+    items.forEach(function (item, index) {
+      item.classList.toggle("is-highlighted", index === highlightIndex);
+      if (index === highlightIndex) {
+        input.setAttribute("aria-activedescendant", item.id);
+        item.scrollIntoView({ block: "nearest" });
+      }
+    });
+    if (highlightIndex < 0) {
+      input.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  function commit(value) {
+    input.value = value;
+    input.dispatchEvent(new window.Event("input", { bubbles: true }));
+    input.dispatchEvent(new window.Event("change", { bubbles: true }));
+    close();
+  }
+
+  function refresh() {
+    var raw = input.value.trim();
+    if (!raw) {
+      emptyHint.hidden = true;
+      close();
+      return;
+    }
+    var lowered = raw.toLowerCase();
+    currentMatches = INSURANCE_OPTIONS.filter(function (option) {
+      return option.toLowerCase().indexOf(lowered) !== -1;
+    }).slice(0, 6);
+
+    if (!currentMatches.length) {
+      emptyHint.hidden = raw.length < 2;
+      close();
+      return;
+    }
+    emptyHint.hidden = true;
+
+    list.innerHTML = currentMatches
+      .map(function (option, index) {
+        return (
+          '<li id="insuranceSuggestion-' +
+          index +
+          '" class="refine-autocomplete-item" role="option" data-value="' +
+          escapeHtml(option) +
+          '">' +
+          escapeHtml(option) +
+          "</li>"
+        );
+      })
+      .join("");
+    list.hidden = false;
+    setExpanded(true);
+    highlightIndex = -1;
+    applyHighlight();
+  }
+
+  input.addEventListener("input", refresh);
+  input.addEventListener("focus", refresh);
+
+  input.addEventListener("keydown", function (event) {
+    if (list.hidden) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      highlightIndex = Math.min(highlightIndex + 1, currentMatches.length - 1);
+      applyHighlight();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      highlightIndex = Math.max(highlightIndex - 1, 0);
+      applyHighlight();
+    } else if (event.key === "Enter") {
+      if (highlightIndex >= 0 && currentMatches[highlightIndex]) {
+        event.preventDefault();
+        commit(currentMatches[highlightIndex]);
+      }
+    } else if (event.key === "Escape") {
+      close();
+    }
+  });
+
+  // Use mousedown rather than click so the input's blur (which closes
+  // the list on a short delay) doesn't beat the selection.
+  list.addEventListener("mousedown", function (event) {
+    var item = event.target.closest(".refine-autocomplete-item");
+    if (!item) return;
+    event.preventDefault();
+    commit(item.dataset.value || item.textContent);
+  });
+
+  input.addEventListener("blur", function () {
+    // Delay so list mousedown can fire first.
+    window.setTimeout(close, 120);
+  });
 }
 
 function pulseLiveStatus() {
@@ -6091,6 +6212,7 @@ function refreshIntakeUiFromForm() {
   bindContactDialog();
   bindRefineButtons();
   bindRefineTeaserShortcuts();
+  bindInsuranceAutocomplete();
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function (event) {
