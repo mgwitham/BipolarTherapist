@@ -58,7 +58,6 @@ export function getMatchShellRefs() {
     firstContact: document.getElementById("matchFirstContact"),
     fallbackContact: document.getElementById("matchFallbackContact"),
     feedbackBar: document.getElementById("matchFeedbackBar"),
-    queue: document.getElementById("matchQueue"),
     feedbackStatus: document.getElementById("feedbackStatus"),
     status: document.getElementById("matchActionStatus"),
     form: document.getElementById("matchForm"),
@@ -93,15 +92,12 @@ export function placeBuilderInResults(resultsRoot) {
   resultsRoot.appendChild(refineWrapper);
   refineWrapper.appendChild(refs.builder);
 
-  // Order: results → refine tool → queue (more options)
+  // Order: results → refine tool
   if (refs.firstContact) {
     resultsRoot.insertBefore(refs.firstContact, refineWrapper);
   }
   if (refs.fallbackContact) {
     resultsRoot.insertBefore(refs.fallbackContact, refineWrapper);
-  }
-  if (refs.queue) {
-    resultsRoot.appendChild(refs.queue);
   }
 }
 
@@ -136,10 +132,6 @@ export function renderMatchLandingShell() {
 export function clearRenderedMatchPanels() {
   var refs = getMatchShellRefs();
 
-  if (refs.queue) {
-    refs.queue.hidden = true;
-    refs.queue.innerHTML = "";
-  }
   if (refs.compare) {
     refs.compare.innerHTML = "";
   }
