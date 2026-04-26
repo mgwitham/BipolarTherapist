@@ -1688,6 +1688,14 @@ function getShortlistSummary(entry) {
   return renderTags(pills);
 }
 
+// Engine reasons that every result on the page already passes — they
+// describe being on the list at all, not why THIS one over the others.
+// Suppressed in the supporting-card explanation so we don't dilute
+// trust with commodity bullets like "Available by telehealth in
+// California" (true of ~80% of CA listings).
+var COMMODITY_REASON_RE =
+  /^Sees patients in person|^Available by telehealth|^Matches the requested care type|^Matches at least one of the requested|^Offers telehealth/i;
+
 function getMatchCardExplanation(entry) {
   // Prefer the specific/differentiating reasons we synthesize from the
   // therapist record. The engine's top reasons are often hard-constraint
@@ -1700,9 +1708,13 @@ function getMatchCardExplanation(entry) {
   var reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
     : [];
-  return (
-    reasons[0] || "This option rose because it balances fit, practical details, and follow-through."
-  );
+  // Drop commodity reasons before falling back. If none remain, return
+  // empty so the card hides the "Why this may be a good fit" block
+  // entirely — better than showing a non-differentiating bullet.
+  var differentiating = reasons.filter(function (r) {
+    return !COMMODITY_REASON_RE.test(String(r).replace(/\.$/, ""));
+  });
+  return differentiating[0] || "";
 }
 
 // Bipolar-specific modalities + how to describe them. IPSRT and FFT have
