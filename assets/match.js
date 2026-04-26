@@ -4305,6 +4305,7 @@ function getEntryRankPosition(slug) {
 function startMatchSessionTracking(profile, entries) {
   var topEntry = Array.isArray(entries) && entries[0] ? entries[0] : null;
   var topTherapist = topEntry && topEntry.therapist ? topEntry.therapist : {};
+  var topRoute = topEntry ? getPreferredRouteType(topEntry) || "" : "";
   matchSessionStats = {
     started_at: Date.now(),
     journey_id: currentJourneyId || "",
@@ -4312,15 +4313,22 @@ function startMatchSessionTracking(profile, entries) {
     top_slug: topTherapist.slug || "",
     top_has_photo: Boolean(topTherapist.photo_url),
     top_completeness: Number(topTherapist.completeness_score || 0) || 0,
+    top_bipolar_years: Number(topTherapist.bipolar_years_experience || 0) || 0,
+    top_route_type: topRoute,
     care_intent: (profile && profile.care_intent) || "",
     care_format: (profile && profile.care_format) || "",
+    care_state: (profile && profile.care_state) || "",
+    priority_mode: (profile && profile.priority_mode) || "",
     has_insurance: Boolean(profile && profile.insurance),
     has_budget: Boolean(profile && profile.budget_max),
+    experiments: getActiveExperimentContext(),
     contact_clicks: 0,
     profile_clicks: 0,
     refine_opens: 0,
     save_clicks: 0,
     contacted_top: false,
+    contacted_top_route: "",
+    contacted_routes: [],
     contacted_slugs: [],
     outcome_emitted: false,
   };
@@ -4331,11 +4339,18 @@ function recordMatchSessionInteraction(kind, payload) {
   if (kind === "contact_click") {
     matchSessionStats.contact_clicks += 1;
     var slug = payload && payload.slug ? String(payload.slug) : "";
+    var route = payload && payload.route ? String(payload.route) : "";
     if (slug && matchSessionStats.contacted_slugs.indexOf(slug) === -1) {
       matchSessionStats.contacted_slugs.push(slug);
     }
+    if (route && matchSessionStats.contacted_routes.indexOf(route) === -1) {
+      matchSessionStats.contacted_routes.push(route);
+    }
     if (slug && slug === matchSessionStats.top_slug) {
       matchSessionStats.contacted_top = true;
+      if (route && !matchSessionStats.contacted_top_route) {
+        matchSessionStats.contacted_top_route = route;
+      }
     }
   } else if (kind === "profile_click") {
     matchSessionStats.profile_clicks += 1;
@@ -4358,8 +4373,12 @@ function emitMatchSessionOutcome() {
     top_slug: stats.top_slug,
     top_has_photo: stats.top_has_photo,
     top_completeness: stats.top_completeness,
+    top_bipolar_years: stats.top_bipolar_years,
+    top_route_type: stats.top_route_type,
     care_intent: stats.care_intent,
     care_format: stats.care_format,
+    care_state: stats.care_state,
+    priority_mode: stats.priority_mode,
     has_insurance: stats.has_insurance,
     has_budget: stats.has_budget,
     contact_clicks: stats.contact_clicks,
@@ -4367,9 +4386,12 @@ function emitMatchSessionOutcome() {
     refine_opens: stats.refine_opens,
     save_clicks: stats.save_clicks,
     contacted_top: stats.contacted_top,
+    contacted_top_route: stats.contacted_top_route,
+    contacted_routes: stats.contacted_routes,
     contacted_slug_count: stats.contacted_slugs.length,
     outcome: outcome,
     ms_on_page: Date.now() - stats.started_at,
+    experiments: stats.experiments,
   });
 }
 
@@ -5186,7 +5208,10 @@ function renderPrimaryMatchCards(entries, profile) {
           route: link.getAttribute("data-match-primary-route") || "",
         }),
       );
-      recordMatchSessionInteraction("contact_click", { slug: slug });
+      recordMatchSessionInteraction("contact_click", {
+        slug: slug,
+        route: link.getAttribute("data-match-primary-route") || "",
+      });
     });
   });
 

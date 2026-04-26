@@ -7,6 +7,7 @@
 // Pure client-side aggregation — the log is a flat event list, we
 // bucket here. No chart library, just DOM.
 
+import { proportionsAreSeparated, wilsonInterval } from "../shared/stats-domain.mjs";
 import { fetchFunnelEventLog } from "./review-api.js";
 
 const DASHBOARD_ID = "adminFunnelDashboard";
@@ -85,11 +86,35 @@ function buildFunnelRow(events, steps, window) {
   });
 }
 
+function formatPercentWithCi(successes, total, options) {
+  options = options || {};
+  if (!total) return "—";
+  var ci = wilsonInterval(successes, total);
+  var pct = Math.round((successes / total) * 100);
+  // Below this floor, the confidence band is so wide that quoting a
+  // point estimate misleads the eye. Show "too few" instead.
+  var minN = options.minN || 10;
+  if (total < minN) {
+    return (
+      '<span class="admin-funnel-low-n">' + pct + "% (n=" + total + ", too few sessions)</span>"
+    );
+  }
+  return (
+    pct +
+    '% <span class="admin-funnel-ci">(95% CI ' +
+    Math.round(ci.lower * 100) +
+    "–" +
+    Math.round(ci.upper * 100) +
+    "%)</span>"
+  );
+}
+
 // Match conversion summary — the headline patient-side metric. Reads
 // match_session_outcome events emitted on pagehide and buckets by
 // outcome ("contacted" / "explored" / "bounced"). Also splits on
 // top_has_photo so we can see whether the photo signal correlates
-// with conversion once data accumulates.
+// with conversion once data accumulates. Every percentage carries a
+// 95% Wilson CI so a tiny N doesn't look like a real signal.
 function renderMatchConversion(events) {
   var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
   var sessions = events.filter(function (e) {
@@ -126,49 +151,61 @@ function renderMatchConversion(events) {
   });
 
   var total = sessions.length;
-  function pct(value) {
-    return total ? Math.round((value / total) * 100) : 0;
-  }
-  function pctOf(num, den) {
-    return den ? Math.round((num / den) * 100) : 0;
-  }
 
-  var photoLine =
-    photoBuckets.with_photo.sessions || photoBuckets.without_photo.sessions
-      ? '<p class="admin-funnel-caption">Top match had a photo: ' +
-        photoBuckets.with_photo.sessions +
-        " session" +
-        (photoBuckets.with_photo.sessions === 1 ? "" : "s") +
-        " · " +
-        pctOf(photoBuckets.with_photo.contacted, photoBuckets.with_photo.sessions) +
-        "% contacted. No photo: " +
-        photoBuckets.without_photo.sessions +
-        " session" +
-        (photoBuckets.without_photo.sessions === 1 ? "" : "s") +
-        " · " +
-        pctOf(photoBuckets.without_photo.contacted, photoBuckets.without_photo.sessions) +
-        "% contacted.</p>"
-      : "";
+  var photoLine = "";
+  if (photoBuckets.with_photo.sessions || photoBuckets.without_photo.sessions) {
+    var w = photoBuckets.with_photo;
+    var n = photoBuckets.without_photo;
+    var diffNote;
+    if (w.sessions < 10 || n.sessions < 10) {
+      diffNote = " Need ≥10 sessions per arm before reading the difference.";
+    } else if (proportionsAreSeparated(w.contacted, w.sessions, n.contacted, n.sessions)) {
+      var wCenter = wilsonInterval(w.contacted, w.sessions).center;
+      var nCenter = wilsonInterval(n.contacted, n.sessions).center;
+      diffNote =
+        wCenter > nCenter
+          ? ' <strong class="admin-funnel-signal">Photo signal: significant.</strong>'
+          : ' <strong class="admin-funnel-signal">Photo signal: significantly negative.</strong>';
+    } else {
+      diffNote = " Photo signal: not yet conclusive (CIs overlap).";
+    }
+    photoLine =
+      '<p class="admin-funnel-caption"><strong>Photo split.</strong> Top match had a photo: ' +
+      w.sessions +
+      " session" +
+      (w.sessions === 1 ? "" : "s") +
+      ", contacted " +
+      formatPercentWithCi(w.contacted, w.sessions) +
+      ". No photo: " +
+      n.sessions +
+      " session" +
+      (n.sessions === 1 ? "" : "s") +
+      ", contacted " +
+      formatPercentWithCi(n.contacted, n.sessions) +
+      "." +
+      diffNote +
+      "</p>";
+  }
 
   return (
     '<table class="admin-funnel-table">' +
-    '<thead><tr><th>Outcome</th><th class="r">Sessions</th><th class="r">% of total</th></tr></thead>' +
+    '<thead><tr><th>Outcome</th><th class="r">Sessions</th><th class="r">% of total (95% CI)</th></tr></thead>' +
     "<tbody>" +
     '<tr><td class="admin-funnel-step">Contacted (≥1 CTA click)</td><td class="r">' +
     outcomes.contacted +
     '</td><td class="r"><strong>' +
-    pct(outcomes.contacted) +
-    "%</strong></td></tr>" +
+    formatPercentWithCi(outcomes.contacted, total) +
+    "</strong></td></tr>" +
     '<tr><td class="admin-funnel-step">Explored (profile click only)</td><td class="r">' +
     outcomes.explored +
     '</td><td class="r">' +
-    pct(outcomes.explored) +
-    "%</td></tr>" +
+    formatPercentWithCi(outcomes.explored, total) +
+    "</td></tr>" +
     '<tr><td class="admin-funnel-step">Bounced (no interaction)</td><td class="r">' +
     outcomes.bounced +
     '</td><td class="r"><span class="admin-funnel-dropoff">' +
-    pct(outcomes.bounced) +
-    "%</span></td></tr>" +
+    formatPercentWithCi(outcomes.bounced, total) +
+    "</span></td></tr>" +
     "</tbody></table>" +
     '<p class="admin-funnel-caption">' +
     total +
