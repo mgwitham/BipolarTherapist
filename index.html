@@ -1696,15 +1696,26 @@
         .search-divider {
           display: none;
         }
+        nav {
+          height: 56px;
+          padding: 0 1rem;
+        }
+        .nav-name {
+          font-size: 0.95rem;
+        }
         .nav-links li:not(:last-child) {
           display: none;
+        }
+        .nav-zone-switch {
+          padding: 0.3rem 0.7rem !important;
+          font-size: 0.78rem !important;
         }
         .public-mobile-nav {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 0.55rem;
           position: sticky;
-          top: 64px;
+          top: 56px;
           z-index: 90;
           padding: 0.8rem 1rem 0;
           background: linear-gradient(

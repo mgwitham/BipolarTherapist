@@ -2423,6 +2423,11 @@ footer a {
 
   nav {
     padding: 0 1rem;
+    height: 56px;
+  }
+
+  .nav-name {
+    font-size: 0.95rem;
   }
 
   .nav-links {
@@ -2441,12 +2446,17 @@ footer a {
     padding: 0.45rem 0.8rem;
   }
 
+  .nav-zone-switch {
+    padding: 0.3rem 0.7rem !important;
+    font-size: 0.78rem !important;
+  }
+
   .public-mobile-nav {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.55rem;
     position: sticky;
-    top: 64px;
+    top: 56px;
     z-index: 90;
     padding: 0.8rem 1rem 0;
     background: linear-gradient(180deg, rgba(247, 251, 252, 0.98) 72%, rgba(247, 251, 252, 0));
