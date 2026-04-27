@@ -3792,7 +3792,7 @@ function renderPortal(therapist, options) {
     ? '<details class="portal-editor-shell" id="portalEditProfile"' +
       (editorAutoOpen ? " open" : "") +
       '><summary class="portal-editor-summary">' +
-      '<span class="portal-editor-summary-label"><strong>Edit profile</strong><span class="portal-subtle" style="font-size:0.85rem">Full editor — bio, specialties, fees, availability</span></span>' +
+      '<span class="portal-editor-summary-label"><strong>More fields</strong><span class="portal-subtle" style="font-size:0.85rem">Long-form bio, practice name, specialties, telehealth states, languages, wait time, website, contact guidance</span></span>' +
       '<span class="portal-editor-summary-chevron" aria-hidden="true">▾</span>' +
       "</summary>" +
       buildEditProfileHtml(therapist) +
