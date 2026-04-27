@@ -6350,3 +6350,324 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
     font-size: 1.25rem;
   }
 }
+
+/* ============================================================
+   Card redesign (PR1 — bth-card-*)
+   ------------------------------------------------------------
+   Round avatar, specialty pills, italic voice cascade, single-row
+   info, teal "View profile" CTA. Applies to both lead and
+   supporting result cards on the match page.
+   ============================================================ */
+
+.bth-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.bth-avatar-card {
+  width: 56px;
+  height: 56px;
+  font-size: 1.05rem;
+}
+.bth-avatar-card-mobile {
+  width: 48px;
+  height: 48px;
+  font-size: 0.95rem;
+}
+.bth-avatar-modal {
+  width: 68px;
+  height: 68px;
+  font-size: 1.2rem;
+}
+.bth-avatar-profile {
+  width: 80px;
+  height: 80px;
+  font-size: 1.4rem;
+}
+img.bth-avatar {
+  object-fit: cover;
+  background: #eef3f5;
+}
+
+.bth-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e3ecef;
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 1px 2px rgba(15, 31, 40, 0.04);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.bth-card:hover {
+  border-color: #c7dde2;
+  box-shadow: 0 6px 18px rgba(15, 31, 40, 0.07);
+}
+
+.bth-card-lead {
+  border-color: #c5e2e8;
+  background: linear-gradient(180deg, #f4fbfc 0%, #ffffff 60%);
+  box-shadow: 0 4px 14px rgba(15, 95, 112, 0.08);
+}
+
+.bth-card-badge {
+  position: absolute;
+  top: -10px;
+  left: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  background: #0f6e56;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.bth-card-badge svg {
+  width: 11px;
+  height: 11px;
+}
+
+.bth-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+.bth-card-avatar-slot {
+  flex-shrink: 0;
+}
+.bth-card-ident {
+  flex: 1;
+  min-width: 0;
+}
+.bth-card-name {
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: #0f1f28;
+  word-wrap: break-word;
+}
+.bth-card-lead .bth-card-name {
+  font-size: 1.4rem;
+}
+.bth-card-creds {
+  font-weight: 400;
+  color: #52707c;
+  font-size: 0.92em;
+}
+.bth-card-loc {
+  display: none;
+}
+
+/* Bookmark — always visible, 36px circle, top-right of card */
+.bth-card .mx-card-save {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #d6e2e6;
+  background: #ffffff;
+  color: #52707c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.bth-card .mx-card-save .mx-save-label {
+  display: none;
+}
+.bth-card .mx-card-save svg {
+  width: 14px;
+  height: 14px;
+}
+.bth-card .mx-card-save:hover {
+  background: #eef6f8;
+  border-color: #1a7a8f;
+  color: #155f70;
+}
+.bth-card .mx-card-save.is-saved {
+  background: #e6f4f6;
+  border-color: #1a7a8f;
+  color: #155f70;
+}
+
+/* Zone 1 — specialty pills */
+.bth-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bth-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #e1f5ee;
+  color: #085041;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+.bth-pill-overflow {
+  background: #eef6f3;
+  color: #3d6b4a;
+}
+
+/* Zone 2 — voice cascade */
+.bth-voice {
+  font-family: "Fraunces", "Inter", serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #4d6671;
+  font-style: italic;
+  margin: 0;
+}
+.bth-voice-quote {
+  color: #3a5560;
+}
+
+/* Info row — location · cost · availability */
+.bth-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: #4d6671;
+  line-height: 1.4;
+}
+.bth-card-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bth-card-info-dot {
+  color: #4d6671;
+  opacity: 0.35;
+  font-weight: 700;
+}
+.bth-avail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+.bth-avail-now {
+  color: #0f6e56;
+}
+.bth-avail-wait {
+  color: #ba7517;
+}
+.bth-avail-full {
+  color: #6f8089;
+}
+.bth-avail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Actions row */
+.bth-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.1rem;
+}
+.bth-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f6e56;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+  min-height: 36px;
+}
+.bth-btn-primary:hover {
+  background: #085041;
+}
+.bth-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #0f6e56;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+  min-height: 36px;
+}
+.bth-btn-secondary:hover {
+  background: #eef6f3;
+}
+
+/* Mobile: stack the info row, full-width CTAs, smaller avatar */
+@media (max-width: 640px) {
+  .bth-card {
+    padding: 1rem 1rem 1rem;
+  }
+  .bth-card-header {
+    gap: 0.7rem;
+  }
+  .bth-avatar-card,
+  .bth-avatar-profile {
+    width: 48px;
+    height: 48px;
+    font-size: 0.95rem;
+  }
+  .bth-card-lead .bth-card-name {
+    font-size: 1.2rem;
+  }
+  .bth-card-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .bth-card-info-dot {
+    display: none;
+  }
+  .bth-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .bth-btn-primary,
+  .bth-btn-secondary {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+}
