@@ -6476,14 +6476,18 @@ img.bth-avatar {
   display: none;
 }
 
-/* Bookmark — always visible, 36px circle, top-right of card */
+/* Bookmark — always visible. Visual circle is 36px, but the tap area
+   stretches to 44px (WCAG 2.5.5 minimum) via a transparent padding ring
+   created with background-clip + border. */
 .bth-card .mx-card-save {
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
   border-radius: 50%;
-  border: 1px solid #d6e2e6;
+  border: 4px solid transparent;
   background: #ffffff;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px #d6e2e6;
   color: #52707c;
   display: inline-flex;
   align-items: center;
@@ -6491,8 +6495,7 @@ img.bth-avatar {
   cursor: pointer;
   flex-shrink: 0;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
+    box-shadow 0.15s ease,
     color 0.15s ease;
 }
 .bth-card .mx-card-save .mx-save-label {
@@ -6504,12 +6507,14 @@ img.bth-avatar {
 }
 .bth-card .mx-card-save:hover {
   background: #eef6f8;
-  border-color: #1a7a8f;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px #1a7a8f;
   color: #155f70;
 }
 .bth-card .mx-card-save.is-saved {
   background: #e6f4f6;
-  border-color: #1a7a8f;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px #1a7a8f;
   color: #155f70;
 }
 
