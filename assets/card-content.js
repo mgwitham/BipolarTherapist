@@ -197,12 +197,29 @@ export function getCityStateLine(therapist) {
   return [t.city, t.state].filter(Boolean).join(", ");
 }
 
+// Format a distance in miles for display. Always prefixed with "~".
+//   < 5 mi  → one decimal ("~1.8 mi")
+//   >= 5 mi → whole number ("~8 mi", "~14 mi")
+export function formatDistanceMiles(miles) {
+  if (!Number.isFinite(miles) || miles < 0) return "";
+  if (miles < 5) {
+    var rounded = Math.round(miles * 10) / 10;
+    return "~" + rounded.toFixed(1) + " mi";
+  }
+  return "~" + Math.round(miles) + " mi";
+}
+
 // Compact location/modality string for the card info row.
-//   In-person only:    "Anaheim, CA"
-//   Hybrid:            "Anaheim, CA · also telehealth"
-//   Telehealth only:   "Telehealth · CA, NY, NJ" (max 3, +N)
-export function getLocationModalityLabel(therapist) {
+//   In-person only:    "Anaheim, CA · ~3.2 mi"          (when user ZIP provided)
+//                      "Anaheim, CA"                     (without user ZIP)
+//   Hybrid:            "Anaheim, CA · ~3.2 mi · also telehealth"
+//   Telehealth only:   "Telehealth · CA, NY, NJ"        (never shows distance)
+//
+// Pass `distanceMiles` to surface a haversine result. Telehealth-only
+// records always omit distance per spec, even when miles is provided.
+export function getLocationModalityLabel(therapist, options) {
   var t = therapist || {};
+  var opts = options || {};
   var inPerson = Boolean(t.accepts_in_person);
   var tele = Boolean(t.accepts_telehealth);
   var cityState = getCityStateLine(t);
@@ -214,10 +231,12 @@ export function getLocationModalityLabel(therapist) {
     var tail = visible + (overflow > 0 ? " +" + overflow + " more" : "");
     return "Telehealth" + (tail ? " · " + tail : "");
   }
+  var distLabel = formatDistanceMiles(opts.distanceMiles);
+  var withDistance = cityState + (cityState && distLabel ? " · " + distLabel : "");
   if (tele && inPerson && cityState) {
-    return cityState + " · also telehealth";
+    return withDistance + " · also telehealth";
   }
-  return cityState;
+  return withDistance;
 }
 
 // Cost — first non-null wins.
