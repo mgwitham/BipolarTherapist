@@ -1,0 +1,410 @@
+/* TD-B: Profile completeness panel — the unified editor.
+   Score header + four sectioned accordions of fields, with a sticky
+   patient preview in the right column. */
+
+.td-completeness {
+  padding: 1.5rem 1.6rem 1.6rem;
+  margin-bottom: 1rem;
+}
+.td-completeness-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.td-completeness-main {
+  min-width: 0;
+}
+
+/* ─── Score header + progress bar ─────────────────────────────────── */
+.td-completeness-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+.td-completeness-meta {
+  flex: 1;
+  min-width: 0;
+}
+.td-completeness-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b8189;
+}
+.td-completeness-subline {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #2d4651;
+}
+.td-completeness-score {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.td-completeness-score-needs,
+.td-completeness-score-fair {
+  color: #b03636;
+}
+.td-completeness-score-good {
+  color: #0f6e56;
+}
+.td-completeness-score-complete {
+  color: #0f6e56;
+}
+.td-completeness-track {
+  height: 8px;
+  background: #eef3f5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 1.2rem;
+}
+.td-completeness-fill {
+  height: 100%;
+  background: #0f6e56;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ─── Sections ────────────────────────────────────────────────────── */
+.td-section {
+  margin-top: 1rem;
+}
+.td-section:first-of-type {
+  margin-top: 0;
+}
+.td-section-title {
+  margin: 0 0 0.5rem;
+  padding: 0.45rem 0.85rem;
+  background: #f1f5f6;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #4d6671;
+}
+.td-section-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* ─── Row (collapsed and expanded) ────────────────────────────────── */
+.td-row {
+  border: 1px solid #e3ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.td-row.is-open {
+  border-color: #c5dde2;
+  box-shadow: 0 2px 6px rgba(15, 31, 40, 0.04);
+}
+.td-row-urgent {
+  background: #faece7;
+  border-color: #f0997b;
+}
+.td-row.is-complete {
+  /* No special styling — the green Done badge does the job. */
+}
+.td-row-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 44px;
+}
+.td-row-trigger:hover {
+  background: rgba(247, 250, 251, 0.6);
+}
+.td-row-urgent .td-row-trigger:hover {
+  background: rgba(248, 226, 215, 0.5);
+}
+
+/* Status circle */
+.td-row-status {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.td-row-status-empty {
+  border: 1.5px solid #c5d6db;
+}
+.td-row-urgent .td-row-status-empty {
+  border-color: #b86142;
+}
+.td-row-status-done {
+  background: #0f6e56;
+  color: #ffffff;
+}
+.td-row-status-done svg {
+  width: 12px;
+  height: 12px;
+}
+
+.td-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.td-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f1f28;
+  line-height: 1.3;
+}
+.td-row-hint {
+  font-size: 12px;
+  color: #6b8189;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.td-row.is-complete .td-row-hint {
+  color: #2d4651;
+}
+
+/* Badges */
+.td-row-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.td-row-badge-required {
+  background: #faece7;
+  color: #b03636;
+  border: 1px solid #f0997b;
+}
+.td-row-badge-points {
+  background: #e1f5ee;
+  color: #085041;
+}
+.td-row-badge-done {
+  background: #d4f0e3;
+  color: #0c5236;
+}
+
+.td-row-chevron {
+  width: 16px;
+  height: 16px;
+  color: #6b8189;
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.td-row.is-open .td-row-chevron {
+  transform: rotate(90deg);
+  color: #0f6e56;
+}
+.td-row-body {
+  padding: 0.2rem 1rem 1rem 3rem;
+  border-top: 1px solid #f0f4f5;
+}
+.td-row-urgent .td-row-body {
+  border-top-color: #f0c2a3;
+}
+
+/* ─── Form fragments inside expanded rows ─────────────────────────── */
+.td-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-top: 0.7rem;
+}
+.td-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.td-form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2d4651;
+}
+.td-form-helper {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #6b8189;
+}
+.td-form-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.td-form-prefix {
+  font-weight: 600;
+  color: #2d4651;
+}
+.td-form-segments {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.td-input {
+  font-family: inherit;
+  font-size: 1rem;
+  border: 1px solid #c5d6db;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  color: #0f1f28;
+  max-width: 100%;
+}
+.td-input:focus {
+  outline: 0;
+  border-color: #1a7a8f;
+  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.15);
+}
+.td-input-fee {
+  width: 7rem;
+}
+.td-input-years {
+  width: 7rem;
+}
+.td-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.td-pick {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #c5d6db;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  color: #2d4651;
+  cursor: pointer;
+  min-height: 36px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.td-pick:hover {
+  border-color: #1a7a8f;
+}
+.td-pick.is-selected {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+  color: #085041;
+  font-weight: 500;
+}
+.td-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.td-save {
+  appearance: none;
+  background: #0f6e56;
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-height: 40px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.td-save:hover {
+  background: #085041;
+}
+.td-save:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.td-save-secondary {
+  background: transparent;
+  color: #0f6e56;
+  border: 1px solid #c5dde2;
+}
+.td-save-secondary:hover {
+  background: #f4faf9;
+  color: #0f6e56;
+}
+.td-form-error {
+  margin: 0.4rem 0 0;
+  color: #b03636;
+  font-size: 0.85rem;
+}
+.td-form-placeholder p {
+  margin: 0;
+  color: #4d6671;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ─── Right column patient preview ────────────────────────────────── */
+.td-completeness-preview-column {
+  position: sticky;
+  top: 1.25rem;
+  align-self: flex-start;
+}
+.td-completeness-preview-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b8189;
+  margin: 0 0 0.55rem;
+}
+
+/* ─── Mobile ──────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .td-completeness {
+    padding: 1.2rem 1.1rem 1.4rem;
+  }
+  .td-completeness-grid {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+  }
+  .td-completeness-preview-column {
+    position: static;
+    order: -1;
+  }
+  .td-row-body {
+    padding-left: 1rem;
+  }
+  .td-pick {
+    min-height: 44px;
+  }
+  .td-save {
+    min-height: 44px;
+  }
+}
+
+/* Legacy editor demotion. Stays in the DOM as a deep link target for
+   placeholder rows in the completeness panel (TD-C and TD-D will
+   replace these placeholders with proper inline forms). When the
+   completeness panel mounts, this class hides the editor card. */
+.portal-edit-card-demoted {
+  display: none;
+}
