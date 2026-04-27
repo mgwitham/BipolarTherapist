@@ -298,8 +298,9 @@
   }
 }
 
-/* Mobile: stack everything, preview goes first */
-@media (max-width: 760px) {
+/* Mobile: stack everything, preview goes first. Spec'd breakpoint
+   is 640px — above that, the sticky preview lives in the right column. */
+@media (max-width: 640px) {
   .ph1-grid {
     grid-template-columns: 1fr;
     gap: 1.4rem;
@@ -310,5 +311,13 @@
   }
   .ph1-shell {
     padding: 1.2rem 1.1rem 1.4rem;
+  }
+  /* On phones the segments and pills should be tap-comfortable */
+  .ph1-segment,
+  .ph1-pick {
+    min-height: 44px;
+  }
+  .ph1-go-live {
+    min-height: 48px;
   }
 }
