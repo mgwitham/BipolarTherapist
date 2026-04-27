@@ -1,5 +1,3 @@
-import { renderTrustEvidenceStrip } from "./trust-evidence-strip.js";
-
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -298,7 +296,6 @@ export function renderCardMarkup(options) {
     escapeHtml(model.availabilitySummary || model.feeSummary) +
     "</div></div></div>" +
     renderTrustSignals(model.trustSignals.slice(0, 2), "card-trust-signals") +
-    renderTrustEvidenceStrip(therapist, { variant: "card", className: "card-trust-strip" }) +
     '<p class="card-fit-summary">' +
     escapeHtml(model.fitSummary) +
     '</p><div class="card-highlights"><span>' +
