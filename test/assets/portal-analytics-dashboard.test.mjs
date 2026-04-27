@@ -13,9 +13,12 @@ const previewHtml = readFileSync(
 );
 
 test("paid analytics dashboard: leads with weekly decision framing", () => {
-  assert.match(portalJs, /Weekly decision dashboard/);
-  assert.match(portalJs, /Your listing performance this week/);
-  assert.match(portalJs, /Loading patient discovery, contact paths, and next-step guidance/);
+  // TD-E renamed the planZone copy to match the redesign spec.
+  // The card is now eyebrowed "This week" with a "Patient activity"
+  // heading and a calmer empty-state body.
+  assert.match(portalJs, /This week/);
+  assert.match(portalJs, /Patient activity/);
+  assert.match(portalJs, /No patient activity yet/);
 });
 
 test("paid analytics dashboard: renders summary, top insight, changes, and recommendations", () => {
