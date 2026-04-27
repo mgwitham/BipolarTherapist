@@ -1,0 +1,237 @@
+/* Portal live card preview — empty-state placeholder treatments and
+   the disabled CTA buttons. The card primitives themselves
+   (.bth-card, .bth-pill, .bth-voice, .bth-card-info, etc.) are styled
+   in match-page.css; this file only adds the portal-specific tweaks. */
+
+/* Bring in the primitive avatar/card/pill/voice rules so portal.html
+   doesn't need to load match-page.css just to show the preview. */
+.bth-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.bth-avatar-card {
+  width: 56px;
+  height: 56px;
+  font-size: 1.05rem;
+}
+img.bth-avatar {
+  object-fit: cover;
+  background: #eef3f5;
+}
+
+.bth-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e3ecef;
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 1px 2px rgba(15, 31, 40, 0.04);
+}
+
+.bth-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+.bth-card-avatar-slot {
+  flex-shrink: 0;
+}
+.bth-card-ident {
+  flex: 1;
+  min-width: 0;
+}
+.bth-card-name {
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: #0f1f28;
+  word-wrap: break-word;
+}
+.bth-card-creds {
+  font-weight: 400;
+  color: #52707c;
+  font-size: 0.92em;
+}
+
+.bth-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bth-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #e1f5ee;
+  color: #085041;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+.bth-pill-overflow {
+  background: #eef6f3;
+  color: #3d6b4a;
+}
+
+.bth-voice {
+  font-family: "Fraunces", "Inter", serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #4d6671;
+  font-style: italic;
+  margin: 0;
+}
+.bth-voice-quote {
+  color: #3a5560;
+}
+
+.bth-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: #4d6671;
+  line-height: 1.4;
+}
+.bth-card-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bth-card-info-dot {
+  color: #4d6671;
+  opacity: 0.35;
+  font-weight: 700;
+}
+.bth-avail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+.bth-avail-now {
+  color: #0f6e56;
+}
+.bth-avail-wait {
+  color: #ba7517;
+}
+.bth-avail-full {
+  color: #6f8089;
+}
+.bth-avail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.bth-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.1rem;
+}
+.bth-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f6e56;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  min-height: 36px;
+}
+.bth-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #0f6e56;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  min-height: 36px;
+}
+
+/* ─── Portal-specific preview tweaks ──────────────────────────────── */
+
+.bth-card-preview {
+  /* Communicates "this is a preview, not a real card" without making
+     the design feel ghosted. Subtle dashed accent on the empty slots
+     does the messaging instead of a wholesale opacity drop. */
+  background: linear-gradient(180deg, #fbfdfd 0%, #ffffff 60%);
+  border-color: #d6e6e9;
+}
+
+.bth-pill-placeholder {
+  background: #eef2f3;
+  color: #8a9aa1;
+  font-weight: 500;
+  border: 1px dashed #c2cfd3;
+  padding: 3px 9px; /* compensate for 1px border */
+}
+
+.bth-voice-placeholder {
+  color: #8a9aa1;
+  border-left: 2px dashed #c2cfd3;
+  padding-left: 0.6rem;
+}
+
+.bth-card-info-placeholder {
+  color: #8a9aa1;
+  font-style: italic;
+}
+
+/* CTA buttons in preview render as disabled <span>s — strip the cursor
+   pointer affordance so it doesn't read as clickable. */
+.bth-btn-primary-preview,
+.bth-card-preview .bth-btn-secondary {
+  cursor: default;
+}
+.bth-btn-primary-preview {
+  background: #0f6e56;
+  color: #ffffff;
+}
+
+/* Sticky desktop / stacked mobile placement — consumer (portal.js) wraps
+   the preview in `.portal-preview-column` to control layout. */
+.portal-preview-column {
+  position: sticky;
+  top: 1.25rem;
+  width: 100%;
+  max-width: 280px;
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .portal-preview-column {
+    position: static;
+    max-width: 100%;
+  }
+  .bth-card-preview {
+    margin-bottom: 1rem;
+  }
+}
