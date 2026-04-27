@@ -381,7 +381,7 @@
 
 /* ─── Mobile: stack everything, preview first ─────────────────────── */
 
-@media (max-width: 760px) {
+@media (max-width: 640px) {
   .ph2-grid {
     grid-template-columns: 1fr;
     gap: 1.4rem;
@@ -392,6 +392,13 @@
   }
   .ph2-shell {
     padding: 1.2rem 1.1rem 1.4rem;
+  }
+  /* Pill and Save tap targets at the WCAG minimum on phones */
+  .ph2-pick {
+    min-height: 44px;
+  }
+  .ph2-save {
+    min-height: 44px;
   }
 }
 

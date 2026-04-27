@@ -11,6 +11,7 @@
 
 import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-preview.js";
 import { patchTherapistProfile } from "./review-api.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 
 function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
@@ -612,6 +613,13 @@ export function mountPortalPhaseTwo(container, therapist, options) {
       // server-shaped response shape differs slightly.
       refreshPreview();
       refreshProgress();
+      var progressNow = buildProgress(buildImprovements(localTherapist));
+      trackFunnelEvent("portal_improvement_saved", {
+        slug: localTherapist.slug,
+        improvement_key: key,
+        listing_strength_pct: progressNow.pct,
+        remaining: progressNow.remaining,
+      });
       fadeAndRemove(key);
     } catch (err) {
       if (saveBtn) {

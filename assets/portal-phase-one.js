@@ -11,6 +11,7 @@
 
 import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-preview.js";
 import { patchTherapistProfile } from "./review-api.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 
 function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
@@ -440,6 +441,14 @@ export function mountPortalPhaseOne(container, therapist, options) {
             previewCard.classList.remove("ph1-pulse");
           }, 900);
         }
+        trackFunnelEvent("portal_phase_one_completed", {
+          slug: state.slug,
+          specialty_count: state.specialties.length,
+          practice_mode: state.practice_mode,
+          preferred_contact_method: state.preferred_contact_method,
+          has_zip: Boolean(state.zip),
+          care_approach_chars: String(state.care_approach || "").length,
+        });
         if (typeof opts.onSaved === "function") {
           opts.onSaved((result && result.therapist) || null);
         }
