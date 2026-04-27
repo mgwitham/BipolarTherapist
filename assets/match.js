@@ -63,7 +63,12 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
-import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-lookup.js";
+import {
+  getZipMarketStatus,
+  getZipDistanceMiles,
+  getDistanceMilesFromZipToTherapist,
+  preloadZipcodes,
+} from "./zip-lookup.js";
 import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
@@ -4960,7 +4965,14 @@ function renderLeadResultCard(entry, _backupName, options) {
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
 
-  var locationLabel = getLocationModalityLabel(therapist);
+  var userZip =
+    latestProfile && latestProfile.location_query ? String(latestProfile.location_query) : "";
+  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
+  var distanceMiles =
+    userZip && !teleSelected ? getDistanceMilesFromZipToTherapist(userZip, therapist) : Infinity;
+  var locationLabel = getLocationModalityLabel(therapist, {
+    distanceMiles: Number.isFinite(distanceMiles) ? distanceMiles : null,
+  });
   var costLabel = getCostLabel(therapist);
   var availabilityHtml = renderAvailabilityBadge(therapist);
 
@@ -5047,7 +5059,14 @@ function renderSupportingResultCard(entry, _rank, options) {
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
 
-  var locationLabel = getLocationModalityLabel(therapist);
+  var userZip =
+    latestProfile && latestProfile.location_query ? String(latestProfile.location_query) : "";
+  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
+  var distanceMiles =
+    userZip && !teleSelected ? getDistanceMilesFromZipToTherapist(userZip, therapist) : Infinity;
+  var locationLabel = getLocationModalityLabel(therapist, {
+    distanceMiles: Number.isFinite(distanceMiles) ? distanceMiles : null,
+  });
   var costLabel = getCostLabel(therapist);
   var availabilityHtml = renderAvailabilityBadge(therapist);
 
