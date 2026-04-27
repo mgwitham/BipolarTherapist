@@ -108,7 +108,6 @@ var FIELD_REGISTRY = [
     badge: "Required",
     hint: "Required — describe how you work with clients (50+ characters)",
     isComplete: isBioComplete,
-    placeholder: true, // TD-C will replace
   },
   {
     key: "contact",
@@ -117,7 +116,6 @@ var FIELD_REGISTRY = [
     badge: "Required",
     hint: "Required — patients cannot reach you without this",
     isComplete: isContactRouteComplete,
-    placeholder: true, // TD-C will replace
   },
   {
     key: "headshot",
@@ -411,8 +409,25 @@ function renderSection(sectionKey, therapist) {
   );
 }
 
+function isLive(t) {
+  return isBioComplete(t) && isContactRouteComplete(t);
+}
+
+function renderNotLiveBar(therapist) {
+  if (isLive(therapist)) return "";
+  return (
+    '<div class="td-not-live-bar" id="tdcNotLive" role="status">' +
+    "<strong>Not live yet ·</strong> Complete your bio and contact route below to publish. " +
+    "Your listing goes live the moment both are saved." +
+    "</div>"
+  );
+}
+
 function renderShell(therapist, score, fieldsRemaining) {
   return (
+    '<div id="tdcNotLiveSlot">' +
+    renderNotLiveBar(therapist) +
+    "</div>" +
     '<section class="portal-card td-completeness" id="portalTdCompleteness">' +
     '<div class="td-completeness-grid">' +
     '<div class="td-completeness-main">' +
@@ -451,6 +466,118 @@ function renderPickerRow(options, selected, attr) {
       );
     })
     .join("");
+}
+
+var BIO_MIN = 50;
+
+function renderBioForm(t) {
+  var bio = String(t.care_approach || "");
+  var len = bio.length;
+  return (
+    '<div class="td-form td-form-bio">' +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Tell patients how you work with them</span>' +
+    '<textarea class="td-input td-textarea-bio" id="tdcBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
+    escapeHtml(bio) +
+    "</textarea>" +
+    "</label>" +
+    '<p class="td-form-counter" id="tdcBioCounter">' +
+    len +
+    " / " +
+    BIO_MIN +
+    " minimum" +
+    "</p>" +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="bio">Save bio</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function renderContactRouteForm(t) {
+  var method = String(t.preferred_contact_method || "").toLowerCase();
+  var routes = [
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Phone" },
+    { key: "booking", label: "Booking link" },
+  ];
+  var pillsHtml = routes
+    .map(function (r) {
+      return (
+        '<button type="button" class="td-route-pill' +
+        (method === r.key ? " is-selected" : "") +
+        '" data-tdc-route="' +
+        r.key +
+        '">' +
+        escapeHtml(r.label) +
+        "</button>"
+      );
+    })
+    .join("");
+  // Capture all three values on render so switching pills doesn't lose
+  // the value the clinician already had on file.
+  var cur = {
+    email: String(t.email || ""),
+    phone: String(t.phone || ""),
+    booking: String(t.booking_url || ""),
+  };
+  function inputBlock(key, visible) {
+    var labels = {
+      email: "Your intake email",
+      phone: "Your phone number",
+      booking: "Your booking URL",
+    };
+    var placeholders = {
+      email: "intake@yourpractice.com",
+      phone: "(310) 555-0100",
+      booking: "calendly.com/yourname",
+    };
+    var helpers = {
+      email: "Not shown publicly. Patient messages route through the platform.",
+      phone: "Displayed publicly on your listing.",
+      booking: "Any booking URL works (Calendly, SimplePractice, Acuity, etc.).",
+    };
+    return (
+      '<div class="td-route-input" data-tdc-route-input="' +
+      key +
+      '"' +
+      (visible ? "" : " hidden") +
+      ">" +
+      '<label class="td-form-row">' +
+      '<span class="td-form-label">' +
+      escapeHtml(labels[key]) +
+      "</span>" +
+      '<input type="' +
+      (key === "email" ? "email" : key === "phone" ? "tel" : "url") +
+      '" class="td-input td-input-route" data-tdc-route-value="' +
+      key +
+      '" placeholder="' +
+      escapeHtml(placeholders[key]) +
+      '" value="' +
+      escapeHtml(cur[key]) +
+      '" />' +
+      "</label>" +
+      '<p class="td-form-helper">' +
+      escapeHtml(helpers[key]) +
+      "</p>" +
+      "</div>"
+    );
+  }
+  return (
+    '<div class="td-form td-form-route">' +
+    '<p class="td-form-label">Pick how patients reach you first</p>' +
+    '<div class="td-route-pills">' +
+    pillsHtml +
+    "</div>" +
+    inputBlock("email", method === "email") +
+    inputBlock("phone", method === "phone") +
+    inputBlock("booking", method === "booking") +
+    '<p class="td-form-error" data-tdc-route-error hidden></p>' +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="contact">Save contact route</button>' +
+    "</div>" +
+    "</div>"
+  );
 }
 
 function renderFeeForm(t) {
@@ -556,6 +683,8 @@ function renderPlaceholderForm(field) {
 
 function renderFormBody(field, therapist) {
   if (field.placeholder) return renderPlaceholderForm(field);
+  if (field.key === "bio") return renderBioForm(therapist);
+  if (field.key === "contact") return renderContactRouteForm(therapist);
   if (field.key === "fee") return renderFeeForm(therapist);
   if (field.key === "modalities") return renderModalitiesForm(therapist);
   if (field.key === "format") return renderFormatForm(therapist);
@@ -611,6 +740,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     if (fillEl) fillEl.style.width = score + "%";
     // Tell the host page so the TD-A header can update its own badge.
     if (typeof opts.onScoreChange === "function") opts.onScoreChange(score);
+  }
+
+  function refreshNotLiveBar() {
+    var slot = container.querySelector("#tdcNotLiveSlot");
+    if (slot) slot.innerHTML = renderNotLiveBar(localTherapist);
   }
 
   function refreshRow(key) {
@@ -715,6 +849,54 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-population");
         });
       });
+    } else if (key === "bio") {
+      // Bio is the only field whose preview updates on every keystroke
+      // (per spec). The card's voice slot mirrors what the therapist is
+      // typing in real time so they see the patient-facing impact
+      // immediately.
+      var textarea = bodyEl.querySelector("#tdcBio");
+      var counter = bodyEl.querySelector("#tdcBioCounter");
+      if (textarea) {
+        textarea.addEventListener("input", function () {
+          var v = textarea.value;
+          if (counter) {
+            counter.textContent = v.length + " / " + BIO_MIN + " minimum";
+            counter.classList.toggle("is-short", v.length > 0 && v.length < BIO_MIN);
+          }
+          // Live-update the patient preview voice slot. This is a
+          // throwaway state update — the actual care_approach field
+          // only changes on save.
+          var previewState = Object.assign({}, localTherapist, {
+            care_approach: v,
+            claim_status: "claimed",
+          });
+          var preview = container.querySelector("#tdcPreview");
+          if (preview) updatePortalCardPreview(preview, previewState);
+        });
+      }
+    } else if (key === "contact") {
+      var initialMethod = String(localTherapist.preferred_contact_method || "").toLowerCase();
+      formDraft.method =
+        ["email", "phone", "booking"].indexOf(initialMethod) !== -1 ? initialMethod : "";
+      bodyEl.querySelectorAll("[data-tdc-route]").forEach(function (pill) {
+        pill.addEventListener("click", function () {
+          formDraft.method = pill.getAttribute("data-tdc-route");
+          bodyEl.querySelectorAll("[data-tdc-route]").forEach(function (sib) {
+            sib.classList.toggle(
+              "is-selected",
+              sib.getAttribute("data-tdc-route") === formDraft.method,
+            );
+          });
+          bodyEl.querySelectorAll("[data-tdc-route-input]").forEach(function (block) {
+            block.hidden = block.getAttribute("data-tdc-route-input") !== formDraft.method;
+          });
+          var errEl = bodyEl.querySelector("[data-tdc-route-error]");
+          if (errEl) {
+            errEl.hidden = true;
+            errEl.textContent = "";
+          }
+        });
+      });
     } else if (key === "fee") {
       formDraft.sliding = Boolean(localTherapist.sliding_scale);
       bodyEl.querySelectorAll("[data-tdc-sliding]").forEach(function (b) {
@@ -745,7 +927,42 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     var saveBtn = bodyEl.querySelector("[data-tdc-save]");
 
     var payload = {};
-    if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
+    if (key === "bio") {
+      var bioEl = bodyEl.querySelector("#tdcBio");
+      var bioVal = bioEl ? String(bioEl.value || "").trim() : "";
+      if (bioVal.length < BIO_MIN) {
+        var counterEl = bodyEl.querySelector("#tdcBioCounter");
+        if (counterEl) {
+          counterEl.classList.add("is-short");
+          counterEl.textContent = "Your bio is " + bioVal.length + " / " + BIO_MIN + " minimum.";
+        }
+        return;
+      }
+      payload.care_approach = bioVal;
+    } else if (key === "contact") {
+      var method = formDraft.method;
+      var routeErr = bodyEl.querySelector("[data-tdc-route-error]");
+      if (!method) {
+        if (routeErr) {
+          routeErr.textContent = "Pick how patients should reach you first.";
+          routeErr.hidden = false;
+        }
+        return;
+      }
+      var inputEl = bodyEl.querySelector('[data-tdc-route-value="' + method + '"]');
+      var rawValue = inputEl ? String(inputEl.value || "").trim() : "";
+      if (!rawValue) {
+        if (routeErr) {
+          routeErr.textContent = "Enter your " + method + " value before saving.";
+          routeErr.hidden = false;
+        }
+        return;
+      }
+      payload.preferred_contact_method = method;
+      if (method === "email") payload.email = rawValue;
+      else if (method === "phone") payload.phone = rawValue;
+      else if (method === "booking") payload.booking_url = rawValue;
+    } else if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
     else if (key === "format") {
       payload.accepts_in_person = (formDraft.list || []).indexOf("In-person") !== -1;
       payload.accepts_telehealth = (formDraft.list || []).indexOf("Telehealth") !== -1;
@@ -776,6 +993,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       refreshPreview();
       refreshRow(key);
       refreshScore();
+      refreshNotLiveBar();
       // Auto-collapse on success.
       var refreshedBody = container.querySelector('[data-tdc-body="' + key + '"]');
       if (refreshedBody) {
