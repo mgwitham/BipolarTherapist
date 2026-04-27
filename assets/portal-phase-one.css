@@ -1,0 +1,314 @@
+/* Phase 1 onboarding styles. Mounted only when the clinician hasn't
+   yet satisfied the minimum go-live requirements. Companion to
+   portal-card-preview.css (which provides the .bth-* primitives). */
+
+.ph1-shell {
+  padding: 1.5rem 1.5rem 1.6rem;
+}
+.ph1-header {
+  margin-bottom: 1.25rem;
+}
+.ph1-heading {
+  font-family: "Fraunces", "Lora", "Inter", serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #0f1f28;
+  margin: 0 0 0.4rem;
+}
+
+.ph1-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.ph1-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  min-width: 0;
+}
+
+.ph1-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.ph1-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f1f28;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ph1-label-secondary {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #2d4651;
+}
+.ph1-helper {
+  font-size: 0.82rem;
+  color: #6b8189;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Photo field */
+.ph1-photo-field .ph1-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.ph1-photo-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #eef3f5;
+  color: #8a9aa1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.ph1-photo-avatar svg {
+  width: 32px;
+  height: 32px;
+}
+.ph1-photo-avatar.has-photo {
+  background: transparent;
+}
+.ph1-photo-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ph1-photo-cta {
+  background: transparent;
+  border: 1px solid #c5d6db;
+  color: #155f70;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.ph1-photo-cta:hover {
+  border-color: #1a7a8f;
+  color: #0f5469;
+}
+
+/* Care approach */
+.ph1-callout {
+  background: #eef9f6;
+  border-left: 3px solid #9fe1cb;
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  color: #2d4651;
+  line-height: 1.5;
+}
+.ph1-callout em {
+  font-style: italic;
+  font-family: "Fraunces", "Lora", serif;
+}
+.ph1-textarea,
+.ph1-input {
+  font-family: inherit;
+  font-size: 1rem;
+  border: 1px solid #c5d6db;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+  color: #0f1f28;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.ph1-textarea {
+  min-height: 88px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.ph1-textarea:focus,
+.ph1-input:focus {
+  outline: 0;
+  border-color: #1a7a8f;
+  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.18);
+}
+.ph1-counter {
+  font-size: 0.78rem;
+  color: #6b8189;
+  margin: 0;
+}
+
+/* Segmented buttons (mode + CTA) */
+.ph1-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.ph1-segment {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #c5d6db;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #2d4651;
+  cursor: pointer;
+  min-height: 44px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.ph1-segment:hover {
+  border-color: #1a7a8f;
+}
+.ph1-segment.is-selected {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+  color: #085041;
+  font-weight: 500;
+}
+
+.ph1-zip-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.ph1-zip-input {
+  max-width: 9rem;
+}
+
+/* Specialty pick grid */
+.ph1-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.ph1-pick {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #c5d6db;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  color: #2d4651;
+  cursor: pointer;
+  min-height: 44px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.ph1-pick:hover {
+  border-color: #1a7a8f;
+}
+.ph1-pick.is-selected {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+  color: #085041;
+  font-weight: 500;
+}
+
+/* Go-live button */
+.ph1-go-live-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.ph1-go-live {
+  appearance: none;
+  width: 100%;
+  background: #0f6e56;
+  color: #ffffff;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.95rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+.ph1-go-live.is-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ph1-go-live.is-ready:hover {
+  background: #085041;
+}
+.ph1-go-live.is-saving {
+  opacity: 0.65;
+  cursor: wait;
+}
+.ph1-go-live-helper {
+  font-size: 0.84rem;
+  color: #6b8189;
+  margin: 0;
+}
+.ph1-feedback {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* Right column — sticky preview */
+.ph1-preview-column {
+  position: sticky;
+  top: 1.25rem;
+  align-self: flex-start;
+}
+.ph1-preview-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b8189;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.55rem;
+}
+
+/* Pulse on go-live success */
+.bth-card-preview.ph1-pulse {
+  animation: ph1Pulse 0.9s ease-out;
+}
+@keyframes ph1Pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.55);
+    border-color: #0f6e56;
+  }
+  60% {
+    box-shadow: 0 0 0 12px rgba(15, 110, 86, 0);
+    border-color: #0f6e56;
+  }
+  100% {
+    box-shadow: 0 1px 2px rgba(15, 31, 40, 0.04);
+    border-color: #d6e6e9;
+  }
+}
+
+/* Mobile: stack everything, preview goes first */
+@media (max-width: 760px) {
+  .ph1-grid {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+  }
+  .ph1-preview-column {
+    position: static;
+    order: -1;
+  }
+  .ph1-shell {
+    padding: 1.2rem 1.1rem 1.4rem;
+  }
+}
