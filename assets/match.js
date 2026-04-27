@@ -5478,13 +5478,7 @@ function renderDetailsBody(entry) {
   if (cost) gridItems.push(["Session fee", cost]);
   if (insurance) gridItems.push(["Insurance", insurance]);
   if (therapist.license_number) {
-    gridItems.push([
-      "License",
-      "CA " + therapist.license_number,
-      '<a href="https://search.dca.ca.gov/" target="_blank" rel="noopener noreferrer">CA ' +
-        escapeHtml(therapist.license_number) +
-        "</a>",
-    ]);
+    gridItems.push(["License", "CA " + therapist.license_number]);
   }
   var gridHtml = gridItems.length
     ? '<div class="mx-details-grid">' +
