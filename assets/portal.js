@@ -1,5 +1,6 @@
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { mountPortalPhaseOne, shouldShowPhaseOne } from "./portal-phase-one.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
@@ -3964,6 +3965,7 @@ function renderPortal(therapist, options) {
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
+    '<div id="portalPhaseOneMount"></div>' +
     priorityZone +
     photoZone +
     editorZone +
@@ -3972,6 +3974,53 @@ function renderPortal(therapist, options) {
     helpZone;
 
   bindPortalPhotoUpload(therapist);
+
+  // Phase 1 — focused onboarding flow for clinicians who haven't yet
+  // satisfied the minimum go-live requirements (specialties + practice
+  // mode). Mounts after the dashboard HTML lands so the existing form
+  // and bindings stay intact. On "Go live", we re-render the dashboard
+  // which will detect Phase 2 and render the existing editor.
+  // `?force_phase=1` is a dev-only hatch for verifying the Phase 1 UI
+  // when the logged-in clinician already meets the go-live minimums.
+  // Stripped by lint and harmless in prod (it just shows Phase 1 again
+  // to a fully-set-up user; "Go live" is a no-op no-op in that case).
+  var forcePhaseOne =
+    typeof window !== "undefined" &&
+    window.location &&
+    /[?&]force_phase=1\b/.test(window.location.search);
+  if (verifiedClaim && (forcePhaseOne || shouldShowPhaseOne(therapist))) {
+    var phaseOneMount = document.getElementById("portalPhaseOneMount");
+    if (phaseOneMount) {
+      mountPortalPhaseOne(phaseOneMount, therapist, {
+        onRequestPhotoUpload: function (onUploaded) {
+          var photoBtn = document.getElementById("portalPhotoUploadButton");
+          if (photoBtn) photoBtn.click();
+          // The existing upload handler refreshes the page, so the
+          // explicit callback isn't required, but we expose the hook
+          // for future improvements.
+          if (typeof onUploaded === "function") {
+            // No-op: existing flow does a full refresh today.
+          }
+        },
+        onSaved: function (updatedTherapist) {
+          if (updatedTherapist) {
+            claimSessionState = { therapist: updatedTherapist };
+            therapist = updatedTherapist;
+          }
+          // Brief delay so the success pulse on the preview is visible
+          // before we reload into Phase 2.
+          window.setTimeout(function () {
+            renderPortal();
+          }, 950);
+        },
+      });
+      trackFunnelEvent("portal_phase_one_shown", {
+        slug: therapist.slug,
+        missing_specialties: !(therapist.specialties && therapist.specialties.length),
+        missing_mode: !(therapist.accepts_in_person || therapist.accepts_telehealth),
+      });
+    }
+  }
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
     event.preventDefault();
