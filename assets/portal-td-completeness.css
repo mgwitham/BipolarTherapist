@@ -486,3 +486,71 @@
   width: 100%;
   font-size: 0.95rem;
 }
+
+/* ─── TD-D: Headshot upload ───────────────────────────────────────── */
+.td-headshot-row {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+.td-headshot-preview {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #eef3f5;
+  color: #8a9aa1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid #d6e2e6;
+}
+.td-headshot-preview svg {
+  width: 38px;
+  height: 38px;
+}
+.td-headshot-preview.has-photo {
+  border-color: transparent;
+  background: transparent;
+}
+.td-headshot-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.td-headshot-copy {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.td-headshot-drop {
+  appearance: none;
+  width: 100%;
+  border: 1.5px dashed #c5dde2;
+  background: #f7fafb;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.td-headshot-drop:hover {
+  border-color: #0f6e56;
+  background: #f0f7f5;
+}
+.td-headshot-drop-title {
+  font-weight: 600;
+  color: #0f6e56;
+}
+.td-headshot-drop-sub {
+  font-size: 0.82rem;
+  color: #6b8189;
+}

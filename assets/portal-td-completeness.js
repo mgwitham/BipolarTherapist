@@ -124,7 +124,6 @@ var FIELD_REGISTRY = [
     badge: "+15 pts",
     hint: "Profiles with photos earn 3× more clicks",
     isComplete: isHeadshotComplete,
-    placeholder: true, // TD-D will replace
   },
   {
     key: "name",
@@ -133,7 +132,6 @@ var FIELD_REGISTRY = [
     badge: "Done",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isNameComplete,
-    placeholder: true, // TD-D will replace
   },
   {
     key: "location",
@@ -142,7 +140,6 @@ var FIELD_REGISTRY = [
     badge: "Done",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isLocationComplete,
-    placeholder: true, // TD-D will replace
   },
   {
     key: "fee",
@@ -580,6 +577,79 @@ function renderContactRouteForm(t) {
   );
 }
 
+function renderHeadshotForm(t) {
+  var has = Boolean(t.photo_url);
+  return (
+    '<div class="td-form td-form-headshot">' +
+    '<div class="td-headshot-row">' +
+    '<div class="td-headshot-preview' +
+    (has ? " has-photo" : "") +
+    '">' +
+    (has
+      ? '<img src="' + escapeHtml(t.photo_url) + '" alt="" />'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">' +
+        '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>' +
+        '<path d="M4 21a8 8 0 0 1 16 0"/></svg>') +
+    "</div>" +
+    '<div class="td-headshot-copy">' +
+    '<button type="button" class="td-headshot-drop" data-tdc-headshot-pick>' +
+    '<span class="td-headshot-drop-title">' +
+    (has ? "Replace photo" : "Click to upload") +
+    "</span>" +
+    '<span class="td-headshot-drop-sub">JPG, PNG or WebP · up to 4MB</span>' +
+    "</button>" +
+    "</div>" +
+    "</div>" +
+    '<p class="td-form-helper">A clear, square headshot with eyes visible earns the most patient trust.</p>' +
+    "</div>"
+  );
+}
+
+function renderNameForm(t) {
+  return (
+    '<div class="td-form td-form-name">' +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Display name</span>' +
+    '<input type="text" class="td-input" id="tdcName" value="' +
+    escapeHtml(String(t.name || "")) +
+    '" placeholder="Anthony Pham" />' +
+    "</label>" +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Credentials</span>' +
+    '<input type="text" class="td-input" id="tdcCredentials" value="' +
+    escapeHtml(String(t.credentials || "")) +
+    '" placeholder="LMFT, PhD" />' +
+    "</label>" +
+    '<p class="td-form-helper">Use the abbreviation patients see — full title lives on the profile page.</p>' +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="name">Save</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function renderLocationForm(t) {
+  return (
+    '<div class="td-form td-form-location">' +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">City</span>' +
+    '<input type="text" class="td-input" id="tdcCity" value="' +
+    escapeHtml(String(t.city || "")) +
+    '" placeholder="San Francisco" />' +
+    "</label>" +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">State</span>' +
+    '<input type="text" class="td-input" id="tdcState" value="' +
+    escapeHtml(String(t.state || "California")) +
+    '" placeholder="California" />' +
+    "</label>" +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="location">Save</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
 function renderFeeForm(t) {
   var min = Number(t.session_fee_min) > 0 ? t.session_fee_min : "";
   var sliding = Boolean(t.sliding_scale);
@@ -685,6 +755,9 @@ function renderFormBody(field, therapist) {
   if (field.placeholder) return renderPlaceholderForm(field);
   if (field.key === "bio") return renderBioForm(therapist);
   if (field.key === "contact") return renderContactRouteForm(therapist);
+  if (field.key === "headshot") return renderHeadshotForm(therapist);
+  if (field.key === "name") return renderNameForm(therapist);
+  if (field.key === "location") return renderLocationForm(therapist);
   if (field.key === "fee") return renderFeeForm(therapist);
   if (field.key === "modalities") return renderModalitiesForm(therapist);
   if (field.key === "format") return renderFormatForm(therapist);
@@ -849,6 +922,17 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-population");
         });
       });
+    } else if (key === "headshot") {
+      // Defer to the existing portalPhotoInput hidden file picker.
+      // bindPortalPhotoUpload() handles validation, encoding, and the
+      // PATCH; on success the page reloads with the new photo_url.
+      var pickBtn = bodyEl.querySelector("[data-tdc-headshot-pick]");
+      if (pickBtn) {
+        pickBtn.addEventListener("click", function () {
+          var hiddenInput = document.getElementById("portalPhotoInput");
+          if (hiddenInput) hiddenInput.click();
+        });
+      }
     } else if (key === "bio") {
       // Bio is the only field whose preview updates on every keystroke
       // (per spec). The card's voice slot mirrors what the therapist is
@@ -962,6 +1046,36 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       if (method === "email") payload.email = rawValue;
       else if (method === "phone") payload.phone = rawValue;
       else if (method === "booking") payload.booking_url = rawValue;
+    } else if (key === "name") {
+      var nameVal = String(bodyEl.querySelector("#tdcName").value || "").trim();
+      var credsVal = String(bodyEl.querySelector("#tdcCredentials").value || "").trim();
+      if (!nameVal) {
+        var nameErr = bodyEl.querySelector(".td-form-error");
+        if (!nameErr) {
+          nameErr = document.createElement("p");
+          nameErr.className = "td-form-error";
+          bodyEl.querySelector(".td-form").appendChild(nameErr);
+        }
+        nameErr.textContent = "Display name can't be empty.";
+        return;
+      }
+      payload.name = nameVal;
+      payload.credentials = credsVal;
+    } else if (key === "location") {
+      var cityVal = String(bodyEl.querySelector("#tdcCity").value || "").trim();
+      var stateVal = String(bodyEl.querySelector("#tdcState").value || "").trim();
+      if (!cityVal || !stateVal) {
+        var locErr = bodyEl.querySelector(".td-form-error");
+        if (!locErr) {
+          locErr = document.createElement("p");
+          locErr.className = "td-form-error";
+          bodyEl.querySelector(".td-form").appendChild(locErr);
+        }
+        locErr.textContent = "Both city and state are required.";
+        return;
+      }
+      payload.city = cityVal;
+      payload.state = stateVal;
     } else if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
     else if (key === "format") {
       payload.accepts_in_person = (formDraft.list || []).indexOf("In-person") !== -1;
