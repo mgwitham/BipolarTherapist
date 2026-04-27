@@ -554,3 +554,68 @@
   font-size: 0.82rem;
   color: #6b8189;
 }
+
+/* ─── TD-E: Bottom-row cards ─────────────────────────────────────── */
+.td-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.td-bottom-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.4rem;
+}
+.td-bottom-card-title {
+  font-family: "Lora", "Fraunces", serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  color: #0f1f28;
+  margin: 0 0 0.1rem;
+}
+.td-bottom-card-body {
+  margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  color: #4d6671;
+}
+.td-bottom-card-link {
+  display: inline-block;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  color: #0f6e56;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+.td-bottom-card-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.td-bottom-card-actions {
+  margin-top: auto;
+  padding-top: 0.6rem;
+}
+.td-bottom-card-cta {
+  appearance: none;
+  background: #0f6e56;
+  color: #ffffff;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+.td-bottom-card-cta:hover {
+  background: #085041;
+}
+
+@media (max-width: 760px) {
+  .td-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}

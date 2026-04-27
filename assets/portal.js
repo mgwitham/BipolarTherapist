@@ -3798,15 +3798,51 @@ function renderPortal(therapist, options) {
       "</details>"
     : "";
 
-  // Zone 3 — Plan & activity. Subscription + analytics in one strip.
+  // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
+  // (left) + "Your plan" subscription card (right), equal-width.
+  // Existing handlers paint these cards by ID:
+  //   - #portalAnalyticsBody / #portalAnalyticsGrid (analytics fetcher)
+  //   - #portalFeaturedBody / #portalFeaturedActions (subscription)
+  // We keep those IDs on the new structure so the existing JS hydrates
+  // active states (e.g. real numbers for paid users) over our static
+  // empty-state copy without any handler changes.
   var planZone = verifiedClaim
-    ? '<section class="portal-grid portal-grid--plan">' +
-      '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
+    ? '<section class="td-bottom-grid">' +
+      // "This week" — analytics card. Empty-state copy comes from the
+      // spec; handlers replace #portalAnalyticsBody when real numbers
+      // are available.
+      '<article class="portal-card td-bottom-card" id="portalAnalyticsCard">' +
+      '<p class="portal-eyebrow">This week</p>' +
+      '<h2 class="td-bottom-card-title">Patient activity</h2>' +
+      '<p class="portal-subtle td-bottom-card-body" id="portalAnalyticsBody">' +
+      "No patient activity yet. Once patients start viewing or contacting your profile " +
+      "you’ll see a weekly breakdown here." +
+      "</p>" +
+      '<div id="portalAnalyticsGrid" hidden></div>' +
+      '<a class="td-bottom-card-link" href="#portalFeaturedCard" data-tdc-jump-plan="1">' +
+      "Upgrade for full analytics →" +
+      "</a>" +
+      "</article>" +
+      // "Your plan" — subscription card. Free-listing static copy
+      // until the subscription handler hydrates the active plan state.
+      '<article class="portal-card td-bottom-card" id="portalFeaturedCard" ' +
+      'data-therapist-slug="' +
       escapeHtml(therapist.slug) +
       '" data-therapist-email="' +
       escapeHtml(claimedEmail) +
-      '"><p class="portal-eyebrow">Your plan</p><h2 style="margin:0 0 0.4rem">Subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status…</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>' +
-      '<article class="portal-card" id="portalAnalyticsCard"><p class="portal-eyebrow">Weekly decision dashboard</p><h2 style="margin:0 0 0.4rem">Your listing performance this week</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading patient discovery, contact paths, and next-step guidance…</p><div id="portalAnalyticsGrid" hidden></div></article>' +
+      '">' +
+      '<p class="portal-eyebrow">Your plan</p>' +
+      '<h2 class="td-bottom-card-title">Free listing</h2>' +
+      '<p class="portal-subtle td-bottom-card-body" id="portalFeaturedBody">' +
+      "Upgrade to unlock weekly analytics, Monday digest emails, and same-day profile edits." +
+      "</p>" +
+      '<div class="portal-actions td-bottom-card-actions" id="portalFeaturedActions">' +
+      '<button type="button" class="td-bottom-card-cta" id="portalFeaturedTrialCta">' +
+      "Start 14-day free trial" +
+      "</button>" +
+      "</div>" +
+      '<div class="portal-feedback" id="portalFeaturedFeedback"></div>' +
+      "</article>" +
       "</section>"
     : "";
 
