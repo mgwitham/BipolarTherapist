@@ -402,9 +402,87 @@
 }
 
 /* Legacy editor demotion. Stays in the DOM as a deep link target for
-   placeholder rows in the completeness panel (TD-C and TD-D will
-   replace these placeholders with proper inline forms). When the
+   placeholder rows in the completeness panel (TD-D will replace the
+   remaining placeholders with proper inline forms). When the
    completeness panel mounts, this class hides the editor card. */
 .portal-edit-card-demoted {
   display: none;
+}
+
+/* ─── TD-C: Not-live bar ──────────────────────────────────────────── */
+.td-not-live-bar {
+  background: #faece7;
+  border: 0.5px solid #f0997b;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+  color: #712b13;
+  line-height: 1.5;
+}
+.td-not-live-bar strong {
+  color: #b03636;
+  font-weight: 700;
+}
+
+/* ─── TD-C: Bio textarea + character counter ──────────────────────── */
+.td-textarea-bio {
+  min-height: 90px;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+.td-form-counter {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b8189;
+  font-variant-numeric: tabular-nums;
+}
+.td-form-counter.is-short {
+  color: #b03636;
+  font-weight: 600;
+}
+
+/* ─── TD-C: Contact-route pills + contextual inputs ───────────────── */
+.td-route-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.td-route-pill {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #c5d6db;
+  border-radius: 999px;
+  padding: 0.5rem 1.05rem;
+  font-size: 0.92rem;
+  color: #2d4651;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  min-height: 44px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.td-route-pill:hover {
+  border-color: #1a7a8f;
+}
+.td-route-pill.is-selected {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+  color: #085041;
+}
+.td-route-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+.td-input-route {
+  width: 100%;
+  font-size: 0.95rem;
 }
