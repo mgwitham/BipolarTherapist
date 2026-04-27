@@ -1,4 +1,5 @@
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
+import { renderRoundAvatar } from "./card-content.js";
 import {
   getDataFreshnessSummary,
   getEditoriallyVerifiedOperationalCount,
@@ -1956,9 +1957,7 @@ function renderProfile(t, therapistDirectory) {
     })
     .join("")
     .substring(0, 2);
-  var avatar = t.photo_url
-    ? '<img src="' + escapeHtml(t.photo_url) + '" alt="' + escapeHtml(t.name) + '" />'
-    : escapeHtml(initials);
+  var avatar = renderRoundAvatar(t, "profile");
 
   function isRealEmail(email) {
     var value = String(email || "").trim();
@@ -2001,25 +2000,27 @@ function renderProfile(t, therapistDirectory) {
       ? '<span class="status-badge badge-verified">&#10003; License verified</span>'
       : "";
 
+  // Featured italic quote from the clinician's care_approach. Always
+  // surfaces when populated (claimed clinicians get quotation marks; the
+  // matching cascade-slot styling on cards/modal is the same family).
   var heroBipolarQuote = "";
-  if (t.care_approach && /bipolar/i.test(t.care_approach)) {
-    var sentences = String(t.care_approach)
-      .replace(/\s+/g, " ")
-      .match(/[^.!?]+[.!?]+/g) || [String(t.care_approach)];
-    var bipolarSentence = sentences.find(function (s) {
-      return /bipolar/i.test(s);
-    });
-    if (bipolarSentence) {
-      var trimmed = bipolarSentence.trim().replace(/^["']|["']$/g, "");
-      if (trimmed.length > 220) {
-        trimmed = trimmed.slice(0, 217).replace(/\s+\S*$/, "") + "\u2026";
-      }
-      heroBipolarQuote =
-        '<p class="hero-bipolar-quote">' +
-        escapeHtml(trimmed) +
-        '<span class="hero-bipolar-quote-source">From their stated care approach</span>' +
-        "</p>";
+  var careApproachText = String(t.care_approach || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (careApproachText) {
+    var quoteText = careApproachText.replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, "");
+    if (quoteText.length > 360) {
+      quoteText = quoteText.slice(0, 357).replace(/\s+\S*$/, "") + "\u2026";
     }
+    var isClaimed = t.claim_status === "claimed";
+    heroBipolarQuote =
+      '<blockquote class="profile-care-quote' +
+      (isClaimed ? " is-claimed" : "") +
+      '">' +
+      (isClaimed ? "\u201c" : "") +
+      escapeHtml(quoteText) +
+      (isClaimed ? "\u201d" : "") +
+      "</blockquote>";
   }
 
   var telehealthStatesList = Array.isArray(t.telehealth_states)
@@ -2036,16 +2037,11 @@ function renderProfile(t, therapistDirectory) {
       "</div>";
   }
 
-  var fallbackSourceUrl =
-    (t.source_url && String(t.source_url).trim()) ||
-    (Array.isArray(t.supporting_source_urls)
-      ? t.supporting_source_urls.filter(Boolean)[0] || ""
-      : "");
-  var primaryActionFallback = fallbackSourceUrl
-    ? '<a href="' +
-      escapeHtml(fallbackSourceUrl) +
-      '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="source_url" data-profile-contact-priority="primary">Visit their practice site \u2192</a>'
-    : '<a href="directory.html" class="btn-contact">Back to directory</a>';
+  // Spec'd primary-action fallback: NEVER drop users onto an external
+  // practice-site link (Psychology Today, etc.). When the clinician has
+  // no usable contact path on this profile, surface a soft "Back to
+  // directory" so the user keeps exploring on-platform.
+  var primaryActionFallback = '<a href="directory.html" class="btn-contact">Back to directory</a>';
 
   var trustPills = renderValuePillRow(t, "value-pill");
 
@@ -2109,13 +2105,39 @@ function renderProfile(t, therapistDirectory) {
         "</a>"
       );
     }
-    if (isRealEmail(t.email)) {
+    if (t.preferred_contact_method === "email" && isRealEmail(t.email)) {
       return (
         '<a href="mailto:' +
         escapeHtml(t.email) +
         '" class="btn-contact" data-profile-contact-route="email" data-profile-contact-priority="primary">' +
-        escapeHtml(primaryContactLabel || "Email") +
+        escapeHtml(primaryContactLabel || "Send an email →") +
         "</a>"
+      );
+    }
+    // Universal fallback ladder when preferred_contact_method is null or
+    // its corresponding field is missing: phone → email → booking. Never
+    // an external practice site, per spec.
+    if (t.phone) {
+      return (
+        '<a href="tel:' +
+        escapeHtml(t.phone) +
+        '" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ' +
+        escapeHtml(t.phone) +
+        " →</a>"
+      );
+    }
+    if (isRealEmail(t.email)) {
+      return (
+        '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="btn-contact" data-profile-contact-route="email" data-profile-contact-priority="primary">Send an email →</a>'
+      );
+    }
+    if (t.booking_url && bookingHealthy) {
+      return (
+        '<a href="' +
+        escapeHtml(t.booking_url) +
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
       );
     }
     return "";
@@ -2841,7 +2863,6 @@ function renderProfile(t, therapistDirectory) {
     escapeHtml(t.city) +
     ", " +
     escapeHtml(t.state) +
-    (t.zip ? " " + escapeHtml(t.zip) : "") +
     "</div>" +
     (bipolarSpecialistBadge || licenseVerifiedBadge
       ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
@@ -2877,8 +2898,8 @@ function renderProfile(t, therapistDirectory) {
         '" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Visit ' +
         escapeHtml(t.name) +
         '\u2019s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
-        escapeHtml(t.website.replace(/^https?:\/\//, "")) +
-        "</span></a>"
+        "Practice website →</span></a>" +
+        ""
       : "") +
     (t.booking_url && bookingHealthy
       ? '<a href="' +

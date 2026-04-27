@@ -954,25 +954,33 @@ nav {
 .profile-main {
   min-width: 0;
 }
+/* Outer slot — the round avatar visual is now owned by bth-avatar-profile
+   from card-content.js. The wrapper exists only as a positioning slot. */
 .avatar {
-  width: 88px;
-  height: 88px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, var(--teal-dark), var(--teal-light));
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 2rem;
-  font-weight: 700;
   flex-shrink: 0;
-  overflow: hidden;
-  box-shadow: 0 18px 34px rgba(21, 95, 112, 0.22);
 }
 .avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
+}
+
+/* Featured care_approach quote — italic serif, positioned just below the
+   name/credential header. Quotation marks are added inline by the JS only
+   when the clinician is claimed (it's their voice). */
+.profile-care-quote {
+  font-family: "Fraunces", "Lora", serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #3a5560;
+  margin: 1rem 0 0.4rem;
+  padding: 0;
+  border: 0;
+}
+.profile-care-quote.is-claimed {
+  color: #2d4651;
 }
 .profile-main h1 {
   font-family: "Lora", serif;
@@ -3221,4 +3229,41 @@ footer a {
   .hero-verdict-card h2 {
     font-size: 1.28rem;
   }
+}
+
+/* ============================================================
+   Round avatar primitives (PR4 — shared with match cards/modal)
+   These mirror the rules in match-page.css so the profile page
+   doesn't need that stylesheet just to render an avatar.
+   ============================================================ */
+.bth-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.bth-avatar-card {
+  width: 56px;
+  height: 56px;
+  font-size: 1.05rem;
+}
+.bth-avatar-modal {
+  width: 68px;
+  height: 68px;
+  font-size: 1.2rem;
+}
+.bth-avatar-profile {
+  width: 80px;
+  height: 80px;
+  font-size: 1.4rem;
+}
+img.bth-avatar {
+  object-fit: cover;
+  background: #eef3f5;
 }
