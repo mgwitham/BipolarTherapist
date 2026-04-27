@@ -1,6 +1,7 @@
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalPhaseOne, shouldShowPhaseOne } from "./portal-phase-one.js";
+import { mountPortalPhaseTwo, shouldShowPhaseTwo } from "./portal-phase-two.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
@@ -3966,6 +3967,7 @@ function renderPortal(therapist, options) {
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
     '<div id="portalPhaseOneMount"></div>' +
+    '<div id="portalPhaseTwoMount"></div>' +
     priorityZone +
     photoZone +
     editorZone +
@@ -4018,6 +4020,53 @@ function renderPortal(therapist, options) {
         slug: therapist.slug,
         missing_specialties: !(therapist.specialties && therapist.specialties.length),
         missing_mode: !(therapist.accepts_in_person || therapist.accepts_telehealth),
+      });
+    }
+  }
+
+  // Phase 2 — Improve your listing. Mounted only when Phase 1 is NOT
+  // shown (i.e. the clinician has already met the go-live minimums).
+  // Demotes the legacy editor to a hidden "Advanced settings" panel
+  // that the clinician can still open via the link inside Phase 2.
+  var showPhaseTwo =
+    verifiedClaim &&
+    !forcePhaseOne &&
+    !shouldShowPhaseOne(therapist) &&
+    shouldShowPhaseTwo(therapist);
+  if (showPhaseTwo) {
+    var phaseTwoMount = document.getElementById("portalPhaseTwoMount");
+    if (phaseTwoMount) {
+      mountPortalPhaseTwo(phaseTwoMount, therapist, {
+        onRequestPhotoUpload: function (onUploaded) {
+          var photoBtn = document.getElementById("portalPhotoUploadButton");
+          if (photoBtn) photoBtn.click();
+          if (typeof onUploaded === "function") {
+            // No-op: existing flow refreshes the page.
+          }
+        },
+        onSaved: function (updatedTherapist) {
+          if (updatedTherapist) {
+            claimSessionState = { therapist: updatedTherapist };
+            therapist = updatedTherapist;
+            updateReadinessUi(therapist, document.getElementById("portalEditProfileForm"));
+          }
+        },
+      });
+      trackFunnelEvent("portal_phase_two_shown", { slug: therapist.slug });
+    }
+
+    // Demote the legacy editor: keep it accessible (the Advanced
+    // settings link inside Phase 2 anchors to #portalEditProfile) but
+    // hide it by default so the new improvement flow is the primary
+    // surface.
+    var legacyEditor = document.getElementById("portalEditCard");
+    if (legacyEditor) {
+      legacyEditor.classList.add("portal-edit-card-demoted");
+    }
+    var advancedLink = document.getElementById("ph2AdvancedLink");
+    if (advancedLink && legacyEditor) {
+      advancedLink.addEventListener("click", function () {
+        legacyEditor.classList.remove("portal-edit-card-demoted");
       });
     }
   }
