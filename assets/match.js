@@ -5430,135 +5430,224 @@ function rememberEntriesForDetails(entries) {
 
 function renderDetailsBody(entry) {
   var therapist = entry.therapist || {};
-  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine =
-    [therapist.city, therapist.state].filter(Boolean).join(", ") +
-    (therapist.zip ? " " + therapist.zip : "");
-  var chips = getHeroFitChips(therapist, entry);
-  var chipsHtml = chips
-    .map(function (chip) {
-      return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
-    })
-    .join("");
+  var locationLabel = getLocationModalityLabel(therapist);
+  var availabilityHtml = renderAvailabilityBadge(therapist);
+  var costLabel = getCostLabel(therapist);
 
-  var availability = getCompareTimingLabel(therapist);
-  var cost = getCompareCostLabel(therapist);
-  var format = getCareFormatLabel(therapist);
-  var insurance = Array.isArray(therapist.insurance_accepted)
-    ? therapist.insurance_accepted.filter(Boolean).slice(0, 6).join(", ")
-    : "";
-
-  var gridItems = [];
-  if (availability) gridItems.push(["Availability", availability]);
-  if (format) gridItems.push(["Format", format]);
-  if (cost) gridItems.push(["Session fee", cost]);
-  if (insurance) gridItems.push(["Insurance", insurance]);
-  if (therapist.license_number) {
-    gridItems.push(["License", "CA " + therapist.license_number]);
-  }
-  var gridHtml = gridItems.length
-    ? '<div class="mx-details-grid">' +
-      gridItems
-        .map(function (pair) {
-          var valueHtml = pair[2] ? pair[2] : escapeHtml(pair[1]);
-          return (
-            '<div class="mx-details-grid-item">' +
-            '<span class="mx-details-grid-label">' +
-            escapeHtml(pair[0]) +
-            "</span>" +
-            '<span class="mx-details-grid-value">' +
-            valueHtml +
-            "</span>" +
-            "</div>"
-          );
-        })
-        .join("") +
-      "</div>"
-    : "";
-
-  var reasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
-    ? entry.evaluation.reasons.filter(Boolean).slice(0, 4)
+  var modalities = Array.isArray(therapist.treatment_modalities)
+    ? therapist.treatment_modalities.filter(Boolean)
     : [];
-  var fitHtml = reasons.length
-    ? '<div class="mx-details-section"><h4>Why this may be a good fit</h4><ul>' +
-      reasons
-        .map(function (reason) {
-          return "<li>" + escapeHtml(reason) + "</li>";
-        })
-        .join("") +
-      "</ul></div>"
+  var populations = Array.isArray(therapist.client_populations)
+    ? therapist.client_populations.filter(Boolean)
+    : [];
+
+  var approachHtml = modalities.length
+    ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Approach</span><span class="bth-modal-row-value">' +
+      escapeHtml(modalities.slice(0, 6).join(" · ")) +
+      "</span></div>"
+    : "";
+  var seesHtml = populations.length
+    ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Sees</span><span class="bth-modal-row-value">' +
+      escapeHtml(populations.slice(0, 6).join(" · ")) +
+      "</span></div>"
+    : "";
+  var costHtml = costLabel
+    ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Cost</span><span class="bth-modal-row-value">' +
+      escapeHtml(costLabel) +
+      "</span></div>"
     : "";
 
-  var specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
-  var specialtiesHtml = specialties.length
-    ? '<div class="mx-details-section"><h4>Specialties</h4><p>' +
-      escapeHtml(specialties.slice(0, 8).join(", ")) +
-      "</p></div>"
-    : "";
+  // Reaching out — only render labels when the corresponding clinician
+  // field is populated.
+  var contactGuidance = String(therapist.contact_guidance || "").trim();
+  var firstStep = String(therapist.first_step_expectation || "").trim();
+  var reachingOutItems = "";
+  if (contactGuidance) {
+    reachingOutItems +=
+      '<div class="bth-modal-reach-item"><strong>What to include:</strong> ' +
+      escapeHtml(contactGuidance) +
+      "</div>";
+  }
+  if (firstStep) {
+    reachingOutItems +=
+      '<div class="bth-modal-reach-item"><strong>What happens next:</strong> ' +
+      escapeHtml(firstStep) +
+      "</div>";
+  }
 
-  var populations = Array.isArray(therapist.client_populations) ? therapist.client_populations : [];
-  var populationsHtml = populations.length
-    ? '<div class="mx-details-section"><h4>Populations served</h4><p>' +
-      escapeHtml(populations.slice(0, 6).join(", ")) +
-      "</p></div>"
-    : "";
-
-  var approach = therapist.care_approach || therapist.bio_preview || "";
-  var approachHtml = approach
-    ? '<div class="mx-details-section"><h4>Approach</h4><p>' +
-      escapeHtml(String(approach).slice(0, 420)) +
-      "</p></div>"
-    : "";
-
-  var preferredRoute = getPreferredOutreach(entry);
-  var routeType = getPreferredRouteType(entry);
-  var ctaLabel =
-    routeType === "booking"
-      ? "Book consultation"
-      : routeType === "phone"
-        ? "Call therapist"
-        : routeType === "email"
-          ? "Email therapist"
-          : "Contact therapist";
-
-  var actionsHtml =
-    '<div class="mx-details-actions">' +
-    (preferredRoute
-      ? '<a href="' +
-        escapeHtml(preferredRoute.href) +
-        '" class="mx-btn-primary" data-match-primary-cta="' +
-        escapeHtml(therapist.slug || "") +
-        '" data-match-primary-route="' +
-        escapeHtml(ctaLabel) +
-        '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
-        ">" +
-        escapeHtml(ctaLabel) +
-        "</a>"
-      : "") +
+  var ctaInfo = buildModalPrimaryCta(therapist, entry);
+  var primaryCtaHtml =
     '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="mx-btn-secondary">Full profile</a>' +
+    escapeHtml(ctaInfo.href) +
+    '" class="bth-modal-cta" data-match-primary-cta="' +
+    escapeHtml(therapist.slug || "") +
+    '" data-match-primary-route="' +
+    escapeHtml(ctaInfo.routeLabel) +
+    '"' +
+    (ctaInfo.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+    ">" +
+    escapeHtml(ctaInfo.label) +
+    "</a>";
+
+  // Secondary contact line (shows whichever channels weren't already the
+  // primary CTA, so we never double-up).
+  var secondaryParts = [];
+  if (ctaInfo.routeKey !== "phone" && therapist.phone) {
+    secondaryParts.push(
+      '<a href="tel:' + escapeHtml(therapist.phone) + '">' + escapeHtml(therapist.phone) + "</a>",
+    );
+  }
+  if (ctaInfo.routeKey !== "website" && therapist.website) {
+    secondaryParts.push(
+      '<a href="' +
+        escapeHtml(therapist.website) +
+        '" target="_blank" rel="noopener noreferrer">Practice website →</a>',
+    );
+  }
+  var secondaryHtml = secondaryParts.length
+    ? '<p class="bth-modal-secondary">' + secondaryParts.join(" · ") + "</p>"
+    : "";
+
+  var reachingOutHtml =
+    '<div class="bth-modal-reaching-out">' +
+    (reachingOutItems
+      ? '<h4 class="bth-modal-section-label">Reaching out</h4>' + reachingOutItems
+      : "") +
+    primaryCtaHtml +
+    secondaryHtml +
     "</div>";
 
+  var teaserHtml =
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist.slug) + "#outreach") +
+    '" class="bth-modal-teaser" data-modal-outreach-link="' +
+    escapeHtml(therapist.slug || "") +
+    '">Draft message & calling script →</a>';
+
   return (
-    '<p class="mx-details-kicker">Therapist details</p>' +
-    '<h3 class="mx-details-name" id="matchDetailsTitle">' +
+    '<div class="bth-modal-header">' +
+    '<div class="bth-modal-avatar">' +
+    renderRoundAvatar(therapist, "modal") +
+    "</div>" +
+    '<div class="bth-modal-ident">' +
+    '<h3 class="bth-modal-name" id="matchDetailsTitle">' +
     escapeHtml(therapist.name || "") +
-    "</h3>" +
-    (credLine || locLine
-      ? '<p class="mx-details-cred">' +
-        escapeHtml([credLine, locLine].filter(Boolean).join(" · ")) +
-        "</p>"
+    (therapist.credentials
+      ? ', <span class="bth-modal-creds">' + escapeHtml(therapist.credentials) + "</span>"
       : "") +
-    (chipsHtml ? '<div class="mx-details-chips">' + chipsHtml + "</div>" : "") +
-    gridHtml +
-    fitHtml +
-    specialtiesHtml +
-    populationsHtml +
+    "</h3>" +
+    renderSpecialtyPills(therapist) +
+    "</div>" +
+    "</div>" +
+    '<div class="bth-modal-meta">' +
+    (locationLabel ? '<span class="bth-modal-loc">' + escapeHtml(locationLabel) + "</span>" : "") +
+    (availabilityHtml ? '<span class="bth-modal-avail">' + availabilityHtml + "</span>" : "") +
+    "</div>" +
+    // Only surface the cascade in the modal when it's the clinician's
+    // own words — populations/modalities/etc. already get their own
+    // labeled rows below, so showing the cascade then would duplicate.
+    (therapist.claim_status === "claimed" &&
+    therapist.care_approach &&
+    String(therapist.care_approach).trim()
+      ? renderVoiceCascade(therapist)
+      : "") +
+    '<div class="bth-modal-rows">' +
     approachHtml +
-    actionsHtml
+    seesHtml +
+    costHtml +
+    "</div>" +
+    reachingOutHtml +
+    teaserHtml
   );
+}
+
+// Spec'd CTA mapping: button label + destination derived from
+// preferred_contact_method, with a strict fallback ladder when null.
+// Returns { href, label, routeLabel, routeKey, external }.
+function buildModalPrimaryCta(therapist, entry) {
+  var method = String(therapist.preferred_contact_method || "").toLowerCase();
+  var phone = String(therapist.phone || "").trim();
+  var email = String(therapist.email || "").trim();
+  var booking = String(therapist.booking_url || "").trim();
+  var website = String(therapist.website || "").trim();
+
+  function emailHref() {
+    var route = getPreferredOutreach(entry);
+    if (route && route.href && /^mailto:/i.test(route.href)) return route.href;
+    return "mailto:" + email;
+  }
+
+  if (method === "phone" && phone) {
+    return {
+      href: "tel:" + phone,
+      label: "Call " + phone + " →",
+      routeLabel: "Call therapist",
+      routeKey: "phone",
+      external: false,
+    };
+  }
+  if (method === "email" && email) {
+    return {
+      href: emailHref(),
+      label: "Send an email →",
+      routeLabel: "Email therapist",
+      routeKey: "email",
+      external: false,
+    };
+  }
+  if (method === "booking" && booking) {
+    return {
+      href: booking,
+      label: "Book a consultation →",
+      routeLabel: "Book consultation",
+      routeKey: "booking",
+      external: true,
+    };
+  }
+  if (method === "website" && website) {
+    return {
+      href: website,
+      label: "Visit practice site →",
+      routeLabel: "Visit site",
+      routeKey: "website",
+      external: true,
+    };
+  }
+  // Fallback ladder: phone → email → booking → full profile
+  if (phone) {
+    return {
+      href: "tel:" + phone,
+      label: "Call " + phone + " →",
+      routeLabel: "Call therapist",
+      routeKey: "phone",
+      external: false,
+    };
+  }
+  if (email) {
+    return {
+      href: emailHref(),
+      label: "Send an email →",
+      routeLabel: "Email therapist",
+      routeKey: "email",
+      external: false,
+    };
+  }
+  if (booking) {
+    return {
+      href: booking,
+      label: "Book a consultation →",
+      routeLabel: "Book consultation",
+      routeKey: "booking",
+      external: true,
+    };
+  }
+  return {
+    href: buildTherapistProfileHref(therapist.slug),
+    label: "View full profile →",
+    routeLabel: "View profile",
+    routeKey: "profile",
+    external: false,
+  };
 }
 
 function openMatchDetails(slug) {
