@@ -1,0 +1,224 @@
+/* TD-A: Therapist dashboard header.
+   Two rows separated by a hairline border:
+     Row 1 — name + city/state | score badge + View public listing
+     Row 2 — accepting-patients toggle | sign out */
+
+.td-header {
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+}
+.td-header-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.td-header-row-primary {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-bottom: 0.85rem;
+}
+.td-header-row-secondary {
+  border-top: 1px solid #e3ecef;
+  padding-top: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* ─── Identity (name + location) ──────────────────────────────────── */
+.td-header-ident {
+  flex: 1;
+  min-width: 0;
+}
+.td-header-name {
+  font-family: "Lora", "Fraunces", serif;
+  font-weight: 500;
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  letter-spacing: -0.01em;
+  margin: 0 0 0.2rem;
+  color: #0f1f28;
+  line-height: 1.15;
+}
+.td-header-loc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #4d6671;
+}
+
+/* ─── Right-aligned actions (score + view public listing) ─────────── */
+.td-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.td-score {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.td-score-needs,
+.td-score-fair {
+  background: #faece7;
+  color: #712b13;
+  border: 1px solid #f0997b;
+}
+.td-score-good {
+  background: #e1f5ee;
+  color: #085041;
+  border: 1px solid #9fe1cb;
+}
+.td-score-complete {
+  background: #0f6e56;
+  color: #ffffff;
+  border: 1px solid #0f6e56;
+}
+.td-view-public {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #ffffff;
+  color: #0f6e56;
+  border: 1px solid #c5dde2;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.86rem;
+  padding: 0.5rem 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.td-view-public:hover {
+  border-color: #0f6e56;
+  background: #f4faf9;
+}
+
+/* ─── Accepting toggle ────────────────────────────────────────────── */
+.td-accepting-toggle {
+  appearance: none;
+  background: #f7fafb;
+  border: 1px solid #d6e2e6;
+  border-radius: 12px;
+  padding: 0.6rem 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.td-accepting-toggle:hover {
+  border-color: #1a7a8f;
+  background: #f0f7f9;
+}
+.td-accepting-toggle.is-on {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+}
+.td-accepting-toggle.is-off {
+  background: #f1f3f4;
+  border-color: #c5d6db;
+}
+.td-accepting-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c5d6db;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+}
+.td-accepting-toggle.is-on .td-accepting-dot {
+  background: #0f6e56;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 0 4px rgba(15, 110, 86, 0.18);
+}
+.td-accepting-toggle.is-off .td-accepting-dot {
+  background: #8a9aa1;
+}
+.td-accepting-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+.td-accepting-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0f1f28;
+  line-height: 1.2;
+}
+.td-accepting-toggle.is-off .td-accepting-title {
+  color: #4d6671;
+}
+.td-accepting-sub {
+  font-size: 0.8rem;
+  color: #6b8189;
+  line-height: 1.3;
+}
+
+/* ─── Sign out (small, muted) ─────────────────────────────────────── */
+.td-header-signout {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #6b8189;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: text-decoration-color 0.15s ease;
+}
+.td-header-signout:hover {
+  text-decoration-color: #6b8189;
+  color: #4d6671;
+}
+
+.td-header-feedback {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.82rem;
+  color: #6b8189;
+  min-height: 1.1rem;
+}
+
+/* ─── Mobile ──────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .td-header {
+    padding: 1.1rem 1.1rem 0.9rem;
+  }
+  .td-header-row-primary {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+  }
+  .td-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .td-header-row-secondary {
+    flex-wrap: wrap;
+  }
+  .td-accepting-toggle {
+    flex-basis: 100%;
+  }
+  .td-header-signout {
+    margin-left: auto;
+  }
+}

@@ -2308,6 +2308,58 @@ function fieldsetFillStats(fieldsetEl) {
   return { filled: filled, total: trackable };
 }
 
+// ─── TD-A score model ─────────────────────────────────────────────────
+// 100-point system per the therapist-dashboard redesign spec.
+//
+// Base = 40 points: what's typically captured at signup (name + city +
+// credentials + specialties + format) — so a freshly claimed listing
+// lands in the "Needs work · 50/100" range until the optional rows
+// start filling in.
+//
+// Bio (care_approach ≥ 50 chars) and contact route are required-but-
+// zero-point gates. They block "going live" but don't add points; the
+// header score reflects discoverability, not live status.
+//
+// Optional fields per spec:
+//   Headshot: +15
+//   Treatment modalities: +10
+//   Session fee: +10
+//   Insurance accepted: +7
+//   Populations served: +8
+//   Session format: +5  (auto-credited if either accepts_in_person
+//                        or accepts_telehealth is on)
+//   Years of experience: +5
+//
+// Maximum: 40 + 60 = 100.
+function computeProfileScore(therapist) {
+  var t = therapist || {};
+  var score = 40; // signup baseline
+  if (t.photo_url) score += 15;
+  if (Array.isArray(t.treatment_modalities) && t.treatment_modalities.filter(Boolean).length)
+    score += 10;
+  if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
+    score += 10;
+  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
+    score += 7;
+  if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
+    score += 8;
+  if (t.accepts_in_person || t.accepts_telehealth) score += 5;
+  if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
+  if (score > 100) score = 100;
+  if (score < 0) score = 0;
+  return score;
+}
+
+// Score band labels per spec. Tones drive the badge colour: amber for
+// anything below 80, green for 80+, with a special "complete" tone at
+// the cap.
+function getScoreBand(score) {
+  if (score >= 100) return { label: "Complete", tone: "complete" };
+  if (score >= 80) return { label: "Looking good", tone: "good" };
+  if (score >= 60) return { label: "Getting there", tone: "fair" };
+  return { label: "Needs work", tone: "needs" };
+}
+
 function updateReadinessUi(baseTherapist, form) {
   var projected = getProjectedTherapist(baseTherapist, form);
   var readiness = getTherapistMatchReadiness(projected);
@@ -3596,11 +3648,20 @@ function renderPortal(therapist, options) {
   // is for funnel instrumentation, not revocation.
   var signOutControl =
     sessionMode === "claimed" || sessionMode === "claim_token"
-      ? '<button type="button" id="portalSignOut" class="portal-signout" ' +
-        'style="background:transparent;border:1px solid rgba(26,122,143,0.35);' +
-        "color:#155f70;font-size:0.82rem;font-weight:600;padding:0.4rem 0.8rem;" +
-        'border-radius:999px;cursor:pointer;white-space:nowrap">Sign out</button>'
+      ? '<button type="button" id="portalSignOut" class="td-header-signout">Sign out</button>'
       : "";
+
+  // ─── TD-A score model ───────────────────────────────────────────────
+  // 100-point system per the therapist-dashboard spec. Bio + contact
+  // route are required-but-zero-point gates; everything else is the
+  // sum below. Base of 40 represents what's typically captured at
+  // signup (name / location / credentials / specialties / format) so a
+  // freshly claimed listing lands around 50–60 per spec.
+  var tdScore = computeProfileScore(therapist);
+  var tdBand = getScoreBand(tdScore);
+  var tdViewPublicHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug || "");
+  var tdAccepting = therapist.accepting_new_patients === true;
+  var tdAcceptingHidden = therapist.accepting_new_patients === false;
 
   // Phase-aware listing status. Replaces the older "Paused (hidden from
   // directory)" framing per the redesign spec. The full Phase 1 / Phase 2
@@ -3907,30 +3968,85 @@ function renderPortal(therapist, options) {
     '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form>' +
     "</details>";
 
+  // ─── TD-A header ───────────────────────────────────────────────────
+  // New unified header per the therapist-dashboard spec. Replaces the
+  // older portal-hero + portal-badges + listing-status snapshot
+  // sprawl. Two rows separated by a top border:
+  //   Row 1: name + city/state (left) | score badge + View public
+  //          listing pill (right)
+  //   Row 2: accepting-patients toggle (left) | sign out (right,
+  //          muted)
+  // The notYetPublicBanner ("One step from live / Add a bio") and the
+  // priorityZone listing-status snapshot are dropped — TD-C will
+  // surface "not live yet" via an inline amber bar above the
+  // completeness list, and the listing-status data is absorbed into
+  // the header + the completeness list.
+  var tdHeader =
+    verifiedClaim || sessionMode === "claim_token"
+      ? '<section class="portal-card td-header" id="portalTdHeader">' +
+        '<div class="td-header-row td-header-row-primary">' +
+        '<div class="td-header-ident">' +
+        '<h1 class="td-header-name">' +
+        escapeHtml(therapist.name || "") +
+        "</h1>" +
+        '<p class="td-header-loc">' +
+        escapeHtml([therapist.city, therapist.state].filter(Boolean).join(", ")) +
+        (therapist.practice_name ? " · " + escapeHtml(therapist.practice_name) : "") +
+        "</p>" +
+        "</div>" +
+        '<div class="td-header-actions">' +
+        '<span class="td-score td-score-' +
+        tdBand.tone +
+        '" id="portalTdScore">' +
+        escapeHtml(tdBand.label) +
+        " · " +
+        tdScore +
+        "/100</span>" +
+        (therapist.slug
+          ? '<a class="td-view-public" href="' +
+            escapeHtml(tdViewPublicHref) +
+            '" target="_blank" rel="noopener">View public listing →</a>'
+          : "") +
+        "</div>" +
+        "</div>" +
+        '<div class="td-header-row td-header-row-secondary">' +
+        '<button type="button" class="td-accepting-toggle' +
+        (tdAccepting ? " is-on" : tdAcceptingHidden ? " is-off" : "") +
+        '" id="portalTdAccepting" aria-pressed="' +
+        (tdAccepting ? "true" : "false") +
+        '">' +
+        '<span class="td-accepting-dot" aria-hidden="true"></span>' +
+        '<span class="td-accepting-copy">' +
+        '<span class="td-accepting-title" id="portalTdAcceptingTitle">' +
+        (tdAccepting
+          ? "Accepting patients"
+          : tdAcceptingHidden
+            ? "Not accepting patients"
+            : "Accepting status not set") +
+        "</span>" +
+        '<span class="td-accepting-sub" id="portalTdAcceptingSub">' +
+        (tdAccepting
+          ? "Patients can contact you."
+          : tdAcceptingHidden
+            ? "Your listing is paused."
+            : "Tap to confirm you're accepting patients.") +
+        "</span>" +
+        "</span>" +
+        "</button>" +
+        signOutControl +
+        '<p class="td-header-feedback" id="portalTdAcceptingFeedback" role="status" aria-live="polite"></p>' +
+        "</div>" +
+        "</section>"
+      : "";
+
   shell.innerHTML =
-    '<section class="portal-card portal-hero"><div><p class="portal-eyebrow">' +
-    escapeHtml(heroEyebrow) +
-    "</p><h1>" +
-    escapeHtml(therapist.name) +
-    '</h1><p class="portal-subtle">' +
-    escapeHtml(therapist.city + ", " + therapist.state) +
-    (therapist.practice_name ? " · " + escapeHtml(therapist.practice_name) : "") +
-    '</p></div><div class="portal-badges" style="display:flex;gap:0.5rem;' +
-    'align-items:center;flex-wrap:wrap"><span class="portal-badge">' +
-    escapeHtml(claimStatus) +
-    '</span><span class="portal-badge">' +
-    escapeHtml(readiness.label + " · " + readiness.score + "/100") +
-    "</span>" +
-    signOutControl +
-    "</div></section>" +
-    notYetPublicBanner +
+    tdHeader +
     welcomeUpsellBanner +
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
     '<div id="portalPhaseOneMount"></div>' +
     '<div id="portalPhaseTwoMount"></div>' +
-    priorityZone +
     photoZone +
     editorZone +
     planZone +
@@ -4096,6 +4212,72 @@ function renderPortal(therapist, options) {
     // profile" button — especially when that button can get stuck on
     // replayed / used tokens and leave the user with no way forward.
     renderPortalWelcomeUpsell(null, therapist.slug || slug, therapist.email || "");
+  }
+
+  // ─── TD-A accepting-patients toggle ─────────────────────────────────
+  // Tap immediately PATCHes accepting_new_patients. Optimistically
+  // updates the visual state, reverts on error. Score badge is
+  // independent of this field, so we don't need to recompute it here.
+  var acceptingBtn = document.getElementById("portalTdAccepting");
+  if (acceptingBtn) {
+    acceptingBtn.addEventListener("click", async function () {
+      var prev = therapist.accepting_new_patients;
+      var next = prev === true ? false : true;
+      var feedbackEl = document.getElementById("portalTdAcceptingFeedback");
+      var titleEl = document.getElementById("portalTdAcceptingTitle");
+      var subEl = document.getElementById("portalTdAcceptingSub");
+
+      function paint(state) {
+        acceptingBtn.classList.remove("is-on", "is-off");
+        if (state === true) acceptingBtn.classList.add("is-on");
+        else if (state === false) acceptingBtn.classList.add("is-off");
+        acceptingBtn.setAttribute("aria-pressed", state === true ? "true" : "false");
+        if (titleEl) {
+          titleEl.textContent =
+            state === true
+              ? "Accepting patients"
+              : state === false
+                ? "Not accepting patients"
+                : "Accepting status not set";
+        }
+        if (subEl) {
+          subEl.textContent =
+            state === true
+              ? "Patients can contact you."
+              : state === false
+                ? "Your listing is paused."
+                : "Tap to confirm you're accepting patients.";
+        }
+      }
+
+      acceptingBtn.disabled = true;
+      paint(next); // optimistic
+      if (feedbackEl) feedbackEl.textContent = "Saving…";
+
+      try {
+        var result = await patchTherapistProfile({ accepting_new_patients: next });
+        therapist.accepting_new_patients = next;
+        if (result && result.therapist) {
+          claimSessionState = { therapist: result.therapist };
+          therapist = result.therapist;
+        }
+        if (feedbackEl) {
+          feedbackEl.textContent = "";
+        }
+        trackFunnelEvent("portal_accepting_toggled", {
+          slug: therapist.slug,
+          accepting: next,
+        });
+      } catch (err) {
+        paint(prev);
+        if (feedbackEl) {
+          feedbackEl.textContent = (err && err.message) || "Couldn't save. Try again in a moment.";
+          feedbackEl.style.color = "#b03636";
+        }
+      } finally {
+        acceptingBtn.disabled = false;
+      }
+    });
   }
 
   var signOutButton = document.getElementById("portalSignOut");
