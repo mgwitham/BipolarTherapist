@@ -70,6 +70,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
 import { INSURANCE_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
+  renderRoundAvatar,
+  renderSpecialtyPills,
+  renderVoiceCascade,
+  getLocationModalityLabel,
+  getCostLabel,
+  renderAvailabilityBadge,
+} from "./card-content.js";
+import {
   MAX_ENTRIES as SAVED_LIST_MAX,
   readList as readSavedList,
   isSaved as isSavedSlug,
@@ -4951,16 +4959,27 @@ function renderLeadResultCard(entry, _backupName, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine =
-    [therapist.city, therapist.state].filter(Boolean).join(", ") +
-    (therapist.zip ? " " + therapist.zip : "");
-  var telehealthSelected = latestProfile && latestProfile.care_format === "Telehealth";
-  var locDisplay = telehealthSelected && locLine ? "Based in " + locLine : locLine;
-  var metaLine = credLine + (credLine && locDisplay ? " · " : "") + locDisplay;
-  var telehealthBadgeHtml = telehealthSelected
-    ? '<span class="mx-telehealth-badge">Telehealth · serves California</span>'
+
+  var locationLabel = getLocationModalityLabel(therapist);
+  var costLabel = getCostLabel(therapist);
+  var availabilityHtml = renderAvailabilityBadge(therapist);
+
+  var infoParts = [];
+  if (locationLabel) {
+    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(locationLabel) + "</span>");
+  }
+  if (costLabel) {
+    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(costLabel) + "</span>");
+  }
+  if (availabilityHtml) {
+    infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
+  }
+  var infoRowHtml = infoParts.length
+    ? '<div class="bth-card-info">' +
+      infoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
+      "</div>"
     : "";
+
   var ctaLabel =
     routeType === "booking"
       ? "Book consultation"
@@ -4969,78 +4988,40 @@ function renderLeadResultCard(entry, _backupName, options) {
         : routeType === "email"
           ? "Email therapist"
           : "Contact therapist";
-  var chips = getHeroFitChips(therapist, entry);
-  var fitReasons = getHeroFitReasons(entry, therapist, latestProfile);
-  var chipsHtml = chips
-    .map(function (chip) {
-      return '<span class="mx-fit-chip">' + chip.icon + escapeHtml(chip.label) + "</span>";
-    })
-    .join("");
-
-  var availabilityLabel = getCompareTimingLabel(therapist);
-  var costLabel = getCompareCostLabel(therapist);
-  var formatLabel = getCareFormatLabel(therapist);
 
   var badgeHtml = settings.showBestBadge
-    ? '<span class="mx-hero-badge">' +
+    ? '<span class="bth-card-badge">' +
       '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>' +
       "Best match for you" +
       "</span>"
     : "";
+
   return (
-    '<article class="mx-hero">' +
-    '<div class="mx-hero-photo">' +
+    '<article class="bth-card bth-card-lead">' +
     badgeHtml +
-    renderHeroPhoto(therapist) +
+    '<div class="bth-card-header">' +
+    '<div class="bth-card-avatar-slot">' +
+    renderRoundAvatar(therapist, "profile") +
     "</div>" +
-    '<div class="mx-hero-body">' +
-    '<div class="mx-hero-top">' +
-    "<div>" +
-    '<h3 class="mx-hero-name">' +
+    '<div class="bth-card-ident">' +
+    '<h3 class="bth-card-name">' +
     escapeHtml(therapist.name || "") +
-    "</h3>" +
-    (metaLine ? '<p class="mx-hero-cred">' + escapeHtml(metaLine) + "</p>" : "") +
-    telehealthBadgeHtml +
-    "</div>" +
-    renderSaveButton(therapist.slug || "", "hero") +
-    "</div>" +
-    (chipsHtml ? '<div class="mx-fit-row">' + chipsHtml + "</div>" : "") +
-    '<div class="mx-hero-meta">' +
-    '<div class="mx-meta-item">' +
-    '<span class="mx-meta-label">Availability</span>' +
-    '<span class="mx-meta-value' +
-    (availabilityLabel ? " is-available" : "") +
-    '">' +
-    escapeHtml(availabilityLabel || "Check profile") +
-    "</span>" +
-    "</div>" +
-    '<div class="mx-meta-item">' +
-    '<span class="mx-meta-label">Session fee</span>' +
-    '<span class="mx-meta-value">' +
-    escapeHtml(costLabel || "See profile") +
-    "</span>" +
-    "</div>" +
-    '<div class="mx-meta-item">' +
-    '<span class="mx-meta-label">Format</span>' +
-    '<span class="mx-meta-value">' +
-    escapeHtml(formatLabel || "See profile") +
-    "</span>" +
-    "</div>" +
-    "</div>" +
-    (fitReasons.length
-      ? '<div class="mx-hero-fit"><h4 class="mx-hero-fit-title">Why this may be a good fit</h4><ul class="mx-hero-fit-list">' +
-        fitReasons
-          .map(function (reason) {
-            return "<li>" + escapeHtml(reason) + "</li>";
-          })
-          .join("") +
-        "</ul></div>"
+    (therapist.credentials
+      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
       : "") +
-    '<div class="mx-hero-actions">' +
+    "</h3>" +
+    (locationLabel ? '<p class="bth-card-loc">' + escapeHtml(locationLabel) + "</p>" : "") +
+    "</div>" +
+    renderSaveButton(therapist.slug || "", "card") +
+    "</div>" +
+    renderSpecialtyPills(therapist) +
+    renderVoiceCascade(therapist) +
+    infoRowHtml +
+    '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +
         escapeHtml(preferredRoute.href) +
-        '" class="mx-btn-primary" data-match-primary-cta="' +
+        '" class="bth-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
@@ -5052,11 +5033,9 @@ function renderLeadResultCard(entry, _backupName, options) {
       : "") +
     '<a href="' +
     escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="mx-btn-secondary" data-match-profile-link="' +
+    '" class="bth-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">View details</a>' +
-    "</div>" +
-    '<p class="mx-hero-reassure">You do not need to get this perfect. Start with your top match.</p>' +
+    '" data-profile-link-context="primary-card">View profile →</a>' +
     "</div>" +
     "</article>"
   );
@@ -5067,18 +5046,27 @@ function renderSupportingResultCard(entry, _rank, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-  var explanation = getMatchCardExplanation(entry);
-  var credLine = [therapist.credentials, therapist.title].filter(Boolean).join(" · ");
-  var locLine = [therapist.city, therapist.state].filter(Boolean).join(", ");
-  var telehealthSelected = latestProfile && latestProfile.care_format === "Telehealth";
-  var locDisplay = telehealthSelected && locLine ? "Based in " + locLine : locLine;
-  var metaLine = credLine + (credLine && locDisplay ? " · " : "") + locDisplay;
-  var telehealthBadgeHtml = telehealthSelected
-    ? '<span class="mx-telehealth-badge">Telehealth · serves California</span>'
+
+  var locationLabel = getLocationModalityLabel(therapist);
+  var costLabel = getCostLabel(therapist);
+  var availabilityHtml = renderAvailabilityBadge(therapist);
+
+  var infoParts = [];
+  if (locationLabel) {
+    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(locationLabel) + "</span>");
+  }
+  if (costLabel) {
+    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(costLabel) + "</span>");
+  }
+  if (availabilityHtml) {
+    infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
+  }
+  var infoRowHtml = infoParts.length
+    ? '<div class="bth-card-info">' +
+      infoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
+      "</div>"
     : "";
-  var availabilityLabel = getCompareTimingLabel(therapist);
-  var costLabel = getCompareCostLabel(therapist);
-  var formatLabel = getShortCareFormatLabel(therapist);
+
   var ctaLabel =
     routeType === "booking"
       ? "Book"
@@ -5088,44 +5076,32 @@ function renderSupportingResultCard(entry, _rank, options) {
           ? "Email"
           : "Contact";
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
-  var metaParts = [];
-  if (availabilityLabel) {
-    metaParts.push('<span class="mx-avail">● ' + escapeHtml(availabilityLabel) + "</span>");
-  }
-  if (costLabel) {
-    metaParts.push("<span>" + escapeHtml(costLabel) + "</span>");
-  }
-  if (formatLabel) {
-    metaParts.push("<span>" + escapeHtml(formatLabel) + "</span>");
-  }
-  var metaHtml = metaParts.join('<span class="mx-dot" aria-hidden="true"></span>');
 
   return (
-    '<article class="mx-card">' +
-    '<div class="mx-card-top">' +
-    '<div class="mx-card-photo">' +
-    renderCardPhoto(therapist) +
+    '<article class="bth-card">' +
+    '<div class="bth-card-header">' +
+    '<div class="bth-card-avatar-slot">' +
+    renderRoundAvatar(therapist, "card") +
     "</div>" +
-    '<div class="mx-card-ident">' +
-    '<h3 class="mx-card-name">' +
+    '<div class="bth-card-ident">' +
+    '<h3 class="bth-card-name">' +
     escapeHtml(therapist.name || "") +
+    (therapist.credentials
+      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
+      : "") +
     "</h3>" +
-    (metaLine ? '<p class="mx-card-cred">' + escapeHtml(metaLine) + "</p>" : "") +
-    telehealthBadgeHtml +
+    (locationLabel ? '<p class="bth-card-loc">' + escapeHtml(locationLabel) + "</p>" : "") +
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
-    (explanation
-      ? '<div class="mx-card-fit"><span class="mx-card-fit-label">Why this may be a good fit</span><p class="mx-card-reason">' +
-        escapeHtml(explanation) +
-        "</p></div>"
-      : "") +
-    (metaHtml ? '<div class="mx-card-meta">' + metaHtml + "</div>" : "") +
-    '<div class="mx-card-actions">' +
+    renderSpecialtyPills(therapist) +
+    renderVoiceCascade(therapist) +
+    infoRowHtml +
+    '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +
         escapeHtml(preferredRoute.href) +
-        '" class="mx-btn-primary" data-match-primary-cta="' +
+        '" class="bth-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
         escapeHtml(ctaLabel) +
@@ -5137,11 +5113,11 @@ function renderSupportingResultCard(entry, _rank, options) {
       : "") +
     '<a href="' +
     escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="mx-btn-secondary" data-match-profile-link="' +
+    '" class="bth-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="' +
     escapeHtml(contextLabel) +
-    '">Profile</a>' +
+    '">View profile →</a>' +
     "</div>" +
     "</article>"
   );
