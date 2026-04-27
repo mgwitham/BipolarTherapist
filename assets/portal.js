@@ -3717,50 +3717,22 @@ function renderPortal(therapist, options) {
   // Zone 1.5 — Headshot upload. A dedicated, prominent control so a
   // photo is one click away from the dashboard. Only appears once the
   // claim is verified (uploads require an authenticated session).
+  // Headshot is now handled inline by Phase 1 (Field 1) and Phase 2
+  // (improvement item), per the portal redesign. The standalone
+  // "Add your headshot" card was a duplicate, so we removed the
+  // visual chrome but kept the DOM hooks bindPortalPhotoUpload()
+  // already wires onto. Phase 1/2 click the hidden file input
+  // directly to trigger the same upload flow.
   var hasPhoto = Boolean(therapist.photo_url);
-  var photoSourceType = therapist.photo_source_type || "";
-  var photoNeedsAttention =
-    !hasPhoto || photoSourceType === "public_source" || photoSourceType === "";
-  var photoEyebrow = photoNeedsAttention ? "Add your headshot" : "Your headshot";
-  var photoTitle = hasPhoto
-    ? photoSourceType === "therapist_uploaded"
-      ? "You uploaded this headshot"
-      : photoSourceType === "practice_uploaded"
-        ? "Practice-uploaded headshot on file"
-        : "Public-source fallback in use"
-    : "No headshot on your listing yet";
-  var photoBody = photoNeedsAttention
-    ? "Profiles with a clear headshot earn more patient trust and inquiries. JPG, PNG, or WebP, up to 4 MB."
-    : "Replace it any time. JPG, PNG, or WebP, up to 4 MB.";
-  var photoPreviewInner = hasPhoto
-    ? '<img src="' + escapeHtml(therapist.photo_url) + '" alt="" />'
-    : '<span class="portal-photo-placeholder">📷</span>';
   var photoZone = verifiedClaim
-    ? '<section class="portal-card portal-photo-card" id="portalPhotoCard">' +
-      '<p class="portal-eyebrow">' +
-      escapeHtml(photoEyebrow) +
-      "</p>" +
-      '<div class="portal-photo-row">' +
-      '<div class="portal-photo-preview" id="portalPhotoPreview">' +
-      photoPreviewInner +
-      "</div>" +
-      '<div class="portal-photo-copy">' +
-      "<h2>" +
-      escapeHtml(photoTitle) +
-      "</h2>" +
-      '<p class="portal-subtle">' +
-      escapeHtml(photoBody) +
-      "</p>" +
-      '<div class="portal-actions">' +
-      '<label class="btn-primary portal-photo-btn">' +
+    ? '<form class="portal-photo-shell" id="portalPhotoShell" hidden>' +
+      '<div id="portalPhotoPreview" hidden></div>' +
       '<input type="file" id="portalPhotoInput" accept="image/jpeg,image/png,image/webp" hidden />' +
-      '<span id="portalPhotoBtnLabel">' +
+      '<span id="portalPhotoBtnLabel" hidden>' +
       (hasPhoto ? "Replace photo" : "Upload headshot") +
       "</span>" +
-      "</label>" +
-      "</div>" +
-      '<div class="portal-feedback" id="portalPhotoFeedback" role="status" aria-live="polite"></div>' +
-      "</div></div></section>"
+      '<div id="portalPhotoFeedback" role="status" aria-live="polite" hidden></div>' +
+      "</form>"
     : "";
 
   // Zone 2 — Deep editor, collapsed unless the clinician clearly needs
@@ -3995,8 +3967,8 @@ function renderPortal(therapist, options) {
     if (phaseOneMount) {
       mountPortalPhaseOne(phaseOneMount, therapist, {
         onRequestPhotoUpload: function (onUploaded) {
-          var photoBtn = document.getElementById("portalPhotoUploadButton");
-          if (photoBtn) photoBtn.click();
+          var photoInput = document.getElementById("portalPhotoInput");
+          if (photoInput) photoInput.click();
           // The existing upload handler refreshes the page, so the
           // explicit callback isn't required, but we expose the hook
           // for future improvements.
@@ -4038,8 +4010,8 @@ function renderPortal(therapist, options) {
     if (phaseTwoMount) {
       mountPortalPhaseTwo(phaseTwoMount, therapist, {
         onRequestPhotoUpload: function (onUploaded) {
-          var photoBtn = document.getElementById("portalPhotoUploadButton");
-          if (photoBtn) photoBtn.click();
+          var photoInput = document.getElementById("portalPhotoInput");
+          if (photoInput) photoInput.click();
           if (typeof onUploaded === "function") {
             // No-op: existing flow refreshes the page.
           }
