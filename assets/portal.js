@@ -3550,33 +3550,14 @@ function renderPortal(therapist, options) {
     : null;
   var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
-  // Welcome-upsell banner. Shown on any portal state where we know the
-  // therapist's identity — claimed OR claim_token (they arrived via a
-  // magic link, which proves ownership even if they haven't clicked the
-  // ceremonial "Claim this profile" button yet). Letting free-tier users
-  // upgrade before completing the verify ceremony also provides an
-  // escape hatch if they get stuck on a replayed / used token.
-  // Starts hidden; renderPortalWelcomeUpsell() decides whether to reveal
-  // based on subscription state + a localStorage dismiss flag.
-  var welcomeUpsellEligible = verifiedClaim || sessionMode === "claim_token";
-  var welcomeUpsellBanner = welcomeUpsellEligible
-    ? '<section class="portal-card" id="portalWelcomeUpsell" hidden style="border:2px solid #1a7a8f;background:linear-gradient(180deg,#ecf7f9 0%,#fff 70%);margin-bottom:1rem">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">' +
-      '<div><p class="portal-eyebrow" style="color:#155f70;margin:0 0 0.35rem">Welcome to your dashboard</p>' +
-      '<h2 style="margin:0 0 0.35rem">Unlock your growth toolkit — 14 days free</h2>' +
-      '<p class="portal-subtle" style="margin:0">' +
-      "$19/mo after trial. Cancel anytime from this dashboard. No charge until day 15." +
-      "</p></div>" +
-      '<button type="button" id="portalWelcomeUpsellDismiss" aria-label="Dismiss" style="background:transparent;border:0;color:#6b8290;font-size:0.85rem;cursor:pointer;padding:0.3rem 0.5rem">Maybe later</button>' +
-      "</div>" +
-      '<ul class="pricing-features" style="list-style:none;padding:0;margin:0.85rem 0 1rem;display:grid;gap:0.5rem">' +
-      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>12-week analytics dashboard</strong> view trend, how patients found you (match flow vs directory vs direct), and which contact methods they actually used.</li>' +
-      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>Monday morning digest email</strong> last week\'s numbers + trend vs prior week, delivered to you automatically.</li>' +
-      '<li style="padding-left:1.4rem;position:relative;color:#1d3a4a;font-size:0.94rem"><span style="position:absolute;left:0;color:#1a7a8f;font-weight:700">✓</span><strong>14-day free trial</strong> full dashboard and digest email, no charge until day 15, cancel in one click.</li>' +
-      "</ul>" +
-      '<button type="button" id="portalWelcomeUpsellCta" class="btn-primary" style="background:#1a7a8f;color:#fff;border:0;border-radius:12px;padding:0.85rem 1.2rem;font-weight:700;font-size:0.95rem;cursor:pointer">Start 14-day free trial — $0 today →</button>' +
-      "</section>"
-    : "";
+  // The "$19/mo growth toolkit — 14 days free" welcome upsell was
+  // removed in the portal redesign. It surfaced before clinicians had
+  // received any value from the listing and set the wrong first
+  // impression. The eventual replacement is a deferred analytics teaser
+  // inside the Listing-strength panel that fires only after 7+ days
+  // live and only when real "patients searched in your area" data is
+  // available. See spec Step 9.
+  var welcomeUpsellBanner = "";
 
   // Hero eyebrow adapts to the user's actual state so we don't keep
   // saying "claim and manage" to someone who already claimed.
@@ -3619,15 +3600,29 @@ function renderPortal(therapist, options) {
         'border-radius:999px;cursor:pointer;white-space:nowrap">Sign out</button>'
       : "";
 
-  // Live / paused / pending — single plain-English label for the snapshot.
-  var liveLabel =
-    therapist.listing_active === false
-      ? "Paused (hidden from directory)"
-      : therapist.status === "active"
-        ? "Live"
-        : therapist.status
-          ? therapist.status.charAt(0).toUpperCase() + therapist.status.slice(1)
-          : "Not yet published";
+  // Phase-aware listing status. Replaces the older "Paused (hidden from
+  // directory)" framing per the redesign spec. The full Phase 1 / Phase 2
+  // gating logic lands in PR-C; here we already check the same minimums
+  // (specialties + practice mode) so the message is consistent.
+  var portalSpecialties = Array.isArray(therapist.specialties)
+    ? therapist.specialties.filter(Boolean)
+    : [];
+  var portalHasPracticeMode = Boolean(therapist.accepts_in_person || therapist.accepts_telehealth);
+  var portalMissingForLive = [];
+  if (!portalSpecialties.length) portalMissingForLive.push("specialties");
+  if (!portalHasPracticeMode) portalMissingForLive.push("practice mode");
+  var portalIsLive =
+    therapist.listing_active !== false &&
+    portalMissingForLive.length === 0 &&
+    therapist.status !== "pending_profile";
+
+  var liveLabel = portalIsLive
+    ? "Your card is live"
+    : portalMissingForLive.length
+      ? "Add " + portalMissingForLive.join(" and ") + " to go live"
+      : therapist.status === "pending_profile" || therapist.listing_active === false
+        ? "Add a bio to go live"
+        : "Not yet published";
 
   // Auto-open editor only when the clinician clearly needs it:
   // fresh claim_token session, pre-publish state, explicit deep-link to
@@ -3672,6 +3667,11 @@ function renderPortal(therapist, options) {
     '<h2 style="margin:0 0 0.35rem">' +
     escapeHtml(liveLabel) +
     "</h2>" +
+    (portalIsLive && therapist.slug
+      ? '<p class="portal-subtle" style="margin:0 0 0.5rem"><a href="therapist.html?slug=' +
+        escapeHtml(therapist.slug) +
+        '" target="_blank" rel="noopener" class="portal-public-listing-link">View public listing →</a></p>'
+      : "") +
     '<ul class="portal-snapshot-list">' +
     "<li><span>Claim</span><strong>" +
     escapeHtml(claimStatus) +
