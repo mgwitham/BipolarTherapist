@@ -3648,22 +3648,12 @@ function renderPortal(therapist, options) {
         ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="#portalEditProfile" data-portal-editor-jump="1">Edit profile</a></div>'
         : "";
 
-  // Zone 1 — Priority: recommended next step (prominent, accented) + a
-  // compact listing snapshot with quick actions. Replaces the old
-  // "Profile status" + "Manage now" + "Recommended next step" +
-  // "What needs attention" four-card sprawl.
+  // Zone 1 — Listing snapshot only. The "What to do next / You're all
+  // set" next-step card was removed in the portal redesign; its job is
+  // now done by Phase 1 ("Get your card live") and Phase 2 ("Improve
+  // your listing") which sit just below this zone.
   var priorityZone =
-    '<section class="portal-priority">' +
-    '<article class="portal-card portal-next-step">' +
-    '<p class="portal-eyebrow">What to do next</p>' +
-    "<h2>" +
-    escapeHtml(nextAction.title) +
-    "</h2>" +
-    '<p class="portal-subtle" style="margin:0.35rem 0 0">' +
-    escapeHtml(nextAction.body) +
-    "</p>" +
-    nextStepCta +
-    "</article>" +
+    '<div style="margin-bottom:1rem">' +
     '<article class="portal-card portal-listing-snapshot">' +
     '<p class="portal-eyebrow">Listing status</p>' +
     '<h2 style="margin:0 0 0.35rem">' +
@@ -3712,7 +3702,7 @@ function renderPortal(therapist, options) {
       : "") +
     "</div>" +
     "</article>" +
-    "</section>";
+    "</div>";
 
   // Zone 1.5 — Headshot upload. A dedicated, prominent control so a
   // photo is one click away from the dashboard. Only appears once the
