@@ -1644,28 +1644,23 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         Object.assign(localTherapist, payload);
       }
       refreshPreview();
-      refreshRow(key);
       refreshScore();
       refreshNotLiveBar();
 
-      // Show "Saved ✓" briefly before collapsing so the user sees confirmation.
+      // Show "Saved ✓" briefly before collapsing. refreshRow is deferred
+      // because it replaces the article (and the button inside it) immediately,
+      // which would destroy the saveBtn reference before the flash is visible.
       if (saveBtn) {
         saveBtn.classList.remove("is-saving");
         saveBtn.classList.add("is-saved");
         saveBtn.textContent = "Saved ✓";
       }
+      if (key === "card_bio") {
+        var previewSaved = container.querySelector("#tdcPreview");
+        if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
+      }
       window.setTimeout(function () {
-        var refreshedBody = container.querySelector('[data-tdc-body="' + key + '"]');
-        if (refreshedBody) {
-          refreshedBody.hidden = true;
-          refreshedBody.innerHTML = "";
-        }
-        var article = container.querySelector('[data-tdc-row="' + key + '"]');
-        if (article) article.classList.remove("is-open");
-        if (key === "card_bio") {
-          var previewSaved = container.querySelector("#tdcPreview");
-          if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
-        }
+        refreshRow(key);
       }, 700);
 
       trackFunnelEvent("portal_td_field_saved", {
