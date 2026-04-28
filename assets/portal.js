@@ -2351,7 +2351,6 @@ function computeProfileScore(therapist) {
   if (Number(t.bipolar_years_experience) > 0) score += 5;
   if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
   if (String(t.estimated_wait_time || "").trim()) score += 4;
-  if (String(t.contact_guidance || "").trim()) score += 4;
   if (String(t.first_step_expectation || "").trim()) score += 4;
   if (String(t.practice_name || "").trim()) score += 3;
   if (String(t.website || "").trim()) score += 3;

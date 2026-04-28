@@ -71,7 +71,6 @@ function computeScore(t) {
   if (Number(t.bipolar_years_experience) > 0) score += 5;
   if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
   if (String(t.estimated_wait_time || "").trim()) score += 4;
-  if (String(t.contact_guidance || "").trim()) score += 4;
   if (String(t.first_step_expectation || "").trim()) score += 4;
   if (String(t.practice_name || "").trim()) score += 3;
   if (String(t.website || "").trim()) score += 3;
@@ -150,9 +149,6 @@ function isLanguagesComplete(t) {
 function isWaitTimeComplete(t) {
   return Boolean(t && String(t.estimated_wait_time || "").trim());
 }
-function isContactGuidanceComplete(t) {
-  return Boolean(t && String(t.contact_guidance || "").trim());
-}
 function isFirstStepComplete(t) {
   return Boolean(t && String(t.first_step_expectation || "").trim());
 }
@@ -205,6 +201,18 @@ var FIELD_REGISTRY = [
     badge: "Done",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isLocationComplete,
+  },
+  {
+    // Years treating bipolar lives in "Your profile" rather than the
+    // generic "Who you help" section because it surfaces directly on
+    // patient match cards and the public profile hero — it's a critical
+    // signal for matching, not a back-of-house demographic field.
+    key: "years",
+    section: "profile",
+    title: "Years treating bipolar",
+    badge: "+5 pts",
+    hint: "Shown on your patient cards. 8+ years unlocks a search ranking boost in your area.",
+    isComplete: isYearsComplete,
   },
   {
     key: "full_bio",
@@ -279,14 +287,6 @@ var FIELD_REGISTRY = [
     isComplete: isWaitTimeComplete,
   },
   {
-    key: "contact_guidance",
-    section: "practice",
-    title: "Contact guidance",
-    badge: "+4 pts",
-    hint: "What to include when reaching out — shown in the patient match modal",
-    isComplete: isContactGuidanceComplete,
-  },
-  {
     key: "first_step",
     section: "practice",
     title: "First step expectation",
@@ -309,14 +309,6 @@ var FIELD_REGISTRY = [
     badge: "+8 pts",
     hint: "Patients filter heavily by these",
     isComplete: isPopulationsComplete,
-  },
-  {
-    key: "years",
-    section: "audience",
-    title: "Years treating bipolar",
-    badge: "+5 pts",
-    hint: "8+ years unlocks a search ranking boost in your area",
-    isComplete: isYearsComplete,
   },
   {
     key: "total_years",
@@ -499,10 +491,6 @@ function buildHint(field, therapist) {
   if (field.key === "website") return String(t.website || "").replace(/^https?:\/\//, "");
   if (field.key === "languages") return (t.languages || []).slice(0, 4).join(" · ");
   if (field.key === "wait_time") return String(t.estimated_wait_time || "");
-  if (field.key === "contact_guidance") {
-    var cg = String(t.contact_guidance || "").trim();
-    return cg.length > 90 ? cg.slice(0, 87) + "…" : cg;
-  }
   if (field.key === "first_step") {
     var fs = String(t.first_step_expectation || "").trim();
     return fs.length > 90 ? fs.slice(0, 87) + "…" : fs;
@@ -624,6 +612,49 @@ function renderPickerRow(options, selected, attr) {
       );
     })
     .join("");
+}
+
+// "Add other" pills — for fields that allow free-text entry beyond the
+// canonical option list. Renders any selected values that aren't in
+// `options` as already-selected pills sitting alongside the canonical
+// row, so a clinician's previously-saved custom plan / modality stays
+// visible when they reopen the form.
+function renderCustomPills(options, selected, attr) {
+  var canonical = {};
+  options.forEach(function (o) {
+    canonical[o] = true;
+  });
+  return selected
+    .filter(function (label) {
+      return !canonical[label];
+    })
+    .map(function (label) {
+      return (
+        '<button type="button" class="td-pick is-selected td-pick-custom" data-' +
+        attr +
+        '="' +
+        escapeHtml(label) +
+        '">' +
+        escapeHtml(label) +
+        "</button>"
+      );
+    })
+    .join("");
+}
+
+function renderAddOtherRow(attr, placeholder) {
+  return (
+    '<div class="td-other-row">' +
+    '<input type="text" class="td-input td-input-other" data-tdc-other-input="' +
+    attr +
+    '" placeholder="' +
+    escapeHtml(placeholder) +
+    '" maxlength="60" />' +
+    '<button type="button" class="td-add-other" data-tdc-other-add="' +
+    attr +
+    '">+ Add</button>' +
+    "</div>"
+  );
 }
 
 var CARD_BIO_MIN = 50;
@@ -869,9 +900,11 @@ function renderModalitiesForm(t) {
   var current = Array.isArray(t.treatment_modalities) ? t.treatment_modalities.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
-    '<div class="td-pick-grid">' +
+    '<div class="td-pick-grid" data-tdc-pick-grid="tdc-modality">' +
     renderPickerRow(MODALITY_OPTIONS, current, "tdc-modality") +
+    renderCustomPills(MODALITY_OPTIONS, current, "tdc-modality") +
     "</div>" +
+    renderAddOtherRow("tdc-modality", "Other modality (e.g. Schema therapy)") +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="modalities">Save</button></div>' +
     "</div>"
   );
@@ -910,9 +943,11 @@ function renderInsuranceForm(t) {
   var current = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
-    '<div class="td-pick-grid">' +
+    '<div class="td-pick-grid" data-tdc-pick-grid="tdc-insurance">' +
     renderPickerRow(INSURANCE_OPTIONS, current, "tdc-insurance") +
+    renderCustomPills(INSURANCE_OPTIONS, current, "tdc-insurance") +
     "</div>" +
+    renderAddOtherRow("tdc-insurance", "Other plan (e.g. Kaiser, Anthem PPO)") +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="insurance">Save</button></div>' +
     "</div>"
   );
@@ -964,6 +999,7 @@ var SPECIALTY_OPTIONS = [
   "Mixed episodes",
   "Rapid cycling",
   "Mood stabilization",
+  "Maintenance",
   "Co-occurring anxiety",
   "Psychosis",
 ];
@@ -1027,19 +1063,6 @@ function renderWaitTimeForm(t) {
     "</div>" +
     '<p class="td-form-helper">Patients in crisis triage on this — be honest, not aspirational.</p>' +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="wait_time">Save</button></div>' +
-    "</div>"
-  );
-}
-
-function renderContactGuidanceForm(t) {
-  return (
-    '<div class="td-form">' +
-    '<label class="td-form-row"><span class="td-form-label">What to include when reaching out</span>' +
-    '<textarea class="td-input td-textarea-bio" id="tdcContactGuidance" rows="3" placeholder="Please share your diagnosis, what brings you to therapy now, and your insurance or budget...">' +
-    escapeHtml(String(t.contact_guidance || "")) +
-    "</textarea></label>" +
-    '<p class="td-form-helper">Shown in the patient match modal. Reduces back-and-forth on first contact.</p>' +
-    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="contact_guidance">Save</button></div>' +
     "</div>"
   );
 }
@@ -1112,7 +1135,6 @@ function renderFormBody(field, therapist) {
   if (field.key === "website") return renderWebsiteForm(therapist);
   if (field.key === "languages") return renderLanguagesForm(therapist);
   if (field.key === "wait_time") return renderWaitTimeForm(therapist);
-  if (field.key === "contact_guidance") return renderContactGuidanceForm(therapist);
   if (field.key === "first_step") return renderFirstStepForm(therapist);
   if (field.key === "specialties") return renderSpecialtiesForm(therapist);
   if (field.key === "total_years") return renderTotalYearsForm(therapist);
@@ -1243,6 +1265,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-modality");
         });
       });
+      wireAddOther(bodyEl, "tdc-modality");
     } else if (key === "format") {
       formDraft.list = [];
       if (localTherapist.accepts_in_person) formDraft.list.push("In-person");
@@ -1283,6 +1306,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-insurance");
         });
       });
+      wireAddOther(bodyEl, "tdc-insurance");
     } else if (key === "populations") {
       formDraft.list = (
         Array.isArray(localTherapist.client_populations)
@@ -1409,6 +1433,57 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     btn.classList.toggle("is-selected");
   }
 
+  // "+ Add" handler shared by Insurance + Modalities. Pulls the value
+  // from the matching input, deduplicates, appends a selected pill to
+  // the grid, and wires it for toggle so the clinician can also remove
+  // their custom value.
+  function wireAddOther(bodyEl, attr) {
+    var addBtn = bodyEl.querySelector('[data-tdc-other-add="' + attr + '"]');
+    var input = bodyEl.querySelector('[data-tdc-other-input="' + attr + '"]');
+    var grid = bodyEl.querySelector('[data-tdc-pick-grid="' + attr + '"]');
+    if (!addBtn || !input || !grid) return;
+
+    function commit() {
+      var value = String(input.value || "").trim();
+      if (!value) return;
+      // Case-insensitive dedup against the current list.
+      var existing = formDraft.list.find(function (label) {
+        return String(label).toLowerCase() === value.toLowerCase();
+      });
+      if (existing) {
+        // Already there — flash the existing pill instead of duplicating.
+        var existingBtn = grid.querySelector("[data-" + attr + '="' + existing + '"]');
+        if (existingBtn) {
+          existingBtn.classList.add("td-pick-flash");
+          window.setTimeout(function () {
+            existingBtn.classList.remove("td-pick-flash");
+          }, 600);
+        }
+        input.value = "";
+        return;
+      }
+      formDraft.list.push(value);
+      input.value = "";
+      var pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "td-pick is-selected td-pick-custom";
+      pill.setAttribute("data-" + attr, value);
+      pill.textContent = value;
+      pill.addEventListener("click", function () {
+        toggleListPick(pill, attr);
+      });
+      grid.appendChild(pill);
+    }
+
+    addBtn.addEventListener("click", commit);
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commit();
+      }
+    });
+  }
+
   async function saveItem(key) {
     var bodyEl = container.querySelector('[data-tdc-body="' + key + '"]');
     if (!bodyEl) return;
@@ -1529,10 +1604,6 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
     } else if (key === "website") {
       payload.website = String(bodyEl.querySelector("#tdcWebsite").value || "").trim();
-    } else if (key === "contact_guidance") {
-      payload.contact_guidance = String(
-        bodyEl.querySelector("#tdcContactGuidance").value || "",
-      ).trim();
     } else if (key === "first_step") {
       payload.first_step_expectation = String(
         bodyEl.querySelector("#tdcFirstStep").value || "",
