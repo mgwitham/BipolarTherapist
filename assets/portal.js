@@ -2331,6 +2331,9 @@ function fieldsetFillStats(fieldsetEl) {
 //
 // Maximum: 40 + 60 = 100.
 function computeProfileScore(therapist) {
+  // Mirror of computeScore in portal-td-completeness.js — keep the two
+  // in sync so the header badge and the panel both display the same
+  // number on every render.
   var t = therapist || {};
   var score = 40; // signup baseline
   if (t.photo_url) score += 15;
@@ -2338,12 +2341,20 @@ function computeProfileScore(therapist) {
     score += 10;
   if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
     score += 10;
-  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
-    score += 7;
   if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
     score += 8;
+  if (String(t.bio || "").trim()) score += 8;
+  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
+    score += 7;
+  if (Array.isArray(t.specialties) && t.specialties.filter(Boolean).length) score += 6;
   if (t.accepts_in_person || t.accepts_telehealth) score += 5;
-  if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
+  if (Number(t.bipolar_years_experience) > 0) score += 5;
+  if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
+  if (String(t.estimated_wait_time || "").trim()) score += 4;
+  if (String(t.first_step_expectation || "").trim()) score += 4;
+  if (String(t.practice_name || "").trim()) score += 3;
+  if (String(t.website || "").trim()) score += 3;
+  if (Number(t.years_experience) > 0) score += 3;
   if (score > 100) score = 100;
   if (score < 0) score = 0;
   return score;
@@ -3785,18 +3796,14 @@ function renderPortal(therapist, options) {
       "</form>"
     : "";
 
-  // Zone 2 — Deep editor, collapsed unless the clinician clearly needs
-  // to see it (pending-publish, claim_token, deep link, or pre-save).
-  var editorZone = verifiedClaim
-    ? '<details class="portal-editor-shell" id="portalEditProfile"' +
-      (editorAutoOpen ? " open" : "") +
-      '><summary class="portal-editor-summary">' +
-      '<span class="portal-editor-summary-label"><strong>More fields</strong><span class="portal-subtle" style="font-size:0.85rem">Long-form bio, practice name, specialties, telehealth states, languages, wait time, website, contact guidance</span></span>' +
-      '<span class="portal-editor-summary-chevron" aria-hidden="true">▾</span>' +
-      "</summary>" +
-      buildEditProfileHtml(therapist) +
-      "</details>"
-    : "";
+  // Zone 2 — Legacy "More fields" disclosure was removed in TF-C.
+  // Every editable field now lives inline in the completeness panel
+  // above. The buildEditProfileHtml(), bindPortalEditor(),
+  // snapshotFormState(), getProjectedTherapist() helpers and their
+  // related click/save handlers are intentionally left in place per
+  // the spec's "schedule as follow-up cleanup" — the dead-code prune
+  // is its own PR so this one stays surgical.
+  var editorZone = "";
 
   // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
   // (left) + "Your plan" subscription card (right), equal-width.
@@ -4165,27 +4172,17 @@ function renderPortal(therapist, options) {
     }
   });
 
-  // Editor-jump affordance — any "Edit profile" link with a #portalEditProfile
-  // hash needs to open the <details> and scroll to the editor card. This
-  // also covers the #portalEditProfile anchor on the pending-profile banner.
+  // Editor-jump affordance — coaching / progress / review-zone deep
+  // links still emit "[data-portal-editor-jump]" anchors pointing at
+  // #portalEditProfile. The legacy editor was removed in TF-C, so we
+  // redirect those clicks to the new completeness panel and smooth-
+  // scroll the clinician there instead.
   document.querySelectorAll('[data-portal-editor-jump="1"]').forEach(function (link) {
     link.addEventListener("click", function (event) {
-      var details = document.getElementById("portalEditProfile");
-      if (details && !details.open) {
-        details.open = true;
-      }
-      if (details) {
-        event.preventDefault();
-        details.scrollIntoView({ behavior: "smooth", block: "start" });
-        var firstField = details.querySelector(
-          'textarea[name="bio"], input[name="credentials"], input, textarea, select',
-        );
-        if (firstField) {
-          window.setTimeout(function () {
-            firstField.focus({ preventScroll: true });
-          }, 350);
-        }
-      }
+      var target = document.getElementById("portalTdCompletenessMount");
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 

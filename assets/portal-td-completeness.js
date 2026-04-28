@@ -31,6 +31,28 @@ function escapeHtml(value) {
 
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 
+// 100-point system per the TF-final spec.
+// Base = 40 (signup baseline: name + location + credentials + format).
+// Optional points sum to 99; capped at 100. Typical signup with format
+// auto-true + specialties pre-filled lands ~50 ("Needs work") and a
+// fully-populated profile hits 100 ("Complete").
+//
+//   Headshot                +15
+//   Treatment modalities    +10
+//   Session fee             +10
+//   Populations             +8
+//   Full bio                +8
+//   Insurance               +7
+//   Bipolar specialties     +6
+//   Session format          +5
+//   Years treating bipolar  +5
+//   Languages               +4
+//   Wait time               +4
+//   Contact guidance        +4
+//   First step              +4
+//   Practice name           +3
+//   Website                 +3
+//   Total years             +3
 function computeScore(t) {
   if (!t) return 0;
   var score = 40; // signup baseline
@@ -39,12 +61,20 @@ function computeScore(t) {
     score += 10;
   if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
     score += 10;
-  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
-    score += 7;
   if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
     score += 8;
+  if (String(t.bio || "").trim()) score += 8;
+  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
+    score += 7;
+  if (Array.isArray(t.specialties) && t.specialties.filter(Boolean).length) score += 6;
   if (t.accepts_in_person || t.accepts_telehealth) score += 5;
-  if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
+  if (Number(t.bipolar_years_experience) > 0) score += 5;
+  if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
+  if (String(t.estimated_wait_time || "").trim()) score += 4;
+  if (String(t.first_step_expectation || "").trim()) score += 4;
+  if (String(t.practice_name || "").trim()) score += 3;
+  if (String(t.website || "").trim()) score += 3;
+  if (Number(t.years_experience) > 0) score += 3;
   if (score > 100) score = 100;
   if (score < 0) score = 0;
   return score;
@@ -52,8 +82,17 @@ function computeScore(t) {
 
 // ─── Field completion predicates ─────────────────────────────────────
 
-function isBioComplete(t) {
+// "Your card bio" — short bipolar-specific paragraph that powers the
+// patient match-card voice slot. Required, ≥50 chars to gate going-live.
+// NOT the same as t.bio (the long-form full profile body — see
+// isFullBioComplete below).
+function isCardBioComplete(t) {
   return Boolean(t && String(t.care_approach || "").trim().length >= 50);
+}
+// "Full bio" — long-form text shown on the public profile page. Optional,
+// no char minimum.
+function isFullBioComplete(t) {
+  return Boolean(t && String(t.bio || "").trim());
 }
 function isContactRouteComplete(t) {
   if (!t) return false;
@@ -95,19 +134,41 @@ function isPopulationsComplete(t) {
   );
 }
 function isYearsComplete(t) {
-  return Number(t && (t.bipolar_years_experience || t.years_experience)) > 0;
+  return Number(t && t.bipolar_years_experience) > 0;
+}
+// TF-B new fields
+function isPracticeNameComplete(t) {
+  return Boolean(t && String(t.practice_name || "").trim());
+}
+function isWebsiteComplete(t) {
+  return Boolean(t && String(t.website || "").trim());
+}
+function isLanguagesComplete(t) {
+  return Boolean(t && Array.isArray(t.languages) && t.languages.filter(Boolean).length > 0);
+}
+function isWaitTimeComplete(t) {
+  return Boolean(t && String(t.estimated_wait_time || "").trim());
+}
+function isFirstStepComplete(t) {
+  return Boolean(t && String(t.first_step_expectation || "").trim());
+}
+function isSpecialtiesComplete(t) {
+  return Boolean(t && Array.isArray(t.specialties) && t.specialties.filter(Boolean).length > 0);
+}
+function isTotalYearsComplete(t) {
+  return Number(t && t.years_experience) > 0;
 }
 
 // ─── Field registry ──────────────────────────────────────────────────
 
 var FIELD_REGISTRY = [
   {
-    key: "bio",
+    key: "card_bio",
     section: "essential",
-    title: "Bio",
+    title: "Your card bio",
     badge: "Required",
-    hint: "Required — describe how you work with clients (50+ characters)",
-    isComplete: isBioComplete,
+    hint: "This is the first thing patients read — watch your listing come alive as you type",
+    isComplete: isCardBioComplete,
   },
   {
     key: "contact",
@@ -142,6 +203,50 @@ var FIELD_REGISTRY = [
     isComplete: isLocationComplete,
   },
   {
+    // Years treating bipolar lives in "Your profile" rather than the
+    // generic "Who you help" section because it surfaces directly on
+    // patient match cards and the public profile hero — it's a critical
+    // signal for matching, not a back-of-house demographic field.
+    key: "years",
+    section: "profile",
+    title: "Years treating bipolar",
+    badge: "+5 pts",
+    hint: "Shown on your patient cards. 8+ years unlocks a search ranking boost in your area.",
+    isComplete: isYearsComplete,
+  },
+  {
+    key: "full_bio",
+    section: "profile",
+    title: "Full bio",
+    badge: "+8 pts",
+    hint: "Long-form profile body shown on your full public profile page",
+    isComplete: isFullBioComplete,
+  },
+  {
+    key: "practice_name",
+    section: "profile",
+    title: "Practice name",
+    badge: "+3 pts",
+    hint: "If you practice under a group or clinic name",
+    isComplete: isPracticeNameComplete,
+  },
+  {
+    key: "website",
+    section: "profile",
+    title: "Website",
+    badge: "+3 pts",
+    hint: "Links from your profile to your practice site",
+    isComplete: isWebsiteComplete,
+  },
+  {
+    key: "languages",
+    section: "profile",
+    title: "Languages",
+    badge: "+4 pts",
+    hint: "Patients filter by language — bilingual therapists are in high demand",
+    isComplete: isLanguagesComplete,
+  },
+  {
     key: "fee",
     section: "practice",
     title: "Session fee",
@@ -174,6 +279,30 @@ var FIELD_REGISTRY = [
     isComplete: isInsuranceComplete,
   },
   {
+    key: "wait_time",
+    section: "practice",
+    title: "Estimated wait time",
+    badge: "+4 pts",
+    hint: "Helps patients plan — especially those in crisis",
+    isComplete: isWaitTimeComplete,
+  },
+  {
+    key: "first_step",
+    section: "practice",
+    title: "First step expectation",
+    badge: "+4 pts",
+    hint: "What happens after a patient contacts you — reduces anxiety for new patients",
+    isComplete: isFirstStepComplete,
+  },
+  {
+    key: "specialties",
+    section: "audience",
+    title: "Bipolar specialties",
+    badge: "+6 pts",
+    hint: "Specific bipolar presentations you treat",
+    isComplete: isSpecialtiesComplete,
+  },
+  {
     key: "populations",
     section: "audience",
     title: "Populations served",
@@ -182,12 +311,12 @@ var FIELD_REGISTRY = [
     isComplete: isPopulationsComplete,
   },
   {
-    key: "years",
+    key: "total_years",
     section: "audience",
-    title: "Years of experience",
-    badge: "+5 pts",
-    hint: "8+ years unlocks a search ranking boost in your area",
-    isComplete: isYearsComplete,
+    title: "Total years in practice",
+    badge: "+3 pts",
+    hint: "General experience shown on your full profile",
+    isComplete: isTotalYearsComplete,
   },
 ];
 
@@ -300,9 +429,13 @@ function buildHint(field, therapist) {
   if (!field.isComplete(therapist)) return field.hint;
   // When complete, surface a preview of the saved value
   var t = therapist || {};
-  if (field.key === "bio") {
-    var bio = String(t.care_approach || "").trim();
-    return bio.length > 90 ? bio.slice(0, 87) + "…" : bio;
+  if (field.key === "card_bio") {
+    var cardBio = String(t.care_approach || "").trim();
+    return cardBio.length > 90 ? cardBio.slice(0, 87) + "…" : cardBio;
+  }
+  if (field.key === "full_bio") {
+    var fullBio = String(t.bio || "").trim();
+    return fullBio.length > 90 ? fullBio.slice(0, 87) + "…" : fullBio;
   }
   if (field.key === "contact") {
     var m = String(t.preferred_contact_method || "").toLowerCase();
@@ -316,7 +449,8 @@ function buildHint(field, therapist) {
     return [t.name, t.credentials].filter(Boolean).join(", ");
   }
   if (field.key === "location") {
-    return [t.city, t.state].filter(Boolean).join(", ");
+    var locParts = [t.city, t.state].filter(Boolean).join(", ");
+    return t.zip ? locParts + " · ZIP on file" : locParts;
   }
   if (field.key === "fee") {
     var min = Number(t.session_fee_min);
@@ -344,9 +478,24 @@ function buildHint(field, therapist) {
     return (t.client_populations || []).slice(0, 4).join(" · ");
   }
   if (field.key === "years") {
-    var yrs = Number(t.bipolar_years_experience || t.years_experience);
-    return yrs > 0 ? yrs + " year" + (yrs === 1 ? "" : "s") + " of experience" : field.hint;
+    var yrs = Number(t.bipolar_years_experience);
+    return yrs > 0 ? yrs + " year" + (yrs === 1 ? "" : "s") + " treating bipolar" : field.hint;
   }
+  if (field.key === "total_years") {
+    var totalYrs = Number(t.years_experience);
+    return totalYrs > 0
+      ? totalYrs + " year" + (totalYrs === 1 ? "" : "s") + " in practice"
+      : field.hint;
+  }
+  if (field.key === "practice_name") return String(t.practice_name || "");
+  if (field.key === "website") return String(t.website || "").replace(/^https?:\/\//, "");
+  if (field.key === "languages") return (t.languages || []).slice(0, 4).join(" · ");
+  if (field.key === "wait_time") return String(t.estimated_wait_time || "");
+  if (field.key === "first_step") {
+    var fs = String(t.first_step_expectation || "").trim();
+    return fs.length > 90 ? fs.slice(0, 87) + "…" : fs;
+  }
+  if (field.key === "specialties") return (t.specialties || []).slice(0, 4).join(" · ");
   return field.hint;
 }
 
@@ -407,7 +556,7 @@ function renderSection(sectionKey, therapist) {
 }
 
 function isLive(t) {
-  return isBioComplete(t) && isContactRouteComplete(t);
+  return isCardBioComplete(t) && isContactRouteComplete(t);
 }
 
 function renderNotLiveBar(therapist) {
@@ -465,27 +614,87 @@ function renderPickerRow(options, selected, attr) {
     .join("");
 }
 
-var BIO_MIN = 50;
+// "Add other" pills — for fields that allow free-text entry beyond the
+// canonical option list. Renders any selected values that aren't in
+// `options` as already-selected pills sitting alongside the canonical
+// row, so a clinician's previously-saved custom plan / modality stays
+// visible when they reopen the form.
+function renderCustomPills(options, selected, attr) {
+  var canonical = {};
+  options.forEach(function (o) {
+    canonical[o] = true;
+  });
+  return selected
+    .filter(function (label) {
+      return !canonical[label];
+    })
+    .map(function (label) {
+      return (
+        '<button type="button" class="td-pick is-selected td-pick-custom" data-' +
+        attr +
+        '="' +
+        escapeHtml(label) +
+        '">' +
+        escapeHtml(label) +
+        "</button>"
+      );
+    })
+    .join("");
+}
 
-function renderBioForm(t) {
-  var bio = String(t.care_approach || "");
-  var len = bio.length;
+function renderAddOtherRow(attr, placeholder) {
+  return (
+    '<div class="td-other-row">' +
+    '<input type="text" class="td-input td-input-other" data-tdc-other-input="' +
+    attr +
+    '" placeholder="' +
+    escapeHtml(placeholder) +
+    '" maxlength="60" />' +
+    '<button type="button" class="td-add-other" data-tdc-other-add="' +
+    attr +
+    '">+ Add</button>' +
+    "</div>"
+  );
+}
+
+var CARD_BIO_MIN = 50;
+
+function renderCardBioForm(t) {
+  var cardBio = String(t.care_approach || "");
+  var len = cardBio.length;
   return (
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
-    '<span class="td-form-label">Tell patients how you work with them</span>' +
-    '<textarea class="td-input td-textarea-bio" id="tdcBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
-    escapeHtml(bio) +
+    '<span class="td-form-label">Tell patients how you work with bipolar clients</span>' +
+    '<textarea class="td-input td-textarea-bio" id="tdcCardBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
+    escapeHtml(cardBio) +
     "</textarea>" +
     "</label>" +
-    '<p class="td-form-counter" id="tdcBioCounter">' +
+    '<p class="td-form-counter" id="tdcCardBioCounter">' +
     len +
     " / " +
-    BIO_MIN +
+    CARD_BIO_MIN +
     " minimum" +
     "</p>" +
     '<div class="td-form-actions">' +
-    '<button type="button" class="td-save" data-tdc-save="bio">Save bio</button>' +
+    '<button type="button" class="td-save" data-tdc-save="card_bio">Save card bio</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function renderFullBioForm(t) {
+  return (
+    '<div class="td-form td-form-bio">' +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Long-form bio for your full public profile</span>' +
+    '<textarea class="td-input td-textarea-bio td-textarea-full-bio" id="tdcFullBio" rows="6" placeholder="Tell patients more about your training, philosophy, and what working with you looks like over time.">' +
+    escapeHtml(String(t.bio || "")) +
+    "</textarea>" +
+    "</label>" +
+    '<p class="td-form-helper">Shown on your full public profile page. Doesn’t affect the patient match card.</p>' +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="full_bio">Save full bio</button>' +
     "</div>" +
     "</div>"
   );
@@ -643,6 +852,17 @@ function renderLocationForm(t) {
     escapeHtml(String(t.state || "California")) +
     '" placeholder="California" />' +
     "</label>" +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Practice ZIP <span class="td-form-label-muted">(optional)</span></span>' +
+    '<input type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" class="td-input td-input-zip" id="tdcZip" value="' +
+    escapeHtml(String(t.zip || "")) +
+    '" placeholder="94110" />' +
+    "</label>" +
+    '<p class="td-form-helper">' +
+    "Used to show patients approximate distance from their search ZIP. " +
+    "We never display your raw ZIP or street address — only “~X mi” rounded to the nearest mile. " +
+    "Leave blank if you’d rather not share, and we’ll fall back to city-level distance." +
+    "</p>" +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="location">Save</button>' +
     "</div>" +
@@ -680,9 +900,11 @@ function renderModalitiesForm(t) {
   var current = Array.isArray(t.treatment_modalities) ? t.treatment_modalities.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
-    '<div class="td-pick-grid">' +
+    '<div class="td-pick-grid" data-tdc-pick-grid="tdc-modality">' +
     renderPickerRow(MODALITY_OPTIONS, current, "tdc-modality") +
+    renderCustomPills(MODALITY_OPTIONS, current, "tdc-modality") +
     "</div>" +
+    renderAddOtherRow("tdc-modality", "Other modality (e.g. Schema therapy)") +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="modalities">Save</button></div>' +
     "</div>"
   );
@@ -692,10 +914,25 @@ function renderFormatForm(t) {
   var current = [];
   if (t.accepts_in_person) current.push("In-person");
   if (t.accepts_telehealth) current.push("Telehealth");
+  var teleStates = Array.isArray(t.telehealth_states) ? t.telehealth_states.filter(Boolean) : [];
+  var teleSelected = current.indexOf("Telehealth") !== -1;
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
     renderPickerRow(FORMAT_OPTIONS, current, "tdc-format") +
+    "</div>" +
+    // Telehealth states inline reveal — only visible when Telehealth is
+    // among the selected formats. Click toggles. The pills mirror the
+    // current state on render and sync via the Telehealth pill click
+    // handler.
+    '<div class="td-format-states" data-tdc-format-states' +
+    (teleSelected ? "" : " hidden") +
+    ">" +
+    '<p class="td-form-label" style="margin-top:0.6rem">States licensed for telehealth</p>' +
+    '<div class="td-pick-grid">' +
+    renderPickerRow(TELEHEALTH_STATE_OPTIONS, teleStates, "tdc-tele-state") +
+    "</div>" +
+    '<p class="td-form-helper">Required to appear in cross-state telehealth searches.</p>' +
     "</div>" +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="format">Save</button></div>' +
     "</div>"
@@ -706,9 +943,11 @@ function renderInsuranceForm(t) {
   var current = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
-    '<div class="td-pick-grid">' +
+    '<div class="td-pick-grid" data-tdc-pick-grid="tdc-insurance">' +
     renderPickerRow(INSURANCE_OPTIONS, current, "tdc-insurance") +
+    renderCustomPills(INSURANCE_OPTIONS, current, "tdc-insurance") +
     "</div>" +
+    renderAddOtherRow("tdc-insurance", "Other plan (e.g. Kaiser, Anthem PPO)") +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="insurance">Save</button></div>' +
     "</div>"
   );
@@ -727,15 +966,142 @@ function renderPopulationsForm(t) {
 }
 
 function renderYearsForm(t) {
-  var yrs = Number(t.bipolar_years_experience || t.years_experience);
+  var yrs = Number(t.bipolar_years_experience);
   return (
     '<div class="td-form">' +
-    '<label class="td-form-row"><span class="td-form-label">Years of bipolar experience</span>' +
+    '<label class="td-form-row"><span class="td-form-label">Years specifically treating bipolar</span>' +
     '<span class="td-form-input-wrap"><input type="number" min="0" max="80" class="td-input td-input-years" id="tdcYears" value="' +
     escapeHtml(String(yrs > 0 ? yrs : "")) +
     '" placeholder="e.g. 12" /></span></label>' +
     '<p class="td-form-helper">8+ years unlocks a search ranking boost.</p>' +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="years">Save</button></div>' +
+    "</div>"
+  );
+}
+
+// ─── TF-B new fields ─────────────────────────────────────────────────
+
+var LANGUAGE_OPTIONS = [
+  "Spanish",
+  "Mandarin",
+  "Cantonese",
+  "French",
+  "Arabic",
+  "Tagalog",
+  "Korean",
+  "Portuguese",
+];
+var WAIT_TIME_OPTIONS = ["Same week", "1–2 weeks", "2–4 weeks", "1–2 months", "Waitlist"];
+var SPECIALTY_OPTIONS = [
+  "Bipolar I",
+  "Bipolar II",
+  "Cyclothymia",
+  "Mixed episodes",
+  "Rapid cycling",
+  "Mood stabilization",
+  "Maintenance",
+  "Co-occurring anxiety",
+  "Psychosis",
+];
+var TELEHEALTH_STATE_OPTIONS = ["CA", "NY", "TX", "FL", "WA", "CO", "IL", "MA", "OR", "AZ", "NV"];
+
+function renderPracticeNameForm(t) {
+  return (
+    '<div class="td-form">' +
+    '<label class="td-form-row"><span class="td-form-label">Practice or clinic name</span>' +
+    '<input type="text" class="td-input" id="tdcPracticeName" value="' +
+    escapeHtml(String(t.practice_name || "")) +
+    '" placeholder="Sunset Mood Clinic" /></label>' +
+    '<p class="td-form-helper">If you practice under a group or clinic name. Leave blank if you’re solo.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="practice_name">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderWebsiteForm(t) {
+  return (
+    '<div class="td-form">' +
+    '<label class="td-form-row"><span class="td-form-label">Practice website URL</span>' +
+    '<input type="url" class="td-input" id="tdcWebsite" value="' +
+    escapeHtml(String(t.website || "")) +
+    '" placeholder="https://yourpractice.com" /></label>' +
+    '<p class="td-form-helper">Linked from your public profile. We’ll add https:// for you if you forget.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="website">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderLanguagesForm(t) {
+  var current = Array.isArray(t.languages) ? t.languages.filter(Boolean) : [];
+  return (
+    '<div class="td-form">' +
+    '<div class="td-pick-grid">' +
+    renderPickerRow(LANGUAGE_OPTIONS, current, "tdc-language") +
+    "</div>" +
+    '<p class="td-form-helper">Add any language you can run a full session in. English is implicit.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="languages">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderWaitTimeForm(t) {
+  var current = String(t.estimated_wait_time || "");
+  return (
+    '<div class="td-form">' +
+    '<div class="td-pick-grid">' +
+    WAIT_TIME_OPTIONS.map(function (label) {
+      return (
+        '<button type="button" class="td-pick' +
+        (current === label ? " is-selected" : "") +
+        '" data-tdc-wait="' +
+        escapeHtml(label) +
+        '">' +
+        escapeHtml(label) +
+        "</button>"
+      );
+    }).join("") +
+    "</div>" +
+    '<p class="td-form-helper">Patients in crisis triage on this — be honest, not aspirational.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="wait_time">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderFirstStepForm(t) {
+  return (
+    '<div class="td-form">' +
+    '<label class="td-form-row"><span class="td-form-label">What happens after a patient contacts you</span>' +
+    '<textarea class="td-input td-textarea-bio" id="tdcFirstStep" rows="3" placeholder="I\'ll respond within 1–2 business days to schedule a free 15-minute phone consultation...">' +
+    escapeHtml(String(t.first_step_expectation || "")) +
+    "</textarea></label>" +
+    '<p class="td-form-helper">Reduces anxiety for new patients. Also shown in the match modal.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="first_step">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderSpecialtiesForm(t) {
+  var current = Array.isArray(t.specialties) ? t.specialties.filter(Boolean) : [];
+  return (
+    '<div class="td-form">' +
+    '<div class="td-pick-grid">' +
+    renderPickerRow(SPECIALTY_OPTIONS, current, "tdc-specialty") +
+    "</div>" +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="specialties">Save</button></div>' +
+    "</div>"
+  );
+}
+
+function renderTotalYearsForm(t) {
+  var yrs = Number(t.years_experience);
+  return (
+    '<div class="td-form">' +
+    '<label class="td-form-row"><span class="td-form-label">Total years in practice</span>' +
+    '<span class="td-form-input-wrap"><input type="number" min="0" max="80" class="td-input td-input-years" id="tdcTotalYears" value="' +
+    escapeHtml(String(yrs > 0 ? yrs : "")) +
+    '" placeholder="e.g. 18" /></span></label>' +
+    '<p class="td-form-helper">General experience shown on your full profile. Separate from years treating bipolar.</p>' +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="total_years">Save</button></div>' +
     "</div>"
   );
 }
@@ -753,7 +1119,8 @@ function renderPlaceholderForm(field) {
 
 function renderFormBody(field, therapist) {
   if (field.placeholder) return renderPlaceholderForm(field);
-  if (field.key === "bio") return renderBioForm(therapist);
+  if (field.key === "card_bio") return renderCardBioForm(therapist);
+  if (field.key === "full_bio") return renderFullBioForm(therapist);
   if (field.key === "contact") return renderContactRouteForm(therapist);
   if (field.key === "headshot") return renderHeadshotForm(therapist);
   if (field.key === "name") return renderNameForm(therapist);
@@ -764,6 +1131,13 @@ function renderFormBody(field, therapist) {
   if (field.key === "insurance") return renderInsuranceForm(therapist);
   if (field.key === "populations") return renderPopulationsForm(therapist);
   if (field.key === "years") return renderYearsForm(therapist);
+  if (field.key === "practice_name") return renderPracticeNameForm(therapist);
+  if (field.key === "website") return renderWebsiteForm(therapist);
+  if (field.key === "languages") return renderLanguagesForm(therapist);
+  if (field.key === "wait_time") return renderWaitTimeForm(therapist);
+  if (field.key === "first_step") return renderFirstStepForm(therapist);
+  if (field.key === "specialties") return renderSpecialtiesForm(therapist);
+  if (field.key === "total_years") return renderTotalYearsForm(therapist);
   return "";
 }
 
@@ -891,13 +1265,34 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-modality");
         });
       });
+      wireAddOther(bodyEl, "tdc-modality");
     } else if (key === "format") {
       formDraft.list = [];
       if (localTherapist.accepts_in_person) formDraft.list.push("In-person");
       if (localTherapist.accepts_telehealth) formDraft.list.push("Telehealth");
+      formDraft.teleStates = (
+        Array.isArray(localTherapist.telehealth_states)
+          ? localTherapist.telehealth_states.filter(Boolean)
+          : []
+      ).slice();
+      var statesWrap = bodyEl.querySelector("[data-tdc-format-states]");
       bodyEl.querySelectorAll("[data-tdc-format]").forEach(function (b) {
         b.addEventListener("click", function () {
           toggleListPick(b, "tdc-format");
+          // Reveal/hide the telehealth-states block when Telehealth is
+          // toggled on/off.
+          if (statesWrap) {
+            statesWrap.hidden = formDraft.list.indexOf("Telehealth") === -1;
+          }
+        });
+      });
+      bodyEl.querySelectorAll("[data-tdc-tele-state]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var label = b.getAttribute("data-tdc-tele-state");
+          var idx = formDraft.teleStates.indexOf(label);
+          if (idx === -1) formDraft.teleStates.push(label);
+          else formDraft.teleStates.splice(idx, 1);
+          b.classList.toggle("is-selected");
         });
       });
     } else if (key === "insurance") {
@@ -911,6 +1306,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           toggleListPick(b, "tdc-insurance");
         });
       });
+      wireAddOther(bodyEl, "tdc-insurance");
     } else if (key === "populations") {
       formDraft.list = (
         Array.isArray(localTherapist.client_populations)
@@ -920,6 +1316,37 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       bodyEl.querySelectorAll("[data-tdc-population]").forEach(function (b) {
         b.addEventListener("click", function () {
           toggleListPick(b, "tdc-population");
+        });
+      });
+    } else if (key === "languages") {
+      formDraft.list = (
+        Array.isArray(localTherapist.languages) ? localTherapist.languages.filter(Boolean) : []
+      ).slice();
+      bodyEl.querySelectorAll("[data-tdc-language]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          toggleListPick(b, "tdc-language");
+        });
+      });
+    } else if (key === "wait_time") {
+      formDraft.value = String(localTherapist.estimated_wait_time || "");
+      bodyEl.querySelectorAll("[data-tdc-wait]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          formDraft.value = b.getAttribute("data-tdc-wait");
+          bodyEl.querySelectorAll("[data-tdc-wait]").forEach(function (sib) {
+            sib.classList.toggle(
+              "is-selected",
+              sib.getAttribute("data-tdc-wait") === formDraft.value,
+            );
+          });
+        });
+      });
+    } else if (key === "specialties") {
+      formDraft.list = (
+        Array.isArray(localTherapist.specialties) ? localTherapist.specialties.filter(Boolean) : []
+      ).slice();
+      bodyEl.querySelectorAll("[data-tdc-specialty]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          toggleListPick(b, "tdc-specialty");
         });
       });
     } else if (key === "headshot") {
@@ -933,19 +1360,20 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           if (hiddenInput) hiddenInput.click();
         });
       }
-    } else if (key === "bio") {
-      // Bio is the only field whose preview updates on every keystroke
-      // (per spec). The card's voice slot mirrors what the therapist is
+    } else if (key === "card_bio") {
+      // Card bio is the only field whose preview updates on every
+      // keystroke. The card's voice slot mirrors what the therapist is
       // typing in real time so they see the patient-facing impact
-      // immediately.
-      var textarea = bodyEl.querySelector("#tdcBio");
-      var counter = bodyEl.querySelector("#tdcBioCounter");
-      if (textarea) {
-        textarea.addEventListener("input", function () {
-          var v = textarea.value;
-          if (counter) {
-            counter.textContent = v.length + " / " + BIO_MIN + " minimum";
-            counter.classList.toggle("is-short", v.length > 0 && v.length < BIO_MIN);
+      // immediately. Full bio (key === "full_bio") doesn't get this
+      // treatment because it doesn't show on the match card.
+      var cardBioEl = bodyEl.querySelector("#tdcCardBio");
+      var cardBioCounter = bodyEl.querySelector("#tdcCardBioCounter");
+      if (cardBioEl) {
+        cardBioEl.addEventListener("input", function () {
+          var v = cardBioEl.value;
+          if (cardBioCounter) {
+            cardBioCounter.textContent = v.length + " / " + CARD_BIO_MIN + " minimum";
+            cardBioCounter.classList.toggle("is-short", v.length > 0 && v.length < CARD_BIO_MIN);
           }
           // Live-update the patient preview voice slot. This is a
           // throwaway state update — the actual care_approach field
@@ -1005,24 +1433,79 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     btn.classList.toggle("is-selected");
   }
 
+  // "+ Add" handler shared by Insurance + Modalities. Pulls the value
+  // from the matching input, deduplicates, appends a selected pill to
+  // the grid, and wires it for toggle so the clinician can also remove
+  // their custom value.
+  function wireAddOther(bodyEl, attr) {
+    var addBtn = bodyEl.querySelector('[data-tdc-other-add="' + attr + '"]');
+    var input = bodyEl.querySelector('[data-tdc-other-input="' + attr + '"]');
+    var grid = bodyEl.querySelector('[data-tdc-pick-grid="' + attr + '"]');
+    if (!addBtn || !input || !grid) return;
+
+    function commit() {
+      var value = String(input.value || "").trim();
+      if (!value) return;
+      // Case-insensitive dedup against the current list.
+      var existing = formDraft.list.find(function (label) {
+        return String(label).toLowerCase() === value.toLowerCase();
+      });
+      if (existing) {
+        // Already there — flash the existing pill instead of duplicating.
+        var existingBtn = grid.querySelector("[data-" + attr + '="' + existing + '"]');
+        if (existingBtn) {
+          existingBtn.classList.add("td-pick-flash");
+          window.setTimeout(function () {
+            existingBtn.classList.remove("td-pick-flash");
+          }, 600);
+        }
+        input.value = "";
+        return;
+      }
+      formDraft.list.push(value);
+      input.value = "";
+      var pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "td-pick is-selected td-pick-custom";
+      pill.setAttribute("data-" + attr, value);
+      pill.textContent = value;
+      pill.addEventListener("click", function () {
+        toggleListPick(pill, attr);
+      });
+      grid.appendChild(pill);
+    }
+
+    addBtn.addEventListener("click", commit);
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commit();
+      }
+    });
+  }
+
   async function saveItem(key) {
     var bodyEl = container.querySelector('[data-tdc-body="' + key + '"]');
     if (!bodyEl) return;
     var saveBtn = bodyEl.querySelector("[data-tdc-save]");
 
     var payload = {};
-    if (key === "bio") {
-      var bioEl = bodyEl.querySelector("#tdcBio");
-      var bioVal = bioEl ? String(bioEl.value || "").trim() : "";
-      if (bioVal.length < BIO_MIN) {
-        var counterEl = bodyEl.querySelector("#tdcBioCounter");
-        if (counterEl) {
-          counterEl.classList.add("is-short");
-          counterEl.textContent = "Your bio is " + bioVal.length + " / " + BIO_MIN + " minimum.";
+    if (key === "card_bio") {
+      var cardBioInput = bodyEl.querySelector("#tdcCardBio");
+      var cardBioVal = cardBioInput ? String(cardBioInput.value || "").trim() : "";
+      if (cardBioVal.length < CARD_BIO_MIN) {
+        var cardCounterEl = bodyEl.querySelector("#tdcCardBioCounter");
+        if (cardCounterEl) {
+          cardCounterEl.classList.add("is-short");
+          cardCounterEl.textContent =
+            "Your card bio is " + cardBioVal.length + " / " + CARD_BIO_MIN + " minimum.";
         }
         return;
       }
-      payload.care_approach = bioVal;
+      payload.care_approach = cardBioVal;
+    } else if (key === "full_bio") {
+      var fullBioInput = bodyEl.querySelector("#tdcFullBio");
+      payload.bio = fullBioInput ? String(fullBioInput.value || "").trim() : "";
     } else if (key === "contact") {
       var method = formDraft.method;
       var routeErr = bodyEl.querySelector("[data-tdc-route-error]");
@@ -1064,6 +1547,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "location") {
       var cityVal = String(bodyEl.querySelector("#tdcCity").value || "").trim();
       var stateVal = String(bodyEl.querySelector("#tdcState").value || "").trim();
+      var zipInputEl = bodyEl.querySelector("#tdcZip");
+      var zipRaw = zipInputEl ? String(zipInputEl.value || "").trim() : "";
+      // Normalize: strip non-digits, pad/trim to 5. Empty string means
+      // the clinician opted out — fallback city-centroid will run.
+      var zipDigits = zipRaw.replace(/\D+/g, "").slice(0, 5);
       if (!cityVal || !stateVal) {
         var locErr = bodyEl.querySelector(".td-form-error");
         if (!locErr) {
@@ -1074,14 +1562,35 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         locErr.textContent = "Both city and state are required.";
         return;
       }
+      if (zipDigits && zipDigits.length !== 5) {
+        var zipErr = bodyEl.querySelector(".td-form-error");
+        if (!zipErr) {
+          zipErr = document.createElement("p");
+          zipErr.className = "td-form-error";
+          bodyEl.querySelector(".td-form").appendChild(zipErr);
+        }
+        zipErr.textContent = "ZIP must be 5 digits, or leave it blank.";
+        return;
+      }
       payload.city = cityVal;
       payload.state = stateVal;
+      payload.zip = zipDigits; // empty string is a valid "opt out" signal
     } else if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
     else if (key === "format") {
-      payload.accepts_in_person = (formDraft.list || []).indexOf("In-person") !== -1;
-      payload.accepts_telehealth = (formDraft.list || []).indexOf("Telehealth") !== -1;
+      var formats = formDraft.list || [];
+      payload.accepts_in_person = formats.indexOf("In-person") !== -1;
+      payload.accepts_telehealth = formats.indexOf("Telehealth") !== -1;
+      // Only save telehealth states when Telehealth is currently
+      // selected; otherwise clear them so a clinician toggling
+      // telehealth off doesn't leave stale state coverage on file.
+      payload.telehealth_states = payload.accepts_telehealth
+        ? (formDraft.teleStates || []).slice()
+        : [];
     } else if (key === "insurance") payload.insurance_accepted = (formDraft.list || []).slice();
     else if (key === "populations") payload.client_populations = (formDraft.list || []).slice();
+    else if (key === "languages") payload.languages = (formDraft.list || []).slice();
+    else if (key === "specialties") payload.specialties = (formDraft.list || []).slice();
+    else if (key === "wait_time") payload.estimated_wait_time = String(formDraft.value || "");
     else if (key === "fee") {
       var fee = Number(bodyEl.querySelector("#tdcFee").value) || 0;
       payload.session_fee_min = fee || null;
@@ -1089,6 +1598,16 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.sliding_scale = Boolean(formDraft.sliding);
     } else if (key === "years") {
       payload.bipolar_years_experience = Number(bodyEl.querySelector("#tdcYears").value) || 0;
+    } else if (key === "total_years") {
+      payload.years_experience = Number(bodyEl.querySelector("#tdcTotalYears").value) || 0;
+    } else if (key === "practice_name") {
+      payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
+    } else if (key === "website") {
+      payload.website = String(bodyEl.querySelector("#tdcWebsite").value || "").trim();
+    } else if (key === "first_step") {
+      payload.first_step_expectation = String(
+        bodyEl.querySelector("#tdcFirstStep").value || "",
+      ).trim();
     }
 
     if (saveBtn) {

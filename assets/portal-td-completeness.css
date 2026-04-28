@@ -253,6 +253,62 @@
   font-weight: 600;
   color: #2d4651;
 }
+.td-form-label-muted {
+  font-weight: 400;
+  color: #6b8189;
+  font-size: 0.78rem;
+  margin-left: 0.3rem;
+}
+.td-input-zip {
+  max-width: 8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "+ Add" affordance for fields with free-text entry beyond the
+   canonical option list (Insurance, Treatment modalities). */
+.td-other-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.td-input-other {
+  flex: 1;
+  min-width: 0;
+}
+.td-add-other {
+  appearance: none;
+  background: transparent;
+  border: 1px solid #c5d6db;
+  color: #0f6e56;
+  border-radius: 8px;
+  padding: 0 0.95rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 40px;
+}
+.td-add-other:hover {
+  border-color: #0f6e56;
+  background: #f4faf9;
+}
+.td-pick-custom {
+  font-style: italic;
+}
+.td-pick-flash {
+  animation: tdPickFlash 0.6s ease;
+}
+@keyframes tdPickFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.4);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(15, 110, 86, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0);
+  }
+}
 .td-form-helper {
   margin: 0;
   font-size: 0.82rem;
