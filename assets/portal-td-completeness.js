@@ -583,9 +583,8 @@ function renderShell(therapist, score, fieldsRemaining) {
     }).join("") +
     "</div>" +
     '<aside class="td-completeness-preview-column">' +
-    '<p class="td-completeness-preview-label">Patient preview · live</p>' +
     '<div id="tdcPreview">' +
-    renderPortalCardPreview(therapist) +
+    renderPortalCardPreview(therapist, { headerLabel: "Patient preview · live" }) +
     "</div>" +
     "</aside>" +
     "</div>" +
@@ -1161,7 +1160,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
   function refreshPreview() {
     var preview = container.querySelector("#tdcPreview");
-    if (preview) updatePortalCardPreview(preview, localTherapist);
+    if (preview)
+      updatePortalCardPreview(preview, localTherapist, { headerLabel: "Patient preview · live" });
   }
 
   function refreshScore() {
@@ -1400,7 +1400,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           });
           var previewEl = container.querySelector("#tdcPreview");
           if (previewEl) {
-            updatePortalCardPreview(previewEl, previewState);
+            updatePortalCardPreview(previewEl, previewState, {
+              headerLabel: "Patient preview · live",
+            });
             // updatePortalCardPreview reuses innerHTML, so re-add the
             // editing class after the swap.
             previewEl.classList.add("tdc-preview-bio-editing");

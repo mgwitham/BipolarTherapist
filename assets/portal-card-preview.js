@@ -114,7 +114,7 @@ function getCtaLabel(state) {
 
 // ─── Card render ───────────────────────────────────────────────────────
 
-export function renderPortalCardPreview(state) {
+export function renderPortalCardPreview(state, options) {
   var s = state || {};
 
   // Avatar — when no photo, the round-avatar primitive renders a colored
@@ -194,8 +194,10 @@ export function renderPortalCardPreview(state) {
     '<span class="bth-btn-secondary" aria-disabled="true">View profile →</span>' +
     "</div>";
 
+  var headerLabel = options && options.headerLabel;
   return (
     '<article class="bth-card bth-card-preview">' +
+    (headerLabel ? '<p class="bth-card-preview-label">' + escapeHtml(headerLabel) + "</p>" : "") +
     '<div class="bth-card-header">' +
     avatarHtml +
     '<div class="bth-card-ident">' +
@@ -210,7 +212,7 @@ export function renderPortalCardPreview(state) {
   );
 }
 
-export function updatePortalCardPreview(root, state) {
+export function updatePortalCardPreview(root, state, options) {
   if (!root) return;
-  root.innerHTML = renderPortalCardPreview(state);
+  root.innerHTML = renderPortalCardPreview(state, options);
 }
