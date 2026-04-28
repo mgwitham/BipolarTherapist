@@ -1,7 +1,6 @@
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
-import { mountPortalPhaseOne, shouldShowPhaseOne } from "./portal-phase-one.js";
-import { mountPortalPhaseTwo, shouldShowPhaseTwo } from "./portal-phase-two.js";
+import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "./matching-model.js";
 import { getApplications } from "./store.js";
@@ -3799,15 +3798,51 @@ function renderPortal(therapist, options) {
       "</details>"
     : "";
 
-  // Zone 3 — Plan & activity. Subscription + analytics in one strip.
+  // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
+  // (left) + "Your plan" subscription card (right), equal-width.
+  // Existing handlers paint these cards by ID:
+  //   - #portalAnalyticsBody / #portalAnalyticsGrid (analytics fetcher)
+  //   - #portalFeaturedBody / #portalFeaturedActions (subscription)
+  // We keep those IDs on the new structure so the existing JS hydrates
+  // active states (e.g. real numbers for paid users) over our static
+  // empty-state copy without any handler changes.
   var planZone = verifiedClaim
-    ? '<section class="portal-grid portal-grid--plan">' +
-      '<article class="portal-card" id="portalFeaturedCard" data-therapist-slug="' +
+    ? '<section class="td-bottom-grid">' +
+      // "This week" — analytics card. Empty-state copy comes from the
+      // spec; handlers replace #portalAnalyticsBody when real numbers
+      // are available.
+      '<article class="portal-card td-bottom-card" id="portalAnalyticsCard">' +
+      '<p class="portal-eyebrow">This week</p>' +
+      '<h2 class="td-bottom-card-title">Patient activity</h2>' +
+      '<p class="portal-subtle td-bottom-card-body" id="portalAnalyticsBody">' +
+      "No patient activity yet. Once patients start viewing or contacting your profile " +
+      "you’ll see a weekly breakdown here." +
+      "</p>" +
+      '<div id="portalAnalyticsGrid" hidden></div>' +
+      '<a class="td-bottom-card-link" href="#portalFeaturedCard" data-tdc-jump-plan="1">' +
+      "Upgrade for full analytics →" +
+      "</a>" +
+      "</article>" +
+      // "Your plan" — subscription card. Free-listing static copy
+      // until the subscription handler hydrates the active plan state.
+      '<article class="portal-card td-bottom-card" id="portalFeaturedCard" ' +
+      'data-therapist-slug="' +
       escapeHtml(therapist.slug) +
       '" data-therapist-email="' +
       escapeHtml(claimedEmail) +
-      '"><p class="portal-eyebrow">Your plan</p><h2 style="margin:0 0 0.4rem">Subscription</h2><p class="portal-subtle" id="portalFeaturedBody">Checking your subscription status…</p><div class="portal-actions" id="portalFeaturedActions"></div><div class="portal-feedback" id="portalFeaturedFeedback"></div></article>' +
-      '<article class="portal-card" id="portalAnalyticsCard"><p class="portal-eyebrow">Weekly decision dashboard</p><h2 style="margin:0 0 0.4rem">Your listing performance this week</h2><p class="portal-subtle" id="portalAnalyticsBody">Loading patient discovery, contact paths, and next-step guidance…</p><div id="portalAnalyticsGrid" hidden></div></article>' +
+      '">' +
+      '<p class="portal-eyebrow">Your plan</p>' +
+      '<h2 class="td-bottom-card-title">Free listing</h2>' +
+      '<p class="portal-subtle td-bottom-card-body" id="portalFeaturedBody">' +
+      "Upgrade to unlock weekly analytics, Monday digest emails, and same-day profile edits." +
+      "</p>" +
+      '<div class="portal-actions td-bottom-card-actions" id="portalFeaturedActions">' +
+      '<button type="button" class="td-bottom-card-cta" id="portalFeaturedTrialCta">' +
+      "Start 14-day free trial" +
+      "</button>" +
+      "</div>" +
+      '<div class="portal-feedback" id="portalFeaturedFeedback"></div>' +
+      "</article>" +
       "</section>"
     : "";
 
@@ -4045,8 +4080,7 @@ function renderPortal(therapist, options) {
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
-    '<div id="portalPhaseOneMount"></div>' +
-    '<div id="portalPhaseTwoMount"></div>' +
+    '<div id="portalTdCompletenessMount"></div>' +
     photoZone +
     editorZone +
     planZone +
@@ -4057,71 +4091,15 @@ function renderPortal(therapist, options) {
 
   // Phase 1 — focused onboarding flow for clinicians who haven't yet
   // satisfied the minimum go-live requirements (specialties + practice
-  // mode). Mounts after the dashboard HTML lands so the existing form
-  // and bindings stay intact. On "Go live", we re-render the dashboard
-  // which will detect Phase 2 and render the existing editor.
-  // `?force_phase=1` is a dev-only hatch for verifying the Phase 1 UI
-  // when the logged-in clinician already meets the go-live minimums.
-  // Stripped by lint and harmless in prod (it just shows Phase 1 again
-  // to a fully-set-up user; "Go live" is a no-op no-op in that case).
-  var forcePhaseOne =
-    typeof window !== "undefined" &&
-    window.location &&
-    /[?&]force_phase=1\b/.test(window.location.search);
-  if (verifiedClaim && (forcePhaseOne || shouldShowPhaseOne(therapist))) {
-    var phaseOneMount = document.getElementById("portalPhaseOneMount");
-    if (phaseOneMount) {
-      mountPortalPhaseOne(phaseOneMount, therapist, {
-        onRequestPhotoUpload: function (onUploaded) {
-          var photoInput = document.getElementById("portalPhotoInput");
-          if (photoInput) photoInput.click();
-          // The existing upload handler refreshes the page, so the
-          // explicit callback isn't required, but we expose the hook
-          // for future improvements.
-          if (typeof onUploaded === "function") {
-            // No-op: existing flow does a full refresh today.
-          }
-        },
-        onSaved: function (updatedTherapist) {
-          if (updatedTherapist) {
-            claimSessionState = { therapist: updatedTherapist };
-            therapist = updatedTherapist;
-          }
-          // Brief delay so the success pulse on the preview is visible
-          // before we reload into Phase 2.
-          window.setTimeout(function () {
-            renderPortal();
-          }, 950);
-        },
-      });
-      trackFunnelEvent("portal_phase_one_shown", {
-        slug: therapist.slug,
-        missing_specialties: !(therapist.specialties && therapist.specialties.length),
-        missing_mode: !(therapist.accepts_in_person || therapist.accepts_telehealth),
-      });
-    }
-  }
-
-  // Phase 2 — Improve your listing. Mounted only when Phase 1 is NOT
-  // shown (i.e. the clinician has already met the go-live minimums).
-  // Demotes the legacy editor to a hidden "Advanced settings" panel
-  // that the clinician can still open via the link inside Phase 2.
-  var showPhaseTwo =
-    verifiedClaim &&
-    !forcePhaseOne &&
-    !shouldShowPhaseOne(therapist) &&
-    shouldShowPhaseTwo(therapist);
-  if (showPhaseTwo) {
-    var phaseTwoMount = document.getElementById("portalPhaseTwoMount");
-    if (phaseTwoMount) {
-      mountPortalPhaseTwo(phaseTwoMount, therapist, {
-        onRequestPhotoUpload: function (onUploaded) {
-          var photoInput = document.getElementById("portalPhotoInput");
-          if (photoInput) photoInput.click();
-          if (typeof onUploaded === "function") {
-            // No-op: existing flow refreshes the page.
-          }
-        },
+  // TD-B: Profile completeness — the unified editor. Replaces Phase 1
+  // and Phase 2 with a single accordion of every editable field. The
+  // legacy long-form editor stays in the DOM for now but is hidden;
+  // any field whose inline form hasn't been built yet (TD-C / TD-D
+  // scope) routes to it via the placeholder body.
+  if (verifiedClaim && shouldShowCompleteness(therapist)) {
+    var tdcMount = document.getElementById("portalTdCompletenessMount");
+    if (tdcMount) {
+      mountPortalTdCompleteness(tdcMount, therapist, {
         onSaved: function (updatedTherapist) {
           if (updatedTherapist) {
             claimSessionState = { therapist: updatedTherapist };
@@ -4129,24 +4107,34 @@ function renderPortal(therapist, options) {
             updateReadinessUi(therapist, document.getElementById("portalEditProfileForm"));
           }
         },
+        onScoreChange: function (score) {
+          var headerScore = document.getElementById("portalTdScore");
+          if (!headerScore) return;
+          var bandLabel = "Needs work";
+          var tone = "needs";
+          if (score >= 100) {
+            bandLabel = "Complete";
+            tone = "complete";
+          } else if (score >= 80) {
+            bandLabel = "Looking good";
+            tone = "good";
+          } else if (score >= 60) {
+            bandLabel = "Getting there";
+            tone = "fair";
+          }
+          headerScore.textContent = bandLabel + " · " + score + "/100";
+          headerScore.className = "td-score td-score-" + tone;
+        },
       });
-      trackFunnelEvent("portal_phase_two_shown", { slug: therapist.slug });
     }
 
-    // Demote the legacy editor: keep it accessible (the Advanced
-    // settings link inside Phase 2 anchors to #portalEditProfile) but
-    // hide it by default so the new improvement flow is the primary
-    // surface.
-    var legacyEditor = document.getElementById("portalEditCard");
-    if (legacyEditor) {
-      legacyEditor.classList.add("portal-edit-card-demoted");
-    }
-    var advancedLink = document.getElementById("ph2AdvancedLink");
-    if (advancedLink && legacyEditor) {
-      advancedLink.addEventListener("click", function () {
-        legacyEditor.classList.remove("portal-edit-card-demoted");
-      });
-    }
+    // Legacy editor stays visible. The "More fields" disclosure (renamed
+    // from "Edit profile") sits below the completeness list and holds
+    // the ~10 fields the unified editor doesn't expose inline (long-form
+    // bio, practice name, specialties chip picker, telehealth_states,
+    // languages, wait time, website, contact_guidance,
+    // first_step_expectation). It's a real complementary surface, not
+    // a fallback — so we don't hide it.
   }
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
