@@ -338,7 +338,8 @@ function buildHint(field, therapist) {
     return [t.name, t.credentials].filter(Boolean).join(", ");
   }
   if (field.key === "location") {
-    return [t.city, t.state].filter(Boolean).join(", ");
+    var locParts = [t.city, t.state].filter(Boolean).join(", ");
+    return t.zip ? locParts + " · ZIP on file" : locParts;
   }
   if (field.key === "fee") {
     var min = Number(t.session_fee_min);
@@ -682,6 +683,17 @@ function renderLocationForm(t) {
     escapeHtml(String(t.state || "California")) +
     '" placeholder="California" />' +
     "</label>" +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Practice ZIP <span class="td-form-label-muted">(optional)</span></span>' +
+    '<input type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" class="td-input td-input-zip" id="tdcZip" value="' +
+    escapeHtml(String(t.zip || "")) +
+    '" placeholder="94110" />' +
+    "</label>" +
+    '<p class="td-form-helper">' +
+    "Used to show patients approximate distance from their search ZIP. " +
+    "We never display your raw ZIP or street address — only “~X mi” rounded to the nearest mile. " +
+    "Leave blank if you’d rather not share, and we’ll fall back to city-level distance." +
+    "</p>" +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="location">Save</button>' +
     "</div>" +
@@ -1109,6 +1121,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "location") {
       var cityVal = String(bodyEl.querySelector("#tdcCity").value || "").trim();
       var stateVal = String(bodyEl.querySelector("#tdcState").value || "").trim();
+      var zipInputEl = bodyEl.querySelector("#tdcZip");
+      var zipRaw = zipInputEl ? String(zipInputEl.value || "").trim() : "";
+      // Normalize: strip non-digits, pad/trim to 5. Empty string means
+      // the clinician opted out — fallback city-centroid will run.
+      var zipDigits = zipRaw.replace(/\D+/g, "").slice(0, 5);
       if (!cityVal || !stateVal) {
         var locErr = bodyEl.querySelector(".td-form-error");
         if (!locErr) {
@@ -1119,8 +1136,19 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         locErr.textContent = "Both city and state are required.";
         return;
       }
+      if (zipDigits && zipDigits.length !== 5) {
+        var zipErr = bodyEl.querySelector(".td-form-error");
+        if (!zipErr) {
+          zipErr = document.createElement("p");
+          zipErr.className = "td-form-error";
+          bodyEl.querySelector(".td-form").appendChild(zipErr);
+        }
+        zipErr.textContent = "ZIP must be 5 digits, or leave it blank.";
+        return;
+      }
       payload.city = cityVal;
       payload.state = stateVal;
+      payload.zip = zipDigits; // empty string is a valid "opt out" signal
     } else if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
     else if (key === "format") {
       payload.accepts_in_person = (formDraft.list || []).indexOf("In-person") !== -1;

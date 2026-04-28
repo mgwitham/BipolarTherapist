@@ -253,6 +253,16 @@
   font-weight: 600;
   color: #2d4651;
 }
+.td-form-label-muted {
+  font-weight: 400;
+  color: #6b8189;
+  font-size: 0.78rem;
+  margin-left: 0.3rem;
+}
+.td-input-zip {
+  max-width: 8rem;
+  font-variant-numeric: tabular-nums;
+}
 .td-form-helper {
   margin: 0;
   font-size: 0.82rem;
