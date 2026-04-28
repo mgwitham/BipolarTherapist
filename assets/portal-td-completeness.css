@@ -208,9 +208,13 @@
   color: #b03636;
   border: 1px solid #f0997b;
 }
+/* Incomplete optional fields use a soft red so the panel reads as
+   "still has work" at a glance — green here was indistinguishable
+   from the Done state and washed out the visual urgency. */
 .td-row-badge-points {
-  background: #e1f5ee;
-  color: #085041;
+  background: #fbe9e7;
+  color: #b03636;
+  border: 1px solid #f4b8a7;
 }
 .td-row-badge-done {
   background: #d4f0e3;
@@ -307,6 +311,51 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(15, 110, 86, 0);
+  }
+}
+
+/* TF-D: live card-bio editing affordance.
+   When the card_bio row is open, .tdc-preview-bio-editing pulses on
+   the preview voice slot — green left border + blinking caret — so
+   the clinician sees the connection between what they're typing and
+   what patients will see. The class is added on row open, refreshed
+   on every keystroke (because the preview innerHTML is replaced),
+   and cleared on accordion close or successful save. */
+.tdc-preview-bio-editing .bth-voice {
+  border-left: 2px solid #0f6e56;
+  padding-left: 0.7rem;
+  position: relative;
+  animation: tdcBioBorderPulse 1.4s ease-out 1 forwards;
+}
+.tdc-preview-bio-editing .bth-voice::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: #0f6e56;
+  animation: tdcBioCursorBlink 1s steps(1) infinite;
+}
+@keyframes tdcBioBorderPulse {
+  0% {
+    box-shadow: -3px 0 0 0 rgba(15, 110, 86, 0.45);
+  }
+  60% {
+    box-shadow: -3px 0 0 0 rgba(15, 110, 86, 0);
+  }
+  100% {
+    box-shadow: -3px 0 0 0 rgba(15, 110, 86, 0);
+  }
+}
+@keyframes tdcBioCursorBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
   }
 }
 .td-form-helper {
