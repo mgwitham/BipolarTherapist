@@ -3796,18 +3796,14 @@ function renderPortal(therapist, options) {
       "</form>"
     : "";
 
-  // Zone 2 — Deep editor, collapsed unless the clinician clearly needs
-  // to see it (pending-publish, claim_token, deep link, or pre-save).
-  var editorZone = verifiedClaim
-    ? '<details class="portal-editor-shell" id="portalEditProfile"' +
-      (editorAutoOpen ? " open" : "") +
-      '><summary class="portal-editor-summary">' +
-      '<span class="portal-editor-summary-label"><strong>Edit profile</strong><span class="portal-subtle" style="font-size:0.85rem">Full editor — bio, specialties, fees, availability</span></span>' +
-      '<span class="portal-editor-summary-chevron" aria-hidden="true">▾</span>' +
-      "</summary>" +
-      buildEditProfileHtml(therapist) +
-      "</details>"
-    : "";
+  // Zone 2 — Legacy "More fields" disclosure was removed in TF-C.
+  // Every editable field now lives inline in the completeness panel
+  // above. The buildEditProfileHtml(), bindPortalEditor(),
+  // snapshotFormState(), getProjectedTherapist() helpers and their
+  // related click/save handlers are intentionally left in place per
+  // the spec's "schedule as follow-up cleanup" — the dead-code prune
+  // is its own PR so this one stays surgical.
+  var editorZone = "";
 
   // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
   // (left) + "Your plan" subscription card (right), equal-width.
@@ -4176,27 +4172,17 @@ function renderPortal(therapist, options) {
     }
   });
 
-  // Editor-jump affordance — any "Edit profile" link with a #portalEditProfile
-  // hash needs to open the <details> and scroll to the editor card. This
-  // also covers the #portalEditProfile anchor on the pending-profile banner.
+  // Editor-jump affordance — coaching / progress / review-zone deep
+  // links still emit "[data-portal-editor-jump]" anchors pointing at
+  // #portalEditProfile. The legacy editor was removed in TF-C, so we
+  // redirect those clicks to the new completeness panel and smooth-
+  // scroll the clinician there instead.
   document.querySelectorAll('[data-portal-editor-jump="1"]').forEach(function (link) {
     link.addEventListener("click", function (event) {
-      var details = document.getElementById("portalEditProfile");
-      if (details && !details.open) {
-        details.open = true;
-      }
-      if (details) {
-        event.preventDefault();
-        details.scrollIntoView({ behavior: "smooth", block: "start" });
-        var firstField = details.querySelector(
-          'textarea[name="bio"], input[name="credentials"], input, textarea, select',
-        );
-        if (firstField) {
-          window.setTimeout(function () {
-            firstField.focus({ preventScroll: true });
-          }, 350);
-        }
-      }
+      var target = document.getElementById("portalTdCompletenessMount");
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 
