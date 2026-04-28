@@ -1245,6 +1245,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           var article = body.closest(".td-row");
           if (article) article.classList.add("is-open");
           bindFormHandlers(key, body);
+          // Save buttons are rendered dynamically into the body — bind them now.
+          bindRowEvents();
         }
       });
     });
