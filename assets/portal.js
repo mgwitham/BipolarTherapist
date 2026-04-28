@@ -2344,6 +2344,7 @@ function computeProfileScore(therapist) {
     score += 8;
   if (t.accepts_in_person || t.accepts_telehealth) score += 5;
   if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
+  if (String(t.bio || "").trim()) score += 8; // full bio (TF-A)
   if (score > 100) score = 100;
   if (score < 0) score = 0;
   return score;
