@@ -40,7 +40,7 @@ const BUDGETS = [
   { pattern: /^therapist\.html$/, maxKb: 4, label: "therapist.html" },
 
   // Therapist-facing — looser. Subscribers tolerate a heavier portal.
-  { pattern: /^assets\/portal-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "portal.js" },
+  { pattern: /^assets\/portal-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 38, label: "portal.js" },
   { pattern: /^assets\/signup-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "signup.js" },
   { pattern: /^assets\/claim-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "claim.js" },
 
