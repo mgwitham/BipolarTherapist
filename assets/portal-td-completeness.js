@@ -434,11 +434,8 @@ function renderShell(therapist, score, fieldsRemaining) {
     }).join("") +
     "</div>" +
     '<aside class="td-completeness-preview-column">' +
-    '<div class="td-completeness-preview-module">' +
-    '<p class="td-completeness-preview-label">Patient preview · live</p>' +
     '<div id="tdcPreview">' +
-    renderPortalCardPreview(therapist) +
-    "</div>" +
+    renderPortalCardPreview(therapist, { headerLabel: "Patient preview · live" }) +
     "</div>" +
     "</aside>" +
     "</div>" +
@@ -789,7 +786,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
   function refreshPreview() {
     var preview = container.querySelector("#tdcPreview");
-    if (preview) updatePortalCardPreview(preview, localTherapist);
+    if (preview)
+      updatePortalCardPreview(preview, localTherapist, { headerLabel: "Patient preview · live" });
   }
 
   function refreshScore() {
@@ -957,7 +955,10 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             claim_status: "claimed",
           });
           var preview = container.querySelector("#tdcPreview");
-          if (preview) updatePortalCardPreview(preview, previewState);
+          if (preview)
+            updatePortalCardPreview(preview, previewState, {
+              headerLabel: "Patient preview · live",
+            });
         });
       }
     } else if (key === "contact") {
