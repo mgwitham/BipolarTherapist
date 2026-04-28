@@ -454,6 +454,27 @@
   opacity: 0.6;
   cursor: wait;
 }
+.td-save.is-saving {
+  opacity: 1;
+  cursor: wait;
+  background: #0f6e56;
+  animation: tdc-save-pulse 0.9s ease-in-out infinite;
+}
+.td-save.is-saved {
+  opacity: 1;
+  cursor: default;
+  background: #1a8f6f;
+  transition: background 0.15s;
+}
+@keyframes tdc-save-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
 .td-save-secondary {
   background: transparent;
   color: #0f6e56;
