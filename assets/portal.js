@@ -1804,7 +1804,6 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
     grid.style.marginTop = "0.65rem";
     grid.innerHTML =
       renderAnalyticsStat(views, "Profile views this week", viewsTrend.label) +
-      renderAnalyticsStat(ctaClicks, "Contact clicks this week", clicksTrend.label) +
       '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8)">' +
       '<div style="font-weight:700;color:var(--teal-dark, #155f70);margin-bottom:0.25rem">See your full analytics</div>' +
       '<div style="font-size:0.88rem;color:var(--navy);margin-bottom:0.55rem">' +
