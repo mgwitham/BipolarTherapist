@@ -59,6 +59,18 @@ function normalizeSlugInput(value) {
   }
 }
 
+function formatRelativeTime(date) {
+  var diffMs = Date.now() - date.getTime();
+  var diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return diffMin + " minute" + (diffMin === 1 ? "" : "s") + " ago";
+  var diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + " hour" + (diffHr === 1 ? "" : "s") + " ago";
+  var diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return diffDay + " day" + (diffDay === 1 ? "" : "s") + " ago";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function formatDate(value) {
   if (!value) {
     return "";
@@ -2517,6 +2529,12 @@ function buildEditProfileHtml(therapist) {
     return text ? '<small class="portal-hint">' + escapeHtml(text) + "</small>" : "";
   }
 
+  function optionalTag(opts) {
+    return opts && opts.optional
+      ? '<span class="portal-optional" aria-label="optional"> (optional)</span>'
+      : "";
+  }
+
   function textInput(name, label, value, opts) {
     opts = opts || {};
     var type = opts.type || "text";
@@ -2526,6 +2544,7 @@ function buildEditProfileHtml(therapist) {
       escapeHtml(label) +
       reviewDot(name, value) +
       "</strong>" +
+      optionalTag(opts) +
       hintBlock(opts.hint) +
       "</span>" +
       '<input type="' +
@@ -2550,6 +2569,7 @@ function buildEditProfileHtml(therapist) {
       escapeHtml(label) +
       reviewDot(name, value) +
       "</strong>" +
+      optionalTag(opts) +
       hintBlock(opts.hint) +
       "</span>" +
       '<textarea name="' +
@@ -2680,7 +2700,8 @@ function buildEditProfileHtml(therapist) {
       hint: 'Short form like "LMFT, PhD". Shown next to your name across the directory.',
     }) +
     textInput("practice_name", "Practice name", t.practice_name, {
-      hint: "Optional. Leave blank if you practice under your own name.",
+      hint: "Leave blank if you practice under your own name.",
+      optional: true,
     }) +
     textarea("care_approach", "How you help bipolar clients", t.care_approach, 4, {
       hint: "What's distinctive about your bipolar work? Populations, modalities, mood-stabilization vs. relapse prevention, med-coordination. A specific answer beats a generic one.",
@@ -2691,6 +2712,7 @@ function buildEditProfileHtml(therapist) {
       type: "number",
       attrs: 'min="0" max="80"',
       hint: "Total years in practice.",
+      optional: true,
     }) +
     textInput(
       "bipolar_years_experience",
@@ -2760,6 +2782,7 @@ function buildEditProfileHtml(therapist) {
     checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
     textInput("estimated_wait_time", "Estimated wait time", t.estimated_wait_time, {
       hint: '"2 weeks", "Immediately available", "4–6 weeks". Patients triage urgent vs. exploratory by this.',
+      optional: true,
     }) +
     textInput("email", "Public email", t.email, {
       type: "email",
@@ -2777,10 +2800,12 @@ function buildEditProfileHtml(therapist) {
     textInput("website", "Website", t.website, {
       attrs: 'placeholder="yourpractice.com" inputmode="url"',
       hint: "Builds trust and supports independent verification. You can type yourpractice.com and we'll add https:// for you.",
+      optional: true,
     }) +
     textInput("booking_url", "Booking URL", t.booking_url, {
       attrs: 'placeholder="calendly.com/you" inputmode="url"',
-      hint: "Optional. Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
+      hint: "Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
+      optional: true,
     }) +
     select(
       "preferred_contact_method",
@@ -3277,16 +3302,9 @@ function wireEditProfileHandlers(therapist) {
     var draftBanner = document.createElement("div");
     draftBanner.className = "portal-draft-banner";
     var savedDate = new Date(draft.saved_at);
-    var dateStr = Number.isFinite(savedDate.getTime())
-      ? savedDate.toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        })
-      : "earlier";
+    var dateStr = Number.isFinite(savedDate.getTime()) ? formatRelativeTime(savedDate) : "earlier";
     draftBanner.innerHTML =
-      "<span>Unsaved draft from <strong>" +
+      "<span>Unsaved draft saved <strong>" +
       escapeHtml(dateStr) +
       "</strong>. Restore?</span>" +
       '<div><button type="button" class="portal-draft-restore">Restore</button>' +
@@ -4142,6 +4160,7 @@ function renderPortal(therapist, options) {
     event.preventDefault();
     var form = event.currentTarget;
     var feedback = document.getElementById("portalRequestFeedback");
+    var btn = form.querySelector("button[type=submit]");
     var payload = {
       therapist_slug: form.elements.therapist_slug.value,
       therapist_name: form.elements.therapist_name.value,
@@ -4152,7 +4171,8 @@ function renderPortal(therapist, options) {
       message: form.elements.message.value.trim(),
     };
 
-    feedback.textContent = "Sending request...";
+    btn.disabled = true;
+    feedback.textContent = "Sending...";
     try {
       await submitTherapistPortalRequest(payload);
       feedback.textContent = "Message sent. We’ll follow up at the email you provided.";
@@ -4161,6 +4181,8 @@ function renderPortal(therapist, options) {
     } catch (error) {
       feedback.textContent =
         (error && error.message) || "Something went wrong while sending the request.";
+    } finally {
+      btn.disabled = false;
     }
   });
 
