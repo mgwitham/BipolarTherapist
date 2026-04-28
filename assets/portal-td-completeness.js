@@ -45,6 +45,7 @@ function computeScore(t) {
     score += 8;
   if (t.accepts_in_person || t.accepts_telehealth) score += 5;
   if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
+  if (String(t.bio || "").trim()) score += 8; // full bio (TF-A)
   if (score > 100) score = 100;
   if (score < 0) score = 0;
   return score;
@@ -52,8 +53,17 @@ function computeScore(t) {
 
 // ─── Field completion predicates ─────────────────────────────────────
 
-function isBioComplete(t) {
+// "Your card bio" — short bipolar-specific paragraph that powers the
+// patient match-card voice slot. Required, ≥50 chars to gate going-live.
+// NOT the same as t.bio (the long-form full profile body — see
+// isFullBioComplete below).
+function isCardBioComplete(t) {
   return Boolean(t && String(t.care_approach || "").trim().length >= 50);
+}
+// "Full bio" — long-form text shown on the public profile page. Optional,
+// no char minimum.
+function isFullBioComplete(t) {
+  return Boolean(t && String(t.bio || "").trim());
 }
 function isContactRouteComplete(t) {
   if (!t) return false;
@@ -102,12 +112,12 @@ function isYearsComplete(t) {
 
 var FIELD_REGISTRY = [
   {
-    key: "bio",
+    key: "card_bio",
     section: "essential",
-    title: "Bio",
+    title: "Your card bio",
     badge: "Required",
-    hint: "Required — describe how you work with clients (50+ characters)",
-    isComplete: isBioComplete,
+    hint: "This is the first thing patients read — watch your listing come alive as you type",
+    isComplete: isCardBioComplete,
   },
   {
     key: "contact",
@@ -140,6 +150,14 @@ var FIELD_REGISTRY = [
     badge: "Done",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isLocationComplete,
+  },
+  {
+    key: "full_bio",
+    section: "profile",
+    title: "Full bio",
+    badge: "+8 pts",
+    hint: "Long-form profile body shown on your full public profile page",
+    isComplete: isFullBioComplete,
   },
   {
     key: "fee",
@@ -300,9 +318,13 @@ function buildHint(field, therapist) {
   if (!field.isComplete(therapist)) return field.hint;
   // When complete, surface a preview of the saved value
   var t = therapist || {};
-  if (field.key === "bio") {
-    var bio = String(t.care_approach || "").trim();
-    return bio.length > 90 ? bio.slice(0, 87) + "…" : bio;
+  if (field.key === "card_bio") {
+    var cardBio = String(t.care_approach || "").trim();
+    return cardBio.length > 90 ? cardBio.slice(0, 87) + "…" : cardBio;
+  }
+  if (field.key === "full_bio") {
+    var fullBio = String(t.bio || "").trim();
+    return fullBio.length > 90 ? fullBio.slice(0, 87) + "…" : fullBio;
   }
   if (field.key === "contact") {
     var m = String(t.preferred_contact_method || "").toLowerCase();
@@ -407,7 +429,7 @@ function renderSection(sectionKey, therapist) {
 }
 
 function isLive(t) {
-  return isBioComplete(t) && isContactRouteComplete(t);
+  return isCardBioComplete(t) && isContactRouteComplete(t);
 }
 
 function renderNotLiveBar(therapist) {
@@ -465,27 +487,44 @@ function renderPickerRow(options, selected, attr) {
     .join("");
 }
 
-var BIO_MIN = 50;
+var CARD_BIO_MIN = 50;
 
-function renderBioForm(t) {
-  var bio = String(t.care_approach || "");
-  var len = bio.length;
+function renderCardBioForm(t) {
+  var cardBio = String(t.care_approach || "");
+  var len = cardBio.length;
   return (
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
-    '<span class="td-form-label">Tell patients how you work with them</span>' +
-    '<textarea class="td-input td-textarea-bio" id="tdcBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
-    escapeHtml(bio) +
+    '<span class="td-form-label">Tell patients how you work with bipolar clients</span>' +
+    '<textarea class="td-input td-textarea-bio" id="tdcCardBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
+    escapeHtml(cardBio) +
     "</textarea>" +
     "</label>" +
-    '<p class="td-form-counter" id="tdcBioCounter">' +
+    '<p class="td-form-counter" id="tdcCardBioCounter">' +
     len +
     " / " +
-    BIO_MIN +
+    CARD_BIO_MIN +
     " minimum" +
     "</p>" +
     '<div class="td-form-actions">' +
-    '<button type="button" class="td-save" data-tdc-save="bio">Save bio</button>' +
+    '<button type="button" class="td-save" data-tdc-save="card_bio">Save card bio</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function renderFullBioForm(t) {
+  return (
+    '<div class="td-form td-form-bio">' +
+    '<label class="td-form-row">' +
+    '<span class="td-form-label">Long-form bio for your full public profile</span>' +
+    '<textarea class="td-input td-textarea-bio td-textarea-full-bio" id="tdcFullBio" rows="6" placeholder="Tell patients more about your training, philosophy, and what working with you looks like over time.">' +
+    escapeHtml(String(t.bio || "")) +
+    "</textarea>" +
+    "</label>" +
+    '<p class="td-form-helper">Shown on your full public profile page. Doesn’t affect the patient match card.</p>' +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-save="full_bio">Save full bio</button>' +
     "</div>" +
     "</div>"
   );
@@ -753,7 +792,8 @@ function renderPlaceholderForm(field) {
 
 function renderFormBody(field, therapist) {
   if (field.placeholder) return renderPlaceholderForm(field);
-  if (field.key === "bio") return renderBioForm(therapist);
+  if (field.key === "card_bio") return renderCardBioForm(therapist);
+  if (field.key === "full_bio") return renderFullBioForm(therapist);
   if (field.key === "contact") return renderContactRouteForm(therapist);
   if (field.key === "headshot") return renderHeadshotForm(therapist);
   if (field.key === "name") return renderNameForm(therapist);
@@ -933,19 +973,20 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           if (hiddenInput) hiddenInput.click();
         });
       }
-    } else if (key === "bio") {
-      // Bio is the only field whose preview updates on every keystroke
-      // (per spec). The card's voice slot mirrors what the therapist is
+    } else if (key === "card_bio") {
+      // Card bio is the only field whose preview updates on every
+      // keystroke. The card's voice slot mirrors what the therapist is
       // typing in real time so they see the patient-facing impact
-      // immediately.
-      var textarea = bodyEl.querySelector("#tdcBio");
-      var counter = bodyEl.querySelector("#tdcBioCounter");
-      if (textarea) {
-        textarea.addEventListener("input", function () {
-          var v = textarea.value;
-          if (counter) {
-            counter.textContent = v.length + " / " + BIO_MIN + " minimum";
-            counter.classList.toggle("is-short", v.length > 0 && v.length < BIO_MIN);
+      // immediately. Full bio (key === "full_bio") doesn't get this
+      // treatment because it doesn't show on the match card.
+      var cardBioEl = bodyEl.querySelector("#tdcCardBio");
+      var cardBioCounter = bodyEl.querySelector("#tdcCardBioCounter");
+      if (cardBioEl) {
+        cardBioEl.addEventListener("input", function () {
+          var v = cardBioEl.value;
+          if (cardBioCounter) {
+            cardBioCounter.textContent = v.length + " / " + CARD_BIO_MIN + " minimum";
+            cardBioCounter.classList.toggle("is-short", v.length > 0 && v.length < CARD_BIO_MIN);
           }
           // Live-update the patient preview voice slot. This is a
           // throwaway state update — the actual care_approach field
@@ -1011,18 +1052,22 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     var saveBtn = bodyEl.querySelector("[data-tdc-save]");
 
     var payload = {};
-    if (key === "bio") {
-      var bioEl = bodyEl.querySelector("#tdcBio");
-      var bioVal = bioEl ? String(bioEl.value || "").trim() : "";
-      if (bioVal.length < BIO_MIN) {
-        var counterEl = bodyEl.querySelector("#tdcBioCounter");
-        if (counterEl) {
-          counterEl.classList.add("is-short");
-          counterEl.textContent = "Your bio is " + bioVal.length + " / " + BIO_MIN + " minimum.";
+    if (key === "card_bio") {
+      var cardBioInput = bodyEl.querySelector("#tdcCardBio");
+      var cardBioVal = cardBioInput ? String(cardBioInput.value || "").trim() : "";
+      if (cardBioVal.length < CARD_BIO_MIN) {
+        var cardCounterEl = bodyEl.querySelector("#tdcCardBioCounter");
+        if (cardCounterEl) {
+          cardCounterEl.classList.add("is-short");
+          cardCounterEl.textContent =
+            "Your card bio is " + cardBioVal.length + " / " + CARD_BIO_MIN + " minimum.";
         }
         return;
       }
-      payload.care_approach = bioVal;
+      payload.care_approach = cardBioVal;
+    } else if (key === "full_bio") {
+      var fullBioInput = bodyEl.querySelector("#tdcFullBio");
+      payload.bio = fullBioInput ? String(fullBioInput.value || "").trim() : "";
     } else if (key === "contact") {
       var method = formDraft.method;
       var routeErr = bodyEl.querySelector("[data-tdc-route-error]");
