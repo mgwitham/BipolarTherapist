@@ -434,9 +434,11 @@ function renderShell(therapist, score, fieldsRemaining) {
     }).join("") +
     "</div>" +
     '<aside class="td-completeness-preview-column">' +
-    '<div id="tdcPreview">' +
+    '<div class="td-completeness-preview-module">' +
     '<p class="td-completeness-preview-label">Patient preview · live</p>' +
+    '<div id="tdcPreview">' +
     renderPortalCardPreview(therapist) +
+    "</div>" +
     "</div>" +
     "</aside>" +
     "</div>" +
