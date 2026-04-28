@@ -1229,6 +1229,12 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         container.querySelectorAll(".td-row").forEach(function (r) {
           r.classList.remove("is-open");
         });
+        // TF-D: any accordion close also clears the bio-editing pulse
+        // on the preview, so the cursor doesn't linger when the
+        // clinician moves on to a different field or toggles the
+        // card-bio row shut.
+        var previewClose = container.querySelector("#tdcPreview");
+        if (previewClose) previewClose.classList.remove("tdc-preview-bio-editing");
         if (!alreadyOpen && body) {
           var field = FIELD_REGISTRY.find(function (f) {
             return f.key === key;
@@ -1368,6 +1374,14 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       // treatment because it doesn't show on the match card.
       var cardBioEl = bodyEl.querySelector("#tdcCardBio");
       var cardBioCounter = bodyEl.querySelector("#tdcCardBioCounter");
+      // TF-D: signal "you are editing the card bio right now" by
+      // pulsing a green left border + blinking cursor on the preview
+      // voice slot. The class lives on the preview container; the
+      // .bth-voice CSS picks it up and renders the cursor.
+      var preview = container.querySelector("#tdcPreview");
+      if (preview) {
+        preview.classList.add("tdc-preview-bio-editing");
+      }
       if (cardBioEl) {
         cardBioEl.addEventListener("input", function () {
           var v = cardBioEl.value;
@@ -1382,8 +1396,13 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             care_approach: v,
             claim_status: "claimed",
           });
-          var preview = container.querySelector("#tdcPreview");
-          if (preview) updatePortalCardPreview(preview, previewState);
+          var previewEl = container.querySelector("#tdcPreview");
+          if (previewEl) {
+            updatePortalCardPreview(previewEl, previewState);
+            // updatePortalCardPreview reuses innerHTML, so re-add the
+            // editing class after the swap.
+            previewEl.classList.add("tdc-preview-bio-editing");
+          }
         });
       }
     } else if (key === "contact") {
@@ -1635,6 +1654,13 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       var article = container.querySelector('[data-tdc-row="' + key + '"]');
       if (article) article.classList.remove("is-open");
+      // TF-D: clear the bio-editing pulse from the preview when card
+      // bio successfully saves so the cursor doesn't keep blinking on
+      // the now-static text.
+      if (key === "card_bio") {
+        var previewSaved = container.querySelector("#tdcPreview");
+        if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
+      }
       trackFunnelEvent("portal_td_field_saved", {
         slug: localTherapist.slug,
         field_key: key,
