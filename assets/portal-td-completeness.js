@@ -1245,6 +1245,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           var article = body.closest(".td-row");
           if (article) article.classList.add("is-open");
           bindFormHandlers(key, body);
+          // Save buttons are rendered dynamically into the body — bind them now.
+          bindRowEvents();
         }
       });
     });
@@ -1631,6 +1633,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
     if (saveBtn) {
       saveBtn.disabled = true;
+      saveBtn.classList.add("is-saving");
       saveBtn.textContent = "Saving…";
     }
 
@@ -1643,24 +1646,25 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         Object.assign(localTherapist, payload);
       }
       refreshPreview();
-      refreshRow(key);
       refreshScore();
       refreshNotLiveBar();
-      // Auto-collapse on success.
-      var refreshedBody = container.querySelector('[data-tdc-body="' + key + '"]');
-      if (refreshedBody) {
-        refreshedBody.hidden = true;
-        refreshedBody.innerHTML = "";
+
+      // Show "Saved ✓" briefly before collapsing. refreshRow is deferred
+      // because it replaces the article (and the button inside it) immediately,
+      // which would destroy the saveBtn reference before the flash is visible.
+      if (saveBtn) {
+        saveBtn.classList.remove("is-saving");
+        saveBtn.classList.add("is-saved");
+        saveBtn.textContent = "Saved ✓";
       }
-      var article = container.querySelector('[data-tdc-row="' + key + '"]');
-      if (article) article.classList.remove("is-open");
-      // TF-D: clear the bio-editing pulse from the preview when card
-      // bio successfully saves so the cursor doesn't keep blinking on
-      // the now-static text.
       if (key === "card_bio") {
         var previewSaved = container.querySelector("#tdcPreview");
         if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
       }
+      window.setTimeout(function () {
+        refreshRow(key);
+      }, 700);
+
       trackFunnelEvent("portal_td_field_saved", {
         slug: localTherapist.slug,
         field_key: key,
@@ -1669,6 +1673,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } catch (err) {
       if (saveBtn) {
         saveBtn.disabled = false;
+        saveBtn.classList.remove("is-saving");
         saveBtn.textContent = "Try again";
       }
       var existingErr = bodyEl.querySelector(".td-form-error");
