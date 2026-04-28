@@ -499,7 +499,7 @@
 /* ─── Right column patient preview ────────────────────────────────── */
 .td-completeness-preview-column {
   position: sticky;
-  top: 1.25rem;
+  top: 5rem; /* 64px nav + 16px breathing room */
   align-self: flex-start;
 }
 .bth-card-preview-label {
