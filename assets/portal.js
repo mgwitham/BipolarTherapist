@@ -3017,14 +3017,19 @@ function attachChipPicker(picker) {
       addValue(li.dataset.val);
     }
   });
-
-  document.addEventListener("click", function (e) {
-    if (!picker.contains(e.target)) suggestBox.hidden = true;
-  });
 }
 
 function attachAllChipPickers(form) {
-  form.querySelectorAll(".portal-chip-picker").forEach(attachChipPicker);
+  var pickers = Array.from(form.querySelectorAll(".portal-chip-picker"));
+  pickers.forEach(attachChipPicker);
+  document.addEventListener("click", function (e) {
+    pickers.forEach(function (picker) {
+      if (!picker.contains(e.target)) {
+        var sb = picker.querySelector(".portal-chip-suggestions");
+        if (sb) sb.hidden = true;
+      }
+    });
+  });
 }
 
 function updateCharCounter(node) {
