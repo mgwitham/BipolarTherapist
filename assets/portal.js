@@ -2331,6 +2331,9 @@ function fieldsetFillStats(fieldsetEl) {
 //
 // Maximum: 40 + 60 = 100.
 function computeProfileScore(therapist) {
+  // Mirror of computeScore in portal-td-completeness.js — keep the two
+  // in sync so the header badge and the panel both display the same
+  // number on every render.
   var t = therapist || {};
   var score = 40; // signup baseline
   if (t.photo_url) score += 15;
@@ -2338,13 +2341,21 @@ function computeProfileScore(therapist) {
     score += 10;
   if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
     score += 10;
-  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
-    score += 7;
   if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
     score += 8;
+  if (String(t.bio || "").trim()) score += 8;
+  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
+    score += 7;
+  if (Array.isArray(t.specialties) && t.specialties.filter(Boolean).length) score += 6;
   if (t.accepts_in_person || t.accepts_telehealth) score += 5;
-  if (Number(t.bipolar_years_experience) > 0 || Number(t.years_experience) > 0) score += 5;
-  if (String(t.bio || "").trim()) score += 8; // full bio (TF-A)
+  if (Number(t.bipolar_years_experience) > 0) score += 5;
+  if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
+  if (String(t.estimated_wait_time || "").trim()) score += 4;
+  if (String(t.contact_guidance || "").trim()) score += 4;
+  if (String(t.first_step_expectation || "").trim()) score += 4;
+  if (String(t.practice_name || "").trim()) score += 3;
+  if (String(t.website || "").trim()) score += 3;
+  if (Number(t.years_experience) > 0) score += 3;
   if (score > 100) score = 100;
   if (score < 0) score = 0;
   return score;
