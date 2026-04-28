@@ -58,6 +58,7 @@ function buildContext(options) {
         parseBody,
         sendJson,
         sendPortalClaimLink,
+        sendPortalWelcomeEmail: async () => {},
         createFeaturedCheckoutSession,
         // Stubs for deps we don't exercise in these tests
         buildPortalRequestDocument: () => null,
