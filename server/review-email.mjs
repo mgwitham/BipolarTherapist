@@ -1025,3 +1025,32 @@ export async function sendWeeklyDigestEmail(config, therapist, digest, portalBas
   });
   return { sent: true };
 }
+
+export async function sendPortalContactEmail(config, body) {
+  const requestTypeLabels = {
+    claim_profile: "Claim my profile",
+    profile_update: "Help me update my profile",
+    pause_listing: "Pause my listing",
+    remove_listing: "Remove my listing",
+    other: "Other",
+  };
+  const requestLabel = requestTypeLabels[body.request_type] || body.request_type || "Unknown";
+  const subject = `Portal request [${requestLabel}]: ${body.therapist_name || body.therapist_slug || "unknown"}`;
+  const lines = [
+    `From: ${body.requester_name} <${body.requester_email}>`,
+    `Request type: ${requestLabel}`,
+    `Profile: ${body.therapist_name} (${body.therapist_slug})`,
+    body.license_number ? `License: ${body.license_number}` : null,
+    body.message ? `\nMessage:\n${body.message}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: ["support@bipolartherapyhub.com"],
+    reply_to: body.requester_email || "support@bipolartherapyhub.com",
+    subject,
+    text: lines,
+  });
+}

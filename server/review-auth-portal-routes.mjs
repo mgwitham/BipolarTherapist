@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { sendPortalContactEmail } from "./review-email.mjs";
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
@@ -482,7 +483,6 @@ export async function handleAuthAndPortalRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
-    buildPortalRequestDocument,
     canAttemptLogin,
     clearFailedLogins,
     createFeaturedCheckoutSession,
@@ -718,9 +718,14 @@ export async function handleAuthAndPortalRoutes(context) {
 
   if (request.method === "POST" && routePath === "/portal/requests") {
     const body = await parseBody(request);
-    const document = buildPortalRequestDocument(body);
-    const created = await client.create(document);
-    sendJson(response, 201, normalizePortalRequest(created), origin, config);
+    const name = String(body.requester_name || "").trim();
+    const email = String(body.requester_email || "").trim();
+    if (!name || !email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      sendJson(response, 400, { error: "Name and a valid email are required." }, origin, config);
+      return true;
+    }
+    await sendPortalContactEmail(config, body);
+    sendJson(response, 200, { ok: true }, origin, config);
     return true;
   }
 

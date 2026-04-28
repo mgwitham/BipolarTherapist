@@ -164,6 +164,10 @@ function buildPortalRequestOptions(verifiedClaim, therapist) {
       label: "Remove my listing",
       hidden: Boolean(therapist.listing_removal_requested_at),
     },
+    {
+      value: "other",
+      label: "Other",
+    },
   ].filter(function (item) {
     return !item.hidden;
   });
@@ -3973,10 +3977,10 @@ function renderPortal(therapist, options) {
     '" /><input type="hidden" name="therapist_name" value="' +
     escapeHtml(therapist.name) +
     '" /><label>Your name<input type="text" name="requester_name" placeholder="Your name" value="' +
-    escapeHtml(verifiedClaim ? therapist.name : "") +
+    escapeHtml(therapist.name || "") +
     '" required /></label><label>Your email<input type="email" name="requester_email" placeholder="you@example.com" value="' +
     escapeHtml(claimedEmail) +
-    '" required /></label><label>License number<input type="text" name="license_number" placeholder="Optional, helps with claim review" value="' +
+    '" required /></label><label>License number<input type="text" name="license_number" placeholder="Optional" value="' +
     escapeHtml(therapist.license_number || "") +
     '" /></label><label>What do you need?<select name="request_type" required>' +
     requestOptions
@@ -3992,15 +3996,7 @@ function renderPortal(therapist, options) {
         );
       })
       .join("") +
-    '</select></label><label>Message<textarea name="message" rows="4" placeholder="Add anything that helps us verify ownership or understand the request.">' +
-    escapeHtml(
-      verifiedClaim
-        ? "I manage this claimed profile and would like help with the selected request."
-        : "",
-    ) +
-    '</textarea></label><button class="btn-primary" type="submit">' +
-    escapeHtml(verifiedClaim ? "Send managed request" : "Send request") +
-    '</button><div class="portal-feedback" id="portalRequestFeedback"></div></form>' +
+    '</select></label><label>Message<textarea name="message" rows="4" placeholder="Anything else we should know?"></textarea></label><button class="btn-primary" type="submit">Send message</button><div class="portal-feedback" id="portalRequestFeedback"></div></form>' +
     "</details>";
 
   // ─── TD-A header ───────────────────────────────────────────────────
@@ -4154,11 +4150,9 @@ function renderPortal(therapist, options) {
     feedback.textContent = "Sending request...";
     try {
       await submitTherapistPortalRequest(payload);
-      feedback.textContent =
-        "Your request is in the review queue. We’ll use it to verify ownership or handle the listing change.";
-      form.reset();
-      form.elements.therapist_slug.value = therapist.slug;
-      form.elements.therapist_name.value = therapist.name;
+      feedback.textContent = "Message sent. We’ll follow up at the email you provided.";
+      form.elements.message.value = "";
+      form.elements.request_type.selectedIndex = 0;
     } catch (error) {
       feedback.textContent =
         (error && error.message) || "Something went wrong while sending the request.";
