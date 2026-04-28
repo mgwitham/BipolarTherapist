@@ -8,9 +8,17 @@
 }
 .td-completeness-grid {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  /* Card column matches the patient-facing match card width (~380px),
+     so the preview is dimensionally identical to what patients see in
+     search results — not a shrunken thumbnail. */
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 2rem;
   align-items: flex-start;
+  /* Allow the preview card to bleed past the right edge of the page on
+     narrower desktops if the parent container can't fit it. The portal
+     wrap is centered with horizontal padding, so a small overflow is
+     visually fine and preferable to compressing the card. */
+  overflow: visible;
 }
 .td-completeness-main {
   min-width: 0;
@@ -401,13 +409,11 @@
   }
 }
 
-/* Legacy editor demotion. Stays in the DOM as a deep link target for
-   placeholder rows in the completeness panel (TD-D will replace the
-   remaining placeholders with proper inline forms). When the
-   completeness panel mounts, this class hides the editor card. */
-.portal-edit-card-demoted {
-  display: none;
-}
+/* The .portal-edit-card-demoted class was used to hide the legacy
+   editor when placeholder rows in the completeness panel deep-linked
+   to it. After TD-C/TD-D shipped real inline forms for every field,
+   the disclosure was renamed to "More fields" and is now a legitimate
+   complementary surface — so we no longer hide it. */
 
 /* ─── TD-C: Not-live bar ──────────────────────────────────────────── */
 .td-not-live-bar {
