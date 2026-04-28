@@ -4128,14 +4128,13 @@ function renderPortal(therapist, options) {
       });
     }
 
-    // Hide the legacy editor by default. Placeholder rows in the
-    // completeness panel link back to it via #portalEditProfile when
-    // they're clicked. TD-C and TD-D will replace those placeholders
-    // with proper inline forms.
-    var legacyEditor = document.getElementById("portalEditCard");
-    if (legacyEditor) {
-      legacyEditor.classList.add("portal-edit-card-demoted");
-    }
+    // Legacy editor stays visible. The "More fields" disclosure (renamed
+    // from "Edit profile") sits below the completeness list and holds
+    // the ~10 fields the unified editor doesn't expose inline (long-form
+    // bio, practice name, specialties chip picker, telehealth_states,
+    // languages, wait time, website, contact_guidance,
+    // first_step_expectation). It's a real complementary surface, not
+    // a fallback — so we don't hide it.
   }
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
