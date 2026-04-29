@@ -327,6 +327,101 @@
       .admin-quick-nav-links a[aria-current="true"] .nav-count {
         background: rgba(26, 122, 143, 0.22);
       }
+      .admin-search-bar {
+        margin: 0 0 1rem;
+        position: relative;
+      }
+      .admin-search-input {
+        width: 100%;
+        padding: 0.65rem 1rem 0.65rem 2.6rem;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: var(--white);
+        color: var(--navy);
+        outline: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7' stroke='%234a6875' stroke-width='2'/%3E%3Cpath d='m16 16 4 4' stroke='%234a6875' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 0.85rem center;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .admin-search-input:focus {
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .admin-search-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(29, 58, 74, 0.13);
+        z-index: 200;
+        max-height: 360px;
+        overflow-y: auto;
+      }
+      .admin-search-result {
+        display: block;
+        width: 100%;
+        padding: 0.65rem 1rem;
+        background: none;
+        border: 0;
+        border-bottom: 1px solid #f0f4f5;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        transition: background 0.1s ease;
+      }
+      .admin-search-result:last-child {
+        border-bottom: 0;
+      }
+      .admin-search-result:hover {
+        background: var(--teal-faint);
+      }
+      .admin-search-result-name {
+        font-weight: 600;
+        color: var(--navy);
+        font-size: 0.92rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .admin-search-result-meta {
+        font-size: 0.8rem;
+        color: #4a6875;
+        margin-top: 2px;
+      }
+      .admin-search-status {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .admin-search-status.is-published {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .admin-search-status.is-unlisted {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .admin-search-status.is-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .admin-search-empty {
+        padding: 1rem;
+        color: #4a6875;
+        font-size: 0.88rem;
+        text-align: center;
+      }
       .admin-tabs {
         display: flex;
         gap: 0.35rem;
@@ -5309,6 +5404,18 @@
           <h1>Admin</h1>
           <p class="subtle" id="adminHeroStatus">Loading status…</p>
         </div>
+      </div>
+
+      <div class="admin-search-bar" id="adminTherapistSearchBar">
+        <input
+          type="search"
+          class="admin-search-input"
+          id="adminSearchInput"
+          placeholder="Search therapists by name, email, or license number…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="admin-search-dropdown" id="adminSearchDropdown" hidden></div>
       </div>
 
       <div

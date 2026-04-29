@@ -11,6 +11,7 @@ import {
   fetchAdminTherapistById,
   fetchAdminTherapistBySlug,
   fetchPublicTherapists,
+  searchAllTherapists,
 } from "./cms.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
@@ -7641,6 +7642,102 @@ async function renderPortalCompleteness() {
   renderTable();
 }
 
+let _searchInitialized = false;
+
+function initTherapistSearch() {
+  if (_searchInitialized) return;
+  _searchInitialized = true;
+
+  var input = document.getElementById("adminSearchInput");
+  var dropdown = document.getElementById("adminSearchDropdown");
+  if (!input || !dropdown) return;
+
+  var debounceTimer;
+
+  input.addEventListener("input", function () {
+    window.clearTimeout(debounceTimer);
+    var q = input.value.trim();
+    if (!q) {
+      dropdown.hidden = true;
+      return;
+    }
+    debounceTimer = window.setTimeout(function () {
+      dropdown.innerHTML = '<div class="admin-search-empty">Searching…</div>';
+      dropdown.hidden = false;
+      searchAllTherapists(q)
+        .then(function (results) {
+          if (!results.length) {
+            dropdown.innerHTML = '<div class="admin-search-empty">No therapists found.</div>';
+            return;
+          }
+          var html = results
+            .slice(0, 25)
+            .map(function (t) {
+              var slug = t.slug || "";
+              var active = t.status === "active" && t.listingActive;
+              var statusLabel = active
+                ? "published"
+                : t.status === "active"
+                  ? "unlisted"
+                  : t.status || "draft";
+              var statusClass = active
+                ? "is-published"
+                : statusLabel === "unlisted"
+                  ? "is-unlisted"
+                  : "is-inactive";
+              return (
+                '<button type="button" class="admin-search-result" data-search-slug="' +
+                escapeHtml(slug) +
+                '">' +
+                '<div class="admin-search-result-name">' +
+                escapeHtml(t.name || "Unnamed") +
+                ' <span class="admin-search-status ' +
+                statusClass +
+                '">' +
+                escapeHtml(statusLabel) +
+                "</span></div>" +
+                '<div class="admin-search-result-meta">' +
+                escapeHtml(t.email || "no email on file") +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("");
+          dropdown.innerHTML = html;
+
+          dropdown.querySelectorAll("[data-search-slug]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var slug = btn.getAttribute("data-search-slug");
+              dropdown.hidden = true;
+              input.value = "";
+              fetchAdminTherapistBySlug(slug).then(function (therapist) {
+                if (therapist) {
+                  openTherapistEditDrawer(therapist, function () {});
+                }
+              });
+            });
+          });
+        })
+        .catch(function () {
+          dropdown.innerHTML = '<div class="admin-search-empty">Search failed. Try again.</div>';
+        });
+    }, 220);
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.hidden = true;
+    }
+  });
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      dropdown.hidden = true;
+      input.value = "";
+    }
+  });
+}
+
 function renderAdminSection(label, renderFn) {
   if (typeof renderFn !== "function") {
     return;
@@ -7751,6 +7848,7 @@ function setAuthUiState() {
     todayRegion.style.display = "";
   }
   syncAdminQuickNavFromViewport();
+  initTherapistSearch();
   const navLogout = document.getElementById("navLogout");
   if (navLogout) navLogout.style.display = "inline-block";
   if (authError) {

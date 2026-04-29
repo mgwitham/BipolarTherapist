@@ -578,6 +578,52 @@ export async function fetchAdminTherapistBySlug(slug) {
   }
 }
 
+let _allTherapistsSearchCache = null;
+let _allTherapistsSearchPromise = null;
+
+export async function searchAllTherapists(query) {
+  const q = String(query || "")
+    .trim()
+    .toLowerCase();
+
+  if (!cmsEnabled) {
+    const local = getTherapists();
+    if (!q) return local;
+    return local.filter(function (t) {
+      return (
+        (t.name || "").toLowerCase().includes(q) ||
+        (t.email || "").toLowerCase().includes(q) ||
+        (t.license_number || "").toLowerCase().includes(q)
+      );
+    });
+  }
+
+  if (!_allTherapistsSearchCache) {
+    if (!_allTherapistsSearchPromise) {
+      _allTherapistsSearchPromise = fetchFromSanity(
+        `*[_type == "therapist"] | order(name asc) { _id, "slug": slug.current, name, email, licenseNumber, status, listingActive, claimStatus }`,
+        null,
+        { fresh: true },
+      ).then(function (docs) {
+        _allTherapistsSearchCache = Array.isArray(docs) ? docs : [];
+        _allTherapistsSearchPromise = null;
+        return _allTherapistsSearchCache;
+      });
+    }
+    await _allTherapistsSearchPromise;
+  }
+
+  const all = _allTherapistsSearchCache || [];
+  if (!q) return all;
+  return all.filter(function (t) {
+    return (
+      (t.name || "").toLowerCase().includes(q) ||
+      (t.email || "").toLowerCase().includes(q) ||
+      (t.licenseNumber || "").toLowerCase().includes(q)
+    );
+  });
+}
+
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {
     return getTherapistBySlug(slug);
