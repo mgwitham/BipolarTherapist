@@ -227,6 +227,29 @@ export const therapistType = defineType({
       description: "Total number of successful PATCH /portal/therapist commits for this profile.",
     }),
     defineField({
+      name: "portalCompletenessScore",
+      title: "Portal completeness score",
+      type: "number",
+      group: "practice",
+      validation: (rule) => rule.min(0).max(100),
+      description:
+        "0–100 score computed from the portal field registry after every save. Used for email targeting and admin completeness views.",
+    }),
+    defineField({
+      name: "portalCompletionFields",
+      title: "Portal missing fields",
+      type: "array",
+      of: [{ type: "string" }],
+      group: "practice",
+      description: "Field keys not yet completed — drives targeted profile-nudge emails.",
+    }),
+    defineField({
+      name: "portalCompletenessUpdatedAt",
+      title: "Portal completeness last computed at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
       name: "lastWeeklyDigestSentAt",
       title: "Last weekly digest sent at",
       type: "datetime",
