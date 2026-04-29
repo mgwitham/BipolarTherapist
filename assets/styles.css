@@ -4166,7 +4166,7 @@ body.dir-vb .dir-vb-modal-scrim {
   background: rgba(10, 34, 44, 0.5);
   opacity: 0;
   transition: opacity 0.22s ease;
-  z-index: 80;
+  z-index: 200;
 }
 
 body.dir-vb .dir-vb-modal-scrim[hidden],
@@ -4189,7 +4189,7 @@ body.dir-vb .dir-vb-modal {
   box-shadow: 0 30px 70px rgba(10, 34, 44, 0.25);
   display: flex;
   flex-direction: column;
-  z-index: 81;
+  z-index: 201;
   transform: translate(-50%, -48%) scale(0.98);
   opacity: 0;
   transition:
@@ -4264,9 +4264,11 @@ body.dir-vb .dir-vb-modal-body {
 }
 
 body.dir-vb .dir-vb-modal-body .sidebar {
-  display: grid;
+  display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 0.95rem 1rem;
+  padding: 0;
+  overflow: visible;
 }
 
 body.dir-vb .dir-vb-section {
