@@ -2200,7 +2200,6 @@ export function renderOpsInboxPanel(options) {
 
   const candidates = Array.isArray(options.candidates) ? options.candidates : [];
   const therapists = Array.isArray(options.therapists) ? options.therapists : [];
-  const applications = Array.isArray(options.applications) ? options.applications : [];
   const licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
     ? options.licensureRefreshQueue
     : [];

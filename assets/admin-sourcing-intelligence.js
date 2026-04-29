@@ -258,8 +258,6 @@ export function renderCoverageIntelligencePanel(options) {
     },
     getSeedCitiesFromConfig(),
   );
-  const cityIndex = buildCityIndex(therapists);
-
   root.innerHTML =
     '<div class="queue-insights"><div class="queue-insights-title">Where to source next</div><div class="subtle" style="margin-bottom:0.7rem">Prioritizes (1) large CA metros with zero coverage, (2) cities light on psychiatry / telehealth / accepting listings. Copy Claude Code command to paste into this chat and have the agent run discovery here; Copy discovery prompt to paste into Claude.ai or ChatGPT externally.</div><div class="queue-insights-grid">' +
     insights.thinnestCities

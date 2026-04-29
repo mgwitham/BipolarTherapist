@@ -47,8 +47,6 @@ import {
   fetchTherapistCandidates,
   fetchTherapistPortalRequests,
   fetchTherapistReviewers,
-  getAdminActorId,
-  getAdminActorName,
   getAdminSessionToken,
   fetchTherapistApplications,
   rejectTherapistApplication as rejectTherapistApplicationRemote,
@@ -56,7 +54,6 @@ import {
   signInAdmin,
   signOutAdmin,
   updateTherapistApplication,
-  updateTherapistCandidate,
   updateTherapistPortalRequest,
   fetchPortalCompletenessSummary,
   sendPortalCompletenessNudges,
@@ -1249,10 +1246,9 @@ function formatFieldLabel(value) {
     });
 }
 
-const { buildActionStatCard, buildOperatorGuideCard, buildPriorityActionRow, wrapStatsGroup } =
-  createAdminDashboardCardBuilders({
-    escapeHtml: escapeHtml,
-  });
+const { buildOperatorGuideCard, wrapStatsGroup } = createAdminDashboardCardBuilders({
+  escapeHtml: escapeHtml,
+});
 
 const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
   isWebsiteRouteHealthy: isWebsiteRouteHealthy,
@@ -4265,9 +4261,7 @@ function renderWorkflowLaneGuidance(rootId, config) {
 
 function renderAdminWorkflowGuidance(context) {
   var candidateReviewCount = Number((context && context.candidateReviewCount) || 0);
-  var candidateReadyCount = Number((context && context.candidateReadyCount) || 0);
   var candidateDuplicateCount = Number((context && context.candidateDuplicateCount) || 0);
-  var candidateConfirmationCount = Number((context && context.candidateConfirmationCount) || 0);
   var pendingApplicationsCount = Number((context && context.pendingApplicationsCount) || 0);
   var reviewingApplicationsCount = Number((context && context.reviewingApplicationsCount) || 0);
   var claimFollowUpCount = Number((context && context.claimFollowUpCount) || 0);
@@ -5448,36 +5442,6 @@ function renderStats() {
     const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
     const strictImportBlockerCount = strictImportBlockers.length;
     const confirmationQueue = getPublishedTherapistConfirmationQueue();
-    const refreshQueue = therapists
-      .map(function (item) {
-        return {
-          item: item,
-          freshness: getDataFreshnessSummary(item),
-          trustAttentionCount: getTherapistFieldTrustAttentionCount(item),
-        };
-      })
-      .filter(function (entry) {
-        return entry.freshness.status !== "fresh" || entry.trustAttentionCount > 0;
-      })
-      .sort(function (a, b) {
-        const weight = {
-          aging: 0,
-          watch: 1,
-          fresh: 2,
-        };
-        const statusDiff = (weight[a.freshness.status] || 9) - (weight[b.freshness.status] || 9);
-        if (statusDiff) {
-          return statusDiff;
-        }
-        const trustDiff = (b.trustAttentionCount || 0) - (a.trustAttentionCount || 0);
-        if (trustDiff) {
-          return trustDiff;
-        }
-        return (
-          (b.freshness.needs_reconfirmation_fields || []).length -
-          (a.freshness.needs_reconfirmation_fields || []).length
-        );
-      });
     const confirmationQueueState = readConfirmationQueueState();
     const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
       var entry = confirmationQueueState[slug];
@@ -5643,9 +5607,6 @@ function renderStats() {
         copy: "Trust-critical listing blockers that can slow safe publishing and maintenance.",
       },
     ];
-    var activeQueueCount = queueIndex.filter(function (queue) {
-      return queue.count > 0;
-    }).length;
 
     document.getElementById("adminStats").innerHTML =
       '<div class="admin-today-grid">' +
@@ -7437,7 +7398,6 @@ const COMPLETENESS_FIELD_LABELS = {
 
 const REQUIRED_FIELDS = ["card_bio", "contact"];
 
-let _portalSummaryCache = null;
 let _portalNudgeSent = {};
 
 async function renderPortalCompleteness() {
@@ -7454,8 +7414,6 @@ async function renderPortalCompleteness() {
       '<p class="subtle" style="color:#c2410c">Failed to load: ' + err.message + "</p>";
     return;
   }
-  _portalSummaryCache = rows;
-
   if (!rows.length) {
     root.innerHTML = '<p class="pc-empty">No claimed therapists yet.</p>';
     return;
