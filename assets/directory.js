@@ -22,17 +22,12 @@ import {
   subscribe as subscribeToSavedList,
 } from "./saved-list.js";
 import {
-  renderDirectoryRecommendationsMarkup,
   renderCardMarkup,
   renderDirectoryDetailsMarkup,
   renderEmptyStateMarkup,
   renderLoadMoreMarkup,
 } from "./directory-render.js";
-import {
-  buildCardViewModel,
-  buildDirectoryDetailsViewModel,
-  buildDirectoryRecommendationModel,
-} from "./directory-view-model.js";
+import { buildCardViewModel, buildDirectoryDetailsViewModel } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import { lookupZipPlace, preloadZipcodes } from "./zip-lookup.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
@@ -177,12 +172,26 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function initSortZip() {
     var SORT_ZIP_KEY = "bth_sort_zip_v1";
+    var urlZip = "";
     try {
-      var stored = window.sessionStorage.getItem(SORT_ZIP_KEY);
-      if (stored && /^\d{5}$/.test(stored)) {
-        sortZip = stored;
+      var paramZip = new URLSearchParams(window.location.search).get("sortZip");
+      if (paramZip && /^\d{5}$/.test(paramZip.trim())) {
+        urlZip = paramZip.trim();
       }
     } catch (_err) {}
+    if (urlZip) {
+      sortZip = urlZip;
+      try {
+        window.sessionStorage.setItem(SORT_ZIP_KEY, urlZip);
+      } catch (_err) {}
+    } else {
+      try {
+        var stored = window.sessionStorage.getItem(SORT_ZIP_KEY);
+        if (stored && /^\d{5}$/.test(stored)) {
+          sortZip = stored;
+        }
+      } catch (_err) {}
+    }
     var sortZipInput = getElement("sortZip");
     if (sortZipInput) {
       sortZipInput.value = sortZip;
@@ -377,31 +386,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       source: "ip",
     });
     return true;
-  }
-
-  function buildRecommendationPresentation() {
-    var rankingSource = String(filters.ranking_source || "");
-    var rankingLabel = String(filters.ranking_label || "");
-
-    if (rankingSource === "explicit_zip" && rankingLabel) {
-      return {
-        kicker: "Strong starting options near " + rankingLabel,
-        context: "Based on the zip you entered.",
-      };
-    }
-
-    if (rankingSource === "ip" && rankingLabel) {
-      return {
-        kicker: "Strong starting options near " + rankingLabel,
-        context: "Based on your general area. You can change this anytime.",
-      };
-    }
-
-    return {
-      kicker: "Strong starting options",
-      context:
-        "Starting with therapists only. Use location or filters to narrow this list if you want something closer.",
-    };
   }
 
   function buildFilterCacheKey(filterState) {
@@ -877,24 +861,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
-  function renderDirectoryRecommendations(renderState) {
-    var root = getElement("directoryRecommendationZone");
-    if (!root) {
-      return;
-    }
-
-    root.innerHTML = renderDirectoryRecommendationsMarkup({
-      model: buildDirectoryRecommendationModel({
-        featuredTherapist: renderState.featuredTherapist,
-        backupTherapists: renderState.backupTherapists,
-        filters: filters,
-        shortlist: shortlist,
-        isShortlisted: isShortlisted,
-        presentation: buildRecommendationPresentation(),
-      }),
-    });
-  }
-
   function renderCard(therapist) {
     return renderCardMarkup({
       model: buildCardViewModel({
@@ -1312,12 +1278,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var detailsButton = event.target.closest("[data-view-details]");
-    if (detailsButton) {
-      openDetailsModal(detailsButton.getAttribute("data-view-details"), detailsButton);
-      return;
-    }
-
     var primaryLink = event.target.closest("[data-primary-cta]");
     if (primaryLink) {
       var primarySlug = primaryLink.getAttribute("data-primary-cta");
@@ -1380,34 +1340,45 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   var sortZipTimer = 0;
 
+  function applySortZipFromInput() {
+    var raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
+    var normalized = /^\d{5}$/.test(raw) ? raw : "";
+    sortZip = normalized;
+    saveSortZip(normalized);
+    var nearZipOption = getElement("sortNearZipOption");
+    var sortByEl = getElement("sortBy");
+    if (normalized) {
+      if (nearZipOption) {
+        nearZipOption.hidden = false;
+      }
+      filters = Object.assign({}, filters, { sortBy: "near_zip" });
+      if (sortByEl) {
+        sortByEl.value = "near_zip";
+      }
+      trackFunnelEvent("directory_zip_entered", { zip: normalized });
+    } else {
+      if (nearZipOption) {
+        nearZipOption.hidden = true;
+      }
+      filters = Object.assign({}, filters, { sortBy: "stable_random" });
+      if (sortByEl) {
+        sortByEl.value = "stable_random";
+      }
+    }
+    visibleCount = 24;
+    filteredResultsCacheKey = "";
+    render();
+  }
+
   function handleSortZipInput() {
     window.clearTimeout(sortZipTimer);
-    sortZipTimer = window.setTimeout(function () {
-      var raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
-      var normalized = /^\d{5}$/.test(raw) ? raw : "";
-      sortZip = normalized;
-      saveSortZip(normalized);
-      var nearZipOption = getElement("sortNearZipOption");
-      var sortByEl = getElement("sortBy");
-      if (normalized) {
-        if (nearZipOption) {
-          nearZipOption.hidden = false;
-        }
-        filters = Object.assign({}, filters, { sortBy: "near_zip" });
-        if (sortByEl) {
-          sortByEl.value = "near_zip";
-        }
-        trackFunnelEvent("directory_zip_entered", { zip: normalized });
-      } else {
-        filters = Object.assign({}, filters, { sortBy: "stable_random" });
-        if (sortByEl) {
-          sortByEl.value = "stable_random";
-        }
-      }
-      visibleCount = 24;
-      filteredResultsCacheKey = "";
-      render();
-    }, 400);
+    sortZipTimer = window.setTimeout(applySortZipFromInput, 400);
+  }
+
+  function flushSortZipInput() {
+    window.clearTimeout(sortZipTimer);
+    sortZipTimer = 0;
+    applySortZipFromInput();
   }
 
   function handleFocusBarClick(event) {
@@ -1417,51 +1388,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
 
     removeActiveFilter(removeButton.getAttribute("data-remove-filter"));
-  }
-
-  function handleRecommendationClick(event) {
-    var shortlistButton = event.target.closest("[data-preview-shortlist]");
-    if (shortlistButton) {
-      var previewSlug = shortlistButton.getAttribute("data-preview-shortlist");
-      if (!previewSlug) {
-        return;
-      }
-      pendingMotionSlug = previewSlug;
-      toggleShortlist(previewSlug);
-      refreshShortlistViews();
-      return;
-    }
-
-    var backupShortlistButton = event.target.closest(
-      ".directory-backup-card [data-shortlist-slug]",
-    );
-    if (backupShortlistButton) {
-      var backupSlug = backupShortlistButton.getAttribute("data-shortlist-slug");
-      if (!backupSlug) {
-        return;
-      }
-      pendingMotionSlug = backupSlug;
-      toggleShortlist(backupSlug);
-      refreshShortlistViews();
-      return;
-    }
-
-    var detailsButton = event.target.closest("[data-view-details]");
-    if (detailsButton) {
-      openDetailsModal(detailsButton.getAttribute("data-view-details"), detailsButton);
-      return;
-    }
-
-    var primaryLink = event.target.closest("[data-primary-cta]");
-    if (primaryLink) {
-      var slug = primaryLink.getAttribute("data-primary-cta");
-      var tier = primaryLink.getAttribute("data-cta-tier") || "featured";
-      rememberTherapistContactRoute(slug, primaryLink.getAttribute("href"), "directory_" + tier);
-      trackFunnelEvent("directory_" + tier + "_contact_cta_clicked", {
-        therapist_slug: slug,
-        sort_by: filters.sortBy,
-      });
-    }
   }
 
   window.applyFilters = applyFilters;
@@ -1603,6 +1529,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       event.key === "Enter" &&
       (event.target.tagName === "INPUT" || event.target.tagName === "SELECT")
     ) {
+      if (event.target.id === "sortZip") {
+        flushSortZipInput();
+        return;
+      }
       applyFilters();
     }
   });
