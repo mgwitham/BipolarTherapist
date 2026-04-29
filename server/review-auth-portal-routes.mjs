@@ -220,7 +220,81 @@ function shapePortalTherapist(therapist) {
     portal_last_save_at: therapist.portalLastSaveAt || "",
     portal_save_count:
       typeof therapist.portalSaveCount === "number" ? therapist.portalSaveCount : 0,
+    portal_completeness_score:
+      typeof therapist.portalCompletenessScore === "number"
+        ? therapist.portalCompletenessScore
+        : null,
+    portal_completion_fields: Array.isArray(therapist.portalCompletionFields)
+      ? therapist.portalCompletionFields
+      : [],
   };
+}
+
+// Mirrors the browser-side FIELD_REGISTRY in portal-td-completeness.js.
+// Must stay in sync when field weights change. Returns { score, missingFields }.
+function computePortalCompletenessSnapshot(t) {
+  if (!t) return { score: 0, missingFields: [] };
+  const arr = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
+  const str = (v) => String(v || "").trim();
+  const num = (v) => Number(v) || 0;
+  const method = str(t.preferredContactMethod).toLowerCase();
+  const fields = [
+    { key: "card_bio", pts: 9, done: str(t.careApproach).length >= 50 },
+    {
+      key: "contact",
+      pts: 7,
+      done:
+        method === "email"
+          ? Boolean(str(t.email))
+          : method === "phone"
+            ? Boolean(str(t.phone))
+            : method === "booking"
+              ? Boolean(str(t.bookingUrl))
+              : false,
+    },
+    { key: "headshot", pts: 10, done: Boolean(t.hasPhoto) },
+    { key: "name", pts: 4, done: Boolean(str(t.name)) },
+    { key: "location", pts: 4, done: Boolean(str(t.city) && str(t.state)) },
+    { key: "years", pts: 4, done: num(t.bipolarYearsExperience) > 0 },
+    { key: "full_bio", pts: 6, done: Boolean(str(t.bio)) },
+    { key: "practice_name", pts: 3, done: Boolean(str(t.practiceName)) },
+    { key: "website", pts: 3, done: Boolean(str(t.website)) },
+    { key: "languages", pts: 3, done: arr(t.languages).length > 0 },
+    {
+      key: "fee",
+      pts: 7,
+      done: num(t.sessionFeeMin) > 0 || num(t.sessionFeeMax) > 0 || t.slidingScale === true,
+    },
+    { key: "modalities", pts: 8, done: arr(t.treatmentModalities).length > 0 },
+    { key: "format", pts: 4, done: Boolean(t.acceptsInPerson || t.acceptsTelehealth) },
+    { key: "insurance", pts: 6, done: arr(t.insuranceAccepted).length > 0 },
+    { key: "wait_time", pts: 3, done: Boolean(str(t.estimatedWaitTime)) },
+    { key: "first_step", pts: 4, done: Boolean(str(t.firstStepExpectation)) },
+    { key: "specialties", pts: 5, done: arr(t.specialties).length > 0 },
+    { key: "populations", pts: 7, done: arr(t.clientPopulations).length > 0 },
+    { key: "total_years", pts: 3, done: num(t.yearsExperience) > 0 },
+  ];
+  let score = 0;
+  const missingFields = [];
+  for (const f of fields) {
+    if (f.done) score += f.pts;
+    else missingFields.push(f.key);
+  }
+  return { score, missingFields };
+}
+
+// Writes the completeness snapshot onto the therapist doc. Fire-and-forget —
+// do NOT await this; the PATCH response does not need to block on it.
+function persistCompletenessSnapshot(client, therapistId, snapshot, nowIso) {
+  client
+    .patch(therapistId)
+    .set({
+      portalCompletenessScore: snapshot.score,
+      portalCompletionFields: snapshot.missingFields,
+      portalCompletenessUpdatedAt: nowIso,
+    })
+    .commit({ visibility: "async" })
+    .catch(() => {});
 }
 
 // Validates and normalizes a PATCH /portal/therapist body. Strict
@@ -2806,7 +2880,15 @@ export async function handleAuthAndPortalRoutes(context) {
     }
 
     const therapist = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{ _id, claimStatus }`,
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, claimStatus, name, email, city, state,
+        preferredContactMethod, phone, bookingUrl,
+        careApproach, bio, practiceName, website, languages,
+        sessionFeeMin, sessionFeeMax, slidingScale,
+        treatmentModalities, acceptsInPerson, acceptsTelehealth, insuranceAccepted,
+        estimatedWaitTime, firstStepExpectation, specialties, clientPopulations,
+        yearsExperience, bipolarYearsExperience
+      }`,
       { slug: session.slug },
     );
     if (!therapist) {
@@ -2852,6 +2934,12 @@ export async function handleAuthAndPortalRoutes(context) {
         photoUsagePermissionConfirmed: true,
       })
       .commit({ visibility: "sync" });
+
+    // Completeness snapshot — hasPhoto is now true since we just uploaded.
+    const snapshotAfterPhoto = computePortalCompletenessSnapshot(
+      Object.assign({}, therapist, { hasPhoto: true }),
+    );
+    persistCompletenessSnapshot(client, therapist._id, snapshotAfterPhoto, nowIso);
 
     sendJson(
       response,
@@ -3005,10 +3093,16 @@ export async function handleAuthAndPortalRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount,
+        portalCompletenessScore, portalCompletionFields,
+        "hasPhoto": defined(photo.asset)
       }`,
       { slug: session.slug },
     );
+
+    // Update completeness snapshot async — does not block the response.
+    const snapshot = computePortalCompletenessSnapshot(updated);
+    persistCompletenessSnapshot(client, existing._id, snapshot, nowIso);
 
     sendJson(response, 200, { ok: true, therapist: shapePortalTherapist(updated) }, origin, config);
     return true;

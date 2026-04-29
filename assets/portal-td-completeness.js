@@ -16,7 +16,7 @@
 // ship the inline forms for each.
 
 import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-preview.js";
-import { patchTherapistProfile } from "./review-api.js";
+import { patchTherapistProfile, uploadPortalPhoto } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
 function escapeHtml(value) {
@@ -31,53 +31,14 @@ function escapeHtml(value) {
 
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 
-// 100-point system per the TF-final spec.
-// Base = 40 (signup baseline: name + location + credentials + format).
-// Optional points sum to 99; capped at 100. Typical signup with format
-// auto-true + specialties pre-filled lands ~50 ("Needs work") and a
-// fully-populated profile hits 100 ("Complete").
-//
-//   Headshot                +15
-//   Treatment modalities    +10
-//   Session fee             +10
-//   Populations             +8
-//   Full bio                +8
-//   Insurance               +7
-//   Bipolar specialties     +6
-//   Session format          +5
-//   Years treating bipolar  +5
-//   Languages               +4
-//   Wait time               +4
-//   Contact guidance        +4
-//   First step              +4
-//   Practice name           +3
-//   Website                 +3
-//   Total years             +3
+// 100-point system. Every field in FIELD_REGISTRY carries a `pts` value;
+// weights sum to exactly 100 so the score only reaches 100 when all fields
+// are complete. computeScore() derives entirely from the registry —
+// badge display and scoring cannot drift apart.
 function computeScore(t) {
   if (!t) return 0;
-  var score = 40; // signup baseline
-  if (t.photo_url) score += 15;
-  if (Array.isArray(t.treatment_modalities) && t.treatment_modalities.filter(Boolean).length)
-    score += 10;
-  if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
-    score += 10;
-  if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
-    score += 8;
-  if (String(t.bio || "").trim()) score += 8;
-  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
-    score += 7;
-  if (Array.isArray(t.specialties) && t.specialties.filter(Boolean).length) score += 6;
-  if (t.accepts_in_person || t.accepts_telehealth) score += 5;
-  if (Number(t.bipolar_years_experience) > 0) score += 5;
-  if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
-  if (String(t.estimated_wait_time || "").trim()) score += 4;
-  if (String(t.first_step_expectation || "").trim()) score += 4;
-  if (String(t.practice_name || "").trim()) score += 3;
-  if (String(t.website || "").trim()) score += 3;
-  if (Number(t.years_experience) > 0) score += 3;
-  if (score > 100) score = 100;
-  if (score < 0) score = 0;
-  return score;
+  // Computed after FIELD_REGISTRY is declared — see the bottom of this block.
+  return _computeScoreFromRegistry(t);
 }
 
 // ─── Field completion predicates ─────────────────────────────────────
@@ -166,7 +127,8 @@ var FIELD_REGISTRY = [
     key: "card_bio",
     section: "essential",
     title: "Your card bio",
-    badge: "Required",
+    pts: 9,
+    badge: "+9 pts · Required",
     hint: "This is the first thing patients read — watch your listing come alive as you type",
     isComplete: isCardBioComplete,
   },
@@ -174,7 +136,8 @@ var FIELD_REGISTRY = [
     key: "contact",
     section: "essential",
     title: "Contact route",
-    badge: "Required",
+    pts: 7,
+    badge: "+7 pts · Required",
     hint: "Required — patients cannot reach you without this",
     isComplete: isContactRouteComplete,
   },
@@ -182,7 +145,8 @@ var FIELD_REGISTRY = [
     key: "headshot",
     section: "profile",
     title: "Headshot",
-    badge: "+15 pts",
+    pts: 10,
+    badge: "+10 pts",
     hint: "Profiles with photos earn 3× more clicks",
     isComplete: isHeadshotComplete,
   },
@@ -190,7 +154,8 @@ var FIELD_REGISTRY = [
     key: "name",
     section: "profile",
     title: "Name & credentials",
-    badge: "Done",
+    pts: 4,
+    badge: "+4 pts",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isNameComplete,
   },
@@ -198,7 +163,8 @@ var FIELD_REGISTRY = [
     key: "location",
     section: "profile",
     title: "Location",
-    badge: "Done",
+    pts: 4,
+    badge: "+4 pts",
     hint: "Pre-populated from signup — edit any time.",
     isComplete: isLocationComplete,
   },
@@ -210,7 +176,8 @@ var FIELD_REGISTRY = [
     key: "years",
     section: "profile",
     title: "Years treating bipolar",
-    badge: "+5 pts",
+    pts: 4,
+    badge: "+4 pts",
     hint: "Shown on your patient cards. 8+ years unlocks a search ranking boost in your area.",
     isComplete: isYearsComplete,
   },
@@ -218,7 +185,8 @@ var FIELD_REGISTRY = [
     key: "full_bio",
     section: "profile",
     title: "Full bio",
-    badge: "+8 pts",
+    pts: 6,
+    badge: "+6 pts",
     hint: "Long-form profile body shown on your full public profile page",
     isComplete: isFullBioComplete,
   },
@@ -226,6 +194,7 @@ var FIELD_REGISTRY = [
     key: "practice_name",
     section: "profile",
     title: "Practice name",
+    pts: 3,
     badge: "+3 pts",
     hint: "If you practice under a group or clinic name",
     isComplete: isPracticeNameComplete,
@@ -234,6 +203,7 @@ var FIELD_REGISTRY = [
     key: "website",
     section: "profile",
     title: "Website",
+    pts: 3,
     badge: "+3 pts",
     hint: "Links from your profile to your practice site",
     isComplete: isWebsiteComplete,
@@ -242,7 +212,8 @@ var FIELD_REGISTRY = [
     key: "languages",
     section: "profile",
     title: "Languages",
-    badge: "+4 pts",
+    pts: 3,
+    badge: "+3 pts",
     hint: "Patients filter by language — bilingual therapists are in high demand",
     isComplete: isLanguagesComplete,
   },
@@ -250,7 +221,8 @@ var FIELD_REGISTRY = [
     key: "fee",
     section: "practice",
     title: "Session fee",
-    badge: "+10 pts",
+    pts: 7,
+    badge: "+7 pts",
     hint: "Filters out price mismatches before they reach your inbox",
     isComplete: isFeeComplete,
     matchingOnly: true,
@@ -259,7 +231,8 @@ var FIELD_REGISTRY = [
     key: "modalities",
     section: "practice",
     title: "Treatment modalities",
-    badge: "+10 pts",
+    pts: 8,
+    badge: "+8 pts",
     hint: "CBT, IPSRT, and DBT are high-signal for patients in your specialty",
     isComplete: isModalitiesComplete,
     matchingOnly: true,
@@ -268,7 +241,8 @@ var FIELD_REGISTRY = [
     key: "format",
     section: "practice",
     title: "Session format",
-    badge: "+5 pts",
+    pts: 4,
+    badge: "+4 pts",
     hint: "In-person, telehealth, or both",
     isComplete: isFormatComplete,
   },
@@ -276,7 +250,8 @@ var FIELD_REGISTRY = [
     key: "insurance",
     section: "practice",
     title: "Insurance accepted",
-    badge: "+7 pts",
+    pts: 6,
+    badge: "+6 pts",
     hint: "Patients filter by insurance before they even browse",
     isComplete: isInsuranceComplete,
     matchingOnly: true,
@@ -285,7 +260,8 @@ var FIELD_REGISTRY = [
     key: "wait_time",
     section: "practice",
     title: "Estimated wait time",
-    badge: "+4 pts",
+    pts: 3,
+    badge: "+3 pts",
     hint: "Helps patients plan — especially those in crisis",
     isComplete: isWaitTimeComplete,
   },
@@ -293,6 +269,7 @@ var FIELD_REGISTRY = [
     key: "first_step",
     section: "practice",
     title: "First step expectation",
+    pts: 4,
     badge: "+4 pts",
     hint: "What happens after a patient contacts you — reduces anxiety for new patients",
     isComplete: isFirstStepComplete,
@@ -301,7 +278,8 @@ var FIELD_REGISTRY = [
     key: "specialties",
     section: "audience",
     title: "Bipolar specialties",
-    badge: "+6 pts",
+    pts: 5,
+    badge: "+5 pts",
     hint: "Specific bipolar presentations you treat",
     isComplete: isSpecialtiesComplete,
     matchingOnly: true,
@@ -310,7 +288,8 @@ var FIELD_REGISTRY = [
     key: "populations",
     section: "audience",
     title: "Populations served",
-    badge: "+8 pts",
+    pts: 7,
+    badge: "+7 pts",
     hint: "Patients filter heavily by these",
     isComplete: isPopulationsComplete,
     matchingOnly: true,
@@ -319,11 +298,23 @@ var FIELD_REGISTRY = [
     key: "total_years",
     section: "audience",
     title: "Total years in practice",
+    pts: 3,
     badge: "+3 pts",
     hint: "General experience shown on your full profile",
     isComplete: isTotalYearsComplete,
   },
 ];
+
+// Registry-driven score. Sum of all `pts` values = 100 exactly, so the
+// score only reaches 100 when every field is complete.
+function _computeScoreFromRegistry(t) {
+  var score = 0;
+  for (var i = 0; i < FIELD_REGISTRY.length; i++) {
+    var f = FIELD_REGISTRY[i];
+    if (f.isComplete(t)) score += f.pts;
+  }
+  return score;
+}
 
 var SECTIONS = [
   { key: "essential", title: "Essential — required to go live" },
@@ -453,9 +444,8 @@ function renderStatusCircle(complete) {
   return '<span class="td-row-status td-row-status-empty" aria-hidden="true"></span>';
 }
 
-function renderBadge(field, complete, isEssential) {
+function renderBadge(field, complete) {
   if (complete) return '<span class="td-row-badge td-row-badge-done">Done</span>';
-  if (isEssential) return '<span class="td-row-badge td-row-badge-required">Required</span>';
   return '<span class="td-row-badge td-row-badge-points">' + escapeHtml(field.badge) + "</span>";
 }
 
@@ -567,7 +557,7 @@ function renderRow(field, therapist) {
     "</span>" +
     matchingOnlyLabel +
     "</span>" +
-    renderBadge(field, complete, isEssential) +
+    renderBadge(field, complete) +
     renderChevron() +
     "</button>" +
     '<div class="td-row-body" data-tdc-body="' +
@@ -585,11 +575,19 @@ function renderSection(sectionKey, therapist) {
     return f.section === sectionKey;
   });
   if (!fields.length) return "";
+  var essentialDone =
+    sectionKey === "essential" && isCardBioComplete(therapist) && isContactRouteComplete(therapist);
+  var titleHtml = essentialDone
+    ? '<h3 class="td-section-title td-section-title-done">' +
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+      'style="width:0.9em;height:0.9em;vertical-align:-0.1em;margin-right:0.3em" aria-hidden="true">' +
+      '<polyline points="14 4 6 12 2 8"></polyline></svg>' +
+      "Essential — complete" +
+      "</h3>"
+    : '<h3 class="td-section-title">' + escapeHtml(section.title) + "</h3>";
   return (
     '<section class="td-section">' +
-    '<h3 class="td-section-title">' +
-    escapeHtml(section.title) +
-    "</h3>" +
+    titleHtml +
     '<div class="td-section-rows">' +
     fields
       .map(function (f) {
@@ -609,8 +607,8 @@ function renderNotLiveBar(therapist) {
   if (isLive(therapist)) return "";
   return (
     '<div class="td-not-live-bar" id="tdcNotLive" role="status">' +
-    "<strong>Not live yet ·</strong> Complete your bio and contact route below to publish. " +
-    "Your listing goes live the moment both are saved." +
+    "<strong>Not live yet.</strong> Add a card bio and contact route to publish — " +
+    "your listing goes live the moment both are saved." +
     "</div>"
   );
 }
@@ -846,9 +844,9 @@ function renderContactRouteForm(t) {
     '<div class="td-route-pills">' +
     pillsHtml +
     "</div>" +
-    inputBlock("email", method === "email") +
-    inputBlock("phone", method === "phone") +
-    inputBlock("booking", method === "booking") +
+    inputBlock("email", true) +
+    inputBlock("phone", true) +
+    inputBlock("booking", true) +
     '<p class="td-form-error" data-tdc-route-error hidden></p>' +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="contact">Save contact route</button>' +
@@ -878,9 +876,14 @@ function renderHeadshotForm(t) {
     "</span>" +
     '<span class="td-headshot-drop-sub">JPG, PNG or WebP · up to 4MB</span>' +
     "</button>" +
+    '<input type="file" class="td-headshot-file-input" accept="image/jpeg,image/png,image/webp" style="display:none" />' +
     "</div>" +
     "</div>" +
     '<p class="td-form-helper">A clear, square headshot with eyes visible earns the most patient trust.</p>' +
+    '<p class="td-headshot-feedback" role="status" aria-live="polite" style="font-size:0.85rem;margin-top:0.5rem"></p>' +
+    '<div class="td-form-actions">' +
+    '<button type="button" class="td-save" data-tdc-headshot-save disabled>Save headshot</button>' +
+    "</div>" +
     "</div>"
   );
 }
@@ -1221,11 +1224,11 @@ export function shouldShowCompleteness(therapist) {
 
 // ─── 100/100 confetti (Section 5) ────────────────────────────────────
 
-function triggerConfetti(container) {
+function triggerConfetti(_container) {
   var colors = ["#0f6e56", "#6ec49a", "#1a7a8f", "#d4f0e3", "#9ecdd4", "#f0c842", "#f07b42"];
-  var count = 48;
+  var count = 90;
   var confettiEl = document.createElement("div");
-  confettiEl.className = "td-confetti-burst";
+  confettiEl.className = "td-confetti-burst td-confetti-burst-fullscreen";
   confettiEl.setAttribute("aria-hidden", "true");
 
   for (var i = 0; i < count; i++) {
@@ -1234,35 +1237,31 @@ function triggerConfetti(container) {
     piece.style.cssText = [
       "left:" + Math.random() * 100 + "%",
       "background:" + colors[Math.floor(Math.random() * colors.length)],
-      "animation-delay:" + (Math.random() * 0.6).toFixed(2) + "s",
-      "animation-duration:" + (1.2 + Math.random() * 0.8).toFixed(2) + "s",
-      "width:" + (4 + Math.random() * 5).toFixed(0) + "px",
-      "height:" + (8 + Math.random() * 6).toFixed(0) + "px",
+      "animation-delay:" + (Math.random() * 0.8).toFixed(2) + "s",
+      "animation-duration:" + (1.4 + Math.random() * 1.2).toFixed(2) + "s",
+      "width:" + (5 + Math.random() * 6).toFixed(0) + "px",
+      "height:" + (10 + Math.random() * 8).toFixed(0) + "px",
       "border-radius:" + (Math.random() > 0.5 ? "50%" : "2px"),
     ].join(";");
     confettiEl.appendChild(piece);
   }
 
-  container.style.position = "relative";
-  container.appendChild(confettiEl);
+  document.body.appendChild(confettiEl);
 
   window.setTimeout(function () {
     if (confettiEl.parentElement) confettiEl.parentElement.removeChild(confettiEl);
-  }, 3500);
+  }, 4000);
 
   // Update the subline with outcome-oriented copy
   window.setTimeout(function () {
-    var sublineEl = container.querySelector("#tdcSubline");
-    var outcomeEl = container.querySelector("#tdcOutcome");
-    var city = "";
+    var sublineEl = _container.querySelector("#tdcSubline");
+    var outcomeEl = _container.querySelector("#tdcOutcome");
     if (sublineEl) {
       sublineEl.textContent = "Your profile is complete.";
     }
     if (outcomeEl) {
       outcomeEl.textContent =
-        "Patients searching bipolar-informed care" +
-        (city ? " in " + city : "") +
-        " will find a fully detailed listing.";
+        "Patients searching for bipolar-informed care will find a fully detailed listing.";
     }
   }, 500);
 }
@@ -1286,13 +1285,26 @@ function triggerGoingLiveMoment(container, therapist, score) {
     "</span>" +
     "</div>";
 
-  // After 3.5s collapse to slim persistent indicator
+  // After 3.5s fade out, then swap to slim persistent indicator
   window.setTimeout(function () {
-    slot.innerHTML =
-      '<div class="td-live-indicator" role="status" aria-label="Listing is live">' +
-      '<span class="td-live-dot" aria-hidden="true"></span>' +
-      "Live" +
-      "</div>";
+    var bar = slot.querySelector("#tdcGoingLiveBar");
+    if (bar) {
+      bar.style.transition = "opacity 0.4s ease";
+      bar.style.opacity = "0";
+      window.setTimeout(function () {
+        slot.innerHTML =
+          '<div class="td-live-indicator" role="status" aria-label="Listing is live">' +
+          '<span class="td-live-dot" aria-hidden="true"></span>' +
+          "Live" +
+          "</div>";
+      }, 420);
+    } else {
+      slot.innerHTML =
+        '<div class="td-live-indicator" role="status" aria-label="Listing is live">' +
+        '<span class="td-live-dot" aria-hidden="true"></span>' +
+        "Live" +
+        "</div>";
+    }
   }, 3500);
 
   // Surface upgrade nudge below if score >= 75 and the nudge hasn't already shown
@@ -1420,6 +1432,25 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     if (article.parentElement)
       article.parentElement.replaceChild(wrapper.firstElementChild, article);
     bindRowEvents();
+  }
+
+  function refreshEssentialSectionTitle() {
+    var h3 = container.querySelector(
+      ".td-section:first-of-type .td-section-title, .td-section:first-of-type .td-section-title-done",
+    );
+    if (!h3) return;
+    var done = isCardBioComplete(localTherapist) && isContactRouteComplete(localTherapist);
+    if (done) {
+      h3.className = "td-section-title td-section-title-done";
+      h3.innerHTML =
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'style="width:0.9em;height:0.9em;vertical-align:-0.1em;margin-right:0.3em" aria-hidden="true">' +
+        '<polyline points="14 4 6 12 2 8"></polyline></svg>' +
+        "Essential — complete";
+    } else {
+      h3.className = "td-section-title";
+      h3.textContent = "Essential — required to go live";
+    }
   }
 
   // Per-form draft state. Reset whenever a row is opened.
@@ -1571,14 +1602,105 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         });
       });
     } else if (key === "headshot") {
-      // Defer to the existing portalPhotoInput hidden file picker.
-      // bindPortalPhotoUpload() handles validation, encoding, and the
-      // PATCH; on success the page reloads with the new photo_url.
       var pickBtn = bodyEl.querySelector("[data-tdc-headshot-pick]");
-      if (pickBtn) {
+      var fileInput = bodyEl.querySelector(".td-headshot-file-input");
+      var feedbackEl = bodyEl.querySelector(".td-headshot-feedback");
+      var previewEl_hs = bodyEl.querySelector(".td-headshot-preview");
+      var dropTitle = bodyEl.querySelector(".td-headshot-drop-title");
+      var saveBtn_hs = bodyEl.querySelector("[data-tdc-headshot-save]");
+      var stagedDataUrl = null;
+      var stagedFilename = null;
+
+      function setHsFeedback(msg, isError) {
+        if (!feedbackEl) return;
+        feedbackEl.textContent = msg || "";
+        feedbackEl.style.color = isError ? "var(--red, #dc2626)" : "var(--teal, #0d9488)";
+      }
+
+      if (pickBtn && fileInput) {
         pickBtn.addEventListener("click", function () {
-          var hiddenInput = document.getElementById("portalPhotoInput");
-          if (hiddenInput) hiddenInput.click();
+          fileInput.click();
+        });
+      }
+
+      if (fileInput) {
+        fileInput.addEventListener("change", function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          var ALLOWED_HS = new Set(["image/jpeg", "image/png", "image/webp"]);
+          if (!ALLOWED_HS.has(file.type)) {
+            setHsFeedback("Photo must be JPG, PNG, or WebP.", true);
+            fileInput.value = "";
+            return;
+          }
+          if (file.size > 4 * 1024 * 1024) {
+            setHsFeedback("Photo is over 4 MB. Try a smaller image.", true);
+            fileInput.value = "";
+            return;
+          }
+          setHsFeedback("", false);
+          var reader = new FileReader();
+          reader.onload = function () {
+            stagedDataUrl = String(reader.result || "");
+            stagedFilename = file.name || "headshot";
+            if (previewEl_hs) {
+              previewEl_hs.innerHTML =
+                '<img src="' + stagedDataUrl.replace(/"/g, "&quot;") + '" alt="" />';
+              previewEl_hs.classList.add("has-photo");
+            }
+            if (dropTitle) dropTitle.textContent = "Replace photo";
+            if (saveBtn_hs) saveBtn_hs.disabled = false;
+          };
+          reader.onerror = function () {
+            setHsFeedback("Couldn't read that file.", true);
+          };
+          reader.readAsDataURL(file);
+          fileInput.value = "";
+        });
+      }
+
+      if (saveBtn_hs) {
+        saveBtn_hs.addEventListener("click", async function () {
+          if (!stagedDataUrl) return;
+          saveBtn_hs.disabled = true;
+          saveBtn_hs.classList.add("is-saving");
+          saveBtn_hs.textContent = "Saving…";
+          try {
+            var hsResult = await uploadPortalPhoto(stagedDataUrl, stagedFilename || "headshot");
+            if (hsResult && hsResult.photo_url) {
+              localTherapist.photo_url = hsResult.photo_url;
+              localTherapist.photo_source_type = "therapist_uploaded";
+              saveBtn_hs.classList.remove("is-saving");
+              saveBtn_hs.classList.add("is-saved");
+              saveBtn_hs.textContent = "Saved ✓";
+              refreshScore();
+              window.setTimeout(function () {
+                refreshRow("headshot");
+                var flashRow = container.querySelector('[data-tdc-row="headshot"]');
+                if (flashRow) {
+                  flashRow.classList.add("td-row-flash");
+                  window.setTimeout(function () {
+                    flashRow.classList.remove("td-row-flash");
+                  }, 700);
+                }
+              }, 700);
+              trackFunnelEvent("portal_td_field_saved", {
+                slug: localTherapist.slug,
+                field_key: "headshot",
+                score: computeScore(localTherapist),
+              });
+            } else {
+              setHsFeedback("Upload completed but no URL returned. Try refreshing.", true);
+              saveBtn_hs.disabled = false;
+              saveBtn_hs.classList.remove("is-saving");
+              saveBtn_hs.textContent = "Save headshot";
+            }
+          } catch (hsErr) {
+            setHsFeedback((hsErr && hsErr.message) || "Upload failed. Try again.", true);
+            saveBtn_hs.disabled = false;
+            saveBtn_hs.classList.remove("is-saving");
+            saveBtn_hs.textContent = "Save headshot";
+          }
         });
       }
     } else if (key === "card_bio") {
@@ -1646,9 +1768,6 @@ export function mountPortalTdCompleteness(container, therapist, options) {
               "is-selected",
               sib.getAttribute("data-tdc-route") === formDraft.method,
             );
-          });
-          bodyEl.querySelectorAll("[data-tdc-route-input]").forEach(function (block) {
-            block.hidden = block.getAttribute("data-tdc-route-input") !== formDraft.method;
           });
           var errEl = bodyEl.querySelector("[data-tdc-route-error]");
           if (errEl) {
@@ -1757,26 +1876,33 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "contact") {
       var method = formDraft.method;
       var routeErr = bodyEl.querySelector("[data-tdc-route-error]");
-      if (!method) {
-        if (routeErr) {
-          routeErr.textContent = "Pick how patients should reach you first.";
-          routeErr.hidden = false;
+      // Collect all filled-in contact values regardless of which method is preferred.
+      var emailVal = String(
+        (bodyEl.querySelector('[data-tdc-route-value="email"]') || {}).value || "",
+      ).trim();
+      var phoneVal = String(
+        (bodyEl.querySelector('[data-tdc-route-value="phone"]') || {}).value || "",
+      ).trim();
+      var bookingVal = String(
+        (bodyEl.querySelector('[data-tdc-route-value="booking"]') || {}).value || "",
+      ).trim();
+      // Require that the preferred method's field is filled when a method is selected.
+      if (method) {
+        var preferredVal =
+          method === "email" ? emailVal : method === "phone" ? phoneVal : bookingVal;
+        if (!preferredVal) {
+          if (routeErr) {
+            var methodLabel = method === "booking" ? "booking URL" : method;
+            routeErr.textContent = "Add your " + methodLabel + " so patients can reach you.";
+            routeErr.hidden = false;
+          }
+          return;
         }
-        return;
       }
-      var inputEl = bodyEl.querySelector('[data-tdc-route-value="' + method + '"]');
-      var rawValue = inputEl ? String(inputEl.value || "").trim() : "";
-      if (!rawValue) {
-        if (routeErr) {
-          routeErr.textContent = "Enter your " + method + " value before saving.";
-          routeErr.hidden = false;
-        }
-        return;
-      }
-      payload.preferred_contact_method = method;
-      if (method === "email") payload.email = rawValue;
-      else if (method === "phone") payload.phone = rawValue;
-      else if (method === "booking") payload.booking_url = rawValue;
+      if (emailVal) payload.email = emailVal;
+      if (phoneVal) payload.phone = phoneVal;
+      if (bookingVal) payload.booking_url = bookingVal;
+      payload.preferred_contact_method = method || "";
     } else if (key === "name") {
       var nameVal = String(bodyEl.querySelector("#tdcName").value || "").trim();
       var credsVal = String(bodyEl.querySelector("#tdcCredentials").value || "").trim();
@@ -1910,6 +2036,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       window.setTimeout(function () {
         refreshRow(key);
+        if (key === "card_bio" || key === "contact") refreshEssentialSectionTitle();
         // Row save flash — animate the row briefly after it re-renders
         var flashRow = container.querySelector('[data-tdc-row="' + key + '"]');
         if (flashRow) {

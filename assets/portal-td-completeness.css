@@ -117,6 +117,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  transition: color 0.3s ease;
 }
 .td-completeness-label-needs {
   color: #d97706;
@@ -161,12 +162,22 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #4d6671;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease;
 }
 /* Essential section header is more prominent */
 .td-section:first-of-type .td-section-title {
   background: #faece7;
   color: #712b13;
   border-left: 3px solid #f0997b;
+}
+/* Once essential fields are done, flip to green */
+.td-section-title-done {
+  background: #e8f7f0 !important;
+  color: #0a5c42 !important;
+  border-left: 3px solid #34c98a !important;
 }
 .td-section-rows {
   display: flex;
@@ -218,6 +229,11 @@
 }
 .td-row-trigger:hover {
   background: rgba(247, 250, 251, 0.6);
+}
+.td-row-trigger:focus-visible {
+  outline: 2px solid #1a7a8f;
+  outline-offset: -2px;
+  border-radius: 10px;
 }
 .td-row-urgent .td-row-trigger:hover {
   background: rgba(248, 226, 215, 0.5);
@@ -290,13 +306,7 @@
   border-radius: 999px;
   flex-shrink: 0;
 }
-.td-row-badge-required {
-  background: #faece7;
-  color: #b03636;
-  border: 1px solid #f0997b;
-}
-/* Optional pts badges use neutral gray — Required (orange) is the only
-   color signal so it reads as urgent at a glance without competition. */
+/* Optional pts badges use neutral gray */
 .td-row-badge-points {
   background: #eef3f5;
   color: #4d6671;
@@ -305,6 +315,7 @@
 .td-row-badge-done {
   background: #d4f0e3;
   color: #0c5236;
+  animation: tdBadgeDoneIn 0.3s ease;
 }
 
 .td-row-chevron {
@@ -321,6 +332,19 @@
 .td-row-body {
   padding: 0.2rem 1rem 1rem 3rem;
   border-top: 1px solid #f0f4f5;
+}
+.td-row-body:not([hidden]) {
+  animation: tdRowBodyOpen 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes tdRowBodyOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .td-row-urgent .td-row-body {
   border-top-color: #f0c2a3;
@@ -512,6 +536,10 @@
   color: #085041;
   font-weight: 500;
 }
+.td-pick:focus-visible {
+  outline: 2px solid #1a7a8f;
+  outline-offset: 2px;
+}
 .td-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -539,6 +567,10 @@
 .td-save:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+.td-save:focus-visible {
+  outline: 2px solid #085041;
+  outline-offset: 2px;
 }
 .td-save.is-saving {
   opacity: 1;
@@ -608,6 +640,15 @@
   pointer-events: none;
   z-index: 10;
 }
+.td-confetti-burst-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: auto;
+  z-index: 9999;
+}
 .td-confetti-piece {
   position: absolute;
   top: -10px;
@@ -625,7 +666,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(240px) rotate(720deg);
+    transform: translateY(100vh) rotate(720deg);
   }
 }
 
@@ -659,9 +700,6 @@
     opacity: 1;
     transform: scale(1);
   }
-}
-.td-row-badge-done {
-  animation: tdBadgeDoneIn 0.3s ease;
 }
 
 /* Preview pulse when card updates from a save */
@@ -926,6 +964,10 @@
   background: #e1f5ee;
   border-color: #0f6e56;
   color: #085041;
+}
+.td-route-pill:focus-visible {
+  outline: 2px solid #1a7a8f;
+  outline-offset: 2px;
 }
 .td-route-input {
   display: flex;

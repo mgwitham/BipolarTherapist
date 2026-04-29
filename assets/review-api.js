@@ -245,6 +245,14 @@ export async function patchTherapistProfile(updates) {
   });
 }
 
+export async function uploadPortalPhoto(dataUrl, filename) {
+  return request("/portal/photo", {
+    method: "POST",
+    headers: getTherapistHeaders(),
+    body: JSON.stringify({ photo_upload_base64: dataUrl, photo_filename: filename || "headshot" }),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.
