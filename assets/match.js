@@ -5222,7 +5222,6 @@ function buildResultsHeaderHtml(profile, totalCount) {
 
   return (
     '<header class="mx-results-header">' +
-    '<div class="mx-results-header-copy">' +
     '<div class="mx-results-kicker">Your matches</div>' +
     '<h1 class="mx-results-title">' +
     totalCount +
@@ -5230,8 +5229,7 @@ function buildResultsHeaderHtml(profile, totalCount) {
     (totalCount === 1 ? "match" : "matches") +
     " for you</h1>" +
     (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
-    "</div>" +
-    '<button type="button" class="mx-refine-btn" data-mx-refine-open="header">' +
+    '<button type="button" class="mx-refine-btn mx-refine-btn--header" data-mx-refine-open="header">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
     '<line x1="4" y1="21" x2="4" y2="14"></line>' +
     '<line x1="4" y1="10" x2="4" y2="3"></line>' +
@@ -5328,6 +5326,20 @@ function renderPrimaryMatchCards(entries, profile) {
     '<button type="button" class="mx-no-fit-link" id="matchNoFitOpen">Not seeing the right fit?</button>' +
     "</div>";
 
+  var refineBarHtml =
+    '<div class="mx-refine-bar">' +
+    '<button type="button" class="mx-refine-bar-btn" data-mx-refine-open="bar">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16">' +
+    '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>' +
+    '<line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>' +
+    '<line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>' +
+    '<line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>' +
+    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
+    "</svg>" +
+    "Adjust your search" +
+    "</button>" +
+    "</div>";
+
   root.className = "match-list";
   root.innerHTML =
     '<div class="results-panel">' +
@@ -5337,6 +5349,7 @@ function renderPrimaryMatchCards(entries, profile) {
     runnersHtml +
     "</section>" +
     moreHtml +
+    refineBarHtml +
     compareTriggerHtml +
     noFitLinkHtml +
     "</div>";
@@ -5523,6 +5536,21 @@ function renderPrimaryMatchCards(entries, profile) {
       var dialog = document.getElementById("noFitFeedbackDialog");
       if (dialog && typeof dialog.showModal === "function") dialog.showModal();
     });
+  }
+
+  var stickyBar = document.getElementById("matchRefineSticky");
+  var stickyCount = document.getElementById("matchRefineStickyCount");
+  if (stickyBar) {
+    stickyBar.hidden = false;
+    var activeCount = countActiveRefinements(profile);
+    if (stickyCount) {
+      if (activeCount) {
+        stickyCount.textContent = activeCount;
+        stickyCount.hidden = false;
+      } else {
+        stickyCount.hidden = true;
+      }
+    }
   }
 
   bindRefineButtons();
@@ -6316,6 +6344,8 @@ function resetForm() {
   renderMatchLandingShell();
   clearRenderedMatchPanels();
   updateShortlistFeedbackUi("");
+  var resetStickyBar = document.getElementById("matchRefineSticky");
+  if (resetStickyBar) resetStickyBar.hidden = true;
   if (refs.feedbackStatus) {
     refs.feedbackStatus.textContent =
       "Your feedback helps us improve which providers rise for searches like yours.";
