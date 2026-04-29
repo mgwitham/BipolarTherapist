@@ -5507,7 +5507,10 @@ function renderPrimaryMatchCards(entries, profile) {
     showMoreBtn.addEventListener("click", function () {
       var moreSection = root.querySelector(".mx-more-cards");
       var showMoreWrap = root.querySelector(".mx-show-more-wrap");
-      if (moreSection) moreSection.hidden = false;
+      if (moreSection) {
+        moreSection.hidden = false;
+        moreSection.classList.add("is-revealed");
+      }
       if (showMoreWrap) showMoreWrap.hidden = true;
       trackFunnelEvent("match_show_more_clicked", {
         result_count: allEntries.length,
