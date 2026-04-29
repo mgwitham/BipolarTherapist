@@ -5272,6 +5272,153 @@
         outline: 3px solid rgba(26, 122, 143, 0.45);
         outline-offset: 3px;
       }
+      /* ── Profile search widget ─────────────────────────────────────── */
+      .ps-widget-root {
+        padding: 1.25rem 0 0.25rem;
+      }
+      .ps-wrap {
+        position: relative;
+        max-width: 760px;
+      }
+      .ps-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #5a7a85;
+        margin-bottom: 0.4rem;
+      }
+      .ps-field {
+        position: relative;
+      }
+      .ps-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        color: #6b8a96;
+        pointer-events: none;
+      }
+      .ps-input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 2.75rem;
+        font: inherit;
+        font-size: 1rem;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        background: var(--white);
+        color: var(--navy);
+        outline: none;
+        transition:
+          border-color 150ms ease,
+          box-shadow 150ms ease;
+      }
+      .ps-input:focus {
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.15);
+      }
+      .ps-input::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+      }
+      .ps-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(29, 58, 74, 0.1);
+        z-index: 200;
+        max-height: 360px;
+        overflow-y: auto;
+      }
+      .ps-item {
+        padding: 0.6rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f5f6;
+      }
+      .ps-item:last-child {
+        border-bottom: 0;
+      }
+      .ps-item:hover,
+      .ps-item.is-active {
+        background: var(--teal-faint);
+      }
+      .ps-item-primary {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .ps-item-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--navy);
+      }
+      .ps-item-secondary {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        color: #5a7a85;
+      }
+      .ps-mark {
+        background: #fde68a;
+        border-radius: 2px;
+        padding: 0 1px;
+        font-style: normal;
+      }
+      .ps-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        white-space: nowrap;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .ps-badge--published {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .ps-badge--draft {
+        background: #fef9c3;
+        color: #854d0e;
+      }
+      .ps-badge--unpublished {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .ps-empty {
+        padding: 1rem;
+        font-size: 0.875rem;
+        color: #6b8a96;
+        text-align: center;
+      }
+      .ps-empty--error {
+        color: var(--red);
+      }
+      .ps-banner {
+        margin-top: 0.5rem;
+        padding: 0.45rem 0.875rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      .ps-banner--success {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .ps-banner--error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
     </style>
   </head>
   <body>
@@ -5443,6 +5590,7 @@
       </div>
 
       <div id="adminApp" class="admin-stack" style="display: none">
+        <div id="profileSearchWidget" class="ps-widget-root"></div>
         <div class="grid" style="grid-template-columns: 1fr">
           <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="hidden" hidden>
             <p class="admin-mode-kicker">Queues</p>
