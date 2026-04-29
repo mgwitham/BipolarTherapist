@@ -199,7 +199,7 @@
                         stroke-linecap="round"
                       />
                     </svg>
-                    Customize your search
+                    Refine
                     <svg
                       class="refine-chevron"
                       width="11"
@@ -226,7 +226,7 @@
                   <summary aria-hidden="true"></summary>
 
                   <div class="match-refine-drawer-header">
-                    <h2>Narrow results</h2>
+                    <h2>Filter your results</h2>
                     <button
                       type="button"
                       id="matchRefineDrawerClose"
@@ -563,8 +563,8 @@
                     <!-- 4. Update search — secondary, at the bottom -->
                     <div class="refine-adv-section refine-adv-section--search">
                       <div class="refine-adv-header">
-                        <span class="refine-adv-title">Change your search</span>
-                        <span class="refine-adv-hint">Update care type or location</span>
+                        <span class="refine-adv-title">Adjust search</span>
+                        <span class="refine-adv-hint">Change your type of care or location</span>
                       </div>
                       <div class="refine-search-row">
                         <div class="match-group" data-intake-field="care_intent">
@@ -605,7 +605,7 @@
                         </div>
                       </div>
                     </div>
-                    <button type="submit" class="refine-bottom-submit">Refine search</button>
+                    <button type="submit" class="refine-bottom-submit">Apply filters</button>
                   </div>
                   <div
                     class="match-refine-live-status"
@@ -626,40 +626,8 @@
         <div id="matchFallbackContact"></div>
         <div id="matchOutreach" hidden></div>
         <div id="matchCompare"></div>
-        <div class="match-feedback-bar" id="matchFeedbackBar" hidden>
-          <div class="match-feedback-title">Did this list feel useful?</div>
-          <div class="match-feedback-actions">
-            <button type="button" class="feedback-btn" id="feedbackShortlistPositive">
-              Yes, this felt right
-            </button>
-            <button type="button" class="feedback-btn" id="feedbackShortlistNegative">
-              Not really
-            </button>
-          </div>
-          <div class="feedback-reasons" id="shortlistReasonGroup" style="display: none">
-            <label class="feedback-reason"
-              ><input type="checkbox" value="Insurance mismatch" /> Insurance mismatch</label
-            >
-            <label class="feedback-reason"
-              ><input type="checkbox" value="Availability mismatch" /> Availability mismatch</label
-            >
-            <label class="feedback-reason"
-              ><input type="checkbox" value="Needs medication management" /> Needs medication
-              management</label
-            >
-            <label class="feedback-reason"
-              ><input type="checkbox" value="Wrong care format" /> Wrong care format</label
-            >
-            <label class="feedback-reason"
-              ><input type="checkbox" value="Weak bipolar specialization" /> Weak bipolar
-              specialization</label
-            >
-            <label class="feedback-reason"><input type="checkbox" value="Other" /> Other</label>
-          </div>
-          <div class="feedback-note" id="feedbackStatus">
-            Your feedback helps us improve which providers rise for searches like yours.
-          </div>
-        </div>
+        <!-- "Not seeing the right fit?" link — rendered dynamically by JS after results show -->
+        <div id="matchNoFitLink" hidden></div>
         <div id="matchAdaptiveGuidance"></div>
         <div class="feedback-insights" id="feedbackInsights" hidden>
           <div class="feedback-insights-header">
@@ -711,6 +679,42 @@
           ✕
         </button>
         <div class="mx-details-body" id="matchDetailsBody"></div>
+      </div>
+    </dialog>
+    <dialog id="noFitFeedbackDialog" class="mx-no-fit-dialog" aria-labelledby="noFitDialogTitle">
+      <div class="mx-no-fit-inner">
+        <button type="button" class="mx-no-fit-close" id="noFitDialogClose" aria-label="Close">
+          ✕
+        </button>
+        <h2 class="mx-no-fit-title" id="noFitDialogTitle">What felt off?</h2>
+        <p class="mx-no-fit-sub">Pick anything that applies. This shapes future matches.</p>
+        <div class="mx-no-fit-reasons" id="noFitReasonGroup">
+          <label class="mx-no-fit-reason"
+            ><input type="checkbox" value="Insurance mismatch" /> Insurance mismatch</label
+          >
+          <label class="mx-no-fit-reason"
+            ><input type="checkbox" value="Availability mismatch" /> Availability mismatch</label
+          >
+          <label class="mx-no-fit-reason"
+            ><input type="checkbox" value="Needs medication management" /> Needs medication
+            management</label
+          >
+          <label class="mx-no-fit-reason"
+            ><input type="checkbox" value="Wrong care format" /> Wrong care format</label
+          >
+          <label class="mx-no-fit-reason"
+            ><input type="checkbox" value="Weak bipolar specialization" /> Weak bipolar
+            specialization</label
+          >
+          <label class="mx-no-fit-reason"><input type="checkbox" value="Other" /> Other</label>
+        </div>
+        <div class="mx-no-fit-actions">
+          <button type="button" class="mx-no-fit-submit" id="noFitDialogSubmit">
+            Send feedback
+          </button>
+          <button type="button" class="mx-no-fit-cancel" id="noFitDialogCancel">Skip</button>
+        </div>
+        <p class="mx-no-fit-note" id="noFitDialogStatus"></p>
       </div>
     </dialog>
     <script type="module" src="assets/match.js"></script>

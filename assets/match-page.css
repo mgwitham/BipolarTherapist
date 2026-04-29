@@ -6916,3 +6916,193 @@ img.bth-avatar {
     transform: translateY(0);
   }
 }
+
+/* Top match label */
+.mx-top-match-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a7a8f;
+  margin-bottom: 0.5rem;
+}
+
+/* Card quote (claimed bio excerpt) */
+.mx-card-quote {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #4a6572;
+  font-style: italic;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  border: none;
+}
+
+/* Card concrete availability line */
+.mx-card-avail {
+  font-size: 0.82rem;
+  color: #3aaa7a;
+  font-weight: 500;
+  margin: 0.3rem 0 0;
+}
+
+/* Show more button */
+.mx-show-more-wrap {
+  text-align: center;
+  margin: 1.25rem 0 0.5rem;
+}
+.mx-show-more {
+  background: none;
+  border: 1px solid var(--border, #d4e4e9);
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a7a8f;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mx-show-more:hover {
+  background: #f0f8fa;
+}
+
+/* More cards section (hidden until Show more clicked) */
+.mx-more-cards {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+}
+@media (min-width: 600px) {
+  .mx-more-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Compare trigger */
+.mx-compare-trigger-wrap {
+  text-align: center;
+  margin: 1.5rem 0 0.25rem;
+}
+.mx-compare-trigger {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  color: #52707c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+.mx-compare-trigger:hover {
+  color: #1a7a8f;
+}
+
+/* Not seeing the right fit link */
+.mx-no-fit-link-wrap {
+  text-align: center;
+  margin: 1.25rem 0 2rem;
+}
+.mx-no-fit-link {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  color: #6b8290;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+.mx-no-fit-link:hover {
+  color: #1a7a8f;
+}
+
+/* No-fit feedback dialog */
+.mx-no-fit-dialog {
+  width: min(460px, 94vw);
+  border: 0;
+  border-radius: 18px;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 31, 40, 0.22);
+}
+.mx-no-fit-dialog::backdrop {
+  background: rgba(15, 31, 40, 0.42);
+}
+.mx-no-fit-inner {
+  padding: 1.75rem 1.75rem 1.5rem;
+  position: relative;
+}
+.mx-no-fit-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #6b8290;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem;
+}
+.mx-no-fit-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1d3a4a;
+  margin: 0 0 0.3rem;
+}
+.mx-no-fit-sub {
+  font-size: 0.88rem;
+  color: #52707c;
+  margin: 0 0 1rem;
+}
+.mx-no-fit-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+}
+.mx-no-fit-reason {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  color: #1d3a4a;
+  cursor: pointer;
+}
+.mx-no-fit-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+.mx-no-fit-submit {
+  flex: 1;
+  background: #1a7a8f;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.2rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mx-no-fit-submit:hover {
+  background: #155f6e;
+}
+.mx-no-fit-cancel {
+  background: none;
+  border: 1px solid var(--border, #d4e4e9);
+  border-radius: 999px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.88rem;
+  color: #52707c;
+  cursor: pointer;
+}
+.mx-no-fit-cancel:hover {
+  background: #f7fbfc;
+}
+.mx-no-fit-note {
+  font-size: 0.82rem;
+  color: #3aaa7a;
+  margin: 0.75rem 0 0;
+  min-height: 1.2em;
+}
