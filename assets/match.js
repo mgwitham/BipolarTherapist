@@ -4067,12 +4067,8 @@ function saveFeedback(entry) {
   renderFeedbackInsights();
 }
 
-function updateShortlistFeedbackUi(value) {
-  var positive = document.getElementById("feedbackShortlistPositive");
-  var negative = document.getElementById("feedbackShortlistNegative");
-  positive.classList.toggle("active-positive", value === "positive");
-  negative.classList.toggle("active-negative", value === "negative");
-  setReasonGroupVisibility("shortlist", value === "negative");
+function updateShortlistFeedbackUi(_value) {
+  // Feedback bar removed; no-op kept so call sites don't error.
 }
 
 function recordShortlistFeedback(value) {
@@ -4080,7 +4076,14 @@ function recordShortlistFeedback(value) {
     return;
   }
 
-  var reasons = value === "negative" ? getSelectedReasonValues("shortlist") : [];
+  var reasons =
+    value === "negative"
+      ? Array.from(
+          document.querySelectorAll('#noFitReasonGroup input[type="checkbox"]:checked'),
+        ).map(function (el) {
+          return el.value;
+        })
+      : [];
 
   saveFeedback({
     type: "shortlist_feedback",
@@ -4100,12 +4103,6 @@ function recordShortlistFeedback(value) {
     top_slug: latestEntries[0] && latestEntries[0].therapist ? latestEntries[0].therapist.slug : "",
     request_id: currentJourneyId || "",
   });
-  updateShortlistFeedbackUi(value);
-  document.getElementById("feedbackStatus").textContent =
-    value === "positive" ? "Saved: this list felt useful." : "Saved: this list needs work.";
-  latestEntries = rankEntriesForProfile(latestProfile);
-  renderResults(latestEntries, latestProfile);
-  renderFeedbackInsights();
 }
 
 function getMatchAdaptiveStrategy(profile) {
@@ -4171,8 +4168,27 @@ function getTherapistContactEmailLink(entry) {
     return "";
   }
 
+  var p = latestProfile || {};
+  var format = String(p.care_format || "").trim() || "therapy";
+  var zip = String(p.location_query || "").trim();
+  var urgency = String(p.urgency || "").trim();
+  var medMgmt = p.needs_medication_management;
+
+  var bodyParts = ["Hi"];
+  var details = [];
+  if (format && format !== "therapy") details.push(format.toLowerCase() + " therapy");
+  else details.push("therapy");
+  if (zip) details.push("near " + zip);
+  if (urgency) details.push(urgency.toLowerCase());
+  if (medMgmt === "Yes") details.push("with medication management");
+  else if (medMgmt === "No") details.push("without medication management");
+  var body =
+    bodyParts.join("") +
+    " — I'm looking for " +
+    details.join(", ") +
+    ". Are you currently accepting new clients?";
+
   var subject = "Inquiry from BipolarTherapyHub";
-  var body = buildEntryOutreachDraft(entry, latestProfile);
 
   return (
     "mailto:" +
@@ -4806,6 +4822,111 @@ function buildAvatarStyle(palette) {
   );
 }
 
+var HONORIFIC_RE = /^(Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)$/i;
+
+function getFirstName(name) {
+  var words = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  for (var i = 0; i < words.length; i++) {
+    if (!HONORIFIC_RE.test(words[i])) return words[i];
+  }
+  return words[0] || "";
+}
+
+function getPersonalizedCtaLabel(routeType, firstName) {
+  var name = firstName || "therapist";
+  if (routeType === "booking") return "Book with " + name;
+  if (routeType === "phone") return "Call " + name;
+  if (routeType === "email") return "Email " + name;
+  return "Contact " + name;
+}
+
+function buildIntakeMirrorSentence(profile) {
+  if (!profile) return "";
+  var parts = [];
+  var format = String(profile.care_format || "").trim();
+  var intent =
+    String(profile.care_intent || "")
+      .trim()
+      .toLowerCase() || "care";
+  var formatPrefix =
+    format === "In-Person" ? "In-person" : format === "Telehealth" ? "Telehealth" : "";
+  var firstPart = (formatPrefix ? formatPrefix + " " : "") + intent;
+  var zip = String(profile.location_query || "").trim();
+  if (zip && format !== "Telehealth") firstPart += " near " + zip;
+  else if (format === "Telehealth") firstPart += " across California";
+  parts.push(firstPart.charAt(0).toUpperCase() + firstPart.slice(1));
+  var urgency = String(profile.urgency || "").trim();
+  if (urgency) parts.push("Available " + urgency);
+  var medMgmt = profile.needs_medication_management;
+  if (medMgmt === "No") parts.push("No medication management");
+  else if (medMgmt === "Yes") parts.push("With medication management");
+  if (profile.insurance) parts.push(profile.insurance + " insurance");
+  return parts.join(". ") + ".";
+}
+
+function buildMatchReasonLine(therapist, profile) {
+  var t = therapist || {};
+  var parts = [];
+  // Specialty
+  if (t.bipolar_years_experience && Number(t.bipolar_years_experience) > 0) {
+    parts.push("Bipolar specialist");
+  } else if (
+    Array.isArray(t.specialties) &&
+    t.specialties.some(function (s) {
+      return /bipolar/i.test(String(s || ""));
+    })
+  ) {
+    parts.push("Bipolar focus");
+  } else if (t.credentials && /\b(MD|DO|PMHNP)\b/i.test(String(t.credentials || ""))) {
+    parts.push("Psychiatry");
+  }
+  // Location (city or distance if in-person)
+  var userZip = profile && profile.location_query ? String(profile.location_query) : "";
+  var teleSelected = Boolean(profile && profile.care_format === "Telehealth");
+  if (!teleSelected && userZip && t.zip) {
+    var dist = getZipDistance(userZip, t.zip);
+    if (Number.isFinite(dist) && dist <= 60) {
+      parts.push(Math.round(dist) + " mi away");
+    } else if (t.city) {
+      parts.push(t.city);
+    }
+  } else if (t.city) {
+    parts.push(t.city);
+  }
+  // Availability
+  if (t.accepting_new_patients === true) {
+    var wait = String(t.estimated_wait_time || "").trim();
+    if (wait && !/waitlist/i.test(wait)) {
+      parts.push(wait);
+    } else {
+      parts.push("openings available");
+    }
+  }
+  return parts.join(" · ");
+}
+
+function renderMatchCardQuote(therapist) {
+  var t = therapist || {};
+  var claimed = t.claim_status === "claimed";
+  if (!claimed || !t.care_approach || !String(t.care_approach).trim()) return "";
+  var raw = String(t.care_approach).trim();
+  // Extract first sentence (split on ". " or end of string)
+  var sentenceEnd = raw.search(/\.\s/);
+  var sentence = sentenceEnd > 0 ? raw.slice(0, sentenceEnd + 1) : raw;
+  if (sentence.length > 200) sentence = sentence.slice(0, 197) + "…";
+  return '<blockquote class="mx-card-quote">“' + escapeHtml(sentence) + "”</blockquote>";
+}
+
+function renderMatchCardAvail(therapist) {
+  var t = therapist || {};
+  var wait = String(t.estimated_wait_time || "").trim();
+  if (!wait || /waitlist/i.test(wait) || wait.toLowerCase() === "accepting now") return "";
+  return '<p class="mx-card-avail">Next opening: ' + escapeHtml(wait) + "</p>";
+}
+
 function getCareFormatLabel(therapist) {
   var tele = Boolean(therapist && therapist.accepts_telehealth);
   var inPerson = Boolean(therapist && therapist.accepts_in_person);
@@ -4964,53 +5085,19 @@ function renderLeadResultCard(entry, _backupName, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
+  var firstName = getFirstName(therapist.name || "");
+  var ctaLabel = getPersonalizedCtaLabel(routeType, firstName);
+  var reasonLine = buildMatchReasonLine(therapist, latestProfile);
+  var quoteHtml = renderMatchCardQuote(therapist);
+  var availHtml = renderMatchCardAvail(therapist);
 
-  var userZip =
-    latestProfile && latestProfile.location_query ? String(latestProfile.location_query) : "";
-  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
-  var distanceMiles =
-    userZip && !teleSelected ? getDistanceMilesFromZipToTherapist(userZip, therapist) : Infinity;
-  var locationLabel = getLocationModalityLabel(therapist, {
-    distanceMiles: Number.isFinite(distanceMiles) ? distanceMiles : null,
-  });
-  var costLabel = getCostLabel(therapist);
-  var availabilityHtml = renderAvailabilityBadge(therapist);
-
-  var infoParts = [];
-  if (locationLabel) {
-    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(locationLabel) + "</span>");
-  }
-  if (costLabel) {
-    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(costLabel) + "</span>");
-  }
-  if (availabilityHtml) {
-    infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
-  }
-  var infoRowHtml = infoParts.length
-    ? '<div class="bth-card-info">' +
-      infoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
-      "</div>"
-    : "";
-
-  var ctaLabel =
-    routeType === "booking"
-      ? "Book consultation"
-      : routeType === "phone"
-        ? "Call therapist"
-        : routeType === "email"
-          ? "Email therapist"
-          : "Contact therapist";
-
-  var badgeHtml = settings.showBestBadge
-    ? '<span class="bth-card-badge">' +
-      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>' +
-      "Best match for you" +
-      "</span>"
+  var topMatchLabel = settings.showBestBadge
+    ? '<span class="mx-top-match-label">Top match for you</span>'
     : "";
 
   return (
     '<article class="bth-card bth-card-lead">' +
-    badgeHtml +
+    topMatchLabel +
     '<div class="bth-card-header">' +
     '<div class="bth-card-avatar-slot">' +
     renderRoundAvatar(therapist, "profile") +
@@ -5022,13 +5109,12 @@ function renderLeadResultCard(entry, _backupName, options) {
       ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
       : "") +
     "</h3>" +
-    (locationLabel ? '<p class="bth-card-loc">' + escapeHtml(locationLabel) + "</p>" : "") +
+    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
-    renderSpecialtyPills(therapist) +
-    renderVoiceCascade(therapist) +
-    infoRowHtml +
+    quoteHtml +
+    availHtml +
     '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +
@@ -5036,7 +5122,7 @@ function renderLeadResultCard(entry, _backupName, options) {
         '" class="bth-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
-        escapeHtml(ctaLabel) +
+        escapeHtml(routeType || "") +
         '"' +
         (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ">" +
@@ -5047,7 +5133,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     escapeHtml(buildTherapistProfileHref(therapist.slug)) +
     '" class="bth-btn-secondary" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
-    '" data-profile-link-context="primary-card">View profile →</a>' +
+    '" data-profile-link-context="primary-card">View profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -5058,42 +5144,11 @@ function renderSupportingResultCard(entry, _rank, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-
-  var userZip =
-    latestProfile && latestProfile.location_query ? String(latestProfile.location_query) : "";
-  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
-  var distanceMiles =
-    userZip && !teleSelected ? getDistanceMilesFromZipToTherapist(userZip, therapist) : Infinity;
-  var locationLabel = getLocationModalityLabel(therapist, {
-    distanceMiles: Number.isFinite(distanceMiles) ? distanceMiles : null,
-  });
-  var costLabel = getCostLabel(therapist);
-  var availabilityHtml = renderAvailabilityBadge(therapist);
-
-  var infoParts = [];
-  if (locationLabel) {
-    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(locationLabel) + "</span>");
-  }
-  if (costLabel) {
-    infoParts.push('<span class="bth-card-info-item">' + escapeHtml(costLabel) + "</span>");
-  }
-  if (availabilityHtml) {
-    infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
-  }
-  var infoRowHtml = infoParts.length
-    ? '<div class="bth-card-info">' +
-      infoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
-      "</div>"
-    : "";
-
-  var ctaLabel =
-    routeType === "booking"
-      ? "Book"
-      : routeType === "phone"
-        ? "Call"
-        : routeType === "email"
-          ? "Email"
-          : "Contact";
+  var firstName = getFirstName(therapist.name || "");
+  var ctaLabel = getPersonalizedCtaLabel(routeType, firstName);
+  var reasonLine = buildMatchReasonLine(therapist, latestProfile);
+  var quoteHtml = renderMatchCardQuote(therapist);
+  var availHtml = renderMatchCardAvail(therapist);
   var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
 
   return (
@@ -5109,13 +5164,12 @@ function renderSupportingResultCard(entry, _rank, options) {
       ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
       : "") +
     "</h3>" +
-    (locationLabel ? '<p class="bth-card-loc">' + escapeHtml(locationLabel) + "</p>" : "") +
+    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
-    renderSpecialtyPills(therapist) +
-    renderVoiceCascade(therapist) +
-    infoRowHtml +
+    quoteHtml +
+    availHtml +
     '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +
@@ -5123,7 +5177,7 @@ function renderSupportingResultCard(entry, _rank, options) {
         '" class="bth-btn-primary" data-match-primary-cta="' +
         escapeHtml(therapist.slug || "") +
         '" data-match-primary-route="' +
-        escapeHtml(ctaLabel) +
+        escapeHtml(routeType || "") +
         '"' +
         (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ">" +
@@ -5136,7 +5190,7 @@ function renderSupportingResultCard(entry, _rank, options) {
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="' +
     escapeHtml(contextLabel) +
-    '">View profile →</a>' +
+    '">View profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -5159,23 +5213,7 @@ function countActiveRefinements(profile) {
 }
 
 function buildResultsHeaderHtml(profile, totalCount) {
-  var careIntent =
-    profile && profile.care_intent ? String(profile.care_intent) : "Bipolar-informed care";
-  var zip = profile && profile.location_query ? String(profile.location_query) : "";
-  var format =
-    profile && profile.care_format ? String(profile.care_format) : "In-person or telehealth";
-  var parts = [careIntent];
-  // Telehealth is statewide — leading the subtitle with a ZIP makes
-  // patients think the search is filtered to that ZIP and a result
-  // from another city looks broken. Drop the ZIP and label the
-  // location coverage as California instead.
-  if (format === "Telehealth") {
-    parts.push("Telehealth", "California");
-  } else {
-    if (zip) parts.push(zip);
-    if (format) parts.push(format);
-  }
-  var subDetails = parts.join(" · ");
+  var mirrorSentence = buildIntakeMirrorSentence(profile);
 
   var activeCount = countActiveRefinements(profile);
   var countBadge = activeCount
@@ -5191,9 +5229,7 @@ function buildResultsHeaderHtml(profile, totalCount) {
     " bipolar-informed " +
     (totalCount === 1 ? "match" : "matches") +
     " for you</h1>" +
-    '<p class="mx-results-sub">Ranked for <strong>' +
-    escapeHtml(subDetails) +
-    "</strong>. Tap <em>Refine</em> to tighten the fit.</p>" +
+    (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
     "</div>" +
     '<button type="button" class="mx-refine-btn" data-mx-refine-open="header">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -5220,14 +5256,21 @@ function renderPrimaryMatchCards(entries, profile) {
     return;
   }
 
+  var isAsap = profile && String(profile.urgency || "").toUpperCase() === "ASAP";
+
   // Hide entries with no working contact method — never render a card whose
   // only action would 404 or dead-end. A card must have at least one of:
   // booking_url, website, phone, or email.
+  // When urgency is ASAP, also exclude therapists who are not accepting new patients.
   var allEntries = (entries || [])
     .filter(function (entry) {
-      return Boolean(getPreferredOutreach(entry));
+      if (!getPreferredOutreach(entry)) return false;
+      if (isAsap && entry.therapist && entry.therapist.accepting_new_patients === false) {
+        return false;
+      }
+      return true;
     })
-    .slice(0, 10);
+    .slice(0, 8);
 
   if (!allEntries.length) {
     root.className = "match-empty";
@@ -5235,8 +5278,8 @@ function renderPrimaryMatchCards(entries, profile) {
   }
 
   var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 3); // ranks 2 & 3
-  var bankEntries = allEntries.slice(3); // ranks 4-10
+  var runnerUps = allEntries.slice(1, 3); // ranks 2 & 3 — always visible
+  var moreEntries = allEntries.slice(3); // ranks 4-8 — hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
   var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
@@ -5255,42 +5298,47 @@ function renderPrimaryMatchCards(entries, profile) {
       "</div>"
     : "";
 
-  var swipeHint =
-    '<div class="mx-swipe-hint" aria-hidden="true">' +
-    "<span>Swipe for your top 3</span>" +
-    '<span class="mx-swipe-hint-dots">' +
-    '<span class="mx-swipe-hint-dot is-active"></span>' +
-    '<span class="mx-swipe-hint-dot"></span>' +
-    '<span class="mx-swipe-hint-dot"></span>' +
-    "</span>" +
-    "</div>";
-
-  var bankHtml = bankEntries.length
-    ? '<header class="mx-bank-header">' +
-      '<h2 class="mx-bank-title">More strong matches</h2>' +
-      '<span class="mx-bank-count">' +
-      bankEntries.length +
-      " more</span>" +
-      "</header>" +
-      '<section class="mx-bank-grid">' +
-      bankEntries
+  var moreHtml = moreEntries.length
+    ? '<section class="mx-more-cards" hidden>' +
+      moreEntries
         .map(function (entry) {
-          return renderSupportingResultCard(entry, 0, { context: "bank" });
+          return renderSupportingResultCard(entry, 0, { context: "more" });
         })
         .join("") +
-      "</section>"
+      "</section>" +
+      '<div class="mx-show-more-wrap">' +
+      '<button type="button" class="mx-show-more" id="matchShowMore">' +
+      "Show " +
+      moreEntries.length +
+      " more " +
+      (moreEntries.length === 1 ? "match" : "matches") +
+      "</button>" +
+      "</div>"
     : "";
+
+  var compareTriggerHtml =
+    allEntries.length >= 2
+      ? '<div class="mx-compare-trigger-wrap">' +
+        '<button type="button" class="mx-compare-trigger" id="matchCompareTrigger">Compare these</button>' +
+        "</div>"
+      : "";
+
+  var noFitLinkHtml =
+    '<div id="matchNoFitLink" class="mx-no-fit-link-wrap">' +
+    '<button type="button" class="mx-no-fit-link" id="matchNoFitOpen">Not seeing the right fit?</button>' +
+    "</div>";
 
   root.className = "match-list";
   root.innerHTML =
     '<div class="results-panel">' +
     buildResultsHeaderHtml(profile, allEntries.length) +
-    swipeHint +
     '<section class="mx-top-three">' +
     renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
     runnersHtml +
     "</section>" +
-    bankHtml +
+    moreHtml +
+    compareTriggerHtml +
+    noFitLinkHtml +
     "</div>";
 
   // Deliberately NOT calling placeBuilderInResults: that used to move
@@ -5410,6 +5458,42 @@ function renderPrimaryMatchCards(entries, profile) {
       );
     });
   });
+
+  var showMoreBtn = document.getElementById("matchShowMore");
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener("click", function () {
+      var moreSection = root.querySelector(".mx-more-cards");
+      var showMoreWrap = root.querySelector(".mx-show-more-wrap");
+      if (moreSection) moreSection.hidden = false;
+      if (showMoreWrap) showMoreWrap.hidden = true;
+      trackFunnelEvent("match_show_more_clicked", {
+        result_count: allEntries.length,
+        top_slug: leadEntry && leadEntry.therapist ? leadEntry.therapist.slug || "" : "",
+      });
+    });
+  }
+
+  var compareTrigger = document.getElementById("matchCompareTrigger");
+  if (compareTrigger) {
+    compareTrigger.addEventListener("click", function () {
+      trackFunnelEvent("match_compare_opened", { result_count: allEntries.length });
+      renderComparison(allEntries);
+      var compareEl = document.getElementById("matchCompare");
+      if (compareEl) {
+        compareEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      compareTrigger.hidden = true;
+    });
+  }
+
+  var noFitOpenBtn = document.getElementById("matchNoFitOpen");
+  if (noFitOpenBtn) {
+    noFitOpenBtn.addEventListener("click", function () {
+      trackFunnelEvent("match_no_fit_feedback_opened", { result_count: allEntries.length });
+      var dialog = document.getElementById("noFitFeedbackDialog");
+      if (dialog && typeof dialog.showModal === "function") dialog.showModal();
+    });
+  }
 
   bindRefineButtons();
   bindSummaryMatchSlider(root);
@@ -6020,7 +6104,6 @@ function renderResults(entries, profile) {
   if (refs.feedbackBar) {
     refs.feedbackBar.hidden = false;
   }
-  renderComparison(entries);
 
   // Collapse refine section when real results are showing (not starter mode)
   var refineSection = document.getElementById("matchRefineSection");
@@ -6275,12 +6358,29 @@ function refreshIntakeUiFromForm() {
   if (resetMatchButton) {
     resetMatchButton.addEventListener("click", resetForm);
   }
-  document.getElementById("feedbackShortlistPositive").addEventListener("click", function () {
-    recordShortlistFeedback("positive");
-  });
-  document.getElementById("feedbackShortlistNegative").addEventListener("click", function () {
-    recordShortlistFeedback("negative");
-  });
+  var noFitDialog = document.getElementById("noFitFeedbackDialog");
+  var noFitSubmit = document.getElementById("noFitDialogSubmit");
+  var noFitCancel = document.getElementById("noFitDialogCancel");
+  var noFitClose = document.getElementById("noFitDialogClose");
+  var noFitStatus = document.getElementById("noFitDialogStatus");
+
+  function closeNoFitDialog() {
+    if (noFitDialog && typeof noFitDialog.close === "function") noFitDialog.close();
+  }
+
+  if (noFitSubmit) {
+    noFitSubmit.addEventListener("click", function () {
+      recordShortlistFeedback("negative");
+      if (noFitStatus) noFitStatus.textContent = "Thanks — this shapes future matches.";
+      window.setTimeout(closeNoFitDialog, 1200);
+    });
+  }
+  if (noFitCancel) {
+    noFitCancel.addEventListener("click", closeNoFitDialog);
+  }
+  if (noFitClose) {
+    noFitClose.addEventListener("click", closeNoFitDialog);
+  }
 
   var restoredProfile = restoreProfileFromUrl();
   var restoredShortlist = restoreShortlistFromUrl();
