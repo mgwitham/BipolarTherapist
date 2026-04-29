@@ -20,7 +20,7 @@ test("admin page: top-level modes are review and reports", function () {
   assert.doesNotMatch(html, /data-admin-tab="listings"/);
   assert.doesNotMatch(html, /data-admin-tab="recovery"/);
   assert.match(tabsJs, /const DEFAULT_VIEW = "review"/);
-  assert.match(tabsJs, /const VALID_VIEWS = \["review", "reports"\]/);
+  assert.match(tabsJs, /const VALID_VIEWS = \["review", "reports", "portal"\]/);
 });
 
 test("admin page: review is the default visible admin workflow", function () {

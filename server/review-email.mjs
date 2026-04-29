@@ -1054,3 +1054,157 @@ export async function sendPortalContactEmail(config, body) {
     text: lines,
   });
 }
+
+// ─── Portal completeness nudge ─────────────────────────────────────────────
+
+const COMPLETENESS_FIELD_LABELS = {
+  card_bio: {
+    label: "Card bio",
+    note: "Required to go live — this is the first thing patients read.",
+  },
+  contact: {
+    label: "Contact route",
+    note: "Required to go live — patients can't reach you without it.",
+  },
+  headshot: { label: "Headshot", note: "Profiles with photos earn 3× more clicks." },
+  name: {
+    label: "Name & credentials",
+    note: "Confirms your identity to patients browsing your listing.",
+  },
+  location: { label: "Location", note: "Lets patients know where you practice." },
+  years: {
+    label: "Years treating bipolar",
+    note: "Shown on patient cards — 8+ unlocks a ranking boost.",
+  },
+  full_bio: { label: "Full bio", note: "Long-form profile shown on your public profile page." },
+  practice_name: { label: "Practice name", note: "If you practice under a group or clinic name." },
+  website: { label: "Website", note: "Links from your listing to your practice site." },
+  languages: { label: "Languages", note: "Bilingual therapists are in high demand." },
+  fee: { label: "Session fee", note: "Filters out price mismatches before they reach your inbox." },
+  modalities: {
+    label: "Treatment modalities",
+    note: "CBT, IPSRT, and DBT are high-signal for patients in your specialty.",
+  },
+  format: { label: "Session format", note: "In-person, telehealth, or both." },
+  insurance: {
+    label: "Insurance accepted",
+    note: "Patients filter by insurance before they even browse.",
+  },
+  wait_time: { label: "Estimated wait time", note: "Especially important for patients in crisis." },
+  first_step: {
+    label: "First step expectation",
+    note: "Reduces anxiety for new patients reaching out.",
+  },
+  specialties: {
+    label: "Bipolar specialties",
+    note: "Specific presentations you treat (Bipolar I, II, rapid cycling, etc.).",
+  },
+  populations: { label: "Populations served", note: "Patients filter heavily by these." },
+  total_years: {
+    label: "Total years in practice",
+    note: "General experience shown on your full profile.",
+  },
+};
+
+export async function sendPortalCompletenessNudge(config, therapist, portalBaseUrl) {
+  if (!hasEmailConfig(config)) return;
+  const toEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!toEmail) return;
+
+  const name = String(therapist.name || "").split(" ")[0] || "there";
+  const score =
+    typeof therapist.portalCompletenessScore === "number" ? therapist.portalCompletenessScore : 0;
+  const missing = Array.isArray(therapist.portalCompletionFields)
+    ? therapist.portalCompletionFields
+    : [];
+  const slug = String(therapist.slug || "").trim();
+  const base = String(
+    portalBaseUrl || config.portalBaseUrl || "https://www.bipolartherapyhub.com",
+  ).replace(/\/+$/, "");
+  const portalUrl = slug
+    ? `${base}/portal.html?slug=${encodeURIComponent(slug)}`
+    : `${base}/portal.html`;
+
+  // Show required fields first, then up to 4 more, max 6 total.
+  const required = ["card_bio", "contact"].filter((k) => missing.includes(k));
+  const optional = missing.filter((k) => !["card_bio", "contact"].includes(k)).slice(0, 4);
+  const fieldsToShow = [...required, ...optional].slice(0, 6);
+
+  const missingRowsHtml = fieldsToShow
+    .map((key) => {
+      const info = COMPLETENESS_FIELD_LABELS[key] || { label: key, note: "" };
+      const isRequired = key === "card_bio" || key === "contact";
+      return `<tr>
+  <td style="padding:10px 0;border-bottom:1px solid #eef3f5;vertical-align:top">
+    <strong style="color:${isRequired ? "#b03636" : "#0f1f28"}">${info.label}${isRequired ? " — required" : ""}</strong>
+    <br><span style="font-size:13px;color:#6b8189">${info.note}</span>
+  </td>
+</tr>`;
+    })
+    .join("");
+
+  const remaining = missing.length - fieldsToShow.length;
+  const remainingNote =
+    remaining > 0
+      ? `<p style="margin:12px 0 0;font-size:13px;color:#6b8189">Plus ${remaining} more field${remaining === 1 ? "" : "s"} in your portal.</p>`
+      : "";
+
+  const progressPct = Math.min(100, Math.max(0, score));
+  const progressColor = score >= 76 ? "#0f6e56" : score >= 50 ? "#ca8a04" : "#d97706";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7fafb;padding:32px 0">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+  <tr><td style="background:#0f6e56;padding:24px 32px">
+    <p style="margin:0;font-size:18px;font-weight:700;color:#fff">BipolarTherapyHub</p>
+  </td></tr>
+  <tr><td style="padding:32px">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#0f1f28">Hi ${name},</h1>
+    <p style="margin:0 0 24px;font-size:16px;color:#2d4651;line-height:1.6">
+      Your profile is at <strong>${score}/100</strong>. A few more fields will help patients find and choose you.
+    </p>
+
+    <div style="background:#f1f5f6;border-radius:8px;padding:4px;margin-bottom:24px">
+      <div style="background:${progressColor};border-radius:6px;height:8px;width:${progressPct}%;min-width:4px;transition:width 0.3s"></div>
+    </div>
+
+    <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#4d6671;text-transform:uppercase;letter-spacing:0.05em">Still to add</p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${missingRowsHtml}
+    </table>
+    ${remainingNote}
+
+    <div style="margin:28px 0 0;text-align:center">
+      <a href="${portalUrl}" style="display:inline-block;background:#0f6e56;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px">Complete my profile</a>
+    </div>
+
+    <p style="margin:24px 0 0;font-size:13px;color:#8a9aa1;text-align:center">
+      Questions? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#0f6e56">support@bipolartherapyhub.com</a>
+    </p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const requiredNote = required.length
+    ? `\nRequired to go live: ${required.map((k) => COMPLETENESS_FIELD_LABELS[k]?.label || k).join(", ")}\n`
+    : "";
+  const text = `Hi ${name},\n\nYour BipolarTherapyHub profile is at ${score}/100.\n${requiredNote}\nFields still to add:\n${fieldsToShow.map((k) => `- ${COMPLETENESS_FIELD_LABELS[k]?.label || k}: ${COMPLETENESS_FIELD_LABELS[k]?.note || ""}`).join("\n")}${remaining > 0 ? `\n...and ${remaining} more in your portal.` : ""}\n\nComplete your profile: ${portalUrl}\n\nQuestions? support@bipolartherapyhub.com`;
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [toEmail],
+    reply_to: "support@bipolartherapyhub.com",
+    subject: `Your BipolarTherapyHub profile is ${score}% complete`,
+    html,
+    text,
+  });
+}

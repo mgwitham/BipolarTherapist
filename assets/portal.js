@@ -1792,13 +1792,9 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
     grid.innerHTML =
       renderAnalyticsStat(views, "Profile views this week", viewsTrend.label) +
       renderAnalyticsStat(ctaClicks, "Contact clicks this week", clicksTrend.label) +
-      '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8)">' +
-      '<div style="font-weight:700;color:var(--teal-dark, #155f70);margin-bottom:0.25rem">See your full analytics</div>' +
-      '<div style="font-size:0.88rem;color:var(--navy);margin-bottom:0.55rem">' +
-      "12-week trendline, view sources (match flow vs directory vs direct), and which contact methods patients actually use. " +
-      "Start a 14-day free trial to unlock." +
-      "</div>" +
-      '<a href="#portalFeaturedCard" class="btn-primary" style="display:inline-block;padding:0.55rem 0.95rem;border-radius:10px;background:var(--teal);color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">' +
+      '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8);display:flex;align-items:center;justify-content:space-between;gap:1rem">' +
+      '<div style="font-weight:700;color:var(--teal-dark, #155f70);font-size:0.95rem">Upgrade to see your full analytics</div>' +
+      '<a href="#portalFeaturedCard" class="td-bottom-card-cta" style="text-decoration:none;white-space:nowrap">' +
       "Start 14-day free trial →" +
       "</a>" +
       "</div>";
