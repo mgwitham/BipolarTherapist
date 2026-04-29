@@ -411,8 +411,151 @@
       }
       body:not([data-admin-view="review"]) [data-view-group="review"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
+      body:not([data-admin-view="portal"]) [data-view-group="portal"],
       body [data-view-group="hidden"] {
         display: none !important;
+      }
+      /* Portal completeness tab */
+      .pc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      .pc-table th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #6b8189;
+        border-bottom: 2px solid #e3ecef;
+      }
+      .pc-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f4f5;
+        vertical-align: middle;
+      }
+      .pc-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .pc-score-bar-wrap {
+        width: 80px;
+        background: #eef3f5;
+        border-radius: 999px;
+        height: 6px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      .pc-score-bar {
+        height: 6px;
+        border-radius: 999px;
+      }
+      .pc-score-bar-green {
+        background: #0f6e56;
+      }
+      .pc-score-bar-yellow {
+        background: #ca8a04;
+      }
+      .pc-score-bar-amber {
+        background: #d97706;
+      }
+      .pc-chip {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        background: #faece7;
+        color: #b03636;
+        border: 1px solid #f0997b;
+        border-radius: 999px;
+        padding: 0.15rem 0.5rem;
+        margin: 0.1rem 0.2rem 0.1rem 0;
+      }
+      .pc-chip-optional {
+        background: #eef3f5;
+        color: #4d6671;
+        border-color: #d6e2e6;
+      }
+      .pc-nudge-btn {
+        appearance: none;
+        background: #0f6e56;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .pc-nudge-btn:hover {
+        background: #085041;
+      }
+      .pc-nudge-btn:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .pc-nudge-btn.is-sent {
+        background: #1a8f6f;
+        cursor: default;
+      }
+      .pc-batch-bar {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .pc-filter-pills {
+        display: flex;
+        gap: 0.4rem;
+      }
+      .pc-filter-pill {
+        appearance: none;
+        background: #eef3f5;
+        color: #4d6671;
+        border: 1px solid #d6e2e6;
+        border-radius: 999px;
+        padding: 0.3rem 0.75rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .pc-filter-pill.is-active {
+        background: #0f6e56;
+        color: #fff;
+        border-color: #0f6e56;
+      }
+      .pc-batch-btn {
+        appearance: none;
+        background: #fff;
+        color: #0f6e56;
+        border: 1px solid #c5dde2;
+        border-radius: 6px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .pc-batch-btn:hover {
+        background: #f4faf9;
+      }
+      .pc-batch-btn:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .pc-status-msg {
+        font-size: 0.85rem;
+        color: #0f6e56;
+        font-weight: 600;
+      }
+      .pc-empty {
+        padding: 2rem;
+        text-align: center;
+        color: #6b8189;
+        font-size: 0.92rem;
       }
       .admin-funnel-section {
         background: var(--surface-alt, #fff);
@@ -5194,6 +5337,15 @@
         >
           Reports
         </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="portal"
+          role="tab"
+          aria-selected="false"
+        >
+          Portal
+        </button>
       </div>
 
       <section
@@ -5964,6 +6116,31 @@
               data-view-group="reports"
               style="margin-top: 1.5rem"
             ></div>
+            <section class="admin-mode-shell" data-view-group="portal">
+              <p class="admin-mode-kicker">Portal</p>
+              <h2 class="admin-mode-title">Profile completeness</h2>
+              <p class="admin-mode-copy">
+                See where claimed therapists have gaps and send targeted nudge emails to drive
+                profile completion.
+              </p>
+            </section>
+            <section
+              class="admin-region-shell"
+              id="portalCompletenessRegion"
+              data-view-group="portal"
+              style="margin-top: 1.5rem"
+            >
+              <header class="admin-live-header">
+                <h2 class="admin-live-title">Completeness tracker</h2>
+                <p class="admin-live-subtitle">
+                  Claimed therapists ranked by profile score. Send nudges to prompt them to fill
+                  gaps.
+                </p>
+              </header>
+              <div class="panel" style="padding: 1.5rem">
+                <div id="portalCompleteness"></div>
+              </div>
+            </section>
             <section
               class="admin-region-shell"
               id="recoveryRegion"

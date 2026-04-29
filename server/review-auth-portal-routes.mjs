@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { sendPortalContactEmail } from "./review-email.mjs";
+import { sendPortalContactEmail, sendPortalCompletenessNudge } from "./review-email.mjs";
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
@@ -3339,6 +3339,90 @@ export async function handleAuthAndPortalRoutes(context) {
     });
 
     return redirect("ok");
+  }
+
+  // GET /portal/completeness-summary — admin-only.
+  // Returns all claimed therapists that have been scored, sorted by
+  // completeness ascending (lowest first = most actionable for email targeting).
+  if (request.method === "GET" && routePath === "/portal/completeness-summary") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const rows = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed"] | order(portalCompletenessScore asc) {
+        "slug": slug.current,
+        name,
+        email,
+        city,
+        state,
+        portalCompletenessScore,
+        portalCompletionFields,
+        portalLastSaveAt,
+        portalCompletenessUpdatedAt,
+        "hasEmail": defined(email) && email != ""
+      }`,
+    );
+    sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+    return true;
+  }
+
+  // POST /portal/completeness-nudge — admin-only.
+  // Body: { slugs: ["slug1", "slug2", ...] }
+  // Sends a personalized profile-completion email to each slug.
+  // Returns { sent, failed, results }.
+  if (request.method === "POST" && routePath === "/portal/completeness-nudge") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const body = await deps.parseBody(request);
+    const slugs = Array.isArray(body && body.slugs)
+      ? body.slugs
+          .map((s) => String(s || "").trim())
+          .filter(Boolean)
+          .slice(0, 100)
+      : [];
+    if (!slugs.length) {
+      sendJson(response, 400, { error: "Provide at least one slug." }, origin, config);
+      return true;
+    }
+
+    const therapists = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && slug.current in $slugs]{
+        _id,
+        "slug": slug.current,
+        name,
+        email,
+        portalCompletenessScore,
+        portalCompletionFields
+      }`,
+      { slugs },
+    );
+
+    let sent = 0;
+    let failed = 0;
+    const results = [];
+    for (const t of therapists) {
+      const toEmail = String(t.email || "")
+        .trim()
+        .toLowerCase();
+      if (!toEmail) {
+        results.push({ slug: t.slug, status: "skipped", reason: "no email on file" });
+        continue;
+      }
+      try {
+        await sendPortalCompletenessNudge(config, t, config.portalBaseUrl);
+        sent += 1;
+        results.push({ slug: t.slug, status: "sent", to: toEmail });
+      } catch (err) {
+        failed += 1;
+        results.push({ slug: t.slug, status: "failed", reason: (err && err.message) || "unknown" });
+      }
+    }
+
+    sendJson(response, 200, { ok: true, sent, failed, results }, origin, config);
+    return true;
   }
 
   return false;

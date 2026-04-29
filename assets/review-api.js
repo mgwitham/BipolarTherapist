@@ -253,6 +253,21 @@ export async function uploadPortalPhoto(dataUrl, filename) {
   });
 }
 
+export async function fetchPortalCompletenessSummary() {
+  return request("/portal/completeness-summary", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function sendPortalCompletenessNudges(slugs) {
+  return request("/portal/completeness-nudge", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ slugs }),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.
