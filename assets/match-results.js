@@ -5,82 +5,11 @@ export function renderNoResultsStateSection(options) {
     return;
   }
 
-  var zipSuggestions = settings.zipSuggestions || [];
-  var hasRefinements = Boolean(settings.hasRefinements);
-  var escapeHtml = settings.escapeHtml || String;
-  var formatZipSuggestionList =
-    settings.formatZipSuggestionList ||
-    function () {
-      return "";
-    };
-  var title = hasRefinements
-    ? "Your optional filters may be making the list smaller than it needs to be."
-    : "We do not have a strong reviewed match for this exact setup yet.";
-  var introCopy = hasRefinements
-    ? "This usually means the core request is workable, but one or two optional preferences are narrowing the field too aggressively."
-    : zipSuggestions.length
-      ? "The core request still makes sense. We just need a slightly wider reviewed supply area or a more flexible first contact path."
-      : "The core request is clear, but the current reviewed supply is not giving us a strong enough first-pass recommendation yet.";
-  var nearbyNote = zipSuggestions.length
-    ? "Nearest reviewed ZIPs: " + formatZipSuggestionList(zipSuggestions) + "."
-    : "You can keep your core care type and ZIP, then widen the rest one step at a time.";
-
   root.className = "match-empty";
   root.innerHTML =
-    '<div class="match-empty-shell"><div class="match-empty-kicker">No strong list yet</div><h2 class="match-empty-title">' +
-    escapeHtml(title) +
-    '</h2><p class="match-empty-copy">' +
-    escapeHtml(introCopy) +
-    '</p><div class="match-empty-decision-grid"><section class="match-empty-decision-card tone-primary"><div class="match-empty-decision-label">Best next move</div><div class="match-empty-decision-title">' +
-    escapeHtml(
-      hasRefinements
-        ? "Clear optional filters before you widen the whole search."
-        : zipSuggestions.length
-          ? "Try a nearby reviewed ZIP first."
-          : "Try telehealth before rebuilding the request.",
-    ) +
-    '</div><div class="match-empty-decision-copy">' +
-    escapeHtml(
-      hasRefinements
-        ? "That preserves your core request while removing the narrowest constraints that may be blocking a usable list."
-        : zipSuggestions.length
-          ? "A nearby reviewed area usually preserves most of the same decision logic while giving the system more viable first-contact options."
-          : "That is usually the cleanest way to open the field without losing the core intent of the search.",
-    ) +
-    '</div></section><section class="match-empty-decision-card tone-secondary"><div class="match-empty-decision-label">Safest fallback</div><div class="match-empty-decision-title">' +
-    escapeHtml(
-      zipSuggestions.length
-        ? "Use telehealth as the second recovery move."
-        : "Clear optional filters one layer at a time.",
-    ) +
-    '</div><div class="match-empty-decision-copy">' +
-    escapeHtml(
-      zipSuggestions.length
-        ? "If the nearby reviewed ZIP still feels thin, telehealth is the next best way to expand choice without starting over."
-        : "Widening gradually usually protects fit better than throwing away the whole request and starting from scratch.",
-    ) +
-    '</div></section><section class="match-empty-decision-card tone-refine"><div class="match-empty-decision-label">What not to do yet</div><div class="match-empty-decision-title">Do not widen everything at once.</div><div class="match-empty-decision-copy">' +
-    escapeHtml(
-      "The strongest recovery path is usually one deliberate change at a time so you can see which answer actually improves the list.",
-    ) +
-    '</div></section></div><div class="match-empty-actions">' +
-    zipSuggestions
-      .map(function (item) {
-        return (
-          '<button type="button" class="btn-secondary match-empty-action" data-empty-zip="' +
-          escapeHtml(item.zip) +
-          '">Try ZIP ' +
-          escapeHtml(item.zip) +
-          "</button>"
-        );
-      })
-      .join("") +
-    '<button type="button" class="btn-primary match-empty-action" data-empty-telehealth="true">Open the field with telehealth</button>' +
-    '<button type="button" class="btn-secondary match-empty-action" data-empty-clear="true">Clear optional filters</button>' +
-    '<button type="button" class="btn-secondary match-empty-action" id="refineSearchButton">Refine one answer instead</button>' +
-    '</div><div class="match-empty-note">' +
-    escapeHtml(nearbyNote) +
-    "</div></div>";
+    '<div class="match-empty-shell">' +
+    '<p class="match-empty-copy">No matches for those filters right now — try adjusting your search or <a href="/" class="match-empty-home-link">start over from the home page</a>.</p>' +
+    "</div>";
 }
 
 export function renderAdaptiveGuidanceSection(options) {
