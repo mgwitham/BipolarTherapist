@@ -4419,6 +4419,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   body.dir-vb .dir-vb-bar {
     grid-template-columns: 1fr;
     padding: 0.8rem 1rem;
+    flex-wrap: wrap;
   }
   body.dir-vb .dir-vb-main {
     padding: 1rem 1rem 2rem;
@@ -4649,70 +4650,94 @@ body.dir-vb .dir-vb-modal-apply:hover {
   margin-left: auto;
 }
 
-/* -- Chips row + sort/zip row ----------------------- */
+/* -- Chips row + sort/zip row (one clean horizontal row) -- */
 .dir-chips-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.dir-chips-row > .dir-vb-chips {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dir-chips-row > .dir-vb-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .dir-sort-zip-row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 0.75rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(26, 122, 143, 0.08);
-  margin-top: 0.65rem;
-}
-
-@media (max-width: 540px) {
-  .dir-sort-zip-row {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding-left: 0.85rem;
+  margin-left: 0.25rem;
+  border-left: 1px solid rgba(26, 122, 143, 0.14);
 }
 
 .dir-zip-field,
 .dir-sort-field {
   display: flex;
-  flex-direction: column;
-  gap: 0.32rem;
+  align-items: center;
   min-width: 0;
 }
 
+/* Hide the labels in the inline bar — placeholders carry the meaning */
 .dir-field-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .dir-zip-input,
 .dir-sort-field select {
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
   border: 1px solid rgba(26, 122, 143, 0.18);
   background: #ffffff;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-family: inherit;
+  font-weight: 600;
   color: var(--navy);
-  width: 100%;
-  min-width: 0;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
   appearance: none;
   -webkit-appearance: none;
+  box-shadow: 0 1px 3px rgba(14, 77, 95, 0.05);
+}
+
+.dir-zip-input {
+  width: 130px;
+  text-align: left;
 }
 
 .dir-sort-field select {
   padding-right: 2.1rem;
+  width: auto;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'><path d='M3 4.5L6 7.5L9 4.5' stroke='%231a7a8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 0.85rem center;
+  background-position: right 0.9rem center;
   background-size: 12px 12px;
   cursor: pointer;
+}
+
+.dir-zip-input:hover,
+.dir-sort-field select:hover {
+  border-color: rgba(26, 122, 143, 0.32);
 }
 
 .dir-zip-input:focus,
@@ -4723,7 +4748,30 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .dir-zip-input::placeholder {
-  color: rgba(14, 77, 95, 0.4);
+  color: rgba(14, 77, 95, 0.45);
+  font-weight: 500;
+}
+
+@media (max-width: 860px) {
+  .dir-sort-zip-row {
+    border-left: 0;
+    border-top: 1px solid rgba(26, 122, 143, 0.1);
+    padding-left: 0;
+    margin-left: 0;
+    padding-top: 0.7rem;
+    margin-top: 0.25rem;
+    width: 100%;
+    flex-shrink: 1;
+  }
+  .dir-zip-input {
+    flex: 0 0 auto;
+  }
+  .dir-sort-field {
+    flex: 1 1 auto;
+  }
+  .dir-sort-field select {
+    width: 100%;
+  }
 }
 
 /* -- Results bar ------------------------------------ */
