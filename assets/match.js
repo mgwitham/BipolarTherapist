@@ -5276,8 +5276,8 @@ function renderPrimaryMatchCards(entries, profile) {
   }
 
   var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 3); // ranks 2 & 3 — always visible
-  var moreEntries = allEntries.slice(3); // ranks 4-8 — hidden behind Show more
+  var runnerUps = allEntries.slice(1, 5); // ranks 2-5 — 2×2 grid, always visible
+  var moreEntries = allEntries.slice(5); // ranks 6+ — hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
   var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
