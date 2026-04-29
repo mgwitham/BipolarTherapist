@@ -64,14 +64,14 @@ function renderFitReasons(model, limit) {
 
 export function renderEmptyStateMarkup(directoryPage) {
   return (
-    '<div class="empty-state"><div class="empty-state-kicker">No strong fit yet</div><h3>' +
+    '<div class="empty-state"><div class="empty-state-kicker">No results</div><h3>' +
     escapeHtml((directoryPage && directoryPage.emptyStateTitle) || "No therapists found") +
     "</h3><p>" +
     escapeHtml(
       (directoryPage && directoryPage.emptyStateDescription) ||
         "Try adjusting your filters or search terms.",
     ) +
-    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Best next move</div><div class="empty-state-card-copy">Loosen one filter at a time so you can tell which answer is actually narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Keep your progress</div><div class="empty-state-card-copy">You do not need to restart the search. Small refinements usually bring good options back without starting over.</div></div><div class="empty-state-card"><div class="empty-state-card-label">If browsing feels thin</div><div class="empty-state-card-copy">Try the guided match for a smaller, more decision-ready list before widening the search too broadly.</div></div></div></div>'
+    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Loosen a filter</div><div class="empty-state-card-copy">Remove one filter at a time to see which one is narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Clear ZIP match</div><div class="empty-state-card-copy">The exact-ZIP filter is strict. Clear it, then use the sort-near-ZIP field to prioritize by distance instead.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Try guided match</div><div class="empty-state-card-copy"><a href="match.html" style="color:inherit;text-decoration:underline">Answer four questions</a> for a shorter, more personal list before broadening your search.</div></div></div></div>'
   );
 }
 
@@ -271,48 +271,43 @@ export function renderCardMarkup(options) {
       escapeHtml(buildTherapistProfileHref(therapist.slug, "card_primary")) +
       '" class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
-      '" data-cta-tier="browse">Contact therapist</a>';
+      '" data-cta-tier="browse">View profile</a>';
 
   return (
     '<article class="t-card" data-card-slug="' +
     escapeHtml(therapist.slug) +
+    '" data-card-click="' +
+    escapeHtml(therapist.slug) +
     '">' +
-    '<div class="t-card-top"><div class="t-card-head"><div class="t-avatar">' +
+    '<button type="button" class="t-card-save' +
+    (model.shortlisted ? " is-saved" : "") +
+    '" data-shortlist-slug="' +
+    escapeHtml(therapist.slug) +
+    '" aria-label="' +
+    (model.shortlisted ? "Remove from saved list" : "Save to list") +
+    '" aria-pressed="' +
+    (model.shortlisted ? "true" : "false") +
+    '">' +
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="' +
+    (model.shortlisted ? "currentColor" : "none") +
+    '" aria-hidden="true"><path d="M8 12.5L3 9.5C1.5 8.5 1.5 6.5 3 5.5C4.5 4.5 6 5 8 7C10 5 11.5 4.5 13 5.5C14.5 6.5 14.5 8.5 13 9.5L8 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+    "</button>" +
+    '<div class="t-card-body">' +
+    '<div class="t-card-head"><div class="t-avatar">' +
     avatar +
     '</div><div class="t-info"><div class="t-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
     '</div><div class="t-creds">' +
-    escapeHtml(therapist.credentials) +
-    (therapist.title ? " " + escapeHtml(therapist.title) : "") +
-    '</div><div class="t-loc">' +
-    escapeHtml(model.locationSummary || "") +
-    (model.locationSummary && model.careFormatSummary ? " • " : "") +
-    escapeHtml(model.careFormatSummary || "") +
-    '</div></div><div class="card-header-status"><div class="card-header-availability ' +
-    escapeHtml(model.acceptanceTone) +
-    '">' +
-    escapeHtml(model.acceptance) +
-    '</div><div class="card-header-fee">' +
-    escapeHtml(model.availabilitySummary || model.feeSummary) +
+    escapeHtml(therapist.credentials || "") +
+    (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
     "</div></div></div>" +
-    renderTrustSignals(model.trustSignals.slice(0, 2), "card-trust-signals") +
-    '<p class="card-fit-summary">' +
-    escapeHtml(model.fitSummary) +
-    '</p><div class="card-highlights"><span>' +
-    escapeHtml(model.feeSummary) +
-    "</span>" +
-    (model.valuePillHtml ? '<div class="value-pill-row">' + model.valuePillHtml + "</div>" : "") +
-    "</div>" +
-    '<div class="card-actions"><button type="button" class="card-action-secondary" data-view-details="' +
-    escapeHtml(therapist.slug) +
-    '" data-details-tier="browse">View details</button>' +
+    (model.metaLine ? '<div class="t-meta-line">' + escapeHtml(model.metaLine) + "</div>" : "") +
+    (model.voiceQuote
+      ? '<p class="t-card-quote">&ldquo;' + escapeHtml(model.voiceQuote) + "&rdquo;</p>"
+      : "") +
+    '<div class="t-card-actions">' +
     primaryAction +
-    '<button class="card-save-link' +
-    (model.shortlisted ? " active" : "") +
-    '" data-shortlist-slug="' +
-    escapeHtml(therapist.slug) +
-    '" type="button">' +
-    (model.shortlisted ? "Saved" : "Save") +
+    "</div>" +
     "</div>" +
     "</article>"
   );
@@ -324,52 +319,71 @@ export function renderDirectoryDetailsMarkup(options) {
     return "";
   }
 
+  var therapist = model.therapist;
+  var contactHref = model.contactRoute
+    ? model.contactRoute.href
+    : buildTherapistProfileHref(therapist.slug, "details_contact");
+  var profileHref =
+    model.profileHref || buildTherapistProfileHref(therapist.slug, "details_profile");
+
   return (
-    '<div class="directory-details-sheet"><div class="directory-details-intro"><div><div class="directory-details-kicker">View details</div><h2 class="directory-details-name">' +
-    escapeHtml(getTherapistDisplayName(model.therapist.name)) +
-    '</h2><div class="directory-details-creds">' +
-    escapeHtml(model.therapist.credentials || "") +
-    (model.therapist.title ? " " + escapeHtml(model.therapist.title) : "") +
-    '</div><div class="directory-details-meta">' +
-    escapeHtml(model.locationSummary || "") +
-    (model.locationSummary && model.careFormatSummary ? " • " : "") +
-    escapeHtml(model.careFormatSummary || "") +
-    "</div></div>" +
-    renderTrustSignals(model.trustSignals, "directory-details-trust") +
-    '<div class="directory-details-actions"><a href="' +
-    escapeHtml(
-      model.contactRoute
-        ? model.contactRoute.href
-        : buildTherapistProfileHref(model.therapist.slug, "details_contact"),
-    ) +
-    '"' +
-    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
-    ' class="card-action-primary" data-primary-cta="' +
-    escapeHtml(model.therapist.slug) +
-    '" data-cta-tier="details">Contact therapist</a><button type="button" class="card-save-link' +
-    (model.shortlisted ? " active" : "") +
-    '" data-shortlist-slug="' +
-    escapeHtml(model.therapist.slug) +
-    '">' +
-    (model.shortlisted ? "Saved" : "Save") +
-    '</button></div></div><div class="directory-details-reassurance">' +
-    escapeHtml(model.reassurance) +
+    '<div class="dir-panel-content">' +
+    '<div class="dir-panel-profile-head">' +
+    '<h2 class="dir-panel-name">' +
+    escapeHtml(getTherapistDisplayName(therapist.name)) +
+    "</h2>" +
+    '<div class="dir-panel-creds">' +
+    escapeHtml(therapist.credentials || "") +
+    (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
     "</div>" +
-    renderFitReasons(model, 3) +
-    '<div class="directory-details-grid">' +
+    (model.metaLine ? '<div class="dir-panel-meta">' + escapeHtml(model.metaLine) + "</div>" : "") +
+    renderTrustSignals(model.trustSignals.slice(0, 3), "dir-panel-trust") +
+    "</div>" +
+    '<div class="dir-panel-actions">' +
+    (model.contactRoute
+      ? '<a href="' +
+        escapeHtml(contactHref) +
+        '"' +
+        (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        ' class="card-action-primary dir-panel-cta" data-primary-cta="' +
+        escapeHtml(therapist.slug) +
+        '" data-cta-tier="details">' +
+        escapeHtml(model.contactLabel || "Contact therapist") +
+        "</a>"
+      : "") +
+    '<a href="' +
+    escapeHtml(profileHref) +
+    '" class="dir-panel-profile-link">View full profile →</a>' +
+    '<button type="button" class="dir-panel-save' +
+    (model.shortlisted ? " is-saved" : "") +
+    '" data-shortlist-slug="' +
+    escapeHtml(therapist.slug) +
+    '" aria-pressed="' +
+    (model.shortlisted ? "true" : "false") +
+    '">' +
+    (model.shortlisted ? "Saved" : "Save to list") +
+    "</button>" +
+    "</div>" +
+    (model.bio ? '<p class="dir-panel-bio">' + escapeHtml(model.bio) + "</p>" : "") +
+    '<div class="dir-panel-details-grid">' +
     model.detailSections
       .map(function (section) {
         return (
-          '<div class="directory-details-item"><div class="directory-details-item-label">' +
+          '<div class="dir-panel-detail-item"><div class="dir-panel-detail-label">' +
           escapeHtml(section.label) +
-          '</div><div class="directory-details-item-value">' +
+          '</div><div class="dir-panel-detail-value">' +
           escapeHtml(section.value) +
           "</div></div>"
         );
       })
       .join("") +
-    "</div></div>"
+    "</div>" +
+    "</div>"
   );
+}
+
+export function renderLoadMoreMarkup() {
+  return '<button class="dir-load-more-btn" id="dirLoadMoreBtn" type="button">Show more therapists</button>';
 }
 
 export function renderPaginationMarkup(currentPage, pages) {

@@ -684,6 +684,28 @@ export function getMatchScore(filterState, therapist) {
 }
 
 export function compareTherapistsWithFilters(filterState, a, b) {
+  if (filterState.sortBy === "stable_random" || filterState.sortBy === "near_zip") {
+    if (filterState.sortBy === "near_zip") {
+      var sortZipVal = String(filterState.sortZip || "").trim();
+      if (/^\d{5}$/.test(sortZipVal)) {
+        var aZip = getTherapistZip(a);
+        var bZip = getTherapistZip(b);
+        var aProx = aZip ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, aZip)) : -9999;
+        var bProx = bZip ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, bZip)) : -9999;
+        return (
+          (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0) ||
+          bProx - aProx ||
+          a.name.localeCompare(b.name)
+        );
+      }
+    }
+    var acceptDiff = (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0);
+    if (acceptDiff !== 0) return acceptDiff;
+    var orderA = filterState.stableOrderMap ? filterState.stableOrderMap.get(a.slug) || 0 : 0;
+    var orderB = filterState.stableOrderMap ? filterState.stableOrderMap.get(b.slug) || 0 : 0;
+    return orderA - orderB;
+  }
+
   if (filterState.sortBy === "most_responsive") {
     return (
       getResponsivenessRank(b) - getResponsivenessRank(a) ||

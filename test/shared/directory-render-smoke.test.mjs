@@ -25,10 +25,9 @@ test("directory card render smoke keeps core CTA hierarchy and shortlist hooks i
 
   assert.match(html, /data-shortlist-slug="jamie-rivera"/);
   assert.match(html, /data-primary-cta="jamie-rivera"/);
-  assert.match(html, /data-view-details="jamie-rivera"/);
-  assert.match(html, /Contact therapist/);
-  assert.match(html, /View details/);
-  assert.match(html, /Saved/);
+  assert.match(html, /data-card-click="jamie-rivera"/);
+  assert.match(html, /t-meta-line|card-action-primary/);
+  assert.match(html, /is-saved/);
 });
 
 test("recommendation render smoke highlights featured and backup hierarchy", function () {
@@ -72,8 +71,8 @@ test("details render smoke keeps contact therapist visible", function () {
     }),
   });
 
-  assert.match(html, /Provider details|View details/);
-  assert.match(html, /Contact therapist/);
-  assert.match(html, /Why this may be a good fit/);
+  assert.match(html, /dir-panel-name|dir-panel-content/);
+  assert.match(html, /Jamie Rivera/);
+  assert.match(html, /View full profile/);
   assert.match(html, /Availability/);
 });

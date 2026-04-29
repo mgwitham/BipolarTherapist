@@ -8,51 +8,37 @@ import {
   resetDirectoryFiltersAction,
 } from "../../assets/directory-controller.js";
 
-test("buildDirectoryRenderState separates featured, backups, and browse results", function () {
+test("buildDirectoryRenderState puts all results in pageItems up to visibleCount", function () {
+  const results = [{ slug: "a" }, { slug: "b" }, { slug: "c" }, { slug: "d" }, { slug: "e" }];
   const state = buildDirectoryRenderState({
-    results: [{ slug: "a" }, { slug: "b" }, { slug: "c" }, { slug: "d" }, { slug: "e" }],
-    currentPage: 1,
-    pageSize: 2,
+    results,
+    visibleCount: 3,
     filters: {
-      q: "",
       state: "CA",
-      city: "",
-      specialty: "",
-      modality: "",
-      population: "",
-      verification: "",
-      bipolar_experience: "",
-      insurance: "",
-      therapist: true,
-      psychiatrist: false,
       telehealth: true,
       in_person: false,
       accepting: false,
       medication_management: false,
       responsive_contact: false,
       recently_confirmed: false,
-      sortBy: "best_match",
+      therapist: true,
+      psychiatrist: false,
+      sortBy: "stable_random",
     },
-    directoryPage: {
-      resultsSuffix: "matches found",
-    },
-    activePreviewSlug: "missing",
+    directoryPage: { resultsSuffix: "matches found" },
   });
 
-  assert.equal(state.pageItems.length, 2);
-  assert.equal(state.featuredTherapist.slug, "a");
-  assert.deepEqual(
-    state.backupTherapists.map((item) => item.slug),
-    ["b", "c"],
-  );
+  assert.equal(state.featuredTherapist, null);
+  assert.equal(state.backupTherapists.length, 0);
   assert.deepEqual(
     state.browseResults.map((item) => item.slug),
-    ["d", "e"],
+    ["a", "b", "c", "d", "e"],
   );
-  assert.equal(state.pageItems[0].slug, "d");
-  assert.equal(state.activePreviewSlug, "a");
+  assert.equal(state.pageItems.length, 3);
+  assert.equal(state.pageItems[0].slug, "a");
+  assert.equal(state.hasMore, true);
+  assert.equal(state.activePreviewSlug, "");
   assert.equal(state.resultsSuffix, "matches found");
-  assert.equal(state.singularSuffix, "matches found");
   assert.equal(state.activeFilterCount, 3);
 });
 

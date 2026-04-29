@@ -127,11 +127,9 @@ export function runDirectoryTestFlow(options) {
 
   var renderState = buildDirectoryRenderState({
     results: sorted,
-    currentPage: sortChanged.currentPage,
-    pageSize: 12,
+    visibleCount: 24,
     filters: sortChanged.filters,
     directoryPage: { resultsSuffix: "specialists found" },
-    activePreviewSlug: "",
   });
 
   var html = renderState.pageItems[0]

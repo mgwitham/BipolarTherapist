@@ -68,6 +68,70 @@ function buildInsuranceSummary(therapist) {
   return therapist.insurance_accepted.slice(0, 2).join(", ");
 }
 
+function buildMetaLine(therapist) {
+  var parts = [];
+  var specialty = (therapist.specialties || [])[0] || "";
+  if (specialty) {
+    parts.push(specialty);
+  }
+  if (therapist.city) {
+    parts.push(therapist.city);
+  }
+  var formats = [];
+  if (therapist.accepts_in_person) {
+    formats.push("In person");
+  }
+  if (therapist.accepts_telehealth) {
+    formats.push("Telehealth");
+  }
+  if (formats.length) {
+    parts.push(formats.join(" + "));
+  }
+  return parts.join(" · ");
+}
+
+function extractVoiceQuote(therapist) {
+  var src = String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim();
+  if (!src) {
+    return "";
+  }
+  var match = src.match(/^[^.!?]+[.!?]/);
+  if (match && match[0].length <= 140) {
+    return match[0].trim();
+  }
+  if (src.length <= 140) {
+    return src;
+  }
+  return src.slice(0, 137) + "...";
+}
+
+function buildMethodContactLabel(therapist, contactRoute) {
+  if (!contactRoute) {
+    return "View profile";
+  }
+  var firstName = String(therapist.name || "")
+    .split(/[\s,]/)[0]
+    .trim();
+  var href = String(contactRoute.href || "");
+  if (href.startsWith("tel:")) {
+    return "Call " + firstName;
+  }
+  if (href.startsWith("mailto:")) {
+    return "Email " + firstName;
+  }
+  if (href.startsWith("http") && /book|calendly|acuity|schedule/i.test(href)) {
+    return "Book with " + firstName;
+  }
+  var method = therapist.preferred_contact_method || "";
+  if (method === "booking") {
+    return "Book with " + firstName;
+  }
+  if (method === "website") {
+    return "Visit website";
+  }
+  return contactRoute.label || "Contact therapist";
+}
+
 function buildPrimaryFitReasons(filters, therapist) {
   var reasons = [];
   var locationSummary = buildLocationSummary(therapist);
@@ -251,10 +315,12 @@ export function buildCardViewModel(options) {
     therapist: therapist,
     locationSummary: buildLocationSummary(therapist),
     careFormatSummary: buildCareFormatSummary(therapist),
+    metaLine: buildMetaLine(therapist),
+    voiceQuote: extractVoiceQuote(therapist),
     shortlistEntry: shortlistEntry,
     shortlisted: shortlisted,
     contactRoute: contactRoute,
-    contactLabel: "Contact therapist",
+    contactLabel: buildMethodContactLabel(therapist, contactRoute),
     acceptance: therapist.accepting_new_patients ? "Accepting new patients" : "Openings to confirm",
     acceptanceTone: therapist.accepting_new_patients ? "accepting" : "not-acc",
     feeSummary: formatDirectoryFeeLabel(therapist, "Fees to confirm"),
@@ -395,6 +461,8 @@ export function buildDirectoryDetailsViewModel(options) {
 
   return Object.assign({}, baseModel, {
     detailSections: buildDetailSections(therapist, filters),
+    bio: String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim(),
+    profileHref: "/therapists/" + encodeURIComponent(therapist.slug) + "/",
     reassurance:
       "You do not need to get this perfect. If this feels like a strong option, contacting them is a reasonable next step.",
   });

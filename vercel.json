@@ -3,7 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
-  "rewrites": [{ "source": "/api/review/(.*)", "destination": "/api/review/[...path]" }],
+  "rewrites": [
+    { "source": "/api/review/(.*)", "destination": "/api/review/[...path]" },
+    { "source": "/therapists/:slug", "destination": "/therapist" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

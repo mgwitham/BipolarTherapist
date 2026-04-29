@@ -1,10 +1,5 @@
 import { fetchDirectoryPageContent } from "./cms.js";
-import {
-  readFunnelEvents,
-  rememberTherapistContactRoute,
-  trackFunnelEvent,
-  summarizeAdaptiveSignals,
-} from "./funnel-analytics.js";
+import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analytics.js";
 import {
   FILTER_BOOLEAN_KEYS,
   FILTER_VALUE_KEYS,
@@ -19,7 +14,6 @@ import {
 } from "./directory-controller.js";
 import { compareTherapistsWithFilters, matchesDirectoryFilters } from "./directory-logic.js";
 import {
-  MAX_ENTRIES as SAVED_LIST_MAX,
   readList as readSavedList,
   isSaved as isSavedSlug,
   addToList as addToSavedList,
@@ -27,14 +21,12 @@ import {
   updateNote as updateSavedListNote,
   subscribe as subscribeToSavedList,
 } from "./saved-list.js";
-
-var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 import {
   renderDirectoryRecommendationsMarkup,
   renderCardMarkup,
   renderDirectoryDetailsMarkup,
   renderEmptyStateMarkup,
-  renderPaginationMarkup,
+  renderLoadMoreMarkup,
 } from "./directory-render.js";
 import {
   buildCardViewModel,
@@ -57,17 +49,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "directoryRecommendationZone",
       "directoryJourneySummary",
       "directorySparseNudge",
-      "pagination",
+      "dirLoadMoreWrap",
       "resultsCount",
       "filterCount",
-      "activeFilterSummary",
       "activeFilterChips",
     ];
     emptyHideIds.forEach(function (id) {
       var node = document.getElementById(id);
-      if (node) node.setAttribute("hidden", "");
+      if (node) {
+        node.setAttribute("hidden", "");
+      }
     });
-    var emptyHideSelectors = [".dir-vb-bar-wrap", ".results-focus-banner", ".results-header"];
+    var emptyHideSelectors = [".dir-vb-bar-wrap", ".dir-results-bar", ".dir-offramp"];
     emptyHideSelectors.forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (node) {
         node.setAttribute("hidden", "");
@@ -81,11 +74,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
     return;
   }
-  var currentPage = 1;
-  var pageSize = 12;
-  var activePreviewSlug = "";
+  var visibleCount = 24;
   var activeDetailsSlug = "";
   var lastDetailsTrigger = null;
+  var stableOrderMap = null;
+  var sortZip = "";
   var DIRECTORY_IP_LOCATION_CACHE_KEY = "bth_directory_ip_location_v1";
   var DIRECTORY_IP_LOCATION_TTL_MS = 12 * 60 * 60 * 1000;
   var defaultFilters = {
@@ -108,7 +101,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     medication_management: false,
     responsive_contact: false,
     recently_confirmed: false,
-    sortBy: "best_match",
+    sortBy: "stable_random",
+    stableOrderMap: null,
+    sortZip: "",
   };
   var filters = { ...defaultFilters };
   var shortlist = readSavedList();
@@ -122,11 +117,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   var filteredResultsCache = [];
   var optionIndexes = buildOptionIndexes();
   var VALID_SORT_OPTIONS = new Set([
-    "best_match",
+    "stable_random",
+    "near_zip",
     "most_experienced",
     "soonest_availability",
     "lowest_fee",
-    "most_responsive",
   ]);
 
   function getElement(id) {
@@ -140,6 +135,81 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0;
+      seed = (seed + 0x6d2b79f5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildStableOrderMap(items) {
+    var SEED_KEY = "bth_stable_sort_seed_v1";
+    var raw = null;
+    try {
+      raw = window.sessionStorage.getItem(SEED_KEY);
+    } catch (_err) {}
+    var seed = raw && !isNaN(Number(raw)) ? Number(raw) : Math.floor(Math.random() * 0xffffffff);
+    if (!raw) {
+      try {
+        window.sessionStorage.setItem(SEED_KEY, String(seed));
+      } catch (_err) {}
+    }
+    var rng = mulberry32(seed);
+    var indices = items.map(function (_, i) {
+      return i;
+    });
+    indices.sort(function () {
+      return rng() - 0.5;
+    });
+    var map = new Map();
+    indices.forEach(function (origIdx, sortedIdx) {
+      if (items[origIdx]) {
+        map.set(items[origIdx].slug, sortedIdx);
+      }
+    });
+    return map;
+  }
+
+  function initSortZip() {
+    var SORT_ZIP_KEY = "bth_sort_zip_v1";
+    try {
+      var stored = window.sessionStorage.getItem(SORT_ZIP_KEY);
+      if (stored && /^\d{5}$/.test(stored)) {
+        sortZip = stored;
+      }
+    } catch (_err) {}
+    var sortZipInput = getElement("sortZip");
+    if (sortZipInput) {
+      sortZipInput.value = sortZip;
+    }
+    if (sortZip) {
+      filters.sortBy = "near_zip";
+      filters.sortZip = sortZip;
+      var nearZipOption = getElement("sortNearZipOption");
+      if (nearZipOption) {
+        nearZipOption.hidden = false;
+      }
+      var sortByEl = getElement("sortBy");
+      if (sortByEl) {
+        sortByEl.value = "near_zip";
+      }
+    }
+  }
+
+  function saveSortZip(zip) {
+    var SORT_ZIP_KEY = "bth_sort_zip_v1";
+    try {
+      if (zip) {
+        window.sessionStorage.setItem(SORT_ZIP_KEY, zip);
+      } else {
+        window.sessionStorage.removeItem(SORT_ZIP_KEY);
+      }
+    } catch (_err) {}
   }
 
   function normalizeZip(value) {
@@ -340,6 +410,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "ranking_zip",
       "ranking_label",
       "ranking_source",
+      "sortZip",
     ])
       .map(function (key) {
         return key + ":" + String(filterState[key] || "");
@@ -549,7 +620,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     filters = Object.assign({}, filters, {
       [filterKey]: typeof defaultFilters[filterKey] === "boolean" ? false : "",
     });
-    currentPage = 1;
+    visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
     render();
   }
@@ -732,11 +803,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
 
     if (!params.get("sortBy")) {
-      var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents());
-      filters.sortBy = VALID_SORT_OPTIONS.has(adaptiveSignals.preferred_directory_sort)
-        ? adaptiveSignals.preferred_directory_sort
-        : defaultFilters.sortBy;
-      getElement("sortBy").value = filters.sortBy;
+      var sortByInput = getElement("sortBy");
+      if (sortByInput) {
+        sortByInput.value = filters.sortBy;
+      }
     }
 
     syncFilterControlsFromState(filters, getElement);
@@ -745,7 +815,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function updateUrl() {
     var params = new URLSearchParams();
+    var skipKeys = new Set([
+      "stableOrderMap",
+      "sortZip",
+      "ranking_zip",
+      "ranking_label",
+      "ranking_source",
+      "explicit_zip",
+    ]);
     Object.keys(filters).forEach(function (key) {
+      if (skipKeys.has(key)) {
+        return;
+      }
       if (!filters[key]) {
         return;
       }
@@ -754,8 +835,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
       params.set(key, String(filters[key]));
     });
+    if (sortZip) {
+      params.set("sortZip", sortZip);
+    }
     var query = params.toString();
-    var next = query ? "directory.html?" + query : "directory.html";
+    var basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
+    var next = query ? basePath + "?" + query : basePath;
     window.history.replaceState({}, "", next);
   }
   function getFilteredWithFilters(filterState) {
@@ -775,8 +860,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     return filteredResultsCache;
   }
 
+  function getFilters() {
+    return Object.assign({}, filters, {
+      stableOrderMap: stableOrderMap,
+      sortZip: sortZip,
+    });
+  }
+
   function getFiltered() {
-    return getFilteredWithFilters(filters);
+    return getFilteredWithFilters(getFilters());
   }
 
   function getTherapistBySlug(slug) {
@@ -943,41 +1035,122 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     pendingMotionSlug = "";
   }
 
-  function renderPagination(total) {
-    var pages = Math.ceil(total / pageSize);
-    var root = getElement("pagination");
-    root.innerHTML = renderPaginationMarkup(currentPage, pages);
+  function renderLoadMore(hasMore) {
+    var wrap = getElement("dirLoadMoreWrap");
+    if (!wrap) {
+      return;
+    }
+    wrap.innerHTML = hasMore ? renderLoadMoreMarkup() : "";
+  }
+
+  function updateJsonLd(results) {
+    var el = getElement("dirJsonLd");
+    if (!el) {
+      return;
+    }
+    var items = results.slice(0, 20).map(function (t, i) {
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Person",
+          name: t.name,
+          url: window.location.origin + "/therapists/" + encodeURIComponent(t.slug) + "/",
+        },
+      };
+    });
+    el.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Bipolar Therapists in California",
+      itemListElement: items,
+    });
+  }
+
+  function updateMeta(resultCount) {
+    var titleEl = getElement("dirPageTitle");
+    var descEl = getElement("dirPageDescription");
+    var label = resultCount + " Bipolar Therapists in California";
+    if (titleEl) {
+      titleEl.textContent = label + " | BipolarTherapyHub";
+    }
+    document.title = label + " | BipolarTherapyHub";
+    if (descEl) {
+      descEl.setAttribute(
+        "content",
+        "Browse " +
+          resultCount +
+          " bipolar-informed therapists and psychiatrists in California. Filter by location, insurance, and format.",
+      );
+    }
+  }
+
+  var impressionObserver = null;
+  var seenImpressions = new Set();
+
+  function initImpressionObserver() {
+    if (typeof window.IntersectionObserver !== "function") {
+      return;
+    }
+    if (impressionObserver) {
+      impressionObserver.disconnect();
+    }
+    impressionObserver = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) {
+            return;
+          }
+          var slug = entry.target.getAttribute("data-card-slug");
+          if (!slug || seenImpressions.has(slug)) {
+            return;
+          }
+          seenImpressions.add(slug);
+          trackFunnelEvent("directory_card_impression", { therapist_slug: slug });
+          impressionObserver.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.3 },
+    );
+  }
+
+  function observeCards(grid) {
+    if (!impressionObserver || !grid) {
+      return;
+    }
+    grid.querySelectorAll("[data-card-slug]").forEach(function (card) {
+      var slug = card.getAttribute("data-card-slug");
+      if (slug && !seenImpressions.has(slug)) {
+        impressionObserver.observe(card);
+      }
+    });
   }
 
   function renderCurrentPageOnly(results) {
     var renderState = buildDirectoryRenderState({
       results: results,
-      currentPage: currentPage,
-      pageSize: pageSize,
-      filters: filters,
+      visibleCount: visibleCount,
+      filters: getFilters(),
       directoryPage: directoryPage,
-      activePreviewSlug: activePreviewSlug,
     });
 
     if (!renderState.results.length) {
       renderResultsGrid([]);
-    } else if (!renderState.pageItems.length) {
-      renderBrowseEmptyState();
     } else {
       renderResultsGrid(renderState.pageItems);
     }
-    renderPagination(renderState.browseResults.length);
+    renderLoadMore(renderState.hasMore);
     pulsePendingCard();
+    observeCards(getElement("resultsGrid"));
   }
 
   function render() {
+    var currentFilters = getFilters();
     var renderState = buildDirectoryRenderState({
-      results: getFiltered(),
-      currentPage: currentPage,
-      pageSize: pageSize,
-      filters: filters,
+      results: getFilteredWithFilters(currentFilters),
+      visibleCount: visibleCount,
+      filters: currentFilters,
       directoryPage: directoryPage,
-      activePreviewSlug: activePreviewSlug,
     });
     var results = renderState.results;
     var pageItems = renderState.pageItems;
@@ -987,48 +1160,38 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     var singularSuffix = renderState.singularSuffix;
     var activeFilterCount = renderState.activeFilterCount;
 
-    count.innerHTML =
-      "<strong>" +
-      results.length +
-      "</strong> " +
-      (results.length === 1 ? singularSuffix : resultsSuffix);
-    filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
+    if (count) {
+      count.innerHTML =
+        "<strong>" +
+        results.length +
+        "</strong> " +
+        (results.length === 1 ? singularSuffix : resultsSuffix);
+    }
+    if (filterCount) {
+      filterCount.textContent = activeFilterCount ? "(" + activeFilterCount + ")" : "";
+    }
     renderActiveFilterSummary(results.length);
     renderJourneySummary(results.length, activeFilterCount);
     updateSparseMatchNudge(results.length, activeFilterCount);
+    updateMeta(results.length);
+    updateJsonLd(results);
 
     if (!results.length) {
-      renderDirectoryRecommendations(renderState);
       renderResultsGrid([]);
-      renderPagination(0);
+      renderLoadMore(false);
       updateUrl();
       return;
     }
 
-    activePreviewSlug = renderState.activePreviewSlug;
-    renderDirectoryRecommendations(renderState);
-    if (!pageItems.length) {
-      renderBrowseEmptyState();
-    } else {
-      renderResultsGrid(pageItems);
-    }
+    renderResultsGrid(pageItems);
     pulsePendingCard();
-    renderPagination(renderState.browseResults.length);
+    renderLoadMore(renderState.hasMore);
+    observeCards(getElement("resultsGrid"));
     updateUrl();
   }
 
   function refreshShortlistViews() {
-    var results = getFiltered();
-    var renderState = buildDirectoryRenderState({
-      results: results,
-      currentPage: currentPage,
-      pageSize: pageSize,
-      filters: filters,
-      directoryPage: directoryPage,
-      activePreviewSlug: activePreviewSlug,
-    });
-    renderDirectoryRecommendations(renderState);
-    renderCurrentPageOnly(results);
+    renderCurrentPageOnly(getFiltered());
     renderDetailsModal(activeDetailsSlug);
   }
 
@@ -1038,11 +1201,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    currentPage = nextState.currentPage;
+    visibleCount = 24;
     syncRankingLocationFromUserZip();
     trackFunnelEvent("directory_filters_applied", {
       active_filter_count: countActiveFilters(filters),
       sort_by: filters.sortBy,
+    });
+    trackFunnelEvent("directory_filter_changed", {
+      active_filter_count: countActiveFilters(filters),
     });
     render();
     ensureIpRankingLocation().then(function (didUpdate) {
@@ -1058,7 +1224,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    currentPage = nextState.currentPage;
+    visibleCount = 24;
     syncRankingLocationFromUserZip();
     render();
     ensureIpRankingLocation().then(function (didUpdate) {
@@ -1078,7 +1244,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function resetFilters() {
     var nextState = resetDirectoryFiltersAction(defaultFilters);
     filters = nextState.filters;
-    currentPage = nextState.currentPage;
+    visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
     syncRankingLocationFromUserZip();
     render();
@@ -1137,7 +1303,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         return;
       }
       pendingMotionSlug = shortlistSlug;
-      toggleShortlist(shortlistSlug);
+      var saved = toggleShortlist(shortlistSlug);
+      trackFunnelEvent("directory_save_toggled", {
+        therapist_slug: shortlistSlug,
+        saved: saved,
+      });
       refreshShortlistViews();
       return;
     }
@@ -1160,11 +1330,29 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           "directory_" + ctaTier,
         );
       }
+      trackFunnelEvent("directory_card_contact_action", {
+        therapist_slug: primarySlug,
+        sort_by: filters.sortBy,
+      });
       trackFunnelEvent("directory_" + ctaTier + "_contact_cta_clicked", {
         therapist_slug: primarySlug,
         sort_by: filters.sortBy,
       });
       return;
+    }
+
+    // Card body click — open side panel (only when not clicking interactive elements)
+    if (!event.target.closest("a, button")) {
+      var cardEl = event.target.closest("[data-card-click]");
+      if (cardEl) {
+        var cardSlug = cardEl.getAttribute("data-card-click");
+        openDetailsModal(cardSlug, cardEl);
+        trackFunnelEvent("directory_card_profile_viewed", {
+          therapist_slug: cardSlug,
+          source: "card_body_click",
+        });
+        return;
+      }
     }
   }
 
@@ -1177,19 +1365,49 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     updateShortlistNote(noteInput.getAttribute("data-shortlist-note"), noteInput.value);
   }
 
-  function handlePaginationClick(event) {
-    var pageButton = event.target.closest("[data-page]");
-    if (!pageButton) {
+  function handleLoadMoreClick(event) {
+    var btn = event.target.closest("#dirLoadMoreBtn");
+    if (!btn) {
       return;
     }
-
-    currentPage = Number(pageButton.getAttribute("data-page"));
-    trackFunnelEvent("directory_paginated_results", {
-      page: currentPage,
+    visibleCount += 24;
+    trackFunnelEvent("directory_load_more_clicked", {
+      visible_count: visibleCount,
       sort_by: filters.sortBy,
     });
     renderCurrentPageOnly(getFiltered());
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  var sortZipTimer = 0;
+
+  function handleSortZipInput() {
+    window.clearTimeout(sortZipTimer);
+    sortZipTimer = window.setTimeout(function () {
+      var raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
+      var normalized = /^\d{5}$/.test(raw) ? raw : "";
+      sortZip = normalized;
+      saveSortZip(normalized);
+      var nearZipOption = getElement("sortNearZipOption");
+      var sortByEl = getElement("sortBy");
+      if (normalized) {
+        if (nearZipOption) {
+          nearZipOption.hidden = false;
+        }
+        filters = Object.assign({}, filters, { sortBy: "near_zip" });
+        if (sortByEl) {
+          sortByEl.value = "near_zip";
+        }
+        trackFunnelEvent("directory_zip_entered", { zip: normalized });
+      } else {
+        filters = Object.assign({}, filters, { sortBy: "stable_random" });
+        if (sortByEl) {
+          sortByEl.value = "stable_random";
+        }
+      }
+      visibleCount = 24;
+      filteredResultsCacheKey = "";
+      render();
+    }, 400);
   }
 
   function handleFocusBarClick(event) {
@@ -1275,14 +1493,23 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     resultsGrid.addEventListener("change", handleResultsGridChange);
   }
 
-  var pagination = getElement("pagination");
-  if (pagination) {
-    pagination.addEventListener("click", handlePaginationClick);
+  var loadMoreWrap = getElement("dirLoadMoreWrap");
+  if (loadMoreWrap) {
+    loadMoreWrap.addEventListener("click", handleLoadMoreClick);
   }
 
-  var recommendationZone = getElement("directoryRecommendationZone");
-  if (recommendationZone) {
-    recommendationZone.addEventListener("click", handleRecommendationClick);
+  var sortZipInput = getElement("sortZip");
+  if (sortZipInput) {
+    sortZipInput.addEventListener("input", handleSortZipInput);
+  }
+
+  var offrampLink = getElement("dirOfframpLink");
+  if (offrampLink) {
+    offrampLink.addEventListener("click", function () {
+      trackFunnelEvent("directory_offramp_clicked", {
+        active_filter_count: countActiveFilters(filters),
+      });
+    });
   }
 
   var detailsBody = getElement("directoryDetailsBody");
@@ -1340,19 +1567,21 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
-  getElement("sortBy").addEventListener("change", function () {
-    var nextState = changeDirectorySortAction({
-      filters: filters,
-      sortBy: getElement("sortBy").value,
+  var sortByEl = getElement("sortBy");
+  if (sortByEl) {
+    sortByEl.addEventListener("change", function () {
+      var nextState = changeDirectorySortAction({
+        filters: filters,
+        sortBy: sortByEl.value,
+      });
+      filters = nextState.filters;
+      visibleCount = 24;
+      syncRankingLocationFromUserZip();
+      trackFunnelEvent("directory_sort_changed", { sort_by: filters.sortBy });
+      filteredResultsCacheKey = "";
+      render();
     });
-    filters = nextState.filters;
-    currentPage = nextState.currentPage;
-    syncRankingLocationFromUserZip();
-    trackFunnelEvent("directory_sort_changed", {
-      sort_by: filters.sortBy,
-    });
-    render();
-  });
+  }
 
   window.addEventListener("resize", scheduleViewportSync);
 
@@ -1381,8 +1610,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   applySiteSettings();
   applyDirectoryCopy();
   await preloadZipcodes();
+  stableOrderMap = buildStableOrderMap(therapists);
   initializeFilters();
+  initSortZip();
+  initImpressionObserver();
   syncSidebarForViewport();
+  trackFunnelEvent("directory_viewed", {
+    therapist_count: therapists.length,
+  });
   render();
   ensureIpRankingLocation().then(function (didUpdate) {
     if (didUpdate) {
