@@ -8,7 +8,7 @@ function readStoredView() {
     if (stored && VALID_VIEWS.indexOf(stored) !== -1) {
       return stored;
     }
-  } catch (error) {
+  } catch (_error) {
     // sessionStorage unavailable — fall through to default
   }
   return DEFAULT_VIEW;
@@ -17,7 +17,7 @@ function readStoredView() {
 function writeStoredView(view) {
   try {
     window.sessionStorage.setItem(STORAGE_KEY, view);
-  } catch (error) {
+  } catch (_error) {
     // ignore
   }
 }
@@ -88,7 +88,7 @@ function switchToHashTarget() {
   let target;
   try {
     target = document.querySelector(hash);
-  } catch (error) {
+  } catch (_error) {
     return;
   }
   if (!target) {
