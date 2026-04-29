@@ -1747,9 +1747,8 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
 
   if (!current) {
     body.textContent =
-      "No patient activity recorded for " +
-      label +
-      " yet. Use this quiet week to check contact clarity and listing readiness.";
+      "Once you're live, this is where you'll see weekly profile views, match appearances, and contact events." +
+      (label ? " (" + label + ")" : "");
     grid.hidden = false;
     grid.style.display = "block";
     grid.style.marginTop = "0.65rem";
@@ -3826,8 +3825,8 @@ function renderPortal(therapist, options) {
       '<p class="portal-eyebrow">This week</p>' +
       '<h2 class="td-bottom-card-title">Patient activity</h2>' +
       '<p class="portal-subtle td-bottom-card-body" id="portalAnalyticsBody">' +
-      "No patient activity yet. Once patients start viewing or contacting your profile " +
-      "you’ll see a weekly breakdown here." +
+      "Once you're live, this is where you'll see weekly profile views, match appearances, and contact events. " +
+      "Upgrade for the full breakdown." +
       "</p>" +
       '<div id="portalAnalyticsGrid" hidden></div>' +
       '<a class="td-bottom-card-link" href="#portalFeaturedCard" data-tdc-jump-plan="1">' +
@@ -4007,18 +4006,23 @@ function renderPortal(therapist, options) {
     "</details>";
 
   // ─── TD-A header ───────────────────────────────────────────────────
-  // New unified header per the therapist-dashboard spec. Replaces the
-  // older portal-hero + portal-badges + listing-status snapshot
-  // sprawl. Two rows separated by a top border:
-  //   Row 1: name + city/state (left) | score badge + View public
-  //          listing pill (right)
-  //   Row 2: accepting-patients toggle (left) | sign out (right,
-  //          muted)
-  // The notYetPublicBanner ("One step from live / Add a bio") and the
-  // priorityZone listing-status snapshot are dropped — TD-C will
-  // surface "not live yet" via an inline amber bar above the
-  // completeness list, and the listing-status data is absorbed into
-  // the header + the completeness list.
+  // Two-row header.
+  //   Row 1: name + city/state | score badge + compact accepting chip +
+  //          View public listing pill
+  //   Row 2: sign out only (muted)
+  //
+  // The accepting chip is intentionally compact — it's an operational
+  // control, not a status banner. The "Not live yet" onboarding state
+  // lives separately above the completeness editor (renderNotLiveBar in
+  // portal-td-completeness.js), which is the right place for it.
+  var tdAcceptingChipClass =
+    "td-accepting-chip" + (tdAccepting ? " is-on" : tdAcceptingHidden ? " is-off" : " is-unset");
+  var tdAcceptingChipLabel = tdAccepting
+    ? "Accepting patients"
+    : tdAcceptingHidden
+      ? "Paused"
+      : "Set status";
+
   var tdHeader =
     verifiedClaim || sessionMode === "claim_token"
       ? '<section class="portal-card td-header" id="portalTdHeader">' +
@@ -4040,6 +4044,22 @@ function renderPortal(therapist, options) {
         " · " +
         tdScore +
         "/100</span>" +
+        '<button type="button" class="' +
+        tdAcceptingChipClass +
+        '" id="portalTdAccepting" aria-pressed="' +
+        (tdAccepting ? "true" : "false") +
+        '" title="' +
+        (tdAccepting
+          ? "Click to pause your listing"
+          : tdAcceptingHidden
+            ? "Click to resume accepting patients"
+            : "Click to confirm you are accepting patients") +
+        '">' +
+        '<span class="td-accepting-dot" aria-hidden="true"></span>' +
+        '<span id="portalTdAcceptingTitle">' +
+        escapeHtml(tdAcceptingChipLabel) +
+        "</span>" +
+        "</button>" +
         (therapist.slug
           ? '<a class="td-view-public" href="' +
             escapeHtml(tdViewPublicHref) +
@@ -4048,29 +4068,6 @@ function renderPortal(therapist, options) {
         "</div>" +
         "</div>" +
         '<div class="td-header-row td-header-row-secondary">' +
-        '<button type="button" class="td-accepting-toggle' +
-        (tdAccepting ? " is-on" : tdAcceptingHidden ? " is-off" : "") +
-        '" id="portalTdAccepting" aria-pressed="' +
-        (tdAccepting ? "true" : "false") +
-        '">' +
-        '<span class="td-accepting-dot" aria-hidden="true"></span>' +
-        '<span class="td-accepting-copy">' +
-        '<span class="td-accepting-title" id="portalTdAcceptingTitle">' +
-        (tdAccepting
-          ? "Accepting patients"
-          : tdAcceptingHidden
-            ? "Not accepting patients"
-            : "Accepting status not set") +
-        "</span>" +
-        '<span class="td-accepting-sub" id="portalTdAcceptingSub">' +
-        (tdAccepting
-          ? "Patients can contact you."
-          : tdAcceptingHidden
-            ? "Your listing is paused."
-            : "Tap to confirm you're accepting patients.") +
-        "</span>" +
-        "</span>" +
-        "</button>" +
         signOutControl +
         '<p class="td-header-feedback" id="portalTdAcceptingFeedback" role="status" aria-live="polite"></p>' +
         "</div>" +
@@ -4157,7 +4154,7 @@ function renderPortal(therapist, options) {
     feedback.textContent = "Sending request...";
     try {
       await submitTherapistPortalRequest(payload);
-      feedback.textContent = "Message sent. We’ll follow up at the email you provided.";
+      feedback.textContent = "Message sent. We'll follow up at the email you provided.";
       form.elements.message.value = "";
       form.elements.request_type.selectedIndex = 0;
     } catch (error) {
@@ -4204,28 +4201,22 @@ function renderPortal(therapist, options) {
       var next = prev === true ? false : true;
       var feedbackEl = document.getElementById("portalTdAcceptingFeedback");
       var titleEl = document.getElementById("portalTdAcceptingTitle");
-      var subEl = document.getElementById("portalTdAcceptingSub");
 
       function paint(state) {
-        acceptingBtn.classList.remove("is-on", "is-off");
+        acceptingBtn.classList.remove("is-on", "is-off", "is-unset");
         if (state === true) acceptingBtn.classList.add("is-on");
         else if (state === false) acceptingBtn.classList.add("is-off");
+        else acceptingBtn.classList.add("is-unset");
         acceptingBtn.setAttribute("aria-pressed", state === true ? "true" : "false");
+        acceptingBtn.title =
+          state === true
+            ? "Click to pause your listing"
+            : state === false
+              ? "Click to resume accepting patients"
+              : "Click to confirm you are accepting patients";
         if (titleEl) {
           titleEl.textContent =
-            state === true
-              ? "Accepting patients"
-              : state === false
-                ? "Not accepting patients"
-                : "Accepting status not set";
-        }
-        if (subEl) {
-          subEl.textContent =
-            state === true
-              ? "Patients can contact you."
-              : state === false
-                ? "Your listing is paused."
-                : "Tap to confirm you're accepting patients.";
+            state === true ? "Accepting patients" : state === false ? "Paused" : "Set status";
         }
       }
 

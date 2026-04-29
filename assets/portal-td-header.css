@@ -100,73 +100,64 @@
   background: #f4faf9;
 }
 
-/* ─── Accepting toggle ────────────────────────────────────────────── */
-.td-accepting-toggle {
+/* ─── Accepting chip (compact inline toggle) ──────────────────────── */
+/* The accepting-patients control is a small operational chip, not a
+   status banner. Lives in the primary row alongside the score badge.
+   Concept: persistent "● Accepting / ● Paused" indicator that flips
+   on click, styled to be secondary to the score badge. */
+.td-accepting-chip {
   appearance: none;
-  background: #f7fafb;
-  border: 1px solid #d6e2e6;
-  border-radius: 12px;
-  padding: 0.6rem 0.95rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
-  cursor: pointer;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.38rem 0.75rem;
   font-family: inherit;
-  flex: 1;
-  min-width: 0;
-  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid #d6e2e6;
+  background: #f7fafb;
+  color: #4d6671;
   transition:
+    border-color 0.15s ease,
     background 0.15s ease,
-    border-color 0.15s ease;
+    color 0.15s ease;
 }
-.td-accepting-toggle:hover {
+.td-accepting-chip:hover {
   border-color: #1a7a8f;
   background: #f0f7f9;
+  color: #0f1f28;
 }
-.td-accepting-toggle.is-on {
+.td-accepting-chip.is-on {
   background: #e1f5ee;
   border-color: #0f6e56;
+  color: #085041;
 }
-.td-accepting-toggle.is-off {
+.td-accepting-chip.is-on:hover {
+  background: #c8eddf;
+}
+.td-accepting-chip.is-off {
   background: #f1f3f4;
   border-color: #c5d6db;
+  color: #6b8189;
+}
+.td-accepting-chip.is-unset {
+  border-style: dashed;
 }
 .td-accepting-dot {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #c5d6db;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
-.td-accepting-toggle.is-on .td-accepting-dot {
+.td-accepting-chip.is-on .td-accepting-dot {
   background: #0f6e56;
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.85),
-    0 0 0 4px rgba(15, 110, 86, 0.18);
 }
-.td-accepting-toggle.is-off .td-accepting-dot {
+.td-accepting-chip.is-off .td-accepting-dot {
   background: #8a9aa1;
-}
-.td-accepting-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  min-width: 0;
-}
-.td-accepting-title {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #0f1f28;
-  line-height: 1.2;
-}
-.td-accepting-toggle.is-off .td-accepting-title {
-  color: #4d6671;
-}
-.td-accepting-sub {
-  font-size: 0.8rem;
-  color: #6b8189;
-  line-height: 1.3;
 }
 
 /* ─── Sign out (small, muted) ─────────────────────────────────────── */
@@ -210,13 +201,11 @@
   }
   .td-header-actions {
     width: 100%;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
   .td-header-row-secondary {
     flex-wrap: wrap;
-  }
-  .td-accepting-toggle {
-    flex-basis: 100%;
   }
   .td-header-signout {
     margin-left: auto;

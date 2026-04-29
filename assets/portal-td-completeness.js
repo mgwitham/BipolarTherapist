@@ -253,6 +253,7 @@ var FIELD_REGISTRY = [
     badge: "+10 pts",
     hint: "Filters out price mismatches before they reach your inbox",
     isComplete: isFeeComplete,
+    matchingOnly: true,
   },
   {
     key: "modalities",
@@ -261,6 +262,7 @@ var FIELD_REGISTRY = [
     badge: "+10 pts",
     hint: "CBT, IPSRT, and DBT are high-signal for patients in your specialty",
     isComplete: isModalitiesComplete,
+    matchingOnly: true,
   },
   {
     key: "format",
@@ -277,6 +279,7 @@ var FIELD_REGISTRY = [
     badge: "+7 pts",
     hint: "Patients filter by insurance before they even browse",
     isComplete: isInsuranceComplete,
+    matchingOnly: true,
   },
   {
     key: "wait_time",
@@ -301,6 +304,7 @@ var FIELD_REGISTRY = [
     badge: "+6 pts",
     hint: "Specific bipolar presentations you treat",
     isComplete: isSpecialtiesComplete,
+    matchingOnly: true,
   },
   {
     key: "populations",
@@ -309,6 +313,7 @@ var FIELD_REGISTRY = [
     badge: "+8 pts",
     hint: "Patients filter heavily by these",
     isComplete: isPopulationsComplete,
+    matchingOnly: true,
   },
   {
     key: "total_years",
@@ -363,11 +368,27 @@ var FORMAT_OPTIONS = ["In-person", "Telehealth"];
 
 // ─── Markup builders ─────────────────────────────────────────────────
 
+// ─── Score ring constants ─────────────────────────────────────────
+var RING_R = 34;
+var RING_CIRC = Math.round(2 * Math.PI * RING_R * 100) / 100; // ≈ 213.63
+
 function getScoreBand(score) {
   if (score >= 100) return { label: "Complete", tone: "complete" };
-  if (score >= 80) return { label: "Looking good", tone: "good" };
-  if (score >= 60) return { label: "Getting there", tone: "fair" };
-  return { label: "Needs work", tone: "needs" };
+  if (score >= 91) return { label: "Almost there", tone: "good" };
+  if (score >= 76) return { label: "Strong profile", tone: "good" };
+  if (score >= 50) return { label: "Making progress", tone: "fair" };
+  return { label: "Getting started", tone: "needs" };
+}
+
+function getRingTone(score) {
+  if (score >= 96) return "deep-green";
+  if (score >= 76) return "green";
+  if (score >= 50) return "yellow";
+  return "amber";
+}
+
+function ringOffset(score) {
+  return Math.round(RING_CIRC * (1 - Math.max(0, Math.min(100, score)) / 100) * 100) / 100;
 }
 
 function renderProgressHeader(score, fieldsRemaining) {
@@ -379,24 +400,44 @@ function renderProgressHeader(score, fieldsRemaining) {
         (fieldsRemaining === 1 ? "" : "s") +
         " remaining — each one increases your inquiry rate."
       : "Profile complete — your listing is fully optimized.";
+  var offset = ringOffset(score);
+  var ringTone = getRingTone(score);
   return (
     '<div class="td-completeness-header">' +
+    '<div class="td-score-ring-wrap" aria-hidden="true">' +
+    '<svg class="td-score-ring" viewBox="0 0 80 80" role="img" aria-label="Profile score: ' +
+    score +
+    ' out of 100">' +
+    '<circle class="td-score-ring-track" cx="40" cy="40" r="' +
+    RING_R +
+    '"/>' +
+    '<circle class="td-score-ring-fill td-score-ring-fill-' +
+    ringTone +
+    '" cx="40" cy="40" r="' +
+    RING_R +
+    '" stroke-dasharray="' +
+    RING_CIRC +
+    '" stroke-dashoffset="' +
+    offset +
+    '" id="tdcRingFill"/>' +
+    "</svg>" +
+    '<span class="td-score-ring-num td-score-ring-num-' +
+    ringTone +
+    '" id="tdcScore">' +
+    score +
+    "</span>" +
+    "</div>" +
     '<div class="td-completeness-meta">' +
-    '<p class="td-completeness-label">Profile completeness</p>' +
+    '<p class="td-completeness-label td-completeness-label-' +
+    band.tone +
+    '" id="tdcBandLabel">' +
+    escapeHtml(band.label) +
+    "</p>" +
     '<p class="td-completeness-subline" id="tdcSubline">' +
     escapeHtml(subline) +
     "</p>" +
+    '<p class="td-completeness-outcome" id="tdcOutcome">Profiles above 80 typically receive more match appearances.</p>' +
     "</div>" +
-    '<p class="td-completeness-score td-completeness-score-' +
-    band.tone +
-    '" id="tdcScore">' +
-    score +
-    "/100</p>" +
-    "</div>" +
-    '<div class="td-completeness-track" aria-hidden="true">' +
-    '<div class="td-completeness-fill" id="tdcFill" style="width:' +
-    score +
-    '%"></div>' +
     "</div>"
   );
 }
@@ -502,6 +543,10 @@ function buildHint(field, therapist) {
 function renderRow(field, therapist) {
   var complete = field.isComplete(therapist);
   var isEssential = field.section === "essential";
+  var matchingOnlyLabel =
+    field.matchingOnly && !complete
+      ? '<span class="td-row-matching-only">Used in matching, not shown on your card</span>'
+      : "";
   return (
     '<article class="td-row' +
     (isEssential && !complete ? " td-row-urgent" : "") +
@@ -520,6 +565,7 @@ function renderRow(field, therapist) {
     '<span class="td-row-hint">' +
     escapeHtml(buildHint(field, therapist)) +
     "</span>" +
+    matchingOnlyLabel +
     "</span>" +
     renderBadge(field, complete, isEssential) +
     renderChevron() +
@@ -657,6 +703,22 @@ function renderAddOtherRow(attr, placeholder) {
 }
 
 var CARD_BIO_MIN = 50;
+var CARD_BIO_CAP = 220;
+var FULL_BIO_CAP = 500;
+
+function getCardBioCounterText(len) {
+  if (len === 0) return "0 / " + CARD_BIO_MIN + " minimum";
+  if (len < CARD_BIO_MIN) return len + " / " + CARD_BIO_MIN + " minimum";
+  return len + " / " + CARD_BIO_CAP + " visible";
+}
+
+function getCardBioCounterClass(len) {
+  if (len > CARD_BIO_CAP) return "is-short";
+  if (len >= CARD_BIO_CAP - 20) return "is-warn";
+  if (len >= CARD_BIO_MIN) return "is-good";
+  if (len > 0) return "is-short";
+  return "";
+}
 
 function renderCardBioForm(t) {
   var cardBio = String(t.care_approach || "");
@@ -669,11 +731,10 @@ function renderCardBioForm(t) {
     escapeHtml(cardBio) +
     "</textarea>" +
     "</label>" +
-    '<p class="td-form-counter" id="tdcCardBioCounter">' +
-    len +
-    " / " +
-    CARD_BIO_MIN +
-    " minimum" +
+    '<p class="td-form-counter ' +
+    getCardBioCounterClass(len) +
+    '" id="tdcCardBioCounter">' +
+    getCardBioCounterText(len) +
     "</p>" +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="card_bio">Save card bio</button>' +
@@ -683,15 +744,26 @@ function renderCardBioForm(t) {
 }
 
 function renderFullBioForm(t) {
+  var fullBio = String(t.bio || "");
+  var len = fullBio.length;
+  var counterClass = len > FULL_BIO_CAP ? "is-short" : len >= FULL_BIO_CAP - 40 ? "is-warn" : "";
   return (
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
     '<span class="td-form-label">Long-form bio for your full public profile</span>' +
     '<textarea class="td-input td-textarea-bio td-textarea-full-bio" id="tdcFullBio" rows="6" placeholder="Tell patients more about your training, philosophy, and what working with you looks like over time.">' +
-    escapeHtml(String(t.bio || "")) +
+    escapeHtml(fullBio) +
     "</textarea>" +
     "</label>" +
-    '<p class="td-form-helper">Shown on your full public profile page. Doesn’t affect the patient match card.</p>' +
+    '<p class="td-form-counter ' +
+    counterClass +
+    '" id="tdcFullBioCounter">' +
+    len +
+    " / " +
+    FULL_BIO_CAP +
+    " characters" +
+    "</p>" +
+    '<p class="td-form-helper">Shown on your full public profile page. Does not affect the patient match card.</p>' +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="full_bio">Save full bio</button>' +
     "</div>" +
@@ -860,7 +932,7 @@ function renderLocationForm(t) {
     '<p class="td-form-helper">' +
     "Used to show patients approximate distance from their search ZIP. " +
     "We never display your raw ZIP or street address — only “~X mi” rounded to the nearest mile. " +
-    "Leave blank if you’d rather not share, and we’ll fall back to city-level distance." +
+    "Leave blank if you'd rather not share, and we'll fall back to city-level distance." +
     "</p>" +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="location">Save</button>' +
@@ -1011,7 +1083,7 @@ function renderPracticeNameForm(t) {
     '<input type="text" class="td-input" id="tdcPracticeName" value="' +
     escapeHtml(String(t.practice_name || "")) +
     '" placeholder="Sunset Mood Clinic" /></label>' +
-    '<p class="td-form-helper">If you practice under a group or clinic name. Leave blank if you’re solo.</p>' +
+    '<p class="td-form-helper">If you practice under a group or clinic name. Leave blank if solo.</p>' +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="practice_name">Save</button></div>' +
     "</div>"
   );
@@ -1024,7 +1096,7 @@ function renderWebsiteForm(t) {
     '<input type="url" class="td-input" id="tdcWebsite" value="' +
     escapeHtml(String(t.website || "")) +
     '" placeholder="https://yourpractice.com" /></label>' +
-    '<p class="td-form-helper">Linked from your public profile. We’ll add https:// for you if you forget.</p>' +
+    '<p class="td-form-helper">Linked from your public profile. Include https:// or we will add it for you.</p>' +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="website">Save</button></div>' +
     "</div>"
   );
@@ -1147,10 +1219,106 @@ export function shouldShowCompleteness(therapist) {
   return Boolean(therapist);
 }
 
+// ─── 100/100 confetti (Section 5) ────────────────────────────────────
+
+function triggerConfetti(container) {
+  var colors = ["#0f6e56", "#6ec49a", "#1a7a8f", "#d4f0e3", "#9ecdd4", "#f0c842", "#f07b42"];
+  var count = 48;
+  var confettiEl = document.createElement("div");
+  confettiEl.className = "td-confetti-burst";
+  confettiEl.setAttribute("aria-hidden", "true");
+
+  for (var i = 0; i < count; i++) {
+    var piece = document.createElement("span");
+    piece.className = "td-confetti-piece";
+    piece.style.cssText = [
+      "left:" + Math.random() * 100 + "%",
+      "background:" + colors[Math.floor(Math.random() * colors.length)],
+      "animation-delay:" + (Math.random() * 0.6).toFixed(2) + "s",
+      "animation-duration:" + (1.2 + Math.random() * 0.8).toFixed(2) + "s",
+      "width:" + (4 + Math.random() * 5).toFixed(0) + "px",
+      "height:" + (8 + Math.random() * 6).toFixed(0) + "px",
+      "border-radius:" + (Math.random() > 0.5 ? "50%" : "2px"),
+    ].join(";");
+    confettiEl.appendChild(piece);
+  }
+
+  container.style.position = "relative";
+  container.appendChild(confettiEl);
+
+  window.setTimeout(function () {
+    if (confettiEl.parentElement) confettiEl.parentElement.removeChild(confettiEl);
+  }, 3500);
+
+  // Update the subline with outcome-oriented copy
+  window.setTimeout(function () {
+    var sublineEl = container.querySelector("#tdcSubline");
+    var outcomeEl = container.querySelector("#tdcOutcome");
+    var city = "";
+    if (sublineEl) {
+      sublineEl.textContent = "Your profile is complete.";
+    }
+    if (outcomeEl) {
+      outcomeEl.textContent =
+        "Patients searching bipolar-informed care" +
+        (city ? " in " + city : "") +
+        " will find a fully detailed listing.";
+    }
+  }, 500);
+}
+
+// ─── Going-live celebration ───────────────────────────────────────────
+
+function triggerGoingLiveMoment(container, therapist, score) {
+  var slot = container.querySelector("#tdcNotLiveSlot");
+  if (!slot) return;
+
+  var city = String(therapist.city || "").trim();
+  var confirmMsg = city
+    ? "You're live — patients searching for bipolar-informed care in " + city + " can find you now."
+    : "You're live — patients searching for bipolar-informed care can find you now.";
+
+  slot.innerHTML =
+    '<div class="td-going-live-bar td-going-live-bar-celebrating" id="tdcGoingLiveBar" role="status">' +
+    '<span class="td-going-live-icon" aria-hidden="true">✦</span>' +
+    '<span class="td-going-live-msg">' +
+    escapeHtml(confirmMsg) +
+    "</span>" +
+    "</div>";
+
+  // After 3.5s collapse to slim persistent indicator
+  window.setTimeout(function () {
+    slot.innerHTML =
+      '<div class="td-live-indicator" role="status" aria-label="Listing is live">' +
+      '<span class="td-live-dot" aria-hidden="true"></span>' +
+      "Live" +
+      "</div>";
+  }, 3500);
+
+  // Surface upgrade nudge below if score >= 75 and the nudge hasn't already shown
+  if (score >= 75) {
+    window.setTimeout(function () {
+      var existingNudge = container.querySelector("#tdcUpgradeNudge");
+      if (existingNudge) return;
+      var nudge = document.createElement("div");
+      nudge.id = "tdcUpgradeNudge";
+      nudge.className = "td-upgrade-nudge";
+      nudge.innerHTML =
+        "<strong>Want to see who's finding you?</strong> " +
+        "Upgrade to unlock weekly analytics and your Monday digest." +
+        '<div class="td-upgrade-nudge-actions">' +
+        '<a href="#portalFeaturedCard" class="td-upgrade-nudge-btn">Start 14-day free trial</a>' +
+        "</div>";
+      slot.insertAdjacentElement("afterend", nudge);
+    }, 4000);
+  }
+}
+
 export function mountPortalTdCompleteness(container, therapist, options) {
   if (!container) return;
   var opts = options || {};
   var localTherapist = Object.assign({}, therapist);
+  var wasLive = isLive(localTherapist);
 
   function fieldsRemaining() {
     return FIELD_REGISTRY.filter(function (f) {
@@ -1164,12 +1332,34 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       updatePortalCardPreview(preview, localTherapist, { headerLabel: "Patient preview · live" });
   }
 
+  var lastScore = computeScore(localTherapist);
+
+  function animateScoreNum(el, fromVal, toVal) {
+    var duration = Math.min(600, Math.abs(toVal - fromVal) * 30);
+    if (duration < 80 || fromVal === toVal) {
+      el.textContent = String(toVal);
+      return;
+    }
+    var start = null;
+    var diff = toVal - fromVal;
+    function step(ts) {
+      if (!start) start = ts;
+      var progress = Math.min((ts - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      el.textContent = String(Math.round(fromVal + diff * eased));
+      if (progress < 1) window.requestAnimationFrame(step);
+    }
+    window.requestAnimationFrame(step);
+  }
+
   function refreshScore() {
     var score = computeScore(localTherapist);
     var subline = container.querySelector("#tdcSubline");
     var scoreEl = container.querySelector("#tdcScore");
-    var fillEl = container.querySelector("#tdcFill");
+    var ringFill = container.querySelector("#tdcRingFill");
+    var bandLabel = container.querySelector("#tdcBandLabel");
     var remaining = fieldsRemaining();
+
     if (subline) {
       subline.textContent =
         remaining > 0
@@ -1179,12 +1369,35 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             " remaining — each one increases your inquiry rate."
           : "Profile complete — your listing is fully optimized.";
     }
+
+    var band = getScoreBand(score);
+    var ringTone = getRingTone(score);
+
     if (scoreEl) {
-      var band = getScoreBand(score);
-      scoreEl.textContent = score + "/100";
-      scoreEl.className = "td-completeness-score td-completeness-score-" + band.tone;
+      animateScoreNum(scoreEl, lastScore, score);
+      scoreEl.className = "td-score-ring-num td-score-ring-num-" + ringTone;
     }
-    if (fillEl) fillEl.style.width = score + "%";
+    if (bandLabel) {
+      bandLabel.textContent = band.label;
+      bandLabel.className = "td-completeness-label td-completeness-label-" + band.tone;
+    }
+    if (ringFill) {
+      ringFill.setAttribute("stroke-dashoffset", String(ringOffset(score)));
+      ringFill.className.baseVal = "td-score-ring-fill td-score-ring-fill-" + ringTone;
+      // Pulse the ring briefly
+      ringFill.classList.add("td-ring-pulse");
+      window.setTimeout(function () {
+        ringFill.classList.remove("td-ring-pulse");
+      }, 600);
+    }
+
+    // 100/100 confetti
+    if (score >= 100 && lastScore < 100) {
+      triggerConfetti(container);
+    }
+
+    lastScore = score;
+
     // Tell the host page so the TD-A header can update its own badge.
     if (typeof opts.onScoreChange === "function") opts.onScoreChange(score);
   }
@@ -1388,8 +1601,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         cardBioEl.addEventListener("input", function () {
           var v = cardBioEl.value;
           if (cardBioCounter) {
-            cardBioCounter.textContent = v.length + " / " + CARD_BIO_MIN + " minimum";
-            cardBioCounter.classList.toggle("is-short", v.length > 0 && v.length < CARD_BIO_MIN);
+            cardBioCounter.textContent = getCardBioCounterText(v.length);
+            cardBioCounter.className = "td-form-counter " + getCardBioCounterClass(v.length);
           }
           // Live-update the patient preview voice slot. This is a
           // throwaway state update — the actual care_approach field
@@ -1407,6 +1620,18 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             // editing class after the swap.
             previewEl.classList.add("tdc-preview-bio-editing");
           }
+        });
+      }
+    } else if (key === "full_bio") {
+      var fullBioEl = bodyEl.querySelector("#tdcFullBio");
+      var fullBioCounter = bodyEl.querySelector("#tdcFullBioCounter");
+      if (fullBioEl && fullBioCounter) {
+        fullBioEl.addEventListener("input", function () {
+          var len = fullBioEl.value.length;
+          fullBioCounter.textContent = len + " / " + FULL_BIO_CAP + " characters";
+          fullBioCounter.className =
+            "td-form-counter " +
+            (len > FULL_BIO_CAP ? "is-short" : len >= FULL_BIO_CAP - 40 ? "is-warn" : "");
         });
       }
     } else if (key === "contact") {
@@ -1647,9 +1872,29 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       } else {
         Object.assign(localTherapist, payload);
       }
+      var newScore = computeScore(localTherapist);
       refreshPreview();
+
+      // Preview pulse — signals the clinician that their save updated the card
+      var previewPulseEl = container.querySelector("#tdcPreview");
+      if (previewPulseEl) {
+        previewPulseEl.classList.remove("tdc-preview-pulse");
+        void previewPulseEl.offsetWidth; // reflow to restart animation
+        previewPulseEl.classList.add("tdc-preview-pulse");
+        window.setTimeout(function () {
+          previewPulseEl.classList.remove("tdc-preview-pulse");
+        }, 600);
+      }
+
       refreshScore();
-      refreshNotLiveBar();
+
+      var nowLive = isLive(localTherapist);
+      if (!wasLive && nowLive) {
+        wasLive = true;
+        triggerGoingLiveMoment(container, localTherapist, newScore);
+      } else {
+        refreshNotLiveBar();
+      }
 
       // Show "Saved ✓" briefly before collapsing. refreshRow is deferred
       // because it replaces the article (and the button inside it) immediately,
@@ -1665,6 +1910,14 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       window.setTimeout(function () {
         refreshRow(key);
+        // Row save flash — animate the row briefly after it re-renders
+        var flashRow = container.querySelector('[data-tdc-row="' + key + '"]');
+        if (flashRow) {
+          flashRow.classList.add("td-row-flash");
+          window.setTimeout(function () {
+            flashRow.classList.remove("td-row-flash");
+          }, 700);
+        }
       }, 700);
 
       trackFunnelEvent("portal_td_field_saved", {
