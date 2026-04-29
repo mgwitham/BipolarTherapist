@@ -4258,12 +4258,16 @@ body.dir-vb .dir-vb-modal-clear:hover {
 body.dir-vb .dir-vb-modal-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 0.25rem 1.25rem 1rem;
+  padding: 0.5rem 1.25rem 1rem;
 }
 
 body.dir-vb .dir-vb-section {
-  padding: 1.1rem 0;
+  padding: 0.85rem 0;
   border-bottom: 1px solid rgba(26, 122, 143, 0.08);
+}
+
+body.dir-vb .dir-vb-section:first-child {
+  padding-top: 0.4rem;
 }
 
 body.dir-vb .dir-vb-section:last-child {
@@ -4271,35 +4275,92 @@ body.dir-vb .dir-vb-section:last-child {
 }
 
 body.dir-vb .dir-vb-section-head {
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.55rem;
 }
 
 body.dir-vb .dir-vb-section-head h3 {
-  margin: 0 0 0.2rem;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 0.7rem;
   font-weight: 800;
-  color: var(--navy);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
 }
 
 body.dir-vb .dir-vb-section-head p {
-  margin: 0;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
   color: var(--muted);
 }
 
 body.dir-vb .dir-vb-section-body {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.6rem;
+}
+
+/* Pair state + zip side by side on desktop */
+body.dir-vb .dir-vb-section:first-child .dir-vb-section-body {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 540px) {
+  body.dir-vb .dir-vb-section:first-child .dir-vb-section-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.dir-vb .dir-vb-section-body .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 body.dir-vb .dir-vb-section-body .filter-group label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--muted);
-  text-transform: none;
-  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.dir-vb .dir-vb-section-body .filter-group select,
+body.dir-vb .dir-vb-section-body .filter-group input[type="text"] {
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(26, 122, 143, 0.18);
+  font-size: 0.88rem;
+  font-family: inherit;
+  background: #ffffff;
+  color: var(--navy);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  min-width: 0;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+body.dir-vb .dir-vb-section-body .filter-group select {
+  padding-right: 2.1rem;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'><path d='M3 4.5L6 7.5L9 4.5' stroke='%231a7a8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 12px 12px;
+  cursor: pointer;
+}
+
+body.dir-vb .dir-vb-section-body .filter-group select:focus,
+body.dir-vb .dir-vb-section-body .filter-group input[type="text"]:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+  outline: none;
+}
+
+body.dir-vb .dir-vb-section-body .filter-group input[type="text"]::placeholder {
+  color: rgba(14, 77, 95, 0.4);
 }
 
 body.dir-vb .dir-vb-modal-foot {
@@ -4566,52 +4627,72 @@ body.dir-vb .dir-vb-modal-apply {
 }
 
 .dir-sort-zip-row {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: 180px 1fr;
   gap: 0.75rem;
-  flex-wrap: wrap;
-  padding-top: 0.6rem;
+  padding-top: 0.85rem;
   border-top: 1px solid rgba(26, 122, 143, 0.08);
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 540px) {
+  .dir-sort-zip-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dir-zip-field,
 .dir-sort-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.32rem;
   min-width: 0;
-}
-
-.dir-zip-field {
-  flex: 0 0 140px;
-}
-
-.dir-sort-field {
-  flex: 1 1 180px;
 }
 
 .dir-field-label {
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.dir-zip-input {
-  padding: 0.55rem 0.75rem;
+.dir-zip-input,
+.dir-sort-field select {
+  padding: 0.6rem 0.75rem;
   border-radius: 10px;
   border: 1px solid rgba(26, 122, 143, 0.18);
+  background: #ffffff;
   font-size: 0.88rem;
-  background: #fff;
+  font-family: inherit;
+  color: var(--navy);
   width: 100%;
+  min-width: 0;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.dir-zip-input:focus {
+.dir-sort-field select {
+  padding-right: 2.1rem;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'><path d='M3 4.5L6 7.5L9 4.5' stroke='%231a7a8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 12px 12px;
+  cursor: pointer;
+}
+
+.dir-zip-input:focus,
+.dir-sort-field select:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.1);
+  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
   outline: none;
+}
+
+.dir-zip-input::placeholder {
+  color: rgba(14, 77, 95, 0.4);
 }
 
 /* -- Results bar ------------------------------------ */
