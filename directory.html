@@ -16,10 +16,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <title>Browse Bipolar-Informed Therapists — BipolarTherapyHub</title>
+    <title id="dirPageTitle">
+      Browse Bipolar-Informed Therapists in California — BipolarTherapyHub
+    </title>
     <meta
+      id="dirPageDescription"
       name="description"
-      content="Browse bipolar-informed therapists and psychiatrists with clearer fit signals, practical details, and a calmer way to compare options."
+      content="Browse bipolar-informed therapists and psychiatrists in California. Filter by location, insurance, and format. Save providers and reach out on your terms."
+    />
+    <link
+      rel="canonical"
+      id="dirPageCanonical"
+      href="https://www.bipolartherapyhub.com/directory"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,6 +36,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
+    <!-- JSON-LD structured data — populated by directory.js after render -->
+    <script type="application/ld+json" id="dirJsonLd"></script>
   </head>
   <body class="dir-vb">
     <nav>
@@ -70,114 +80,141 @@
       </a>
     </div>
 
-    <header class="dir-header">
-      <div class="dir-hero-shell">
-        <div class="dir-hero-copy">
-          <div class="dir-hero-kicker">Find care</div>
-          <h1 id="directoryHeroTitle">Find one strong therapist to contact next.</h1>
-          <p id="directoryHeroDescription">
-            Start with the best match at the top, keep two backups nearby, and use details only if
-            you need more reassurance before reaching out.
-          </p>
-        </div>
-        <aside class="dir-hero-panel" aria-label="Care guidance">
-          <div class="dir-hero-panel-card">
-            <div class="dir-hero-panel-kicker">Start here</div>
-            <div class="dir-hero-panel-title">You do not need to get this perfect.</div>
-            <div class="dir-hero-panel-copy">
-              Begin with one strong match. You can contact one now and come back if needed.
-            </div>
-          </div>
-        </aside>
+    <!-- Simple intro — no gradient hero, no panel, no curation framing -->
+    <div class="dir-intro">
+      <div class="dir-intro-inner">
+        <div class="dir-intro-kicker">Find care</div>
+        <h1 id="directoryHeroTitle">Browse bipolar-informed therapists in California</h1>
+        <p id="directoryHeroDescription">
+          Filter, sort, and save the ones you want to come back to. When you're ready, reach out on
+          your terms.
+        </p>
       </div>
-    </header>
+    </div>
 
     <main class="dir-vb-main">
       <div class="dir-vb-canvas">
-        <section id="directoryRecommendationZone" aria-live="polite"></section>
+        <!-- Off-ramp strip — always visible, never modal -->
+        <a
+          class="dir-offramp"
+          id="dirOfframpLink"
+          href="/index.html#startMatch"
+          data-event="directory_offramp_clicked"
+        >
+          Want a shorter, more personal list?
+          <span class="dir-offramp-action">Answer four questions →</span>
+        </a>
 
+        <!-- Controls bar: quick chips + more filters + ZIP + sort -->
         <div class="dir-vb-bar-wrap">
-          <div class="dir-vb-bar" role="region" aria-label="Quick filters">
-            <div class="dir-vb-bar-copy">
-              <div class="dir-vb-bar-label">Quick filters</div>
-              <p>Use a few practical filters after you have looked at the top matches.</p>
-            </div>
-            <button
-              type="button"
-              class="dir-vb-filters-btn"
-              id="dirVbModalOpen"
-              aria-haspopup="dialog"
-            >
-              <span class="dir-vb-filters-icon" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path
-                    d="M2 4h12M4 8h8M6 12h4"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              <span>More filters</span>
-              <span class="dir-vb-filters-count" id="filterCount"></span>
-            </button>
+          <div class="dir-vb-bar" role="region" aria-label="Filters and sort">
+            <!-- Quick filter chips -->
+            <div class="dir-chips-row">
+              <div class="dir-vb-chips" id="dirVbChips" role="group" aria-label="Quick filters">
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="accepting"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span id="acceptingLabelText">Accepting new</span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="telehealth"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span id="telehealthLabelText">Telehealth</span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="in_person"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span id="inPersonLabelText">In person</span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="therapist"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span>Therapist</span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="psychiatrist"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span>Psychiatrist</span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-vb-chip"
+                  data-chip-for="medication_management"
+                  aria-pressed="false"
+                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                >
+                  <span>Medication support</span>
+                </button>
+              </div>
 
-            <div class="dir-vb-chips" id="dirVbChips">
               <button
                 type="button"
-                class="dir-vb-chip"
-                data-chip-for="accepting"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+                class="dir-vb-filters-btn"
+                id="dirVbModalOpen"
+                aria-haspopup="dialog"
               >
-                <span id="acceptingLabelText">Accepting new</span>
-              </button>
-              <button
-                type="button"
-                class="dir-vb-chip"
-                data-chip-for="telehealth"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-              >
-                <span id="telehealthLabelText">Telehealth</span>
-              </button>
-              <button
-                type="button"
-                class="dir-vb-chip"
-                data-chip-for="in_person"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-              >
-                <span id="inPersonLabelText">In person</span>
-              </button>
-              <button
-                type="button"
-                class="dir-vb-chip"
-                data-chip-for="therapist"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-              >
-                <span>Therapist</span>
-              </button>
-              <button
-                type="button"
-                class="dir-vb-chip"
-                data-chip-for="psychiatrist"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-              >
-                <span>Psychiatrist</span>
-              </button>
-              <button
-                type="button"
-                class="dir-vb-chip"
-                data-chip-for="medication_management"
-                aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-              >
-                <span>Medication support</span>
+                <span class="dir-vb-filters-icon" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M2 4h12M4 8h8M6 12h4"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span>More filters</span>
+                <span class="dir-vb-filters-count" id="filterCount"></span>
               </button>
             </div>
+
+            <!-- ZIP + sort row -->
+            <div class="dir-sort-zip-row">
+              <div class="dir-zip-field">
+                <label for="sortZip" class="dir-field-label">Sort near ZIP</label>
+                <input
+                  type="text"
+                  id="sortZip"
+                  class="dir-zip-input"
+                  inputmode="numeric"
+                  maxlength="5"
+                  placeholder="e.g. 90401"
+                  autocomplete="postal-code"
+                />
+              </div>
+              <div class="dir-sort-field">
+                <label for="sortBy" class="dir-field-label">Sort by</label>
+                <select id="sortBy">
+                  <option value="stable_random">Default order</option>
+                  <option value="near_zip" id="sortNearZipOption" hidden>Near ZIP</option>
+                  <option value="most_experienced">Most bipolar experience</option>
+                  <option value="soonest_availability">Soonest availability</option>
+                  <option value="lowest_fee">Lowest fee</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Hidden checkbox inputs — backing store for chip toggles -->
             <div class="dir-vb-hidden-inputs" aria-hidden="true">
               <input type="checkbox" id="accepting" />
               <input type="checkbox" id="telehealth" />
@@ -191,37 +228,31 @@
           </div>
         </div>
 
-        <div class="results-focus-banner">
-          <div class="results-focus-banner-pill-group">
-            <div class="results-focus-banner-label">Current focus</div>
-            <button type="button" class="results-focus-banner-clear" id="focusClearFiltersButton">
+        <!-- Results count + active filter chips -->
+        <div class="dir-results-bar">
+          <div class="dir-results-count-wrap">
+            <span class="results-count" id="resultsCount" aria-live="polite"
+              >Finding bipolar-informed options...</span
+            >
+          </div>
+          <div class="dir-active-filters-wrap">
+            <div class="dir-active-chips" id="activeFilterChips"></div>
+            <button
+              type="button"
+              class="dir-clear-btn"
+              id="focusClearFiltersButton"
+              hidden
+              aria-label="Clear all active filters"
+            >
               Clear filters
             </button>
           </div>
-          <div class="results-focus-banner-main">
-            <div class="results-focus-banner-copy" id="activeFilterSummary">
-              No filters applied yet. Start with one strong narrowing move.
-            </div>
-          </div>
-          <div class="results-focus-banner-chips" id="activeFilterChips"></div>
         </div>
 
-        <div class="results-header">
-          <div class="results-count" id="resultsCount">Loading bipolar-informed options...</div>
-          <div class="results-tools">
-            <label for="sortBy">Sort by</label>
-            <select id="sortBy">
-              <option value="lowest_fee">Lowest fee</option>
-              <option value="best_match">Best match</option>
-              <option value="most_experienced">Most bipolar experience</option>
-              <option value="soonest_availability">Soonest availability</option>
-              <option value="most_responsive">Most responsive contact</option>
-            </select>
-          </div>
-        </div>
-
+        <!-- Journey summary (guidance copy; hidden until filtered) -->
         <p class="directory-section-copy" id="directoryJourneySummary" hidden></p>
 
+        <!-- Sparse match nudge (shown only when filtered results ≤ 3) -->
         <a
           class="dir-sparse-nudge"
           id="directorySparseNudge"
@@ -241,31 +272,47 @@
           <span class="dir-sparse-nudge-cta">Try guided match →</span>
         </a>
 
-        <div class="therapist-grid dir-vb-grid" id="resultsGrid">
-          <div class="loading">
+        <!-- Recommendation zone — kept in DOM so JS references don't throw; content is empty -->
+        <section id="directoryRecommendationZone" aria-hidden="true" hidden></section>
+
+        <!-- Results grid -->
+        <div
+          class="therapist-grid dir-vb-grid"
+          id="resultsGrid"
+          aria-live="polite"
+          aria-label="Therapist results"
+        >
+          <div class="loading" role="status" aria-live="polite">
             <div class="spinner"></div>
             <p>Finding bipolar-informed options...</p>
           </div>
         </div>
-        <div class="pagination" id="pagination"></div>
+
+        <!-- Load more — rendered by JS -->
+        <div class="dir-load-more-wrap" id="dirLoadMoreWrap"></div>
       </div>
     </main>
 
-    <!-- Full-screen filter modal -->
+    <!-- Full-screen filter modal (More filters) -->
     <div class="dir-vb-modal-scrim" id="dirVbModalScrim" hidden data-dir-vb-modal-close></div>
     <div
       class="dir-vb-modal"
       id="dirVbModal"
       role="dialog"
-      aria-label="Filters"
+      aria-label="More filters"
       aria-modal="true"
       hidden
     >
       <div class="dir-vb-modal-head">
-        <button type="button" class="dir-vb-modal-close" aria-label="Close" data-dir-vb-modal-close>
+        <button
+          type="button"
+          class="dir-vb-modal-close"
+          aria-label="Close filters"
+          data-dir-vb-modal-close
+        >
           ×
         </button>
-        <h2>Filters</h2>
+        <h2>More filters</h2>
         <button type="button" class="dir-vb-modal-clear" id="resetFiltersButton">Clear all</button>
       </div>
 
@@ -284,7 +331,7 @@
                 </select>
               </div>
               <div class="filter-group">
-                <label for="zip" id="cityLabelText">Zip code</label>
+                <label for="zip" id="cityLabelText">Zip code (filter by exact match)</label>
                 <input
                   type="text"
                   id="zip"
@@ -383,32 +430,32 @@
       </div>
     </div>
 
-    <div class="directory-details-scrim" id="directoryDetailsScrim" hidden></div>
+    <!-- Side panel — replaces centered details modal; slides in from right -->
+    <div class="dir-panel-scrim" id="directoryDetailsScrim" hidden></div>
     <div
-      class="directory-details-modal"
+      class="dir-panel"
       id="directoryDetailsModal"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="directoryDetailsHeading"
+      aria-labelledby="dirPanelHeading"
       aria-hidden="true"
       hidden
     >
-      <div class="directory-details-modal-head">
-        <div class="directory-details-modal-label" id="directoryDetailsHeading">
-          Provider details
-        </div>
+      <div class="dir-panel-head">
+        <span class="dir-panel-label" id="dirPanelHeading">Provider details</span>
         <button
           type="button"
-          class="directory-details-close"
+          class="dir-panel-close"
           id="directoryDetailsClose"
-          aria-label="Close details"
+          aria-label="Close provider details"
         >
-          ×
+          ✕
         </button>
       </div>
-      <div class="directory-details-body" id="directoryDetailsBody"></div>
+      <div class="dir-panel-body" id="directoryDetailsBody"></div>
     </div>
-    <!-- directory.js references these IDs on load; keep them in DOM even if unused visually. -->
+
+    <!-- Sidebar DOM stub — directory.js references this ID; keep hidden -->
     <button
       type="button"
       id="mobileFilterToggle"
@@ -430,10 +477,7 @@
     </footer>
 
     <script>
-      // Chip toggle — exposed globally so inline onclick handlers on each
-      // chip button can call it. That bypasses any environment (browser
-      // extensions, SES lockdown, etc.) that might interfere with
-      // addEventListener or event delegation.
+      // Chip toggle — exposed globally so inline onclick handlers work.
       window.__dirVbToggleChip = function (chip) {
         if (!chip) return;
         var id = chip.getAttribute("data-chip-for");
@@ -445,14 +489,12 @@
         try {
           input.dispatchEvent(new Event("change", { bubbles: true }));
         } catch (_err) {
-          // Fallback: fire the apply-filters button, which directory.js
-          // also listens to and which re-reads every input's .checked.
           var applyBtn = document.getElementById("applyFiltersButton");
           if (applyBtn && applyBtn.click) applyBtn.click();
         }
       };
 
-      // Sync any chip whose backing checkbox state changes (reset, deep link).
+      // Sync chip visual state whenever backing checkbox changes (reset, deep-link restore).
       (function () {
         var container = document.getElementById("dirVbChips");
         if (!container) return;
@@ -478,19 +520,26 @@
         }, 300);
       })();
     </script>
+
     <script>
-      // Modal open/close — separate IIFE.
+      // Filter modal open/close.
       (function () {
         var openBtn = document.getElementById("dirVbModalOpen");
         var modal = document.getElementById("dirVbModal");
         var scrim = document.getElementById("dirVbModalScrim");
         if (!openBtn || !modal || !scrim) return;
+        var lastFocusedBeforeModal = null;
         function open() {
+          lastFocusedBeforeModal = document.activeElement;
           modal.hidden = false;
           scrim.hidden = false;
           requestAnimationFrame(function () {
             modal.setAttribute("data-open", "true");
             scrim.setAttribute("data-open", "true");
+            var firstFocusable = modal.querySelector(
+              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+            );
+            if (firstFocusable) firstFocusable.focus();
           });
           document.body.style.overflow = "hidden";
         }
@@ -502,6 +551,9 @@
             scrim.hidden = true;
           }, 220);
           document.body.style.overflow = "";
+          if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === "function") {
+            lastFocusedBeforeModal.focus();
+          }
         }
         openBtn.addEventListener("click", open);
         document.querySelectorAll("[data-dir-vb-modal-close]").forEach(function (el) {
@@ -514,6 +566,26 @@
         if (applyBtn) applyBtn.addEventListener("click", close);
       })();
     </script>
+
+    <script>
+      // Sort-ZIP session restore + live dispatch.
+      (function () {
+        var sortZipInput = document.getElementById("sortZip");
+        if (!sortZipInput) return;
+        try {
+          var stored = sessionStorage.getItem("bth_sort_zip_v1");
+          if (stored && /^\d{1,5}$/.test(stored)) {
+            sortZipInput.value = stored;
+          }
+        } catch (_e) {}
+        sortZipInput.addEventListener("input", function () {
+          try {
+            sessionStorage.setItem("bth_sort_zip_v1", sortZipInput.value.trim());
+          } catch (_e) {}
+        });
+      })();
+    </script>
+
     <script type="module" src="assets/directory.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>

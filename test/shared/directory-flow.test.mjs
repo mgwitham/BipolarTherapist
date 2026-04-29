@@ -49,14 +49,14 @@ test("directory flow harness applies controls, sorts results, and renders the to
 
   const flow = runDirectoryTestFlow({ therapists });
 
-  assert.equal(flow.renderState.featuredTherapist.slug, "avery-chen");
-  assert.equal(flow.renderState.backupTherapists.length, 2);
-  assert.equal(flow.renderState.pageItems[0].slug, "riley-ng");
-  assert.equal(flow.renderState.activePreviewSlug, "avery-chen");
+  // featured/backup split is removed; all results in pageItems
+  assert.equal(flow.renderState.featuredTherapist, null);
+  assert.equal(flow.renderState.backupTherapists.length, 0);
+  assert.equal(flow.renderState.pageItems[0].slug, "avery-chen");
   assert.equal(flow.renderState.activeFilterCount, 6);
-  assert.match(flow.html, /Riley Ng/);
-  assert.match(flow.html, /Contact therapist/);
-  assert.match(flow.html, /Save/);
+  assert.match(flow.html, /Avery Chen/);
+  assert.match(flow.html, /card-action-primary/);
+  assert.match(flow.html, /t-card-save|data-shortlist-slug/);
 });
 
 test("directory flow harness exposes empty results when filters overconstrain the list", function () {
@@ -108,5 +108,5 @@ test("directory flow harness responds to sort changes in controller state", func
   });
 
   assert.equal(flow.sortChanged.filters.sortBy, "soonest_availability");
-  assert.equal(flow.renderState.featuredTherapist.slug, "fast-option");
+  assert.equal(flow.renderState.pageItems[0].slug, "fast-option");
 });
