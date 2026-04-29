@@ -1169,15 +1169,14 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     breakdown.clinical += clamp(Number(therapist.bipolar_years_experience || 0), 0, 18);
   }
 
-  if (!therapist.accepting_new_patients) {
-    breakdown.practical -= 14;
-    breakdown.learned -= Math.max(
-      1,
-      getReasonWeight(resolvedLearning, "Availability mismatch") - 1,
-    );
-    cautions.push("May not be accepting new patients.");
-  } else {
+  if (therapist.accepting_new_patients === false) {
+    hardFailures.push("Listing is currently paused — not accepting new patients.");
+  } else if (therapist.accepting_new_patients === true) {
     breakdown.practical += 6;
+  } else {
+    // Status not explicitly set — apply a softer uncertainty penalty
+    breakdown.practical -= 5;
+    cautions.push("Accepting-patient status not confirmed.");
   }
 
   var specialtyMatches = listOverlaps(profile.bipolar_focus, therapist.specialties);

@@ -18,7 +18,7 @@ test("paid analytics dashboard: leads with weekly decision framing", () => {
   // heading and a calmer empty-state body.
   assert.match(portalJs, /This week/);
   assert.match(portalJs, /Patient activity/);
-  assert.match(portalJs, /No patient activity yet/);
+  assert.match(portalJs, /weekly profile views, match appearances, and contact events/);
 });
 
 test("paid analytics dashboard: renders summary, top insight, changes, and recommendations", () => {
@@ -44,7 +44,7 @@ test("paid analytics dashboard: supports confidence, low-data, and readiness sta
   assert.match(portalJs, /Listing readiness/);
   assert.match(portalJs, /Signals present/);
   assert.match(portalJs, /Highest-impact profile update/);
-  assert.match(portalJs, /Use this quiet week to check contact clarity and listing readiness/);
+  assert.match(portalJs, /Use this quiet week to fill the biggest readiness gaps first/);
 });
 
 test("paid analytics dashboard: includes direct profile-update actions and instrumentation", () => {

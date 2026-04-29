@@ -176,6 +176,18 @@ img.bth-avatar {
   min-height: 36px;
 }
 
+/* ─── Bio overflow clamp (Section 9) ─────────────────────────────── */
+/* Constrain the voice/bio slot in the preview card to match the
+   public card's visual cap (~4 lines). The 220-char JS trim still
+   runs, but very long lines can still exceed the card's height
+   before the char limit kicks in. */
+.bth-card-preview .bth-voice {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ─── Portal-specific preview tweaks ──────────────────────────────── */
 
 .bth-card-preview {

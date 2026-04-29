@@ -24,63 +24,127 @@
   min-width: 0;
 }
 
-/* ─── Score header + progress bar ─────────────────────────────────── */
+/* ─── Score header + circular ring (Section 6) ────────────────────── */
 .td-completeness-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.7rem;
+  align-items: center;
+  gap: 1.1rem;
+  margin-bottom: 1.2rem;
+}
+.td-score-ring-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.td-score-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.td-score-ring-track {
+  fill: none;
+  stroke: #eef3f5;
+  stroke-width: 7;
+}
+.td-score-ring-fill {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.3s ease;
+}
+.td-score-ring-fill-amber {
+  stroke: #d97706;
+}
+.td-score-ring-fill-yellow {
+  stroke: #ca8a04;
+}
+.td-score-ring-fill-green {
+  stroke: #0f6e56;
+}
+.td-score-ring-fill-deep-green {
+  stroke: #085041;
+}
+@keyframes tdRingPulse {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(15, 110, 86, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 4px rgba(15, 110, 86, 0.35));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(15, 110, 86, 0));
+  }
+}
+.td-ring-pulse {
+  animation: tdRingPulse 0.6s ease;
+}
+.td-score-ring-num {
+  position: relative;
+  z-index: 1;
+  font-size: 1.45rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.td-score-ring-num-amber {
+  color: #d97706;
+}
+.td-score-ring-num-yellow {
+  color: #ca8a04;
+}
+.td-score-ring-num-green {
+  color: #0f6e56;
+}
+.td-score-ring-num-deep-green {
+  color: #085041;
 }
 .td-completeness-meta {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 .td-completeness-label {
-  margin: 0 0 0.2rem;
+  margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #6b8189;
+}
+.td-completeness-label-needs {
+  color: #d97706;
+}
+.td-completeness-label-fair {
+  color: #ca8a04;
+}
+.td-completeness-label-good {
+  color: #0f6e56;
+}
+.td-completeness-label-complete {
+  color: #085041;
 }
 .td-completeness-subline {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #2d4651;
+  line-height: 1.45;
 }
-.td-completeness-score {
-  font-size: 1.4rem;
-  font-weight: 600;
+.td-completeness-outcome {
   margin: 0;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.td-completeness-score-needs,
-.td-completeness-score-fair {
-  color: #b03636;
-}
-.td-completeness-score-good {
-  color: #0f6e56;
-}
-.td-completeness-score-complete {
-  color: #0f6e56;
-}
-.td-completeness-track {
-  height: 8px;
-  background: #eef3f5;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 1.2rem;
-}
-.td-completeness-fill {
-  height: 100%;
-  background: #0f6e56;
-  border-radius: 999px;
-  transition: width 0.4s ease;
+  font-size: 0.8rem;
+  color: #6b8189;
+  line-height: 1.4;
+  font-style: italic;
 }
 
-/* ─── Sections ────────────────────────────────────────────────────── */
+/* ─── Sections (Section 7 visual hierarchy) ───────────────────────── */
 .td-section {
   margin-top: 1rem;
 }
@@ -97,6 +161,12 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #4d6671;
+}
+/* Essential section header is more prominent */
+.td-section:first-of-type .td-section-title {
+  background: #faece7;
+  color: #712b13;
+  border-left: 3px solid #f0997b;
 }
 .td-section-rows {
   display: flex;
@@ -123,7 +193,15 @@
   border-color: #f0997b;
 }
 .td-row.is-complete {
-  /* No special styling — the green Done badge does the job. */
+  background: #f9fbfc;
+  border-color: #e8eff1;
+}
+.td-row.is-complete .td-row-title {
+  color: #4d6671;
+  font-weight: 500;
+}
+.td-row.is-complete .td-row-trigger:hover {
+  background: rgba(240, 245, 247, 0.5);
 }
 .td-row-trigger {
   display: flex;
@@ -189,6 +267,15 @@
   line-height: 1.4;
   word-break: break-word;
 }
+/* Section 8: matching-only label */
+.td-row-matching-only {
+  display: block;
+  font-size: 11px;
+  color: #8a9aa1;
+  font-style: italic;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
 .td-row.is-complete .td-row-hint {
   color: #2d4651;
 }
@@ -208,13 +295,12 @@
   color: #b03636;
   border: 1px solid #f0997b;
 }
-/* Incomplete optional fields use a soft red so the panel reads as
-   "still has work" at a glance — green here was indistinguishable
-   from the Done state and washed out the visual urgency. */
+/* Optional pts badges use neutral gray — Required (orange) is the only
+   color signal so it reads as urgent at a glance without competition. */
 .td-row-badge-points {
-  background: #fbe9e7;
-  color: #b03636;
-  border: 1px solid #f4b8a7;
+  background: #eef3f5;
+  color: #4d6671;
+  border: 1px solid #d6e2e6;
 }
 .td-row-badge-done {
   background: #d4f0e3;
@@ -511,6 +597,89 @@
   margin: 0 0 0.75rem;
 }
 
+/* ─── 100/100 confetti (Section 5) ───────────────────────────────── */
+.td-confetti-burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 10;
+}
+.td-confetti-piece {
+  position: absolute;
+  top: -10px;
+  display: block;
+  opacity: 0;
+  animation: tdConfettiFall linear forwards;
+}
+@keyframes tdConfettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(240px) rotate(720deg);
+  }
+}
+
+/* ─── Section 11 micro-interactions ──────────────────────────────── */
+
+/* Row save flash — brief green highlight when a row is saved */
+@keyframes tdRowSaveFlash {
+  0% {
+    background: #d4f0e3;
+    border-color: #6ec49a;
+  }
+  100% {
+    background: inherit;
+    border-color: inherit;
+  }
+}
+.td-row-flash {
+  animation: tdRowSaveFlash 0.7s ease;
+}
+
+/* Done badge appears with a subtle scale-in */
+@keyframes tdBadgeDoneIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.td-row-badge-done {
+  animation: tdBadgeDoneIn 0.3s ease;
+}
+
+/* Preview pulse when card updates from a save */
+@keyframes tdPreviewPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.25);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(15, 110, 86, 0);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+.tdc-preview-pulse {
+  animation: tdPreviewPulse 0.5s ease;
+}
+
 /* ─── Mobile ──────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .td-completeness {
@@ -532,6 +701,16 @@
   }
   .td-save {
     min-height: 44px;
+  }
+  .td-completeness-header {
+    gap: 0.85rem;
+  }
+  .td-score-ring-wrap {
+    width: 64px;
+    height: 64px;
+  }
+  .td-score-ring-num {
+    font-size: 1.2rem;
   }
 }
 
@@ -557,6 +736,139 @@
   font-weight: 700;
 }
 
+/* ─── Going-live celebration banner (Section 3) ───────────────────── */
+.td-going-live-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.td-going-live-bar-celebrating {
+  background: linear-gradient(135deg, #d4f0e3 0%, #e1f8ef 100%);
+  border: 1px solid #6ec49a;
+  color: #085041;
+  animation: tdGoLiveFadeIn 0.4s ease;
+}
+@keyframes tdGoLiveFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.td-going-live-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  animation: tdGoLiveIconPop 0.5s ease 0.1s both;
+}
+@keyframes tdGoLiveIconPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.td-going-live-msg {
+  flex: 1;
+}
+
+/* Slim persistent "● Live" indicator shown after celebration fades */
+.td-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #085041;
+  background: #d4f0e3;
+  border: 1px solid #6ec49a;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  margin-bottom: 1rem;
+  animation: tdLiveIndicatorFadeIn 0.5s ease;
+}
+@keyframes tdLiveIndicatorFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.td-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0f6e56;
+  animation: tdLiveDotPulse 2s ease-in-out infinite;
+}
+@keyframes tdLiveDotPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(15, 110, 86, 0);
+  }
+}
+
+/* ─── Contextual upgrade nudge (Section 4) ────────────────────────── */
+.td-upgrade-nudge {
+  background: linear-gradient(135deg, #f0f7fa 0%, #e8f4f8 100%);
+  border: 1px solid #9ecdd4;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  font-size: 0.93rem;
+  color: #1d3a4a;
+  line-height: 1.55;
+  animation: tdNudgeFadeIn 0.5s ease 0.2s both;
+}
+@keyframes tdNudgeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.td-upgrade-nudge-actions {
+  margin-top: 0.65rem;
+}
+.td-upgrade-nudge-btn {
+  display: inline-flex;
+  align-items: center;
+  background: #0f6e56;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.td-upgrade-nudge-btn:hover {
+  background: #085041;
+}
+
 /* ─── TD-C: Bio textarea + character counter ──────────────────────── */
 .td-textarea-bio {
   min-height: 90px;
@@ -574,6 +886,13 @@
 .td-form-counter.is-short {
   color: #b03636;
   font-weight: 600;
+}
+.td-form-counter.is-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+.td-form-counter.is-good {
+  color: #0f6e56;
 }
 
 /* ─── TD-C: Contact-route pills + contextual inputs ───────────────── */
