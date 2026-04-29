@@ -6038,7 +6038,11 @@ function bindContactDialogActions(entry) {
       trackFunnelEvent("match_contact_modal_send_email", {
         slug: therapist.slug || "",
       });
-      window.location.href = href;
+      var a = document.createElement("a");
+      a.href = href;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     });
   }
 
