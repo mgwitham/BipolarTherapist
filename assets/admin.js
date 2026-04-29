@@ -109,6 +109,7 @@ import {
   openCandidateEditDrawer,
   openTherapistEditDrawer,
 } from "./admin-candidate-edit.js";
+import { initAdminProfileSearch } from "./admin-profile-search.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -8409,6 +8410,48 @@ if (getAdminSessionToken()) {
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "listeners-bound");
 }
+
+// Profile search — reads live data arrays via closures so results are always current.
+let profileSearch = null;
+profileSearch = initAdminProfileSearch({
+  getCandidates: function () {
+    return remoteCandidates;
+  },
+  getApplications: function () {
+    return remoteApplications;
+  },
+  getTherapists: function () {
+    return publishedTherapists;
+  },
+  onSelect: function (result) {
+    function onSaved() {
+      loadData();
+      if (profileSearch) {
+        profileSearch.showBanner("Profile updated", "success");
+        profileSearch.focusInput();
+      }
+    }
+    if (result.kind === "therapist") {
+      openTherapistEditDrawer(result.record, onSaved);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (result.kind === "candidate") {
+      openCandidateEditDrawer(result.record, onSaved);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Applications don't have a field-edit drawer; navigate to the review panel and pre-filter.
+      setActiveAdminView("review");
+      applicationFilters.q = result.record.name || result.record.email || "";
+      var searchEl = document.getElementById("applicationSearch");
+      if (searchEl) searchEl.value = applicationFilters.q;
+      renderApplications();
+      var panel = document.getElementById("applicationsPanel");
+      if (panel)
+        window.setTimeout(function () {
+          panel.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+    }
+  },
+});
 
 loadData().catch(function (error) {
   console.error("Admin boot failed:", error);
