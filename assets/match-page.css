@@ -1595,9 +1595,24 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .match-empty-copy {
   margin: 0;
-  font-size: 0.96rem;
-  line-height: 1.65;
-  color: var(--slate);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #4a6572;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: #f7fbfc;
+  border-radius: 14px;
+  border: 1px solid #e4eef1;
+}
+.match-empty-home-link {
+  color: #1a7a8f;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1.5px solid rgba(26, 122, 143, 0.35);
+  transition: border-color 0.15s;
+}
+.match-empty-home-link:hover {
+  border-color: #1a7a8f;
 }
 .match-empty-decision-grid {
   display: grid;
@@ -5336,16 +5351,12 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
          legacy .result-* rules above, which the new render
          functions no longer emit.
       */
+/* Results header — stacks vertically, no space-between float */
 .mx-results-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
+  flex-direction: column;
+  gap: 0.55rem;
   margin-bottom: 1.1rem;
-}
-.mx-results-header-copy {
-  flex: 1;
-  min-width: 0;
 }
 .mx-results-kicker {
   font-size: 0.72rem;
@@ -5353,7 +5364,6 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   color: #155f70;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.35rem;
 }
 .mx-results-title {
   font-family: "Fraunces", "Inter", serif;
@@ -5361,7 +5371,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   font-size: clamp(1.4rem, 2.4vw, 1.75rem);
   line-height: 1.2;
   letter-spacing: -0.01em;
-  margin: 0 0 0.35rem;
+  margin: 0;
   color: #0f1f28;
 }
 .mx-results-sub {
@@ -5369,33 +5379,42 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   font-size: 0.88rem;
   margin: 0;
 }
-.mx-results-sub strong {
-  color: #0f1f28;
-  font-weight: 600;
+
+/* Header refine button — desktop only, sits inline below subtitle */
+.mx-refine-btn--header {
+  display: none;
 }
-.mx-refine-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  background: #fff;
-  border: 1px solid #c9dce1;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #0f1f28;
-  box-shadow: 0 1px 2px rgba(15, 31, 40, 0.04);
-  white-space: nowrap;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.15s ease;
-}
-.mx-refine-btn:hover {
-  border-color: #1a7a8f;
-}
-.mx-refine-btn svg {
-  width: 14px;
-  height: 14px;
+@media (min-width: 821px) {
+  .mx-refine-btn--header {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    align-self: flex-start;
+    padding: 0.55rem 1rem;
+    background: #fff;
+    border: 1px solid #c9dce1;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1d3a4a;
+    box-shadow: 0 1px 3px rgba(15, 31, 40, 0.06);
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+    margin-top: 0.2rem;
+  }
+  .mx-refine-btn--header:hover {
+    border-color: #1a7a8f;
+    box-shadow: 0 2px 6px rgba(26, 122, 143, 0.12);
+  }
+  .mx-refine-btn--header svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
 }
 .mx-refine-btn-count {
   background: #1a7a8f;
@@ -5412,6 +5431,110 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .mx-refine-btn-count[hidden] {
   display: none;
+}
+
+/* Desktop refine bar — full-width, below cards, hidden on mobile */
+.mx-refine-bar {
+  display: none;
+}
+@media (min-width: 821px) {
+  .mx-refine-bar {
+    display: flex;
+    justify-content: center;
+    margin: 1.75rem 0 0.5rem;
+  }
+  .mx-refine-bar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.75rem 2rem;
+    background: #fff;
+    border: 1.5px solid #c9dce1;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1d3a4a;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 8px rgba(15, 31, 40, 0.06);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s,
+      background 0.15s;
+  }
+  .mx-refine-bar-btn:hover {
+    border-color: #1a7a8f;
+    background: #f4fbfc;
+    box-shadow: 0 4px 14px rgba(26, 122, 143, 0.12);
+  }
+  .mx-refine-bar-btn svg {
+    flex-shrink: 0;
+  }
+}
+
+/* Mobile sticky refine bar — fixed bottom, hidden on desktop */
+.mx-refine-sticky {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 120;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid #d4e4e9;
+  box-shadow: 0 -4px 16px rgba(15, 31, 40, 0.08);
+}
+.mx-refine-sticky-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  background: #1d3a4a;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.mx-refine-sticky-btn:hover {
+  background: #1a7a8f;
+}
+.mx-refine-sticky-btn svg {
+  flex-shrink: 0;
+}
+.mx-refine-sticky-count {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.mx-refine-sticky-count[hidden] {
+  display: none;
+}
+/* Hide sticky bar on desktop */
+@media (min-width: 821px) {
+  .mx-refine-sticky {
+    display: none;
+  }
+}
+/* Push page content up so sticky bar doesn't cover last card on mobile */
+@media (max-width: 820px) {
+  .match-list {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
 }
 
 .mx-top-three {
@@ -5922,13 +6045,6 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
          cards bled past the viewport edge. Stack instead so each card
          takes the full available width. */
 @media (max-width: 820px) {
-  .mx-results-header {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-  .mx-refine-btn {
-    align-self: flex-start;
-  }
   .mx-top-three {
     display: grid;
     grid-template-columns: 1fr;
@@ -6417,8 +6533,12 @@ img.bth-avatar {
 
 .bth-card-lead {
   border-color: #c5e2e8;
-  background: linear-gradient(180deg, #f4fbfc 0%, #ffffff 60%);
-  box-shadow: 0 4px 14px rgba(15, 95, 112, 0.08);
+  border-left: 3px solid #1a7a8f;
+  background: linear-gradient(160deg, #f1f9fb 0%, #ffffff 55%);
+  box-shadow: 0 6px 24px rgba(15, 95, 112, 0.11);
+}
+.bth-card-lead:hover {
+  box-shadow: 0 10px 32px rgba(15, 95, 112, 0.15);
 }
 
 .bth-card-badge {
@@ -6919,13 +7039,18 @@ img.bth-avatar {
 
 /* Top match label */
 .mx-top-match-label {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(26, 122, 143, 0.1);
   color: #1a7a8f;
-  margin-bottom: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  margin-bottom: 0.6rem;
 }
 
 /* Card quote (claimed bio excerpt) */
@@ -7026,8 +7151,43 @@ img.bth-avatar {
   background: #fff;
   box-shadow: 0 24px 60px rgba(15, 31, 40, 0.22);
 }
+.mx-no-fit-dialog[open] {
+  animation: mxDialogFade 200ms ease both;
+}
 .mx-no-fit-dialog::backdrop {
   background: rgba(15, 31, 40, 0.42);
+  animation: mxBackdropFade 200ms ease both;
+}
+@keyframes mxDialogFade {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes mxBackdropFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 640px) {
+  .mx-no-fit-dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: 85dvh;
+    border-radius: 22px 22px 0 0;
+    margin: auto 0 0;
+    overflow-y: auto;
+  }
+  .mx-no-fit-dialog[open] {
+    animation: bthSheetUp 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 .mx-no-fit-inner {
   padding: 1.75rem 1.75rem 1.5rem;
@@ -7105,4 +7265,95 @@ img.bth-avatar {
   color: #3aaa7a;
   margin: 0.75rem 0 0;
   min-height: 1.2em;
+}
+
+/* ── Polish pass ─────────────────────────────────────────────────────── */
+
+/* Focus-visible ring — consistent across all interactive elements */
+.bth-btn-primary:focus-visible,
+.bth-btn-secondary:focus-visible,
+.mx-show-more:focus-visible,
+.mx-compare-trigger:focus-visible,
+.mx-no-fit-link:focus-visible,
+.mx-refine-btn--header:focus-visible,
+.mx-refine-bar-btn:focus-visible,
+.mx-refine-sticky-btn:focus-visible,
+.mx-no-fit-submit:focus-visible,
+.mx-no-fit-cancel:focus-visible,
+.mx-no-fit-close:focus-visible,
+.bth-card .mx-card-save:focus-visible,
+.match-empty-action:focus-visible {
+  outline: 2px solid #1a7a8f;
+  outline-offset: 2px;
+}
+
+/* Compare trigger — give it enough visual weight to register as a CTA */
+.mx-compare-trigger {
+  border: 1px solid rgba(82, 112, 124, 0.28);
+  border-radius: 999px;
+  padding: 0.38rem 1rem;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.mx-compare-trigger:hover {
+  background: rgba(26, 122, 143, 0.06);
+  border-color: rgba(26, 122, 143, 0.4);
+}
+
+/* Not seeing the right fit — slightly more readable */
+.mx-no-fit-link {
+  padding: 0.25rem 0;
+}
+.mx-no-fit-link:hover {
+  text-decoration-color: #1a7a8f;
+}
+
+/* Show more — smooth card reveal */
+@keyframes mxReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mx-more-cards.is-revealed {
+  animation: mxReveal 280ms ease both;
+}
+
+/* Ensure all dialogs stack above the sticky refine bar (z-index: 120) */
+.mx-details-dialog,
+.mx-contact-dialog,
+.mx-no-fit-dialog {
+  z-index: 200;
+}
+
+/* Primary button — slightly rounder on mobile for thumb tap comfort */
+@media (max-width: 640px) {
+  .bth-btn-primary,
+  .bth-btn-secondary {
+    border-radius: 10px;
+  }
+}
+
+/* Refine bar button — add subtle active state for tap feedback */
+.mx-refine-bar-btn:active,
+.mx-refine-sticky-btn:active {
+  transform: scale(0.98);
+}
+
+/* Card hover — lift runners slightly on desktop */
+@media (min-width: 641px) {
+  .bth-card:hover {
+    transform: translateY(-1px);
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
+  }
 }

@@ -5222,7 +5222,6 @@ function buildResultsHeaderHtml(profile, totalCount) {
 
   return (
     '<header class="mx-results-header">' +
-    '<div class="mx-results-header-copy">' +
     '<div class="mx-results-kicker">Your matches</div>' +
     '<h1 class="mx-results-title">' +
     totalCount +
@@ -5230,8 +5229,7 @@ function buildResultsHeaderHtml(profile, totalCount) {
     (totalCount === 1 ? "match" : "matches") +
     " for you</h1>" +
     (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
-    "</div>" +
-    '<button type="button" class="mx-refine-btn" data-mx-refine-open="header">' +
+    '<button type="button" class="mx-refine-btn mx-refine-btn--header" data-mx-refine-open="header">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
     '<line x1="4" y1="21" x2="4" y2="14"></line>' +
     '<line x1="4" y1="10" x2="4" y2="3"></line>' +
@@ -5278,8 +5276,8 @@ function renderPrimaryMatchCards(entries, profile) {
   }
 
   var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 3); // ranks 2 & 3 — always visible
-  var moreEntries = allEntries.slice(3); // ranks 4-8 — hidden behind Show more
+  var runnerUps = allEntries.slice(1, 5); // ranks 2-5 — 2×2 grid, always visible
+  var moreEntries = allEntries.slice(5); // ranks 6+ — hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
   var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
@@ -5328,6 +5326,20 @@ function renderPrimaryMatchCards(entries, profile) {
     '<button type="button" class="mx-no-fit-link" id="matchNoFitOpen">Not seeing the right fit?</button>' +
     "</div>";
 
+  var refineBarHtml =
+    '<div class="mx-refine-bar">' +
+    '<button type="button" class="mx-refine-bar-btn" data-mx-refine-open="bar">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16">' +
+    '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>' +
+    '<line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>' +
+    '<line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>' +
+    '<line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>' +
+    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
+    "</svg>" +
+    "Adjust your search" +
+    "</button>" +
+    "</div>";
+
   root.className = "match-list";
   root.innerHTML =
     '<div class="results-panel">' +
@@ -5337,6 +5349,7 @@ function renderPrimaryMatchCards(entries, profile) {
     runnersHtml +
     "</section>" +
     moreHtml +
+    refineBarHtml +
     compareTriggerHtml +
     noFitLinkHtml +
     "</div>";
@@ -5459,12 +5472,45 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   });
 
+  if (typeof window.IntersectionObserver === "function") {
+    var impressionSeen = new Set();
+    var impressionObserver = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var card = entry.target;
+          var slug = (card.querySelector("[data-match-primary-cta]") || {}).getAttribute
+            ? card.querySelector("[data-match-primary-cta]").getAttribute("data-match-primary-cta")
+            : "";
+          if (!slug || impressionSeen.has(slug)) return;
+          impressionSeen.add(slug);
+          trackFunnelEvent(
+            "match_card_impression",
+            buildMatchTrackingPayload(slug, {
+              rank: allEntries.findIndex(function (e) {
+                return e.therapist && e.therapist.slug === slug;
+              }),
+            }),
+          );
+          impressionObserver.unobserve(card);
+        });
+      },
+      { threshold: 0.5 },
+    );
+    root.querySelectorAll("article.bth-card, article.bth-card-lead").forEach(function (card) {
+      impressionObserver.observe(card);
+    });
+  }
+
   var showMoreBtn = document.getElementById("matchShowMore");
   if (showMoreBtn) {
     showMoreBtn.addEventListener("click", function () {
       var moreSection = root.querySelector(".mx-more-cards");
       var showMoreWrap = root.querySelector(".mx-show-more-wrap");
-      if (moreSection) moreSection.hidden = false;
+      if (moreSection) {
+        moreSection.hidden = false;
+        moreSection.classList.add("is-revealed");
+      }
       if (showMoreWrap) showMoreWrap.hidden = true;
       trackFunnelEvent("match_show_more_clicked", {
         result_count: allEntries.length,
@@ -5493,6 +5539,21 @@ function renderPrimaryMatchCards(entries, profile) {
       var dialog = document.getElementById("noFitFeedbackDialog");
       if (dialog && typeof dialog.showModal === "function") dialog.showModal();
     });
+  }
+
+  var stickyBar = document.getElementById("matchRefineSticky");
+  var stickyCount = document.getElementById("matchRefineStickyCount");
+  if (stickyBar) {
+    stickyBar.hidden = false;
+    var activeCount = countActiveRefinements(profile);
+    if (stickyCount) {
+      if (activeCount) {
+        stickyCount.textContent = activeCount;
+        stickyCount.hidden = false;
+      } else {
+        stickyCount.hidden = true;
+      }
+    }
   }
 
   bindRefineButtons();
@@ -5977,7 +6038,11 @@ function bindContactDialogActions(entry) {
       trackFunnelEvent("match_contact_modal_send_email", {
         slug: therapist.slug || "",
       });
-      window.location.href = href;
+      var a = document.createElement("a");
+      a.href = href;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     });
   }
 
@@ -6120,10 +6185,39 @@ function renderResults(entries, profile) {
   }
 }
 
+var MATCH_LOADING_SKELETON_HTML =
+  '<div class="mx-loading" role="status" aria-live="polite">' +
+  '<div class="mx-loading-header">' +
+  '<div class="mx-loading-kicker">Your matches</div>' +
+  '<div class="mx-loading-title">Finding your top bipolar-informed matches</div>' +
+  '<div class="mx-loading-sub">This usually takes a second.</div>' +
+  "</div>" +
+  '<div class="mx-loading-hero"></div>' +
+  '<div class="mx-loading-runners">' +
+  '<div class="mx-loading-card"></div>' +
+  '<div class="mx-loading-card"></div>' +
+  "</div>" +
+  "</div>";
+
 async function handleSubmit(event) {
   event.preventDefault();
   var profile = readCurrentIntakeProfile();
+
+  var root = getMatchShellRefs().resultsRoot;
+  if (root) {
+    root.className = "match-results match-results-hero match-empty";
+    root.innerHTML = MATCH_LOADING_SKELETON_HTML;
+  }
+
+  var loadStart = Date.now();
   await ensureZipcodesReadyForProfile(profile);
+  var elapsed = Date.now() - loadStart;
+  if (elapsed < 500) {
+    await new Promise(function (resolve) {
+      window.setTimeout(resolve, 500 - elapsed);
+    });
+  }
+
   executeMatch(profile, {
     scroll: true,
     source: currentJourneyId ? "match_refine" : "match_page",
@@ -6257,6 +6351,8 @@ function resetForm() {
   renderMatchLandingShell();
   clearRenderedMatchPanels();
   updateShortlistFeedbackUi("");
+  var resetStickyBar = document.getElementById("matchRefineSticky");
+  if (resetStickyBar) resetStickyBar.hidden = true;
   if (refs.feedbackStatus) {
     refs.feedbackStatus.textContent =
       "Your feedback helps us improve which providers rise for searches like yours.";
@@ -6342,6 +6438,12 @@ function refreshIntakeUiFromForm() {
     maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
     maybeLiveRecompute(event);
+    if (document.body.classList.contains("match-refine-drawer-open") && event.target.name) {
+      trackFunnelEvent("match_filter_changed", {
+        field: event.target.name,
+        value: event.target.type === "checkbox" ? event.target.checked : event.target.value,
+      });
+    }
   });
   var refinements = refs.refinements;
   if (refinements) {
