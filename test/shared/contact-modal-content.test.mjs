@@ -4,7 +4,6 @@ import test from "node:test";
 import {
   buildContactDraftMessage,
   buildContactModalContent,
-  buildSecondaryContacts,
   extractFirstName,
   formatPhoneDisplay,
   resolvePreferredContactMethod,
@@ -100,7 +99,7 @@ test("buildContactDraftMessage: uses first name and fixed body text", () => {
   assert.match(msg, /accepting new patients\?$/);
 });
 
-// ── buildSecondaryContacts ─────────────────────────────────────
+// ── buildContactModalContent: layout selection ─────────────────
 
 const FULL_THERAPIST = {
   name: "Dr. Jamie Rivera",
@@ -109,66 +108,6 @@ const FULL_THERAPIST = {
   website: "https://practice.com",
   bookingUrl: "https://calendly.com/jamie",
 };
-
-test("buildSecondaryContacts (booking layout): phone, email, website — no booking", () => {
-  const secondaries = buildSecondaryContacts("booking", FULL_THERAPIST);
-  assert.deepEqual(
-    secondaries.map((s) => s.method),
-    ["phone", "email", "website"],
-  );
-});
-
-test("buildSecondaryContacts (website layout): phone, email only — excludes booking", () => {
-  const secondaries = buildSecondaryContacts("website", FULL_THERAPIST);
-  assert.deepEqual(
-    secondaries.map((s) => s.method),
-    ["phone", "email"],
-  );
-});
-
-test("buildSecondaryContacts (phone layout): email, website, booking — no phone", () => {
-  const secondaries = buildSecondaryContacts("phone", FULL_THERAPIST);
-  assert.deepEqual(
-    secondaries.map((s) => s.method),
-    ["email", "website", "booking"],
-  );
-});
-
-test("buildSecondaryContacts (email layout): phone, website, booking — no email", () => {
-  const secondaries = buildSecondaryContacts("email", FULL_THERAPIST);
-  assert.deepEqual(
-    secondaries.map((s) => s.method),
-    ["phone", "website", "booking"],
-  );
-});
-
-test("buildSecondaryContacts: skips fields the therapist hasn't populated", () => {
-  const phoneOnly = buildSecondaryContacts("booking", {
-    phone: "415-867-2345",
-    email: "",
-    website: "",
-  });
-  assert.deepEqual(
-    phoneOnly.map((s) => s.method),
-    ["phone"],
-  );
-});
-
-test("buildSecondaryContacts: phone entries use tel: href and formatted display", () => {
-  const secondaries = buildSecondaryContacts("booking", FULL_THERAPIST);
-  const phone = secondaries.find((s) => s.method === "phone");
-  assert.equal(phone.href, "tel:4158672345");
-  assert.equal(phone.display, "(415) 867-2345");
-});
-
-test("buildSecondaryContacts: website + booking are marked external (target=_blank)", () => {
-  const secondaries = buildSecondaryContacts("phone", FULL_THERAPIST);
-  assert.equal(secondaries.find((s) => s.method === "website").external, true);
-  assert.equal(secondaries.find((s) => s.method === "booking").external, true);
-  assert.equal(secondaries.find((s) => s.method === "email").external, false);
-});
-
-// ── buildContactModalContent: layout selection ─────────────────
 
 test("buildContactModalContent: booking layout renders 'Book with [First]'", () => {
   const result = buildContactModalContent({
@@ -245,16 +184,6 @@ test("buildContactModalContent: returns { layout: null, html: '' } when no conta
   const result = buildContactModalContent({ name: "Nobody Home" });
   assert.equal(result.layout, null);
   assert.equal(result.html, "");
-});
-
-test("buildContactModalContent: secondary contacts section omitted if no other methods", () => {
-  const result = buildContactModalContent({
-    name: "Solo Booker",
-    bookingUrl: "https://calendly.com/solo",
-    preferredContactMethod: "booking",
-  });
-  assert.equal(result.layout, "booking");
-  assert.equal(/mx-contact-others/.test(result.html), false);
 });
 
 test("buildContactModalContent: escapes user-supplied therapist name", () => {

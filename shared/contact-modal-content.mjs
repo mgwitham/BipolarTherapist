@@ -1,8 +1,7 @@
 // Content-building for the four-layout contact modal on the match
 // page. One layout per preferredContactMethod (booking / website /
 // phone / email). Pure functions — return HTML strings — so the
-// layout selection and secondary-contact filtering are unit-testable
-// without spinning up a DOM.
+// layout selection is unit-testable without spinning up a DOM.
 //
 // Field shape: this module accepts therapist data in camelCase
 // (bookingUrl, website, phone, email, preferredContactMethod, name).
@@ -13,24 +12,6 @@ const HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
 const CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
 
 const CONTACT_METHODS = ["booking", "website", "phone", "email"];
-
-// Secondary contact order per layout. Matches the spec: booking omits
-// booking (it's the primary); website omits booking (redundant with a
-// primary website); phone shows everything except phone; email shows
-// everything except email.
-const SECONDARY_ORDER_BY_LAYOUT = {
-  booking: ["phone", "email", "website"],
-  website: ["phone", "email"],
-  phone: ["email", "website", "booking"],
-  email: ["phone", "website", "booking"],
-};
-
-const SECONDARY_LABEL_BY_LAYOUT = {
-  booking: "Prefer to reach out first?",
-  website: "Prefer to reach out directly?",
-  phone: "Prefer not to call?",
-  email: null, // email layout uses a name-interpolated label
-};
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -130,91 +111,12 @@ export function buildContactDraftMessage(therapist) {
   );
 }
 
-// Returns the ordered array of { method, label, href, display, external }
-// that the given layout should render below its primary CTA. The array
-// is already filtered to only include methods the therapist has
-// populated.
-export function buildSecondaryContacts(layout, therapist) {
-  const order = SECONDARY_ORDER_BY_LAYOUT[layout] || [];
-  const t = therapist || {};
-  const out = [];
-  for (const method of order) {
-    if (method === "phone" && hasValue(t.phone)) {
-      out.push({
-        method: "phone",
-        label: "Phone",
-        href: phoneHref(t.phone),
-        display: formatPhoneDisplay(t.phone),
-        external: false,
-      });
-    } else if (method === "email" && hasValue(t.email)) {
-      out.push({
-        method: "email",
-        label: "Email",
-        href: "mailto:" + t.email.trim(),
-        display: t.email.trim(),
-        external: false,
-      });
-    } else if (method === "website" && hasValue(t.website)) {
-      const href = normalizeUrlHref(t.website);
-      out.push({
-        method: "website",
-        label: "Website",
-        href,
-        display: getDomainFromUrl(href) || "Website",
-        external: true,
-      });
-    } else if (method === "booking" && hasValue(t.bookingUrl)) {
-      const href = normalizeUrlHref(t.bookingUrl);
-      out.push({
-        method: "booking",
-        label: "Booking",
-        href,
-        display: getDomainFromUrl(href) || "Booking page",
-        external: true,
-      });
-    }
-  }
-  return out;
-}
-
 function renderHeading(text) {
   return '<h3 class="mx-contact-name" id="contactDialogTitle">' + escapeHtml(text) + "</h3>";
 }
 
 function renderBodyParagraph(text) {
   return '<p class="mx-contact-body-copy">' + escapeHtml(text) + "</p>";
-}
-
-function renderSecondaryContactsHtml(layout, therapist, firstName) {
-  const contacts = buildSecondaryContacts(layout, therapist);
-  if (!contacts.length) return "";
-  const labelText = SECONDARY_LABEL_BY_LAYOUT[layout] || "Other ways to reach " + firstName + ":";
-  const items = contacts
-    .map(function (c) {
-      const attrs = c.external ? ' target="_blank" rel="noopener noreferrer"' : "";
-      return (
-        '<li><a href="' +
-        escapeHtml(c.href) +
-        '"' +
-        attrs +
-        ' data-contact-other-route="' +
-        escapeHtml(c.method) +
-        '"><span class="mx-contact-other-label">' +
-        escapeHtml(c.label) +
-        ':</span> <span class="mx-contact-other-value">' +
-        escapeHtml(c.display) +
-        "</span></a></li>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="mx-contact-others"><div class="mx-contact-others-label">' +
-    escapeHtml(labelText) +
-    '</div><ul class="mx-contact-others-list">' +
-    items +
-    "</ul></div>"
-  );
 }
 
 function renderBookingLayout(therapist, firstName) {
