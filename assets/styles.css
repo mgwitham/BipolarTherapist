@@ -4622,36 +4622,6 @@ body.dir-vb .dir-vb-modal-apply:hover {
   line-height: 1.55;
 }
 
-/* -- Off-ramp strip ---------------------------------- */
-.dir-offramp {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  background: rgba(26, 122, 143, 0.06);
-  border: 1px solid rgba(26, 122, 143, 0.14);
-  font-size: 0.88rem;
-  color: var(--slate);
-  text-decoration: none;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
-  margin-bottom: 0.5rem;
-}
-
-.dir-offramp:hover {
-  background: rgba(26, 122, 143, 0.1);
-  border-color: rgba(26, 122, 143, 0.22);
-}
-
-.dir-offramp-action {
-  font-weight: 700;
-  color: var(--teal-dark);
-  white-space: nowrap;
-  margin-left: auto;
-}
-
 /* -- Chips row + sort/zip row (one clean horizontal row) -- */
 .dir-chips-row {
   display: flex;
@@ -5300,15 +5270,5 @@ body.dir-vb .dir-vb-modal-apply:hover {
 
   .dir-panel-details-grid {
     grid-template-columns: 1fr;
-  }
-
-  .dir-offramp {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-  }
-
-  .dir-offramp-action {
-    margin-left: 0;
   }
 }
