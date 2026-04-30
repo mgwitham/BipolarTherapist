@@ -5293,6 +5293,154 @@
       }
       .needs-attention-card-action {
         align-self: start;
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .needs-attention-resolve-btn {
+        background: #fee2e2;
+        color: #b91c1c;
+        border-color: #fca5a5;
+      }
+      .needs-attention-resolve-btn:hover {
+        background: #fecaca;
+      }
+      /* Resolve Duplicate modal — opens from the queue, never shown on
+         non-duplicate profiles. Side-by-side compare with three actions:
+         merge, mark not-duplicate, cancel. */
+      .resolve-dup-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        z-index: 950;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 2rem 1rem;
+        overflow-y: auto;
+      }
+      .resolve-dup-backdrop.is-open {
+        display: flex;
+      }
+      .resolve-dup-panel {
+        background: #fff;
+        border-radius: 12px;
+        max-width: 880px;
+        width: 100%;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 4rem);
+      }
+      .resolve-dup-header {
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #d6e4ea;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .resolve-dup-header-copy {
+        flex: 1;
+      }
+      .resolve-dup-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--navy);
+      }
+      .resolve-dup-subtitle {
+        font-size: 0.84rem;
+        color: var(--slate);
+        margin-top: 0.2rem;
+      }
+      .resolve-dup-close {
+        background: none;
+        border: none;
+        font-size: 1.4rem;
+        cursor: pointer;
+        color: var(--slate);
+        padding: 0.2rem 0.5rem;
+      }
+      .resolve-dup-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.2rem;
+      }
+      .resolve-dup-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem 1rem;
+      }
+      .resolve-dup-grid-head {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid #d6e4ea;
+      }
+      .resolve-dup-row {
+        display: contents;
+      }
+      .resolve-dup-row-label {
+        grid-column: 1 / -1;
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--slate);
+        margin-top: 0.6rem;
+      }
+      .resolve-dup-cell {
+        font-size: 0.86rem;
+        color: var(--navy);
+        padding: 0.3rem 0.4rem;
+        background: #f8fbfc;
+        border-radius: 6px;
+        min-height: 1.6rem;
+        word-break: break-word;
+      }
+      .resolve-dup-cell.is-empty {
+        color: #94a3b8;
+        font-style: italic;
+      }
+      .resolve-dup-cell.is-mismatch {
+        background: #fef3c7;
+      }
+      .resolve-dup-footer {
+        padding: 0.9rem 1.2rem;
+        border-top: 1px solid #d6e4ea;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        background: #f8fbfc;
+      }
+      .resolve-dup-footer .resolve-dup-status {
+        flex: 1;
+        font-size: 0.84rem;
+        color: var(--slate);
+        min-width: 8rem;
+      }
+      .resolve-dup-footer .resolve-dup-status.is-error {
+        color: #dc2626;
+      }
+      .resolve-dup-merge-btn {
+        background: var(--teal);
+        color: #fff;
+        border-color: var(--teal);
+      }
+      .resolve-dup-not-dup-btn {
+        background: #fff;
+      }
+      @media (max-width: 720px) {
+        .resolve-dup-grid {
+          grid-template-columns: 1fr;
+        }
+        .resolve-dup-row-label {
+          grid-column: 1;
+        }
       }
       .edit-drawer-footer {
         padding: 0.9rem 1.2rem;
@@ -6634,6 +6782,53 @@
     <script type="module" src="assets/admin-funnel.js"></script>
     <script type="module" src="assets/admin-recovery.js"></script>
     <script type="module" src="assets/admin.js"></script>
+
+    <!-- Resolve Duplicate modal — opens from a Resolve Duplicate button in
+         the Needs Attention queue. Side-by-side compare of the live
+         therapist vs the duplicate counterpart. Hidden by default. -->
+    <div
+      class="resolve-dup-backdrop"
+      id="resolveDuplicateBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Resolve duplicate"
+    >
+      <div class="resolve-dup-panel">
+        <div class="resolve-dup-header">
+          <div class="resolve-dup-header-copy">
+            <div class="resolve-dup-title">Resolve duplicate</div>
+            <p class="resolve-dup-subtitle" id="resolveDuplicateSubtitle">
+              Compare the two records and pick a resolution.
+            </p>
+          </div>
+          <button class="resolve-dup-close" id="resolveDuplicateCloseBtn" aria-label="Close">
+            &times;
+          </button>
+        </div>
+        <div class="resolve-dup-body">
+          <div class="resolve-dup-grid" id="resolveDuplicateGrid">
+            <!-- Populated by admin-duplicate-resolve.js when opened. -->
+          </div>
+        </div>
+        <div class="resolve-dup-footer">
+          <span class="resolve-dup-status" id="resolveDuplicateStatus"></span>
+          <button
+            type="button"
+            class="btn-secondary resolve-dup-not-dup-btn"
+            id="resolveDuplicateNotDupBtn"
+          >
+            Mark as not duplicate
+          </button>
+          <button
+            type="button"
+            class="btn-primary resolve-dup-merge-btn"
+            id="resolveDuplicateMergeBtn"
+          >
+            Merge into existing therapist
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Edit profile drawer -->
     <div

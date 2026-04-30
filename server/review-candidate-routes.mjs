@@ -182,6 +182,23 @@ export async function handleCandidateRoutes(context) {
     if (typeof body.notes === "string") {
       allowedUpdates.notes = body.notes.trim();
     }
+    // dedupeStatus is patchable so the admin Resolve Duplicate workflow can
+    // record decisions (e.g. "rejected_duplicate" when the email collision
+    // is real but the people are actually different). Validated against the
+    // schema enum.
+    if (typeof body.dedupe_status === "string") {
+      const allowedDedupe = new Set([
+        "unreviewed",
+        "unique",
+        "definite_duplicate",
+        "possible_duplicate",
+        "merged",
+        "rejected_duplicate",
+      ]);
+      if (allowedDedupe.has(body.dedupe_status)) {
+        allowedUpdates.dedupeStatus = body.dedupe_status;
+      }
+    }
     if (body.review_follow_up && typeof body.review_follow_up === "object") {
       const assigneeName = String(
         body.review_follow_up.assignee_name || body.review_follow_up.assignee || "",

@@ -159,7 +159,7 @@ export function isProfileLive(therapist, context) {
   for (const field of STRONG_GATE_FIELDS) {
     const value = read(therapist, field.key, field.camel);
     if (!isPresent(value)) {
-      blockers.push(`Trust gate failed: missing ${field.label}`);
+      blockers.push(`Missing ${field.label}`);
     }
   }
 

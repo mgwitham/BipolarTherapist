@@ -944,6 +944,41 @@ test("PATCH /therapists/:id: approving a draft profile turns listingActive on an
   assert.equal(t.status, "active");
 });
 
+test("PATCH /candidates/:id: accepts dedupe_status with enum validation (Resolve Duplicate path)", async function () {
+  const { client, state } = createMemoryClient({
+    "candidate-dup-1": {
+      _id: "candidate-dup-1",
+      _type: "therapistCandidate",
+      name: "Test Candidate",
+      reviewStatus: "archived",
+      dedupeStatus: "unique",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  // Valid value lands.
+  const ok = await runHandlerRequest(handler, {
+    body: { dedupe_status: "rejected_duplicate" },
+    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/candidates/candidate-dup-1",
+  });
+  assert.equal(ok.statusCode, 200);
+  assert.equal(state.documents.get("candidate-dup-1").dedupeStatus, "rejected_duplicate");
+
+  // Invalid value is silently dropped (returns 400 if it was the only field).
+  const bad = await runHandlerRequest(handler, {
+    body: { dedupe_status: "not-a-real-value" },
+    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/candidates/candidate-dup-1",
+  });
+  assert.equal(bad.statusCode, 400, "unknown enum value should be rejected");
+  // Existing value is unchanged.
+  assert.equal(state.documents.get("candidate-dup-1").dedupeStatus, "rejected_duplicate");
+});
+
 test("PATCH /therapists/:id: routine field edit does not flip listingActive", async function () {
   const { client, state } = createMemoryClient({
     "therapist-stable-1": {
