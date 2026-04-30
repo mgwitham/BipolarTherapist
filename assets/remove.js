@@ -12,10 +12,8 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-// Render a toast if the user lands back here after clicking a removal confirmation link.
-// The backend currently redirects to /signup?removed=ok — if that is updated to
-// /remove?removed=ok this toast will fire automatically.
-// TODO: coordinate with backend to redirect to /remove?removed=ok instead of /signup?removed=ok
+// Render a toast if the user lands here after clicking a removal confirmation link.
+// The backend redirect targets /remove?removed=ok|expired|invalid.
 function renderToast() {
   const params = new URLSearchParams(window.location.search);
   const removed = params.get("removed");
