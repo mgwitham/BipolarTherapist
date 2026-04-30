@@ -117,6 +117,12 @@ export function getReviewApiConfig() {
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
+    // Dev-only safety valve: when set, every Resend send is redirected to
+    // this single inbox regardless of the original to-field. The original
+    // recipient is preserved in a banner inside the email so the developer
+    // can see what would have shipped. Production refuses to honor this —
+    // see sendEmail in review-email.mjs.
+    emailDevRedirect: process.env.EMAIL_DEV_REDIRECT || rootEnv.EMAIL_DEV_REDIRECT || "",
     portalBaseUrl:
       process.env.PORTAL_BASE_URL || rootEnv.PORTAL_BASE_URL || "https://www.bipolartherapyhub.com",
     cronSecret: process.env.CRON_SECRET || rootEnv.CRON_SECRET || "",

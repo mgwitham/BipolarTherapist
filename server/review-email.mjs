@@ -2,10 +2,88 @@ export function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
 }
 
+// Capture buffer for the /dev/emails preview UI. When __captureNext is set,
+// the next call to sendEmail() short-circuits the network request and stashes
+// the rendered payload here instead. The preview registry consumes this
+// without ever needing a Resend API key. See server/dev/email-preview-registry.mjs.
+let __captureBuffer = null;
+let __captureNext = false;
+
+export function startEmailCapture() {
+  __captureBuffer = null;
+  __captureNext = true;
+}
+
+export function readEmailCapture() {
+  const captured = __captureBuffer;
+  __captureBuffer = null;
+  __captureNext = false;
+  return captured;
+}
+
+// Dev redirect plumbing. When config.emailDevRedirect is set AND we're not
+// in production, every send routes to that single inbox. The original
+// to-field is preserved in a yellow banner inside the email body. Refuses
+// to honor the redirect in production and logs a critical warning instead.
+function applyDevRedirect(config, payload) {
+  const redirect = config && config.emailDevRedirect ? String(config.emailDevRedirect).trim() : "";
+  if (!redirect) {
+    return { payload: payload, redirected: false };
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[email] CRITICAL — EMAIL_DEV_REDIRECT is set in production. Refusing to send. " +
+        "Unset this env var immediately. Original recipients: " +
+        JSON.stringify(payload.to || []),
+    );
+    throw new Error("EMAIL_DEV_REDIRECT must not be set in production.");
+  }
+
+  const originalTo = Array.isArray(payload.to) ? payload.to.join(", ") : String(payload.to || "");
+  const banner =
+    `<div style="background:#fff4cc;border:1px solid #d8b647;color:#5a3e00;` +
+    `padding:10px 14px;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;` +
+    `border-radius:6px;margin:0 0 12px 0;">` +
+    `<strong>DEV MODE</strong> — original recipient: ` +
+    String(originalTo).replace(/[<>]/g, "") +
+    `</div>`;
+  const textBanner =
+    "[DEV MODE — original recipient: " + String(originalTo).replace(/[<>]/g, "") + "]\n\n";
+
+  const redirectedPayload = {
+    ...payload,
+    to: [redirect],
+    html: payload.html ? banner + payload.html : banner,
+    text: payload.text ? textBanner + payload.text : textBanner,
+  };
+
+  console.log(
+    "[email] DEV REDIRECT — to: " +
+      redirect +
+      " | original: " +
+      originalTo +
+      " | subject: " +
+      String(payload.subject || ""),
+  );
+
+  return { payload: redirectedPayload, redirected: true };
+}
+
 export async function sendEmail(config, payload) {
+  // Capture mode: stash the rendered payload and bail before any network call.
+  // Used by the /dev/emails preview UI to render a template without sending.
+  if (__captureNext) {
+    __captureBuffer = payload;
+    __captureNext = false;
+    return { captured: true };
+  }
+
   if (!hasEmailConfig(config)) {
     return { skipped: true };
   }
+
+  const { payload: outgoingPayload } = applyDevRedirect(config, payload);
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -13,7 +91,7 @@ export async function sendEmail(config, payload) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.resendApiKey}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(outgoingPayload),
   });
 
   const result = await response.json().catch(function () {
@@ -36,7 +114,7 @@ export async function notifyAdminOfSubmission(config, application) {
     from: config.emailFrom,
     to: [config.notificationTo],
     subject: `New therapist application: ${application.name}`,
-    html: `<h2>New therapist application</h2>
+    html: `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">A new clinician just submitted. Review when you have a minute.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div><h2>New therapist application</h2>
 <p><strong>Name:</strong> ${application.name}</p>
 <p><strong>Email:</strong> ${application.email}</p>
 <p><strong>Location:</strong> ${application.city}, ${application.state}</p>
@@ -72,6 +150,9 @@ export async function notifyApplicantOfDecision(config, application, decision, o
       heading,
       greetingName: name,
       bodyHtml,
+      preheader: magicLink
+        ? "Your listing is live. One link inside to finish your profile."
+        : "Your listing is live. Thanks for joining the directory.",
       primaryCta: magicLink ? { label: "Complete my profile →", url: magicLink } : null,
       footerLines: magicLink
         ? [
@@ -111,6 +192,7 @@ export async function notifyApplicantOfDecision(config, application, decision, o
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Some context on the decision and how to follow up.",
   });
 
   const text = renderBrandedEmailText({
@@ -187,6 +269,7 @@ function renderBrandedEmail(options) {
   const heading = escapeEmailHtml((options && options.heading) || "");
   const greetingName = options && options.greetingName ? String(options.greetingName) : "";
   const bodyHtml = (options && options.bodyHtml) || "";
+  const preheader = options && options.preheader ? String(options.preheader) : "";
   const alertBanner = options && options.alertBanner;
   const primaryCta = options && options.primaryCta;
   const secondaryCta = options && options.secondaryCta;
@@ -267,9 +350,17 @@ function renderBrandedEmail(options) {
             </tr>`
     : "";
 
+  // Hidden preheader text. Mail clients pull this for inbox-list preview
+  // text. The trailing &zwnj; / &#847; combo plus extra whitespace prevents
+  // the rest of the body content from leaking into the snippet on Gmail.
+  const preheaderBlock = preheader
+    ? `<div style="display:none;font-size:1px;color:#f7fbfc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">${escapeEmailHtml(preheader)}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>`
+    : "";
+
   return `<!doctype html>
 <html lang="en">
   <body style="margin:0;padding:0;background:#f7fbfc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1d3a4a;">
+    ${preheaderBlock}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7fbfc;padding:32px 16px;">
       <tr>
         <td align="center">
@@ -351,6 +442,7 @@ function buildPortalMagicLinkCopy(mode) {
       bodyParagraph:
         "Click the button below to sign in to your BipolarTherapyHub portal. No password needed.",
       ctaLabel: "Sign in →",
+      preheader: "Fresh sign-in link inside. Expires in 24 hours.",
       expiryLine: "This link expires in 24 hours.",
       ignoreLine: "If you didn't ask for a sign-in link, ignore this email — your account is safe.",
     };
@@ -361,6 +453,7 @@ function buildPortalMagicLinkCopy(mode) {
     bodyParagraph:
       "Click below to verify your email and unlock your profile controls — editing, analytics, accepting-patients status, bio, and headshot.",
     ctaLabel: "Activate my listing →",
+    preheader: "Activate your listing — this link expires in 24 hours.",
     expiryLine: "This link expires in 24 hours.",
     ignoreLine:
       "If you didn't just start a trial or request this link, ignore this email — your card won't be charged and nothing will happen.",
@@ -393,6 +486,7 @@ export async function sendPortalClaimLink(
     heading: copy.heading,
     greetingName: (therapist && therapist.name) || "there",
     bodyHtml: `<p style="margin:0 0 20px 0;">${escapeEmailHtml(copy.bodyParagraph)}</p>`,
+    preheader: copy.preheader,
     primaryCta: { label: copy.ctaLabel, url: manageUrl },
     footerLines: [copy.expiryLine, copy.ignoreLine],
   });
@@ -458,6 +552,7 @@ export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, 
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Your portal is ready. A 10-minute walkthrough inside.",
     primaryCta: { label: "Open my portal →", url: portalUrl },
     footerLinesHtml,
   });
@@ -517,6 +612,7 @@ export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Your trial ends soon — confirm billing or your listing pauses.",
     footerLinesHtml: [
       'This is a legally required pre-billing reminder under California consumer-subscription law. If you think this is a mistake, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
     ],
@@ -568,6 +664,7 @@ ${activationUrl ? `<p style="margin:0 0 20px 0;">If you meant to activate, here'
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "We couldn't confirm ownership, so we canceled your trial. Card not charged.",
     primaryCta: activationUrl ? { label: "Activate my listing →", url: activationUrl } : null,
     footerLines: [
       "If you didn't start this trial, ignore this email. Nothing was charged, no further action needed.",
@@ -631,6 +728,7 @@ export async function sendListingRemovalLink(
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Confirm to remove your listing. Link expires in 24 hours.",
     primaryCta: { label: "Confirm removal →", url: confirmUrl },
     footerLinesHtml: [
       "If you did not request this, ignore this email and your listing stays active. This link expires in 24 hours.",
@@ -682,6 +780,10 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
   const subject = isDenial
     ? `ATTACK ATTEMPT — ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
     : `New recovery request: ${recoveryRequest.fullName || "(no name)"}`;
+  const preheaderText = isDenial
+    ? "Attack attempt — the real therapist denied this claim."
+    : "A clinician asked to recover access to their listing.";
+  const preheaderHidden = `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${preheaderText}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>`;
   const headerHtml = isDenial
     ? `<div style="background:#fbeaea;border:2px solid #a04a4a;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;color:#7a2f2f;">
 <strong>Attack attempt detected.</strong> The real therapist, reached through a channel
@@ -696,7 +798,7 @@ blocking the requester IP range or adding the requested email to a watch list.
     from: config.emailFrom,
     to: [config.notificationTo],
     subject,
-    html: `${headerHtml}
+    html: `${preheaderHidden}${headerHtml}
 <p><strong>Name:</strong> ${recoveryRequest.fullName || "—"}</p>
 <p><strong>License:</strong> ${recoveryRequest.licenseNumber || "—"}</p>
 <p><strong>Requested email${isDenial ? " (likely attacker)" : ""}:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
@@ -749,6 +851,7 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Got it. Watch your other inboxes — confirmation may come there.",
     footerLinesHtml: [
       'Need to correct anything? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
     ],
@@ -795,6 +898,7 @@ export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, m
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Action needed in another inbox to recover your listing.",
     footerLinesHtml: [
       'If that address doesn\'t look familiar, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> — we may need to reach you a different way.',
       "We only ever confirm through addresses that are already public for your practice. If you didn't request this claim, ignore every email from us.",
@@ -845,6 +949,7 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Your access is restored. Sign-in link inside.",
     primaryCta: { label: "Sign in to my portal →", url: magicLink },
     footerLinesHtml: [
       "This link expires in 24 hours.",
@@ -913,6 +1018,7 @@ export async function sendRecoveryConfirmationEmail(
     heading,
     greetingName: therapistName,
     bodyHtml,
+    preheader: "Did you ask to recover access? Confirm or deny here.",
     primaryCta: { label: "Yes, that was me →", url: confirmUrl },
     secondaryCta: { label: "No, I didn't request this", url: denyUrl },
     footerLines: [
@@ -969,6 +1075,7 @@ export async function sendRecoveryRejectedEmail(config, recoveryRequest, outcome
     heading,
     greetingName: name,
     bodyHtml,
+    preheader: "Update on your recovery request.",
     footerLinesHtml: [
       'If you\'d like to try again with different details, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> and we\'ll take another look.',
     ],
@@ -1158,6 +1265,7 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f7fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<div style="display:none;font-size:1px;color:#f7fafb;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">A few quick fields stand between you and a full profile.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7fafb;padding:32px 0">
 <tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
