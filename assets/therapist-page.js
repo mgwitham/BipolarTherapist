@@ -864,7 +864,8 @@ function buildCallScript(therapist) {
 function buildOutreachScript(therapist, contactStrategy) {
   var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
 
-  var greeting = "Hi,";
+  var firstName = (therapist.name || "").split(" ")[0];
+  var greeting = firstName ? "Hi " + firstName + "," : "Hi,";
 
   var intro =
     "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
