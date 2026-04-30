@@ -6758,6 +6758,22 @@ img.bth-avatar {
 .bth-btn-secondary:hover {
   background: #eef6f3;
 }
+.mx-profile-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f6e56;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mx-profile-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mx-profile-link:focus-visible {
+  outline: 2px solid #0f6e56;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 
 /* Mobile: stack the info row, full-width CTAs, smaller avatar */
 @media (max-width: 640px) {
@@ -6785,11 +6801,16 @@ img.bth-avatar {
     display: none;
   }
   .bth-card-actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
-  .bth-btn-primary,
+  .bth-btn-primary {
+    flex: 1;
+    min-height: 44px;
+    font-size: 14px;
+  }
   .bth-btn-secondary {
     width: 100%;
     min-height: 44px;
