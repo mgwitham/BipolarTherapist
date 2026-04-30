@@ -2902,107 +2902,6 @@ function renderProfile(t, therapistDirectory) {
     '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
     renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
     "</div></div>";
-  var insuranceList = Array.isArray(t.insurance_accepted) ? t.insurance_accepted : [];
-  var insuranceSummary = insuranceList.length
-    ? insuranceList.length <= 2
-      ? joinNaturalList(insuranceList)
-      : insuranceList.slice(0, 2).join(", ") + " +" + (insuranceList.length - 2) + " more"
-    : "Contact to confirm";
-  var languageList = Array.isArray(t.languages) && t.languages.length ? t.languages : ["English"];
-  var languageSummary =
-    languageList.length <= 2
-      ? joinNaturalList(languageList)
-      : languageList.slice(0, 2).join(", ") + " +" + (languageList.length - 2) + " more";
-  var summaryStats = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients ? "Accepting patients" : "Confirm directly",
-      tone: t.accepting_new_patients ? "green" : "teal",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Format to confirm",
-      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
-    },
-    {
-      label: "Session fee",
-      value:
-        t.session_fee_min && t.session_fee_max
-          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-          : t.session_fee_min
-            ? "From $" + t.session_fee_min
-            : t.sliding_scale
-              ? "Sliding scale"
-              : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-    {
-      label: "Insurance",
-      value: insuranceSummary,
-      tone: insuranceList.length ? "teal" : "",
-    },
-    {
-      label: "Languages",
-      value: languageSummary,
-      tone: "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-
-  var licenseValue =
-    [t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed";
-  var primaryCtaValue = t.preferred_contact_label || "Not specified";
-  var experienceParts = [];
-  if (t.bipolar_years_experience) {
-    experienceParts.push(String(t.bipolar_years_experience) + "y bipolar");
-  }
-  if (t.years_experience) {
-    experienceParts.push(String(t.years_experience) + "y total");
-  }
-  var experienceValue = experienceParts.length ? experienceParts.join(" · ") : "Not listed";
-  var credentialStats = [
-    { label: "License", value: licenseValue, tone: t.license_number ? "teal" : "" },
-    {
-      label: "Primary CTA",
-      value: primaryCtaValue,
-      tone: t.preferred_contact_label ? "teal" : "",
-    },
-    {
-      label: "Experience",
-      value: experienceValue,
-      tone: t.bipolar_years_experience ? "green" : t.years_experience ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var contactTiming = getContactTimingGuidance(contactStrategy);
   var logisticsSectionLeadHtml =
     '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
@@ -3384,29 +3283,20 @@ function renderProfile(t, therapistDirectory) {
     "</div>" +
     "</div>" +
     (hasPaidSubscription
-      ? // Paid presentation: full bio always visible, no toggle. Wrapper
-        // keeps the same id/class hooks so any JS reading #profileBioPanel
-        // still works; the is-collapsed modifier is intentionally absent.
-        '<div class="profile-bio-enhanced">' +
-        '<div class="profile-bio-panel" id="profileBioPanel">' +
+      ? '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>"
-      : '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
-        '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
-        '<span class="profile-bio-toggle-label">Read full bio</span>' +
-        '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
-        "</button>" +
-        '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>'
+      : '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>") +
-    '<div class="profile-summary-strip">' +
-    summaryStats +
-    "</div>" +
-    '<div class="profile-summary-strip profile-summary-strip-secondary">' +
-    credentialStats +
-    "</div>" +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>') +
     '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
     (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
@@ -3641,23 +3531,31 @@ function renderProfile(t, therapistDirectory) {
       });
     });
   Array.prototype.slice
-    .call(document.querySelectorAll("[data-profile-bio-toggle] .profile-bio-toggle-btn"))
+    .call(document.querySelectorAll("[data-profile-bio-read-more]"))
     .forEach(function (button) {
+      var bioWrap = button.previousElementSibling;
+      var bioText = bioWrap ? bioWrap.querySelector(".profile-bio-text") : null;
+      var bioFade = bioWrap ? bioWrap.querySelector(".profile-bio-fade") : null;
+      window.requestAnimationFrame(function () {
+        if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          button.hidden = true;
+        }
+      });
       button.addEventListener("click", function () {
-        var wrap = button.closest("[data-profile-bio-toggle]");
-        var panel = wrap ? wrap.querySelector(".profile-bio-panel") : null;
-        var label = button.querySelector(".profile-bio-toggle-label");
-        var icon = button.querySelector(".profile-bio-toggle-icon");
-        if (!panel) {
-          return;
-        }
-        var collapsed = panel.classList.toggle("is-collapsed");
-        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        if (label) {
-          label.textContent = collapsed ? "Read full bio" : "Hide bio";
-        }
-        if (icon) {
-          icon.textContent = collapsed ? "+" : "−";
+        if (!bioText) return;
+        var expanded = bioText.classList.contains("is-expanded");
+        if (expanded) {
+          bioText.classList.remove("is-expanded");
+          if (bioFade) bioFade.classList.remove("is-hidden");
+          button.textContent = "Read more ↓";
+          button.setAttribute("aria-expanded", "false");
+        } else {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          button.textContent = "Show less ↑";
+          button.setAttribute("aria-expanded", "true");
         }
       });
     });
