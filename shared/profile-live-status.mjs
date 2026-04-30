@@ -25,11 +25,13 @@ const STRONG_GATE_FIELDS = [
   // Strong-warning fields from check-therapist-import-readiness.mjs.
   // These are the ones that block a publish-ready determination.
   { key: "license_number", camel: "licenseNumber", label: "license number" },
-  { key: "insurance_accepted", camel: "insuranceAccepted", label: "insurance accepted" },
-  // Demoted from required to soft on 2026-04-29. Field is not reliably
-  // sourceable from public license records; absence does not block Live
-  // status. See portal completeness prompts for soft-signal usage
-  // (assets/portal.js getMissingFields / getCompletenessScore).
+  // insurance_accepted: Demoted from required to soft on 2026-04-30. Insurance
+  // is informational, not a Live-blocker per product policy. See portal
+  // completeness prompts for soft-signal usage (assets/portal.js getMissingFields
+  // / getCompletenessScore).
+  // bipolarYearsExperience: Demoted from required to soft on 2026-04-29. Field
+  // is not reliably sourceable from public license records; absence does not
+  // block Live status. See portal completeness prompts for soft-signal usage.
 ];
 
 function read(doc, snake, camel) {
@@ -152,10 +154,9 @@ export function isProfileLive(therapist, context) {
     blockers.push(`Status is "${status || "unset"}" (must be "active")`);
   }
 
-  // Strict trust gate — mirrors the strong-severity fields in
-  // check-therapist-import-readiness.mjs. A publish-ready profile must
-  // have a verifiable license, insurance accepted, and bipolar years of
-  // experience; missing any one is a hard blocker.
+  // Strict trust gate — only license_number remains a hard blocker.
+  // insurance_accepted and bipolarYearsExperience were both demoted to soft
+  // signals (2026-04-30 and 2026-04-29 respectively); see STRONG_GATE_FIELDS.
   for (const field of STRONG_GATE_FIELDS) {
     const value = read(therapist, field.key, field.camel);
     if (!isPresent(value)) {

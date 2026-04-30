@@ -28,22 +28,31 @@ test("buildNeedsAttentionEntries: a fully Live therapist is not in the queue", f
   assert.deepEqual(entries, []);
 });
 
-test("buildNeedsAttentionEntries: approved+listed but missing trust field is in the queue", function () {
-  // Trust-gate blocker: missing insurance_accepted. (bipolar_years_experience
-  // was demoted from required to soft on 2026-04-29 and no longer triggers.)
+test("buildNeedsAttentionEntries: approved+listed but missing license is in the queue", function () {
+  // Only license_number remains a hard trust-gate blocker. Both
+  // insurance_accepted (demoted 2026-04-30) and bipolar_years_experience
+  // (demoted 2026-04-29) are no longer required for Live status.
   const entries = buildNeedsAttentionEntries(
     [
       liveTherapist({
         id: "therapist-broken-1",
         name: "Dr. Broken",
-        insurance_accepted: [],
+        license_number: "",
       }),
     ],
     [],
   );
   assert.equal(entries.length, 1);
   assert.equal(entries[0].id, "therapist-broken-1");
-  assert.ok(entries[0].blockers.some((b) => b.includes("insurance")));
+  assert.ok(entries[0].blockers.some((b) => b.includes("license number")));
+});
+
+test("buildNeedsAttentionEntries: missing insurance_accepted does NOT trigger queue (soft signal)", function () {
+  const entries = buildNeedsAttentionEntries(
+    [liveTherapist({ id: "therapist-no-ins", insurance_accepted: [] })],
+    [],
+  );
+  assert.deepEqual(entries, []);
 });
 
 test("buildNeedsAttentionEntries: paused profile is NOT in the queue (admin intent is hidden)", function () {
