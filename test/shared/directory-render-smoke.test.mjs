@@ -74,5 +74,5 @@ test("details render smoke keeps contact therapist visible", function () {
   assert.match(html, /dir-panel-name|dir-panel-content/);
   assert.match(html, /Jamie Rivera/);
   assert.match(html, /View full profile/);
-  assert.match(html, /Availability/);
+  assert.match(html, /dir-panel-pills|dir-panel-identity/);
 });

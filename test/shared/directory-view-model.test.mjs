@@ -133,6 +133,22 @@ test("recommendation and details models expose guidance-first copy", function ()
   assert.equal(recommendationModel.featured.contactLabel, "Contact therapist");
   assert.ok(recommendationModel.featured.fitReasons.length >= 1);
   assert.equal(recommendationModel.backups.length, 1);
-  assert.ok(detailsModel.detailSections.length >= 4);
+  // detailSections now contains only specialties / populations / medication — fee, insurance,
+  // availability, and care format moved to quickAnswerPills
+  assert.ok(detailsModel.detailSections.length >= 1);
+  assert.ok(Array.isArray(detailsModel.quickAnswerPills));
+  assert.ok(detailsModel.quickAnswerPills.length >= 2);
+  assert.ok(
+    detailsModel.quickAnswerPills.some(function (p) {
+      return /\$/.test(p);
+    }),
+    "fee pill present",
+  );
+  assert.ok(
+    detailsModel.quickAnswerPills.some(function (p) {
+      return /Aetna|insurance/i.test(p);
+    }),
+    "insurance pill present",
+  );
   assert.match(detailsModel.reassurance, /do not need to get this perfect/i);
 });

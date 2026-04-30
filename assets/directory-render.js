@@ -326,19 +326,107 @@ export function renderDirectoryDetailsMarkup(options) {
   var profileHref =
     model.profileHref || buildTherapistProfileHref(therapist.slug, "details_profile");
 
-  return (
-    '<div class="dir-panel-content">' +
-    '<div class="dir-panel-profile-head">' +
+  // Avatar: photo or clean initials block
+  var initials = therapist.name
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map(function (p) {
+      return p.charAt(0);
+    })
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  var avatarHtml = therapist.photo_url
+    ? '<img class="dir-panel-avatar-img" src="' +
+      escapeHtml(therapist.photo_url) +
+      '" alt="' +
+      escapeHtml(therapist.name) +
+      '" loading="lazy" decoding="async" />'
+    : '<div class="dir-panel-avatar-initials" aria-hidden="true">' +
+      escapeHtml(initials) +
+      "</div>";
+
+  // Credential + role line
+  var credLine = escapeHtml(therapist.credentials || "");
+  if (therapist.title) {
+    credLine += (credLine ? " · " : "") + escapeHtml(therapist.title);
+  }
+
+  // Identity strip
+  var identityHtml =
+    '<div class="dir-panel-identity">' +
+    '<div class="dir-panel-avatar">' +
+    avatarHtml +
+    "</div>" +
+    '<div class="dir-panel-identity-info">' +
     '<h2 class="dir-panel-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
     "</h2>" +
-    '<div class="dir-panel-creds">' +
-    escapeHtml(therapist.credentials || "") +
-    (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
+    (credLine ? '<div class="dir-panel-creds">' + credLine + "</div>" : "") +
+    (model.locationSummary
+      ? '<div class="dir-panel-location">' + escapeHtml(model.locationSummary) + "</div>"
+      : "") +
     "</div>" +
-    (model.metaLine ? '<div class="dir-panel-meta">' + escapeHtml(model.metaLine) + "</div>" : "") +
-    renderTrustSignals(model.trustSignals.slice(0, 3), "dir-panel-trust") +
-    "</div>" +
+    "</div>";
+
+  // Quick-answer pills (conditional — absent if all data missing)
+  var pills = Array.isArray(model.quickAnswerPills) ? model.quickAnswerPills : [];
+  var pillsHtml = pills.length
+    ? '<div class="dir-panel-pills" aria-label="Quick overview">' +
+      pills
+        .map(function (pill) {
+          return '<span class="dir-panel-pill">' + escapeHtml(pill) + "</span>";
+        })
+        .join("") +
+      "</div>"
+    : "";
+
+  // Bipolar approach section (conditional)
+  var bipolarHtml = model.bipolarApproach
+    ? '<div class="dir-panel-approach">' +
+      '<div class="dir-panel-section-label">Bipolar approach</div>' +
+      '<p class="dir-panel-approach-text">' +
+      escapeHtml(model.bipolarApproach) +
+      "</p>" +
+      "</div>"
+    : "";
+
+  // Trust strip (editorial/clinical signals only, conditional)
+  var panelTrust = Array.isArray(model.panelTrustSignals) ? model.panelTrustSignals : [];
+  var trustHtml = renderTrustSignals(panelTrust, "dir-panel-trust");
+
+  // About/bio — more vertical presence when it carries the panel alone
+  var bioHtml = "";
+  if (model.bio) {
+    var isMinimal = !pillsHtml && !bipolarHtml && !trustHtml;
+    bioHtml =
+      '<p class="dir-panel-bio' +
+      (isMinimal ? " dir-panel-bio--prominent" : "") +
+      '">' +
+      escapeHtml(model.bio) +
+      "</p>";
+  }
+
+  // Details grid (conditional — absent when no sections)
+  var sections = Array.isArray(model.detailSections) ? model.detailSections : [];
+  var detailsHtml = sections.length
+    ? '<div class="dir-panel-details-grid">' +
+      sections
+        .map(function (section) {
+          return (
+            '<div class="dir-panel-detail-item"><div class="dir-panel-detail-label">' +
+            escapeHtml(section.label) +
+            '</div><div class="dir-panel-detail-value">' +
+            escapeHtml(section.value) +
+            "</div></div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    : "";
+
+  // Actions: Contact (primary), Save to list, View full profile
+  var actionsHtml =
     '<div class="dir-panel-actions">' +
     (model.contactRoute
       ? '<a href="' +
@@ -351,33 +439,31 @@ export function renderDirectoryDetailsMarkup(options) {
         escapeHtml(model.contactLabel || "Contact therapist") +
         "</a>"
       : "") +
-    '<a href="' +
-    escapeHtml(profileHref) +
-    '" class="dir-panel-profile-link">View full profile →</a>' +
     '<button type="button" class="dir-panel-save' +
     (model.shortlisted ? " is-saved" : "") +
     '" data-shortlist-slug="' +
     escapeHtml(therapist.slug) +
     '" aria-pressed="' +
     (model.shortlisted ? "true" : "false") +
+    '" aria-label="' +
+    (model.shortlisted ? "Remove from saved list" : "Save to list") +
     '">' +
     (model.shortlisted ? "Saved" : "Save to list") +
     "</button>" +
-    "</div>" +
-    (model.bio ? '<p class="dir-panel-bio">' + escapeHtml(model.bio) + "</p>" : "") +
-    '<div class="dir-panel-details-grid">' +
-    model.detailSections
-      .map(function (section) {
-        return (
-          '<div class="dir-panel-detail-item"><div class="dir-panel-detail-label">' +
-          escapeHtml(section.label) +
-          '</div><div class="dir-panel-detail-value">' +
-          escapeHtml(section.value) +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div>" +
+    '<a href="' +
+    escapeHtml(profileHref) +
+    '" class="dir-panel-profile-link">View full profile →</a>' +
+    "</div>";
+
+  return (
+    '<div class="dir-panel-content">' +
+    identityHtml +
+    pillsHtml +
+    bipolarHtml +
+    trustHtml +
+    bioHtml +
+    detailsHtml +
+    actionsHtml +
     "</div>"
   );
 }

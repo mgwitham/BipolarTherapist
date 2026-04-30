@@ -194,7 +194,6 @@ function buildPrimaryFitReasons(filters, therapist) {
 
 function buildTrustSignals(therapist) {
   var signals = [];
-  var freshness = getFreshnessBadgeData(therapist);
   var locationSummary = buildLocationSummary(therapist);
 
   if (therapist.verification_status === "editorially_verified") {
@@ -203,22 +202,50 @@ function buildTrustSignals(therapist) {
   if (Number(therapist.bipolar_years_experience || 0) >= 5) {
     signals.push("Bipolar informed");
   }
-  if (therapist.accepting_new_patients) {
-    signals.push("Accepting new patients");
-  }
   if (locationSummary && therapist.accepts_in_person) {
     signals.push("Near " + locationSummary);
   } else if (therapist.accepts_telehealth) {
     signals.push("Telehealth available");
-  }
-  if (freshness && freshness.label) {
-    signals.push(freshness.label);
   }
   if (getResponsivenessRank(therapist) > 0) {
     signals.push("Responsive contact path");
   }
 
   return signals.slice(0, 4);
+}
+
+function buildQuickAnswerPills(therapist) {
+  var pills = [];
+
+  var feeLabel = formatDirectoryFeeLabel(therapist, "");
+  if (feeLabel) {
+    pills.push(feeLabel);
+  }
+
+  var ins = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
+  if (ins.length === 1) {
+    pills.push("Accepts " + ins[0]);
+  } else if (ins.length > 1) {
+    pills.push("Accepts insurance");
+  }
+
+  var avail = buildAvailabilitySummary(therapist);
+  if (avail) {
+    pills.push(avail);
+  }
+
+  var formats = [];
+  if (therapist.accepts_telehealth) {
+    formats.push("Telehealth");
+  }
+  if (therapist.accepts_in_person) {
+    formats.push("In person");
+  }
+  if (formats.length) {
+    pills.push(formats.join(" + "));
+  }
+
+  return pills.slice(0, 5);
 }
 
 function buildAvailabilitySummary(therapist) {
@@ -236,39 +263,10 @@ function buildAvailabilitySummary(therapist) {
 
 function buildDetailSections(therapist, filters) {
   var sections = [];
-  var insuranceSummary = buildInsuranceSummary(therapist);
-  var availabilitySummary = buildAvailabilitySummary(therapist);
   var specialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 4) : [];
   var populations = Array.isArray(therapist.client_populations)
     ? therapist.client_populations.slice(0, 3)
     : [];
-
-  sections.push({
-    label: "Care format",
-    value: buildCareFormatSummary(therapist),
-  });
-
-  if (insuranceSummary) {
-    sections.push({
-      label: "Insurance",
-      value: insuranceSummary,
-    });
-  }
-
-  var feeSummary = formatDirectoryFeeLabel(therapist, "");
-  if (feeSummary) {
-    sections.push({
-      label: "Fees",
-      value: feeSummary,
-    });
-  }
-
-  if (availabilitySummary) {
-    sections.push({
-      label: "Availability",
-      value: availabilitySummary,
-    });
-  }
 
   if (specialties.length) {
     sections.push({
@@ -459,9 +457,16 @@ export function buildDirectoryDetailsViewModel(options) {
     isShortlisted: isShortlisted,
   });
 
+  var panelTrustSignals = (baseModel.trustSignals || []).filter(function (s) {
+    return s !== "Accepting new patients" && !/^Near /.test(s) && s !== "Telehealth available";
+  });
+
   return Object.assign({}, baseModel, {
     detailSections: buildDetailSections(therapist, filters),
     bio: String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim(),
+    bipolarApproach: String(therapist.bipolar_approach || "").trim(),
+    quickAnswerPills: buildQuickAnswerPills(therapist),
+    panelTrustSignals: panelTrustSignals,
     profileHref: "/therapists/" + encodeURIComponent(therapist.slug) + "/",
     reassurance:
       "You do not need to get this perfect. If this feels like a strong option, contacting them is a reasonable next step.",

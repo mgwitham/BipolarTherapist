@@ -7,17 +7,29 @@ const CHECKS = [
   {
     name: "Homepage shell",
     file: "index.html",
-    includes: ["Get matched", "Browse reviewed specialists", "Start Here"],
+    includes: [
+      "Not every therapist gets bipolar. These do.",
+      "Or browse specialists instead",
+      "Find a Therapist",
+    ],
   },
   {
     name: "Match shell",
     file: "match.html",
-    includes: ["Tell us what you need", "Optional refinements", "Get my shortlist"],
+    includes: [
+      "Finding your top bipolar-informed matches",
+      "What kind of support do you want?",
+      "Filter your results",
+    ],
   },
   {
     name: "Directory shell",
     file: "directory.html",
-    includes: ["Apply Filters", "Reset All", "Start guided match"],
+    includes: [
+      "Browse bipolar-informed therapists in California",
+      "More filters",
+      "Provider details",
+    ],
   },
   {
     name: "Therapist shell",
