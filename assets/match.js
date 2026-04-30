@@ -5686,7 +5686,7 @@ function renderDetailsBody(entry) {
     escapeHtml(buildTherapistProfileHref(therapist.slug) + "#outreach") +
     '" class="bth-modal-teaser" data-modal-outreach-link="' +
     escapeHtml(therapist.slug || "") +
-    '">Draft message & calling script →</a>';
+    '">View profile + outreach script →</a>';
 
   return (
     '<div class="bth-modal-header">' +
