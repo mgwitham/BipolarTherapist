@@ -15,14 +15,14 @@
  *   - Remove the KIMBERLY_LASKOWSKI fallback from that component's body
  */
 
-import { notFound } from 'next/navigation'
-import { cache } from 'react'
-import type { Metadata } from 'next'
+import { notFound } from "next/navigation";
+import { cache } from "react";
+import type { Metadata } from "next";
 import TherapistProfileClient, {
   generateMetadata as buildMetadata,
   buildFAQItems,
   type TherapistProfile,
-} from './TherapistProfileClient' // rename of therapist-profile.tsx
+} from "./TherapistProfileClient"; // rename of therapist-profile.tsx
 
 // ─── Data Fetching ────────────────────────────────────────────────────────────
 
@@ -37,30 +37,30 @@ const getTherapist = cache(async (slug: string): Promise<TherapistProfile | null
   //   return mapSanityDocToTherapistProfile(raw)
   //
   // During development, return the seed data keyed by slug:
-  const { KIMBERLY_LASKOWSKI } = await import('./TherapistProfileClient')
-  if (KIMBERLY_LASKOWSKI.slug === slug) return KIMBERLY_LASKOWSKI
-  return null
-})
+  const { KIMBERLY_LASKOWSKI } = await import("./TherapistProfileClient");
+  if (KIMBERLY_LASKOWSKI.slug === slug) return KIMBERLY_LASKOWSKI;
+  return null;
+});
 
 // ─── Metadata (server-side, SEO-critical) ────────────────────────────────────
 
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string };
 }): Promise<Metadata> {
-  const therapist = await getTherapist(params.slug)
+  const therapist = await getTherapist(params.slug);
   if (!therapist) {
     return {
-      title: 'Therapist Not Found | Bipolar Therapy Hub',
+      title: "Therapist Not Found | Bipolar Therapy Hub",
       robots: { index: false, follow: false },
-    }
+    };
   }
 
   // Delegate to the shared builder so metadata and page stay in sync.
   // buildMetadata ignores its params arg (uses the passed therapist directly)
   // — swap its internals for the fetched therapist object when you refactor.
-  return buildMetadata({ params })
+  return buildMetadata({ params });
 }
 
 // ─── Static Params (optional — enables full static generation) ────────────────
@@ -74,18 +74,14 @@ export async function generateMetadata({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function TherapistPage({
-  params,
-}: {
-  params: { slug: string }
-}) {
-  const therapist = await getTherapist(params.slug)
+export default async function TherapistPage({ params }: { params: { slug: string } }) {
+  const therapist = await getTherapist(params.slug);
 
   if (!therapist) {
-    notFound() // renders app/not-found.tsx
+    notFound(); // renders app/not-found.tsx
   }
 
-  return <TherapistProfileClient params={params} />
+  return <TherapistProfileClient params={params} />;
 }
 
 // ─── Sanity shape → TherapistProfile mapper (fill in as needed) ──────────────

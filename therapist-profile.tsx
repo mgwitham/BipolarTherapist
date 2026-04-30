@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /**
  * Therapist Profile Page — Bipolar Therapy Hub
@@ -14,180 +14,175 @@
  *   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import type { Metadata } from 'next'
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import type { Metadata } from "next";
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
 export interface TherapistProfile {
-  id: string
-  slug: string
-  name: { first: string; last: string; display: string }
-  credentials: string[]
-  title: string
+  id: string;
+  slug: string;
+  name: { first: string; last: string; display: string };
+  credentials: string[];
+  title: string;
   license: {
-    state: string
-    type: string
-    number: string
-    verified?: boolean
-  } | null
+    state: string;
+    type: string;
+    number: string;
+    verified?: boolean;
+  } | null;
   location: {
-    city: string
-    state: string
-    zip: string
-    geo?: { lat: number; lng: number }
-  }
-  phone: string | null
-  websiteUrl: string | null
-  bio: string[]
-  specialties: { label: string; isPrimary: boolean }[]
-  approaches: string[]
-  formats: ('telehealth' | 'in-person')[]
-  insurance: string[]
-  sessionFee: { min: number; max: number; slidingScale: boolean } | null
-  languages: string[]
-  acceptingPatients: boolean
-  experience: number | null
-  profileImage: string | null
+    city: string;
+    state: string;
+    zip: string;
+    geo?: { lat: number; lng: number };
+  };
+  phone: string | null;
+  websiteUrl: string | null;
+  bio: string[];
+  specialties: { label: string; isPrimary: boolean }[];
+  approaches: string[];
+  formats: ("telehealth" | "in-person")[];
+  insurance: string[];
+  sessionFee: { min: number; max: number; slidingScale: boolean } | null;
+  languages: string[];
+  acceptingPatients: boolean;
+  experience: number | null;
+  profileImage: string | null;
   // Extended fields
-  education?: { degree: string; institution: string; year?: number }[]
-  listedSince?: string             // e.g. "2023"
-  verifiedAt?: string              // ISO date of last license verification
-  consultationFee?: 'free' | number | null
-  availabilityNote?: string | null
+  education?: { degree: string; institution: string; year?: number }[];
+  listedSince?: string; // e.g. "2023"
+  verifiedAt?: string; // ISO date of last license verification
+  consultationFee?: "free" | number | null;
+  availabilityNote?: string | null;
 }
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 
 export const KIMBERLY_LASKOWSKI: TherapistProfile = {
-  id: 'kimberly-laskowski',
-  slug: 'kimberly-laskowski',
-  name: { first: 'Kimberly', last: 'Laskowski', display: 'Kimberly Laskowski' },
-  credentials: ['MA', 'LMFT'],
-  title: 'Licensed Marriage & Family Therapist',
-  license: { state: 'CA', type: 'LMFT', number: '103247', verified: true },
+  id: "kimberly-laskowski",
+  slug: "kimberly-laskowski",
+  name: { first: "Kimberly", last: "Laskowski", display: "Kimberly Laskowski" },
+  credentials: ["MA", "LMFT"],
+  title: "Licensed Marriage & Family Therapist",
+  license: { state: "CA", type: "LMFT", number: "103247", verified: true },
   location: {
-    city: 'San Francisco',
-    state: 'CA',
-    zip: '94117',
+    city: "San Francisco",
+    state: "CA",
+    zip: "94117",
     geo: { lat: 37.769, lng: -122.447 },
   },
-  phone: '(415) 555-0182',
-  websiteUrl: 'https://kimberlylasmft.com',
+  phone: "(415) 555-0182",
+  websiteUrl: "https://kimberlylasmft.com",
   bio: [
-    'I specialize in working with adults living with bipolar disorder, helping them build a stable foundation for their lives and closest relationships. My clients often come to me feeling exhausted by the cycling highs and lows — searching for a therapist who genuinely understands the condition, not just its textbook definition.',
-    'My approach integrates Cognitive Behavioral Therapy (CBT), Psychoeducation, and mindfulness practices to help clients understand their mood cycles from the inside out. Together we work on building resilience, establishing sustainable routines, and navigating the relational and professional challenges that accompany a bipolar diagnosis.',
-    'I believe a bipolar diagnosis does not define a person — it is one part of a complex, meaningful life. My goal is to help you and your family develop practical tools while cultivating a deeper, more compassionate understanding of yourself.',
+    "I specialize in working with adults living with bipolar disorder, helping them build a stable foundation for their lives and closest relationships. My clients often come to me feeling exhausted by the cycling highs and lows — searching for a therapist who genuinely understands the condition, not just its textbook definition.",
+    "My approach integrates Cognitive Behavioral Therapy (CBT), Psychoeducation, and mindfulness practices to help clients understand their mood cycles from the inside out. Together we work on building resilience, establishing sustainable routines, and navigating the relational and professional challenges that accompany a bipolar diagnosis.",
+    "I believe a bipolar diagnosis does not define a person — it is one part of a complex, meaningful life. My goal is to help you and your family develop practical tools while cultivating a deeper, more compassionate understanding of yourself.",
   ],
   specialties: [
-    { label: 'Bipolar Disorder', isPrimary: true },
-    { label: 'Mood Disorders', isPrimary: true },
-    { label: 'Anxiety', isPrimary: false },
-    { label: 'Depression', isPrimary: false },
-    { label: 'Life Transitions', isPrimary: false },
-    { label: 'Relationship Issues', isPrimary: false },
-    { label: 'Family Therapy', isPrimary: false },
+    { label: "Bipolar Disorder", isPrimary: true },
+    { label: "Mood Disorders", isPrimary: true },
+    { label: "Anxiety", isPrimary: false },
+    { label: "Depression", isPrimary: false },
+    { label: "Life Transitions", isPrimary: false },
+    { label: "Relationship Issues", isPrimary: false },
+    { label: "Family Therapy", isPrimary: false },
   ],
   approaches: [
-    'CBT',
-    'Psychoeducation',
-    'Mindfulness-Based Therapy',
-    'DBT',
-    'Motivational Interviewing',
+    "CBT",
+    "Psychoeducation",
+    "Mindfulness-Based Therapy",
+    "DBT",
+    "Motivational Interviewing",
   ],
-  formats: ['telehealth', 'in-person'],
-  insurance: ['Aetna', 'Cigna', 'United Healthcare', 'Anthem Blue Cross', 'Blue Shield of CA'],
+  formats: ["telehealth", "in-person"],
+  insurance: ["Aetna", "Cigna", "United Healthcare", "Anthem Blue Cross", "Blue Shield of CA"],
   sessionFee: { min: 175, max: 225, slidingScale: true },
-  languages: ['English', 'Spanish'],
+  languages: ["English", "Spanish"],
   acceptingPatients: true,
   experience: 12,
   profileImage: null,
   education: [
     {
-      degree: 'MA, Marriage & Family Therapy',
-      institution: 'California State University, San Francisco',
+      degree: "MA, Marriage & Family Therapy",
+      institution: "California State University, San Francisco",
       year: 2012,
     },
     {
-      degree: 'BA, Psychology',
-      institution: 'University of California, Davis',
+      degree: "BA, Psychology",
+      institution: "University of California, Davis",
       year: 2009,
     },
   ],
-  listedSince: '2023',
-  verifiedAt: '2025-03-15',
-  consultationFee: 'free',
-  availabilityNote: 'Typically responds within 1–2 business days.',
-}
+  listedSince: "2023",
+  verifiedAt: "2025-03-15",
+  consultationFee: "free",
+  availabilityNote: "Typically responds within 1–2 business days.",
+};
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
-type AnalyticsProps = Record<string, unknown>
+type AnalyticsProps = Record<string, unknown>;
 
 function analytics(event: string, props: AnalyticsProps): void {
   if (
-    typeof window !== 'undefined' &&
-    typeof (window as Window & { posthog?: (e: string, p: AnalyticsProps) => void })
-      .posthog === 'function'
+    typeof window !== "undefined" &&
+    typeof (window as Window & { posthog?: (e: string, p: AnalyticsProps) => void }).posthog ===
+      "function"
   ) {
-    ;(
-      window as Window & { posthog?: (e: string, p: AnalyticsProps) => void }
-    ).posthog?.(event, props)
+    (window as Window & { posthog?: (e: string, p: AnalyticsProps) => void }).posthog?.(
+      event,
+      props,
+    );
   } else {
-    console.log('[BTH Analytics]', event, props)
+    console.log("[BTH Analytics]", event, props);
   }
 }
 
 function useProfileAnalytics(therapistId: string) {
   useEffect(() => {
-    const referrer = typeof document !== 'undefined' ? document.referrer : ''
-    const params = new URLSearchParams(
-      typeof window !== 'undefined' ? window.location.search : '',
-    )
-    analytics('profile_view', {
+    const referrer = typeof document !== "undefined" ? document.referrer : "";
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    analytics("profile_view", {
       therapistId,
       referrer,
-      matchContext: params.get('match') ?? null,
-    })
-  }, [therapistId])
+      matchContext: params.get("match") ?? null,
+    });
+  }, [therapistId]);
 
   return {
-    trackCallTapped: (source: 'hero' | 'sidebar' | 'mobile_bar') =>
-      analytics('call_tapped', { therapistId, source }),
-    trackWebsiteTapped: () => analytics('website_tapped', { therapistId }),
-    trackSaveToggled: (saved: boolean) => analytics('save_toggled', { therapistId, saved }),
-    trackScriptCopied: (type: 'email' | 'phone') =>
-      analytics('script_copied', { therapistId, type }),
-    trackFindSimilarClicked: () => analytics('find_similar_clicked', { therapistId }),
-    trackReminderSet: () => analytics('reminder_set', { therapistId }),
-    trackFaqExpanded: (question: string) =>
-      analytics('faq_expanded', { therapistId, question }),
-  }
+    trackCallTapped: (source: "hero" | "sidebar" | "mobile_bar") =>
+      analytics("call_tapped", { therapistId, source }),
+    trackWebsiteTapped: () => analytics("website_tapped", { therapistId }),
+    trackSaveToggled: (saved: boolean) => analytics("save_toggled", { therapistId, saved }),
+    trackScriptCopied: (type: "email" | "phone") =>
+      analytics("script_copied", { therapistId, type }),
+    trackFindSimilarClicked: () => analytics("find_similar_clicked", { therapistId }),
+    trackReminderSet: () => analytics("reminder_set", { therapistId }),
+    trackFaqExpanded: (question: string) => analytics("faq_expanded", { therapistId, question }),
+  };
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 
 interface ToastState {
-  message: string
-  visible: boolean
+  message: string;
+  visible: boolean;
 }
 
 function useToast() {
-  const [toast, setToast] = useState<ToastState>({ message: '', visible: false })
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [toast, setToast] = useState<ToastState>({ message: "", visible: false });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((message: string) => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    setToast({ message, visible: true })
-    timerRef.current = setTimeout(
-      () => setToast((s) => ({ ...s, visible: false })),
-      3000,
-    )
-  }, [])
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ message, visible: true });
+    timerRef.current = setTimeout(() => setToast((s) => ({ ...s, visible: false })), 3000);
+  }, []);
 
-  return { toast, showToast }
+  return { toast, showToast };
 }
 
 function Toast({ message, visible }: ToastState) {
@@ -196,36 +191,31 @@ function Toast({ message, visible }: ToastState) {
       role="status"
       aria-live="polite"
       className={[
-        'fixed bottom-24 left-1/2 z-50 -translate-x-1/2',
-        'rounded-full bg-gray-900 px-4 py-2 text-sm text-white shadow-lg',
-        'transition-all duration-300',
-        visible
-          ? 'translate-y-0 opacity-100'
-          : 'pointer-events-none translate-y-2 opacity-0',
-      ].join(' ')}
+        "fixed bottom-24 left-1/2 z-50 -translate-x-1/2",
+        "rounded-full bg-gray-900 px-4 py-2 text-sm text-white shadow-lg",
+        "transition-all duration-300",
+        visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
+      ].join(" ")}
     >
       {message}
     </div>
-  )
+  );
 }
 
 // ─── SiteHeader ───────────────────────────────────────────────────────────────
 
 interface SiteHeaderProps {
-  therapist: TherapistProfile
-  saved: boolean
-  onSaveToggle: (next: boolean) => void
-  onShare: () => void
+  therapist: TherapistProfile;
+  saved: boolean;
+  onSaveToggle: (next: boolean) => void;
+  onShare: () => void;
 }
 
 function SiteHeader({ therapist, saved, onSaveToggle, onShare }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link
-          href="/"
-          className="flex items-center gap-0.5 text-sm font-semibold text-gray-900"
-        >
+        <Link href="/" className="flex items-center gap-0.5 text-sm font-semibold text-gray-900">
           <span>BipolarTherapy</span>
           <span className="text-purple-600">Hub</span>
         </Link>
@@ -236,17 +226,15 @@ function SiteHeader({ therapist, saved, onSaveToggle, onShare }: SiteHeaderProps
             onClick={() => onSaveToggle(!saved)}
             aria-pressed={saved}
             aria-label={
-              saved
-                ? `Unsave ${therapist.name.display}`
-                : `Save ${therapist.name.display}`
+              saved ? `Unsave ${therapist.name.display}` : `Save ${therapist.name.display}`
             }
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors hover:bg-gray-100"
           >
             <svg
               className={[
-                'h-5 w-5 transition-colors',
-                saved ? 'fill-purple-600 text-purple-600' : 'fill-none text-gray-500',
-              ].join(' ')}
+                "h-5 w-5 transition-colors",
+                saved ? "fill-purple-600 text-purple-600" : "fill-none text-gray-500",
+              ].join(" ")}
               stroke="currentColor"
               strokeWidth={2}
               viewBox="0 0 24 24"
@@ -284,28 +272,19 @@ function SiteHeader({ therapist, saved, onSaveToggle, onShare }: SiteHeaderProps
         </div>
       </div>
     </header>
-  )
+  );
 }
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
 
-function Breadcrumb({
-  therapist,
-  backLabel,
-}: {
-  therapist: TherapistProfile
-  backLabel: string
-}) {
+function Breadcrumb({ therapist, backLabel }: { therapist: TherapistProfile; backLabel: string }) {
   const handleBackClick = useCallback(() => {
     try {
-      sessionStorage.setItem(
-        `bth_scroll_${window.location.pathname}`,
-        String(window.scrollY),
-      )
+      sessionStorage.setItem(`bth_scroll_${window.location.pathname}`, String(window.scrollY));
     } catch {
       // sessionStorage may be unavailable
     }
-  }, [])
+  }, []);
 
   return (
     <nav aria-label="Breadcrumb" className="mx-auto max-w-5xl px-4 pt-2 pb-0">
@@ -341,66 +320,58 @@ function Breadcrumb({
         <li aria-hidden="true" className="text-gray-300">
           /
         </li>
-        <li
-          aria-current="page"
-          className="max-w-[160px] truncate font-medium text-gray-700"
-        >
+        <li aria-current="page" className="max-w-[160px] truncate font-medium text-gray-700">
           {therapist.name.display}
         </li>
       </ol>
     </nav>
-  )
+  );
 }
 
 // ─── JumpNav ──────────────────────────────────────────────────────────────────
 
 const JUMP_SECTIONS = [
-  { id: 'about', label: 'About' },
-  { id: 'specialties', label: 'Specialties' },
-  { id: 'approach', label: 'Approach' },
-  { id: 'insurance', label: 'Insurance' },
-  { id: 'contact', label: 'How to reach out' },
-  { id: 'faq', label: 'FAQ' },
-] as const
+  { id: "about", label: "About" },
+  { id: "specialties", label: "Specialties" },
+  { id: "approach", label: "Approach" },
+  { id: "insurance", label: "Insurance" },
+  { id: "contact", label: "How to reach out" },
+  { id: "faq", label: "FAQ" },
+] as const;
 
 function JumpNav({ hasEducation }: { hasEducation: boolean }) {
-  const [active, setActive] = useState<string>('')
+  const [active, setActive] = useState<string>("");
 
   const navSections: { id: string; label: string }[] = hasEducation
-    ? [
-        JUMP_SECTIONS[0],
-        { id: 'education', label: 'Education' },
-        ...JUMP_SECTIONS.slice(1),
-      ]
-    : [...JUMP_SECTIONS]
+    ? [JUMP_SECTIONS[0], { id: "education", label: "Education" }, ...JUMP_SECTIONS.slice(1)]
+    : [...JUMP_SECTIONS];
 
   useEffect(() => {
     const els = navSections
       .map(({ id }) => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null)
-    if (!els.length) return
+      .filter((el): el is HTMLElement => el !== null);
+    if (!els.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const entering = entries.filter((e) => e.isIntersecting)
+        const entering = entries.filter((e) => e.isIntersecting);
         if (entering.length > 0) {
-          setActive(entering[entering.length - 1].target.id)
+          setActive(entering[entering.length - 1].target.id);
         }
       },
-      { threshold: 0.25, rootMargin: '-10% 0px -55% 0px' },
-    )
-    els.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
+      { threshold: 0.25, rootMargin: "-10% 0px -55% 0px" },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
     // navSections is stable across renders (derived from prop only)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEducation])
+  }, [hasEducation]);
 
-  const handleClick =
-    (id: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault()
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      setActive(id)
-    }
+  const handleClick = (id: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActive(id);
+  };
 
   return (
     <nav
@@ -414,50 +385,50 @@ function JumpNav({ hasEducation }: { hasEducation: boolean }) {
             href={`#${id}`}
             onClick={handleClick(id)}
             className={[
-              'flex min-h-[36px] items-center whitespace-nowrap border-b-2 px-3 py-2 text-xs font-medium transition-colors',
+              "flex min-h-[36px] items-center whitespace-nowrap border-b-2 px-3 py-2 text-xs font-medium transition-colors",
               active === id
-                ? 'border-purple-600 text-purple-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700',
-            ].join(' ')}
+                ? "border-purple-600 text-purple-700"
+                : "border-transparent text-gray-500 hover:text-gray-700",
+            ].join(" ")}
           >
             {label}
           </a>
         ))}
       </div>
     </nav>
-  )
+  );
 }
 
 // ─── MatchBanner ──────────────────────────────────────────────────────────────
 
-const MATCH_DISMISS_KEY = 'bth_match_banner_dismissed'
+const MATCH_DISMISS_KEY = "bth_match_banner_dismissed";
 
 function MatchBanner({ matchParam }: { matchParam: string | null }) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!matchParam) return
+    if (!matchParam) return;
     try {
-      if (!sessionStorage.getItem(MATCH_DISMISS_KEY)) setVisible(true)
+      if (!sessionStorage.getItem(MATCH_DISMISS_KEY)) setVisible(true);
     } catch {
-      setVisible(true)
+      setVisible(true);
     }
-  }, [matchParam])
+  }, [matchParam]);
 
   const dismiss = () => {
     try {
-      sessionStorage.setItem(MATCH_DISMISS_KEY, '1')
+      sessionStorage.setItem(MATCH_DISMISS_KEY, "1");
     } catch {
       // best-effort
     }
-    setVisible(false)
-  }
+    setVisible(false);
+  };
 
-  if (!visible || !matchParam) return null
+  if (!visible || !matchParam) return null;
 
-  let decoded = matchParam
+  let decoded = matchParam;
   try {
-    decoded = decodeURIComponent(matchParam)
+    decoded = decodeURIComponent(matchParam);
   } catch {
     // use raw value
   }
@@ -495,34 +466,34 @@ function MatchBanner({ matchParam }: { matchParam: string | null }) {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── TrustBar ─────────────────────────────────────────────────────────────────
 
 function TrustBar({ therapist }: { therapist: TherapistProfile }) {
-  const { license, verifiedAt, listedSince, consultationFee } = therapist
+  const { license, verifiedAt, listedSince, consultationFee } = therapist;
 
-  const signals: string[] = []
+  const signals: string[] = [];
 
   if (license?.verified !== false) {
-    signals.push(`${license?.state ?? 'CA'} license verified`)
+    signals.push(`${license?.state ?? "CA"} license verified`);
   }
-  if (consultationFee === 'free') {
-    signals.push('Free consultation offered')
+  if (consultationFee === "free") {
+    signals.push("Free consultation offered");
   }
   if (listedSince) {
-    signals.push(`Bipolar Therapy Hub member since ${listedSince}`)
+    signals.push(`Bipolar Therapy Hub member since ${listedSince}`);
   }
   if (verifiedAt) {
-    const formatted = new Date(verifiedAt).toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric',
-    })
-    signals.push(`Profile reviewed ${formatted}`)
+    const formatted = new Date(verifiedAt).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+    signals.push(`Profile reviewed ${formatted}`);
   }
 
-  if (signals.length === 0) return null
+  if (signals.length === 0) return null;
 
   return (
     <div
@@ -545,7 +516,7 @@ function TrustBar({ therapist }: { therapist: TherapistProfile }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // ─── PostCallNudge ────────────────────────────────────────────────────────────
@@ -556,26 +527,27 @@ function PostCallNudge({
   onDismiss,
   onReminderSet,
 }: {
-  therapistId: string
-  visible: boolean
-  onDismiss: () => void
-  onReminderSet: () => void
+  therapistId: string;
+  visible: boolean;
+  onDismiss: () => void;
+  onReminderSet: () => void;
 }) {
-  if (!visible) return null
+  if (!visible) return null;
 
   const handleReminder = () => {
-    const reminderAt = Date.now() + 48 * 60 * 60 * 1000
+    const reminderAt = Date.now() + 48 * 60 * 60 * 1000;
     try {
-      const stored = JSON.parse(
-        localStorage.getItem('bth_reminders') ?? '[]',
-      ) as { therapistId: string; time: number }[]
-      stored.push({ therapistId, time: reminderAt })
-      localStorage.setItem('bth_reminders', JSON.stringify(stored))
+      const stored = JSON.parse(localStorage.getItem("bth_reminders") ?? "[]") as {
+        therapistId: string;
+        time: number;
+      }[];
+      stored.push({ therapistId, time: reminderAt });
+      localStorage.setItem("bth_reminders", JSON.stringify(stored));
     } catch {
       // localStorage may be unavailable
     }
-    onReminderSet()
-  }
+    onReminderSet();
+  };
 
   return (
     <div className="mt-3 rounded-xl border border-purple-100 bg-purple-50 p-3">
@@ -597,38 +569,32 @@ function PostCallNudge({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 interface HeroProps {
-  therapist: TherapistProfile
-  heroCtaRef: React.RefObject<HTMLDivElement>
-  onCallTapped: () => void
-  onWebsiteTapped: () => void
-  onReminderSet: () => void
+  therapist: TherapistProfile;
+  heroCtaRef: React.RefObject<HTMLDivElement>;
+  onCallTapped: () => void;
+  onWebsiteTapped: () => void;
+  onReminderSet: () => void;
 }
 
-function Hero({
-  therapist,
-  heroCtaRef,
-  onCallTapped,
-  onWebsiteTapped,
-  onReminderSet,
-}: HeroProps) {
-  const [showPostCall, setShowPostCall] = useState(false)
+function Hero({ therapist, heroCtaRef, onCallTapped, onWebsiteTapped, onReminderSet }: HeroProps) {
+  const [showPostCall, setShowPostCall] = useState(false);
 
-  const initials = `${therapist.name.first[0]}${therapist.name.last[0]}`
-  const credStr = therapist.credentials.join(', ')
+  const initials = `${therapist.name.first[0]}${therapist.name.last[0]}`;
+  const credStr = therapist.credentials.join(", ");
   const feeLabel = therapist.sessionFee
     ? `$${therapist.sessionFee.min}–$${therapist.sessionFee.max}/session`
-    : 'Fee not listed'
+    : "Fee not listed";
 
   const handleCallClick = () => {
-    onCallTapped()
-    setShowPostCall(true)
-  }
+    onCallTapped();
+    setShowPostCall(true);
+  };
 
   const PhoneIcon = () => (
     <svg
@@ -645,7 +611,7 @@ function Hero({
         d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
       />
     </svg>
-  )
+  );
 
   const ExternalIcon = () => (
     <svg
@@ -662,7 +628,7 @@ function Hero({
         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
       />
     </svg>
-  )
+  );
 
   return (
     <section
@@ -717,12 +683,7 @@ function Hero({
             {/* Status badges */}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1 rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
-                <svg
-                  className="h-3 w-3"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  aria-hidden="true"
-                >
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
                 </svg>
                 Bipolar specialist
@@ -741,7 +702,7 @@ function Hero({
                 </span>
               )}
 
-              {therapist.formats.includes('telehealth') && (
+              {therapist.formats.includes("telehealth") && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
                   <svg
                     className="h-3 w-3"
@@ -761,7 +722,7 @@ function Hero({
                 </span>
               )}
 
-              {therapist.consultationFee === 'free' && (
+              {therapist.consultationFee === "free" && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-purple-100 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
                   Free consultation
                 </span>
@@ -776,7 +737,7 @@ function Hero({
           >
             {therapist.phone && (
               <a
-                href={`tel:${therapist.phone.replace(/\D/g, '')}`}
+                href={`tel:${therapist.phone.replace(/\D/g, "")}`}
                 onClick={handleCallClick}
                 aria-label={`Call ${therapist.name.display}`}
                 className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
@@ -813,8 +774,8 @@ function Hero({
               visible={showPostCall}
               onDismiss={() => setShowPostCall(false)}
               onReminderSet={() => {
-                setShowPostCall(false)
-                onReminderSet()
+                setShowPostCall(false);
+                onReminderSet();
               }}
             />
           </div>
@@ -825,7 +786,7 @@ function Hero({
       <div className="mt-4 flex gap-2 md:hidden">
         {therapist.phone && (
           <a
-            href={`tel:${therapist.phone.replace(/\D/g, '')}`}
+            href={`tel:${therapist.phone.replace(/\D/g, "")}`}
             onClick={handleCallClick}
             aria-label={`Call ${therapist.name.display}`}
             className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
@@ -881,82 +842,126 @@ function Hero({
         visible={showPostCall}
         onDismiss={() => setShowPostCall(false)}
         onReminderSet={() => {
-          setShowPostCall(false)
-          onReminderSet()
+          setShowPostCall(false);
+          onReminderSet();
         }}
       />
     </section>
-  )
+  );
 }
 
 // ─── QuickStats ───────────────────────────────────────────────────────────────
 
 function QuickStats({ therapist }: { therapist: TherapistProfile }) {
-  const { sessionFee, formats, insurance, languages } = therapist
+  const { sessionFee, formats, insurance, languages } = therapist;
 
-  const feeValue = sessionFee ? `$${sessionFee.min}–$${sessionFee.max}` : 'Not listed'
-  const feeSub = sessionFee?.slidingScale ? 'Sliding scale available' : undefined
+  const feeValue = sessionFee ? `$${sessionFee.min}–$${sessionFee.max}` : "Not listed";
+  const feeSub = sessionFee?.slidingScale ? "Sliding scale available" : undefined;
 
   const formatValue =
     formats.length === 2
-      ? 'Telehealth + In-person'
-      : formats[0] === 'telehealth'
-        ? 'Telehealth'
-        : 'In-person'
+      ? "Telehealth + In-person"
+      : formats[0] === "telehealth"
+        ? "Telehealth"
+        : "In-person";
 
-  const insSlice = insurance.slice(0, 2)
-  const insOverflow = Math.max(0, insurance.length - 2)
+  const insSlice = insurance.slice(0, 2);
+  const insOverflow = Math.max(0, insurance.length - 2);
   const insValue =
     insSlice.length > 0
-      ? insSlice.join(', ') + (insOverflow > 0 ? ` +${insOverflow} more` : '')
-      : 'Not listed'
+      ? insSlice.join(", ") + (insOverflow > 0 ? ` +${insOverflow} more` : "")
+      : "Not listed";
 
-  const langValue = languages.join(', ') || 'English'
+  const langValue = languages.join(", ") || "English";
 
   const stats: {
-    label: string
-    value: string
-    sub?: string
-    icon: React.ReactNode
+    label: string;
+    value: string;
+    sub?: string;
+    icon: React.ReactNode;
   }[] = [
     {
-      label: 'Session Fee',
+      label: "Session Fee",
       value: feeValue,
       sub: feeSub,
       icon: (
-        <svg className="h-4 w-4 text-purple-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="h-4 w-4 text-purple-400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       ),
     },
     {
-      label: 'Format',
+      label: "Format",
       value: formatValue,
       icon: (
-        <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        <svg
+          className="h-4 w-4 text-blue-400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+          />
         </svg>
       ),
     },
     {
-      label: 'Insurance',
+      label: "Insurance",
       value: insValue,
       icon: (
-        <svg className="h-4 w-4 text-teal-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        <svg
+          className="h-4 w-4 text-teal-400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
         </svg>
       ),
     },
     {
-      label: 'Languages',
+      label: "Languages",
       value: langValue,
       icon: (
-        <svg className="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+        <svg
+          className="h-4 w-4 text-indigo-400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+          />
         </svg>
       ),
     },
-  ]
+  ];
 
   return (
     <section
@@ -968,10 +973,7 @@ function QuickStats({ therapist }: { therapist: TherapistProfile }) {
       </h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-gray-100 bg-gray-50 p-3"
-          >
+          <div key={stat.label} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
             <div className="mb-1.5 flex items-center gap-1.5">
               {stat.icon}
               <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
@@ -984,7 +986,7 @@ function QuickStats({ therapist }: { therapist: TherapistProfile }) {
         ))}
       </div>
     </section>
-  )
+  );
 }
 
 // ─── Bio ──────────────────────────────────────────────────────────────────────
@@ -1011,17 +1013,13 @@ function BioSection({ bio }: { bio: string[] }) {
         ))}
       </div>
     </section>
-  )
+  );
 }
 
 // ─── Education ────────────────────────────────────────────────────────────────
 
-function EducationSection({
-  education,
-}: {
-  education: TherapistProfile['education']
-}) {
-  if (!education?.length) return null
+function EducationSection({ education }: { education: TherapistProfile["education"] }) {
+  if (!education?.length) return null;
 
   return (
     <section
@@ -1047,26 +1045,20 @@ function EducationSection({
               <p className="text-sm font-medium text-gray-800">{item.degree}</p>
               <p className="text-xs text-gray-500">
                 {item.institution}
-                {item.year ? `, ${item.year}` : ''}
+                {item.year ? `, ${item.year}` : ""}
               </p>
             </div>
           </li>
         ))}
       </ul>
     </section>
-  )
+  );
 }
 
 // ─── Focus Areas ──────────────────────────────────────────────────────────────
 
-function FocusAreasSection({
-  specialties,
-}: {
-  specialties: TherapistProfile['specialties']
-}) {
-  const sorted = [...specialties].sort(
-    (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0),
-  )
+function FocusAreasSection({ specialties }: { specialties: TherapistProfile["specialties"] }) {
+  const sorted = [...specialties].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
 
   return (
     <section
@@ -1086,18 +1078,18 @@ function FocusAreasSection({
           <span
             key={s.label}
             className={[
-              'rounded-full border px-3 py-1.5 text-sm font-medium',
+              "rounded-full border px-3 py-1.5 text-sm font-medium",
               s.isPrimary
-                ? 'border-purple-200 bg-purple-100 text-purple-700'
-                : 'border-gray-200 bg-gray-100 text-gray-600',
-            ].join(' ')}
+                ? "border-purple-200 bg-purple-100 text-purple-700"
+                : "border-gray-200 bg-gray-100 text-gray-600",
+            ].join(" ")}
           >
             {s.label}
           </span>
         ))}
       </div>
     </section>
-  )
+  );
 }
 
 // ─── Therapeutic Approach ─────────────────────────────────────────────────────
@@ -1106,8 +1098,8 @@ function TherapeuticApproachSection({
   approaches,
   therapistFirstName,
 }: {
-  approaches: string[]
-  therapistFirstName: string
+  approaches: string[];
+  therapistFirstName: string;
 }) {
   return (
     <section
@@ -1127,8 +1119,8 @@ function TherapeuticApproachSection({
           className="text-sm italic leading-relaxed text-gray-600"
           style={{ fontFamily: "'Lora', Georgia, serif" }}
         >
-          {therapistFirstName} uses evidence-based techniques tailored to the unique challenges
-          of bipolar disorder, drawing from the following modalities:
+          {therapistFirstName} uses evidence-based techniques tailored to the unique challenges of
+          bipolar disorder, drawing from the following modalities:
         </p>
       </blockquote>
       <div className="flex flex-wrap gap-2">
@@ -1142,7 +1134,7 @@ function TherapeuticApproachSection({
         ))}
       </div>
     </section>
-  )
+  );
 }
 
 // ─── Insurance ────────────────────────────────────────────────────────────────
@@ -1166,10 +1158,7 @@ function InsuranceSection({ insurance }: { insurance: string[] }) {
           <div className="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
             {insurance.map((plan) => (
               <div key={plan} className="flex items-center gap-2 text-sm text-gray-700">
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full bg-teal-500"
-                  aria-hidden="true"
-                />
+                <span className="h-2 w-2 shrink-0 rounded-full bg-teal-500" aria-hidden="true" />
                 {plan}
               </div>
             ))}
@@ -1180,12 +1169,12 @@ function InsuranceSection({ insurance }: { insurance: string[] }) {
         </>
       ) : (
         <p className="text-sm text-gray-500">
-          Insurance information not listed. Contact this therapist to ask about accepted
-          plans and out-of-pocket rates.
+          Insurance information not listed. Contact this therapist to ask about accepted plans and
+          out-of-pocket rates.
         </p>
       )}
     </section>
-  )
+  );
 }
 
 // ─── ReachOutModule ───────────────────────────────────────────────────────────
@@ -1195,11 +1184,11 @@ function ReachOutModule({
   onScriptCopied,
   showToast,
 }: {
-  therapist: TherapistProfile
-  onScriptCopied: (type: 'email' | 'phone') => void
-  showToast: (msg: string) => void
+  therapist: TherapistProfile;
+  onScriptCopied: (type: "email" | "phone") => void;
+  showToast: (msg: string) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
+  const [activeTab, setActiveTab] = useState<"email" | "phone">("email");
 
   const emailScript = `Hi ${therapist.name.first},
 
@@ -1212,19 +1201,19 @@ A bit about me: [brief description — e.g. diagnosis history, what you're hopin
 If you're accepting new patients, I'd love to schedule a brief consultation. Please let me know what works for you.
 
 Thank you for your time.
-[Your name]`
+[Your name]`;
 
-  const phoneScript = `Hi, my name is [Your name]. I'm calling because I found your listing on Bipolar Therapy Hub and I'm looking for a therapist who specializes in bipolar disorder. Are you currently accepting new patients? If so, I'd love to schedule a brief consultation call. My number is [your number]. Thank you!`
+  const phoneScript = `Hi, my name is [Your name]. I'm calling because I found your listing on Bipolar Therapy Hub and I'm looking for a therapist who specializes in bipolar disorder. Are you currently accepting new patients? If so, I'd love to schedule a brief consultation call. My number is [your number]. Thank you!`;
 
-  const copyScript = async (text: string, type: 'email' | 'phone') => {
+  const copyScript = async (text: string, type: "email" | "phone") => {
     try {
-      await navigator.clipboard.writeText(text)
-      onScriptCopied(type)
-      showToast(`${type === 'email' ? 'Email' : 'Phone'} script copied`)
+      await navigator.clipboard.writeText(text);
+      onScriptCopied(type);
+      showToast(`${type === "email" ? "Email" : "Phone"} script copied`);
     } catch {
       // clipboard may be unavailable
     }
-  }
+  };
 
   const CopyIcon = () => (
     <svg
@@ -1241,7 +1230,7 @@ Thank you for your time.
         d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
       />
     </svg>
-  )
+  );
 
   return (
     <section
@@ -1256,16 +1245,14 @@ Thank you for your time.
       >
         Not sure what to say?
       </h2>
-      <p className="mb-4 text-sm text-gray-500">
-        Use one of these starter scripts to reach out.
-      </p>
+      <p className="mb-4 text-sm text-gray-500">Use one of these starter scripts to reach out.</p>
 
       <div
         role="tablist"
         aria-label="Contact scripts"
         className="mb-4 flex gap-1 border-b border-gray-100"
       >
-        {(['email', 'phone'] as const).map((tab) => (
+        {(["email", "phone"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -1275,11 +1262,11 @@ Thank you for your time.
             aria-controls={`reachout-panel-${tab}`}
             onClick={() => setActiveTab(tab)}
             className={[
-              'min-h-[44px] border-b-2 px-4 py-2 text-sm font-medium capitalize transition-colors',
+              "min-h-[44px] border-b-2 px-4 py-2 text-sm font-medium capitalize transition-colors",
               activeTab === tab
-                ? 'border-purple-600 text-purple-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700',
-            ].join(' ')}
+                ? "border-purple-600 text-purple-700"
+                : "border-transparent text-gray-500 hover:text-gray-700",
+            ].join(" ")}
           >
             {tab}
           </button>
@@ -1290,14 +1277,14 @@ Thank you for your time.
         role="tabpanel"
         id="reachout-panel-email"
         aria-labelledby="reachout-tab-email"
-        hidden={activeTab !== 'email'}
+        hidden={activeTab !== "email"}
       >
         <pre className="mb-3 whitespace-pre-wrap rounded-xl border border-gray-100 bg-gray-50 p-4 font-sans text-xs leading-relaxed text-gray-700">
           {emailScript}
         </pre>
         <button
           type="button"
-          onClick={() => copyScript(emailScript, 'email')}
+          onClick={() => copyScript(emailScript, "email")}
           className="flex min-h-[44px] items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
         >
           <CopyIcon />
@@ -1309,14 +1296,14 @@ Thank you for your time.
         role="tabpanel"
         id="reachout-panel-phone"
         aria-labelledby="reachout-tab-phone"
-        hidden={activeTab !== 'phone'}
+        hidden={activeTab !== "phone"}
       >
         <pre className="mb-3 whitespace-pre-wrap rounded-xl border border-gray-100 bg-gray-50 p-4 font-sans text-xs leading-relaxed text-gray-700">
           {phoneScript}
         </pre>
         <button
           type="button"
-          onClick={() => copyScript(phoneScript, 'phone')}
+          onClick={() => copyScript(phoneScript, "phone")}
           className="flex min-h-[44px] items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
         >
           <CopyIcon />
@@ -1324,37 +1311,41 @@ Thank you for your time.
         </button>
       </div>
     </section>
-  )
+  );
 }
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
-export function buildFAQItems(
-  therapist: TherapistProfile,
-): { q: string; a: string }[] {
-  const { name, acceptingPatients, insurance, sessionFee, formats, approaches, phone, websiteUrl, consultationFee } =
-    therapist
-  const { first: firstName, display: fullName } = name
+export function buildFAQItems(therapist: TherapistProfile): { q: string; a: string }[] {
+  const {
+    name,
+    acceptingPatients,
+    insurance,
+    sessionFee,
+    formats,
+    approaches,
+    phone,
+    websiteUrl,
+    consultationFee,
+  } = therapist;
+  const { first: firstName, display: fullName } = name;
 
-  const contact = [
-    phone ? `calling ${phone}` : null,
-    websiteUrl ? `visiting their website` : null,
-  ]
+  const contact = [phone ? `calling ${phone}` : null, websiteUrl ? `visiting their website` : null]
     .filter(Boolean)
-    .join(' or ')
+    .join(" or ");
 
   return [
     {
       q: `Is ${fullName} currently accepting new patients?`,
       a: acceptingPatients
-        ? `Yes, ${firstName} is currently accepting new patients. You can reach them by ${contact || 'the contact information on this page'} to schedule an initial appointment.`
+        ? `Yes, ${firstName} is currently accepting new patients. You can reach them by ${contact || "the contact information on this page"} to schedule an initial appointment.`
         : `${firstName} is not currently accepting new patients. Use our directory to find similar bipolar disorder specialists near you.`,
     },
     {
       q: `What insurance does ${fullName} accept?`,
       a:
         insurance.length > 0
-          ? `${firstName} accepts the following insurance plans: ${insurance.join(', ')}. Coverage for therapy varies by plan and deductible — confirm your specific benefits directly with ${firstName} or your insurance carrier before your first appointment.`
+          ? `${firstName} accepts the following insurance plans: ${insurance.join(", ")}. Coverage for therapy varies by plan and deductible — confirm your specific benefits directly with ${firstName} or your insurance carrier before your first appointment.`
           : `Insurance information is not currently listed for ${firstName}. Contact them directly to ask about accepted plans and out-of-pocket rates.`,
     },
     {
@@ -1365,53 +1356,53 @@ export function buildFAQItems(
             sessionFee.slidingScale
               ? `A sliding scale fee is available for qualifying clients — ask about it when you reach out.`
               : null,
-            consultationFee === 'free'
+            consultationFee === "free"
               ? `A free initial consultation is offered so you can discuss your needs before committing to ongoing sessions.`
               : null,
           ]
             .filter(Boolean)
-            .join(' ')
+            .join(" ")
         : `Session fee information is not listed. Contact ${firstName} directly to ask about rates and payment options.`,
     },
     {
       q: `Does ${fullName} offer online therapy or telehealth?`,
       a:
-        formats.includes('telehealth') && formats.includes('in-person')
+        formats.includes("telehealth") && formats.includes("in-person")
           ? `Yes, ${firstName} offers both telehealth (secure video sessions) and in-person appointments at their ${therapist.location.city} office. You can discuss your preference when scheduling.`
-          : formats.includes('telehealth')
+          : formats.includes("telehealth")
             ? `Yes, ${firstName} offers telehealth sessions — you can attend therapy from home via secure video, making it easier to fit appointments into your schedule.`
             : `${firstName} currently offers in-person sessions in ${therapist.location.city}, ${therapist.location.state}.`,
     },
     {
       q: `What therapy approaches does ${fullName} use for bipolar disorder?`,
-      a: `${firstName} draws on ${approaches.slice(0, -1).join(', ')}${approaches.length > 1 ? `, and ${approaches[approaches.length - 1]}` : approaches[0]}. These evidence-based modalities are recognized as effective for managing bipolar disorder, improving mood stability, and building resilience in everyday life.`,
+      a: `${firstName} draws on ${approaches.slice(0, -1).join(", ")}${approaches.length > 1 ? `, and ${approaches[approaches.length - 1]}` : approaches[0]}. These evidence-based modalities are recognized as effective for managing bipolar disorder, improving mood stability, and building resilience in everyday life.`,
     },
     {
       q: `How do I schedule an appointment with ${fullName}?`,
       a: [
-        `You can reach ${firstName} by ${contact || 'the contact details on this page'}.`,
-        consultationFee === 'free'
+        `You can reach ${firstName} by ${contact || "the contact details on this page"}.`,
+        consultationFee === "free"
           ? `A free initial consultation is available — this is a good opportunity to share your diagnosis history, ask questions, and see whether you're a good fit before committing to ongoing sessions.`
           : `Many therapists offer a brief phone call before the first session so both parties can assess fit.`,
         `When you reach out, mention that you found their profile on Bipolar Therapy Hub and describe what you're hoping to work on.`,
-      ].join(' '),
+      ].join(" "),
     },
-  ]
+  ];
 }
 
 interface FAQSectionProps {
-  therapist: TherapistProfile
-  onFaqExpanded: (q: string) => void
+  therapist: TherapistProfile;
+  onFaqExpanded: (q: string) => void;
 }
 
 function FAQSection({ therapist, onFaqExpanded }: FAQSectionProps) {
-  const items = buildFAQItems(therapist)
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const items = buildFAQItems(therapist);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggle = (i: number) => {
-    if (openIndex !== i) onFaqExpanded(items[i].q)
-    setOpenIndex(openIndex === i ? null : i)
-  }
+    if (openIndex !== i) onFaqExpanded(items[i].q);
+    setOpenIndex(openIndex === i ? null : i);
+  };
 
   return (
     <section
@@ -1426,9 +1417,7 @@ function FAQSection({ therapist, onFaqExpanded }: FAQSectionProps) {
       >
         Frequently Asked Questions
       </h2>
-      <p className="mb-4 text-sm text-gray-500">
-        Common questions about {therapist.name.display}
-      </p>
+      <p className="mb-4 text-sm text-gray-500">Common questions about {therapist.name.display}</p>
 
       <div className="divide-y divide-gray-100">
         {items.map((item, i) => (
@@ -1444,9 +1433,9 @@ function FAQSection({ therapist, onFaqExpanded }: FAQSectionProps) {
               <span className="text-sm font-medium text-gray-800">{item.q}</span>
               <svg
                 className={[
-                  'mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200',
-                  openIndex === i ? 'rotate-180' : '',
-                ].join(' ')}
+                  "mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200",
+                  openIndex === i ? "rotate-180" : "",
+                ].join(" ")}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
@@ -1469,7 +1458,7 @@ function FAQSection({ therapist, onFaqExpanded }: FAQSectionProps) {
         ))}
       </div>
     </section>
-  )
+  );
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -1479,13 +1468,13 @@ function Sidebar({
   onCallTapped,
   onFindSimilarClicked,
 }: {
-  therapist: TherapistProfile
-  onCallTapped: () => void
-  onFindSimilarClicked: () => void
+  therapist: TherapistProfile;
+  onCallTapped: () => void;
+  onFindSimilarClicked: () => void;
 }) {
   const bbsUrl = therapist.license
     ? `https://search.dca.ca.gov/details/8607/${therapist.license.number}`
-    : null
+    : null;
 
   return (
     <aside
@@ -1498,7 +1487,7 @@ function Sidebar({
 
         {therapist.phone && (
           <a
-            href={`tel:${therapist.phone.replace(/\D/g, '')}`}
+            href={`tel:${therapist.phone.replace(/\D/g, "")}`}
             onClick={onCallTapped}
             aria-label={`Call ${therapist.name.display}`}
             className="mb-2 flex items-center gap-2 text-sm text-gray-700 transition-colors hover:text-purple-600"
@@ -1560,7 +1549,7 @@ function Sidebar({
 
         {therapist.phone && (
           <a
-            href={`tel:${therapist.phone.replace(/\D/g, '')}`}
+            href={`tel:${therapist.phone.replace(/\D/g, "")}`}
             onClick={onCallTapped}
             aria-label={`Call ${therapist.name.display} to schedule`}
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
@@ -1623,8 +1612,7 @@ function Sidebar({
       {/* Not the right fit */}
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
         <p className="mb-2 text-sm text-gray-600">
-          Not the right fit? Browse similar therapists near{' '}
-          {therapist.location.city}.
+          Not the right fit? Browse similar therapists near {therapist.location.city}.
         </p>
         <Link
           href={`/directory?specialty=bipolar&near=${encodeURIComponent(therapist.location.city)}`}
@@ -1635,7 +1623,7 @@ function Sidebar({
         </Link>
       </div>
     </aside>
-  )
+  );
 }
 
 // ─── MobileStickyBar ──────────────────────────────────────────────────────────
@@ -1646,49 +1634,44 @@ function MobileStickyBar({
   onCallTapped,
   onWebsiteTapped,
 }: {
-  therapist: TherapistProfile
-  heroCtaRef: React.RefObject<HTMLDivElement>
-  onCallTapped: () => void
-  onWebsiteTapped: () => void
+  therapist: TherapistProfile;
+  heroCtaRef: React.RefObject<HTMLDivElement>;
+  onCallTapped: () => void;
+  onWebsiteTapped: () => void;
 }) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const el = heroCtaRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(!entry.isIntersecting),
-      { threshold: 0 },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [heroCtaRef])
+    const el = heroCtaRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(!entry.isIntersecting), {
+      threshold: 0,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [heroCtaRef]);
 
-  const { sessionFee, acceptingPatients, phone, websiteUrl, name } = therapist
-  const feeLabel = sessionFee ? `$${sessionFee.min}–$${sessionFee.max}` : null
+  const { sessionFee, acceptingPatients, phone, websiteUrl, name } = therapist;
+  const feeLabel = sessionFee ? `$${sessionFee.min}–$${sessionFee.max}` : null;
 
   return (
     <div
       aria-hidden={!visible}
       className={[
-        'fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white shadow-lg transition-transform duration-300 md:hidden',
-        visible ? 'translate-y-0' : 'translate-y-full',
-      ].join(' ')}
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        "fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white shadow-lg transition-transform duration-300 md:hidden",
+        visible ? "translate-y-0" : "translate-y-full",
+      ].join(" ")}
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="px-4 py-3">
         {(feeLabel || acceptingPatients) && (
           <div className="mb-2 flex items-center gap-2">
-            {feeLabel && (
-              <span className="text-xs font-medium text-gray-700">{feeLabel}</span>
-            )}
+            {feeLabel && <span className="text-xs font-medium text-gray-700">{feeLabel}</span>}
             {sessionFee?.slidingScale && (
               <span className="text-xs text-gray-400">&middot; Sliding scale</span>
             )}
             {acceptingPatients && (
-              <span className="ml-auto text-xs font-medium text-green-600">
-                Accepting patients
-              </span>
+              <span className="ml-auto text-xs font-medium text-green-600">Accepting patients</span>
             )}
           </div>
         )}
@@ -1696,7 +1679,7 @@ function MobileStickyBar({
         <div className="flex gap-2">
           {phone && (
             <a
-              href={`tel:${phone.replace(/\D/g, '')}`}
+              href={`tel:${phone.replace(/\D/g, "")}`}
               onClick={onCallTapped}
               aria-label={`Call ${name.display}`}
               className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
@@ -1747,33 +1730,33 @@ function MobileStickyBar({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── JSON-LD ──────────────────────────────────────────────────────────────────
 
 function TherapistJsonLd({ therapist }: { therapist: TherapistProfile }) {
-  const pageUrl = `https://www.bipolartherapyhub.com/therapists/${therapist.slug}/`
-  const siteUrl = 'https://www.bipolartherapyhub.com'
+  const pageUrl = `https://www.bipolartherapyhub.com/therapists/${therapist.slug}/`;
+  const siteUrl = "https://www.bipolartherapyhub.com";
   const address = {
-    '@type': 'PostalAddress',
+    "@type": "PostalAddress",
     addressLocality: therapist.location.city,
     addressRegion: therapist.location.state,
     postalCode: therapist.location.zip,
-    addressCountry: 'US',
-  }
+    addressCountry: "US",
+  };
 
   const person = {
-    '@context': 'https://schema.org',
-    '@type': 'Person',
-    name: `${therapist.name.display}, ${therapist.credentials.join(', ')}`,
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: `${therapist.name.display}, ${therapist.credentials.join(", ")}`,
     url: pageUrl,
     jobTitle: therapist.title,
     knowsAbout: [
-      'Bipolar disorder',
-      'Mood disorders',
-      'Psychotherapy',
-      'Mental health',
+      "Bipolar disorder",
+      "Mood disorders",
+      "Psychotherapy",
+      "Mental health",
       ...therapist.approaches,
     ],
     address,
@@ -1782,102 +1765,100 @@ function TherapistJsonLd({ therapist }: { therapist: TherapistProfile }) {
     ...(therapist.education?.length
       ? {
           alumniOf: therapist.education.map((e) => ({
-            '@type': 'EducationalOrganization',
+            "@type": "EducationalOrganization",
             name: e.institution,
           })),
         }
       : {}),
     knowsLanguage: therapist.languages.map((l) => ({
-      '@type': 'Language',
+      "@type": "Language",
       name: l,
     })),
-  }
+  };
 
   const medicalBusiness = {
-    '@context': 'https://schema.org',
-    '@type': 'MedicalBusiness',
+    "@context": "https://schema.org",
+    "@type": "MedicalBusiness",
     name: `${therapist.name.display}, ${therapist.title}`,
     url: pageUrl,
     address,
     ...(therapist.phone ? { telephone: therapist.phone } : {}),
-    priceRange: '$$',
-    medicalSpecialty: 'Psychiatric',
-    ...(therapist.insurance.length > 0
-      ? { paymentAccepted: therapist.insurance.join(', ') }
-      : {}),
+    priceRange: "$$",
+    medicalSpecialty: "Psychiatric",
+    ...(therapist.insurance.length > 0 ? { paymentAccepted: therapist.insurance.join(", ") } : {}),
     ...(therapist.location.geo
       ? {
           geo: {
-            '@type': 'GeoCoordinates',
+            "@type": "GeoCoordinates",
             latitude: therapist.location.geo.lat,
             longitude: therapist.location.geo.lng,
           },
         }
       : {}),
     areaServed: {
-      '@type': 'State',
-      name: 'California',
+      "@type": "State",
+      name: "California",
     },
-    ...(therapist.formats.includes('telehealth')
+    ...(therapist.formats.includes("telehealth")
       ? {
           availableChannel: {
-            '@type': 'ServiceChannel',
-            serviceType: 'Online therapy',
+            "@type": "ServiceChannel",
+            serviceType: "Online therapy",
             availableLanguage: therapist.languages.map((l) => ({
-              '@type': 'Language',
+              "@type": "Language",
               name: l,
             })),
           },
         }
       : {}),
-  }
+  };
 
   const breadcrumbList = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
     itemListElement: [
       {
-        '@type': 'ListItem',
+        "@type": "ListItem",
         position: 1,
-        name: 'Home',
+        name: "Home",
         item: `${siteUrl}/`,
       },
       {
-        '@type': 'ListItem',
+        "@type": "ListItem",
         position: 2,
-        name: 'Therapist Directory',
+        name: "Therapist Directory",
         item: `${siteUrl}/directory`,
       },
       {
-        '@type': 'ListItem',
+        "@type": "ListItem",
         position: 3,
         name: therapist.location.state,
         item: `${siteUrl}/directory?state=${therapist.location.state}`,
       },
       {
-        '@type': 'ListItem',
+        "@type": "ListItem",
         position: 4,
         name: therapist.name.display,
         item: pageUrl,
       },
     ],
-  }
+  };
 
-  const faqItems = buildFAQItems(therapist)
+  const faqItems = buildFAQItems(therapist);
   const faqPage = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
     mainEntity: faqItems.map((item) => ({
-      '@type': 'Question',
+      "@type": "Question",
       name: item.q,
       acceptedAnswer: {
-        '@type': 'Answer',
+        "@type": "Answer",
         text: item.a,
       },
     })),
-  }
+  };
 
-  const schemas = [person, medicalBusiness, breadcrumbList, faqPage]
+  const schemas = [person, medicalBusiness, breadcrumbList, faqPage];
 
   return (
     <>
@@ -1889,7 +1870,7 @@ function TherapistJsonLd({ therapist }: { therapist: TherapistProfile }) {
         />
       ))}
     </>
-  )
+  );
 }
 
 // ─── generateMetadata ─────────────────────────────────────────────────────────
@@ -1898,33 +1879,33 @@ function TherapistJsonLd({ therapist }: { therapist: TherapistProfile }) {
 // Copy it into therapist-page-server.tsx (server component wrapper).
 // Replace KIMBERLY_LASKOWSKI with await fetchTherapistBySlug(params.slug).
 export function generateMetadata(_: { params: { slug: string } }): Metadata {
-  const t = KIMBERLY_LASKOWSKI
+  const t = KIMBERLY_LASKOWSKI;
 
-  const credStr = t.credentials.join(', ')
-  const title = `${t.name.display}, ${credStr} — Bipolar Therapist in ${t.location.city}, ${t.location.state} | Bipolar Therapy Hub`
+  const credStr = t.credentials.join(", ");
+  const title = `${t.name.display}, ${credStr} — Bipolar Therapist in ${t.location.city}, ${t.location.state} | Bipolar Therapy Hub`;
 
   // Description: lead with specialist identity, then key logistics — ~155 chars
   const descParts: string[] = [
     `${t.name.display} is a bipolar disorder specialist and ${t.title.toLowerCase()} in ${t.location.city}, ${t.location.state}.`,
-  ]
-  if (t.acceptingPatients) descParts.push('Currently accepting new patients.')
-  if (t.formats.includes('telehealth') && t.formats.includes('in-person')) {
-    descParts.push('Telehealth and in-person.')
-  } else if (t.formats.includes('telehealth')) {
-    descParts.push('Telehealth available.')
+  ];
+  if (t.acceptingPatients) descParts.push("Currently accepting new patients.");
+  if (t.formats.includes("telehealth") && t.formats.includes("in-person")) {
+    descParts.push("Telehealth and in-person.");
+  } else if (t.formats.includes("telehealth")) {
+    descParts.push("Telehealth available.");
   }
   if (t.sessionFee) {
-    const sliding = t.sessionFee.slidingScale ? ' Sliding scale.' : ''
-    descParts.push(`$${t.sessionFee.min}–$${t.sessionFee.max}/session.${sliding}`)
+    const sliding = t.sessionFee.slidingScale ? " Sliding scale." : "";
+    descParts.push(`$${t.sessionFee.min}–$${t.sessionFee.max}/session.${sliding}`);
   }
   if (t.insurance.length > 0) {
-    descParts.push(`Accepts ${t.insurance.slice(0, 2).join(', ')}.`)
+    descParts.push(`Accepts ${t.insurance.slice(0, 2).join(", ")}.`);
   }
 
-  const fullDesc = descParts.join(' ')
-  const description = fullDesc.length <= 158 ? fullDesc : `${fullDesc.slice(0, 155)}…`
+  const fullDesc = descParts.join(" ");
+  const description = fullDesc.length <= 158 ? fullDesc : `${fullDesc.slice(0, 155)}…`;
 
-  const url = `https://www.bipolartherapyhub.com/therapists/${t.slug}/`
+  const url = `https://www.bipolartherapyhub.com/therapists/${t.slug}/`;
 
   return {
     title,
@@ -1934,111 +1915,111 @@ export function generateMetadata(_: { params: { slug: string } }): Metadata {
     openGraph: {
       title,
       description,
-      type: 'profile',
+      type: "profile",
       url,
-      siteName: 'Bipolar Therapy Hub',
-      locale: 'en_US',
+      siteName: "Bipolar Therapy Hub",
+      locale: "en_US",
       ...(t.profileImage ? { images: [{ url: t.profileImage, alt: t.name.display }] } : {}),
     },
     twitter: {
-      card: 'summary',
+      card: "summary",
       title,
       description,
       ...(t.profileImage ? { images: [t.profileImage] } : {}),
     },
     other: {
-      'article:section': 'Therapist Directory',
+      "article:section": "Therapist Directory",
     },
-  }
+  };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TherapistPage(_: { params: { slug: string } }) {
   // In production: replace with server-fetched data keyed by params.slug
-  const therapist = KIMBERLY_LASKOWSKI
+  const therapist = KIMBERLY_LASKOWSKI;
 
-  const { toast, showToast } = useToast()
-  const heroCtaRef = useRef<HTMLDivElement>(null)
-  const track = useProfileAnalytics(therapist.id)
+  const { toast, showToast } = useToast();
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+  const track = useProfileAnalytics(therapist.id);
 
   // ── Saved state ───────────────────────────────────────────────────────────
-  const SAVED_KEY = 'bth_saved_therapists'
-  const [saved, setSaved] = useState(false)
+  const SAVED_KEY = "bth_saved_therapists";
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     try {
-      const list: string[] = JSON.parse(localStorage.getItem(SAVED_KEY) ?? '[]')
-      setSaved(list.includes(therapist.id))
+      const list: string[] = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]");
+      setSaved(list.includes(therapist.id));
     } catch {
       // localStorage unavailable
     }
-  }, [therapist.id])
+  }, [therapist.id]);
 
   const handleSaveToggle = (next: boolean) => {
-    setSaved(next)
-    track.trackSaveToggled(next)
+    setSaved(next);
+    track.trackSaveToggled(next);
     try {
-      const list: string[] = JSON.parse(localStorage.getItem(SAVED_KEY) ?? '[]')
+      const list: string[] = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]");
       const updated = next
         ? [...new Set([...list, therapist.id])]
-        : list.filter((id) => id !== therapist.id)
-      localStorage.setItem(SAVED_KEY, JSON.stringify(updated))
+        : list.filter((id) => id !== therapist.id);
+      localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
     } catch {
       // best-effort
     }
-    showToast(next ? 'Saved to your list' : 'Removed from your list')
-  }
+    showToast(next ? "Saved to your list" : "Removed from your list");
+  };
 
   // ── Share ─────────────────────────────────────────────────────────────────
   const handleShare = async () => {
-    const url = `https://www.bipolartherapyhub.com/therapists/${therapist.slug}/`
-    const shareTitle = `${therapist.name.display} — Bipolar Therapist in ${therapist.location.city}`
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    const url = `https://www.bipolartherapyhub.com/therapists/${therapist.slug}/`;
+    const shareTitle = `${therapist.name.display} — Bipolar Therapist in ${therapist.location.city}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: shareTitle, url })
+        await navigator.share({ title: shareTitle, url });
       } catch {
         // user cancelled or API unavailable
       }
     } else {
       try {
-        await navigator.clipboard.writeText(url)
-        showToast('Link copied to clipboard')
+        await navigator.clipboard.writeText(url);
+        showToast("Link copied to clipboard");
       } catch {
         // best-effort
       }
     }
-  }
+  };
 
   // ── Navigation context ────────────────────────────────────────────────────
-  const [backLabel, setBackLabel] = useState('Therapist Directory')
-  const [matchParam, setMatchParam] = useState<string | null>(null)
+  const [backLabel, setBackLabel] = useState("Therapist Directory");
+  const [matchParam, setMatchParam] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      if (document.referrer.includes('/match')) {
-        setBackLabel('Back to your matches')
+      if (document.referrer.includes("/match")) {
+        setBackLabel("Back to your matches");
       }
-      const params = new URLSearchParams(window.location.search)
-      setMatchParam(params.get('match'))
+      const params = new URLSearchParams(window.location.search);
+      setMatchParam(params.get("match"));
 
-      const scrollKey = `bth_scroll_${document.referrer}`
-      const y = sessionStorage.getItem(scrollKey)
+      const scrollKey = `bth_scroll_${document.referrer}`;
+      const y = sessionStorage.getItem(scrollKey);
       if (y) {
-        window.scrollTo({ top: parseInt(y), behavior: 'instant' })
-        sessionStorage.removeItem(scrollKey)
+        window.scrollTo({ top: parseInt(y), behavior: "instant" });
+        sessionStorage.removeItem(scrollKey);
       }
     } catch {
       // best-effort
     }
-  }, [])
+  }, []);
 
   // ── CTA handlers ──────────────────────────────────────────────────────────
   const callHandlers = {
-    hero: () => track.trackCallTapped('hero'),
-    sidebar: () => track.trackCallTapped('sidebar'),
-    mobile_bar: () => track.trackCallTapped('mobile_bar'),
-  } as const
+    hero: () => track.trackCallTapped("hero"),
+    sidebar: () => track.trackCallTapped("sidebar"),
+    mobile_bar: () => track.trackCallTapped("mobile_bar"),
+  } as const;
 
   return (
     <>
@@ -2076,8 +2057,8 @@ export default function TherapistPage(_: { params: { slug: string } }) {
                 onCallTapped={callHandlers.hero}
                 onWebsiteTapped={track.trackWebsiteTapped}
                 onReminderSet={() => {
-                  track.trackReminderSet()
-                  showToast('Reminder set for 48 hours from now')
+                  track.trackReminderSet();
+                  showToast("Reminder set for 48 hours from now");
                 }}
               />
 
@@ -2104,17 +2085,14 @@ export default function TherapistPage(_: { params: { slug: string } }) {
                 showToast={showToast}
               />
 
-              <FAQSection
-                therapist={therapist}
-                onFaqExpanded={track.trackFaqExpanded}
-              />
+              <FAQSection therapist={therapist} onFaqExpanded={track.trackFaqExpanded} />
 
               {/* Find similar */}
               <div className="mb-4 mt-2 text-center">
                 <Link
                   href={`/directory?specialty=bipolar&location=${encodeURIComponent(
                     `${therapist.location.city}, ${therapist.location.state}`,
-                  )}&insurance=${encodeURIComponent(therapist.insurance[0] ?? '')}`}
+                  )}&insurance=${encodeURIComponent(therapist.insurance[0] ?? "")}`}
                   onClick={track.trackFindSimilarClicked}
                   className="text-sm font-medium text-purple-600 hover:text-purple-700"
                 >
@@ -2142,5 +2120,5 @@ export default function TherapistPage(_: { params: { slug: string } }) {
         <Toast message={toast.message} visible={toast.visible} />
       </div>
     </>
-  )
+  );
 }
