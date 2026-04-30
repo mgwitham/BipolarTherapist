@@ -330,6 +330,7 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editPhone", candidate.phone);
   setVal("editWebsite", candidate.website);
   setVal("editBookingUrl", candidate.booking_url);
+  setVal("editPreferredContactMethod", candidate.preferred_contact_method);
 
   // Care
   setVal("editCareApproach", candidate.care_approach);
@@ -400,6 +401,7 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   setVal("editPhone", read("phone", "phone"));
   setVal("editWebsite", read("website", "website"));
   setVal("editBookingUrl", read("booking_url", "bookingUrl"));
+  setVal("editPreferredContactMethod", read("preferred_contact_method", "preferredContactMethod"));
 
   // Care
   setVal("editCareApproach", read("care_approach", "careApproach"));
@@ -562,6 +564,7 @@ export function bindCandidateEditDrawer() {
           phone: getVal("editPhone"),
           website: getVal("editWebsite"),
           bookingUrl: getVal("editBookingUrl"),
+          preferredContactMethod: getVal("editPreferredContactMethod"),
           careApproach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatmentModalities: tagsToArray(getVal("editTreatmentModalities")),
@@ -594,6 +597,7 @@ export function bindCandidateEditDrawer() {
           phone: getVal("editPhone"),
           website: getVal("editWebsite"),
           booking_url: getVal("editBookingUrl"),
+          preferred_contact_method: getVal("editPreferredContactMethod"),
           care_approach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatment_modalities: tagsToArray(getVal("editTreatmentModalities")),
