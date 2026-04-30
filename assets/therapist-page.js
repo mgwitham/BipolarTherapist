@@ -3282,6 +3282,12 @@ function renderProfile(t, therapistDirectory) {
         "</div></div>"
       : "";
 
+  var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
+  var backNav =
+    backNavRef === "match"
+      ? { href: "match.html", label: "← Back to your matches" }
+      : { href: "directory.html", label: "← Back to directory" };
+
   var html =
     '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
@@ -3403,7 +3409,11 @@ function renderProfile(t, therapistDirectory) {
     "</div>" +
     buildTrustBar(t) +
     '<div class="profile-foot-actions">' +
-    '<a href="directory.html" class="profile-foot-back">← Back to Directory</a>' +
+    '<a href="' +
+    escapeHtml(backNav.href) +
+    '" class="profile-foot-back">' +
+    escapeHtml(backNav.label) +
+    "</a>" +
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
     escapeHtml(t.slug || "") +
     '">Report an issue with this listing</button>' +
