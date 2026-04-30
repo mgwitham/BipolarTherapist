@@ -5131,7 +5131,7 @@ function renderLeadResultCard(entry, _backupName, options) {
       : "") +
     '<a href="' +
     escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="bth-btn-secondary" data-match-profile-link="' +
+    '" class="mx-profile-link" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="primary-card">View profile</a>' +
     "</div>" +
@@ -5186,7 +5186,7 @@ function renderSupportingResultCard(entry, _rank, options) {
       : "") +
     '<a href="' +
     escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="bth-btn-secondary" data-match-profile-link="' +
+    '" class="mx-profile-link" data-match-profile-link="' +
     escapeHtml(therapist.slug || "") +
     '" data-profile-link-context="' +
     escapeHtml(contextLabel) +
