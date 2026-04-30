@@ -940,6 +940,15 @@ nav {
   color: var(--muted);
   font-style: italic;
 }
+.profile-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-self: start;
+}
+.profile-hero-right .profile-section {
+  margin-bottom: 0;
+}
 .contact-outreach-toggle {
   display: flex;
   align-items: center;

@@ -3314,6 +3314,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
+    '<div class="profile-hero-right">' +
     '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
     (t.phone
@@ -3367,6 +3368,8 @@ function renderProfile(t, therapistDirectory) {
         "</div>"
       : "") +
     "</div>" +
+    buildFAQSection(t) +
+    "</div>" +
     "</div>" +
     (hasPaidSubscription
       ? // Paid presentation: full bio always visible, no toggle. Wrapper
@@ -3399,13 +3402,6 @@ function renderProfile(t, therapistDirectory) {
     "</div></div></div></div>" +
     "</div>" +
     buildTrustBar(t) +
-    sectionNavHtml +
-    '<div class="profile-body">' +
-    "<div>" +
-    buildFAQSection(t) +
-    "</div>" +
-    '<div class="profile-sidebar-stack">' +
-    "</div>" +
     '<div class="profile-foot-actions">' +
     '<a href="directory.html" class="profile-foot-back">← Back to Directory</a>' +
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
