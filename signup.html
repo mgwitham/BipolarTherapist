@@ -43,7 +43,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -283,7 +283,7 @@
       .signup-form-head {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        align-items: flex-start;
         gap: 0.75rem;
         margin-bottom: 0.25rem;
       }
@@ -813,6 +813,8 @@
         max-width: 1160px;
         margin: 4rem auto 0;
         padding: 0 1.5rem;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 420px;
       }
       .signup-how-it-works h2 {
         font-family: "Lora", serif;
@@ -884,6 +886,8 @@
         max-width: 780px;
         margin: 4rem auto 0;
         padding: 0 1.5rem;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 380px;
       }
       .signup-faq h2 {
         font-family: "Lora", serif;
@@ -953,6 +957,177 @@
       }
       .site-mini-footer a:hover {
         color: var(--teal);
+      }
+
+      /* =========================
+         Boards lockup (left col)
+         ========================= */
+      .signup-boards-lockup {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+      .signup-boards-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .signup-boards-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1rem;
+        font-size: 0.9rem;
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .signup-boards-list span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .signup-boards-list span::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--teal);
+        flex-shrink: 0;
+      }
+
+      /* =========================
+         Live preview card (left col)
+         ========================= */
+      .signup-preview-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.95rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        margin-bottom: 1.25rem;
+      }
+      .signup-preview-card-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .signup-preview-card-inner {
+        display: flex;
+        gap: 0.85rem;
+        align-items: center;
+      }
+      .signup-preview-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--teal-light), var(--teal-dark));
+        color: var(--white);
+        font-weight: 700;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .signup-preview-name {
+        font-weight: 600;
+        font-size: 0.98rem;
+        color: var(--navy);
+      }
+      .signup-preview-name.is-placeholder {
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .signup-preview-location {
+        font-size: 0.84rem;
+        color: var(--muted);
+        min-height: 1.2em;
+      }
+      .signup-preview-badge {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--green);
+        background: rgba(58, 170, 122, 0.1);
+        padding: 0.18rem 0.52rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.15rem;
+      }
+
+      /* =========================
+         Cost callout (above form card)
+         ========================= */
+      .signup-cost-callout {
+        text-align: center;
+        font-size: 0.86rem;
+        color: var(--muted);
+        font-weight: 500;
+        padding: 0.4rem 0 0.6rem;
+      }
+
+      /* =========================
+         Form head with claim branch
+         ========================= */
+      .signup-form-head-title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .signup-form-branch {
+        font-size: 0.82rem;
+        color: var(--muted);
+        white-space: nowrap;
+        padding-top: 0.2rem;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .signup-form-branch-claim {
+        color: var(--teal-dark);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .signup-form-branch-claim:hover {
+        text-decoration: underline;
+      }
+
+      /* =========================
+         Sub-CTA verify note
+         ========================= */
+      .new-listing-verify-note {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+        margin-top: -0.3rem;
+      }
+
+      /* =========================
+         Attestation fine print
+         ========================= */
+      .new-listing-attestation {
+        font-size: 0.78rem;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.5;
+        margin-top: -0.2rem;
+      }
+
+      /* =========================
+         Progress preamble
+         ========================= */
+      .new-listing-progress-preamble {
+        font-size: 0.88rem;
+        color: var(--teal-dark);
+        font-weight: 500;
+        line-height: 1.45;
+        margin-bottom: 0.25rem;
       }
 
       /* =========================
@@ -1146,26 +1321,49 @@
               Five short fields. Instant California license check. Most clinicians finish in under
               two minutes.
             </p>
-            <div class="signup-hero-pills">
-              <span class="signup-hero-pill">Free to list</span>
-              <span class="signup-hero-pill">No credit card</span>
-              <span class="signup-hero-pill">Cancel anytime</span>
+            <div class="signup-boards-lockup">
+              <span class="signup-boards-label">Verified against</span>
+              <div class="signup-boards-list">
+                <span>CA Board of Behavioral Sciences</span>
+                <span>CA Board of Psychology</span>
+                <span>Medical Board of California</span>
+              </div>
             </div>
 
-            <p class="signup-hero-claim-note">
-              Already on BipolarTherapyHub?
-              <a href="claim.html">Claim your existing listing →</a>
-            </p>
+            <div class="signup-preview-card" aria-hidden="true" id="signupPreviewCard">
+              <span class="signup-preview-card-label">Your listing preview</span>
+              <div class="signup-preview-card-inner">
+                <div class="signup-preview-avatar" id="signupPreviewAvatar">?</div>
+                <div>
+                  <div class="signup-preview-name is-placeholder" id="signupPreviewName">
+                    Your name
+                  </div>
+                  <div class="signup-preview-location" id="signupPreviewLocation"></div>
+                  <div class="signup-preview-badge" id="signupPreviewBadge" hidden>
+                    ✓ License verified
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
+            <p class="signup-cost-callout">Free forever. No credit card. Cancel anytime.</p>
             <section class="signup-form-card" aria-label="List your practice">
               <div class="signup-form-head">
-                <h2>Start your free listing</h2>
-                <span class="signup-form-time">≈ 2 min</span>
+                <div class="signup-form-head-title">
+                  <h2>Get listed in two minutes</h2>
+                  <span class="signup-form-time">≈ 2 min</span>
+                </div>
+                <div class="signup-form-branch">
+                  New here?
+                  <a href="claim.html" class="signup-form-branch-claim" id="signupHeaderClaimLink"
+                    >Already listed →</a
+                  >
+                </div>
               </div>
               <p class="signup-form-card-sub">
-                Verify your California license, then choose free or free trial.
+                If your license verifies, your free listing goes live immediately.
               </p>
               <form id="newListingForm" class="new-listing-form" novalidate>
                 <label>
@@ -1176,7 +1374,11 @@
                     autocomplete="name"
                     placeholder="Jamie Rivera"
                     required
+                    aria-describedby="hint_full_name"
                   />
+                  <span class="new-listing-field-hint" id="hint_full_name"
+                    >How you'll appear in the directory.</span
+                  >
                 </label>
                 <label>
                   <span>Email</span>
@@ -1186,8 +1388,11 @@
                     autocomplete="email"
                     placeholder="jamie@yourpractice.com"
                     required
+                    aria-describedby="hint_email"
                   />
-                  <span class="new-listing-field-hint">We'll send your welcome link here.</span>
+                  <span class="new-listing-field-hint" id="hint_email"
+                    >We'll send your welcome link here.</span
+                  >
                 </label>
                 <div class="new-listing-row-2">
                   <label>
@@ -1198,7 +1403,11 @@
                       autocomplete="off"
                       placeholder="e.g. 109462"
                       required
+                      aria-describedby="hint_license"
                     />
+                    <span class="new-listing-field-hint" id="hint_license"
+                      >Verified instantly against the state board.</span
+                    >
                     <span
                       class="new-listing-live-hint"
                       id="newListingLicenseHint"
@@ -1216,7 +1425,11 @@
                       maxlength="5"
                       placeholder="90025"
                       required
+                      aria-describedby="hint_zip"
                     />
+                    <span class="new-listing-field-hint" id="hint_zip"
+                      >Used for location-based matching.</span
+                    >
                     <span
                       class="new-listing-live-hint"
                       id="newListingZipHint"
@@ -1239,13 +1452,14 @@
                     >Claim your profile →</a
                   >
                 </div>
-                <label class="new-listing-checkbox">
-                  <input type="checkbox" name="treats_bipolar" required />
-                  <span>I'm licensed in California and treat bipolar disorder in my practice.</span>
-                </label>
-                <button type="submit" class="new-listing-submit">
-                  Verify license and continue →
-                </button>
+                <button type="submit" class="new-listing-submit">Start my listing →</button>
+                <p class="new-listing-verify-note">
+                  We verify your California license against the state board
+                </p>
+                <p class="new-listing-attestation">
+                  By continuing, you confirm you're licensed in California and treat bipolar
+                  disorder in your practice.
+                </p>
                 <p class="new-listing-privacy">
                   <strong>No credit card required.</strong> We use these details only to verify your
                   license and set up your listing.
@@ -1257,6 +1471,10 @@
                   aria-live="polite"
                   hidden
                 >
+                  <p class="new-listing-progress-preamble">
+                    Hang tight. If your license verifies, your free listing goes live and you'll get
+                    an email with your portal link.
+                  </p>
                   <div class="new-listing-progress-step" data-step="verify">
                     <span class="new-listing-progress-dot"></span>
                     <span>Checking your California license</span>
@@ -1286,62 +1504,7 @@
                   >
                 </div>
               </form>
-
-              <section
-                class="new-listing-plan-choice"
-                id="newListingPlanChoice"
-                aria-label="Choose how to start"
-                hidden
-              >
-                <p class="new-listing-plan-eyebrow">License verified ✓</p>
-                <h3>How do you want to start?</h3>
-                <p class="new-listing-plan-nudge">
-                  Tip: add your headshot from the portal next — profiles with a photo earn more
-                  patient trust.
-                </p>
-                <div class="new-listing-plan-options">
-                  <button
-                    type="button"
-                    id="newListingPlanTrialBtn"
-                    class="new-listing-plan-option is-primary"
-                  >
-                    <span class="new-listing-plan-option-title">Start 14-day free trial</span>
-                    <span class="new-listing-plan-option-body">
-                      Featured placement, analytics, and a verified badge. Cancel anytime. $19/month
-                      after the trial.
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    id="newListingPlanFreeBtn"
-                    class="new-listing-plan-option is-secondary"
-                  >
-                    <span class="new-listing-plan-option-title">List free for now</span>
-                    <span class="new-listing-plan-option-body">
-                      Basic directory listing, no card required. Upgrade anytime from your portal.
-                    </span>
-                  </button>
-                </div>
-                <div
-                  class="new-listing-status"
-                  id="newListingPlanStatus"
-                  role="status"
-                  aria-live="polite"
-                  hidden
-                ></div>
-              </section>
             </section>
-          </div>
-        </section>
-
-        <section class="signup-trust-strip" aria-label="License sources">
-          <div class="signup-trust-card">
-            <span class="signup-trust-label">Verified against</span>
-            <div class="signup-trust-boards">
-              <span>CA Board of Behavioral Sciences</span>
-              <span>CA Board of Psychology</span>
-              <span>Medical Board of California</span>
-            </div>
           </div>
         </section>
       </main>
