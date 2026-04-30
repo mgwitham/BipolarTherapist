@@ -159,53 +159,113 @@ function upsertLinkRel(rel, href) {
 }
 
 function buildTherapistSeoDescription(t) {
-  const name = t.name || "Bipolar therapist";
-  const credentials = t.credentials ? `, ${t.credentials}` : "";
-  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
-  const bio = String(t.bio || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const snippet = bio ? bio.slice(0, 120) + (bio.length > 120 ? "…" : "") : "";
-  return `${name}${credentials} — bipolar-specialist therapist in ${location}. ${snippet}`.trim();
+  var name = t.name || "Bipolar therapist";
+  var credentials = t.credentials ? ", " + t.credentials : "";
+  var location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  var parts = [];
+  parts.push(name + credentials + " — bipolar disorder specialist in " + location + ".");
+  if (t.accepting_new_patients) parts.push("Accepting new patients.");
+  var formats = [];
+  if (t.accepts_telehealth) formats.push("telehealth");
+  if (t.accepts_in_person) formats.push("in-person");
+  if (formats.length) parts.push("Offers " + formats.join(" & ") + ".");
+  if (t.session_fee_min) {
+    var feeStr =
+      "$" +
+      t.session_fee_min +
+      (t.session_fee_max && t.session_fee_max !== t.session_fee_min
+        ? "–$" + t.session_fee_max
+        : "") +
+      "/session";
+    parts.push("Fee: " + feeStr + (t.sliding_scale ? " (sliding scale)." : "."));
+  }
+  var insurance = (t.insurance_accepted || []).filter(Boolean);
+  if (insurance.length)
+    parts.push(
+      "Accepts " + insurance.slice(0, 3).join(", ") + (insurance.length > 3 ? " & more." : "."),
+    );
+  var result = parts.join(" ");
+  return result.length > 158 ? result.slice(0, 155) + "…" : result;
 }
 
 function buildTherapistJsonLd(t) {
-  const name = t.name || "";
-  const credentials = t.credentials || "";
-  const nameWithCreds = credentials ? `${name}, ${credentials}` : name;
-  const pageUrl = buildTherapistProfileUrl(t.slug || "");
-  const address = {
+  var name = t.name || "";
+  var credentials = t.credentials || "";
+  var nameWithCreds = credentials ? name + ", " + credentials : name;
+  var pageUrl = buildTherapistProfileUrl(t.slug || "");
+  var address = {
     "@type": "PostalAddress",
     addressLocality: t.city || undefined,
     addressRegion: t.state || "CA",
     postalCode: t.zip || undefined,
     addressCountry: "US",
   };
-  // Both Person (the clinician) and MedicalBusiness (the practice) —
-  // Google picks whichever matches the query intent.
-  const person = {
+  var person = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: nameWithCreds,
     url: pageUrl,
     jobTitle: t.title || "Therapist",
     knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
-    address,
+    address: address,
     image: t.photo_url || undefined,
     telephone: t.phone || undefined,
     email: t.email || undefined,
   };
-  const medicalBusiness = {
+  var insurance = (t.insurance_accepted || []).filter(Boolean);
+  var serviceChannels = [];
+  if (t.accepts_telehealth) {
+    serviceChannels.push({
+      "@type": "ServiceChannel",
+      serviceType: "Telehealth",
+      availableLanguage: { "@type": "Language", name: "English" },
+    });
+  }
+  var medicalBusiness = {
     "@context": "https://schema.org",
     "@type": "MedicalBusiness",
     name: t.practice_name || nameWithCreds,
     url: pageUrl,
-    address,
+    address: address,
     telephone: t.phone || undefined,
     priceRange: "$$",
     medicalSpecialty: "Psychiatric",
+    paymentAccepted: insurance.length ? insurance.join(", ") : undefined,
+    areaServed: t.city ? { "@type": "City", name: t.city } : undefined,
+    availableChannel: serviceChannels.length ? serviceChannels : undefined,
   };
-  return [person, medicalBusiness];
+  var breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://www.bipolartherapyhub.com/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Directory",
+        item: "https://www.bipolartherapyhub.com/directory.html",
+      },
+      { "@type": "ListItem", position: 3, name: nameWithCreds || "Therapist", item: pageUrl },
+    ],
+  };
+  var faqItems = buildFAQItems(t);
+  var faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map(function (item) {
+      return {
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      };
+    }),
+  };
+  return [person, medicalBusiness, breadcrumb, faqSchema];
 }
 
 function applyTherapistSeo(t) {
@@ -234,18 +294,335 @@ function applyTherapistSeo(t) {
   upsertMeta("name", "twitter:title", seoTitle);
   upsertMeta("name", "twitter:description", seoDescription);
 
-  // JSON-LD structured data — remove any previous instance, then inject
+  // JSON-LD structured data — remove previous instances, then inject one tag per schema
   try {
-    const previous = document.getElementById("therapist-jsonld");
-    if (previous) previous.remove();
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.id = "therapist-jsonld";
-    script.textContent = JSON.stringify(buildTherapistJsonLd(t));
-    document.head.appendChild(script);
+    ["therapist-jsonld", "therapist-jsonld-breadcrumb", "therapist-jsonld-faq"].forEach(
+      function (id) {
+        var el = document.getElementById(id);
+        if (el) el.remove();
+      },
+    );
+    var schemas = buildTherapistJsonLd(t);
+    var ids = [
+      "therapist-jsonld",
+      "therapist-jsonld-business",
+      "therapist-jsonld-breadcrumb",
+      "therapist-jsonld-faq",
+    ];
+    schemas.forEach(function (schema, i) {
+      var script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.id = ids[i] || "therapist-jsonld-" + i;
+      script.textContent = JSON.stringify(schema);
+      document.head.appendChild(script);
+    });
   } catch (_error) {
     // best-effort
   }
+}
+
+// ─── FAQ items ────────────────────────────────────────────────────────────────
+// Returns [{q, a}] built from live therapist data.
+// Used by both the FAQ section HTML and the FAQPage JSON-LD schema.
+function buildFAQItems(t) {
+  var name = t.name || "This therapist";
+  var first = (t.name || "").split(" ")[0] || "They";
+  var phone = t.phone || null;
+  var website = t.website || t.booking_url || null;
+  var contactPath = [phone ? "calling " + phone : null, website ? "visiting their website" : null]
+    .filter(Boolean)
+    .join(" or ");
+  if (!contactPath) contactPath = "using the contact details on this page";
+
+  var insurance = (t.insurance_accepted || []).filter(Boolean);
+  var fee_min = t.session_fee_min;
+  var fee_max = t.session_fee_max;
+  var sliding = t.sliding_scale;
+  var telehealth = Boolean(t.accepts_telehealth);
+  var inPerson = Boolean(t.accepts_in_person);
+  var modalities = (t.treatment_modalities || []).filter(Boolean);
+  var accepting = Boolean(t.accepting_new_patients);
+  var city = t.city || "their area";
+
+  var items = [];
+
+  // Q1: Accepting new patients
+  items.push({
+    q: "Is " + name + " currently accepting new patients?",
+    a: accepting
+      ? first +
+        " is currently accepting new patients. You can reach them by " +
+        contactPath +
+        " to schedule an initial appointment."
+      : first +
+        " is not currently accepting new patients. Use the directory to find similar bipolar disorder specialists nearby.",
+  });
+
+  // Q2: Insurance
+  if (insurance.length > 0) {
+    items.push({
+      q: "What insurance does " + name + " accept?",
+      a:
+        first +
+        " accepts " +
+        insurance.join(", ") +
+        ". Coverage for therapy varies by plan and deductible — confirm your specific benefits directly with " +
+        first +
+        " or your insurance carrier before your first appointment.",
+    });
+  } else {
+    items.push({
+      q: "Does " + name + " accept insurance?",
+      a:
+        "Insurance information is not currently listed. Contact " +
+        first +
+        " directly to ask about accepted plans and out-of-pocket rates.",
+    });
+  }
+
+  // Q3: Session fee
+  if (fee_min) {
+    var feeRange = fee_max && fee_max !== fee_min ? "$" + fee_min + "–$" + fee_max : "$" + fee_min;
+    var feeAnswer =
+      first +
+      "'s session fee is " +
+      feeRange +
+      "/session." +
+      (sliding
+        ? " A sliding scale fee is available for qualifying clients — ask about it when you reach out."
+        : "");
+    items.push({ q: "How much does " + name + " charge per session?", a: feeAnswer });
+  } else {
+    items.push({
+      q: "How much does " + name + " charge per session?",
+      a:
+        "Session fee information is not listed. Contact " +
+        first +
+        " directly to ask about rates and payment options.",
+    });
+  }
+
+  // Q4: Telehealth
+  if (telehealth && inPerson) {
+    items.push({
+      q: "Does " + name + " offer online therapy or telehealth?",
+      a:
+        "Yes, " +
+        first +
+        " offers both telehealth (secure video sessions) and in-person appointments in " +
+        city +
+        ". Discuss your preference when you schedule.",
+    });
+  } else if (telehealth) {
+    items.push({
+      q: "Does " + name + " offer online therapy or telehealth?",
+      a:
+        "Yes, " +
+        first +
+        " offers telehealth sessions so you can attend therapy from home via secure video.",
+    });
+  } else {
+    items.push({
+      q: "Does " + name + " offer online therapy or telehealth?",
+      a: first + " currently offers in-person sessions in " + city + ".",
+    });
+  }
+
+  // Q5: Bipolar specialization
+  var modalityNote =
+    modalities.length > 0
+      ? " drawing on " +
+        modalities.slice(0, 3).join(", ") +
+        (modalities.length > 3 ? ", and more" : "") +
+        "."
+      : ".";
+  items.push({
+    q: "What makes " + name + " a bipolar disorder specialist?",
+    a:
+      first +
+      " lists bipolar disorder as a primary specialty and uses evidence-based approaches recognized as effective for mood stabilization" +
+      modalityNote +
+      " " +
+      first +
+      " is listed on Bipolar Therapy Hub, a directory focused exclusively on therapists with verified bipolar expertise.",
+  });
+
+  // Q6: How to schedule
+  items.push({
+    q: "How do I schedule an appointment with " + name + "?",
+    a:
+      "Reach " +
+      first +
+      " by " +
+      contactPath +
+      ". When you do, mention you found their profile on Bipolar Therapy Hub and briefly describe what you’re hoping to work on. Many therapists offer a short phone consult before the first full session so both parties can assess fit.",
+  });
+
+  return items;
+}
+
+// ─── Trust bar ────────────────────────────────────────────────────────────────
+function buildTrustBar(t) {
+  var signals = [];
+
+  if (t.license_number) {
+    var licenseState = t.license_state || t.state || "CA";
+    var licenseType = t.credentials || "License";
+    signals.push(licenseState + " " + licenseType + " #" + escapeHtml(String(t.license_number)));
+  }
+
+  if (t.verification_status === "editorially_verified") {
+    signals.push("Editorially verified");
+  }
+
+  if (t.claim_status === "claimed") {
+    signals.push("Profile claimed");
+  }
+
+  if (t.therapist_reported_confirmed_at) {
+    try {
+      var confirmDate = new Date(t.therapist_reported_confirmed_at);
+      if (!isNaN(confirmDate.getTime())) {
+        var month = confirmDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        signals.push("Profile confirmed " + month);
+      }
+    } catch (_e) {
+      /* best-effort */
+    }
+  }
+
+  if (signals.length === 0) return "";
+
+  return (
+    '<div class="profile-trust-bar" aria-label="Verification signals">' +
+    signals
+      .map(function (label) {
+        return (
+          '<span class="profile-trust-signal">' +
+          '<svg class="profile-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' +
+          label +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+// ─── FAQ section ─────────────────────────────────────────────────────────────
+function buildFAQSection(t) {
+  var items = buildFAQItems(t);
+  var itemsHtml = items
+    .map(function (item, i) {
+      return (
+        '<div class="faq-item" data-faq-item>' +
+        '<button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-' +
+        i +
+        '" data-faq-toggle="' +
+        i +
+        '">' +
+        escapeHtml(item.q) +
+        '<span class="faq-toggle-icon" aria-hidden="true">+</span>' +
+        "</button>" +
+        '<div class="faq-answer" id="faq-answer-' +
+        i +
+        '" role="region" hidden>' +
+        "<p>" +
+        escapeHtml(item.a) +
+        "</p>" +
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+
+  return (
+    '<section class="profile-section profile-section-collapsible" id="section-faq" data-profile-section>' +
+    '<button type="button" class="profile-section-header" aria-expanded="true">' +
+    '<span><span class="section-kicker">Questions</span><h2>Frequently asked questions</h2></span>' +
+    '<span class="section-toggle">Hide</span>' +
+    "</button>" +
+    '<div class="profile-section-content">' +
+    '<p class="faq-intro">Common questions about ' +
+    escapeHtml(t.name || "this therapist") +
+    ".</p>" +
+    '<div class="faq-list">' +
+    itemsHtml +
+    "</div>" +
+    "</div>" +
+    "</section>"
+  );
+}
+
+// ─── Jump nav ─────────────────────────────────────────────────────────────────
+function buildJumpNav() {
+  var links = [
+    { id: "section-about", label: "About" },
+    { id: "section-contact", label: "How to reach out" },
+    { id: "section-faq", label: "FAQ" },
+  ];
+
+  return (
+    '<nav class="profile-jump-nav" aria-label="Jump to section">' +
+    links
+      .map(function (link) {
+        return (
+          '<a href="#' +
+          link.id +
+          '" class="profile-jump-link" data-section-link="' +
+          link.id +
+          '">' +
+          link.label +
+          "</a>"
+        );
+      })
+      .join("") +
+    "</nav>"
+  );
+}
+
+// ─── Mobile sticky CTA bar ────────────────────────────────────────────────────
+function buildMobileStickyBar(t) {
+  var phone = t.phone || null;
+  var website = t.website || t.booking_url || null;
+  var phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
+  var fee_min = t.session_fee_min;
+  var fee_max = t.session_fee_max;
+  var feeLabel = fee_min
+    ? "$" + fee_min + (fee_max && fee_max !== fee_min ? "–$" + fee_max : "") + "/session"
+    : null;
+
+  if (!phone && !website) return "";
+
+  return (
+    '<div class="profile-mobile-sticky" id="profileMobileStickyBar" aria-hidden="true">' +
+    '<div class="mobile-sticky-inner">' +
+    (feeLabel || t.accepting_new_patients
+      ? '<div class="mobile-sticky-meta">' +
+        (feeLabel ? '<span class="mobile-sticky-fee">' + escapeHtml(feeLabel) + "</span>" : "") +
+        (t.sliding_scale ? '<span class="mobile-sticky-note">Sliding scale</span>' : "") +
+        (t.accepting_new_patients
+          ? '<span class="mobile-sticky-status">Accepting patients</span>'
+          : "") +
+        "</div>"
+      : "") +
+    '<div class="mobile-sticky-actions">' +
+    (phone && phoneDigits
+      ? '<a href="tel:' +
+        escapeHtml(phoneDigits) +
+        '" class="mobile-sticky-cta" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ' +
+        escapeHtml(phone) +
+        "</a>"
+      : "") +
+    (website
+      ? '<a href="' +
+        escapeHtml(website) +
+        '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Website</a>'
+      : "") +
+    "</div>" +
+    "</div>" +
+    "</div>"
+  );
 }
 
 function renderCompactTagList(items, className, limit, overflowLabel) {
@@ -2664,7 +3041,7 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  var sectionNavHtml = "";
+  var sectionNavHtml = buildJumpNav();
   var decisionRailRows = [
     {
       label: "Best next move now",
@@ -2841,7 +3218,7 @@ function renderProfile(t, therapistDirectory) {
       : "");
 
   var html =
-    '<div class="profile-header">' +
+    '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
     '<div class="profile-hero-top">' +
     '<div class="profile-identity">' +
@@ -2946,6 +3323,7 @@ function renderProfile(t, therapistDirectory) {
     escapeHtml(bestNextStepCopy) +
     "</div></div></div></div>" +
     "</div>" +
+    buildTrustBar(t) +
     sectionNavHtml +
     '<div class="profile-body">' +
     "<div>" +
@@ -3020,6 +3398,7 @@ function renderProfile(t, therapistDirectory) {
         "</div></div></section>"
       );
     })() +
+    buildFAQSection(t) +
     "</div>" +
     '<div class="profile-sidebar-stack">' +
     "</div>" +
@@ -3031,6 +3410,31 @@ function renderProfile(t, therapistDirectory) {
     "</div>";
 
   document.getElementById("profileWrap").innerHTML = html;
+
+  // Append mobile sticky bar to body (outside profileWrap so it stays fixed)
+  var existingStickyBar = document.getElementById("profileMobileStickyBar");
+  if (existingStickyBar) existingStickyBar.remove();
+  var stickyBarHtml = buildMobileStickyBar(t);
+  if (stickyBarHtml) {
+    var stickyContainer = document.createElement("div");
+    stickyContainer.innerHTML = stickyBarHtml;
+    document.body.appendChild(stickyContainer.firstElementChild);
+  }
+  // Show mobile sticky bar once hero primary CTA scrolls out of view
+  var heroCta = document.querySelector(".primary-action-frame");
+  var stickyBar = document.getElementById("profileMobileStickyBar");
+  if (heroCta && stickyBar && typeof window.IntersectionObserver === "function") {
+    var stickyObserver = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          stickyBar.setAttribute("aria-hidden", entry.isIntersecting ? "true" : "false");
+        });
+      },
+      { threshold: 0.1 },
+    );
+    stickyObserver.observe(heroCta);
+  }
+
   bindReportIssueDialog(t);
   updateShortlistAction(t.slug);
   var shortlistButtons = Array.prototype.slice.call(
@@ -3232,6 +3636,26 @@ function renderProfile(t, therapistDirectory) {
         toggle.textContent = collapsed ? "Show" : "Hide";
       });
     });
+  // FAQ accordion bindings
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-faq-toggle]"))
+    .forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = btn.getAttribute("data-faq-toggle");
+        var answer = document.getElementById("faq-answer-" + idx);
+        if (!answer) return;
+        var expanded = btn.getAttribute("aria-expanded") === "true";
+        btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+        if (expanded) {
+          answer.setAttribute("hidden", "");
+        } else {
+          answer.removeAttribute("hidden");
+        }
+        var icon = btn.querySelector(".faq-toggle-icon");
+        if (icon) icon.textContent = expanded ? "+" : "−";
+      });
+    });
+
   if (typeof window.IntersectionObserver === "function") {
     var navLinks = Array.prototype.slice.call(document.querySelectorAll("[data-section-link]"));
     var sectionObserver = new window.IntersectionObserver(

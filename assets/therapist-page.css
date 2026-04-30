@@ -3267,3 +3267,215 @@ img.bth-avatar {
   object-fit: cover;
   background: #eef3f5;
 }
+
+/* ── Trust Bar ─────────────────────────────────────────────────────────────── */
+.profile-trust-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 1.25rem;
+  background: #f0faf6;
+  border-top: 1px solid #c6ead9;
+  border-bottom: 1px solid #c6ead9;
+}
+.profile-trust-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1a5c3a;
+  letter-spacing: 0.01em;
+}
+.profile-trust-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #3aaa7a;
+}
+
+/* ── Jump Nav ──────────────────────────────────────────────────────────────── */
+.profile-jump-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #e2eaf0;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.profile-jump-nav::-webkit-scrollbar {
+  display: none;
+}
+.profile-jump-link {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #6b7c8e;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+.profile-jump-link:hover {
+  color: #1a7a8f;
+}
+.profile-jump-link.is-active {
+  color: #1a7a8f;
+  border-bottom-color: #1a7a8f;
+  font-weight: 600;
+}
+
+/* ── FAQ Section ───────────────────────────────────────────────────────────── */
+.faq-intro {
+  font-size: 0.9rem;
+  color: #6b7c8e;
+  margin: 0 0 1rem;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #e2eaf0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.faq-item {
+  border-bottom: 1px solid #e2eaf0;
+}
+.faq-item:last-child {
+  border-bottom: none;
+}
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1d3a4a;
+  line-height: 1.4;
+  gap: 0.75rem;
+  transition: background 0.12s;
+}
+.faq-question:hover {
+  background: #f7fafc;
+}
+.faq-question[aria-expanded="true"] {
+  background: #f0faf6;
+  color: #1a5c3a;
+}
+.faq-toggle-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #1a7a8f;
+  line-height: 1;
+}
+.faq-answer {
+  padding: 0 1rem 0.9rem;
+  background: #f7fafc;
+}
+.faq-answer p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #3d5166;
+  line-height: 1.6;
+}
+
+/* ── Mobile Sticky CTA Bar ─────────────────────────────────────────────────── */
+.profile-mobile-sticky {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #fff;
+  border-top: 1px solid #d0dce6;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.profile-mobile-sticky[aria-hidden="false"] {
+  display: block;
+}
+.mobile-sticky-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+}
+.mobile-sticky-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.mobile-sticky-fee {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1d3a4a;
+  white-space: nowrap;
+}
+.mobile-sticky-note {
+  font-size: 0.72rem;
+  color: #6b7c8e;
+}
+.mobile-sticky-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #1a5c3a;
+}
+.mobile-sticky-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.mobile-sticky-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  background: #1a7a8f;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.mobile-sticky-cta:hover {
+  background: #155f70;
+}
+.mobile-sticky-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  background: #eef3f5;
+  color: #1d3a4a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.mobile-sticky-secondary:hover {
+  background: #dde7ed;
+}
+@media (min-width: 768px) {
+  .profile-mobile-sticky {
+    display: none !important;
+  }
+}
