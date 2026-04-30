@@ -2090,8 +2090,14 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
       return;
     }
 
+    // When the page was SSR-rendered by api/therapists/[slug].mjs, the server
+    // embeds the full therapist object so we can skip a redundant Sanity fetch.
+    var ssrData = window.__THERAPIST_DATA__;
     var therapistDirectoryPromise = fetchPublicTherapists();
-    var therapist = await resolveTherapistForProfile(slug, therapistDirectoryPromise);
+    var therapist =
+      ssrData && ssrData.slug === slug
+        ? ssrData
+        : await resolveTherapistForProfile(slug, therapistDirectoryPromise);
     var therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
