@@ -6448,6 +6448,16 @@ function refreshIntakeUiFromForm() {
   var refinements = refs.refinements;
   if (refinements) {
     refinements.addEventListener("toggle", function () {
+      // Keep body class in sync regardless of how the panel was opened
+      // (inline summary click vs setRefineDrawerOpen button path).
+      // Without this, maybeLiveRecompute bails when the user opens the
+      // panel via the inline summary and then changes priority/filters.
+      var bodyHasClass = document.body.classList.contains("match-refine-drawer-open");
+      if (refinements.open && !bodyHasClass) {
+        setRefineDrawerOpen(true);
+      } else if (!refinements.open && bodyHasClass) {
+        setRefineDrawerOpen(false);
+      }
       if (refinements.open) {
         trackFunnelEvent("match_refinements_opened", {
           care_intent: matchForm.elements.care_intent.value || "",
