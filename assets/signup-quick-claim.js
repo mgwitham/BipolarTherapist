@@ -524,8 +524,9 @@ function initQuickClaim() {
       banner.innerHTML =
         "<strong>No email on file for " +
         escapeHtml(therapistName) +
-        ".</strong> Enter the email you want to use.";
-      emailLabel.textContent = "Your email address";
+        ".</strong> Enter the email you want to sign in with. " +
+        "We'll send the activation link there. You can set a public contact email separately after you sign in.";
+      emailLabel.textContent = "Email for signing in";
     } else {
       banner.hidden = true;
       banner.innerHTML = "";
