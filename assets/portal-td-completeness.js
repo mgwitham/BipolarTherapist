@@ -774,6 +774,7 @@ function renderContactRouteForm(t) {
   var routes = [
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
+    { key: "website", label: "Practice website" },
     { key: "booking", label: "Booking link" },
   ];
   var pillsHtml = routes
@@ -789,27 +790,31 @@ function renderContactRouteForm(t) {
       );
     })
     .join("");
-  // Capture all three values on render so switching pills doesn't lose
+  // Capture all four values on render so switching pills doesn't lose
   // the value the clinician already had on file.
   var cur = {
     email: String(t.email || ""),
     phone: String(t.phone || ""),
+    website: String(t.website || ""),
     booking: String(t.booking_url || ""),
   };
   function inputBlock(key, visible) {
     var labels = {
       email: "Your intake email",
       phone: "Your phone number",
+      website: "Your practice website",
       booking: "Your booking URL",
     };
     var placeholders = {
       email: "intake@yourpractice.com",
       phone: "(310) 555-0100",
+      website: "yourpractice.com",
       booking: "calendly.com/yourname",
     };
     var helpers = {
       email: "Not shown publicly. Patient messages route through the platform.",
       phone: "Displayed publicly on your listing.",
+      website: "Patients will be directed here to find the best way to contact you.",
       booking: "Any booking URL works (Calendly, SimplePractice, Acuity, etc.).",
     };
     return (
@@ -846,6 +851,7 @@ function renderContactRouteForm(t) {
     "</div>" +
     inputBlock("email", true) +
     inputBlock("phone", true) +
+    inputBlock("website", true) +
     inputBlock("booking", true) +
     '<p class="td-form-error" data-tdc-route-error hidden></p>' +
     '<div class="td-form-actions">' +
@@ -1759,7 +1765,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "contact") {
       var initialMethod = String(localTherapist.preferred_contact_method || "").toLowerCase();
       formDraft.method =
-        ["email", "phone", "booking"].indexOf(initialMethod) !== -1 ? initialMethod : "";
+        ["email", "phone", "website", "booking"].indexOf(initialMethod) !== -1 ? initialMethod : "";
       bodyEl.querySelectorAll("[data-tdc-route]").forEach(function (pill) {
         pill.addEventListener("click", function () {
           formDraft.method = pill.getAttribute("data-tdc-route");
@@ -1883,16 +1889,26 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       var phoneVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="phone"]') || {}).value || "",
       ).trim();
+      var websiteVal = String(
+        (bodyEl.querySelector('[data-tdc-route-value="website"]') || {}).value || "",
+      ).trim();
       var bookingVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="booking"]') || {}).value || "",
       ).trim();
       // Require that the preferred method's field is filled when a method is selected.
       if (method) {
         var preferredVal =
-          method === "email" ? emailVal : method === "phone" ? phoneVal : bookingVal;
+          method === "email"
+            ? emailVal
+            : method === "phone"
+              ? phoneVal
+              : method === "website"
+                ? websiteVal
+                : bookingVal;
         if (!preferredVal) {
           if (routeErr) {
-            var methodLabel = method === "booking" ? "booking URL" : method;
+            var methodLabel =
+              method === "booking" ? "booking URL" : method === "website" ? "website URL" : method;
             routeErr.textContent = "Add your " + methodLabel + " so patients can reach you.";
             routeErr.hidden = false;
           }
@@ -1901,6 +1917,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       if (emailVal) payload.email = emailVal;
       if (phoneVal) payload.phone = phoneVal;
+      if (websiteVal) payload.website = websiteVal;
       if (bookingVal) payload.booking_url = bookingVal;
       payload.preferred_contact_method = method || "";
     } else if (key === "name") {
