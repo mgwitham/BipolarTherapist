@@ -48,10 +48,16 @@ test("isProfileLive: missing license number is a trust-gate blocker", function (
   assert.ok(result.blockers.some((b) => b.includes("license number")));
 });
 
-test("isProfileLive: missing insurance is a trust-gate blocker", function () {
+test("isProfileLive: missing insurance does NOT block Live (demoted to soft)", function () {
+  // Demoted on 2026-04-30 — insurance is informational, not a Live-blocker
+  // per product policy. Soft-signal usage continues in matching-model and
+  // the portal completeness score (assets/portal.js getMissingFields).
   const result = isProfileLive(approvedDoc({ insuranceAccepted: [] }));
-  assert.equal(result.isLive, false);
-  assert.ok(result.blockers.some((b) => b.includes("insurance")));
+  assert.equal(result.isLive, true);
+  assert.ok(
+    !result.blockers.some((b) => b.includes("insurance")),
+    "no blocker should mention insurance",
+  );
 });
 
 test("isProfileLive: missing bipolar years experience does NOT block Live (demoted to soft)", function () {
@@ -78,6 +84,29 @@ test("isProfileLive: bipolar years stays out of blockers regardless of value", f
     if (overrides.bipolarYearsExperience === undefined) delete doc.bipolarYearsExperience;
     const result = isProfileLive(doc);
     assert.equal(result.isLive, true);
+  }
+});
+
+test("isProfileLive: insurance stays out of blockers regardless of absence shape", function () {
+  // Sanity check: empty array, null, undefined, missing key — none block Live.
+  for (const overrides of [
+    { insuranceAccepted: [] },
+    { insuranceAccepted: null },
+    { insuranceAccepted: undefined },
+    {},
+  ]) {
+    const doc = approvedDoc(overrides);
+    if (overrides.insuranceAccepted === undefined) delete doc.insuranceAccepted;
+    const result = isProfileLive(doc);
+    assert.equal(
+      result.isLive,
+      true,
+      `should be Live with insuranceAccepted=${JSON.stringify(overrides.insuranceAccepted)}`,
+    );
+    assert.ok(
+      !result.blockers.some((b) => b.includes("insurance")),
+      "no blocker should mention insurance",
+    );
   }
 });
 
