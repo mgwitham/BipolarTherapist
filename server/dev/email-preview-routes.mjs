@@ -119,8 +119,8 @@ const SHARED_CSS = `
   .toast.error { background: #7a2f2f; }
 `;
 
-function renderEnvBanner() {
-  const redirect = process.env.EMAIL_DEV_REDIRECT || "";
+function renderEnvBanner(config) {
+  const redirect = (config && config.emailDevRedirect) || "";
   if (redirect) {
     return (
       '<div class="banner warn">' +
@@ -138,7 +138,7 @@ function renderEnvBanner() {
   );
 }
 
-function renderPickerPage() {
+function renderPickerPage(config) {
   const templates = listTemplates();
   const rows = templates
     .map(function (entry) {
@@ -182,7 +182,7 @@ function renderPickerPage() {
     escapeHtml(String(templates.length)) +
     " templates. Each is rendered against the same Jamie Rivera sample so cross-template comparison works." +
     "</p>" +
-    renderEnvBanner() +
+    renderEnvBanner(config) +
     "<table class='list'>" +
     "<thead><tr><th>Template</th><th>Recipient</th><th>Trigger</th><th>Preheader</th><th></th></tr></thead>" +
     "<tbody>" +
@@ -239,7 +239,7 @@ async function renderDetailPage(templateId, config) {
         "Add a deliberate preheader in the registry entry for this template.</div>"
       : "";
 
-  const sendDisabled = !process.env.EMAIL_DEV_REDIRECT;
+  const sendDisabled = !(config && config.emailDevRedirect);
   const resendDisabled = !config.resendApiKey;
   const sendButtonLabel = sendDisabled
     ? "Send test (set EMAIL_DEV_REDIRECT to enable)"
@@ -268,7 +268,7 @@ async function renderDetailPage(templateId, config) {
     "<p class='lede'>" +
     escapeHtml(rendered.trigger) +
     "</p>" +
-    renderEnvBanner() +
+    renderEnvBanner(config) +
     preheaderWarning +
     "<section><h2>Inbox preview</h2>" +
     "<div class='inbox-row'>" +
@@ -366,7 +366,7 @@ export async function handleEmailPreviewRoutes(context) {
 
   // GET /dev/emails — picker
   if (request.method === "GET" && (routePath === "/dev/emails" || routePath === "/dev/emails/")) {
-    return sendHtml(response, 200, renderPickerPage());
+    return sendHtml(response, 200, renderPickerPage(config));
   }
 
   // GET /dev/emails/list.json
@@ -374,7 +374,7 @@ export async function handleEmailPreviewRoutes(context) {
     return sendJsonLocal(response, 200, {
       templates: listTemplates(),
       env: {
-        emailDevRedirect: process.env.EMAIL_DEV_REDIRECT || "",
+        emailDevRedirect: (config && config.emailDevRedirect) || "",
         resendConfigured: Boolean(config.resendApiKey),
       },
     });
@@ -401,7 +401,7 @@ export async function handleEmailPreviewRoutes(context) {
   const sendMatch = routePath.match(/^\/dev\/emails\/([a-z0-9-]+)\/send-test$/);
   if (request.method === "POST" && sendMatch) {
     const id = sendMatch[1];
-    if (!process.env.EMAIL_DEV_REDIRECT) {
+    if (!(config && config.emailDevRedirect)) {
       return sendJsonLocal(response, 412, {
         error: "EMAIL_DEV_REDIRECT is not set. Refusing to send.",
       });
@@ -426,7 +426,7 @@ export async function handleEmailPreviewRoutes(context) {
       return sendJsonLocal(response, 200, {
         ok: true,
         id: result && result.id ? result.id : null,
-        redirected_to: process.env.EMAIL_DEV_REDIRECT,
+        redirected_to: config && config.emailDevRedirect,
       });
     } catch (error) {
       return sendJsonLocal(response, 502, {
