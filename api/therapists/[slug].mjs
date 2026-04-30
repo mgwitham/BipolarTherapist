@@ -453,16 +453,14 @@ function renderSSRProfile(t) {
       </div>
       ${
         t.bio
-          ? `<div class="profile-bio-toggle" data-profile-bio-toggle>
-        <button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">
-          <span class="profile-bio-toggle-label">Read full bio</span>
-          <span class="profile-bio-toggle-icon" aria-hidden="true">+</span>
-        </button>
-        <div class="profile-bio-panel is-collapsed" id="profileBioPanel">
+          ? `<div class="profile-bio-wrap" data-profile-bio-wrap>
+        <div class="profile-bio-text" id="profileBioPanel">
           <p class="profile-bio-paragraph">${esc(t.bio)}</p>
           ${t.care_approach ? `<p class="profile-bio-paragraph profile-bio-approach">${esc(t.care_approach)}</p>` : ""}
         </div>
-      </div>`
+        <div class="profile-bio-fade" aria-hidden="true"></div>
+      </div>
+      <button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>`
           : ""
       }
     </div>
