@@ -5408,6 +5408,25 @@
       .resolve-dup-cell.is-mismatch {
         background: #fef3c7;
       }
+      .resolve-dup-legend {
+        margin-top: 1rem;
+        padding: 0.75rem 0.9rem;
+        background: #f1f5f9;
+        border: 1px solid #d6e4ea;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .resolve-dup-legend-row {
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: var(--navy);
+      }
+      .resolve-dup-legend-row strong {
+        color: var(--teal-dark);
+      }
       .resolve-dup-footer {
         padding: 0.9rem 1.2rem;
         border-top: 1px solid #d6e4ea;
@@ -6808,6 +6827,23 @@
         <div class="resolve-dup-body">
           <div class="resolve-dup-grid" id="resolveDuplicateGrid">
             <!-- Populated by admin-duplicate-resolve.js when opened. -->
+          </div>
+          <!-- Legend explaining what each action actually does. The merge
+               rule is asymmetric (therapist wins, candidate fills gaps),
+               which is non-obvious from the buttons alone — admins
+               otherwise have to trace through the server flow to know. -->
+          <div class="resolve-dup-legend" id="resolveDuplicateLegend">
+            <p class="resolve-dup-legend-row">
+              <strong>Merge into existing therapist:</strong> the therapist record on the left is
+              the source of truth. The candidate on the right only fills fields that are empty on
+              the therapist. Filled therapist fields are never overwritten. The candidate is then
+              archived.
+            </p>
+            <p class="resolve-dup-legend-row">
+              <strong>Mark as not duplicate:</strong> nothing copies between the records. Both stay
+              exactly as they are. The candidate is flagged so this pair stops appearing in the
+              Needs Attention queue.
+            </p>
           </div>
         </div>
         <div class="resolve-dup-footer">

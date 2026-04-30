@@ -257,8 +257,8 @@ export function openResolveDuplicate({ therapist, counterpart, counterpartKind, 
   if (subtitle) {
     subtitle.textContent =
       _counterpartKind === "therapist"
-        ? "Two therapist documents share an identifier. Manual cleanup needed — this view is read-only."
-        : "Compare the live therapist and the candidate. Merge if they're the same person, or mark as not-a-duplicate if the email collision is real but the people are different.";
+        ? "Two therapist documents share an identifier. Manual cleanup required; this view is read-only."
+        : "Compare the two records below, then pick the action that matches.";
   }
 
   configureButtonsForCounterpart();
