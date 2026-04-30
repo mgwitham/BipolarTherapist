@@ -19,6 +19,27 @@ const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+// ==========================================================================
+// Analytics (gtag) events fired from this module and when they fire:
+//   signup_page_viewed           — once on page load
+//   signup_field_focused         — focus on any form field; field_name param
+//   signup_field_completed       — blur with non-empty value; field_name param
+//   signup_field_abandoned       — blur with empty value after prior focus; field_name param
+//   signup_duplicate_detected    — "already listed" nudge shown; triggering_field param
+//   signup_submit_clicked        — primary CTA click (before validation)
+//   signup_verification_started  — intake API call begins
+//   signup_verification_succeeded — API returns verified; duration_ms param
+//   signup_verification_failed   — API error or network failure; duration_ms + reason params
+//   signup_choice_shown          — trial-vs-free choice screen shown
+//   signup_choice_selected       — user picks a plan; value param ("trial"|"free")
+//   signup_claim_link_clicked    — either claim link clicked; source param
+// ==========================================================================
+function gtagEvent(name, params) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", name, params || {});
+  }
+}
+
 // Module-scoped state for the optional headshot. Set by the file-input
 // change handler; read by submitIntake into the JSON payload. Cleared on
 // successful upload so a back-button retry doesn't double-attach.
@@ -64,6 +85,12 @@ async function lookupByLicense(licenseNumber) {
   }
 }
 
+// Stub: returns null until a server-side email-lookup endpoint exists.
+// See bindIntakeForm TODO(email-dup) comment for details.
+async function lookupByEmail(_email) {
+  return null;
+}
+
 function normalizeNameForCompare(raw) {
   return String(raw || "")
     .toLowerCase()
@@ -105,6 +132,7 @@ function showDupNudge(match, typedName) {
     typedNameConflicts(typedName, match.name) && where ? " (" + where + ")" : "";
   body.textContent = conflictPrefix + "matches this license number." + locationSuffix + emailHint;
   cta.setAttribute("href", "/claim?slug=" + encodeURIComponent(match.slug));
+  gtagEvent("signup_duplicate_detected", { triggering_field: "license" });
   box.hidden = false;
 }
 
@@ -226,9 +254,6 @@ function hideRecovery() {
 }
 
 async function submitIntake(form, status) {
-  const treatsBipolar = Boolean(
-    form.elements.treats_bipolar && form.elements.treats_bipolar.checked,
-  );
   const fullName = form.elements.full_name.value.trim();
   const email = form.elements.email.value.trim();
   const licenseNumber = form.elements.license_number.value.trim();
@@ -237,7 +262,6 @@ async function submitIntake(form, status) {
 
   trackFunnelEvent("signup_new_listing_submit_attempted", {
     has_all_fields: Boolean(fullName && email && licenseNumber && zip),
-    treats_bipolar_checked: treatsBipolar,
   });
 
   if (!fullName || !email || !licenseNumber || !zipRaw) {
@@ -246,14 +270,6 @@ async function submitIntake(form, status) {
   }
   if (!zip) {
     setStatus(status, "Enter a valid 5-digit ZIP code for your practice.", "error");
-    return;
-  }
-  if (!treatsBipolar) {
-    setStatus(
-      status,
-      "Please confirm you're a CA-licensed clinician who treats bipolar disorder. We review every application individually.",
-      "error",
-    );
     return;
   }
 
@@ -304,6 +320,8 @@ async function submitIntake(form, status) {
     });
   };
 
+  const verifyStart = Date.now();
+  gtagEvent("signup_verification_started");
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
       method: "POST",
@@ -313,6 +331,11 @@ async function submitIntake(form, status) {
     if (response.status === 409) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "duplicate",
+      });
+      gtagEvent("signup_duplicate_detected", {});
       let data = {};
       try {
         data = await response.json();
@@ -344,6 +367,10 @@ async function submitIntake(form, status) {
     if (response.status === 422) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "license_not_verified",
+      });
       // License couldn't be verified against the DCA database. No
       // therapist doc was created, no Stripe session, no charge.
       let data = {};
@@ -367,6 +394,10 @@ async function submitIntake(form, status) {
     if (!response.ok) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "server_error",
+      });
       let data = {};
       try {
         data = await response.json();
@@ -397,21 +428,27 @@ async function submitIntake(form, status) {
       has_stripe_url: Boolean(data && data.stripe_url),
     });
     if (data && data.therapist_slug && data.claim_token) {
+      gtagEvent("signup_verification_succeeded", { duration_ms: Date.now() - verifyStart });
       clearProgressTimers();
       completeProgress(progress);
-      // Brief beat so the user sees all three checkmarks settle before
-      // the plan-choice card swaps in.
+      // Hold progress visible for at least 1.2 s so fast connections don't
+      // feel glitchy. Always wait at least 350 ms to let the dots settle.
+      const elapsed = Date.now() - verifyStart;
       await new Promise(function (r) {
-        window.setTimeout(r, 350);
+        window.setTimeout(r, Math.max(350, 1200 - elapsed));
       });
       hideProgress(progress);
-      revealPlanChoice(form, status, data, email);
+      await proceedFree(form, status, data, email);
       return;
     }
     // Fallback: server didn't return enough to route the therapist
     // anywhere. Keep them on the page with a support-pointer message.
     clearProgressTimers();
     hideProgress(progress);
+    gtagEvent("signup_verification_failed", {
+      duration_ms: Date.now() - verifyStart,
+      reason: "incomplete_response",
+    });
     setStatus(
       status,
       "We verified your license but couldn't finish setting up your listing. Email support@bipolartherapyhub.com and we'll sort it out.",
@@ -420,6 +457,10 @@ async function submitIntake(form, status) {
   } catch (_error) {
     clearProgressTimers();
     hideProgress(progress);
+    gtagEvent("signup_verification_failed", {
+      duration_ms: Date.now() - verifyStart,
+      reason: "network_error",
+    });
     setStatus(
       status,
       "We couldn't reach the server. Check your connection and try again.",
@@ -447,86 +488,39 @@ function buildPortalTarget(therapistSlug, claimToken, entry) {
   );
 }
 
-function revealPlanChoice(form, formStatus, intakeData, email) {
-  const choice = document.getElementById("newListingPlanChoice");
-  const trialBtn = document.getElementById("newListingPlanTrialBtn");
-  const freeBtn = document.getElementById("newListingPlanFreeBtn");
-  const planStatus = document.getElementById("newListingPlanStatus");
-  // If the choice card isn't on the page (older build / SSR edge case),
-  // fall back to the old behavior so the user still gets to their
-  // listing rather than dead-ending on the form.
-  if (!choice || !trialBtn || !freeBtn) {
-    if (intakeData.stripe_url) {
-      window.location.href = intakeData.stripe_url;
-      return;
-    }
+// TODO(portal-trial-upsell): The 14-day free trial is no longer offered here.
+// Move the upsell into the portal onboarding flow — trigger it on first portal
+// visit after a free-path signup. Look for the session entry="free" query param
+// in portal.js to find the right insertion point.
+async function proceedFree(form, formStatus, intakeData, email) {
+  form.hidden = true;
+  setStatus(formStatus, "", null);
+  hideDupNudge();
+  trackFunnelEvent("signup_plan_free_chosen", {
+    therapist_slug: intakeData.therapist_slug || null,
+  });
+  try {
+    // Fire-and-forget magic-login email. Failure is non-fatal — the in-URL
+    // claim token still lands the therapist in the portal right now.
+    await fetch(FREE_PATH_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        claim_token: intakeData.claim_token,
+        email: email,
+      }),
+    });
+  } catch (_error) {
+    /* non-fatal */
+  }
+  setStatus(formStatus, "Opening your dashboard...", "success");
+  window.setTimeout(function () {
     window.location.href = buildPortalTarget(
       intakeData.therapist_slug,
       intakeData.claim_token,
       "free",
     );
-    return;
-  }
-  // Hide the form, reveal the choice card. Keep the duplicate-nudge and
-  // status hidden — they're only relevant to the form we just left.
-  form.hidden = true;
-  setStatus(formStatus, "", null);
-  hideDupNudge();
-  choice.hidden = false;
-  trackFunnelEvent("signup_plan_choice_shown", {
-    therapist_slug: intakeData.therapist_slug || null,
-    has_stripe_url: Boolean(intakeData.stripe_url),
-  });
-  // If Stripe somehow didn't build, disable the trial button rather than
-  // letting the user click into a broken redirect.
-  if (!intakeData.stripe_url) {
-    trialBtn.disabled = true;
-    trialBtn.title = "Checkout is temporarily unavailable. Choose 'List free for now' to continue.";
-  }
-  trialBtn.addEventListener("click", function () {
-    if (!intakeData.stripe_url) return;
-    trackFunnelEvent("signup_plan_trial_chosen", {
-      therapist_slug: intakeData.therapist_slug || null,
-    });
-    trialBtn.disabled = true;
-    freeBtn.disabled = true;
-    setStatus(planStatus, "Opening secure checkout...", "success");
-    window.setTimeout(function () {
-      window.location.href = intakeData.stripe_url;
-    }, 250);
-  });
-  freeBtn.addEventListener("click", async function () {
-    trackFunnelEvent("signup_plan_free_chosen", {
-      therapist_slug: intakeData.therapist_slug || null,
-    });
-    trialBtn.disabled = true;
-    freeBtn.disabled = true;
-    setStatus(planStatus, "Setting up your free listing...", null);
-    try {
-      // Fire-and-forget magic-login email so the therapist has a way
-      // back into the portal after this session cookie expires.
-      // Failure is non-fatal — the in-URL claim token still lands them
-      // in the portal right now.
-      await fetch(FREE_PATH_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          claim_token: intakeData.claim_token,
-          email: email,
-        }),
-      });
-    } catch (_error) {
-      /* non-fatal */
-    }
-    setStatus(planStatus, "Opening your dashboard...", "success");
-    window.setTimeout(function () {
-      window.location.href = buildPortalTarget(
-        intakeData.therapist_slug,
-        intakeData.claim_token,
-        "free",
-      );
-    }, 250);
-  });
+  }, 250);
 }
 
 function readFileAsDataUrl(file) {
@@ -613,6 +607,7 @@ function bindIntakeForm() {
   const form = document.getElementById("newListingForm");
   if (!form) return;
   trackFunnelEvent("signup_page_viewed", {});
+  gtagEvent("signup_page_viewed");
   bindPhotoControl();
   const status = document.getElementById("newListingStatus");
   let firstInputTracked = false;
@@ -626,6 +621,125 @@ function bindIntakeForm() {
     event.preventDefault();
     submitIntake(form, status);
   });
+
+  // Field focus/blur analytics
+  [
+    [form.elements.full_name, "full_name"],
+    [form.elements.email, "email"],
+    [form.elements.license_number, "license"],
+    [form.elements.zip, "zip"],
+  ].forEach(function (pair) {
+    const el = pair[0];
+    const fieldName = pair[1];
+    if (!el) return;
+    let focused = false;
+    el.addEventListener("focus", function () {
+      focused = true;
+      gtagEvent("signup_field_focused", { field_name: fieldName });
+    });
+    el.addEventListener("blur", function () {
+      if (el.value.trim()) {
+        gtagEvent("signup_field_completed", { field_name: fieldName });
+      } else if (focused) {
+        gtagEvent("signup_field_abandoned", { field_name: fieldName });
+      }
+    });
+  });
+
+  // Submit CTA click (fires before validation)
+  const _submitCta = form.querySelector('button[type="submit"]');
+  if (_submitCta) {
+    _submitCta.addEventListener("click", function () {
+      gtagEvent("signup_submit_clicked");
+    });
+  }
+
+  // Claim link click tracking
+  const _headerClaimLink = document.getElementById("signupHeaderClaimLink");
+  if (_headerClaimLink) {
+    _headerClaimLink.addEventListener("click", function () {
+      gtagEvent("signup_claim_link_clicked", { source: "header_link" });
+    });
+  }
+  const _inlineClaimLink = document.getElementById("newListingRecoveryCta");
+  if (_inlineClaimLink) {
+    _inlineClaimLink.addEventListener("click", function () {
+      gtagEvent("signup_claim_link_clicked", { source: "inline_link" });
+    });
+  }
+
+  // C: Email blur duplicate detection
+  // TODO(email-dup): Activate by adding a /portal/quick-claim/lookup-by-email
+  // endpoint on the server. The existing /portal/quick-claim/search only
+  // searches by name/license — it will not find matches by email address.
+  // Wire is in place below; lookupByEmail is a stub returning null until then.
+  const emailInput = form.elements.email;
+  if (emailInput) {
+    emailInput.addEventListener("blur", async function () {
+      const val = emailInput.value.trim();
+      if (!val) return;
+      const match = await lookupByEmail(val);
+      if (match && match.slug) {
+        const typedName = (form.elements.full_name && form.elements.full_name.value) || "";
+        showDupNudge(match, typedName);
+      }
+    });
+  }
+
+  // F: Live preview card
+  function updatePreviewCard(nameVal, zipVal, licenseVal, cityHint) {
+    const avatarEl = document.getElementById("signupPreviewAvatar");
+    const nameEl = document.getElementById("signupPreviewName");
+    const locationEl = document.getElementById("signupPreviewLocation");
+    const badgeEl = document.getElementById("signupPreviewBadge");
+    if (!nameEl) return;
+    const trimmedName = (nameVal || "").trim();
+    const parts = trimmedName.split(/\s+/).filter(Boolean);
+    const initials =
+      parts.length >= 2
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : (parts[0] || "").slice(0, 2).toUpperCase() || "?";
+    if (avatarEl) avatarEl.textContent = initials;
+    nameEl.textContent = trimmedName || "Your name";
+    nameEl.classList.toggle("is-placeholder", !trimmedName);
+    const zip = (zipVal || "").trim();
+    if (locationEl) locationEl.textContent = cityHint || (zip ? zip + ", CA" : "");
+    const normalized = normalizeLicense(licenseVal || "");
+    if (badgeEl) badgeEl.hidden = normalized.length < 5;
+  }
+
+  const previewNameInput = form.elements.full_name;
+  const previewZipInput = form.elements.zip;
+  const previewLicenseInput = form.elements.license_number;
+  let previewCityHint = "";
+
+  function refreshPreview() {
+    updatePreviewCard(
+      previewNameInput ? previewNameInput.value : "",
+      previewZipInput ? previewZipInput.value : "",
+      previewLicenseInput ? previewLicenseInput.value : "",
+      previewCityHint,
+    );
+  }
+
+  if (previewNameInput) previewNameInput.addEventListener("input", refreshPreview);
+  if (previewLicenseInput) previewLicenseInput.addEventListener("input", refreshPreview);
+  if (previewZipInput) {
+    previewZipInput.addEventListener("input", async function () {
+      const digits = String(previewZipInput.value || "").trim();
+      if (digits.match(/^\d{5}$/)) {
+        const table = await loadZipTable();
+        if (String(previewZipInput.value || "").trim() === digits) {
+          previewCityHint = table && table[digits] ? table[digits].city + ", CA" : "";
+        }
+      } else {
+        previewCityHint = "";
+      }
+      refreshPreview();
+    });
+  }
+  // Render initial (empty) state
+  refreshPreview();
 
   const licenseInput = form.elements.license_number;
   const licenseHint = document.getElementById("newListingLicenseHint");

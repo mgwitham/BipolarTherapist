@@ -43,7 +43,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -751,6 +751,8 @@
         max-width: 720px;
         margin: 2.5rem auto 0;
         padding: 0 1.5rem;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 500px;
       }
       .claim-faq h2 {
         font-family: "Lora", serif;
@@ -987,7 +989,7 @@
             </p>
 
             <button type="button" id="claimConfirmSend" class="claim-confirm-send">
-              Send activation link
+              Claim my listing →
             </button>
 
             <p class="claim-confirm-subhint" id="claimTrialSubhint">This step is free.</p>
@@ -1022,29 +1024,44 @@
             <span>Full name</span>
             <input
               type="text"
+              id="qcFullName"
               name="full_name"
               autocomplete="name"
               placeholder="Jamie Rivera"
+              aria-describedby="qcFullNameHint"
               required
             />
+            <span class="quick-claim-field-hint" id="qcFullNameHint"
+              >As it appears on your CA license.</span
+            >
           </label>
           <label>
             <span id="quickClaimEmailLabel">Email on your current listing</span>
-            <input type="email" name="email" autocomplete="email" required />
+            <input
+              type="email"
+              id="qcEmail"
+              name="email"
+              autocomplete="email"
+              aria-describedby="quickClaimEmailHint"
+              required
+            />
             <span class="quick-claim-field-hint" id="quickClaimEmailHint" hidden></span>
           </label>
           <label>
             <span>CA license number</span>
             <input
               type="text"
+              id="qcLicense"
               name="license_number"
               autocomplete="off"
               placeholder="e.g. 109462"
+              aria-describedby="qcLicenseHint"
               required
             />
+            <span class="quick-claim-field-hint" id="qcLicenseHint">Digits only, e.g. 109462.</span>
           </label>
           <button type="submit" id="quickClaimSubmit" class="quick-claim-submit">
-            Send activation link
+            Claim my listing →
           </button>
           <p class="quick-claim-fineprint">
             Claiming is free. If we cannot auto-verify this route, we will explain the next step
