@@ -3537,11 +3537,13 @@ function renderProfile(t, therapistDirectory) {
       var bioText = bioWrap ? bioWrap.querySelector(".profile-bio-text") : null;
       var bioFade = bioWrap ? bioWrap.querySelector(".profile-bio-fade") : null;
       window.requestAnimationFrame(function () {
-        if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
-          bioText.classList.add("is-expanded");
-          if (bioFade) bioFade.classList.add("is-hidden");
-          button.hidden = true;
-        }
+        window.requestAnimationFrame(function () {
+          if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
+            bioText.classList.add("is-expanded");
+            if (bioFade) bioFade.classList.add("is-hidden");
+            button.hidden = true;
+          }
+        });
       });
       button.addEventListener("click", function () {
         if (!bioText) return;
