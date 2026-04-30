@@ -19,6 +19,27 @@ const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+// ==========================================================================
+// Analytics (gtag) events fired from this module and when they fire:
+//   signup_page_viewed           — once on page load
+//   signup_field_focused         — focus on any form field; field_name param
+//   signup_field_completed       — blur with non-empty value; field_name param
+//   signup_field_abandoned       — blur with empty value after prior focus; field_name param
+//   signup_duplicate_detected    — "already listed" nudge shown; triggering_field param
+//   signup_submit_clicked        — primary CTA click (before validation)
+//   signup_verification_started  — intake API call begins
+//   signup_verification_succeeded — API returns verified; duration_ms param
+//   signup_verification_failed   — API error or network failure; duration_ms + reason params
+//   signup_choice_shown          — trial-vs-free choice screen shown
+//   signup_choice_selected       — user picks a plan; value param ("trial"|"free")
+//   signup_claim_link_clicked    — either claim link clicked; source param
+// ==========================================================================
+function gtagEvent(name, params) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", name, params || {});
+  }
+}
+
 // Module-scoped state for the optional headshot. Set by the file-input
 // change handler; read by submitIntake into the JSON payload. Cleared on
 // successful upload so a back-button retry doesn't double-attach.
@@ -105,6 +126,7 @@ function showDupNudge(match, typedName) {
     typedNameConflicts(typedName, match.name) && where ? " (" + where + ")" : "";
   body.textContent = conflictPrefix + "matches this license number." + locationSuffix + emailHint;
   cta.setAttribute("href", "/claim?slug=" + encodeURIComponent(match.slug));
+  gtagEvent("signup_duplicate_detected", { triggering_field: "license" });
   box.hidden = false;
 }
 
@@ -304,6 +326,8 @@ async function submitIntake(form, status) {
     });
   };
 
+  const verifyStart = Date.now();
+  gtagEvent("signup_verification_started");
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
       method: "POST",
@@ -313,6 +337,11 @@ async function submitIntake(form, status) {
     if (response.status === 409) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "duplicate",
+      });
+      gtagEvent("signup_duplicate_detected", {});
       let data = {};
       try {
         data = await response.json();
@@ -344,6 +373,10 @@ async function submitIntake(form, status) {
     if (response.status === 422) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "license_not_verified",
+      });
       // License couldn't be verified against the DCA database. No
       // therapist doc was created, no Stripe session, no charge.
       let data = {};
@@ -367,6 +400,10 @@ async function submitIntake(form, status) {
     if (!response.ok) {
       clearProgressTimers();
       hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "server_error",
+      });
       let data = {};
       try {
         data = await response.json();
@@ -397,6 +434,7 @@ async function submitIntake(form, status) {
       has_stripe_url: Boolean(data && data.stripe_url),
     });
     if (data && data.therapist_slug && data.claim_token) {
+      gtagEvent("signup_verification_succeeded", { duration_ms: Date.now() - verifyStart });
       clearProgressTimers();
       completeProgress(progress);
       // Brief beat so the user sees all three checkmarks settle before
@@ -412,6 +450,10 @@ async function submitIntake(form, status) {
     // anywhere. Keep them on the page with a support-pointer message.
     clearProgressTimers();
     hideProgress(progress);
+    gtagEvent("signup_verification_failed", {
+      duration_ms: Date.now() - verifyStart,
+      reason: "incomplete_response",
+    });
     setStatus(
       status,
       "We verified your license but couldn't finish setting up your listing. Email support@bipolartherapyhub.com and we'll sort it out.",
@@ -420,6 +462,10 @@ async function submitIntake(form, status) {
   } catch (_error) {
     clearProgressTimers();
     hideProgress(progress);
+    gtagEvent("signup_verification_failed", {
+      duration_ms: Date.now() - verifyStart,
+      reason: "network_error",
+    });
     setStatus(
       status,
       "We couldn't reach the server. Check your connection and try again.",
@@ -477,6 +523,7 @@ function revealPlanChoice(form, formStatus, intakeData, email) {
     therapist_slug: intakeData.therapist_slug || null,
     has_stripe_url: Boolean(intakeData.stripe_url),
   });
+  gtagEvent("signup_choice_shown");
   // If Stripe somehow didn't build, disable the trial button rather than
   // letting the user click into a broken redirect.
   if (!intakeData.stripe_url) {
@@ -488,6 +535,7 @@ function revealPlanChoice(form, formStatus, intakeData, email) {
     trackFunnelEvent("signup_plan_trial_chosen", {
       therapist_slug: intakeData.therapist_slug || null,
     });
+    gtagEvent("signup_choice_selected", { value: "trial" });
     trialBtn.disabled = true;
     freeBtn.disabled = true;
     setStatus(planStatus, "Opening secure checkout...", "success");
@@ -499,6 +547,7 @@ function revealPlanChoice(form, formStatus, intakeData, email) {
     trackFunnelEvent("signup_plan_free_chosen", {
       therapist_slug: intakeData.therapist_slug || null,
     });
+    gtagEvent("signup_choice_selected", { value: "free" });
     trialBtn.disabled = true;
     freeBtn.disabled = true;
     setStatus(planStatus, "Setting up your free listing...", null);
@@ -613,6 +662,7 @@ function bindIntakeForm() {
   const form = document.getElementById("newListingForm");
   if (!form) return;
   trackFunnelEvent("signup_page_viewed", {});
+  gtagEvent("signup_page_viewed");
   bindPhotoControl();
   const status = document.getElementById("newListingStatus");
   let firstInputTracked = false;
@@ -626,6 +676,52 @@ function bindIntakeForm() {
     event.preventDefault();
     submitIntake(form, status);
   });
+
+  // Field focus/blur analytics
+  [
+    [form.elements.full_name, "full_name"],
+    [form.elements.email, "email"],
+    [form.elements.license_number, "license"],
+    [form.elements.zip, "zip"],
+  ].forEach(function (pair) {
+    const el = pair[0];
+    const fieldName = pair[1];
+    if (!el) return;
+    let focused = false;
+    el.addEventListener("focus", function () {
+      focused = true;
+      gtagEvent("signup_field_focused", { field_name: fieldName });
+    });
+    el.addEventListener("blur", function () {
+      if (el.value.trim()) {
+        gtagEvent("signup_field_completed", { field_name: fieldName });
+      } else if (focused) {
+        gtagEvent("signup_field_abandoned", { field_name: fieldName });
+      }
+    });
+  });
+
+  // Submit CTA click (fires before validation)
+  const _submitCta = form.querySelector('button[type="submit"]');
+  if (_submitCta) {
+    _submitCta.addEventListener("click", function () {
+      gtagEvent("signup_submit_clicked");
+    });
+  }
+
+  // Claim link click tracking
+  const _headerClaimLink = document.querySelector(".signup-hero-claim-note a");
+  if (_headerClaimLink) {
+    _headerClaimLink.addEventListener("click", function () {
+      gtagEvent("signup_claim_link_clicked", { source: "header_link" });
+    });
+  }
+  const _inlineClaimLink = document.getElementById("newListingRecoveryCta");
+  if (_inlineClaimLink) {
+    _inlineClaimLink.addEventListener("click", function () {
+      gtagEvent("signup_claim_link_clicked", { source: "inline_link" });
+    });
+  }
 
   const licenseInput = form.elements.license_number;
   const licenseHint = document.getElementById("newListingLicenseHint");
