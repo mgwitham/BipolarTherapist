@@ -315,6 +315,16 @@ export const therapistType = defineType({
       group: "trust",
     }),
     defineField({
+      name: "bipolarApproach",
+      title: "Bipolar approach",
+      description:
+        "Brief statement of approach to bipolar treatment, shown in the directory panel (max 280 chars).",
+      type: "text",
+      rows: 3,
+      group: "trust",
+      validation: (Rule) => Rule.max(280),
+    }),
+    defineField({
       name: "treatmentModalities",
       title: "Treatment modalities",
       type: "array",

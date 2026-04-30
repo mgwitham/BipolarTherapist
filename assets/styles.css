@@ -5206,6 +5206,102 @@ body.dir-vb .dir-vb-modal-apply:hover {
   font-weight: 500;
 }
 
+/* -- Panel: identity strip -------------------------- */
+.dir-panel-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.dir-panel-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.dir-panel-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dir-panel-avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--teal-dark);
+  background: rgba(26, 122, 143, 0.1);
+  border-radius: 50%;
+  user-select: none;
+}
+
+.dir-panel-identity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dir-panel-location {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+/* -- Panel: quick-answer pills ---------------------- */
+.dir-panel-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.dir-panel-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--slate);
+  background: rgba(26, 122, 143, 0.06);
+  border: 1px solid rgba(26, 122, 143, 0.14);
+}
+
+/* -- Panel: bipolar approach section ---------------- */
+.dir-panel-approach {
+  padding: 0.85rem 1rem;
+  background: rgba(244, 250, 251, 0.8);
+  border-radius: 10px;
+  border-left: 3px solid rgba(26, 122, 143, 0.25);
+}
+
+.dir-panel-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+  margin-bottom: 0.35rem;
+}
+
+.dir-panel-approach-text {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--slate);
+  margin: 0;
+}
+
+/* -- Panel: prominent bio (minimal panel floor) ----- */
+.dir-panel-bio--prominent {
+  padding: 1.2rem 1.1rem;
+  font-size: 0.92rem;
+}
+
 /* -- Load more -------------------------------------- */
 .dir-load-more-wrap {
   display: flex;
