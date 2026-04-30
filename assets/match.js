@@ -5128,10 +5128,11 @@ function renderLeadResultCard(entry, _backupName, options) {
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
-      : "") +
-    '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="mx-profile-link">View profile</a>' +
+      : '<a href="' +
+        escapeHtml(buildTherapistProfileHref(therapist.slug)) +
+        '" class="bth-btn-primary" data-match-profile-link="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-profile-link-context="primary-card">View profile</a>') +
     "</div>" +
     "</article>"
   );
@@ -5181,10 +5182,13 @@ function renderSupportingResultCard(entry, _rank, options) {
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
-      : "") +
-    '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-    '" class="mx-profile-link">View profile</a>' +
+      : '<a href="' +
+        escapeHtml(buildTherapistProfileHref(therapist.slug)) +
+        '" class="bth-btn-primary" data-match-profile-link="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-profile-link-context="' +
+        escapeHtml(contextLabel) +
+        '">View profile</a>') +
     "</div>" +
     "</article>"
   );
