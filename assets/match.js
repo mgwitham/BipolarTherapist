@@ -5655,30 +5655,12 @@ function renderDetailsBody(entry) {
 
   // Secondary contact line (shows whichever channels weren't already the
   // primary CTA, so we never double-up).
-  var secondaryParts = [];
-  if (ctaInfo.routeKey !== "phone" && therapist.phone) {
-    secondaryParts.push(
-      '<a href="tel:' + escapeHtml(therapist.phone) + '">' + escapeHtml(therapist.phone) + "</a>",
-    );
-  }
-  if (ctaInfo.routeKey !== "website" && therapist.website) {
-    secondaryParts.push(
-      '<a href="' +
-        escapeHtml(therapist.website) +
-        '" target="_blank" rel="noopener noreferrer">Practice website →</a>',
-    );
-  }
-  var secondaryHtml = secondaryParts.length
-    ? '<p class="bth-modal-secondary">' + secondaryParts.join(" · ") + "</p>"
-    : "";
-
   var reachingOutHtml =
     '<div class="bth-modal-reaching-out">' +
     (reachingOutItems
       ? '<h4 class="bth-modal-section-label">Reaching out</h4>' + reachingOutItems
       : "") +
     primaryCtaHtml +
-    secondaryHtml +
     "</div>";
 
   var teaserHtml =

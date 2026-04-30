@@ -229,8 +229,7 @@ function renderBookingLayout(therapist, firstName) {
     '<a class="mx-btn-primary" href="' +
     escapeHtml(href) +
     '" target="_blank" rel="noopener noreferrer" data-contact-primary="booking">Open booking page →</a>' +
-    "</div>" +
-    renderSecondaryContactsHtml("booking", therapist, firstName)
+    "</div>"
   );
 }
 
@@ -246,8 +245,7 @@ function renderWebsiteLayout(therapist, firstName) {
     '<a class="mx-btn-primary" href="' +
     escapeHtml(href) +
     '" target="_blank" rel="noopener noreferrer" data-contact-primary="website">Open practice site →</a>' +
-    "</div>" +
-    renderSecondaryContactsHtml("website", therapist, firstName)
+    "</div>"
   );
 }
 
@@ -279,8 +277,7 @@ function renderPhoneLayout(therapist, firstName, isMobile) {
     '<div class="mx-contact-actions">' +
     primaryHtml +
     "</div>" +
-    '<p class="mx-contact-phone-subcopy">Mention you found them through BipolarTherapyHub.</p>' +
-    renderSecondaryContactsHtml("phone", therapist, firstName)
+    '<p class="mx-contact-phone-subcopy">Mention you found them through BipolarTherapyHub.</p>'
   );
 }
 
@@ -302,8 +299,7 @@ function renderEmailLayout(therapist, firstName) {
     escapeHtml(emailTrimmed) +
     '">Open in email app</button>' +
     '<button type="button" class="mx-btn-secondary" data-contact-copy-message>Copy message</button>' +
-    "</div></div>" +
-    renderSecondaryContactsHtml("email", therapist, firstName)
+    "</div></div>"
   );
 }
 

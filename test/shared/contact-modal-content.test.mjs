@@ -179,8 +179,9 @@ test("buildContactModalContent: booking layout renders 'Book with [First]'", () 
   assert.match(result.html, /Book with Jamie/);
   assert.match(result.html, /Open booking page/);
   assert.match(result.html, /data-contact-primary="booking"/);
-  // Secondary label
-  assert.match(result.html, /Prefer to reach out first\?/);
+  // Secondary contacts are no longer shown in the modal
+  assert.equal(/Prefer to reach out first\?/.test(result.html), false);
+  assert.equal(/mx-contact-others/.test(result.html), false);
 });
 
 test("buildContactModalContent: website layout renders 'Visit [First]'s website'", () => {
@@ -191,9 +192,9 @@ test("buildContactModalContent: website layout renders 'Visit [First]'s website'
   assert.equal(result.layout, "website");
   assert.match(result.html, /Visit Jamie&#39;s website/);
   assert.match(result.html, /Open practice site/);
-  assert.match(result.html, /Prefer to reach out directly\?/);
-  // Booking must NOT be in the secondary list for website layout
-  assert.equal(/data-contact-other-route="booking"/.test(result.html), false);
+  // Secondary contacts are no longer shown in the modal
+  assert.equal(/Prefer to reach out directly\?/.test(result.html), false);
+  assert.equal(/mx-contact-others/.test(result.html), false);
 });
 
 test("buildContactModalContent: phone layout uses tel: link on mobile", () => {
@@ -205,7 +206,9 @@ test("buildContactModalContent: phone layout uses tel: link on mobile", () => {
   assert.match(result.html, /Call Jamie/);
   assert.match(result.html, /href="tel:4158672345"/);
   assert.match(result.html, /Mention you found them through BipolarTherapyHub/);
-  assert.match(result.html, /Prefer not to call\?/);
+  // Secondary contacts are no longer shown in the modal
+  assert.equal(/Prefer not to call\?/.test(result.html), false);
+  assert.equal(/mx-contact-others/.test(result.html), false);
   // Phone icon included
   assert.match(result.html, /mx-contact-phone-icon/);
 });
@@ -233,8 +236,9 @@ test("buildContactModalContent: email layout renders textarea + open/copy button
   assert.match(result.html, /data-contact-copy-message/);
   assert.match(result.html, /Open in email app/);
   assert.match(result.html, /Copy message/);
-  // Other-ways label uses interpolated first name
-  assert.match(result.html, /Other ways to reach Jamie/);
+  // Secondary contacts are no longer shown in the modal
+  assert.equal(/Other ways to reach Jamie/.test(result.html), false);
+  assert.equal(/mx-contact-others/.test(result.html), false);
 });
 
 test("buildContactModalContent: returns { layout: null, html: '' } when no contacts", () => {
