@@ -558,7 +558,6 @@ function buildFAQSection(t) {
 function buildJumpNav() {
   var links = [
     { id: "section-about", label: "About" },
-    { id: "section-contact", label: "How to reach out" },
     { id: "section-faq", label: "FAQ" },
   ];
 
@@ -3223,6 +3222,71 @@ function renderProfile(t, therapistDirectory) {
         "</p>"
       : "");
 
+  var outreachHasTextChannel =
+    isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
+  var outreachHasPhone = Boolean(t.phone);
+  var outreachCallScript = outreachHasPhone ? buildCallScript(t) : null;
+  var outreachAfterItems = [
+    "Notice how the reply lands — warm, informed, and responsive is a good sign.",
+    "Ask for a short consult call before committing to ongoing sessions.",
+    "It's completely fine to message two or three therapists at once to compare fit.",
+  ];
+  var outreachRenderTipList = function (items) {
+    return (
+      '<ul class="outreach-tip-list">' +
+      items
+        .map(function (item) {
+          return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
+        })
+        .join("") +
+      "</ul>"
+    );
+  };
+  var outreachMessageCardHtml = outreachHasTextChannel
+    ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
+      escapeHtml(outreachScript) +
+      '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
+    : "";
+  var outreachCallCardHtml = "";
+  if (outreachHasPhone && outreachCallScript) {
+    var outreachPhoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
+    outreachCallCardHtml =
+      '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
+      '<div class="call-script-shell">' +
+      '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
+      escapeHtml(outreachCallScript.liveOpener) +
+      "</p>" +
+      (outreachCallScript.liveContext
+        ? '<p class="call-script-context">' + escapeHtml(outreachCallScript.liveContext) + "</p>"
+        : "") +
+      "</div></div>" +
+      '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
+      escapeHtml(outreachCallScript.voicemail) +
+      "</p></div></div>" +
+      (outreachPhoneDigits
+        ? '<a href="tel:' +
+          escapeHtml(outreachPhoneDigits) +
+          '" class="btn-contact call-script-cta">Call ' +
+          escapeHtml(t.phone) +
+          "</a>"
+        : "") +
+      "</div></div>";
+  }
+  var outreachPanelHtml =
+    outreachMessageCardHtml || outreachCallCardHtml
+      ? '<div class="next-step-card">' +
+        outreachMessageCardHtml +
+        outreachCallCardHtml +
+        (contactGuidance
+          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
+            escapeHtml(contactGuidance) +
+            "</div></div>"
+          : "") +
+        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
+        outreachRenderTipList(outreachAfterItems) +
+        "</div></div>"
+      : "";
+
   var html =
     '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
@@ -3255,7 +3319,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
-    '<div class="profile-contact-card">' +
+    '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
     (t.phone
       ? '<a href="tel:' +
@@ -3297,6 +3361,16 @@ function renderProfile(t, therapistDirectory) {
     !(t.booking_url && bookingHealthy)
       ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
       : "") +
+    (outreachPanelHtml
+      ? '<button type="button" class="contact-outreach-toggle" aria-expanded="false" aria-controls="contactOutreachPanel" data-outreach-toggle>' +
+        '<span class="profile-contact-icon" aria-hidden="true">✉️</span>' +
+        '<span class="contact-outreach-toggle-label">Outreach scripts</span>' +
+        '<span class="contact-outreach-chevron" aria-hidden="true">+</span>' +
+        "</button>" +
+        '<div class="contact-outreach-panel" id="contactOutreachPanel" hidden>' +
+        outreachPanelHtml +
+        "</div>"
+      : "") +
     "</div>" +
     "</div>" +
     (hasPaidSubscription
@@ -3333,77 +3407,6 @@ function renderProfile(t, therapistDirectory) {
     sectionNavHtml +
     '<div class="profile-body">' +
     "<div>" +
-    (function () {
-      var hasTextChannel =
-        isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
-      var hasPhone = Boolean(t.phone);
-      var callScript = hasPhone ? buildCallScript(t) : null;
-
-      var afterItems = [
-        "Notice how the reply lands — warm, informed, and responsive is a good sign.",
-        "Ask for a short consult call before committing to ongoing sessions.",
-        "It's completely fine to message two or three therapists at once to compare fit.",
-      ];
-
-      var renderTipList = function (items) {
-        return (
-          '<ul class="outreach-tip-list">' +
-          items
-            .map(function (item) {
-              return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
-            })
-            .join("") +
-          "</ul>"
-        );
-      };
-
-      var messageCardHtml = hasTextChannel
-        ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
-          escapeHtml(outreachScript) +
-          '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
-        : "";
-
-      var callCardHtml = "";
-      if (hasPhone && callScript) {
-        var phoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
-        callCardHtml =
-          '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
-          '<div class="call-script-shell">' +
-          '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
-          escapeHtml(callScript.liveOpener) +
-          "</p>" +
-          (callScript.liveContext
-            ? '<p class="call-script-context">' + escapeHtml(callScript.liveContext) + "</p>"
-            : "") +
-          "</div></div>" +
-          '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
-          escapeHtml(callScript.voicemail) +
-          "</p></div></div>" +
-          (phoneDigits
-            ? '<a href="tel:' +
-              escapeHtml(phoneDigits) +
-              '" class="btn-contact call-script-cta">Call ' +
-              escapeHtml(t.phone) +
-              "</a>"
-            : "") +
-          "</div></div>";
-      }
-
-      return (
-        '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="outreach-intro">Reaching out is easier than it feels. Pick the path that feels calmest — a written message or a phone call — and use the script below as a starting point.</div><div class="next-step-card">' +
-        messageCardHtml +
-        callCardHtml +
-        (contactGuidance
-          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
-            escapeHtml(contactGuidance) +
-            "</div></div>"
-          : "") +
-        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
-        renderTipList(afterItems) +
-        "</div>" +
-        "</div></div></section>"
-      );
-    })() +
     buildFAQSection(t) +
     "</div>" +
     '<div class="profile-sidebar-stack">' +
@@ -3507,11 +3510,31 @@ function renderProfile(t, therapistDirectory) {
           contactObserver.disconnect();
         });
       },
-      {
-        threshold: 0.45,
-      },
+      { threshold: 0.2 },
     );
     contactObserver.observe(contactSection);
+  }
+  var outreachToggleBtn = document.querySelector("[data-outreach-toggle]");
+  var outreachPanel = document.getElementById("contactOutreachPanel");
+  if (outreachToggleBtn && outreachPanel) {
+    outreachToggleBtn.addEventListener("click", function () {
+      var isOpen = outreachToggleBtn.getAttribute("aria-expanded") === "true";
+      outreachToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+      if (isOpen) {
+        outreachPanel.setAttribute("hidden", "");
+      } else {
+        outreachPanel.removeAttribute("hidden");
+        trackFunnelEvent("profile_outreach_scripts_opened", getContactAnalyticsMeta(t, "scripts"));
+      }
+    });
+  }
+  if (window.location.hash === "#outreach" && outreachToggleBtn && outreachPanel) {
+    outreachToggleBtn.setAttribute("aria-expanded", "true");
+    outreachPanel.removeAttribute("hidden");
+    window.setTimeout(function () {
+      var card = document.getElementById("outreach");
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
   var outreachScriptCard = document.querySelector("[data-profile-outreach-script]");
   if (outreachScriptCard) {
@@ -3523,6 +3546,10 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-focus-script]"))
     .forEach(function (button) {
       button.addEventListener("click", function () {
+        if (outreachToggleBtn && outreachPanel) {
+          outreachToggleBtn.setAttribute("aria-expanded", "true");
+          outreachPanel.removeAttribute("hidden");
+        }
         var scriptCard = document.querySelector("[data-profile-outreach-script]");
         if (!scriptCard) {
           return;
