@@ -238,3 +238,64 @@ test("GET /analytics/events: returns stored log for admin", async () => {
   assert.equal(response.payload.events[0].type, "signup_page_viewed");
   assert.equal(response.payload.totalAppended, 1);
 });
+
+test("POST /analytics/events: filters impression noise out of ring buffer but counts them in totalAppended", async () => {
+  const { client, state } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/analytics/events",
+    client,
+    body: {
+      events: [
+        { type: "directory_card_impression" },
+        { type: "match_card_impression" },
+        { type: "match_contact_modal_opened" },
+        { type: "directory_card_impression" },
+      ],
+    },
+  });
+  await handleAnalyticsRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.appended, 1);
+  assert.equal(response.payload.filtered, 3);
+
+  const doc = state.documents.get("funnelEventLog.singleton");
+  assert.equal(doc.events.length, 1);
+  assert.equal(doc.events[0].type, "match_contact_modal_opened");
+  // totalAppended counts every event that arrived, even noise ones, so
+  // volume tracking stays accurate.
+  assert.equal(doc.totalAppended, 4);
+});
+
+test("POST /analytics/events: an all-noise batch still bumps totalAppended", async () => {
+  const { client, state } = createMemoryClient({
+    "funnelEventLog.singleton": {
+      _id: "funnelEventLog.singleton",
+      _type: "funnelEventLog",
+      events: [{ _key: "k1", type: "claim_page_viewed", occurredAt: "2026-04-20Z" }],
+      totalAppended: 1,
+    },
+  });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/analytics/events",
+    client,
+    body: {
+      events: [
+        { type: "directory_card_impression" },
+        { type: "directory_card_impression" },
+        { type: "match_card_impression" },
+      ],
+    },
+  });
+  await handleAnalyticsRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.appended, 0);
+  assert.equal(response.payload.filtered, 3);
+
+  const doc = state.documents.get("funnelEventLog.singleton");
+  // Existing event is preserved; no new entries; totalAppended bumped.
+  assert.equal(doc.events.length, 1);
+  assert.equal(doc.events[0].type, "claim_page_viewed");
+  assert.equal(doc.totalAppended, 4);
+});
