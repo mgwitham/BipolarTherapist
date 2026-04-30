@@ -1,5 +1,6 @@
 import { updateTherapistCandidate, updateTherapist } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { isProfileLive } from "../shared/profile-live-status.mjs";
 
 let _drawerEl = null;
 let _onSaved = null;
@@ -7,6 +8,11 @@ let _editMode = "candidate"; // "candidate" | "therapist"
 let _editId = null;
 let _initialSnapshot = "";
 let _isDirty = false;
+// Snapshot of the therapist record passed to openTherapistEditDrawer. Used
+// by the live-status preview to fill in fields the form doesn't expose
+// (e.g. bipolar_years_experience, license verification metadata) and to
+// detect high-impact transitions (approved → paused, listed → hidden).
+let _initialTherapist = null;
 
 function getDrawer() {
   if (!_drawerEl) {
@@ -104,6 +110,191 @@ function markSavedState() {
   syncDirtyState();
 }
 
+function setSectionVisibility(showStatusAndAudit) {
+  [
+    "editLivePanel",
+    "editStatusSectionTitle",
+    "editStatusSectionFields",
+    "editAuditSectionTitle",
+  ].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (showStatusAndAudit) {
+      el.removeAttribute("hidden");
+    } else {
+      el.setAttribute("hidden", "");
+    }
+  });
+  const auditLog = document.getElementById("editAuditLog");
+  if (auditLog) {
+    if (showStatusAndAudit) auditLog.removeAttribute("hidden");
+    else auditLog.setAttribute("hidden", "");
+  }
+}
+
+function buildPreviewTherapist() {
+  // Merge the form's current values into the therapist snapshot so the
+  // live-status preview reflects what the doc would look like after save.
+  // Form-only fields override snapshot fields; snapshot supplies anything
+  // the form doesn't surface (license verification metadata, etc).
+  const base = _initialTherapist || {};
+  const formInsurance = tagsToArray(getVal("editInsuranceAccepted") || "");
+  return {
+    ...base,
+    name: getVal("editName") || base.name,
+    email: getVal("editEmail") || base.email,
+    license_number: getVal("editLicenseNumber") || base.license_number,
+    insurance_accepted: formInsurance.length ? formInsurance : base.insurance_accepted || [],
+    lifecycle: getVal("editLifecycle") || base.lifecycle,
+    visibility_intent: getVal("editVisibilityIntent") || base.visibility_intent,
+    // listingActive and status are derived server-side at save time. For
+    // preview, simulate that derivation so the panel doesn't show a stale
+    // "listingActive=true" gate when admin toggles to paused.
+    listing_active:
+      getVal("editLifecycle") === "approved" && getVal("editVisibilityIntent") === "listed"
+        ? true
+        : false,
+    status:
+      getVal("editLifecycle") === "approved" && getVal("editVisibilityIntent") === "listed"
+        ? "active"
+        : base.status === "active"
+          ? "active"
+          : base.status,
+  };
+}
+
+function renderLivePanel() {
+  const panel = document.getElementById("editLivePanel");
+  const badge = document.getElementById("editLivePanelBadge");
+  const gatesEl = document.getElementById("editLivePanelGates");
+  const transitionEl = document.getElementById("editLivePanelTransition");
+  if (!panel || !badge || !gatesEl) return;
+
+  const previewDoc = buildPreviewTherapist();
+  const preview = isProfileLive(previewDoc);
+  const before = isProfileLive(_initialTherapist || {});
+
+  badge.textContent = preview.isLive ? "Live" : "Hidden";
+  badge.className = preview.isLive ? "ps-badge ps-badge--live" : "ps-badge ps-badge--hidden";
+
+  // Transition callout — only when the save would flip Live state.
+  if (transitionEl) {
+    if (before.isLive && !preview.isLive) {
+      transitionEl.textContent = "Saving will hide this profile from patients.";
+      transitionEl.className = "edit-live-panel-transition is-going-hidden";
+      transitionEl.removeAttribute("hidden");
+    } else if (!before.isLive && preview.isLive) {
+      transitionEl.textContent = "Saving will make this profile Live.";
+      transitionEl.className = "edit-live-panel-transition is-going-live";
+      transitionEl.removeAttribute("hidden");
+    } else {
+      transitionEl.setAttribute("hidden", "");
+    }
+  }
+
+  // Render every gate. Pass-text mirrors blocker text so admins see exactly
+  // what each gate is checking.
+  const gateChecks = [
+    {
+      label: "Lifecycle is approved",
+      fail: preview.blockers.find((b) => b.startsWith("Lifecycle is")),
+    },
+    {
+      label: "Visibility set to listed",
+      fail: preview.blockers.find((b) => b.startsWith("Visibility intent")),
+    },
+    {
+      label: "Document is published (not a draft)",
+      fail: preview.blockers.find((b) => b.includes("Sanity draft")),
+    },
+    {
+      label: "Status is active",
+      fail: preview.blockers.find((b) => b.startsWith("Status is")),
+    },
+    {
+      label: "Trust gate: license number on file",
+      fail: preview.blockers.find((b) => b.includes("license number")),
+    },
+    {
+      label: "Trust gate: insurance accepted listed",
+      fail: preview.blockers.find((b) => b.includes("insurance accepted")),
+    },
+    {
+      label: "Trust gate: bipolar years experience set",
+      fail: preview.blockers.find((b) => b.includes("bipolar years")),
+    },
+    {
+      label: "No duplicate documents detected",
+      fail: preview.blockers.find((b) => b.startsWith("Duplicate detected")),
+    },
+  ];
+
+  gatesEl.innerHTML = gateChecks
+    .map(function (g) {
+      const passing = !g.fail;
+      const mark = passing
+        ? '<span class="gate-mark is-pass" aria-label="passes">&check;</span>'
+        : '<span class="gate-mark is-fail" aria-label="fails">&times;</span>';
+      const text = passing ? g.label : g.fail;
+      return "<li>" + mark + "<span>" + escapeHtml(text) + "</span></li>";
+    })
+    .join("");
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderAuditLog(entries) {
+  const container = document.getElementById("editAuditLog");
+  if (!container) return;
+  const list = Array.isArray(entries) ? entries.slice() : [];
+  if (!list.length) {
+    container.innerHTML = '<p class="edit-audit-log-empty">No history yet.</p>';
+    return;
+  }
+  // Newest first. Sanity stores them in append order; reverse for display.
+  list.reverse();
+  const top = list.slice(0, 10);
+  container.innerHTML = top
+    .map(function (entry) {
+      const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "";
+      const actor = entry.actor || "system";
+      const action = entry.action || "edit";
+      const reason = entry.reason
+        ? '<div class="edit-audit-log-entry-reason">Reason: ' + escapeHtml(entry.reason) + "</div>"
+        : "";
+      const before = entry.before || "";
+      const after = entry.after || "";
+      const diff =
+        before || after
+          ? '<div class="edit-audit-log-entry-diff">' +
+            escapeHtml(before) +
+            "  →  " +
+            escapeHtml(after) +
+            "</div>"
+          : "";
+      return (
+        '<div class="edit-audit-log-entry">' +
+        '<div class="edit-audit-log-entry-head">' +
+        escapeHtml(action) +
+        '<span class="edit-audit-log-entry-meta">' +
+        escapeHtml(actor) +
+        " · " +
+        escapeHtml(ts) +
+        "</span></div>" +
+        reason +
+        diff +
+        "</div>"
+      );
+    })
+    .join("");
+}
+
 export function openCandidateEditDrawer(candidate, onSaved) {
   const drawer = getDrawer();
   if (!drawer) return;
@@ -111,9 +302,13 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   _editMode = "candidate";
   _editId = candidate.id || candidate._id || "";
   _onSaved = onSaved || null;
+  _initialTherapist = null;
   drawer.dataset.candidateId = _editId;
 
   setDrawerTitle("Edit candidate profile");
+  // Hide the therapist-only sections — Live status, lifecycle, audit log
+  // don't apply to candidate documents.
+  setSectionVisibility(false);
 
   // Identity
   setVal("editName", candidate.name);
@@ -174,9 +369,11 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   _editMode = "therapist";
   _editId = therapist.id || therapist._id || "";
   _onSaved = onSaved || null;
+  _initialTherapist = therapist;
   drawer.dataset.candidateId = _editId;
 
   setDrawerTitle("Edit therapist profile");
+  setSectionVisibility(true);
 
   // fetchPublicTherapists emits snake_case; fall back to camelCase for any
   // caller still passing a raw Sanity doc.
@@ -222,11 +419,18 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
   setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
 
+  // Lifecycle / visibility
+  setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
+  setVal("editVisibilityIntent", read("visibility_intent", "visibilityIntent") || "listed");
+
   // Notes
   setVal("editNotes", read("notes", "notes") || "");
 
   const statusEl = drawer.querySelector(".edit-save-status");
   if (statusEl) statusEl.textContent = "";
+
+  renderAuditLog(read("audit_log", "auditLog"));
+  renderLivePanel();
 
   drawer.classList.add("is-open");
   document.body.classList.add("drawer-open");
@@ -253,6 +457,29 @@ export function closeCandidateEditDrawer() {
   _isDirty = false;
 }
 
+// Determine whether a save crosses a high-impact threshold that requires a
+// reason. The two cases the spec calls out:
+//   - lifecycle changing to archived or paused (regardless of from-state),
+//     since that's an explicit takedown signal
+//   - visibilityIntent flipping to hidden on a profile that was Live
+function needsReasonForSave(prevTherapist, nextLifecycle, nextVisibility) {
+  const prevLifecycle = (prevTherapist && (prevTherapist.lifecycle || "")) || "";
+  const prevVisibility =
+    (prevTherapist && (prevTherapist.visibility_intent || prevTherapist.visibilityIntent || "")) ||
+    "";
+  const wasLive = prevTherapist ? isProfileLive(prevTherapist).isLive : false;
+  if (
+    (nextLifecycle === "archived" || nextLifecycle === "paused") &&
+    nextLifecycle !== prevLifecycle
+  ) {
+    return true;
+  }
+  if (nextVisibility === "hidden" && prevVisibility === "listed" && wasLive) {
+    return true;
+  }
+  return false;
+}
+
 export function bindCandidateEditDrawer() {
   const drawer = getDrawer();
   if (!drawer) return;
@@ -276,6 +503,9 @@ export function bindCandidateEditDrawer() {
   ["input", "change"].forEach(function (eventName) {
     form.addEventListener(eventName, function () {
       syncDirtyState();
+      if (_editMode === "therapist") {
+        renderLivePanel();
+      }
       if (statusEl && statusEl.classList.contains("is-success")) {
         statusEl.textContent = "";
         statusEl.className = "edit-save-status";
@@ -289,7 +519,7 @@ export function bindCandidateEditDrawer() {
     const saveBtn = form.querySelector(".edit-save-btn");
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = "Saving\u2026";
+      saveBtn.textContent = "Saving…";
     }
     if (statusEl) statusEl.textContent = "";
 
@@ -297,6 +527,27 @@ export function bindCandidateEditDrawer() {
       let saved;
 
       if (_editMode === "therapist") {
+        const lifecycle = getVal("editLifecycle");
+        const visibilityIntent = getVal("editVisibilityIntent");
+
+        // Reason prompt for high-impact transitions. Cancel aborts save.
+        let reason = "";
+        if (needsReasonForSave(_initialTherapist, lifecycle, visibilityIntent)) {
+          reason =
+            window.prompt(
+              "This change will hide or pause the profile. Briefly note why (one line — stored in the audit log):",
+              "",
+            ) || "";
+          if (reason === null) {
+            // User cancelled.
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = "Save changes";
+            }
+            return;
+          }
+        }
+
         const updates = {
           name: getVal("editName"),
           credentials: getVal("editCredentials"),
@@ -320,7 +571,10 @@ export function bindCandidateEditDrawer() {
           acceptsInPerson: getVal("editAcceptsInPerson"),
           acceptingNewPatients: getVal("editAcceptingNewPatients"),
           slidingScale: getVal("editSlidingScale"),
+          lifecycle,
+          visibilityIntent,
         };
+        if (reason) updates.reason = reason;
         Object.keys(updates).forEach(function (k) {
           if (updates[k] === undefined) delete updates[k];
         });
@@ -364,6 +618,20 @@ export function bindCandidateEditDrawer() {
       if (statusEl) {
         statusEl.textContent = "Saved. The latest changes are now the working version.";
         statusEl.className = "edit-save-status is-success";
+      }
+      // Refresh in-drawer state from the server response so the audit log
+      // and live-status panel reflect the new entry without a reload.
+      if (_editMode === "therapist" && saved && saved.therapist) {
+        _initialTherapist = {
+          ..._initialTherapist,
+          lifecycle: saved.therapist.lifecycle || "",
+          visibility_intent: saved.therapist.visibilityIntent || "",
+          listing_active: saved.therapist.listingActive !== false,
+          status: saved.therapist.status || "active",
+          audit_log: Array.isArray(saved.therapist.auditLog) ? saved.therapist.auditLog : [],
+        };
+        renderAuditLog(_initialTherapist.audit_log);
+        renderLivePanel();
       }
       markSavedState();
       trackFunnelEvent("admin_profile_changes_saved", {

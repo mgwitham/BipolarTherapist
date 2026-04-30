@@ -3,6 +3,20 @@
 //   getCandidates()    → remoteCandidates from GET /api/review/candidates (sourced, pre-publish)
 //   getApplications()  → remoteApplications from GET /api/review/applications (self-submitted, pending)
 // Getters are called on every keystroke so results always reflect the current loaded state.
+//
+// Display model: every row gets a single Live/Hidden badge derived from
+// isProfileLive (shared/profile-live-status.mjs). Therapist documents may
+// be Live; candidates and applications can never be Live and always show
+// Hidden with a small kind suffix.
+//
+// Dedupe: when a candidate matches a therapist by license number OR by
+// email, the candidate is hidden from the search — the therapist is the
+// source of truth. Exception: if a candidate matches a therapist by
+// email but their license numbers conflict, both are shown (the
+// ambiguous case lands in the Needs Attention queue once the user gets
+// there).
+
+import { isProfileLive } from "../shared/profile-live-status.mjs";
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 200;
@@ -29,10 +43,66 @@ function highlight(text, query) {
   );
 }
 
-function statusBadge(kind) {
-  if (kind === "therapist") return '<span class="ps-badge ps-badge--published">Published</span>';
-  if (kind === "application") return '<span class="ps-badge ps-badge--draft">Application</span>';
-  return '<span class="ps-badge ps-badge--unpublished">Unpublished</span>';
+function statusBadge(kind, isLive) {
+  if (kind === "therapist") {
+    return isLive
+      ? '<span class="ps-badge ps-badge--live">Live</span>'
+      : '<span class="ps-badge ps-badge--hidden">Hidden</span>';
+  }
+  // Candidates and applications can never be Live — they're not therapist
+  // documents. Show Hidden with a muted kind suffix so admins know which
+  // collection the row came from without four different badge colors.
+  const suffix =
+    kind === "application"
+      ? '<span class="ps-badge-suffix">(application)</span>'
+      : '<span class="ps-badge-suffix">(candidate)</span>';
+  return '<span class="ps-badge ps-badge--hidden">Hidden</span>' + suffix;
+}
+
+function lcKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function buildTherapistDedupeIndex(therapists) {
+  // Two maps: license → therapist record, email → therapist record. We
+  // store the therapist record itself (not just the id) so the dedupe
+  // step can compare license numbers when only the email matches.
+  const byLicense = new Map();
+  const byEmail = new Map();
+  (therapists || []).forEach(function (t) {
+    const lic = lcKey(t.license_number || t.licenseNumber);
+    const em = lcKey(t.email);
+    if (lic && !byLicense.has(lic)) byLicense.set(lic, t);
+    if (em && !byEmail.has(em)) byEmail.set(em, t);
+  });
+  return { byLicense, byEmail };
+}
+
+function shouldHideCandidateAsDuplicate(candidate, dedupeIndex) {
+  const lic = lcKey(candidate.license_number);
+  const em = lcKey(candidate.email);
+  if (!lic && !em) return false;
+
+  if (lic && dedupeIndex.byLicense.has(lic)) {
+    // Same license number on a therapist doc — the candidate is stale.
+    return true;
+  }
+  if (em && dedupeIndex.byEmail.has(em)) {
+    // Email matches a therapist. Hide the candidate UNLESS the candidate
+    // has its own license that conflicts with the matched therapist's
+    // license — that's the ambiguous case (one Ken Howard candidate has
+    // a different license from the Ken Howard therapist record at this
+    // email). Surface both rows so admin sees the conflict.
+    const matched = dedupeIndex.byEmail.get(em);
+    const matchedLicense = lcKey(matched.license_number || matched.licenseNumber);
+    if (lic && matchedLicense && lic !== matchedLicense) {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 export function initAdminProfileSearch({
@@ -83,33 +153,65 @@ export function initAdminProfileSearch({
     const ql = q.toLowerCase();
     const results = [];
     try {
-      (getTherapists() || []).forEach(function (t) {
+      const therapists = getTherapists() || [];
+      const dedupeIndex = buildTherapistDedupeIndex(therapists);
+
+      // Build the unconverted-candidate set once so isProfileLive can
+      // include duplicate-against-candidate blockers when relevant.
+      const unconvertedCandidates = (getCandidates() || []).filter(function (c) {
+        return !c.published_therapist_id;
+      });
+
+      therapists.forEach(function (t) {
         const name = String(t.name || "");
         const email = String(t.email || "");
         const license = String(t.license_number || t.licenseNumber || "");
         if ((name + " " + email + " " + license).toLowerCase().includes(ql)) {
-          results.push({ kind: "therapist", record: t, name, email, license });
+          const otherTherapists = therapists.filter(function (other) {
+            return (other.id || other._id) !== (t.id || t._id);
+          });
+          const live = isProfileLive(t, { otherTherapists, unconvertedCandidates });
+          results.push({
+            kind: "therapist",
+            record: t,
+            name,
+            email,
+            license,
+            isLive: live.isLive,
+          });
         }
       });
+
       (getCandidates() || []).forEach(function (c) {
-        // Skip candidates that have already been promoted to a therapist —
-        // those records already appear in the therapists list as "Published".
-        // Showing them again from the candidates list creates a confusing
-        // duplicate "Unpublished" row for the same person.
-        if (c.published_therapist_id) return;
+        if (shouldHideCandidateAsDuplicate(c, dedupeIndex)) return;
         const name = String(c.name || "");
         const email = String(c.email || "");
         const license = String(c.license_number || "");
         if ((name + " " + email + " " + license).toLowerCase().includes(ql)) {
-          results.push({ kind: "candidate", record: c, name, email, license });
+          results.push({
+            kind: "candidate",
+            record: c,
+            name,
+            email,
+            license,
+            isLive: false,
+          });
         }
       });
+
       (getApplications() || []).forEach(function (a) {
         const name = String(a.name || "");
         const email = String(a.email || "");
         const license = String(a.license_number || "");
         if ((name + " " + email + " " + license).toLowerCase().includes(ql)) {
-          results.push({ kind: "application", record: a, name, email, license });
+          results.push({
+            kind: "application",
+            record: a,
+            name,
+            email,
+            license,
+            isLive: false,
+          });
         }
       });
     } catch (_err) {
@@ -130,7 +232,7 @@ export function initAdminProfileSearch({
       '<span class="ps-item-name">' +
       highlight(r.name || "(no name)", q) +
       "</span>" +
-      statusBadge(r.kind) +
+      statusBadge(r.kind, r.isLive) +
       "</div>" +
       '<div class="ps-item-secondary">' +
       '<span class="ps-item-email">' +

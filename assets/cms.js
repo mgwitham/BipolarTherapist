@@ -170,6 +170,9 @@ const therapistProjection = `{
   slidingScale,
   listingActive,
   status,
+  lifecycle,
+  visibilityIntent,
+  auditLog,
   "slug": slug.current
 }`;
 
@@ -300,6 +303,9 @@ function normalizeTherapist(doc) {
     sliding_scale: Boolean(doc.slidingScale),
     listing_active: doc.listingActive !== false,
     status: doc.status || "active",
+    lifecycle: doc.lifecycle || "",
+    visibility_intent: doc.visibilityIntent || "",
+    audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
     slug: doc.slug || "",
     // Default to false. The caller (e.g. fetchPublicTherapistBySlug)
     // can overwrite this when it has looked up the therapist's

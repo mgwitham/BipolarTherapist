@@ -793,12 +793,72 @@ export const therapistType = defineType({
       initialValue: false,
     }),
     defineField({
+      name: "lifecycle",
+      title: "Lifecycle",
+      type: "string",
+      group: "directory",
+      options: {
+        list: [
+          { title: "Draft", value: "draft" },
+          { title: "In review", value: "in_review" },
+          { title: "Awaiting confirmation", value: "awaiting_confirmation" },
+          { title: "Approved", value: "approved" },
+          { title: "Paused", value: "paused" },
+          { title: "Archived", value: "archived" },
+        ],
+      },
+      initialValue: "draft",
+      description:
+        "Workflow stage for this listing. Combined with visibilityIntent, drives the computed Live status surfaced in admin.",
+    }),
+    defineField({
+      name: "visibilityIntent",
+      title: "Visibility intent",
+      type: "string",
+      group: "directory",
+      options: {
+        list: [
+          { title: "Listed", value: "listed" },
+          { title: "Hidden", value: "hidden" },
+        ],
+      },
+      initialValue: "listed",
+      description:
+        "Admin-facing toggle for whether this profile should be publicly listed. Set to hidden to take a profile down without changing its lifecycle stage.",
+    }),
+    defineField({
+      name: "auditLog",
+      title: "Audit log",
+      type: "array",
+      group: "directory",
+      readOnly: true,
+      description:
+        "Append-only log of admin actions on this profile. Each entry: timestamp, actor, action, before/after, optional reason.",
+      of: [
+        defineArrayMember({
+          type: "object",
+          fields: [
+            defineField({ name: "timestamp", title: "Timestamp", type: "datetime" }),
+            defineField({ name: "actor", title: "Actor", type: "string" }),
+            defineField({ name: "action", title: "Action", type: "string" }),
+            defineField({ name: "before", title: "Before", type: "text", rows: 2 }),
+            defineField({ name: "after", title: "After", type: "text", rows: 2 }),
+            defineField({ name: "reason", title: "Reason", type: "string" }),
+          ],
+          preview: {
+            select: { title: "action", subtitle: "timestamp" },
+          },
+        }),
+      ],
+    }),
+    defineField({
       name: "listingActive",
       title: "Listing active",
       type: "boolean",
       group: "directory",
       initialValue: true,
-      description: "Turn this off to hide the listing without deleting it.",
+      description:
+        "Legacy: hides the listing from public queries when false. As of the lifecycle/visibility model, this is now driven indirectly by lifecycle === 'approved' && visibilityIntent === 'listed'. Kept for backward compatibility with existing GROQ filters; see shared/profile-live-status.mjs for the canonical Live check.",
     }),
     defineField({
       name: "status",

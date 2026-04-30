@@ -998,6 +998,7 @@ const adminLazyModuleLoaders = import.meta.glob([
   "./admin-licensure-sprint.js",
   "./admin-licensure-deferred-queue.js",
   "./admin-licensure-activity.js",
+  "./admin-needs-attention.js",
 ]);
 
 function loadAdminLazyModule(path) {
@@ -5808,6 +5809,18 @@ function inferCoverageRole(item) {
   return "therapy";
 }
 
+function renderNeedsAttention() {
+  // Lazy-loaded to keep the Needs Attention queue out of admin.js's main
+  // bundle — the gates module ships in shared/ already, but the rendering
+  // helpers are admin-only.
+  withLazyAdminModule("./admin-needs-attention.js", function (module) {
+    module.renderNeedsAttentionQueue({
+      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+      candidates: dataMode === "sanity" ? remoteCandidates : [],
+    });
+  });
+}
+
 function renderCoverageIntelligence() {
   withLazyAdminModule("./admin-sourcing-intelligence.js", function (module) {
     module.renderCoverageIntelligencePanel({
@@ -7624,6 +7637,7 @@ function renderAll() {
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);
   renderAdminSection("funnel insights", renderFunnelInsights);
   renderAdminSection("listings", renderListings);
+  renderAdminSection("needs attention", renderNeedsAttention);
   renderAdminSection("licensure queue", renderLicensureQueue);
   renderAdminSection("licensure sprint", renderLicensureSprint);
   renderAdminSection("deferred licensure queue", renderDeferredLicensureQueue);

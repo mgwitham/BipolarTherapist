@@ -5125,6 +5125,170 @@
         accent-color: var(--teal);
         cursor: pointer;
       }
+      /* Live status panel pinned at top of drawer body. Updates as the
+         admin edits — shows post-save state, not pre-save. */
+      .edit-live-panel {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fbfc;
+        border: 1px solid #d6e4ea;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+      }
+      .edit-live-panel-head {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+      }
+      .edit-live-panel-head .ps-badge {
+        margin-left: auto;
+      }
+      .edit-live-panel-transition {
+        margin-top: 0.4rem;
+        font-size: 0.84rem;
+        font-weight: 700;
+        padding: 0.35rem 0.55rem;
+        border-radius: 6px;
+      }
+      .edit-live-panel-transition.is-going-live {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .edit-live-panel-transition.is-going-hidden {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .edit-live-panel-gates {
+        margin: 0.6rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        font-size: 0.82rem;
+      }
+      .edit-live-panel-gates li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+        line-height: 1.4;
+      }
+      .edit-live-panel-gates .gate-mark {
+        flex-shrink: 0;
+        width: 1.05rem;
+        font-weight: 800;
+      }
+      .edit-live-panel-gates .gate-mark.is-pass {
+        color: #15803d;
+      }
+      .edit-live-panel-gates .gate-mark.is-fail {
+        color: #dc2626;
+      }
+      /* Audit log section at end of drawer form. */
+      .edit-audit-log {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .edit-audit-log-empty {
+        font-size: 0.84rem;
+        color: var(--slate);
+      }
+      .edit-audit-log-entry {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem 0.7rem;
+        background: #fff;
+        font-size: 0.78rem;
+      }
+      .edit-audit-log-entry-head {
+        display: flex;
+        gap: 0.5rem;
+        align-items: baseline;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .edit-audit-log-entry-meta {
+        font-weight: 500;
+        color: #6b8a96;
+        font-size: 0.74rem;
+      }
+      .edit-audit-log-entry-reason {
+        margin-top: 0.25rem;
+        color: var(--slate);
+        font-style: italic;
+      }
+      .edit-audit-log-entry-diff {
+        margin-top: 0.3rem;
+        color: var(--navy);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.72rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      /* Needs Attention queue. Each entry is a card with name, contact
+         metadata, the failing gates, and an Edit button that jumps into
+         the God View popup. */
+      .needs-attention-count {
+        display: inline-block;
+        margin-left: 0.4rem;
+        min-width: 1.4rem;
+        padding: 0.05rem 0.4rem;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #fff;
+        background: #dc2626;
+        border-radius: 999px;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .needs-attention-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .needs-attention-empty {
+        font-size: 0.9rem;
+        color: var(--slate);
+        padding: 1rem;
+        text-align: center;
+      }
+      .needs-attention-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem 1rem;
+      }
+      .needs-attention-card-head {
+        font-weight: 700;
+        color: var(--navy);
+        font-size: 0.95rem;
+      }
+      .needs-attention-card-meta {
+        font-size: 0.78rem;
+        color: var(--slate);
+        margin-top: 0.15rem;
+      }
+      .needs-attention-card-blockers {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding-left: 1.1rem;
+        font-size: 0.82rem;
+        color: #b91c1c;
+      }
+      .needs-attention-card-action {
+        align-self: start;
+      }
       .edit-drawer-footer {
         padding: 0.9rem 1.2rem;
         border-top: 1px solid #d6e4ea;
@@ -5441,17 +5605,31 @@
         margin-left: auto;
         flex-shrink: 0;
       }
-      .ps-badge--published {
+      .ps-badge--published,
+      .ps-badge--live {
         background: #dcfce7;
         color: #15803d;
+      }
+      .ps-badge--live::before {
+        /* Dot ensures Live is distinguishable without color alone (a11y). */
+        content: "● ";
       }
       .ps-badge--draft {
         background: #fef9c3;
         color: #854d0e;
       }
-      .ps-badge--unpublished {
+      .ps-badge--unpublished,
+      .ps-badge--hidden {
         background: #f1f5f9;
         color: #475569;
+      }
+      .ps-badge-suffix {
+        margin-left: 0.4rem;
+        font-size: 0.65rem;
+        color: #94a3b8;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
       }
       .ps-empty {
         padding: 1rem;
@@ -5680,6 +5858,16 @@
               <p class="admin-live-subtitle">Keep published profiles trustworthy and current.</p>
               <nav class="admin-live-chips" aria-label="Live sections">
                 <a href="#publishedListingsSection">All listings</a>
+                <a href="#needsAttentionSection" id="needsAttentionNavLink">
+                  Needs attention
+                  <span
+                    class="needs-attention-count"
+                    id="needsAttentionCount"
+                    aria-label="profiles needing attention"
+                    hidden
+                    >0</span
+                  >
+                </a>
                 <a href="#licensureQueueSection">Licensure</a>
                 <a href="#licensureSprintSection">Sprint</a>
                 <a href="#deferredLicensureQueueSection">Deferred</a>
@@ -5692,6 +5880,18 @@
                 leave stable listings alone.
               </p>
               <div id="publishedListings"></div>
+            </section>
+            <!-- Silent-failure catcher. Lists every therapist whose admin
+                 intent is Live (lifecycle=approved, visibility=listed) but
+                 whose computed Live status is false (gates failing). If
+                 the queue is empty, the section is hidden. -->
+            <section class="admin-region-shell workflow-section" id="needsAttentionSection" hidden>
+              <h2>Needs attention</h2>
+              <p class="panel-intro">
+                Profiles you've approved and listed, but the computed Live gate isn't passing. Each
+                row tells you exactly which gates are failing.
+              </p>
+              <div id="needsAttentionList"></div>
             </section>
             <details class="admin-collapsible-group" open>
               <summary>
@@ -6436,6 +6636,23 @@
           <button class="edit-drawer-close" aria-label="Close">&times;</button>
         </div>
         <div class="edit-drawer-body">
+          <!-- God View Live Status panel. Updates as the admin edits and
+               shows the post-save state, not the current state. Hidden
+               when editing a candidate (only therapist docs can be Live). -->
+          <aside
+            class="edit-live-panel"
+            id="editLivePanel"
+            role="region"
+            aria-label="Live status"
+            hidden
+          >
+            <div class="edit-live-panel-head">
+              <span>Live status (preview)</span>
+              <span class="ps-badge ps-badge--hidden" id="editLivePanelBadge">Hidden</span>
+            </div>
+            <div class="edit-live-panel-transition" id="editLivePanelTransition" hidden></div>
+            <ul class="edit-live-panel-gates" id="editLivePanelGates"></ul>
+          </aside>
           <form class="edit-drawer-form" id="candidateEditForm" novalidate>
             <div class="edit-section-title">Identity</div>
             <div class="edit-field-grid">
@@ -6568,6 +6785,35 @@
               </div>
             </div>
 
+            <!-- Status & visibility — only meaningful for therapist docs.
+                 The drawer JS hides this section when editing a candidate. -->
+            <div class="edit-section-title" id="editStatusSectionTitle">
+              Status &amp; visibility
+            </div>
+            <div class="edit-field-grid" id="editStatusSectionFields">
+              <div class="edit-field">
+                <label for="editLifecycle">Lifecycle</label>
+                <select id="editLifecycle">
+                  <option value="draft">Draft</option>
+                  <option value="in_review">In review</option>
+                  <option value="awaiting_confirmation">Awaiting confirmation</option>
+                  <option value="approved">Approved</option>
+                  <option value="paused">Paused</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div class="edit-field">
+                <label for="editVisibilityIntent">Visibility</label>
+                <select id="editVisibilityIntent">
+                  <option value="listed">Listed</option>
+                  <option value="hidden">Hidden</option>
+                </select>
+                <div class="edit-hint">
+                  Set to Hidden to take a profile down without changing its lifecycle stage.
+                </div>
+              </div>
+            </div>
+
             <div class="edit-section-title">Internal notes</div>
             <div class="edit-field-grid is-full">
               <div class="edit-field">
@@ -6577,6 +6823,14 @@
                   placeholder="Notes visible only to the review team"
                 ></textarea>
               </div>
+            </div>
+
+            <!-- Audit log — only shown for therapist docs. Newest first.
+                 Populated by the drawer JS from the therapist's auditLog
+                 field; capped at the 10 most recent entries. -->
+            <div class="edit-section-title" id="editAuditSectionTitle">Audit log</div>
+            <div class="edit-audit-log" id="editAuditLog">
+              <p class="edit-audit-log-empty">No history yet.</p>
             </div>
           </form>
         </div>
