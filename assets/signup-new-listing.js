@@ -1,21 +1,15 @@
 // Client-side wiring for the short-form "list my practice" intake on
-// /signup. Five fields: full_name, email, license_number, zip,
-// treats_bipolar (checkbox). Posts to /applications/intake which
-// verifies the license against DCA, creates the therapist + application
-// docs, and returns both a Stripe checkout URL and a portal claim token.
-//
-// After a successful intake the form is swapped for a plan-choice card:
-// "Start 14-day trial" (primary) redirects to Stripe; "List free for now"
-// (secondary) hits /applications/free-path-selected to fire a magic-login
-// email, then lands the therapist in the portal with their claim token.
-// The claim-token redirect path is identical for both options — only the
-// detour through Stripe differs.
+// /signup. Four fields: full_name, email, license_number, zip.
+// Posts to /applications/intake which verifies the license against DCA,
+// creates the therapist + application docs, and returns a portal claim token.
+// On success, hits /applications/free-path-selected then redirects to the portal.
 
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
+const EMAIL_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/lookup-by-email";
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -85,10 +79,17 @@ async function lookupByLicense(licenseNumber) {
   }
 }
 
-// Stub: returns null until a server-side email-lookup endpoint exists.
-// See bindIntakeForm TODO(email-dup) comment for details.
-async function lookupByEmail(_email) {
-  return null;
+async function lookupByEmail(email) {
+  try {
+    const res = await fetch(EMAIL_LOOKUP_ENDPOINT + "?q=" + encodeURIComponent(email), {
+      method: "GET",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data && data.result) || null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 function normalizeNameForCompare(raw) {
@@ -488,10 +489,6 @@ function buildPortalTarget(therapistSlug, claimToken, entry) {
   );
 }
 
-// TODO(portal-trial-upsell): The 14-day free trial is no longer offered here.
-// Move the upsell into the portal onboarding flow — trigger it on first portal
-// visit after a free-path signup. Look for the session entry="free" query param
-// in portal.js to find the right insertion point.
 async function proceedFree(form, formStatus, intakeData, email) {
   form.hidden = true;
   setStatus(formStatus, "", null);
@@ -669,10 +666,6 @@ function bindIntakeForm() {
   }
 
   // C: Email blur duplicate detection
-  // TODO(email-dup): Activate by adding a /portal/quick-claim/lookup-by-email
-  // endpoint on the server. The existing /portal/quick-claim/search only
-  // searches by name/license — it will not find matches by email address.
-  // Wire is in place below; lookupByEmail is a stub returning null until then.
   const emailInput = form.elements.email;
   if (emailInput) {
     emailInput.addEventListener("blur", async function () {

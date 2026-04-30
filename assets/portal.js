@@ -2072,8 +2072,7 @@ function renderStripeReturnBanner() {
   } else if (state === "cancel") {
     message = "Checkout canceled. No charge was made. You can try again anytime.";
   } else if (entry === "free") {
-    message =
-      "You're in on the free tier. Add a bio below to go live — you can upgrade to the trial anytime from your subscription card.";
+    message = "You're in. Add a bio below to go live.";
     tone = "success";
   }
   if (!message) {
@@ -3613,14 +3612,26 @@ function renderPortal(therapist, options) {
     : null;
   var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
-  // The "$19/mo growth toolkit — 14 days free" welcome upsell was
-  // removed in the portal redesign. It surfaced before clinicians had
-  // received any value from the listing and set the wrong first
-  // impression. The eventual replacement is a deferred analytics teaser
-  // inside the Listing-strength panel that fires only after 7+ days
-  // live and only when real "patients searched in your area" data is
-  // available. See spec Step 9.
-  var welcomeUpsellBanner = "";
+  // Upsell banner: only shown on the direct post-signup landing (entry=free).
+  // Skipped for returning visits — renderPortalWelcomeUpsell checks the
+  // per-slug dismiss state so it never re-appears after the therapist
+  // closes it. For all other visits the banner stays empty per the
+  // portal redesign decision (premature upsells hurt first impressions).
+  var isSignupFreeLanding =
+    verifiedClaim && new URLSearchParams(window.location.search).get("entry") === "free";
+  var welcomeUpsellBanner = isSignupFreeLanding
+    ? '<section id="portalWelcomeUpsell" class="portal-card" style="border:2px solid #2a9cb3;background:#f0f9fb;margin-bottom:1rem" hidden>' +
+      '<div style="display:flex;align-items:flex-start;gap:0.75rem">' +
+      '<div style="flex:1">' +
+      '<p class="portal-eyebrow" style="color:#155f70;margin:0 0 0.3rem">Listing created</p>' +
+      '<h2 style="margin:0 0 0.4rem;font-size:1.1rem">Add a bio to go live</h2>' +
+      '<p class="portal-subtle" style="margin:0 0 0.75rem">Your listing is already searchable. Featured placement puts you first in "bipolar therapist [city]" results and unlocks patient-match analytics when traffic data is available.</p>' +
+      '<button class="btn-primary" type="button" id="portalWelcomeUpsellCta">Start 14-day free trial →</button>' +
+      "</div>" +
+      '<button type="button" id="portalWelcomeUpsellDismiss" aria-label="Dismiss" style="background:none;border:none;cursor:pointer;color:#6b8290;font-size:1.3rem;line-height:1;padding:0;flex-shrink:0">×</button>' +
+      "</div>" +
+      "</section>"
+    : "";
 
   // Hero eyebrow adapts to the user's actual state so we don't keep
   // saying "claim and manage" to someone who already claimed.

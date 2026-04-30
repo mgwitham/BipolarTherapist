@@ -1904,6 +1904,56 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
+  // GET /portal/quick-claim/lookup-by-email?q=email — used by the signup
+  // email-blur duplicate detection nudge. Searches active listings for an
+  // exact (case-insensitive) email match. Returns { result } or { result: null }.
+  if (request.method === "GET" && routePath === "/portal/quick-claim/lookup-by-email") {
+    const emailQuery = String((url && url.searchParams.get("q")) || "")
+      .trim()
+      .toLowerCase();
+    if (!emailQuery || !emailQuery.includes("@")) {
+      sendJson(response, 200, { result: null }, origin, config);
+      return true;
+    }
+    const doc = await client.fetch(
+      `*[_type == "therapist" && listingActive == true && defined(slug.current) && lower(email) == $email][0]{
+        _id, name, email, city, state, credentials, licenseNumber, claimStatus,
+        "slug": slug.current, licensureVerification
+      }`,
+      { email: emailQuery },
+    );
+    if (!doc) {
+      sendJson(response, 200, { result: null }, origin, config);
+      return true;
+    }
+    const verification =
+      doc.licensureVerification && typeof doc.licensureVerification === "object"
+        ? doc.licensureVerification
+        : null;
+    const statusStanding = verification ? String(verification.statusStanding || "") : "";
+    sendJson(
+      response,
+      200,
+      {
+        result: {
+          slug: doc.slug,
+          name: doc.name || "",
+          city: doc.city || "",
+          state: doc.state || "",
+          credentials: doc.credentials || "",
+          license_number: doc.licenseNumber || "",
+          email_hint: maskEmail(doc.email),
+          has_email: true,
+          claim_status: doc.claimStatus || "unclaimed",
+          license_verified_current: statusStanding === "current",
+        },
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   if (request.method === "GET" && routePath === "/portal/quick-claim/search") {
     const query = String((url && url.searchParams.get("q")) || "").trim();
     if (query.length < 2) {
