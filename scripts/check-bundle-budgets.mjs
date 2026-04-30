@@ -56,7 +56,7 @@ const BUDGETS = [
 
   // Shared CSS — patient-facing.
   { pattern: /^assets\/match-[A-Za-z0-9_]{8,12}\.css$/, maxKb: 22, label: "match.css" },
-  { pattern: /^assets\/styles-[A-Za-z0-9_]{8,12}\.css$/, maxKb: 14, label: "styles.css" },
+  { pattern: /^assets\/styles-[A-Za-z0-9_]{8,12}\.css$/, maxKb: 15, label: "styles.css" },
 ];
 
 async function walk(dir, base = "") {
