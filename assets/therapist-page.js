@@ -2902,107 +2902,6 @@ function renderProfile(t, therapistDirectory) {
     '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
     renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
     "</div></div>";
-  var insuranceList = Array.isArray(t.insurance_accepted) ? t.insurance_accepted : [];
-  var insuranceSummary = insuranceList.length
-    ? insuranceList.length <= 2
-      ? joinNaturalList(insuranceList)
-      : insuranceList.slice(0, 2).join(", ") + " +" + (insuranceList.length - 2) + " more"
-    : "Contact to confirm";
-  var languageList = Array.isArray(t.languages) && t.languages.length ? t.languages : ["English"];
-  var languageSummary =
-    languageList.length <= 2
-      ? joinNaturalList(languageList)
-      : languageList.slice(0, 2).join(", ") + " +" + (languageList.length - 2) + " more";
-  var summaryStats = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients ? "Accepting patients" : "Confirm directly",
-      tone: t.accepting_new_patients ? "green" : "teal",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Format to confirm",
-      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
-    },
-    {
-      label: "Session fee",
-      value:
-        t.session_fee_min && t.session_fee_max
-          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-          : t.session_fee_min
-            ? "From $" + t.session_fee_min
-            : t.sliding_scale
-              ? "Sliding scale"
-              : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-    {
-      label: "Insurance",
-      value: insuranceSummary,
-      tone: insuranceList.length ? "teal" : "",
-    },
-    {
-      label: "Languages",
-      value: languageSummary,
-      tone: "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-
-  var licenseValue =
-    [t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed";
-  var primaryCtaValue = t.preferred_contact_label || "Not specified";
-  var experienceParts = [];
-  if (t.bipolar_years_experience) {
-    experienceParts.push(String(t.bipolar_years_experience) + "y bipolar");
-  }
-  if (t.years_experience) {
-    experienceParts.push(String(t.years_experience) + "y total");
-  }
-  var experienceValue = experienceParts.length ? experienceParts.join(" · ") : "Not listed";
-  var credentialStats = [
-    { label: "License", value: licenseValue, tone: t.license_number ? "teal" : "" },
-    {
-      label: "Primary CTA",
-      value: primaryCtaValue,
-      tone: t.preferred_contact_label ? "teal" : "",
-    },
-    {
-      label: "Experience",
-      value: experienceValue,
-      tone: t.bipolar_years_experience ? "green" : t.years_experience ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var contactTiming = getContactTimingGuidance(contactStrategy);
   var logisticsSectionLeadHtml =
     '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
@@ -3398,12 +3297,6 @@ function renderProfile(t, therapistDirectory) {
         '<div class="profile-bio-fade" aria-hidden="true"></div>' +
         "</div>" +
         '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>') +
-    '<div class="profile-summary-strip">' +
-    summaryStats +
-    "</div>" +
-    '<div class="profile-summary-strip profile-summary-strip-secondary">' +
-    credentialStats +
-    "</div>" +
     '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
     (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +

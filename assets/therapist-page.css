@@ -1460,15 +1460,6 @@ nav {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.95rem;
 }
-.profile-summary-strip {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-.profile-summary-strip-secondary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: -0.2rem;
-}
 .profile-bio-wrap {
   position: relative;
 }
@@ -1532,33 +1523,6 @@ nav {
 .profile-hero-actions {
   display: grid;
   gap: 0.6rem;
-}
-.summary-stat {
-  border: 1px solid rgba(26, 122, 143, 0.1);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.86);
-  padding: 0.62rem 0.78rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
-}
-.summary-stat-label {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.18rem;
-}
-.summary-stat-value {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--navy);
-  line-height: 1.28;
-}
-.summary-stat-value.green {
-  color: var(--green);
-}
-.summary-stat-value.teal {
-  color: var(--teal-dark);
 }
 .hero-summary-card {
   border: 1px solid rgba(26, 122, 143, 0.1);
@@ -3059,12 +3023,6 @@ footer a {
   font-size: 0.78rem;
 }
 @media (max-width: 1024px) {
-  .profile-summary-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .profile-summary-strip-secondary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .profile-hero-top {
     grid-template-columns: 1fr;
   }
@@ -3175,9 +3133,6 @@ footer a {
   .section-mini-stat-grid {
     grid-template-columns: 1fr;
   }
-  .profile-summary-strip {
-    grid-template-columns: 1fr 1fr;
-  }
   .profile-identity {
     padding: 0.9rem;
   }
@@ -3235,9 +3190,6 @@ footer a {
   }
   .profile-actions {
     flex-direction: column;
-  }
-  .profile-summary-strip {
-    grid-template-columns: 1fr;
   }
   .workspace-link-grid {
     display: grid;
