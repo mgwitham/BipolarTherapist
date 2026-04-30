@@ -1,0 +1,582 @@
+/* =====================================================
+   Bottom Sheet — mobile provider card
+   Mounted inside .dir-panel on mobile (<= 640px).
+   Desktop: same content renders in the side panel.
+   ===================================================== */
+
+/* -- Drag pill --------------------------------------- */
+.dir-panel-drag-pill-wrap {
+  display: none;
+  justify-content: center;
+  padding: 10px 0 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dir-panel-drag-pill {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* -- Top bar (bookmark left, close right) ----------- */
+.bsh-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 8px;
+}
+
+.bsh-topbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  color: var(--navy);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  flex-shrink: 0;
+}
+
+.bsh-topbar-btn:hover {
+  border-color: var(--teal-light);
+  background: var(--teal-faint);
+}
+
+.bsh-topbar-btn.is-saved {
+  color: var(--teal);
+  border-color: var(--teal-light);
+  background: var(--teal-faint);
+}
+
+.bsh-topbar-spacer {
+  flex: 1;
+}
+
+/* -- Header block ------------------------------------ */
+.bsh-header {
+  padding: 0 16px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.bsh-header-identity {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.bsh-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--teal-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(26, 122, 143, 0.2);
+}
+
+.bsh-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bsh-avatar-initials {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.bsh-identity-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bsh-name {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.25;
+}
+
+.bsh-creds {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.bsh-location-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.bsh-location {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bsh-distance-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.08);
+  border: 1px solid rgba(26, 122, 143, 0.2);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--teal-dark);
+  white-space: nowrap;
+}
+
+/* Price */
+.bsh-price {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--navy);
+}
+
+/* Availability chips */
+.bsh-avail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bsh-avail-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.bsh-avail-chip--green {
+  background: rgba(58, 170, 122, 0.12);
+  color: #1a6b4a;
+  border: 1px solid rgba(58, 170, 122, 0.25);
+}
+
+.bsh-avail-chip--blue {
+  background: rgba(26, 122, 143, 0.1);
+  color: var(--teal-dark);
+  border: 1px solid rgba(26, 122, 143, 0.2);
+}
+
+.bsh-avail-chip--amber {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  border: 1px solid rgba(138, 90, 0, 0.18);
+}
+
+/* -- Divider ----------------------------------------- */
+.bsh-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 16px;
+  opacity: 0.6;
+}
+
+/* -- Bio --------------------------------------------- */
+.bsh-bio-section {
+  padding: 12px 16px 4px;
+}
+
+.bsh-bio-wrap {
+  position: relative;
+}
+
+.bsh-bio-text {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow: hidden;
+  max-height: 68px;
+  transition: max-height 0.28s ease;
+}
+
+.bsh-bio-text.is-expanded {
+  max-height: none;
+}
+
+.bsh-bio-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, var(--white));
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.bsh-bio-fade.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bsh-bio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--teal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.bsh-bio-toggle:hover {
+  color: var(--teal-dark);
+  text-decoration: underline;
+}
+
+/* -- Bipolar approach -------------------------------- */
+.bsh-bipolar-section {
+  padding: 12px 16px 4px;
+}
+
+.bsh-bipolar-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* -- Specialties & Populations ----------------------- */
+.bsh-specs-section {
+  padding: 12px 16px 4px;
+}
+
+.bsh-specs-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bsh-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.bsh-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bsh-spec-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(26, 122, 143, 0.06);
+  border: 1px solid rgba(26, 122, 143, 0.16);
+  color: var(--navy);
+  line-height: 1.4;
+}
+
+/* -- Insurance --------------------------------------- */
+.bsh-insurance-section {
+  padding: 12px 16px 4px;
+}
+
+.bsh-ins-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.bsh-ins-self-pay {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #f4f4f4;
+  color: var(--muted);
+  border: 1px solid #ddd;
+}
+
+.bsh-ins-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+  opacity: 0.8;
+}
+
+.bsh-ins-pill-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bsh-ins-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(26, 122, 143, 0.08);
+  border: 1px solid rgba(26, 122, 143, 0.18);
+  color: var(--teal-dark);
+  line-height: 1.4;
+}
+
+.bsh-ins-more-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--white);
+  border: 1px dashed rgba(26, 122, 143, 0.35);
+  color: var(--teal);
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+
+.bsh-ins-more-chip:hover {
+  background: var(--teal-faint);
+}
+
+.bsh-ins-many-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bsh-ins-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--teal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.bsh-ins-see-all:hover {
+  text-decoration: underline;
+}
+
+.bsh-ins-collapsed-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bsh-ins-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bsh-ins-search {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--navy);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.bsh-ins-search:focus {
+  border-color: var(--teal-light);
+}
+
+.bsh-ins-less {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bsh-ins-less:hover {
+  color: var(--navy);
+  text-decoration: underline;
+}
+
+/* -- Actions ----------------------------------------- */
+.bsh-actions {
+  padding: 16px 16px 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.bsh-cta-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 12px;
+  background: var(--teal);
+  color: var(--white);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.bsh-cta-primary:hover {
+  background: var(--teal-dark);
+}
+
+.bsh-cta-primary svg {
+  flex-shrink: 0;
+}
+
+.bsh-cta-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--white);
+  border: 1.5px solid var(--teal);
+  color: var(--teal);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.bsh-cta-secondary:hover {
+  background: var(--teal-faint);
+}
+
+.bsh-cta-secondary svg {
+  flex-shrink: 0;
+}
+
+.bsh-footnote {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+/* -- Mobile: show drag pill, adapt topbar ------------ */
+@media (max-width: 640px) {
+  .dir-panel-drag-pill-wrap {
+    display: flex;
+  }
+
+  /* Desktop panel head becomes hidden — topbar takes over */
+  .dir-panel-head {
+    display: none;
+  }
+
+  .bsh-topbar {
+    display: flex;
+  }
+
+  /* iOS safe-area: keep actions above home indicator */
+  .bsh-actions {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* -- Desktop: hide drag pill + topbar, show panel head */
+@media (min-width: 641px) {
+  .dir-panel-drag-pill-wrap {
+    display: none;
+  }
+
+  .bsh-topbar {
+    display: none;
+  }
+}
+
+/* -- Focus-visible: keyboard navigation ring ---------- */
+.bsh-topbar-btn:focus-visible,
+.bsh-bio-toggle:focus-visible,
+.bsh-ins-more-chip:focus-visible,
+.bsh-ins-see-all:focus-visible,
+.bsh-ins-less:focus-visible,
+.bsh-cta-primary:focus-visible,
+.bsh-cta-secondary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.bsh-topbar-btn:focus-visible {
+  border-radius: 50%;
+}
+
+.bsh-cta-primary:focus-visible,
+.bsh-cta-secondary:focus-visible {
+  border-radius: 12px;
+}
+
+/* -- Long-text overflow guards ----------------------- */
+.bsh-name {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.bsh-creds {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.bsh-bipolar-text {
+  overflow-wrap: break-word;
+}
+
+.bsh-bio-text {
+  overflow-wrap: break-word;
+}

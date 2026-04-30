@@ -7,6 +7,7 @@ import {
   isPsychiatristProvider,
 } from "./directory-logic.js";
 import { renderValuePillRow } from "./therapist-pills.js";
+import { getZipDistanceMiles } from "./zip-lookup.js";
 
 export function formatDirectoryFeeLabel(therapist, fallback) {
   if (!therapist) {
@@ -461,6 +462,68 @@ export function buildDirectoryDetailsViewModel(options) {
     return s !== "Accepting new patients" && !/^Near /.test(s) && s !== "Telehealth available";
   });
 
+  // Distance pill — uses search zip, never device location
+  var distancePill = "";
+  var sortZip = String(filters.sortZip || "").trim();
+  var providerZip = String(therapist.zip || "").trim();
+  if (/^\d{5}$/.test(sortZip) && /^\d{5}$/.test(providerZip)) {
+    var miles = getZipDistanceMiles(sortZip, providerZip);
+    if (miles !== null && miles >= 0) {
+      distancePill = "~" + Math.round(miles) + " mi from " + sortZip;
+    }
+  }
+
+  // Fee display for bottom sheet: "$150–$175 / session"
+  var feeDisplay = "";
+  var minFee = therapist.session_fee_min || therapist.session_fee_max;
+  var maxFee = therapist.session_fee_max;
+  if (minFee) {
+    feeDisplay =
+      "$" +
+      String(minFee) +
+      (maxFee && String(maxFee) !== String(minFee) ? "–$" + String(maxFee) : "") +
+      " / session";
+  } else if (therapist.sliding_scale) {
+    feeDisplay = "Sliding scale";
+  }
+
+  // Availability chips for bottom sheet
+  var availabilityChips = [];
+  if (therapist.accepting_new_patients) {
+    availabilityChips.push({ label: "Accepting new patients", tone: "green" });
+  }
+  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
+    availabilityChips.push({ label: "Telehealth + in person", tone: "blue" });
+  } else if (therapist.accepts_telehealth) {
+    availabilityChips.push({ label: "Telehealth only", tone: "blue" });
+  } else if (therapist.accepts_in_person) {
+    availabilityChips.push({ label: "In person only", tone: "blue" });
+  }
+  if (therapist.medication_management) {
+    availabilityChips.push({ label: "Rx support", tone: "amber" });
+  }
+
+  // Contact footnote — names what's on the full profile but not in the CTA button
+  var contactFootnote = "";
+  var contactRoute = baseModel.contactRoute;
+  var contactHref = String((contactRoute && contactRoute.href) || "");
+  var hasEmail = Boolean(therapist.email && therapist.email !== "contact@example.com");
+  var hasPhone = Boolean(therapist.phone);
+  var isEmailCta = contactHref.startsWith("mailto:");
+  var isPhoneCta = contactHref.startsWith("tel:");
+  if (isEmailCta) {
+    if (hasPhone) contactFootnote = "Phone available on full profile.";
+  } else if (isPhoneCta) {
+    if (hasEmail) contactFootnote = "Email available on full profile.";
+  } else {
+    var available = [];
+    if (hasPhone) available.push("Phone");
+    if (hasEmail) available.push("Email");
+    if (available.length) {
+      contactFootnote = available.join(" & ") + " available on full profile.";
+    }
+  }
+
   return Object.assign({}, baseModel, {
     detailSections: buildDetailSections(therapist, filters),
     bio: String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim(),
@@ -470,5 +533,9 @@ export function buildDirectoryDetailsViewModel(options) {
     profileHref: "/therapists/" + encodeURIComponent(therapist.slug) + "/",
     reassurance:
       "You do not need to get this perfect. If this feels like a strong option, contacting them is a reasonable next step.",
+    distancePill: distancePill,
+    feeDisplay: feeDisplay,
+    availabilityChips: availabilityChips,
+    contactFootnote: contactFootnote,
   });
 }

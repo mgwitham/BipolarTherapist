@@ -498,3 +498,356 @@ export function renderPaginationMarkup(currentPage, pages) {
 
   return html;
 }
+
+// ── Bottom sheet helpers ──────────────────────────────────────────────────────
+
+function bshContactIcon(method, href) {
+  var resolved = method || "";
+  if (!resolved && href) {
+    if (href.startsWith("tel:")) resolved = "phone";
+    else if (href.startsWith("mailto:")) resolved = "email";
+    else if (/book|calendly|acuity|schedule/i.test(href)) resolved = "booking";
+  }
+  switch (resolved) {
+    case "phone":
+      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 2h3l1.5 3.5-1.75 1.25C6.5 8.5 7.5 9.5 8.25 10.25L9.5 8.5 13 10v3a1 1 0 01-1 1C5.5 14 2 10.5 2 3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+    case "booking":
+      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+    case "intake_form":
+    case "website":
+      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 6h4M6 9h4M6 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+    default:
+      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 5l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+  }
+}
+
+function bshInsuranceHtml(plans, slug) {
+  var safeSlug = escapeHtml(slug);
+  if (!plans.length) {
+    return (
+      '<div class="bsh-ins-pill-wrap">' +
+      '<span class="bsh-ins-self-pay">Self-pay only</span>' +
+      "</div>" +
+      '<div class="bsh-ins-note">No insurance accepted.</div>'
+    );
+  }
+  if (plans.length <= 3) {
+    return (
+      '<div class="bsh-ins-pill-wrap">' +
+      plans
+        .map(function (p) {
+          return '<span class="bsh-ins-pill">' + escapeHtml(p) + "</span>";
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+  if (plans.length < 20) {
+    // Collapsed: first 3 + chip. Expanded: ALL plans so nothing disappears on open.
+    var shown = plans.slice(0, 3);
+    return (
+      '<div data-ins-collapsed="' +
+      safeSlug +
+      '">' +
+      '<div class="bsh-ins-pill-wrap">' +
+      shown
+        .map(function (p) {
+          return '<span class="bsh-ins-pill">' + escapeHtml(p) + "</span>";
+        })
+        .join("") +
+      '<button type="button" class="bsh-ins-more-chip" data-ins-expand="' +
+      safeSlug +
+      '">+' +
+      (plans.length - 3) +
+      " more</button>" +
+      "</div>" +
+      "</div>" +
+      '<div class="bsh-ins-expanded" hidden>' +
+      '<div class="bsh-ins-pill-wrap">' +
+      plans
+        .map(function (p) {
+          return '<span class="bsh-ins-pill">' + escapeHtml(p) + "</span>";
+        })
+        .join("") +
+      "</div>" +
+      '<button type="button" class="bsh-ins-less" data-ins-collapse="' +
+      safeSlug +
+      '">Show less</button>' +
+      "</div>"
+    );
+  }
+  // 20+ plans — collapsed with live search
+  return (
+    '<div class="bsh-ins-collapsed-row" data-ins-collapsed="' +
+    safeSlug +
+    '">' +
+    '<span class="bsh-ins-many-label">Accepts 20+ insurance plans</span>' +
+    '<button type="button" class="bsh-ins-see-all" data-ins-expand="' +
+    safeSlug +
+    '">See all plans</button>' +
+    "</div>" +
+    '<div class="bsh-ins-expanded" hidden>' +
+    '<input type="search" class="bsh-ins-search" placeholder="Search plans…" data-ins-search="' +
+    safeSlug +
+    '" autocomplete="off" />' +
+    '<div class="bsh-ins-pill-wrap" data-ins-plan-list="' +
+    safeSlug +
+    '">' +
+    plans
+      .map(function (p) {
+        return (
+          '<span class="bsh-ins-pill" data-plan-name="' +
+          escapeHtml(p.toLowerCase()) +
+          '">' +
+          escapeHtml(p) +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div>" +
+    '<button type="button" class="bsh-ins-less" data-ins-collapse="' +
+    safeSlug +
+    '">Show less</button>' +
+    "</div>"
+  );
+}
+
+export function renderBottomSheetMarkup(options) {
+  var model = options.model;
+  var therapist = model.therapist;
+  var slug = therapist.slug || "";
+
+  // Avatar
+  var initials = therapist.name
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map(function (p) {
+      return p.charAt(0);
+    })
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  var avatarInner = therapist.photo_url
+    ? '<img class="bsh-avatar-img" src="' +
+      escapeHtml(therapist.photo_url) +
+      '" alt="' +
+      escapeHtml(therapist.name) +
+      '" loading="lazy" decoding="async" />'
+    : '<div class="bsh-avatar-initials" aria-hidden="true">' + escapeHtml(initials) + "</div>";
+
+  // Credential line
+  var credLine = escapeHtml(therapist.credentials || "");
+  if (therapist.title) {
+    credLine += (credLine ? " · " : "") + escapeHtml(therapist.title);
+  }
+
+  // Location + distance pill
+  var locationRowHtml = "";
+  if (model.locationSummary || model.distancePill) {
+    locationRowHtml = '<div class="bsh-location-row">';
+    if (model.locationSummary) {
+      locationRowHtml +=
+        '<span class="bsh-location">' + escapeHtml(model.locationSummary) + "</span>";
+    }
+    if (model.distancePill) {
+      locationRowHtml +=
+        '<span class="bsh-distance-pill">' + escapeHtml(model.distancePill) + "</span>";
+    }
+    locationRowHtml += "</div>";
+  }
+
+  // Price
+  var priceHtml = model.feeDisplay
+    ? '<div class="bsh-price">' + escapeHtml(model.feeDisplay) + "</div>"
+    : "";
+
+  // Availability chips
+  var chipsHtml = "";
+  if (Array.isArray(model.availabilityChips) && model.availabilityChips.length) {
+    chipsHtml =
+      '<div class="bsh-avail-chips">' +
+      model.availabilityChips
+        .map(function (chip) {
+          return (
+            '<span class="bsh-avail-chip bsh-avail-chip--' +
+            escapeHtml(chip.tone) +
+            '">' +
+            escapeHtml(chip.label) +
+            "</span>"
+          );
+        })
+        .join("") +
+      "</div>";
+  }
+
+  // Bookmark button (top bar, left)
+  var bookmarkSaved = Boolean(model.shortlisted);
+  var bookmarkHtml =
+    '<button type="button" class="bsh-topbar-btn' +
+    (bookmarkSaved ? " is-saved" : "") +
+    '" data-shortlist-slug="' +
+    escapeHtml(slug) +
+    '" aria-label="' +
+    (bookmarkSaved ? "Remove from saved list" : "Save to list") +
+    '" aria-pressed="' +
+    (bookmarkSaved ? "true" : "false") +
+    '">' +
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="' +
+    (bookmarkSaved ? "currentColor" : "none") +
+    '" aria-hidden="true"><path d="M8 12.5L3 9.5C1.5 8.5 1.5 6.5 3 5.5C4.5 4.5 6 5 8 7C10 5 11.5 4.5 13 5.5C14.5 6.5 14.5 8.5 13 9.5L8 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+    "</button>";
+
+  // Close button (top bar, right) — reuses existing ID for focus management
+  var closeHtml =
+    '<button type="button" class="bsh-topbar-btn" id="directoryDetailsClose" aria-label="Close">' +
+    '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+    "</button>";
+
+  var topbarHtml =
+    '<div class="bsh-topbar">' +
+    bookmarkHtml +
+    '<div class="bsh-topbar-spacer"></div>' +
+    closeHtml +
+    "</div>";
+
+  var headerHtml =
+    '<div class="bsh-header">' +
+    '<div class="bsh-header-identity">' +
+    '<div class="bsh-avatar">' +
+    avatarInner +
+    "</div>" +
+    '<div class="bsh-identity-info">' +
+    '<div class="bsh-name">' +
+    escapeHtml(getTherapistDisplayName(therapist.name)) +
+    "</div>" +
+    (credLine ? '<div class="bsh-creds">' + credLine + "</div>" : "") +
+    locationRowHtml +
+    "</div>" +
+    "</div>" +
+    priceHtml +
+    chipsHtml +
+    "</div>";
+
+  // Bio with gradient fade + read-more toggle
+  var bioHtml = "";
+  if (model.bio) {
+    bioHtml =
+      '<div class="bsh-divider"></div>' +
+      '<div class="bsh-bio-section">' +
+      '<div class="bsh-bio-wrap">' +
+      '<div class="bsh-bio-text" id="bsh-bio-' +
+      escapeHtml(slug) +
+      '">' +
+      escapeHtml(model.bio) +
+      "</div>" +
+      '<div class="bsh-bio-fade" id="bsh-bio-fade-' +
+      escapeHtml(slug) +
+      '" aria-hidden="true"></div>' +
+      "</div>" +
+      '<button type="button" class="bsh-bio-toggle" data-bio-toggle="' +
+      escapeHtml(slug) +
+      '">Read more ↓</button>' +
+      "</div>";
+  }
+
+  // Bipolar approach — the single most differentiating field for this directory
+  var bipolarHtml = "";
+  if (model.bipolarApproach) {
+    bipolarHtml =
+      '<div class="bsh-divider"></div>' +
+      '<div class="bsh-bipolar-section">' +
+      '<div class="bsh-section-label">Bipolar approach</div>' +
+      '<p class="bsh-bipolar-text">' +
+      escapeHtml(model.bipolarApproach) +
+      "</p>" +
+      "</div>";
+  }
+
+  // Specialties & Populations
+  var specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  var populations = Array.isArray(therapist.client_populations) ? therapist.client_populations : [];
+  var specsHtml = "";
+  if (specialties.length || populations.length) {
+    specsHtml =
+      '<div class="bsh-divider"></div><div class="bsh-specs-section"><div class="bsh-specs-row">';
+    if (specialties.length) {
+      specsHtml +=
+        '<div class="bsh-specs-col">' +
+        '<div class="bsh-section-label">Specialties</div>' +
+        '<div class="bsh-pill-row">' +
+        specialties
+          .map(function (s) {
+            return '<span class="bsh-spec-pill">' + escapeHtml(s) + "</span>";
+          })
+          .join("") +
+        "</div></div>";
+    }
+    if (populations.length) {
+      specsHtml +=
+        '<div class="bsh-specs-col">' +
+        '<div class="bsh-section-label">Serves</div>' +
+        '<div class="bsh-pill-row">' +
+        populations
+          .map(function (p) {
+            return '<span class="bsh-spec-pill">' + escapeHtml(p) + "</span>";
+          })
+          .join("") +
+        "</div></div>";
+    }
+    specsHtml += "</div></div>";
+  }
+
+  // Insurance
+  var plans = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
+  var insuranceHtml =
+    '<div class="bsh-divider"></div>' +
+    '<div class="bsh-insurance-section" data-ins-wrap="' +
+    escapeHtml(slug) +
+    '">' +
+    '<div class="bsh-ins-heading">Insurance</div>' +
+    bshInsuranceHtml(plans, slug) +
+    "</div>";
+
+  // Actions
+  var profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
+
+  var primaryCta =
+    '<a href="' +
+    escapeHtml(profileHref) +
+    '" class="bsh-cta-primary" target="_blank" rel="noopener" data-primary-cta="' +
+    escapeHtml(slug) +
+    '" data-cta-tier="bottom-sheet">View full profile' +
+    '<svg class="bsh-cta-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 12L12 2M12 2H7M12 2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+    "</a>";
+
+  var secondaryCta = "";
+  if (model.contactRoute) {
+    var contactHref = model.contactRoute.href || "";
+    var contactIcon = bshContactIcon(therapist.preferred_contact_method || "", contactHref);
+    secondaryCta =
+      '<a href="' +
+      escapeHtml(contactHref) +
+      '"' +
+      (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+      ' class="bsh-cta-secondary" data-secondary-cta="' +
+      escapeHtml(slug) +
+      '">' +
+      contactIcon +
+      escapeHtml(model.contactLabel || "Contact therapist") +
+      "</a>";
+  }
+
+  var footnoteHtml = model.contactFootnote
+    ? '<div class="bsh-footnote">' + escapeHtml(model.contactFootnote) + "</div>"
+    : "";
+
+  var actionsHtml =
+    '<div class="bsh-divider"></div>' +
+    '<div class="bsh-actions">' +
+    primaryCta +
+    secondaryCta +
+    footnoteHtml +
+    "</div>";
+
+  return topbarHtml + headerHtml + bioHtml + bipolarHtml + specsHtml + insuranceHtml + actionsHtml;
+}
