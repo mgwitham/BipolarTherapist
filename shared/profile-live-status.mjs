@@ -26,11 +26,10 @@ const STRONG_GATE_FIELDS = [
   // These are the ones that block a publish-ready determination.
   { key: "license_number", camel: "licenseNumber", label: "license number" },
   { key: "insurance_accepted", camel: "insuranceAccepted", label: "insurance accepted" },
-  {
-    key: "bipolar_years_experience",
-    camel: "bipolarYearsExperience",
-    label: "bipolar years experience",
-  },
+  // Demoted from required to soft on 2026-04-29. Field is not reliably
+  // sourceable from public license records; absence does not block Live
+  // status. See portal completeness prompts for soft-signal usage
+  // (assets/portal.js getMissingFields / getCompletenessScore).
 ];
 
 function read(doc, snake, camel) {

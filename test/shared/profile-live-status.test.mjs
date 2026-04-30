@@ -54,10 +54,31 @@ test("isProfileLive: missing insurance is a trust-gate blocker", function () {
   assert.ok(result.blockers.some((b) => b.includes("insurance")));
 });
 
-test("isProfileLive: missing bipolar years experience is a trust-gate blocker", function () {
+test("isProfileLive: missing bipolar years experience does NOT block Live (demoted to soft)", function () {
+  // Demoted on 2026-04-29 — public license records don't reliably carry
+  // this field, so requiring it as a hard gate hid 99% of the imported
+  // corpus from patients. Soft-signal usage continues in matching-model
+  // and the portal completeness score.
   const result = isProfileLive(approvedDoc({ bipolarYearsExperience: null }));
-  assert.equal(result.isLive, false);
-  assert.ok(result.blockers.some((b) => b.includes("bipolar years")));
+  assert.equal(result.isLive, true);
+  assert.ok(
+    !result.blockers.some((b) => b.includes("bipolar years")),
+    "no blocker should mention bipolar years experience",
+  );
+});
+
+test("isProfileLive: bipolar years stays out of blockers regardless of value", function () {
+  // Sanity check across a few absence shapes — undefined, 0, missing key.
+  for (const overrides of [
+    { bipolarYearsExperience: undefined },
+    { bipolarYearsExperience: 0 },
+    {},
+  ]) {
+    const doc = approvedDoc(overrides);
+    if (overrides.bipolarYearsExperience === undefined) delete doc.bipolarYearsExperience;
+    const result = isProfileLive(doc);
+    assert.equal(result.isLive, true);
+  }
 });
 
 test("isProfileLive: snake_case shape from fetchPublicTherapists is recognized", function () {

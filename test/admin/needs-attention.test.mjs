@@ -26,19 +26,21 @@ test("buildNeedsAttentionEntries: a fully Live therapist is not in the queue", f
 });
 
 test("buildNeedsAttentionEntries: approved+listed but missing trust field is in the queue", function () {
+  // Trust-gate blocker: missing insurance_accepted. (bipolar_years_experience
+  // was demoted from required to soft on 2026-04-29 and no longer triggers.)
   const entries = buildNeedsAttentionEntries(
     [
       liveTherapist({
         id: "therapist-broken-1",
         name: "Dr. Broken",
-        bipolar_years_experience: null,
+        insurance_accepted: [],
       }),
     ],
     [],
   );
   assert.equal(entries.length, 1);
   assert.equal(entries[0].id, "therapist-broken-1");
-  assert.ok(entries[0].blockers.some((b) => b.includes("bipolar years")));
+  assert.ok(entries[0].blockers.some((b) => b.includes("insurance")));
 });
 
 test("buildNeedsAttentionEntries: paused profile is NOT in the queue (admin intent is hidden)", function () {
