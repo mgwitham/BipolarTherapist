@@ -5236,7 +5236,8 @@
       /* Needs Attention queue. Each entry is a card with name, contact
          metadata, the failing gates, and an Edit button that jumps into
          the God View popup. */
-      .needs-attention-count {
+      .needs-attention-count,
+      .needs-attention-inline-count {
         display: inline-block;
         margin-left: 0.4rem;
         min-width: 1.4rem;
@@ -5248,6 +5249,10 @@
         border-radius: 999px;
         text-align: center;
         line-height: 1.4;
+      }
+      .needs-attention-inline-count {
+        font-size: 0.85rem;
+        vertical-align: middle;
       }
       .needs-attention-list {
         display: flex;
@@ -5881,18 +5886,6 @@
               </p>
               <div id="publishedListings"></div>
             </section>
-            <!-- Silent-failure catcher. Lists every therapist whose admin
-                 intent is Live (lifecycle=approved, visibility=listed) but
-                 whose computed Live status is false (gates failing). If
-                 the queue is empty, the section is hidden. -->
-            <section class="admin-region-shell workflow-section" id="needsAttentionSection" hidden>
-              <h2>Needs attention</h2>
-              <p class="panel-intro">
-                Profiles you've approved and listed, but the computed Live gate isn't passing. Each
-                row tells you exactly which gates are failing.
-              </p>
-              <div id="needsAttentionList"></div>
-            </section>
             <details class="admin-collapsible-group" open>
               <summary>
                 <div class="admin-collapsible-meta">
@@ -6161,6 +6154,34 @@
                   fixable ones, and reject weak submissions without leaving the workflow.
                 </p>
               </header>
+              <!-- Silent-failure catcher. Lists every therapist whose admin
+                   intent is Live (lifecycle=approved, visibility=listed) but
+                   whose computed Live status is false (gates failing). Lives
+                   in the Review tab so it surfaces in the daily admin
+                   workflow rather than in the (currently hidden) Live
+                   listings sidebar region. If the queue is empty, the
+                   section is hidden. -->
+              <section
+                class="admin-region-shell workflow-section"
+                id="needsAttentionSection"
+                hidden
+              >
+                <h2>
+                  Needs attention
+                  <span
+                    class="needs-attention-inline-count"
+                    id="needsAttentionInlineCount"
+                    aria-label="profiles needing attention"
+                    hidden
+                    >0</span
+                  >
+                </h2>
+                <p class="panel-intro">
+                  Profiles you've approved and listed, but the computed Live gate isn't passing.
+                  Each row tells you exactly which gates are failing.
+                </p>
+                <div id="needsAttentionList"></div>
+              </section>
               <div class="admin-workspace-layout" style="grid-template-columns: 1fr">
                 <div class="admin-workspace-main">
                   <div class="admin-region-grid">
