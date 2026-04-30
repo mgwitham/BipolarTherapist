@@ -489,10 +489,6 @@ function buildPortalTarget(therapistSlug, claimToken, entry) {
   );
 }
 
-// TODO(portal-trial-upsell): The 14-day free trial is no longer offered here.
-// Move the upsell into the portal onboarding flow — trigger it on first portal
-// visit after a free-path signup. Look for the session entry="free" query param
-// in portal.js to find the right insertion point.
 async function proceedFree(form, formStatus, intakeData, email) {
   form.hidden = true;
   setStatus(formStatus, "", null);
