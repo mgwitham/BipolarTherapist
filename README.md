@@ -348,6 +348,51 @@ Behavior when configured:
 
 If those variables are missing, the signup/review flow still works normally and email sending is skipped.
 
+## Local Email Development
+
+The repo ships with a dev-only preview UI for every transactional and cron email. Use it to iterate on copy and layout without touching production recipients.
+
+### Setup
+
+1. Set `EMAIL_DEV_REDIRECT` in `.env` to a single inbox you control. A Gmail "+" alias is ideal because it filters cleanly:
+
+   ```sh
+   EMAIL_DEV_REDIRECT=you+bth-dev@gmail.com
+   ```
+
+2. Start the API with `npm run api:dev`.
+3. Open `http://localhost:8787/dev/emails` in any browser. You'll see every template, a recipient pill, the trigger, and the current preheader status.
+4. Click any template to see the inbox-list preview, the rendered HTML in an iframe, the plaintext fallback, and a `Send test to dev inbox` button.
+
+`EMAIL_DEV_REDIRECT` MUST NEVER be set in production. The server refuses to honor it when `NODE_ENV=production` and logs a critical warning instead. The preview routes also return 404 outside dev.
+
+### Recommended workflow
+
+1. Edit a template in `server/review-email.mjs` (or one of the cron senders).
+2. Refresh the preview page at `/dev/emails/<template-id>` — the renderer rebuilds against canonical sample data on every request.
+3. When the design looks right, click `Send test to dev inbox` to verify cross-client rendering in Gmail / Apple Mail / Outlook.
+4. Run `npm run cms:snapshot:emails` and commit the regenerated files in `docs/email-snapshots/`. PR reviewers can then see exactly how the email rendering changed.
+
+### Checking deliverability
+
+Run this once per template before deploying a new email:
+
+1. Visit [mail-tester.com](https://www.mail-tester.com/) to get a unique test address (e.g. `test-abc123@mail-tester.com`).
+2. Set `EMAIL_DEV_REDIRECT=test-abc123@mail-tester.com` and restart the API.
+3. Open the template in `/dev/emails/<id>` and click `Send test to dev inbox`.
+4. Wait ~30 seconds, then refresh the mail-tester.com page.
+5. Aim for 8/10 or higher. Address each specific issue flagged (DKIM, SPF alignment, image-to-text ratio, suspicious phrases). Recheck on a fresh test address.
+
+Don't wire this into CI. It's a one-time manual check per template.
+
+### Where the system lives
+
+- Sender functions: [server/review-email.mjs](server/review-email.mjs), [server/review-founder-digest.mjs](server/review-founder-digest.mjs), [server/license-expiration-warnings.mjs](server/license-expiration-warnings.mjs)
+- Sample data: [server/dev/email-sample-data.mjs](server/dev/email-sample-data.mjs)
+- Registry: [server/dev/email-preview-registry.mjs](server/dev/email-preview-registry.mjs)
+- Routes (dev-only): [server/dev/email-preview-routes.mjs](server/dev/email-preview-routes.mjs)
+- Snapshots: [docs/email-snapshots/](docs/email-snapshots/) — regenerate with `npm run cms:snapshot:emails`
+
 ## Security Notes
 
 For a stronger local or hosted setup, make these changes in your real `.env`:

@@ -40,13 +40,19 @@ export function pickThresholdToSend(daysOut, alreadySentThresholds) {
   return null;
 }
 
+export function buildLicenseExpirationEmail(therapist, threshold, expirationDate, portalBaseUrl) {
+  return buildEmail(therapist, threshold, expirationDate, portalBaseUrl);
+}
+
 function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
   const portalLink = portalBaseUrl
     ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal.html`
     : "";
   const subject = `Your CA license expires in ${threshold} days — renew before ${expirationDate}`;
   const greeting = therapist.name ? `Hi ${therapist.name.split(/\s+/)[0]},` : "Hi,";
-  const html = `<p>${greeting}</p>
+  const preheaderText = `Renew before ${expirationDate} or your listing pauses.`;
+  const html = `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${preheaderText}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<p>${greeting}</p>
 <p>Your California license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
 <p>If you've already renewed with the state board, no action is needed — we re-check CA DCA every week and your status will refresh automatically.</p>
 <p>If you haven't renewed yet:</p>

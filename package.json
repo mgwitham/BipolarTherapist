@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "api:dev": "NODE_ENV=development node server/review-api.mjs",
-    "build": "npm run build:sitemap && vite build && npm run build:seo-pages && npm run build:seo-city-pages",
+    "build": "npm run build:sitemap && vite build && npm run build:seo-pages && npm run build:seo-city-pages && npm run cms:snapshot:emails",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "build:seo-pages": "node scripts/generate-seo-profile-pages.mjs",
     "build:seo-city-pages": "node scripts/generate-seo-city-pages.mjs",
@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "cms:dev": "npm --prefix studio run dev",
     "cms:build": "npm --prefix studio run build",
+    "cms:snapshot:emails": "node scripts/generate-email-snapshots.mjs",
     "cms:check:therapists": "node scripts/check-therapist-import-readiness.mjs",
     "cms:check:therapists:strict": "node scripts/check-therapist-import-readiness.mjs --max-strong-warnings=0",
     "cms:check:therapists:write": "node scripts/check-therapist-import-readiness.mjs --write-queue=data/import/generated-import-warning-queue.csv",

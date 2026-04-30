@@ -38,6 +38,7 @@ Run the smallest useful set for the area you changed:
 - CMS schema or Studio UI: `npm run cms:build`
 - Cross-cutting or release-ready changes: `npm run check`
 - Critical flows: test the affected path in the browser, especially signup, admin review, and therapist rendering
+- **If you change an email template:** run `npm run cms:snapshot:emails` and commit the regenerated files in `docs/email-snapshots/`. This gives PR reviewers a visual diff of how the email rendering changed. The README's "Local Email Development" section walks through the preview UI and the mail-tester.com deliverability check.
 
 ## Dev Login Bypass
 

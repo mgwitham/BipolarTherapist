@@ -3,3 +3,4 @@ node_modules/
 studio/node_modules/
 studio/dist/
 studio/.sanity/
+docs/email-snapshots/

@@ -68,6 +68,7 @@ import {
 } from "./review-http-auth.mjs";
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
+import { handleEmailPreviewRoutes } from "./dev/email-preview-routes.mjs";
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
   annotateMatchOutcomeForDisplay,
@@ -550,6 +551,12 @@ function createReviewRouteModules() {
   };
 
   return [
+    // Dev-only email preview UI at /dev/emails. Returns 404 in production
+    // regardless of routing (the handler itself short-circuits on
+    // NODE_ENV=production). Mounted first so it owns its prefix.
+    {
+      handler: handleEmailPreviewRoutes,
+    },
     {
       handler: handleAuthAndPortalRoutes,
       deps: {
