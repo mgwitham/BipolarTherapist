@@ -497,7 +497,7 @@ export async function fetchPublicTherapists(options) {
 
   try {
     const fetchPromise = fetchFromSanity(
-      `*[_type == "therapist" && listingActive == true && status == "active"] | order(name asc) ${therapistProjection}`,
+      `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${therapistProjection}`,
       null,
       { fresh },
     ).then(function (docs) {
@@ -594,7 +594,7 @@ export async function fetchPublicTherapistBySlug(slug) {
 
   try {
     const doc = await fetchFromSanity(
-      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active"][0] ${therapistProjection}`,
+      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${therapistProjection}`,
       { slug: slug },
     );
     setCmsState("sanity", null);
@@ -748,7 +748,7 @@ export async function fetchDirectoryPageContent() {
 
   try {
     const result = await fetchFromSanity(`{
-      "therapists": *[_type == "therapist" && listingActive == true && status == "active"] | order(name asc) ${directoryTherapistProjection},
+      "therapists": *[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${directoryTherapistProjection},
       "directoryPage": *[_type == "directoryPage"][0]{
         heroTitle,
         heroDescription,
