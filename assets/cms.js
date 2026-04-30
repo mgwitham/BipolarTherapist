@@ -170,6 +170,9 @@ const therapistProjection = `{
   slidingScale,
   listingActive,
   status,
+  lifecycle,
+  visibilityIntent,
+  auditLog,
   "slug": slug.current
 }`;
 
@@ -258,7 +261,8 @@ function normalizeTherapist(doc) {
     insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
     accepts_telehealth: Boolean(doc.acceptsTelehealth),
     accepts_in_person: Boolean(doc.acceptsInPerson),
-    accepting_new_patients: doc.acceptingNewPatients !== false,
+    accepting_new_patients:
+      doc.acceptingNewPatients === true ? true : doc.acceptingNewPatients === false ? false : null,
     years_experience: doc.yearsExperience || null,
     bipolar_years_experience: doc.bipolarYearsExperience || null,
     languages: Array.isArray(doc.languages) && doc.languages.length ? doc.languages : ["English"],
@@ -299,6 +303,9 @@ function normalizeTherapist(doc) {
     sliding_scale: Boolean(doc.slidingScale),
     listing_active: doc.listingActive !== false,
     status: doc.status || "active",
+    lifecycle: doc.lifecycle || "",
+    visibility_intent: doc.visibilityIntent || "",
+    audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
     slug: doc.slug || "",
     // Default to false. The caller (e.g. fetchPublicTherapistBySlug)
     // can overwrite this when it has looked up the therapist's
@@ -355,9 +362,11 @@ function normalizeDirectoryTherapist(doc) {
         ? Boolean(doc.acceptsInPerson)
         : Boolean(doc.accepts_in_person),
     accepting_new_patients:
-      doc.acceptingNewPatients !== undefined
-        ? doc.acceptingNewPatients !== false
-        : doc.accepting_new_patients !== false,
+      doc.acceptingNewPatients === true || doc.accepting_new_patients === true
+        ? true
+        : doc.acceptingNewPatients === false || doc.accepting_new_patients === false
+          ? false
+          : null,
     years_experience: doc.yearsExperience || doc.years_experience || null,
     bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
     estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",

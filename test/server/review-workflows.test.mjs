@@ -387,6 +387,12 @@ test("workflow: merge_to_therapist fills missing fields without overwriting exis
   const candidate = state.documents.get("candidate-katie-fresh");
   assert.equal(candidate.dedupeStatus, "merged");
   assert.equal(candidate.reviewStatus, "archived");
+  assert.equal(
+    candidate.publishedTherapistId,
+    "therapist-katie",
+    "merge_to_therapist must stamp publishedTherapistId so the candidate is excluded from admin profile search",
+  );
+  assert.ok(candidate.publishedAt, "merge_to_therapist must stamp publishedAt");
 });
 
 // --- /applications/intake (short-form new-therapist signup) ---
@@ -869,4 +875,101 @@ test("free-path-selected: invalid claim_token returns 401", async function () {
   });
   assert.equal(response.statusCode, 401);
   assert.match(response.payload.error, /invalid|expired/i);
+});
+
+test("PATCH /therapists/:id: pausing a Live profile flips listingActive off and writes audit entry", async function () {
+  const { client, state } = createMemoryClient({
+    "therapist-live-1": {
+      _id: "therapist-live-1",
+      _type: "therapist",
+      name: "Dr. Live",
+      lifecycle: "approved",
+      visibilityIntent: "listed",
+      listingActive: true,
+      status: "active",
+      licenseNumber: "X1",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { lifecycle: "paused", reason: "Therapist requested a break" },
+    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-live-1",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const t = state.documents.get("therapist-live-1");
+  assert.equal(t.lifecycle, "paused");
+  assert.equal(t.listingActive, false, "pausing must turn listingActive off");
+  assert.equal(Array.isArray(t.auditLog), true);
+  assert.equal(t.auditLog.length, 1);
+  const entry = t.auditLog[0];
+  assert.equal(entry.action, "edit");
+  assert.equal(entry.reason, "Therapist requested a break");
+  assert.match(entry.before, /"lifecycle":"approved"/);
+  assert.match(entry.after, /"lifecycle":"paused"/);
+});
+
+test("PATCH /therapists/:id: approving a draft profile turns listingActive on and sets status active", async function () {
+  const { client, state } = createMemoryClient({
+    "therapist-draft-1": {
+      _id: "therapist-draft-1",
+      _type: "therapist",
+      name: "Dr. Draft",
+      lifecycle: "draft",
+      visibilityIntent: "hidden",
+      listingActive: false,
+      status: "draft",
+      licenseNumber: "X2",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { lifecycle: "approved", visibilityIntent: "listed" },
+    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-draft-1",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const t = state.documents.get("therapist-draft-1");
+  assert.equal(t.lifecycle, "approved");
+  assert.equal(t.visibilityIntent, "listed");
+  assert.equal(t.listingActive, true);
+  assert.equal(t.status, "active");
+});
+
+test("PATCH /therapists/:id: routine field edit does not flip listingActive", async function () {
+  const { client, state } = createMemoryClient({
+    "therapist-stable-1": {
+      _id: "therapist-stable-1",
+      _type: "therapist",
+      name: "Old Name",
+      lifecycle: "approved",
+      visibilityIntent: "listed",
+      listingActive: true,
+      status: "active",
+      licenseNumber: "X3",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { name: "New Name" },
+    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-stable-1",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const t = state.documents.get("therapist-stable-1");
+  assert.equal(t.name, "New Name");
+  assert.equal(t.listingActive, true, "no lifecycle change should not touch listingActive");
+  assert.equal(t.status, "active");
 });

@@ -362,7 +362,7 @@ export async function handleCandidateRoutes(context) {
     publishRecommendation = "hold";
     dedupeStatus = "merged";
     eventType = "candidate_merged";
-    changedFields.push("matchedTherapistId", "dedupeStatus");
+    changedFields.push("matchedTherapistId", "dedupeStatus", "publishedTherapistId", "publishedAt");
   } else if (decision === "publish") {
     if (!String(candidate.licenseNumber || "").trim()) {
       sendJson(
@@ -588,7 +588,7 @@ export async function handleCandidateRoutes(context) {
         ...(therapistId
           ? {
               matchedTherapistId: therapistId,
-              ...(decision === "publish"
+              ...(decision === "publish" || decision === "merge_to_therapist"
                 ? {
                     publishedTherapistId: therapistId,
                     publishedAt: now,

@@ -1,3 +1,38 @@
+// Lifecycle values that allow a profile to be Live; everything else
+// implies the listing should be hidden from public queries.
+const APPROVED_LIFECYCLE = "approved";
+const LISTED_VISIBILITY = "listed";
+
+// Fields whose changes are worth recording in the audit log. These are
+// the fields that affect Live status or are high-stakes admin signals.
+const AUDIT_TRACKED_FIELDS = [
+  "lifecycle",
+  "visibilityIntent",
+  "listingActive",
+  "status",
+  "acceptingNewPatients",
+  "name",
+  "email",
+  "phone",
+  "licenseNumber",
+];
+
+function shouldBeListingActive(lifecycle, visibilityIntent) {
+  return lifecycle === APPROVED_LIFECYCLE && visibilityIntent === LISTED_VISIBILITY;
+}
+
+function diffTrackedFields(before, after) {
+  const changes = {};
+  for (const field of AUDIT_TRACKED_FIELDS) {
+    const b = before[field];
+    const a = after[field];
+    if (b !== a) {
+      changes[field] = { before: b ?? null, after: a ?? null };
+    }
+  }
+  return changes;
+}
+
 export async function handleOpsRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
 
@@ -68,13 +103,82 @@ export async function handleOpsRoutes(context) {
     boolFields.forEach(function (f) {
       if (typeof body[f] === "boolean") patchFields[f] = body[f];
     });
+
+    // Lifecycle / visibility — admin's primary intent signals. Validated
+    // against a closed enum; unknown values are silently dropped.
+    const allowedLifecycle = new Set([
+      "draft",
+      "in_review",
+      "awaiting_confirmation",
+      "approved",
+      "paused",
+      "archived",
+    ]);
+    const allowedVisibility = new Set(["listed", "hidden"]);
+    if (typeof body.lifecycle === "string" && allowedLifecycle.has(body.lifecycle)) {
+      patchFields.lifecycle = body.lifecycle;
+    }
+    if (typeof body.visibilityIntent === "string" && allowedVisibility.has(body.visibilityIntent)) {
+      patchFields.visibilityIntent = body.visibilityIntent;
+    }
+
     if (Object.keys(patchFields).length === 0) {
       sendJson(response, 400, { error: "No valid fields to update." }, origin, config);
       return true;
     }
+
+    // listingActive coupling: keep the legacy directory-query flag in sync
+    // with the lifecycle/visibility intent. If admin is approving a listed
+    // profile, also flip status to active. If admin is hiding/pausing/
+    // archiving, just turn listingActive off and leave status alone — the
+    // recovery path can re-set it explicitly. See shared/profile-live-status.mjs
+    // for the canonical Live computation; listingActive is now a derived
+    // flag that exists for backward compatibility with the public GROQ
+    // query in assets/cms.js.
+    const nextLifecycle = patchFields.lifecycle ?? therapist.lifecycle;
+    const nextVisibility = patchFields.visibilityIntent ?? therapist.visibilityIntent;
+    const nextShouldBeActive = shouldBeListingActive(nextLifecycle, nextVisibility);
+    const wasShouldBeActive = shouldBeListingActive(
+      therapist.lifecycle,
+      therapist.visibilityIntent,
+    );
+    if (nextShouldBeActive !== wasShouldBeActive) {
+      patchFields.listingActive = nextShouldBeActive;
+      if (nextShouldBeActive) {
+        patchFields.status = "active";
+      }
+    }
+
+    // Build the post-save snapshot of tracked fields and diff against the
+    // current document. One audit entry captures the whole save (covers
+    // both routine edits and high-impact changes; the reason field
+    // distinguishes them when the client sends one).
+    const after = { ...therapist, ...patchFields };
+    const changes = diffTrackedFields(therapist, after);
+    const actor = getAuthorizedActor(request, config) || "admin";
+    const reason = typeof body.reason === "string" && body.reason.trim() ? body.reason.trim() : "";
+
     const transaction = client.transaction();
     transaction.patch(therapistId, function (patch) {
-      return patch.set(patchFields);
+      let p = patch.set(patchFields);
+      if (Object.keys(changes).length > 0) {
+        p = p.setIfMissing({ auditLog: [] }).append("auditLog", [
+          {
+            _type: "object",
+            timestamp: new Date().toISOString(),
+            actor,
+            action: "edit",
+            before: JSON.stringify(
+              Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v.before])),
+            ),
+            after: JSON.stringify(
+              Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v.after])),
+            ),
+            reason,
+          },
+        ]);
+      }
+      return p;
     });
     await transaction.commit({ visibility: "sync" });
     const updated = await client.getDocument(therapistId);
