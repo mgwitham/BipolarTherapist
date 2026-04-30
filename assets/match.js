@@ -219,7 +219,7 @@ function escapeHtml(value) {
 
 function buildTherapistProfileHref(slug) {
   var cleanSlug = String(slug || "").trim();
-  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/" : "/directory";
+  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?ref=match" : "/directory";
 }
 
 function startZipcodesPreload() {
@@ -5666,7 +5666,7 @@ function renderDetailsBody(entry) {
     escapeHtml(buildTherapistProfileHref(therapist.slug) + "#outreach") +
     '" class="bth-modal-teaser" data-modal-outreach-link="' +
     escapeHtml(therapist.slug || "") +
-    '">Draft message & calling script →</a>';
+    '">View profile + outreach script →</a>';
 
   return (
     '<div class="bth-modal-header">' +
@@ -6428,6 +6428,16 @@ function refreshIntakeUiFromForm() {
   var refinements = refs.refinements;
   if (refinements) {
     refinements.addEventListener("toggle", function () {
+      // Keep body class in sync regardless of how the panel was opened
+      // (inline summary click vs setRefineDrawerOpen button path).
+      // Without this, maybeLiveRecompute bails when the user opens the
+      // panel via the inline summary and then changes priority/filters.
+      var bodyHasClass = document.body.classList.contains("match-refine-drawer-open");
+      if (refinements.open && !bodyHasClass) {
+        setRefineDrawerOpen(true);
+      } else if (!refinements.open && bodyHasClass) {
+        setRefineDrawerOpen(false);
+      }
       if (refinements.open) {
         trackFunnelEvent("match_refinements_opened", {
           care_intent: matchForm.elements.care_intent.value || "",

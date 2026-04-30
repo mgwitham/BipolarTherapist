@@ -9,14 +9,12 @@ function escapeHtml(value) {
 
 function buildTherapistProfileHref(slug, source) {
   var cleanSlug = String(slug || "").trim();
-  if (cleanSlug && !source) {
-    return "/therapists/" + encodeURIComponent(cleanSlug) + "/";
-  }
   var params = new URLSearchParams();
+  params.set("ref", "directory");
   if (source) {
     params.set("source", String(source));
   }
-  return source && cleanSlug
+  return cleanSlug
     ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?" + params.toString()
     : "therapist.html?slug=" + encodeURIComponent(cleanSlug);
 }

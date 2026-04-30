@@ -558,7 +558,6 @@ function buildFAQSection(t) {
 function buildJumpNav() {
   var links = [
     { id: "section-about", label: "About" },
-    { id: "section-contact", label: "How to reach out" },
     { id: "section-faq", label: "FAQ" },
   ];
 
@@ -865,7 +864,8 @@ function buildCallScript(therapist) {
 function buildOutreachScript(therapist, contactStrategy) {
   var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
 
-  var greeting = "Hi,";
+  var firstName = (therapist.name || "").split(" ")[0];
+  var greeting = firstName ? "Hi " + firstName + "," : "Hi,";
 
   var intro =
     "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
@@ -2902,107 +2902,6 @@ function renderProfile(t, therapistDirectory) {
     '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
     renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
     "</div></div>";
-  var insuranceList = Array.isArray(t.insurance_accepted) ? t.insurance_accepted : [];
-  var insuranceSummary = insuranceList.length
-    ? insuranceList.length <= 2
-      ? joinNaturalList(insuranceList)
-      : insuranceList.slice(0, 2).join(", ") + " +" + (insuranceList.length - 2) + " more"
-    : "Contact to confirm";
-  var languageList = Array.isArray(t.languages) && t.languages.length ? t.languages : ["English"];
-  var languageSummary =
-    languageList.length <= 2
-      ? joinNaturalList(languageList)
-      : languageList.slice(0, 2).join(", ") + " +" + (languageList.length - 2) + " more";
-  var summaryStats = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients ? "Accepting patients" : "Confirm directly",
-      tone: t.accepting_new_patients ? "green" : "teal",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Format to confirm",
-      tone: t.accepts_telehealth || t.accepts_in_person ? "teal" : "",
-    },
-    {
-      label: "Session fee",
-      value:
-        t.session_fee_min && t.session_fee_max
-          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-          : t.session_fee_min
-            ? "From $" + t.session_fee_min
-            : t.sliding_scale
-              ? "Sliding scale"
-              : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-    {
-      label: "Insurance",
-      value: insuranceSummary,
-      tone: insuranceList.length ? "teal" : "",
-    },
-    {
-      label: "Languages",
-      value: languageSummary,
-      tone: "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-
-  var licenseValue =
-    [t.license_state, t.license_number].filter(Boolean).join(" · ") || "Not listed";
-  var primaryCtaValue = t.preferred_contact_label || "Not specified";
-  var experienceParts = [];
-  if (t.bipolar_years_experience) {
-    experienceParts.push(String(t.bipolar_years_experience) + "y bipolar");
-  }
-  if (t.years_experience) {
-    experienceParts.push(String(t.years_experience) + "y total");
-  }
-  var experienceValue = experienceParts.length ? experienceParts.join(" · ") : "Not listed";
-  var credentialStats = [
-    { label: "License", value: licenseValue, tone: t.license_number ? "teal" : "" },
-    {
-      label: "Primary CTA",
-      value: primaryCtaValue,
-      tone: t.preferred_contact_label ? "teal" : "",
-    },
-    {
-      label: "Experience",
-      value: experienceValue,
-      tone: t.bipolar_years_experience ? "green" : t.years_experience ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="summary-stat"><div class="summary-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="summary-stat-value ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var contactTiming = getContactTimingGuidance(contactStrategy);
   var logisticsSectionLeadHtml =
     '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
@@ -3223,6 +3122,77 @@ function renderProfile(t, therapistDirectory) {
         "</p>"
       : "");
 
+  var outreachHasTextChannel =
+    isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
+  var outreachHasPhone = Boolean(t.phone);
+  var outreachCallScript = outreachHasPhone ? buildCallScript(t) : null;
+  var outreachAfterItems = [
+    "Notice how the reply lands — warm, informed, and responsive is a good sign.",
+    "Ask for a short consult call before committing to ongoing sessions.",
+    "It's completely fine to message two or three therapists at once to compare fit.",
+  ];
+  var outreachRenderTipList = function (items) {
+    return (
+      '<ul class="outreach-tip-list">' +
+      items
+        .map(function (item) {
+          return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
+        })
+        .join("") +
+      "</ul>"
+    );
+  };
+  var outreachMessageCardHtml = outreachHasTextChannel
+    ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
+      escapeHtml(outreachScript) +
+      '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
+    : "";
+  var outreachCallCardHtml = "";
+  if (outreachHasPhone && outreachCallScript) {
+    var outreachPhoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
+    outreachCallCardHtml =
+      '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
+      '<div class="call-script-shell">' +
+      '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
+      escapeHtml(outreachCallScript.liveOpener) +
+      "</p>" +
+      (outreachCallScript.liveContext
+        ? '<p class="call-script-context">' + escapeHtml(outreachCallScript.liveContext) + "</p>"
+        : "") +
+      "</div></div>" +
+      '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
+      escapeHtml(outreachCallScript.voicemail) +
+      "</p></div></div>" +
+      (outreachPhoneDigits
+        ? '<a href="tel:' +
+          escapeHtml(outreachPhoneDigits) +
+          '" class="btn-contact call-script-cta">Call ' +
+          escapeHtml(t.phone) +
+          "</a>"
+        : "") +
+      "</div></div>";
+  }
+  var outreachPanelHtml =
+    outreachMessageCardHtml || outreachCallCardHtml
+      ? '<div class="next-step-card">' +
+        outreachMessageCardHtml +
+        outreachCallCardHtml +
+        (contactGuidance
+          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
+            escapeHtml(contactGuidance) +
+            "</div></div>"
+          : "") +
+        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
+        outreachRenderTipList(outreachAfterItems) +
+        "</div></div>"
+      : "";
+
+  var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
+  var backNav =
+    backNavRef === "match"
+      ? { href: "match.html", label: "← Back to your matches" }
+      : { href: "directory.html", label: "← Back to directory" };
+
   var html =
     '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
@@ -3255,7 +3225,8 @@ function renderProfile(t, therapistDirectory) {
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
-    '<div class="profile-contact-card">' +
+    '<div class="profile-hero-right">' +
+    '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
     (t.phone
       ? '<a href="tel:' +
@@ -3297,32 +3268,35 @@ function renderProfile(t, therapistDirectory) {
     !(t.booking_url && bookingHealthy)
       ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
       : "") +
+    (outreachPanelHtml
+      ? '<button type="button" class="contact-outreach-toggle" aria-expanded="false" aria-controls="contactOutreachPanel" data-outreach-toggle>' +
+        '<span class="profile-contact-icon" aria-hidden="true">✉️</span>' +
+        '<span class="contact-outreach-toggle-label">Outreach scripts</span>' +
+        '<span class="contact-outreach-chevron" aria-hidden="true">+</span>' +
+        "</button>" +
+        '<div class="contact-outreach-panel" id="contactOutreachPanel" hidden>' +
+        outreachPanelHtml +
+        "</div>"
+      : "") +
+    "</div>" +
+    buildFAQSection(t) +
     "</div>" +
     "</div>" +
     (hasPaidSubscription
-      ? // Paid presentation: full bio always visible, no toggle. Wrapper
-        // keeps the same id/class hooks so any JS reading #profileBioPanel
-        // still works; the is-collapsed modifier is intentionally absent.
-        '<div class="profile-bio-enhanced">' +
-        '<div class="profile-bio-panel" id="profileBioPanel">' +
+      ? '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>"
-      : '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
-        '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
-        '<span class="profile-bio-toggle-label">Read full bio</span>' +
-        '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
-        "</button>" +
-        '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>'
+      : '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>") +
-    '<div class="profile-summary-strip">' +
-    summaryStats +
-    "</div>" +
-    '<div class="profile-summary-strip profile-summary-strip-secondary">' +
-    credentialStats +
-    "</div>" +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>') +
     '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
     (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
@@ -3330,86 +3304,12 @@ function renderProfile(t, therapistDirectory) {
     "</div></div></div></div>" +
     "</div>" +
     buildTrustBar(t) +
-    sectionNavHtml +
-    '<div class="profile-body">' +
-    "<div>" +
-    (function () {
-      var hasTextChannel =
-        isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
-      var hasPhone = Boolean(t.phone);
-      var callScript = hasPhone ? buildCallScript(t) : null;
-
-      var afterItems = [
-        "Notice how the reply lands — warm, informed, and responsive is a good sign.",
-        "Ask for a short consult call before committing to ongoing sessions.",
-        "It's completely fine to message two or three therapists at once to compare fit.",
-      ];
-
-      var renderTipList = function (items) {
-        return (
-          '<ul class="outreach-tip-list">' +
-          items
-            .map(function (item) {
-              return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
-            })
-            .join("") +
-          "</ul>"
-        );
-      };
-
-      var messageCardHtml = hasTextChannel
-        ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
-          escapeHtml(outreachScript) +
-          '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
-        : "";
-
-      var callCardHtml = "";
-      if (hasPhone && callScript) {
-        var phoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
-        callCardHtml =
-          '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
-          '<div class="call-script-shell">' +
-          '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
-          escapeHtml(callScript.liveOpener) +
-          "</p>" +
-          (callScript.liveContext
-            ? '<p class="call-script-context">' + escapeHtml(callScript.liveContext) + "</p>"
-            : "") +
-          "</div></div>" +
-          '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
-          escapeHtml(callScript.voicemail) +
-          "</p></div></div>" +
-          (phoneDigits
-            ? '<a href="tel:' +
-              escapeHtml(phoneDigits) +
-              '" class="btn-contact call-script-cta">Call ' +
-              escapeHtml(t.phone) +
-              "</a>"
-            : "") +
-          "</div></div>";
-      }
-
-      return (
-        '<section class="profile-section profile-section-collapsible" id="section-contact" data-profile-section data-profile-contact-section><button type="button" class="profile-section-header" aria-expanded="true"><span><span class="section-kicker">Outreach</span><h2>How to reach out</h2></span><span class="section-toggle">Hide</span></button><div class="profile-section-content"><div class="outreach-intro">Reaching out is easier than it feels. Pick the path that feels calmest — a written message or a phone call — and use the script below as a starting point.</div><div class="next-step-card">' +
-        messageCardHtml +
-        callCardHtml +
-        (contactGuidance
-          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
-            escapeHtml(contactGuidance) +
-            "</div></div>"
-          : "") +
-        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
-        renderTipList(afterItems) +
-        "</div>" +
-        "</div></div></section>"
-      );
-    })() +
-    buildFAQSection(t) +
-    "</div>" +
-    '<div class="profile-sidebar-stack">' +
-    "</div>" +
     '<div class="profile-foot-actions">' +
-    '<a href="directory.html" class="profile-foot-back">← Back to Directory</a>' +
+    '<a href="' +
+    escapeHtml(backNav.href) +
+    '" class="profile-foot-back">' +
+    escapeHtml(backNav.label) +
+    "</a>" +
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
     escapeHtml(t.slug || "") +
     '">Report an issue with this listing</button>' +
@@ -3507,11 +3407,31 @@ function renderProfile(t, therapistDirectory) {
           contactObserver.disconnect();
         });
       },
-      {
-        threshold: 0.45,
-      },
+      { threshold: 0.2 },
     );
     contactObserver.observe(contactSection);
+  }
+  var outreachToggleBtn = document.querySelector("[data-outreach-toggle]");
+  var outreachPanel = document.getElementById("contactOutreachPanel");
+  if (outreachToggleBtn && outreachPanel) {
+    outreachToggleBtn.addEventListener("click", function () {
+      var isOpen = outreachToggleBtn.getAttribute("aria-expanded") === "true";
+      outreachToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+      if (isOpen) {
+        outreachPanel.setAttribute("hidden", "");
+      } else {
+        outreachPanel.removeAttribute("hidden");
+        trackFunnelEvent("profile_outreach_scripts_opened", getContactAnalyticsMeta(t, "scripts"));
+      }
+    });
+  }
+  if (window.location.hash === "#outreach" && outreachToggleBtn && outreachPanel) {
+    outreachToggleBtn.setAttribute("aria-expanded", "true");
+    outreachPanel.removeAttribute("hidden");
+    window.setTimeout(function () {
+      var card = document.getElementById("outreach");
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
   var outreachScriptCard = document.querySelector("[data-profile-outreach-script]");
   if (outreachScriptCard) {
@@ -3523,6 +3443,10 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-focus-script]"))
     .forEach(function (button) {
       button.addEventListener("click", function () {
+        if (outreachToggleBtn && outreachPanel) {
+          outreachToggleBtn.setAttribute("aria-expanded", "true");
+          outreachPanel.removeAttribute("hidden");
+        }
         var scriptCard = document.querySelector("[data-profile-outreach-script]");
         if (!scriptCard) {
           return;
@@ -3607,23 +3531,33 @@ function renderProfile(t, therapistDirectory) {
       });
     });
   Array.prototype.slice
-    .call(document.querySelectorAll("[data-profile-bio-toggle] .profile-bio-toggle-btn"))
+    .call(document.querySelectorAll("[data-profile-bio-read-more]"))
     .forEach(function (button) {
+      var bioWrap = button.previousElementSibling;
+      var bioText = bioWrap ? bioWrap.querySelector(".profile-bio-text") : null;
+      var bioFade = bioWrap ? bioWrap.querySelector(".profile-bio-fade") : null;
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
+            bioText.classList.add("is-expanded");
+            if (bioFade) bioFade.classList.add("is-hidden");
+            button.hidden = true;
+          }
+        });
+      });
       button.addEventListener("click", function () {
-        var wrap = button.closest("[data-profile-bio-toggle]");
-        var panel = wrap ? wrap.querySelector(".profile-bio-panel") : null;
-        var label = button.querySelector(".profile-bio-toggle-label");
-        var icon = button.querySelector(".profile-bio-toggle-icon");
-        if (!panel) {
-          return;
-        }
-        var collapsed = panel.classList.toggle("is-collapsed");
-        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        if (label) {
-          label.textContent = collapsed ? "Read full bio" : "Hide bio";
-        }
-        if (icon) {
-          icon.textContent = collapsed ? "+" : "−";
+        if (!bioText) return;
+        var expanded = bioText.classList.contains("is-expanded");
+        if (expanded) {
+          bioText.classList.remove("is-expanded");
+          if (bioFade) bioFade.classList.remove("is-hidden");
+          button.textContent = "Read more ↓";
+          button.setAttribute("aria-expanded", "false");
+        } else {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          button.textContent = "Show less ↑";
+          button.setAttribute("aria-expanded", "true");
         }
       });
     });
