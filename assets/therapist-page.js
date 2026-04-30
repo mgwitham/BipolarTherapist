@@ -3384,23 +3384,20 @@ function renderProfile(t, therapistDirectory) {
     "</div>" +
     "</div>" +
     (hasPaidSubscription
-      ? // Paid presentation: full bio always visible, no toggle. Wrapper
-        // keeps the same id/class hooks so any JS reading #profileBioPanel
-        // still works; the is-collapsed modifier is intentionally absent.
-        '<div class="profile-bio-enhanced">' +
-        '<div class="profile-bio-panel" id="profileBioPanel">' +
+      ? '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>"
-      : '<div class="profile-bio-toggle" data-profile-bio-toggle>' +
-        '<button type="button" class="profile-bio-toggle-btn" aria-expanded="false" aria-controls="profileBioPanel">' +
-        '<span class="profile-bio-toggle-label">Read full bio</span>' +
-        '<span class="profile-bio-toggle-icon" aria-hidden="true">+</span>' +
-        "</button>" +
-        '<div class="profile-bio-panel is-collapsed" id="profileBioPanel">' +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>'
+      : '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+        '<div class="profile-bio-text" id="profileBioPanel">' +
         bioBodyHtml +
         "</div>" +
-        "</div>") +
+        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+        "</div>" +
+        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>') +
     '<div class="profile-summary-strip">' +
     summaryStats +
     "</div>" +
@@ -3641,23 +3638,31 @@ function renderProfile(t, therapistDirectory) {
       });
     });
   Array.prototype.slice
-    .call(document.querySelectorAll("[data-profile-bio-toggle] .profile-bio-toggle-btn"))
+    .call(document.querySelectorAll("[data-profile-bio-read-more]"))
     .forEach(function (button) {
+      var bioWrap = button.previousElementSibling;
+      var bioText = bioWrap ? bioWrap.querySelector(".profile-bio-text") : null;
+      var bioFade = bioWrap ? bioWrap.querySelector(".profile-bio-fade") : null;
+      window.requestAnimationFrame(function () {
+        if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          button.hidden = true;
+        }
+      });
       button.addEventListener("click", function () {
-        var wrap = button.closest("[data-profile-bio-toggle]");
-        var panel = wrap ? wrap.querySelector(".profile-bio-panel") : null;
-        var label = button.querySelector(".profile-bio-toggle-label");
-        var icon = button.querySelector(".profile-bio-toggle-icon");
-        if (!panel) {
-          return;
-        }
-        var collapsed = panel.classList.toggle("is-collapsed");
-        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        if (label) {
-          label.textContent = collapsed ? "Read full bio" : "Hide bio";
-        }
-        if (icon) {
-          icon.textContent = collapsed ? "+" : "−";
+        if (!bioText) return;
+        var expanded = bioText.classList.contains("is-expanded");
+        if (expanded) {
+          bioText.classList.remove("is-expanded");
+          if (bioFade) bioFade.classList.remove("is-hidden");
+          button.textContent = "Read more ↓";
+          button.setAttribute("aria-expanded", "false");
+        } else {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          button.textContent = "Show less ↑";
+          button.setAttribute("aria-expanded", "true");
         }
       });
     });
