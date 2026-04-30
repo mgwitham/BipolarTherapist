@@ -15,7 +15,12 @@
 import { createClient } from "@sanity/client";
 
 import { getReviewApiConfig } from "./review-config.mjs";
-import { sendEmail, hasEmailConfig } from "./review-email.mjs";
+import {
+  sendEmail,
+  hasEmailConfig,
+  renderBrandedEmail,
+  renderBrandedEmailText,
+} from "./review-email.mjs";
 
 export const WARNING_THRESHOLDS_DAYS = [60, 30, 14];
 
@@ -49,21 +54,38 @@ function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
     ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal.html`
     : "";
   const subject = `Your CA license expires in ${threshold} days — renew before ${expirationDate}`;
-  const greeting = therapist.name ? `Hi ${therapist.name.split(/\s+/)[0]},` : "Hi,";
-  const preheaderText = `Renew before ${expirationDate} or your listing pauses.`;
-  const html = `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${preheaderText}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
-<p>${greeting}</p>
-<p>Your California license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
-<p>If you've already renewed with the state board, no action is needed — we re-check CA DCA every week and your status will refresh automatically.</p>
-<p>If you haven't renewed yet:</p>
-<ul>
-<li>Renew with the California Board of Behavioral Sciences / Board of Psychology / Medical Board (whichever issued your license).</li>
-<li>Once the state shows your license active, your directory listing stays live with no work on your end.</li>
-<li>If your license lapses, your listing automatically goes inactive until it's renewed — patients won't be matched to you in the meantime.</li>
-</ul>
-${portalLink ? `<p>Manage your listing: <a href="${portalLink}">${portalLink}</a></p>` : ""}
-<p>— Bipolar Therapy Hub</p>`;
-  return { subject, html };
+  const heading = `Your CA license expires in ${threshold} days`;
+  const greetingName = therapist.name ? therapist.name.split(/\s+/)[0] : "";
+  const preheader = `Renew before ${expirationDate} or your listing pauses.`;
+
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your California license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
+<p style="margin:0 0 12px 0;">If you've already renewed with the state board, no action is needed — we re-check CA DCA every week and your status will refresh automatically.</p>
+<p style="margin:0 0 8px 0;">If you haven't renewed yet:</p>
+<ul style="margin:0 0 16px 1.1rem;padding:0;font-size:14px;line-height:1.55;">
+  <li style="margin-bottom:6px;">Renew with the California Board of Behavioral Sciences / Board of Psychology / Medical Board (whichever issued your license).</li>
+  <li style="margin-bottom:6px;">Once the state shows your license active, your directory listing stays live with no work on your end.</li>
+  <li style="margin-bottom:0;">If your license lapses, your listing automatically goes inactive until it's renewed — patients won't be matched to you in the meantime.</li>
+</ul>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName,
+    bodyHtml,
+    preheader,
+    primaryCta: portalLink ? { label: "Manage my listing →", url: portalLink } : null,
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName,
+    bodyText:
+      `Your California license on file expires on ${expirationDate} — that's ${threshold} days away. ` +
+      `If you've already renewed, no action is needed — we re-check CA DCA every week and your status will refresh automatically. ` +
+      `If you haven't renewed yet: renew with the appropriate California board. Once the state shows your license active, your directory listing stays live. If your license lapses, your listing goes inactive until it's renewed.`,
+    primaryCta: portalLink ? { label: "Manage my listing", url: portalLink } : null,
+  });
+
+  return { subject, html, text };
 }
 
 export async function runLicenseExpirationWarnings({
@@ -127,7 +149,7 @@ export async function runLicenseExpirationWarnings({
       else summary.skippedAlreadySent += 1;
       continue;
     }
-    const { subject, html } = buildEmail(t, threshold, t.exp, portalBaseUrl);
+    const { subject, html, text } = buildEmail(t, threshold, t.exp, portalBaseUrl);
     if (dryRun) {
       log(`  WOULD SEND ${threshold}d warning to ${t.name} <${t.email}> (expires ${t.exp})`);
       summary.sends.push({ id: t._id, name: t.name, threshold, dryRun: true });
@@ -138,8 +160,10 @@ export async function runLicenseExpirationWarnings({
       await sendEmail(config, {
         from: config.emailFrom,
         to: [t.email],
+        reply_to: "support@bipolartherapyhub.com",
         subject,
         html,
+        text,
       });
       const newEntry = {
         _key: `${threshold}-${Date.now()}`,

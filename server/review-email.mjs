@@ -110,18 +110,53 @@ export async function notifyAdminOfSubmission(config, application) {
     return;
   }
 
+  const heading = "New therapist application";
+  const detailRows = [
+    ["Name", application.name || "—"],
+    ["Email", application.email || "—"],
+    ["Location", `${application.city || "—"}, ${application.state || "—"}`],
+    ["Credentials", application.credentials || "Not provided"],
+    ["Specialties", (application.specialties || []).join(", ") || "Not provided"],
+    ["Status", application.status || "—"],
+  ];
+  const bodyHtml =
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;line-height:1.55;border-collapse:collapse;margin:0 0 16px 0;">' +
+    detailRows
+      .map(function (row) {
+        return (
+          '<tr><td style="padding:6px 0;color:#4a6572;width:130px;vertical-align:top;"><strong>' +
+          escapeEmailHtml(row[0]) +
+          '</strong></td><td style="padding:6px 0;color:#1d3a4a;vertical-align:top;">' +
+          escapeEmailHtml(row[1]) +
+          "</td></tr>"
+        );
+      })
+      .join("") +
+    "</table>" +
+    '<p style="margin:0 0 8px 0;">Open the admin review page to review this submission.</p>';
+
+  const html = renderBrandedEmail({
+    heading,
+    bodyHtml,
+    preheader: "A new clinician just submitted. Review when you have a minute.",
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    bodyText: detailRows
+      .map(function (row) {
+        return row[0] + ": " + row[1];
+      })
+      .join("\n"),
+    footerLines: ["Open the admin review page to review this submission."],
+  });
+
   await sendEmail(config, {
     from: config.emailFrom,
     to: [config.notificationTo],
     subject: `New therapist application: ${application.name}`,
-    html: `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">A new clinician just submitted. Review when you have a minute.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div><h2>New therapist application</h2>
-<p><strong>Name:</strong> ${application.name}</p>
-<p><strong>Email:</strong> ${application.email}</p>
-<p><strong>Location:</strong> ${application.city}, ${application.state}</p>
-<p><strong>Credentials:</strong> ${application.credentials || "Not provided"}</p>
-<p><strong>Specialties:</strong> ${(application.specialties || []).join(", ") || "Not provided"}</p>
-<p><strong>Status:</strong> ${application.status}</p>
-<p>Open the admin review page to review this submission.</p>`,
+    html,
+    text,
   });
 }
 
@@ -265,7 +300,7 @@ function escapeEmailHtml(value) {
 //                      footer. Supports minimal HTML via footerLinesHtml.
 //   footerLinesHtml  — array of HTML strings. Takes precedence over
 //                      footerLines when set (caller pre-escaped).
-function renderBrandedEmail(options) {
+export function renderBrandedEmail(options) {
   const heading = escapeEmailHtml((options && options.heading) || "");
   const greetingName = options && options.greetingName ? String(options.greetingName) : "";
   const bodyHtml = (options && options.bodyHtml) || "";
@@ -400,7 +435,7 @@ function renderBrandedEmail(options) {
 
 // Plain-text fallback. Some mail clients and screen readers prefer
 // text/plain, and a clean plain-text part also improves deliverability.
-function renderBrandedEmailText(options) {
+export function renderBrandedEmailText(options) {
   const heading = (options && options.heading) || "";
   const greetingName = options && options.greetingName ? String(options.greetingName) : "";
   const bodyText = (options && options.bodyText) || "";
@@ -780,50 +815,117 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
   const subject = isDenial
     ? `ATTACK ATTEMPT — ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
     : `New recovery request: ${recoveryRequest.fullName || "(no name)"}`;
-  const preheaderText = isDenial
+  const preheader = isDenial
     ? "Attack attempt — the real therapist denied this claim."
     : "A clinician asked to recover access to their listing.";
-  const preheaderHidden = `<div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${preheaderText}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>`;
-  const headerHtml = isDenial
-    ? `<div style="background:#fbeaea;border:2px solid #a04a4a;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;color:#7a2f2f;">
-<strong>Attack attempt detected.</strong> The real therapist, reached through a channel
-the requester did not control, denied this claim request.
-Assume the <strong>requester email</strong> below is an attacker and act accordingly —
-no action is needed for the therapist's listing (access was NOT granted), but consider
-blocking the requester IP range or adding the requested email to a watch list.
-</div><h2>Therapist denied a recovery request</h2>`
-    : `<h2>New therapist recovery request</h2>`;
+  const heading = isDenial
+    ? "Therapist denied a recovery request"
+    : "New therapist recovery request";
+
+  const profileNameMismatch =
+    recoveryRequest.profileName &&
+    recoveryRequest.fullName &&
+    recoveryRequest.profileName.toLowerCase() !== recoveryRequest.fullName.toLowerCase();
+
+  const detailRows = [
+    ["Name", recoveryRequest.fullName || "—"],
+    ["License", recoveryRequest.licenseNumber || "—"],
+    [
+      "Requested email" + (isDenial ? " (likely attacker)" : ""),
+      recoveryRequest.requestedEmail || "—",
+    ],
+    ["Prior email", recoveryRequest.priorEmail || "—"],
+  ];
+  if (isDenial && recoveryRequest.confirmationChannel) {
+    detailRows.push([
+      "Confirmed via channel",
+      recoveryRequest.confirmationChannel +
+        " (" +
+        (recoveryRequest.confirmationChannelContext || "unspecified source") +
+        ")",
+    ]);
+  }
+  detailRows.push([
+    "Profile name on record",
+    (recoveryRequest.profileName || "—") + (profileNameMismatch ? " (mismatch!)" : ""),
+  ]);
+  detailRows.push(["Profile email hint", recoveryRequest.profileEmailHint || "—"]);
+  detailRows.push(["Requester IP (first 3 octets)", recoveryRequest.requesterIp || "—"]);
+
+  const detailTable =
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;line-height:1.55;border-collapse:collapse;margin:0 0 16px 0;">' +
+    detailRows
+      .map(function (row) {
+        const isMismatch = profileNameMismatch && row[0] === "Profile name on record";
+        return (
+          '<tr><td style="padding:6px 0;color:#4a6572;width:170px;vertical-align:top;"><strong>' +
+          escapeEmailHtml(row[0]) +
+          '</strong></td><td style="padding:6px 0;vertical-align:top;color:' +
+          (isMismatch ? "#b03636" : "#1d3a4a") +
+          ';">' +
+          escapeEmailHtml(row[1]) +
+          "</td></tr>"
+        );
+      })
+      .join("") +
+    "</table>";
+
+  const reasonHtml =
+    '<p style="margin:0 0 6px 0;"><strong>Reason:</strong></p>' +
+    '<blockquote style="margin:0 0 16px 0;border-left:3px solid ' +
+    (isDenial ? "#a04a4a" : "#1a7a8f") +
+    ';padding:6px 12px;color:#4a6572;font-size:14px;line-height:1.55;">' +
+    (recoveryRequest.reason
+      ? escapeEmailHtml(String(recoveryRequest.reason)).replace(/\n/g, "<br/>")
+      : "(none given)") +
+    "</blockquote>";
+
+  const reviewHtml = adminUrl
+    ? '<p style="margin:0;">Review in the admin panel: <a href="' +
+      escapeEmailHtml(adminUrl) +
+      '" style="color:#155f70;">' +
+      escapeEmailHtml(adminUrl) +
+      "</a></p>"
+    : '<p style="margin:0;">Review in the admin panel.</p>';
+
+  const bodyHtml = detailTable + reasonHtml + reviewHtml;
+
+  const html = renderBrandedEmail({
+    heading,
+    bodyHtml,
+    preheader,
+    alertBanner: isDenial
+      ? {
+          tone: "warn",
+          html:
+            "<strong>Attack attempt detected.</strong> The real therapist, reached " +
+            "through a channel the requester did not control, denied this claim request. " +
+            "Assume the requester email below is an attacker. No action is needed for the " +
+            "therapist's listing (access was NOT granted), but consider blocking the " +
+            "requester IP range or adding the requested email to a watch list.",
+        }
+      : null,
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    bodyText:
+      detailRows
+        .map(function (row) {
+          return row[0] + ": " + row[1];
+        })
+        .join("\n") +
+      "\n\nReason: " +
+      (recoveryRequest.reason || "(none given)") +
+      (adminUrl ? "\n\nReview in the admin panel: " + adminUrl : ""),
+  });
 
   await sendEmail(config, {
     from: config.emailFrom,
     to: [config.notificationTo],
     subject,
-    html: `${preheaderHidden}${headerHtml}
-<p><strong>Name:</strong> ${recoveryRequest.fullName || "—"}</p>
-<p><strong>License:</strong> ${recoveryRequest.licenseNumber || "—"}</p>
-<p><strong>Requested email${isDenial ? " (likely attacker)" : ""}:</strong> ${recoveryRequest.requestedEmail || "—"}</p>
-<p><strong>Prior email:</strong> ${recoveryRequest.priorEmail || "—"}</p>
-${
-  isDenial && recoveryRequest.confirmationChannel
-    ? `<p><strong>Confirmed via channel:</strong> ${recoveryRequest.confirmationChannel} <em>(${recoveryRequest.confirmationChannelContext || "unspecified source"})</em></p>`
-    : ""
-}
-<p><strong>Profile name on record:</strong> ${recoveryRequest.profileName || "—"} ${
-      recoveryRequest.profileName &&
-      recoveryRequest.fullName &&
-      recoveryRequest.profileName.toLowerCase() !== recoveryRequest.fullName.toLowerCase()
-        ? '<em style="color:#b03636"> (mismatch!)</em>'
-        : ""
-    }</p>
-<p><strong>Profile email hint:</strong> ${recoveryRequest.profileEmailHint || "—"}</p>
-<p><strong>Requester IP (first 3 octets):</strong> ${recoveryRequest.requesterIp || "—"}</p>
-<p><strong>Reason:</strong></p>
-<blockquote style="border-left:3px solid ${isDenial ? "#a04a4a" : "#1a7a8f"};padding-left:1rem;color:#4a6572">${
-      recoveryRequest.reason
-        ? String(recoveryRequest.reason).replace(/\n/g, "<br/>")
-        : "(none given)"
-    }</blockquote>
-<p>Review in the admin panel${adminUrl ? ` → <a href="${adminUrl}">${adminUrl}</a>` : ""}.</p>`,
+    html,
+    text,
   });
 }
 
@@ -1259,53 +1361,69 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
       : "";
 
   const progressPct = Math.min(100, Math.max(0, score));
-  const progressColor = score >= 76 ? "#0f6e56" : score >= 50 ? "#ca8a04" : "#d97706";
+  const progressColor = score >= 76 ? "#1a7a8f" : score >= 50 ? "#ca8a04" : "#d97706";
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f7fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-<div style="display:none;font-size:1px;color:#f7fafb;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">A few quick fields stand between you and a full profile.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7fafb;padding:32px 0">
-<tr><td align="center">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-  <tr><td style="background:#0f6e56;padding:24px 32px">
-    <p style="margin:0;font-size:18px;font-weight:700;color:#fff">BipolarTherapyHub</p>
-  </td></tr>
-  <tr><td style="padding:32px">
-    <h1 style="margin:0 0 8px;font-size:22px;color:#0f1f28">Hi ${name},</h1>
-    <p style="margin:0 0 24px;font-size:16px;color:#2d4651;line-height:1.6">
-      Your profile is at <strong>${score}/100</strong>. A few more fields will help patients find and choose you.
-    </p>
+  const heading = "Your profile is " + score + "% complete";
+  const intro =
+    '<p style="margin:0 0 16px 0;">Your profile is at <strong>' +
+    score +
+    "/100</strong>. A few more fields will help patients find and choose you.</p>";
+  const progressBar =
+    '<div style="background:#f1f5f6;border-radius:8px;padding:3px;margin:0 0 18px 0;">' +
+    '<div style="background:' +
+    progressColor +
+    ";border-radius:6px;height:8px;width:" +
+    progressPct +
+    '%;min-width:4px;"></div>' +
+    "</div>";
+  const stillToAddLabel =
+    '<p style="margin:0 0 8px 0;font-size:12px;font-weight:700;color:#1a7a8f;text-transform:uppercase;letter-spacing:0.05em;">Still to add</p>';
+  const fieldsTable =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 12px 0;">' +
+    missingRowsHtml +
+    "</table>";
 
-    <div style="background:#f1f5f6;border-radius:8px;padding:4px;margin-bottom:24px">
-      <div style="background:${progressColor};border-radius:6px;height:8px;width:${progressPct}%;min-width:4px;transition:width 0.3s"></div>
-    </div>
+  const bodyHtml = intro + progressBar + stillToAddLabel + fieldsTable + remainingNote;
 
-    <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#4d6671;text-transform:uppercase;letter-spacing:0.05em">Still to add</p>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${missingRowsHtml}
-    </table>
-    ${remainingNote}
-
-    <div style="margin:28px 0 0;text-align:center">
-      <a href="${portalUrl}" style="display:inline-block;background:#0f6e56;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px">Complete my profile</a>
-    </div>
-
-    <p style="margin:24px 0 0;font-size:13px;color:#8a9aa1;text-align:center">
-      Questions? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#0f6e56">support@bipolartherapyhub.com</a>
-    </p>
-  </td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    preheader: "A few quick fields stand between you and a full profile.",
+    primaryCta: { label: "Complete my profile →", url: portalUrl },
+    footerLinesHtml: [
+      'Questions? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
+    ],
+  });
 
   const requiredNote = required.length
-    ? `\nRequired to go live: ${required.map((k) => COMPLETENESS_FIELD_LABELS[k]?.label || k).join(", ")}\n`
+    ? "Required to go live: " +
+      required.map((k) => COMPLETENESS_FIELD_LABELS[k]?.label || k).join(", ") +
+      "."
     : "";
-  const text = `Hi ${name},\n\nYour BipolarTherapyHub profile is at ${score}/100.\n${requiredNote}\nFields still to add:\n${fieldsToShow.map((k) => `- ${COMPLETENESS_FIELD_LABELS[k]?.label || k}: ${COMPLETENESS_FIELD_LABELS[k]?.note || ""}`).join("\n")}${remaining > 0 ? `\n...and ${remaining} more in your portal.` : ""}\n\nComplete your profile: ${portalUrl}\n\nQuestions? support@bipolartherapyhub.com`;
+  const fieldLines = fieldsToShow
+    .map(
+      (k) =>
+        "- " +
+        (COMPLETENESS_FIELD_LABELS[k]?.label || k) +
+        ": " +
+        (COMPLETENESS_FIELD_LABELS[k]?.note || ""),
+    )
+    .join("\n");
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your BipolarTherapyHub profile is at " +
+      score +
+      "/100. A few more fields will help patients find and choose you." +
+      (requiredNote ? "\n\n" + requiredNote : "") +
+      "\n\nFields still to add:\n" +
+      fieldLines +
+      (remaining > 0 ? "\n...and " + remaining + " more in your portal." : ""),
+    primaryCta: { label: "Complete my profile", url: portalUrl },
+    footerLines: ["Questions? Email support@bipolartherapyhub.com"],
+  });
 
   await sendEmail(config, {
     from: config.emailFrom,
