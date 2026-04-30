@@ -1,17 +1,14 @@
 import {
-  createStripeFeaturedCheckoutSession,
   fetchTherapistMe,
   getTherapistSessionToken,
   lookupTherapistBySlug,
-  requestAccountRecovery,
   requestTherapistQuickClaim,
   searchTherapistQuickClaim,
   sendClaimLinkToSlug,
-  startClaimTrial,
 } from "./review-api.js";
-import { fetchFoundingSpotsRemaining } from "./cms.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
+// Element IDs
 const FORM_ID = "quickClaimForm";
 const STATUS_ID = "quickClaimStatus";
 const SUBMIT_BUTTON_ID = "quickClaimSubmit";
@@ -21,24 +18,25 @@ const SEARCH_INPUT_ID = "quickClaimSearchInput";
 const SEARCH_RESULTS_ID = "quickClaimSearchResults";
 const SEARCH_SUMMARY_ID = "quickClaimSearchSummary";
 const EMAIL_HINT_ID = "quickClaimEmailHint";
-const TRIAL_OFFER_ID = "claimTrialOffer";
-const TRIAL_FOUNDING_ID = "claimTrialFounding";
-const TRIAL_STANDARD_ID = "claimTrialStandard";
-const TRIAL_DISMISS_ID = "claimTrialDismiss";
-const TRIAL_FEEDBACK_ID = "claimTrialFeedback";
-const TRIAL_FOUNDING_NOTE_SELECTOR = "[data-claim-founding-note]";
 const CONFIRM_PANEL_ID = "claimConfirmPanel";
-const CONFIRM_NAME_ID = "claimConfirmName";
-const CONFIRM_META_ID = "claimConfirmMeta";
 const CONFIRM_EMAIL_ID = "claimConfirmEmail";
 const CONFIRM_SEND_ID = "claimConfirmSend";
-const CONFIRM_TRIAL_ID = "claimStartTrial";
-const CONFIRM_CHANGE_ID = "claimConfirmChange";
+const CONFIRM_CHANGE_ID = "claimStep1Change";
 const CONFIRM_STATUS_ID = "claimConfirmStatus";
 const QUICK_RESEND_ID = "quickClaimResend";
 const QUICK_RESEND_LINK_ID = "quickClaimResendLink";
 const CONFIRM_RESEND_ID = "claimConfirmResend";
 const CONFIRM_RESEND_LINK_ID = "claimConfirmResendLink";
+const STEP2_AREA_ID = "claimStep2Area";
+const STEP1_SUMMARY_ID = "claimStep1Summary";
+const SEARCHED_TERM_ID = "claimSearchedTerm";
+const SEARCH_CARD_ID = "quickClaimSearch";
+const SELECTED_CARD_ID = "claimSelectedCard";
+const THIN_BANNER_ID = "claimThinBanner";
+const THIN_BANNER_TEXT_ID = "claimThinBannerText";
+const THIN_BANNER_DASHBOARD_ID = "claimThinBannerDashboard";
+const THIN_BANNER_CLAIM_ID = "claimThinBannerClaim";
+const THIN_BANNER_DISMISS_ID = "claimThinBannerDismiss";
 const SELECTED_RESULT_STORAGE_KEY = "bt_claim_selected_slug_v2";
 
 function canUseSessionStorage() {
@@ -50,9 +48,7 @@ function canUseSessionStorage() {
 }
 
 function setStoredSelectedSlug(slug) {
-  if (!canUseSessionStorage()) {
-    return;
-  }
+  if (!canUseSessionStorage()) return;
   if (slug) {
     window.sessionStorage.setItem(SELECTED_RESULT_STORAGE_KEY, String(slug));
   } else {
@@ -61,34 +57,26 @@ function setStoredSelectedSlug(slug) {
 }
 
 function getStoredSelectedSlug() {
-  if (!canUseSessionStorage()) {
-    return "";
-  }
+  if (!canUseSessionStorage()) return "";
   return window.sessionStorage.getItem(SELECTED_RESULT_STORAGE_KEY) || "";
 }
 
 function setStatus(element, tone, title, body) {
-  if (!element) {
-    return;
-  }
+  if (!element) return;
   element.dataset.tone = tone;
   element.hidden = false;
   element.innerHTML = `<strong>${title}</strong>${body ? `<br /><span>${body}</span>` : ""}`;
 }
 
 function clearStatus(element) {
-  if (!element) {
-    return;
-  }
+  if (!element) return;
   element.hidden = true;
   element.innerHTML = "";
   delete element.dataset.tone;
 }
 
 function setSearchSummary(element, title, body) {
-  if (!element) {
-    return;
-  }
+  if (!element) return;
   if (!title) {
     element.hidden = true;
     element.innerHTML = "";
@@ -102,7 +90,7 @@ function showFallback(fallbackLink, anchorTarget) {
   if (fallbackLink) {
     fallbackLink.hidden = false;
     fallbackLink.focus({ preventScroll: true });
-    fallbackLink.onclick = function handleFallbackClick(event) {
+    fallbackLink.onclick = function (event) {
       event.preventDefault();
       if (anchorTarget && typeof anchorTarget.scrollIntoView === "function") {
         anchorTarget.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -124,19 +112,71 @@ function escapeHtml(value) {
   });
 }
 
-function renderSearchResults(container, results, onPick) {
-  if (!container) {
-    return;
+// Deterministic avatar color from name initial
+function avatarBg(name) {
+  const palette = ["#1a7a8f", "#3aaa7a", "#4a6572", "#155f70", "#2a9cb3"];
+  return palette[(String(name || " ").charCodeAt(0) || 0) % palette.length];
+}
+
+function initials(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/);
+  if (parts.length >= 2) {
+    return ((parts[0][0] || "") + (parts[parts.length - 1][0] || "")).toUpperCase();
   }
+  return (parts[0] || "").slice(0, 2).toUpperCase();
+}
+
+// Renders a directory-card-style preview for a result
+function renderListingCard(result, isSelected) {
+  const loc = [result.city, result.state].filter(Boolean).join(", ");
+  const bg = avatarBg(result.name || "");
+  const abbr = initials(result.name || "?");
+  const verified = result.license_verified_current;
+  const claimed = result.claim_status === "claimed";
+  const credBit = result.credentials
+    ? `, <span class="claim-result-cred">${escapeHtml(result.credentials)}</span>`
+    : "";
+  const emailBit = result.email_hint
+    ? `<span class="claim-result-email">Email on file: ${escapeHtml(result.email_hint)}</span>`
+    : "";
+  const badges = [
+    verified
+      ? `<span class="claim-result-badge claim-result-badge--verified">✓ CA license verified</span>`
+      : "",
+    claimed
+      ? `<span class="claim-result-badge claim-result-badge--claimed">Already claimed</span>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
+  return `
+    <div class="claim-result-card${isSelected ? " is-selected" : ""}">
+      <div class="claim-result-avatar" style="background:${bg}" aria-hidden="true">${escapeHtml(abbr)}</div>
+      <div class="claim-result-body">
+        <div class="claim-result-name">${escapeHtml(result.name || "")}${credBit}</div>
+        ${loc ? `<div class="claim-result-meta">${escapeHtml(loc)}</div>` : ""}
+        ${result.license_number ? `<div class="claim-result-meta">License ${escapeHtml(result.license_number)}</div>` : ""}
+        ${emailBit}
+        ${badges ? `<div class="claim-result-badges">${badges}</div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderSearchResults(container, results, onPick) {
+  if (!container) return;
   if (!results.length) {
     container.hidden = false;
     container.innerHTML =
       '<div class="quick-claim-search-state" data-search-state="no_results">' +
-      "<strong>No listing found yet</strong>" +
-      "<p>Try a last name or California license number. If we still do not have your public listing, you can create a new one instead.</p>" +
+      "<strong>No listing found for that search</strong>" +
+      "<p>Try a different last name or California license number.</p>" +
       '<div class="quick-claim-search-state-links">' +
-      '<a href="signup.html" data-claim-search-link="new_listing">Create a new listing →</a>' +
-      '<button type="button" data-claim-search-link="recovery">Need help finding the right listing?</button>' +
+      '<button type="button" data-claim-search-link="retry">Try a different search →</button>' +
+      '<a href="signup.html" data-claim-search-link="new_listing">Create a new listing instead →</a>' +
       "</div>" +
       "</div>";
     return;
@@ -144,64 +184,58 @@ function renderSearchResults(container, results, onPick) {
   container.hidden = false;
   const stateLabel =
     results.length === 1
-      ? '<div class="quick-claim-search-state" data-search-state="single_result"><strong>1 likely match</strong><p>Review the listing details below, then send the activation link.</p></div>'
-      : '<div class="quick-claim-search-state" data-search-state="multiple_results"><strong>Multiple close matches</strong><p>Choose the listing that matches your city, credentials, and license number. If you are unsure, use recovery help instead of guessing.</p><div class="quick-claim-search-state-links"><button type="button" data-claim-search-link="recovery">I’m not sure which listing is mine</button></div></div>';
+      ? '<div class="quick-claim-search-state" data-search-state="single_result"><strong>1 likely match</strong><p>Review the listing details, then send the activation link.</p></div>'
+      : `<div class="quick-claim-search-state" data-search-state="multiple_results"><strong>${results.length} close matches</strong><p>Choose the listing that matches your city, credentials, and license number.</p></div>`;
+
   container.innerHTML =
     stateLabel +
     results
       .map(function (result, index) {
-        const location = [result.city, result.state].filter(Boolean).join(", ");
-        const credentialBit = result.credentials ? " · " + escapeHtml(result.credentials) : "";
-        const licenseBit = result.license_number
-          ? " · License " + escapeHtml(result.license_number)
-          : "";
-        const emailBit = result.email_hint
-          ? " · Email: " + escapeHtml(result.email_hint)
-          : " · No email on file";
-        const claimedBadge =
-          result.claim_status === "claimed" ? " · <strong>Already claimed</strong>" : "";
         return (
-          '<button type="button" class="quick-claim-search-result" data-result-index="' +
-          index +
-          '">' +
-          '<span class="result-name">' +
-          escapeHtml(result.name) +
-          credentialBit +
-          "</span>" +
-          '<span class="result-meta">' +
-          escapeHtml(location) +
-          licenseBit +
-          emailBit +
-          claimedBadge +
-          "</span>" +
-          "</button>"
+          `<button type="button" class="claim-result-card" data-result-index="${index}" aria-label="Select listing for ${escapeHtml(result.name || "")}">` +
+          `<div class="claim-result-avatar" style="background:${avatarBg(result.name || "")}" aria-hidden="true">${escapeHtml(initials(result.name || "?"))}</div>` +
+          `<div class="claim-result-body">` +
+          `<div class="claim-result-name">${escapeHtml(result.name || "")}${result.credentials ? `, <span class="claim-result-cred">${escapeHtml(result.credentials)}</span>` : ""}</div>` +
+          ([result.city, result.state].filter(Boolean).length
+            ? `<div class="claim-result-meta">${escapeHtml([result.city, result.state].filter(Boolean).join(", "))}</div>`
+            : "") +
+          (result.license_number
+            ? `<div class="claim-result-meta">License ${escapeHtml(result.license_number)}</div>`
+            : "") +
+          (result.email_hint
+            ? `<span class="claim-result-email">Email on file: ${escapeHtml(result.email_hint)}</span>`
+            : "") +
+          `<div class="claim-result-badges">` +
+          (result.license_verified_current
+            ? `<span class="claim-result-badge claim-result-badge--verified">✓ CA license verified</span>`
+            : "") +
+          (result.claim_status === "claimed"
+            ? `<span class="claim-result-badge claim-result-badge--claimed">Already claimed</span>`
+            : "") +
+          `</div>` +
+          `</div>` +
+          `</button>`
         );
       })
       .join("");
 
-  container.querySelectorAll(".quick-claim-search-result").forEach(function (button) {
+  container.querySelectorAll(".claim-result-card[data-result-index]").forEach(function (button) {
     button.addEventListener("click", function () {
       const idx = Number(button.getAttribute("data-result-index"));
       const picked = results[idx];
-      if (picked) {
-        onPick(picked);
-      }
+      if (picked) onPick(picked);
     });
   });
 }
 
 function clearSearchResults(container) {
-  if (!container) {
-    return;
-  }
+  if (!container) return;
   container.hidden = true;
   container.innerHTML = "";
 }
 
 function setEmailHint(element, hint) {
-  if (!element) {
-    return;
-  }
+  if (!element) return;
   if (hint) {
     element.hidden = false;
     element.textContent = "On file: " + hint;
@@ -214,9 +248,7 @@ function setEmailHint(element, hint) {
 function debounce(fn, wait) {
   let timer = null;
   return function (...args) {
-    if (timer) {
-      window.clearTimeout(timer);
-    }
+    if (timer) window.clearTimeout(timer);
     timer = window.setTimeout(function () {
       timer = null;
       fn(...args);
@@ -224,109 +256,33 @@ function debounce(fn, wait) {
   };
 }
 
-async function showTrialOffer(slug, email) {
-  const offer = document.getElementById(TRIAL_OFFER_ID);
-  if (!offer || !slug) {
-    return;
-  }
-  offer.hidden = false;
-  offer.dataset.slug = slug;
-  offer.dataset.email = email || "";
+// Show resend element with 30-second countdown before enabling
+function startResendCountdown(resendEl, resendLink, seconds) {
+  if (!resendEl || !resendLink) return;
+  resendEl.hidden = false;
+  resendLink.setAttribute("aria-disabled", "true");
 
-  const foundingButton = document.getElementById(TRIAL_FOUNDING_ID);
-  const foundingNote = offer.querySelector(TRIAL_FOUNDING_NOTE_SELECTOR);
+  let remaining = seconds;
 
-  try {
-    const spots = await fetchFoundingSpotsRemaining();
-    if (!spots || !Number.isFinite(spots.remaining)) {
+  function tick() {
+    if (remaining <= 0) {
+      resendLink.removeAttribute("aria-disabled");
+      resendLink.textContent = "Resend now";
       return;
     }
-    if (spots.remaining <= 0) {
-      if (foundingButton) {
-        foundingButton.disabled = true;
-        const title = foundingButton.querySelector(".claim-trial-cta-title");
-        if (title) {
-          title.textContent = "Founding spots full";
-        }
-      }
-      if (foundingNote) {
-        foundingNote.textContent = "standard rate applies";
-      }
-    } else if (foundingNote) {
-      foundingNote.textContent =
-        spots.remaining + " of " + spots.cap + " spots left · rate locked 24 months";
-    }
-  } catch (_error) {
-    // leave defaults
+    const mm = String(Math.floor(remaining / 60)).padStart(1, "0");
+    const ss = String(remaining % 60).padStart(2, "0");
+    resendLink.textContent = `Resend in ${mm}:${ss}`;
+    remaining--;
+    window.setTimeout(tick, 1000);
   }
-}
-
-function hideTrialOffer() {
-  const offer = document.getElementById(TRIAL_OFFER_ID);
-  if (offer) {
-    offer.hidden = true;
-  }
-}
-
-function setTrialFeedback(message) {
-  const node = document.getElementById(TRIAL_FEEDBACK_ID);
-  if (node) {
-    node.textContent = message || "";
-  }
-}
-
-async function handleTrialCheckout(button) {
-  const offer = document.getElementById(TRIAL_OFFER_ID);
-  if (!offer) {
-    return;
-  }
-  const slug = offer.dataset.slug || "";
-  const email = offer.dataset.email || "";
-  const plan = button.getAttribute("data-plan") || "";
-  if (!slug || !plan) {
-    return;
-  }
-  setTrialFeedback("");
-  button.disabled = true;
-  const title = button.querySelector(".claim-trial-cta-title");
-  const originalTitle = title ? title.textContent : "";
-  if (title) {
-    title.textContent = "Opening secure checkout...";
-  }
-  try {
-    trackFunnelEvent("pricing_checkout_clicked", {
-      therapist_slug: slug,
-      plan,
-      tier: plan.indexOf("founding") === 0 ? "founding" : "regular",
-      source: "claim_success",
-    });
-    const result = await createStripeFeaturedCheckoutSession({
-      therapist_slug: slug,
-      email,
-      plan,
-      return_path: "/portal.html?slug=" + encodeURIComponent(slug),
-    });
-    if (result && result.url) {
-      window.location.href = result.url;
-      return;
-    }
-    throw new Error("No checkout URL returned.");
-  } catch (error) {
-    button.disabled = false;
-    if (title) {
-      title.textContent = originalTitle;
-    }
-    setTrialFeedback(
-      (error && error.message) || "We could not start checkout. Try again in a moment.",
-    );
-  }
+  tick();
 }
 
 function initQuickClaim() {
   const form = document.getElementById(FORM_ID);
-  if (!form) {
-    return;
-  }
+  if (!form) return;
+
   trackFunnelEvent("claim_page_viewed", {});
 
   const status = document.getElementById(STATUS_ID);
@@ -342,184 +298,69 @@ function initQuickClaim() {
   const emailInput = form.querySelector('input[name="email"]');
   const licenseInput = form.querySelector('input[name="license_number"]');
 
-  // Deep-link auto-pick. Two URL params trigger this:
-  //   ?slug=X  — signup search result click, directory "claim this
-  //              listing" banner, outbound email CTAs
-  //   ?confirm=X — legacy path from older therapist-profile links
-  //
-  // If either is present, fetch the therapist server-side and call
-  // applyPickedResult directly — skipping the search step entirely.
-  // Falls back silently to the search UI if the lookup fails.
-  async function autoPickFromQueryParam() {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const directSlug = (params.get("slug") || params.get("confirm") || "").trim();
-      if (!directSlug) {
-        return;
-      }
-      trackFunnelEvent("claim_deep_link_opened", { therapist_slug: directSlug });
-      const response = await lookupTherapistBySlug(directSlug);
-      const result = response && response.result;
-      if (result && result.slug) {
-        applyPickedResult(result);
-        return;
-      }
-      // Not found — leave the search UI free for the user to find themselves.
-      if (searchInput && !searchInput.value) {
-        const namePart = directSlug.split("-").filter(Boolean).slice(0, 2).join(" ");
-        if (namePart) {
-          searchInput.value = namePart;
-        }
-      }
-    } catch (_error) {
-      // Best-effort — fall back to search UI.
-    }
-  }
-
   const quickResend = document.getElementById(QUICK_RESEND_ID);
   const quickResendLink = document.getElementById(QUICK_RESEND_LINK_ID);
   const confirmResend = document.getElementById(CONFIRM_RESEND_ID);
   const confirmResendLink = document.getElementById(CONFIRM_RESEND_LINK_ID);
 
+  const confirmPanel = document.getElementById(CONFIRM_PANEL_ID);
+  const confirmEmail = document.getElementById(CONFIRM_EMAIL_ID);
+  const confirmSend = document.getElementById(CONFIRM_SEND_ID);
+  const confirmStatus = document.getElementById(CONFIRM_STATUS_ID);
+  const step2Area = document.getElementById(STEP2_AREA_ID);
+  const step1Summary = document.getElementById(STEP1_SUMMARY_ID);
+  const searchedTerm = document.getElementById(SEARCHED_TERM_ID);
+  const searchCard = document.getElementById(SEARCH_CARD_ID);
+  const selectedCard = document.getElementById(SELECTED_CARD_ID);
+
+  let pickedResult = null;
   let lastSend = null;
   let searchInputTracked = false;
 
-  function showResend(target) {
-    if (target === "quick" && quickResend) {
-      quickResend.hidden = false;
-      if (quickResendLink) {
-        quickResendLink.removeAttribute("aria-disabled");
-        quickResendLink.textContent = "resend the link";
-      }
-    }
-    if (target === "confirm" && confirmResend) {
-      confirmResend.hidden = false;
-      if (confirmResendLink) {
-        confirmResendLink.removeAttribute("aria-disabled");
-        confirmResendLink.textContent = "resend the link";
-      }
-    }
+  // Step management: transition from search (step 1) to confirm (step 2)
+  function enterStep2(searchQuery) {
+    if (searchCard) searchCard.hidden = true;
+    if (step1Summary) step1Summary.hidden = false;
+    if (searchedTerm) searchedTerm.textContent = searchQuery || "";
+    if (step2Area) step2Area.hidden = false;
   }
 
-  function hideResend() {
-    if (quickResend) quickResend.hidden = true;
-    if (confirmResend) confirmResend.hidden = true;
+  function enterStep1() {
+    if (searchCard) searchCard.hidden = false;
+    if (step1Summary) step1Summary.hidden = true;
+    if (step2Area) step2Area.hidden = true;
+    form.hidden = false;
+    pickedResult = null;
+    setStoredSelectedSlug("");
   }
 
-  async function replayLastSend() {
-    if (!lastSend) {
-      return;
-    }
-    const link = lastSend.target === "quick" ? quickResendLink : confirmResendLink;
-    if (link) {
-      link.setAttribute("aria-disabled", "true");
-      link.textContent = "sending...";
-    }
-    try {
-      if (lastSend.kind === "slug") {
-        await sendClaimLinkToSlug(lastSend.slug);
-      } else if (lastSend.kind === "quick") {
-        await requestTherapistQuickClaim(lastSend.payload);
-      }
-      if (link) {
-        link.textContent = "sent again — check your inbox";
-        window.setTimeout(function () {
-          link.removeAttribute("aria-disabled");
-          link.textContent = "resend the link";
-        }, 4000);
-      }
-    } catch (error) {
-      if (link) {
-        link.removeAttribute("aria-disabled");
-        link.textContent = "resend the link";
-      }
-      const target = lastSend.target === "quick" ? status : null;
-      if (target) {
-        setStatus(
-          target,
-          "warn",
-          "Couldn't resend.",
-          (error && error.message) || "Try again in a moment.",
-        );
-      }
-    }
-  }
-
-  if (quickResendLink) {
-    quickResendLink.addEventListener("click", function (event) {
-      event.preventDefault();
-      replayLastSend();
-    });
-  }
-  if (confirmResendLink) {
-    confirmResendLink.addEventListener("click", function (event) {
-      event.preventDefault();
-      replayLastSend();
-    });
-  }
-
-  const confirmPanel = document.getElementById(CONFIRM_PANEL_ID);
-  const confirmName = document.getElementById(CONFIRM_NAME_ID);
-  const confirmMeta = document.getElementById(CONFIRM_META_ID);
-  const confirmEmail = document.getElementById(CONFIRM_EMAIL_ID);
-  const confirmSend = document.getElementById(CONFIRM_SEND_ID);
-  const confirmTrial = document.getElementById(CONFIRM_TRIAL_ID);
-  const confirmChange = document.getElementById(CONFIRM_CHANGE_ID);
-  const confirmStatus = document.getElementById(CONFIRM_STATUS_ID);
-  const claimHelpRecovery = document.getElementById("claimHelpRecovery");
-  const claimSessionBanner = document.getElementById("claimSessionBanner");
-  const claimSessionBannerTitle = document.getElementById("claimSessionBannerTitle");
-  const claimSessionBannerBody = document.getElementById("claimSessionBannerBody");
-  const claimSessionBannerPrimary = document.getElementById("claimSessionBannerPrimary");
-  const claimSessionBannerSecondary = document.getElementById("claimSessionBannerSecondary");
-
-  let pickedResult = null;
-
-  function wireSearchStateActions() {
-    if (!searchResults) {
-      return;
-    }
-    searchResults.querySelectorAll("[data-claim-search-link]").forEach(function (node) {
-      node.addEventListener("click", function () {
-        const action = node.getAttribute("data-claim-search-link");
-        if (action === "recovery") {
-          openRecoveryModal(pickedResult);
-          trackFunnelEvent("claim_recovery_path_clicked", {
-            source: "search_state",
-            therapist_slug: pickedResult && pickedResult.slug,
-          });
-        } else if (action === "new_listing") {
-          trackFunnelEvent("claim_new_listing_clicked", { source: "search_state" });
-        }
-      });
-    });
-  }
-
+  // Thin session banner
   async function hydrateSessionState() {
     const therapistSessionToken = getTherapistSessionToken();
-    if (!therapistSessionToken || !claimSessionBanner) {
-      return false;
-    }
+    const thinBanner = document.getElementById(THIN_BANNER_ID);
+    if (!therapistSessionToken || !thinBanner) return false;
     try {
       const me = await fetchTherapistMe();
       const therapist = me && me.therapist;
-      if (!therapist || !therapist.slug) {
-        return false;
+      if (!therapist || !therapist.slug) return false;
+
+      thinBanner.hidden = false;
+      const textEl = document.getElementById(THIN_BANNER_TEXT_ID);
+      if (textEl) textEl.textContent = `Signed in as ${therapist.name || "your listing"}.`;
+
+      const dashEl = document.getElementById(THIN_BANNER_DASHBOARD_ID);
+      if (dashEl) dashEl.href = "portal.html?slug=" + encodeURIComponent(therapist.slug);
+
+      const claimEl = document.getElementById(THIN_BANNER_CLAIM_ID);
+      if (claimEl) claimEl.href = "claim.html";
+
+      const dismissBtn = document.getElementById(THIN_BANNER_DISMISS_ID);
+      if (dismissBtn) {
+        dismissBtn.addEventListener("click", function () {
+          thinBanner.hidden = true;
+        });
       }
-      claimSessionBanner.hidden = false;
-      if (claimSessionBannerTitle) {
-        claimSessionBannerTitle.textContent = "You’re already signed in to your claimed listing.";
-      }
-      if (claimSessionBannerBody) {
-        claimSessionBannerBody.textContent =
-          "Go straight to your dashboard, or claim a different listing only if you need to help another profile get routed correctly.";
-      }
-      if (claimSessionBannerPrimary) {
-        claimSessionBannerPrimary.href = "portal.html?slug=" + encodeURIComponent(therapist.slug);
-      }
-      if (claimSessionBannerSecondary) {
-        claimSessionBannerSecondary.href = "claim.html?slug=" + encodeURIComponent(therapist.slug);
-      }
+
       trackFunnelEvent("claim_existing_session_detected", {
         therapist_slug: therapist.slug,
         claim_status: therapist.claim_status || "",
@@ -531,9 +372,7 @@ function initQuickClaim() {
   }
 
   function setConfirmStatus(tone, message) {
-    if (!confirmStatus) {
-      return;
-    }
+    if (!confirmStatus) return;
     if (!message) {
       confirmStatus.hidden = true;
       confirmStatus.innerHTML = "";
@@ -545,22 +384,17 @@ function initQuickClaim() {
     confirmStatus.innerHTML = message;
   }
 
-  // Trust signals — rendered above the "We'll email your activation
-  // link to X" line in the confirm panel. Currently just DCA license
-  // verification; can extend to "X of 50 founding spots left" or
-  // "claimed by N this week" later without changing the call site.
   function renderTrustSignals(result) {
     const signals = document.getElementById("claimTrustSignals");
-    if (!signals) {
-      return;
-    }
+    if (!signals) return;
     const items = [];
     if (result && result.license_verified_current) {
       const licType = (result.credentials || "").trim();
-      const licLabel = licType
-        ? `CA ${escapeHtml(licType)} license verified by the Board`
-        : "CA license verified by the Board";
-      items.push(licLabel);
+      items.push(
+        licType
+          ? `CA ${escapeHtml(licType)} license verified by the Board`
+          : "CA license verified by the Board",
+      );
     }
     if (!items.length) {
       signals.hidden = true;
@@ -573,67 +407,44 @@ function initQuickClaim() {
 
   function showConfirmPanel(result) {
     pickedResult = result;
-    if (!confirmPanel) {
-      return;
-    }
+    if (!confirmPanel) return;
 
-    // Already-claimed profiles get a re-entry skin: different heading,
-    // different primary CTA, no trial offer (they can't restart one),
-    // and a "Not you?" dispute link. Everything else stays wired so
-    // the same endpoints work for both new claims and re-entries.
     const isAlreadyClaimed = result && result.claim_status === "claimed";
 
-    if (confirmName) {
-      const credentialBit = result.credentials ? ", " + result.credentials : "";
-      confirmName.textContent = (result.name || "") + credentialBit;
-    }
-    if (confirmMeta) {
-      const location = [result.city, result.state].filter(Boolean).join(", ");
-      const licenseBit = result.license_number ? " · License " + result.license_number : "";
-      confirmMeta.textContent = location + licenseBit;
+    // Render selected listing card preview
+    if (selectedCard) {
+      selectedCard.innerHTML = renderListingCard(result, true);
     }
 
     const confirmLabel = document.getElementById("claimConfirmLabel");
     const confirmDestination = document.getElementById("claimConfirmDestination");
     const trialSubhint = document.getElementById("claimTrialSubhint");
     const disputeWrap = document.getElementById("claimConfirmDisputeWrap");
+    const recoveryWrap = document.getElementById("claimConfirmRecoveryWrap");
+    const recoveryLink = document.getElementById("claimConfirmRequestRecovery");
 
     if (confirmLabel) {
       confirmLabel.textContent = isAlreadyClaimed
         ? "This listing is already claimed"
         : "Selected listing";
     }
+
+    const rawHint = result.email_hint != null ? String(result.email_hint).trim() : "";
+
     if (confirmEmail) {
-      const rawHint =
-        typeof result.email_hint === "string"
-          ? result.email_hint.trim()
-          : result.email_hint
-            ? String(result.email_hint).trim()
-            : "";
       confirmEmail.textContent = rawHint || "the email on your listing";
     }
+
     if (confirmDestination) {
-      // Re-frame the destination copy for re-entry. The <strong
-      // id="claimConfirmEmail"> child is replaced on each render, so
-      // rebuild the sentence and re-insert the hint span.
-      const hintText = confirmEmail ? confirmEmail.textContent : "the email on your listing";
+      const hintText = rawHint || "the email on your listing";
       if (!result.has_email) {
-        // No email on file → email-based activation is impossible.
-        // Route the therapist through identity verification instead of
-        // promising a link we can't send.
         confirmDestination.innerHTML =
           "No email is on file for this listing, so we can't send an activation link. " +
           "Verify your identity against your CA license to claim it.";
       } else if (isAlreadyClaimed) {
-        confirmDestination.innerHTML =
-          "If that's you, we'll send a fresh sign-in link to <strong id=\"claimConfirmEmail\">" +
-          escapeHtml(hintText) +
-          "</strong> so you can get back into your portal.";
+        confirmDestination.innerHTML = `If that's you, we'll send a fresh sign-in link to <strong id="claimConfirmEmail">${escapeHtml(hintText)}</strong> so you can get back into your portal.`;
       } else {
-        confirmDestination.innerHTML =
-          'We\'ll email your activation link to <strong id="claimConfirmEmail">' +
-          escapeHtml(hintText) +
-          "</strong>.";
+        confirmDestination.innerHTML = `We'll send your activation link to <strong id="claimConfirmEmail">${escapeHtml(hintText)}</strong>.`;
       }
     }
 
@@ -650,60 +461,59 @@ function initQuickClaim() {
       confirmSend.disabled = false;
       confirmSend.removeAttribute("aria-disabled");
     }
-    if (confirmTrial) {
-      confirmTrial.hidden = true;
-    }
+
     if (trialSubhint) {
       trialSubhint.hidden = false;
       if (!result.has_email) {
         trialSubhint.textContent =
-          "We can’t send a link until identity is verified because no email is on file for this listing.";
+          "We can't send a link until identity is verified because no email is on file.";
       } else if (isAlreadyClaimed) {
-        trialSubhint.textContent =
-          "This sends a fresh sign-in link only. Billing does not start from this step.";
+        trialSubhint.textContent = "This sends a fresh sign-in link only.";
       } else {
         trialSubhint.textContent =
-          "This step does not start billing. If an optional trial is available, you’ll see it after activation.";
+          "This step is free. Paid features appear only after activation, if available.";
       }
     }
-    const recoveryLink = document.getElementById("claimConfirmRequestRecovery");
-    if (recoveryLink && recoveryLink.parentElement) {
-      // Hide the tertiary recovery link when it would duplicate the
-      // primary CTA (no-email case already routes through recovery).
-      recoveryLink.parentElement.hidden = !result.has_email;
+
+    // Recovery link: update href with pre-fill params, hide if no-email (recovery is the primary path)
+    if (recoveryLink && result.has_email) {
+      try {
+        const url = new URL("recover.html", window.location.href);
+        if (result.name) url.searchParams.set("name", result.name);
+        if (result.license_number) url.searchParams.set("license", result.license_number);
+        recoveryLink.href = url.toString();
+      } catch (_e) {
+        recoveryLink.href = "recover.html";
+      }
     }
+    if (recoveryWrap) {
+      recoveryWrap.hidden = !result.has_email;
+    }
+
     if (disputeWrap) {
-      // Dispute link surfaces only in re-entry mode so non-owners have
-      // a route and legitimate owners aren't distracted by it.
       disputeWrap.hidden = !isAlreadyClaimed;
     }
 
     setConfirmStatus("", "");
-    confirmPanel.hidden = false;
+    if (confirmResend) confirmResend.hidden = true;
+
+    // Transition to step 2
+    enterStep2(searchInput ? searchInput.value : "");
     form.hidden = true;
-    setSearchSummary(
-      searchSummary,
-      "Listing selected",
-      "Confirm the details below, then send the activation link to the email already on file.",
-    );
   }
 
   function hideConfirmPanel() {
     if (confirmPanel) {
-      confirmPanel.hidden = true;
       setConfirmStatus("", "");
     }
-    form.hidden = false;
+    if (confirmResend) confirmResend.hidden = true;
+    enterStep1();
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    }
   }
 
-  // Updates the fallback form's email-section copy based on why the
-  // user is seeing the form:
-  //   "on_file_missing" → no email on file at all for this listing
-  //   "default"         → generic fallback (license-based quick claim)
-  //
-  // The "use_different" mode was removed when the self-service
-  // different-email path was killed — all email changes now flow
-  // through the admin-reviewed recovery queue (see openRecoveryModal).
   function setFormMode(mode, result) {
     const banner = document.getElementById("quickClaimFormBanner");
     const emailLabel = document.getElementById("quickClaimEmailLabel");
@@ -723,165 +533,81 @@ function initQuickClaim() {
     }
   }
 
-  // Pre-fill + open the recovery modal when the user clicks
-  // "Can't access the email on file? Request account recovery".
-  // Uses the already-picked listing (pickedResult) to seed name +
-  // license so the therapist only has to type their new email + reason.
-  function openRecoveryModal(fromResult) {
-    const modal = document.getElementById("claimRecoveryModal");
-    if (!modal) return;
-    const name = fromResult && fromResult.name ? String(fromResult.name) : "";
-    const license =
-      fromResult && fromResult.license_number ? String(fromResult.license_number) : "";
-    const nameField = document.getElementById("claimRecoveryFullName");
-    const licenseField = document.getElementById("claimRecoveryLicense");
-    const statusBox = document.getElementById("claimRecoveryStatus");
-    if (nameField) nameField.value = name;
-    if (licenseField) licenseField.value = license;
-    if (statusBox) {
-      statusBox.hidden = true;
-      statusBox.textContent = "";
-    }
-    modal.hidden = false;
-    // Focus the first empty field so keyboard users can start typing.
-    const firstEmpty = modal.querySelector("input:not([value])");
-    const requestedEmailField = document.getElementById("claimRecoveryRequestedEmail");
-    (firstEmpty || requestedEmailField || nameField || licenseField || null)?.focus();
-    trackFunnelEvent("claim_recovery_opened", {
-      therapist_slug: fromResult && fromResult.slug,
-    });
-  }
-
-  function closeRecoveryModal() {
-    const modal = document.getElementById("claimRecoveryModal");
-    if (modal) modal.hidden = true;
-  }
-
-  function initRecoveryModal() {
-    const modal = document.getElementById("claimRecoveryModal");
-    if (!modal) return;
-    const form = document.getElementById("claimRecoveryForm");
-    const submit = document.getElementById("claimRecoverySubmit");
-    const statusBox = document.getElementById("claimRecoveryStatus");
-    const closeBtn = document.getElementById("claimRecoveryClose");
-    const backdrop = document.getElementById("claimRecoveryBackdrop");
-
-    if (closeBtn) closeBtn.addEventListener("click", closeRecoveryModal);
-    if (backdrop) backdrop.addEventListener("click", closeRecoveryModal);
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && !modal.hidden) closeRecoveryModal();
-    });
-
-    if (!form) return;
-    form.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      const formData = new FormData(form);
-      const payload = {
-        full_name: String(formData.get("full_name") || "").trim(),
-        license_number: String(formData.get("license_number") || "").trim(),
-        requested_email: String(formData.get("requested_email") || "").trim(),
-        prior_email: String(formData.get("prior_email") || "").trim(),
-      };
-      if (!payload.full_name || !payload.license_number || !payload.requested_email) {
-        if (statusBox) {
-          statusBox.hidden = false;
-          statusBox.setAttribute("data-tone", "warn");
-          statusBox.textContent = "Name, license, and recovery email are all required.";
-        }
-        return;
-      }
-      if (submit) {
-        submit.disabled = true;
-        submit.textContent = "Sending...";
-      }
-      try {
-        const result = await requestAccountRecovery(payload);
-        if (statusBox) {
-          statusBox.hidden = false;
-          statusBox.setAttribute("data-tone", "success");
-          statusBox.innerHTML =
-            "<strong>Recovery request received.</strong> Check your inbox for a confirmation. We’ll review it and email next steps within one business day.";
-        }
-        trackFunnelEvent("claim_recovery_submitted", {
-          therapist_slug: pickedResult && pickedResult.slug,
-          id: result && result.id,
-        });
-        form.reset();
-        if (submit) {
-          submit.textContent = "Request sent";
-        }
-      } catch (error) {
-        if (statusBox) {
-          statusBox.hidden = false;
-          statusBox.setAttribute("data-tone", "warn");
-          statusBox.textContent =
-            (error && error.message) ||
-            "We couldn't submit your request. Please try again or email us directly.";
-        }
-        if (submit) {
-          submit.disabled = false;
-          submit.textContent = "Send recovery request";
-        }
-      }
-    });
-  }
-
   function applyPickedResult(result) {
-    trackFunnelEvent("claim_listing_picked", {
+    trackFunnelEvent("claim_listing_selected", {
       therapist_slug: result && result.slug,
       has_email: Boolean(result && result.has_email),
       claim_status: (result && result.claim_status) || "unclaimed",
     });
     clearSearchResults(searchResults);
     setStoredSelectedSlug(result && result.slug);
-    if (searchInput) {
-      searchInput.value = result.name || "";
-    }
-    if (fullNameInput) {
-      fullNameInput.value = result.name || "";
-    }
-    if (licenseInput) {
-      licenseInput.value = result.license_number || "";
-    }
+    if (searchInput) searchInput.value = result.name || "";
+    if (fullNameInput) fullNameInput.value = result.name || "";
+    if (licenseInput) licenseInput.value = result.license_number || "";
     setEmailHint(emailHint, result.email_hint || "");
+
     if (result.has_email && confirmPanel) {
       setFormMode("default", result);
       showConfirmPanel(result);
     } else {
-      // No on-file email — show the form with a clear banner so the
-      // user understands why they're being asked to type an email.
       setFormMode("on_file_missing", result);
-      hideConfirmPanel();
-      if (emailInput) {
-        emailInput.focus();
+      form.hidden = false;
+      step2Area.hidden = true;
+      if (searchCard) searchCard.hidden = true;
+      if (step1Summary) step1Summary.hidden = false;
+      if (searchedTerm) searchedTerm.textContent = searchInput ? searchInput.value : "";
+      if (emailInput) emailInput.focus();
+    }
+  }
+
+  // Deep-link auto-pick from ?slug=X or ?confirm=X
+  async function autoPickFromQueryParam() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const directSlug = (params.get("slug") || params.get("confirm") || "").trim();
+      if (!directSlug) return;
+      trackFunnelEvent("claim_deep_link_opened", { therapist_slug: directSlug });
+      const response = await lookupTherapistBySlug(directSlug);
+      const result = response && response.result;
+      if (result && result.slug) {
+        applyPickedResult(result);
+        return;
       }
-      setSearchSummary(
-        searchSummary,
-        "Listing selected",
-        "There is no email on file for this listing, so we’ll guide you through identity verification instead.",
-      );
+      if (searchInput && !searchInput.value) {
+        const namePart = directSlug.split("-").filter(Boolean).slice(0, 2).join(" ");
+        if (namePart) searchInput.value = namePart;
+      }
+    } catch (_error) {
+      // Fall back to search UI silently
     }
   }
 
   async function handleConfirmSend(event) {
-    if (event && typeof event.preventDefault === "function") {
-      event.preventDefault();
-    }
-    if (!pickedResult || !pickedResult.slug || !confirmSend) {
-      return;
-    }
-    // No email on file → can't send an activation link. Route to the
-    // identity-verification flow (recovery queue) as the primary path.
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    if (!pickedResult || !pickedResult.slug || !confirmSend) return;
     if (!pickedResult.has_email) {
-      openRecoveryModal(pickedResult);
+      // Navigate to recover page pre-filled
+      try {
+        const url = new URL("recover.html", window.location.href);
+        if (pickedResult.name) url.searchParams.set("name", pickedResult.name);
+        if (pickedResult.license_number)
+          url.searchParams.set("license", pickedResult.license_number);
+        window.location.href = url.toString();
+      } catch (_e) {
+        window.location.href = "recover.html";
+      }
       return;
     }
+
     const originalLabel = confirmSend.textContent;
     confirmSend.textContent = "Sending...";
     confirmSend.disabled = true;
     confirmSend.setAttribute("aria-disabled", "true");
     setConfirmStatus("", "");
-    hideResend();
+    if (confirmResend) confirmResend.hidden = true;
+
+    trackFunnelEvent("claim_send_link_clicked", { therapist_slug: pickedResult.slug });
+
     try {
       const result = await sendClaimLinkToSlug(pickedResult.slug);
       const hint = (result && result.email_hint) || pickedResult.email_hint || "your inbox";
@@ -889,19 +615,14 @@ function initQuickClaim() {
         "success",
         "<strong>Activation link sent.</strong> Check " +
           escapeHtml(hint) +
-          " for your one-time sign-in link. It usually arrives within 1 to 2 minutes. Open it on this device to finish claiming, then choose free access or any optional trial from the next step.",
+          " for your one-time link. It expires in 30 minutes — open it on this device to finish claiming.",
       );
-      trackFunnelEvent("quick_claim_sent", {
+      trackFunnelEvent("claim_link_sent", {
         therapist_slug: pickedResult.slug,
         method: "slug_picked",
       });
       lastSend = { kind: "slug", slug: pickedResult.slug, target: "confirm" };
-      showResend("confirm");
-      setSearchSummary(
-        searchSummary,
-        "Activation link sent",
-        "Finish claiming from the email we just sent. After activation, free access stays available and any optional trial choice happens separately.",
-      );
+      startResendCountdown(confirmResend, confirmResendLink, 30);
     } catch (error) {
       const reason = (error && error.payload && error.payload.reason) || "";
       confirmSend.disabled = false;
@@ -913,14 +634,12 @@ function initQuickClaim() {
           "No email is on file for this profile. Use the form below to verify ownership another way.",
         );
         hideConfirmPanel();
-        if (emailInput) {
-          emailInput.focus();
-        }
+        if (emailInput) emailInput.focus();
       } else if (reason === "rate_limited") {
         setConfirmStatus(
           "warn",
-          "You’ve requested a few links already.",
-          "Please wait a little and try again. This limit protects listing access without changing your claim status.",
+          "You've requested a few links already.",
+          "Please wait a little and try again.",
         );
       } else {
         setConfirmStatus(
@@ -935,128 +654,108 @@ function initQuickClaim() {
     }
   }
 
-  // One-click trial path: POST /portal/claim-trial fires both the
-  // activation magic link AND creates a Stripe Checkout session. On
-  // success we redirect directly to Stripe. The user returns to the
-  // portal post-payment with the activation email waiting.
-  async function handleStartTrial() {
-    if (!pickedResult || !pickedResult.slug || !confirmTrial) {
-      return;
+  async function replayLastSend() {
+    if (!lastSend) return;
+    const link = lastSend.target === "confirm" ? confirmResendLink : quickResendLink;
+    if (link) {
+      link.setAttribute("aria-disabled", "true");
+      link.textContent = "sending...";
     }
-    if (confirmTrial.disabled) {
-      return;
-    }
-    const originalLabel = confirmTrial.textContent;
-    confirmTrial.disabled = true;
-    confirmTrial.textContent = "Opening secure checkout...";
-    setConfirmStatus("", "");
     try {
-      trackFunnelEvent("claim_trial_clicked", {
-        therapist_slug: pickedResult.slug,
-      });
-      const result = await startClaimTrial({ slug: pickedResult.slug });
-      if (result && result.stripe_url) {
-        trackFunnelEvent("claim_trial_checkout_opened", {
-          therapist_slug: result.therapist_slug || pickedResult.slug,
-        });
-        window.location.href = result.stripe_url;
-        return;
+      if (lastSend.kind === "slug") {
+        await sendClaimLinkToSlug(lastSend.slug);
+      } else if (lastSend.kind === "quick") {
+        await requestTherapistQuickClaim(lastSend.payload);
       }
-      throw new Error("No checkout URL returned.");
+      trackFunnelEvent("claim_resend_clicked", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
+      if (link) {
+        link.textContent = "sent — check your inbox";
+        window.setTimeout(function () {
+          link.removeAttribute("aria-disabled");
+          link.textContent = "Resend now";
+        }, 4000);
+      }
     } catch (error) {
-      const reason = (error && error.payload && error.payload.reason) || "";
-      confirmTrial.disabled = false;
-      confirmTrial.textContent = originalLabel;
-      if (reason === "no_email_on_file") {
-        setConfirmStatus(
-          "warn",
-          "No email is on file for this profile. Use the form below to claim with a different email.",
-        );
-      } else {
-        setConfirmStatus(
-          "warn",
-          (error && error.message) || "We couldn't start your trial. Try again in a moment.",
-        );
+      if (link) {
+        link.removeAttribute("aria-disabled");
+        link.textContent = "Resend now";
       }
     }
   }
 
-  if (confirmTrial) {
-    confirmTrial.addEventListener("click", handleStartTrial);
+  if (quickResendLink) {
+    quickResendLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      replayLastSend();
+    });
   }
-  if (confirmSend) {
-    confirmSend.addEventListener("click", handleConfirmSend);
+  if (confirmResendLink) {
+    confirmResendLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      replayLastSend();
+    });
   }
+
+  if (confirmSend) confirmSend.addEventListener("click", handleConfirmSend);
+
+  // "change" link in step 1 collapsed summary
+  const confirmChange = document.getElementById(CONFIRM_CHANGE_ID);
   if (confirmChange) {
     confirmChange.addEventListener("click", function (event) {
       event.preventDefault();
+      trackFunnelEvent("claim_listing_changed", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
       hideConfirmPanel();
       setSearchSummary(
         searchSummary,
         "Search again",
         "Choose the listing that matches your city, credentials, and license number.",
       );
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-      }
     });
   }
+
   const disputeLink = document.getElementById("claimConfirmDispute");
   if (disputeLink) {
     disputeLink.addEventListener("click", function () {
-      // Don't preventDefault — the mailto: should actually open. Just
-      // log the event so admin can see how often non-owners bounce
-      // into this flow.
-      trackFunnelEvent("claim_dispute_clicked", {
-        therapist_slug: pickedResult && pickedResult.slug,
-      });
-    });
-  }
-  // "Request account recovery" replaces the old "Use a different email"
-  // path. Opens a modal that files a therapistRecoveryRequest doc for
-  // admin to review manually. We removed the self-service "type any
-  // email" path because it had a social-engineering hole — anyone
-  // controlling a domain listed on a therapist profile could take it
-  // over. All email changes now flow through human verification.
-  const requestRecoveryLink = document.getElementById("claimConfirmRequestRecovery");
-  if (requestRecoveryLink) {
-    requestRecoveryLink.addEventListener("click", function (event) {
-      event.preventDefault();
-      openRecoveryModal(pickedResult);
-    });
-  }
-  if (claimHelpRecovery) {
-    claimHelpRecovery.addEventListener("click", function () {
-      openRecoveryModal(pickedResult);
-      trackFunnelEvent("claim_recovery_path_clicked", {
-        source: "secondary_help",
+      trackFunnelEvent("claim_mistaken_report_clicked", {
         therapist_slug: pickedResult && pickedResult.slug,
       });
     });
   }
 
-  const heroRemovalLink = document.querySelector(".claim-hero-removal-link a");
-  if (heroRemovalLink) {
-    heroRemovalLink.addEventListener("click", function () {
-      trackFunnelEvent("claim_remove_link_clicked", { source: "hero" });
-    });
-  }
-  const removalDetails = document.querySelector(".claim-remove-details");
-  if (removalDetails) {
-    removalDetails.addEventListener("toggle", function () {
-      if (removalDetails.open) {
-        trackFunnelEvent("listing_removal_section_opened", {});
-      }
+  const recoveryLink = document.getElementById("claimConfirmRequestRecovery");
+  if (recoveryLink) {
+    recoveryLink.addEventListener("click", function () {
+      trackFunnelEvent("claim_recovery_link_clicked", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
     });
   }
 
-  initRecoveryModal();
+  // Wire up no-results "try different search" button
+  function wireSearchStateActions() {
+    if (!searchResults) return;
+    searchResults.querySelectorAll("[data-claim-search-link]").forEach(function (node) {
+      node.addEventListener("click", function () {
+        const action = node.getAttribute("data-claim-search-link");
+        if (action === "retry") {
+          clearSearchResults(searchResults);
+          if (searchInput) {
+            searchInput.value = "";
+            searchInput.focus();
+          }
+        } else if (action === "new_listing") {
+          trackFunnelEvent("claim_new_listing_clicked", { source: "no_results" });
+        }
+      });
+    });
+  }
 
   const runSearch = debounce(async function (query) {
-    if (!searchResults) {
-      return;
-    }
+    if (!searchResults) return;
     const trimmed = (query || "").trim();
     if (trimmed.length < 2) {
       clearSearchResults(searchResults);
@@ -1064,7 +763,7 @@ function initQuickClaim() {
         setSearchSummary(
           searchSummary,
           "Start with a last name or license number",
-          "We’ll show matching public listings if we have one.",
+          "We'll show matching public listings if we have one.",
         );
       }
       return;
@@ -1076,37 +775,35 @@ function initQuickClaim() {
       renderSearchResults(searchResults, results, applyPickedResult);
       wireSearchStateActions();
       if (!results.length) {
-        trackFunnelEvent("claim_no_result_state_shown", { query_length: trimmed.length });
+        trackFunnelEvent("claim_search_no_results", { query_length: trimmed.length });
         setSearchSummary(
           searchSummary,
-          "No listing found yet",
-          "If we still don’t have your listing after another search, create a new one instead.",
+          "No listing found",
+          "Try a different last name or license number, or create a new listing.",
         );
       } else if (results.length === 1) {
         setSearchSummary(
           searchSummary,
           "1 likely match",
-          "Review the listing details below and continue only if they clearly match your practice.",
+          "Review the listing details and continue only if they clearly match your practice.",
         );
       } else {
-        trackFunnelEvent("claim_multiple_results_state_shown", {
-          results_count: results.length,
-        });
         setSearchSummary(
           searchSummary,
           results.length + " close matches",
-          "Choose the listing that matches your city, credentials, and license number. If you’re unsure, use recovery help instead of guessing.",
+          "Choose the listing that matches your city, credentials, and license number.",
         );
       }
-      trackFunnelEvent("claim_search_results_shown", {
+      trackFunnelEvent("claim_search_submitted", {
         results_count: results.length,
+        query_length: trimmed.length,
       });
     } catch (_error) {
       clearSearchResults(searchResults);
       setSearchSummary(
         searchSummary,
         "Search unavailable right now",
-        "Try again in a moment. If the problem continues, you can still use the recovery or new-listing paths below.",
+        "Try again in a moment, or create a new listing if you're not yet listed.",
       );
     }
   }, 250);
@@ -1115,7 +812,6 @@ function initQuickClaim() {
     searchInput.addEventListener("input", function () {
       if (!searchInputTracked && searchInput.value.trim()) {
         searchInputTracked = true;
-        trackFunnelEvent("claim_search_input_interacted", {});
       }
       runSearch(searchInput.value);
     });
@@ -1129,7 +825,7 @@ function initQuickClaim() {
   setSearchSummary(
     searchSummary,
     "Start with a last name or license number",
-    "We’ll show matching public listings if we have one.",
+    "We'll show matching public listings if we have one.",
   );
 
   hydrateSessionState();
@@ -1152,11 +848,12 @@ function initQuickClaim() {
 
   autoPickFromQueryParam();
 
+  // Quick claim fallback form (listings with no email on file)
   form.addEventListener("submit", async function handleSubmit(event) {
     event.preventDefault();
     clearStatus(status);
     hideFallback(fallbackLink);
-    hideResend();
+    if (quickResend) quickResend.hidden = true;
 
     const formData = new FormData(form);
     const payload = {
@@ -1192,7 +889,7 @@ function initQuickClaim() {
           status,
           "info",
           "Sent to manual review.",
-          "We couldn't auto-verify your email against the listed practice website, so a human will check it. Watch for a confirmation email — we'll email a decision within one business day.",
+          "We couldn't auto-verify your email against the listed practice website, so a human will check it. Watch for a confirmation email within one business day.",
         );
         trackFunnelEvent("claim_recovery_submitted", {
           therapist_slug: (result && result.therapist_slug) || "",
@@ -1204,27 +901,21 @@ function initQuickClaim() {
           "success",
           "Check your inbox.",
           verifiedByDomain
-            ? "Your email matched your practice website domain, so we verified ownership automatically and sent a one-time sign-in link. Billing does not start from this step."
-            : "We sent a one-time link that signs you into your profile for the next 24 hours. Billing does not start from this step.",
+            ? "Your email matched your practice website domain. We sent a one-time sign-in link."
+            : "We sent a one-time link that signs you into your profile.",
         );
+        trackFunnelEvent("claim_link_sent", {
+          therapist_slug: (result && result.therapist_slug) || "",
+          method: "quick_claim_form",
+        });
       }
       lastSend = { kind: "quick", payload: { ...payload }, target: "quick" };
       if (!manualReview) {
-        showResend("quick");
+        startResendCountdown(quickResend, quickResendLink, 30);
       }
-      hideTrialOffer();
-      setSearchSummary(
-        searchSummary,
-        manualReview ? "Recovery-style review started" : "Activation link sent",
-        manualReview
-          ? "We could not auto-verify this route, so a human will review it and email next steps."
-          : "Finish claiming from the email we just sent. If paid features are available, they appear only after activation.",
-      );
       form.reset();
       setEmailHint(emailHint, "");
-      if (searchInput) {
-        searchInput.value = "";
-      }
+      if (searchInput) searchInput.value = "";
       clearSearchResults(searchResults);
     } catch (error) {
       const errorPayload = (error && error.payload) || {};
@@ -1235,16 +926,16 @@ function initQuickClaim() {
           status,
           "info",
           "We don't see a listing for that license yet.",
-          "Try the search above to look by name, or create a new listing below.",
+          "Try the search above, or create a new listing.",
         );
         showFallback(fallbackLink, anchorTarget);
-        trackFunnelEvent("claim_no_result_state_shown", { source: "manual_form" });
+        trackFunnelEvent("claim_search_no_results", { source: "manual_form" });
       } else if (reason === "name_mismatch") {
         setStatus(
           status,
           "warn",
           "The name doesn't match that license.",
-          "Double-check spelling, drop credentials (e.g. “, LMFT”), or use the search above to confirm the listing is yours.",
+          "Double-check spelling, drop credentials (e.g. “LMFT”), or use the search above.",
         );
       } else if (reason === "email_mismatch") {
         const hint = errorPayload.email_hint || "";
@@ -1256,15 +947,15 @@ function initQuickClaim() {
           hint
             ? "We have <strong>" +
                 escapeHtml(hint) +
-                '</strong> on file. Use that email, or <a href="mailto:hello@bipolartherapyhub.com?subject=Need%20to%20update%20my%20claim%20email">email us</a> if you no longer have access.'
+                "</strong> on file. Use that email, or use account recovery if you no longer have access."
             : "Contact us if you no longer have access to the email on file.",
         );
       } else if (reason === "rate_limited") {
         setStatus(
           status,
           "warn",
-          "You’ve requested a few links already.",
-          "Please wait a little and try again. This protects listing access without changing your claim progress.",
+          "You've requested a few links already.",
+          "Please wait a little and try again.",
         );
       } else {
         setStatus(status, "warn", "We couldn't send the link.", message);
@@ -1278,38 +969,6 @@ function initQuickClaim() {
       }
     }
   });
-
-  [TRIAL_FOUNDING_ID, TRIAL_STANDARD_ID].forEach(function (id) {
-    const button = document.getElementById(id);
-    if (button) {
-      button.addEventListener("click", function () {
-        handleTrialCheckout(button);
-      });
-    }
-  });
-
-  const trialOfferEl = document.getElementById(TRIAL_OFFER_ID);
-  if (trialOfferEl) {
-    trialOfferEl.addEventListener("click", function (event) {
-      const button = event.target.closest(".claim-trial-cta[data-plan]");
-      if (!button || !trialOfferEl.contains(button)) {
-        return;
-      }
-      if (button.id === TRIAL_FOUNDING_ID || button.id === TRIAL_STANDARD_ID) {
-        return;
-      }
-      event.preventDefault();
-      handleTrialCheckout(button);
-    });
-  }
-
-  const dismissLink = document.getElementById(TRIAL_DISMISS_ID);
-  if (dismissLink) {
-    dismissLink.addEventListener("click", function (event) {
-      event.preventDefault();
-      hideTrialOffer();
-    });
-  }
 }
 
 if (document.readyState === "loading") {
