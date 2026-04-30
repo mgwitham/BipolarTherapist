@@ -3288,6 +3288,12 @@ function renderProfile(t, therapistDirectory) {
         "</div></div>"
       : "";
 
+  var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
+  var backNav =
+    backNavRef === "match"
+      ? { href: "match.html", label: "← Back to your matches" }
+      : { href: "directory.html", label: "← Back to directory" };
+
   var html =
     '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
@@ -3320,6 +3326,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
+    '<div class="profile-hero-right">' +
     '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
     (t.phone
@@ -3373,6 +3380,8 @@ function renderProfile(t, therapistDirectory) {
         "</div>"
       : "") +
     "</div>" +
+    buildFAQSection(t) +
+    "</div>" +
     "</div>" +
     (hasPaidSubscription
       ? // Paid presentation: full bio always visible, no toggle. Wrapper
@@ -3405,15 +3414,12 @@ function renderProfile(t, therapistDirectory) {
     "</div></div></div></div>" +
     "</div>" +
     buildTrustBar(t) +
-    sectionNavHtml +
-    '<div class="profile-body">' +
-    "<div>" +
-    buildFAQSection(t) +
-    "</div>" +
-    '<div class="profile-sidebar-stack">' +
-    "</div>" +
     '<div class="profile-foot-actions">' +
-    '<a href="directory.html" class="profile-foot-back">← Back to Directory</a>' +
+    '<a href="' +
+    escapeHtml(backNav.href) +
+    '" class="profile-foot-back">' +
+    escapeHtml(backNav.label) +
+    "</a>" +
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
     escapeHtml(t.slug || "") +
     '">Report an issue with this listing</button>' +

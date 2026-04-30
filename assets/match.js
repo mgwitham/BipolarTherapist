@@ -219,7 +219,7 @@ function escapeHtml(value) {
 
 function buildTherapistProfileHref(slug) {
   var cleanSlug = String(slug || "").trim();
-  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/" : "/directory";
+  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?ref=match" : "/directory";
 }
 
 function startZipcodesPreload() {
