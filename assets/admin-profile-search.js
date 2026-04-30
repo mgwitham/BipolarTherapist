@@ -92,6 +92,11 @@ export function initAdminProfileSearch({
         }
       });
       (getCandidates() || []).forEach(function (c) {
+        // Skip candidates that have already been promoted to a therapist —
+        // those records already appear in the therapists list as "Published".
+        // Showing them again from the candidates list creates a confusing
+        // duplicate "Unpublished" row for the same person.
+        if (c.published_therapist_id) return;
         const name = String(c.name || "");
         const email = String(c.email || "");
         const license = String(c.license_number || "");

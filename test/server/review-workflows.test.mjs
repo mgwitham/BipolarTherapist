@@ -387,6 +387,12 @@ test("workflow: merge_to_therapist fills missing fields without overwriting exis
   const candidate = state.documents.get("candidate-katie-fresh");
   assert.equal(candidate.dedupeStatus, "merged");
   assert.equal(candidate.reviewStatus, "archived");
+  assert.equal(
+    candidate.publishedTherapistId,
+    "therapist-katie",
+    "merge_to_therapist must stamp publishedTherapistId so the candidate is excluded from admin profile search",
+  );
+  assert.ok(candidate.publishedAt, "merge_to_therapist must stamp publishedAt");
 });
 
 // --- /applications/intake (short-form new-therapist signup) ---
