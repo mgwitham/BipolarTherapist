@@ -2386,26 +2386,6 @@ function renderProfile(t, therapistDirectory) {
   // Featured italic quote from the clinician's care_approach. Always
   // surfaces when populated (claimed clinicians get quotation marks; the
   // matching cascade-slot styling on cards/modal is the same family).
-  var heroBipolarQuote = "";
-  var careApproachText = String(t.care_approach || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (careApproachText) {
-    var quoteText = careApproachText.replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, "");
-    if (quoteText.length > 360) {
-      quoteText = quoteText.slice(0, 357).replace(/\s+\S*$/, "") + "\u2026";
-    }
-    var isClaimed = t.claim_status === "claimed";
-    heroBipolarQuote =
-      '<blockquote class="profile-care-quote' +
-      (isClaimed ? " is-claimed" : "") +
-      '">' +
-      (isClaimed ? "\u201c" : "") +
-      escapeHtml(quoteText) +
-      (isClaimed ? "\u201d" : "") +
-      "</blockquote>";
-  }
-
   var telehealthStatesList = Array.isArray(t.telehealth_states)
     ? t.telehealth_states.filter(Boolean)
     : [];
@@ -3084,6 +3064,15 @@ function renderProfile(t, therapistDirectory) {
     return INTAKE_STUBS.indexOf(trimmed) !== -1 ? "" : value;
   }
 
+  // Strip scraped directory prefix: "Name, Credential, City, State, ZIP, Phone, actual bio"
+  // Anchors on the phone number — everything up through it is metadata, not bio copy.
+  var SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
+  function stripScrapedPrefix(value) {
+    if (typeof value !== "string") return value;
+    var cleaned = value.replace(SCRAPED_PREFIX_RE, "");
+    return cleaned.length < value.length ? cleaned : value;
+  }
+
   function renderBioParagraphs(rawBio) {
     var bio = stripIntakeStub(rawBio);
     if (!bio) {
@@ -3108,8 +3097,8 @@ function renderProfile(t, therapistDirectory) {
       .join("");
   }
 
-  var scrubbedBio = stripIntakeStub(t.bio);
-  var scrubbedCareApproach = stripIntakeStub(t.care_approach);
+  var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
+  var scrubbedCareApproach = stripScrapedPrefix(stripIntakeStub(t.care_approach));
   var bioBodyHtml =
     (hasPaidSubscription
       ? renderBioParagraphs(scrubbedBio)
@@ -3220,7 +3209,6 @@ function renderProfile(t, therapistDirectory) {
     (bipolarSpecialistBadge || licenseVerifiedBadge
       ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
       : "") +
-    heroBipolarQuote +
     heroTelehealthLine +
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
