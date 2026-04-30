@@ -107,6 +107,7 @@ import {
   openTherapistEditDrawer,
 } from "./admin-candidate-edit.js";
 import { initAdminProfileSearch } from "./admin-profile-search.js";
+import { bindResolveDuplicate, openResolveDuplicate } from "./admin-duplicate-resolve.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -8298,6 +8299,37 @@ document.addEventListener("click", function (event) {
 });
 
 bindCandidateEditDrawer();
+bindResolveDuplicate();
+
+// Resolve Duplicate launcher. Wired here (not in the queue module) so the
+// click handler always exists, regardless of whether the queue has been
+// rendered yet. Pulls both records from the in-memory data caches and
+// hands them to the modal.
+document.addEventListener("click", function (event) {
+  var btn = event.target.closest("[data-resolve-duplicate-therapist-id]");
+  if (!btn) return;
+  var therapistId = btn.dataset.resolveDuplicateTherapistId;
+  var counterpartId = btn.dataset.resolveDuplicateCounterpartId;
+  var counterpartKind = btn.dataset.resolveDuplicateCounterpartKind || "candidate";
+  var therapist = (publishedTherapists || []).find(function (t) {
+    return String(t.id || t._id) === String(therapistId);
+  });
+  var counterpart =
+    counterpartKind === "therapist"
+      ? (publishedTherapists || []).find(function (t) {
+          return String(t.id || t._id) === String(counterpartId);
+        })
+      : (remoteCandidates || []).find(function (c) {
+          return String(c.id || c._id) === String(counterpartId);
+        });
+  if (!therapist || !counterpart) return;
+  openResolveDuplicate({
+    therapist: therapist,
+    counterpart: counterpart,
+    counterpartKind: counterpartKind,
+    onResolved: loadData,
+  });
+});
 
 document.addEventListener("click", function (event) {
   var editBtn = event.target.closest("[data-edit-candidate-id]");

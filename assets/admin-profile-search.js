@@ -157,9 +157,14 @@ export function initAdminProfileSearch({
       const dedupeIndex = buildTherapistDedupeIndex(therapists);
 
       // Build the unconverted-candidate set once so isProfileLive can
-      // include duplicate-against-candidate blockers when relevant.
+      // include duplicate-against-candidate blockers when relevant. Mirrors
+      // the filter in admin-needs-attention.js — candidates marked as
+      // rejected_duplicate by the Resolve Duplicate workflow no longer
+      // trigger the detector.
       const unconvertedCandidates = (getCandidates() || []).filter(function (c) {
-        return !c.published_therapist_id;
+        if (c.published_therapist_id) return false;
+        if (c.dedupe_status === "rejected_duplicate") return false;
+        return true;
       });
 
       therapists.forEach(function (t) {

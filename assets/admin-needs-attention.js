@@ -27,8 +27,14 @@ function isAdminIntentLive(t) {
 
 export function buildNeedsAttentionEntries(therapists, candidates) {
   const safeTherapists = Array.isArray(therapists) ? therapists : [];
+  // A candidate counts as "unconverted" (and so capable of triggering the
+  // duplicate detector) only when it has no publishedTherapistId AND it
+  // hasn't been explicitly marked as rejected_duplicate by the admin
+  // Resolve Duplicate workflow.
   const unconvertedCandidates = (Array.isArray(candidates) ? candidates : []).filter(function (c) {
-    return !c.published_therapist_id;
+    if (c.published_therapist_id) return false;
+    if (c.dedupe_status === "rejected_duplicate") return false;
+    return true;
   });
   const entries = [];
   for (const t of safeTherapists) {
@@ -55,12 +61,44 @@ export function buildNeedsAttentionEntries(therapists, candidates) {
   return entries;
 }
 
+// Parse the counterpart doc id and kind out of a duplicate blocker string.
+// Blocker text is human-readable, but the id appears in parentheses; we
+// extract it here so the Resolve Duplicate workflow can launch with the
+// right doc on the other side. Returns null when no duplicate blocker is
+// present (so callers can decide whether to show the button at all).
+export function parseDuplicateCounterpart(blockers) {
+  for (const b of Array.isArray(blockers) ? blockers : []) {
+    if (typeof b !== "string" || !b.startsWith("Duplicate detected")) continue;
+    const idMatch = b.match(/\(([^)]+)\)/);
+    if (!idMatch) continue;
+    const id = idMatch[1];
+    const kind = b.includes("unconverted candidate") ? "candidate" : "therapist";
+    return { id, kind };
+  }
+  return null;
+}
+
 function renderEntryHtml(entry) {
   const blockers = Array.isArray(entry.blockers) ? entry.blockers : [];
   const blockersHtml = blockers.length
     ? '<ul class="needs-attention-card-blockers">' +
       blockers.map((b) => "<li>" + escapeHtml(b) + "</li>").join("") +
       "</ul>"
+    : "";
+  // Surface a Resolve Duplicate button only when one of the blockers is a
+  // duplicate detection. Routine missing-field blockers stay simple — only
+  // the Edit button shows. Avoids cluttering every card with an action that
+  // would be a no-op for most rows.
+  const counterpart = parseDuplicateCounterpart(blockers);
+  const resolveBtn = counterpart
+    ? '<button type="button" class="btn-secondary needs-attention-resolve-btn" ' +
+      'data-resolve-duplicate-therapist-id="' +
+      escapeHtml(entry.id) +
+      '" data-resolve-duplicate-counterpart-id="' +
+      escapeHtml(counterpart.id) +
+      '" data-resolve-duplicate-counterpart-kind="' +
+      escapeHtml(counterpart.kind) +
+      '">Resolve duplicate</button>'
     : "";
   return (
     '<div class="needs-attention-card">' +
@@ -73,6 +111,7 @@ function renderEntryHtml(entry) {
     "</div>" +
     "</div>" +
     '<div class="needs-attention-card-action">' +
+    resolveBtn +
     '<button type="button" class="btn-secondary" data-edit-therapist-id="' +
     escapeHtml(entry.id) +
     '">Edit profile →</button>' +

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildNeedsAttentionEntries } from "../../assets/admin-needs-attention.js";
+import {
+  buildNeedsAttentionEntries,
+  parseDuplicateCounterpart,
+} from "../../assets/admin-needs-attention.js";
 
 function liveTherapist(overrides = {}) {
   return {
@@ -94,4 +97,40 @@ test("buildNeedsAttentionEntries: candidate that is already converted is not fla
     ],
   );
   assert.deepEqual(entries, []);
+});
+
+test("buildNeedsAttentionEntries: candidate marked rejected_duplicate is not flagged", function () {
+  const entries = buildNeedsAttentionEntries(
+    [liveTherapist({ id: "therapist-x", license_number: "DUP", email: "shared@example.com" })],
+    [
+      {
+        _id: "candidate-not-actually-dup",
+        license_number: "DUP",
+        email: "shared@example.com",
+        dedupe_status: "rejected_duplicate",
+      },
+    ],
+  );
+  assert.deepEqual(entries, []);
+});
+
+test("parseDuplicateCounterpart: extracts candidate id and kind", function () {
+  const result = parseDuplicateCounterpart([
+    "Missing insurance accepted",
+    "Duplicate detected: an unconverted candidate (therapist-candidate-foo) shares this license number",
+  ]);
+  assert.deepEqual(result, { id: "therapist-candidate-foo", kind: "candidate" });
+});
+
+test("parseDuplicateCounterpart: extracts therapist id and kind", function () {
+  const result = parseDuplicateCounterpart([
+    "Duplicate detected: another therapist (therapist-bar) shares this email address",
+  ]);
+  assert.deepEqual(result, { id: "therapist-bar", kind: "therapist" });
+});
+
+test("parseDuplicateCounterpart: returns null when no duplicate blocker", function () {
+  assert.equal(parseDuplicateCounterpart(["Missing insurance accepted"]), null);
+  assert.equal(parseDuplicateCounterpart([]), null);
+  assert.equal(parseDuplicateCounterpart(null), null);
 });
