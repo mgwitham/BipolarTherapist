@@ -90,14 +90,19 @@ export function renderNeedsAttentionQueue({ therapists, candidates }) {
 
   const entries = buildNeedsAttentionEntries(therapists, candidates);
 
-  // Update the nav-link count badge. Hidden when zero so the chip stays
-  // quiet during normal operations.
-  if (countBadge) {
+  // Update the nav-link count badge AND the inline count next to the
+  // section title. The chip-nav lives in the (currently hidden) Live
+  // listings sidebar region, so the inline count is the visible signal
+  // when the queue lives inside the Review tab. Both are hidden when
+  // the queue is empty.
+  const inlineCount = document.getElementById("needsAttentionInlineCount");
+  for (const el of [countBadge, inlineCount]) {
+    if (!el) continue;
     if (entries.length > 0) {
-      countBadge.textContent = String(entries.length);
-      countBadge.removeAttribute("hidden");
+      el.textContent = String(entries.length);
+      el.removeAttribute("hidden");
     } else {
-      countBadge.setAttribute("hidden", "");
+      el.setAttribute("hidden", "");
     }
   }
 
