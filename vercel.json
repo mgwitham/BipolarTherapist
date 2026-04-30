@@ -3,9 +3,22 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "functions": {
+    "api/therapists/[slug].mjs": {
+      "includeFiles": "dist/therapist.html"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/therapist.html",
+      "has": [{ "type": "query", "key": "slug", "value": "(?<slug>.+)" }],
+      "destination": "/therapists/:slug",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/review/(.*)", "destination": "/api/review/[...path]" },
-    { "source": "/therapists/:slug", "destination": "/therapist" }
+    { "source": "/therapists/:slug", "destination": "/api/therapists/:slug" }
   ],
   "headers": [
     {
