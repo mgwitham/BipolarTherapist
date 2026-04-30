@@ -24,6 +24,7 @@ import {
 import {
   renderCardMarkup,
   renderDirectoryDetailsMarkup,
+  renderBottomSheetMarkup,
   renderEmptyStateMarkup,
   renderLoadMoreMarkup,
 } from "./directory-render.js";
@@ -906,6 +907,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (!slug) {
       body.innerHTML = "";
       dialog.setAttribute("aria-hidden", "true");
+      dialog.setAttribute("aria-label", "Provider details");
       return;
     }
 
@@ -916,7 +918,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    body.innerHTML = renderDirectoryDetailsMarkup({
+    body.innerHTML = renderBottomSheetMarkup({
       model: buildDirectoryDetailsViewModel({
         therapist: therapist,
         filters: filters,
@@ -925,12 +927,32 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }),
     });
     dialog.setAttribute("aria-hidden", "false");
+
+    // Set aria-label directly on the dialog — aria-labelledby can't be used because
+    // the heading element is inside .dir-panel-head which is display:none on mobile.
+    var displayName = therapist.name.split(",")[0].trim();
+    var credSuffix = therapist.credentials ? ", " + therapist.credentials : "";
+    dialog.setAttribute("aria-label", displayName + credSuffix + " — Provider details");
+
+    // Hide bio toggle + fade when the bio already fits without scrolling.
+    // Must run after innerHTML is set so layout is measurable.
+    window.requestAnimationFrame(function () {
+      var bioText = body.querySelector(".bsh-bio-text");
+      var bioFade = body.querySelector(".bsh-bio-fade");
+      var bioToggle = body.querySelector(".bsh-bio-toggle");
+      if (bioText && bioToggle) {
+        if (bioText.scrollHeight <= bioText.clientHeight + 2) {
+          bioText.classList.add("is-expanded");
+          if (bioFade) bioFade.classList.add("is-hidden");
+          bioToggle.hidden = true;
+        }
+      }
+    });
   }
 
   function openDetailsModal(slug, trigger) {
     var dialog = getElement("directoryDetailsModal");
     var scrim = getElement("directoryDetailsScrim");
-    var closeButton = getElement("directoryDetailsClose");
     if (!dialog || !scrim || !slug) {
       return;
     }
@@ -944,6 +966,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     window.requestAnimationFrame(function () {
       dialog.setAttribute("data-open", "true");
       scrim.setAttribute("data-open", "true");
+      // Mobile: #directoryDetailsClose is rendered inside the body.
+      // Desktop: #directoryDetailsCloseDesktop is in the static panel head.
+      var closeButton =
+        getElement("directoryDetailsClose") || getElement("directoryDetailsCloseDesktop");
       if (closeButton) {
         closeButton.focus();
       }
@@ -1158,7 +1184,21 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function refreshShortlistViews() {
     renderCurrentPageOnly(getFiltered());
-    renderDetailsModal(activeDetailsSlug);
+  }
+
+  // Patch only the bookmark button(s) inside the open panel without re-rendering
+  // the whole body (which would collapse expanded bio / insurance state).
+  function patchPanelBookmark(slug, isSaved) {
+    var body = getElement("directoryDetailsBody");
+    if (!body || !slug) return;
+    var btns = body.querySelectorAll('[data-shortlist-slug="' + slug + '"]');
+    btns.forEach(function (btn) {
+      btn.setAttribute("aria-pressed", isSaved ? "true" : "false");
+      btn.setAttribute("aria-label", isSaved ? "Remove from saved list" : "Save to list");
+      btn.classList.toggle("is-saved", isSaved);
+      var svg = btn.querySelector("svg");
+      if (svg) svg.setAttribute("fill", isSaved ? "currentColor" : "none");
+    });
   }
 
   function applyFilters() {
@@ -1275,6 +1315,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         saved: saved,
       });
       refreshShortlistViews();
+      patchPanelBookmark(shortlistSlug, saved);
       return;
     }
 
@@ -1296,6 +1337,16 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       });
       trackFunnelEvent("directory_" + ctaTier + "_contact_cta_clicked", {
         therapist_slug: primarySlug,
+        sort_by: filters.sortBy,
+      });
+      return;
+    }
+
+    var secondaryLink = event.target.closest("[data-secondary-cta]");
+    if (secondaryLink) {
+      var secondarySlug = secondaryLink.getAttribute("data-secondary-cta");
+      trackFunnelEvent("directory_bottom_sheet_secondary_cta_clicked", {
+        therapist_slug: secondarySlug,
         sort_by: filters.sortBy,
       });
       return;
@@ -1433,11 +1484,114 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   if (detailsBody) {
     detailsBody.addEventListener("click", handleResultsGridClick);
     detailsBody.addEventListener("change", handleResultsGridChange);
+
+    // Bottom sheet delegated interactions
+    detailsBody.addEventListener("click", function (event) {
+      // Close button rendered inside the sheet
+      if (event.target.closest("#directoryDetailsClose")) {
+        closeDetailsModal();
+        return;
+      }
+
+      // Bio read-more / show-less toggle
+      var bioToggle = event.target.closest("[data-bio-toggle]");
+      if (bioToggle) {
+        var bioSlug = bioToggle.getAttribute("data-bio-toggle");
+        var bioText = detailsBody.querySelector("#bsh-bio-" + bioSlug);
+        var bioFade = detailsBody.querySelector("#bsh-bio-fade-" + bioSlug);
+        if (bioText) {
+          var expanded = bioText.classList.contains("is-expanded");
+          if (expanded) {
+            bioText.classList.remove("is-expanded");
+            if (bioFade) bioFade.classList.remove("is-hidden");
+            bioToggle.textContent = "Read more ↓";
+          } else {
+            bioText.classList.add("is-expanded");
+            if (bioFade) bioFade.classList.add("is-hidden");
+            bioToggle.textContent = "Show less ↑";
+          }
+        }
+        return;
+      }
+
+      // Insurance: expand ("+N more" chip or "See all plans" button)
+      // Both 4-19 and 20+ tiers use [data-ins-collapsed] for the collapsed wrapper.
+      var insExpand = event.target.closest("[data-ins-expand]");
+      if (insExpand) {
+        var insWrap = detailsBody.querySelector(
+          '[data-ins-wrap="' + insExpand.getAttribute("data-ins-expand") + '"]',
+        );
+        if (insWrap) {
+          var collapsedRow = insWrap.querySelector("[data-ins-collapsed]");
+          var expandedPanel = insWrap.querySelector(".bsh-ins-expanded");
+          if (collapsedRow) collapsedRow.hidden = true;
+          if (expandedPanel) {
+            expandedPanel.hidden = false;
+            var searchInput = expandedPanel.querySelector(".bsh-ins-search");
+            if (searchInput) searchInput.focus();
+          }
+        }
+        return;
+      }
+
+      // Insurance: collapse ("Show less" button)
+      var insCollapse = event.target.closest("[data-ins-collapse]");
+      if (insCollapse) {
+        var insWrap2 = detailsBody.querySelector(
+          '[data-ins-wrap="' + insCollapse.getAttribute("data-ins-collapse") + '"]',
+        );
+        if (insWrap2) {
+          var collapsedRow2 = insWrap2.querySelector("[data-ins-collapsed]");
+          var expandedPanel2 = insWrap2.querySelector(".bsh-ins-expanded");
+          if (collapsedRow2) collapsedRow2.hidden = false;
+          if (expandedPanel2) expandedPanel2.hidden = true;
+        }
+        return;
+      }
+    });
+
+    // Insurance live search filter
+    detailsBody.addEventListener("input", function (event) {
+      var searchInput = event.target.closest("[data-ins-search]");
+      if (!searchInput) return;
+      var insSlug = searchInput.getAttribute("data-ins-search");
+      var planList = detailsBody.querySelector('[data-ins-plan-list="' + insSlug + '"]');
+      if (!planList) return;
+      var query = searchInput.value.toLowerCase().trim();
+      var pills = planList.querySelectorAll(".bsh-ins-pill");
+      pills.forEach(function (pill) {
+        var name = pill.getAttribute("data-plan-name") || "";
+        pill.hidden = Boolean(query && !name.includes(query));
+      });
+    });
   }
 
-  var detailsClose = getElement("directoryDetailsClose");
-  if (detailsClose) {
-    detailsClose.addEventListener("click", closeDetailsModal);
+  // Drag-to-dismiss on mobile: swipe the drag pill down to close
+  var dragPill = document.querySelector(".dir-panel-drag-pill-wrap");
+  var dragDialog = getElement("directoryDetailsModal");
+  if (dragPill && dragDialog) {
+    var dragStartY = 0;
+    dragPill.addEventListener(
+      "touchstart",
+      function (event) {
+        dragStartY = event.touches[0].clientY;
+      },
+      { passive: true },
+    );
+    dragPill.addEventListener(
+      "touchend",
+      function (event) {
+        var delta = event.changedTouches[0].clientY - dragStartY;
+        if (delta > 60) closeDetailsModal();
+      },
+      { passive: true },
+    );
+  }
+
+  // Desktop close button lives in the static panel head (always in DOM)
+  var detailsCloseDesktop = getElement("directoryDetailsCloseDesktop");
+  if (detailsCloseDesktop) {
+    detailsCloseDesktop.addEventListener("click", closeDetailsModal);
   }
 
   var detailsScrim = getElement("directoryDetailsScrim");
@@ -1514,6 +1668,29 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape" && activeDetailsSlug) {
       closeDetailsModal();
+      return;
+    }
+
+    if (event.key === "Tab" && activeDetailsSlug) {
+      var dialog = getElement("directoryDetailsModal");
+      if (!dialog || dialog.hidden) return;
+      var focusable = Array.from(
+        dialog.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(function (el) {
+        return !el.hidden && el.offsetParent !== null;
+      });
+      if (focusable.length < 2) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
       return;
     }
     if (

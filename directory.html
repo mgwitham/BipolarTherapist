@@ -36,6 +36,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/directory-bottom-sheet.css" />
     <!-- JSON-LD structured data — populated by directory.js after render -->
     <script type="application/ld+json" id="dirJsonLd"></script>
   </head>
@@ -420,16 +421,21 @@
       id="directoryDetailsModal"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="dirPanelHeading"
+      aria-label="Provider details"
       aria-hidden="true"
       hidden
     >
+      <!-- Drag pill — mobile only (hidden on desktop via CSS) -->
+      <div class="dir-panel-drag-pill-wrap" aria-hidden="true">
+        <div class="dir-panel-drag-pill"></div>
+      </div>
+      <!-- Desktop panel head — hidden on mobile in favour of bsh-topbar -->
       <div class="dir-panel-head">
         <span class="dir-panel-label" id="dirPanelHeading">Provider details</span>
         <button
           type="button"
           class="dir-panel-close"
-          id="directoryDetailsClose"
+          id="directoryDetailsCloseDesktop"
           aria-label="Close provider details"
         >
           ✕
