@@ -3064,6 +3064,15 @@ function renderProfile(t, therapistDirectory) {
     return INTAKE_STUBS.indexOf(trimmed) !== -1 ? "" : value;
   }
 
+  // Strip scraped directory prefix: "Name, Credential, City, State, ZIP, Phone, actual bio"
+  // Anchors on the phone number — everything up through it is metadata, not bio copy.
+  var SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
+  function stripScrapedPrefix(value) {
+    if (typeof value !== "string") return value;
+    var cleaned = value.replace(SCRAPED_PREFIX_RE, "");
+    return cleaned.length < value.length ? cleaned : value;
+  }
+
   function renderBioParagraphs(rawBio) {
     var bio = stripIntakeStub(rawBio);
     if (!bio) {
@@ -3088,8 +3097,8 @@ function renderProfile(t, therapistDirectory) {
       .join("");
   }
 
-  var scrubbedBio = stripIntakeStub(t.bio);
-  var scrubbedCareApproach = stripIntakeStub(t.care_approach);
+  var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
+  var scrubbedCareApproach = stripScrapedPrefix(stripIntakeStub(t.care_approach));
   var bioBodyHtml =
     (hasPaidSubscription
       ? renderBioParagraphs(scrubbedBio)

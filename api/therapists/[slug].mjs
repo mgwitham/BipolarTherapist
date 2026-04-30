@@ -122,6 +122,13 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
+const SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
+function stripScrapedPrefix(value) {
+  if (!value) return value;
+  const cleaned = value.replace(SCRAPED_PREFIX_RE, "");
+  return cleaned.length < value.length ? cleaned : value;
+}
+
 // ─── Asset tag extraction ─────────────────────────────────────────────────────
 
 let _assetTags = null;
@@ -455,8 +462,8 @@ function renderSSRProfile(t) {
         t.bio
           ? `<div class="profile-bio-wrap" data-profile-bio-wrap>
         <div class="profile-bio-text" id="profileBioPanel">
-          <p class="profile-bio-paragraph">${esc(t.bio)}</p>
-          ${t.care_approach ? `<p class="profile-bio-paragraph profile-bio-approach">${esc(t.care_approach)}</p>` : ""}
+          <p class="profile-bio-paragraph">${esc(stripScrapedPrefix(t.bio))}</p>
+          ${t.care_approach ? `<p class="profile-bio-paragraph profile-bio-approach">${esc(stripScrapedPrefix(t.care_approach))}</p>` : ""}
         </div>
         <div class="profile-bio-fade" aria-hidden="true"></div>
       </div>
