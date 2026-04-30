@@ -1022,19 +1022,6 @@ nav {
 /* Featured care_approach quote — italic serif, positioned just below the
    name/credential header. Quotation marks are added inline by the JS only
    when the clinician is claimed (it's their voice). */
-.profile-care-quote {
-  font-family: "Fraunces", "Lora", serif;
-  font-style: italic;
-  font-size: 16px;
-  line-height: 1.55;
-  color: #3a5560;
-  margin: 1rem 0 0.4rem;
-  padding: 0;
-  border: 0;
-}
-.profile-care-quote.is-claimed {
-  color: #2d4651;
-}
 .profile-main h1 {
   font-family: "Lora", serif;
   font-size: 2.3rem;

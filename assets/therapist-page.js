@@ -2386,26 +2386,6 @@ function renderProfile(t, therapistDirectory) {
   // Featured italic quote from the clinician's care_approach. Always
   // surfaces when populated (claimed clinicians get quotation marks; the
   // matching cascade-slot styling on cards/modal is the same family).
-  var heroBipolarQuote = "";
-  var careApproachText = String(t.care_approach || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (careApproachText) {
-    var quoteText = careApproachText.replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, "");
-    if (quoteText.length > 360) {
-      quoteText = quoteText.slice(0, 357).replace(/\s+\S*$/, "") + "\u2026";
-    }
-    var isClaimed = t.claim_status === "claimed";
-    heroBipolarQuote =
-      '<blockquote class="profile-care-quote' +
-      (isClaimed ? " is-claimed" : "") +
-      '">' +
-      (isClaimed ? "\u201c" : "") +
-      escapeHtml(quoteText) +
-      (isClaimed ? "\u201d" : "") +
-      "</blockquote>";
-  }
-
   var telehealthStatesList = Array.isArray(t.telehealth_states)
     ? t.telehealth_states.filter(Boolean)
     : [];
@@ -3220,7 +3200,6 @@ function renderProfile(t, therapistDirectory) {
     (bipolarSpecialistBadge || licenseVerifiedBadge
       ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
       : "") +
-    heroBipolarQuote +
     heroTelehealthLine +
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
