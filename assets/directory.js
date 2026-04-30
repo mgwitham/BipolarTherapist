@@ -55,7 +55,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         node.setAttribute("hidden", "");
       }
     });
-    var emptyHideSelectors = [".dir-vb-bar-wrap", ".dir-results-bar", ".dir-offramp"];
+    var emptyHideSelectors = [".dir-vb-bar-wrap", ".dir-results-bar"];
     emptyHideSelectors.forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (node) {
         node.setAttribute("hidden", "");
@@ -1427,15 +1427,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   var sortZipInput = getElement("sortZip");
   if (sortZipInput) {
     sortZipInput.addEventListener("input", handleSortZipInput);
-  }
-
-  var offrampLink = getElement("dirOfframpLink");
-  if (offrampLink) {
-    offrampLink.addEventListener("click", function () {
-      trackFunnelEvent("directory_offramp_clicked", {
-        active_filter_count: countActiveFilters(filters),
-      });
-    });
   }
 
   var detailsBody = getElement("directoryDetailsBody");
