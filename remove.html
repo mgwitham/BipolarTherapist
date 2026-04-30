@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-Q22R5G7VB5");
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>Remove your listing — BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="Remove your BipolarTherapyHub listing. We send a one-time confirmation link to the email on file and your page goes dark immediately."
+    />
+    <link rel="canonical" href="https://www.bipolartherapyhub.com/remove" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BipolarTherapyHub" />
+    <meta property="og:url" content="https://www.bipolartherapyhub.com/remove" />
+    <meta property="og:title" content="Remove your listing — BipolarTherapyHub" />
+    <meta
+      property="og:description"
+      content="Remove your BipolarTherapyHub listing. We send a one-time confirmation link to the email on file."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a7a8f;
+        --teal-light: #2a9cb3;
+        --teal-dark: #155f70;
+        --teal-faint: #e8f5f8;
+        --navy: #1d3a4a;
+        --slate: #4a6572;
+        --muted: #6b8290;
+        --border: #d4e4e9;
+        --bg: #f7fbfc;
+        --white: #ffffff;
+        --green: #3aaa7a;
+        --red: #e53e3e;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(42, 156, 179, 0.08), transparent 32%),
+          linear-gradient(180deg, #f8fcfd 0%, #f4f9fb 100%);
+        color: var(--navy);
+        line-height: 1.6;
+      }
+      nav {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.5rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+      }
+      .nav-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000;
+      }
+      .nav-name span {
+        color: var(--teal);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+      }
+      .nav-links a {
+        color: var(--navy);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+      .nav-links a:hover {
+        color: var(--teal);
+      }
+      .nav-signin-link {
+        color: var(--muted) !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem;
+      }
+      .nav-signin-link:hover {
+        color: var(--teal) !important;
+      }
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem !important;
+        color: var(--muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        border: 1px solid transparent;
+        border-radius: 999px;
+      }
+      .nav-zone-switch:hover {
+        color: var(--teal-dark) !important;
+        border-color: rgba(26, 122, 143, 0.22);
+        background: rgba(26, 122, 143, 0.06);
+      }
+
+      /* Toast for post-removal redirect */
+      .remove-toast {
+        padding: 0.85rem 1.5rem;
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .remove-toast.is-success {
+        background: rgba(58, 170, 122, 0.1);
+        color: #1a5c3a;
+        border-bottom: 1px solid rgba(58, 170, 122, 0.2);
+      }
+      .remove-toast.is-error {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+        border-bottom: 1px solid rgba(229, 62, 62, 0.15);
+      }
+
+      .remove-main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 1.5rem;
+      }
+      .remove-shell {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .remove-hero {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .remove-kicker {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        background: rgba(229, 62, 62, 0.08);
+        color: #a04a4a;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .remove-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+        line-height: 1.1;
+        color: var(--navy);
+      }
+      .remove-hero p {
+        color: var(--slate);
+        font-size: 1rem;
+        max-width: 58ch;
+      }
+      .remove-hero-note {
+        padding: 0.75rem 1rem;
+        background: var(--teal-faint);
+        border-radius: 10px;
+        color: var(--slate);
+        font-size: 0.88rem;
+      }
+
+      .remove-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 22px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
+        display: grid;
+        gap: 1rem;
+      }
+      .remove-card-kicker {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+      }
+      .remove-card h2 {
+        font-family: "Lora", serif;
+        font-size: 1.4rem;
+        line-height: 1.15;
+      }
+      .remove-card-intro {
+        color: var(--slate);
+        font-size: 0.92rem;
+      }
+
+      /* Search */
+      .removal-search {
+        display: grid;
+        gap: 0.6rem;
+        padding: 0.9rem 1rem;
+        background: rgba(26, 122, 143, 0.04);
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        border-radius: 14px;
+      }
+      .removal-search label {
+        display: grid;
+        gap: 0.38rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal-dark);
+      }
+      .removal-search input {
+        padding: 0.82rem 0.95rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 0.98rem;
+        background: var(--white);
+        color: var(--navy);
+      }
+      .removal-search input:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .removal-search-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .removal-search-results-wrap {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .removal-search-results-wrap[hidden] {
+        display: none;
+      }
+      .removal-search-result {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.65rem 0.8rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        text-align: left;
+        font: inherit;
+        color: var(--navy);
+        cursor: pointer;
+        width: 100%;
+      }
+      .removal-search-result:hover {
+        border-color: var(--teal);
+        background: var(--teal-faint);
+      }
+      .removal-search-result .result-name {
+        font-weight: 600;
+        font-size: 0.94rem;
+      }
+      .removal-search-result .result-meta {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .removal-search-empty {
+        padding: 0.5rem 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-style: italic;
+      }
+
+      /* Removal form */
+      .removal-form {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .removal-form label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .removal-form input {
+        padding: 0.78rem 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        background: var(--white);
+        color: var(--navy);
+      }
+      .removal-form input:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .removal-field-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .removal-submit {
+        background: #a04a4a;
+        color: var(--white);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .removal-submit:hover:not(:disabled) {
+        background: #7a2f2f;
+      }
+      .removal-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .removal-status[hidden] {
+        display: none;
+      }
+      .removal-status {
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+      }
+      .removal-status.is-success {
+        background: rgba(58, 170, 122, 0.1);
+        color: #1a5c3a;
+      }
+      .removal-status.is-error {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+      }
+
+      /* Claim CTA */
+      .remove-claim-cta {
+        padding: 0.9rem 1rem;
+        background: rgba(26, 122, 143, 0.05);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 14px;
+        font-size: 0.9rem;
+        color: var(--slate);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+      .remove-claim-cta a {
+        color: var(--teal-dark);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .remove-claim-cta a:hover {
+        text-decoration: underline;
+      }
+
+      /* FAQ */
+      .remove-faq {
+        max-width: 640px;
+        margin: 2.5rem auto 0;
+        padding: 0 1.5rem;
+      }
+      .remove-faq h2 {
+        font-family: "Lora", serif;
+        font-size: 1.45rem;
+        color: var(--navy);
+        margin-bottom: 1rem;
+      }
+      .remove-faq-item {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+      }
+      .remove-faq-item summary {
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        color: var(--navy);
+        cursor: pointer;
+        list-style: none;
+        position: relative;
+      }
+      .remove-faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+      .remove-faq-item summary::after {
+        content: "+";
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--teal);
+        font-size: 1.3rem;
+        font-weight: 300;
+      }
+      .remove-faq-item[open] summary::after {
+        content: "−";
+      }
+      .remove-faq-item p {
+        padding: 0 1.25rem 1.15rem;
+        color: var(--slate);
+      }
+
+      /* Footer */
+      .site-mini-footer {
+        max-width: 640px;
+        margin: 2.5rem auto 0;
+        padding: 1.25rem 1.5rem 2rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .site-mini-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        margin: 0 0.4rem;
+      }
+      .site-mini-footer a:hover {
+        color: var(--teal-dark);
+      }
+
+      @media (max-width: 720px) {
+        .remove-main,
+        .remove-faq {
+          padding-left: 1.25rem;
+          padding-right: 1.25rem;
+        }
+        .remove-main {
+          padding-top: 1.75rem;
+        }
+        .remove-card {
+          padding: 1.25rem;
+        }
+      }
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 1rem;
+          height: 56px;
+        }
+        .nav-name {
+          font-size: 0.95rem;
+        }
+        .removal-form input {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="signup.html">List Your Practice</a></li>
+        <li><a href="claim.html">Claim a Listing</a></li>
+        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
+        <li class="nav-zone-switch-item">
+          <a href="directory.html" class="nav-zone-switch">← For patients</a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="remove-main">
+      <div class="remove-shell">
+        <section class="remove-hero">
+          <span class="remove-kicker">Remove listing</span>
+          <h1>Remove your listing</h1>
+          <p>
+            Removal is instant. We send a one-time confirmation link to the email on your listing
+            and your page goes dark the moment you click it.
+          </p>
+          <p class="remove-hero-note">
+            Your listing was built from public California license records. Removing it prevents your
+            name from appearing in the directory and in match results.
+          </p>
+        </section>
+
+        <div class="remove-card">
+          <span class="remove-card-kicker">Step 1 of 1: Find and confirm your listing</span>
+          <h2>Find your listing</h2>
+          <p class="remove-card-intro">
+            Search by last name or CA license number, then fill in the email on file. We send the
+            confirmation link to that inbox only — this prevents someone else from removing you.
+          </p>
+
+          <div class="removal-search">
+            <label for="removalSearchInput">
+              Find your listing
+              <input
+                type="search"
+                id="removalSearchInput"
+                autocomplete="off"
+                placeholder="Last name or CA license number"
+              />
+            </label>
+            <div
+              class="removal-search-results-wrap"
+              id="removalSearchResults"
+              role="listbox"
+              hidden
+            ></div>
+            <p class="removal-search-hint">
+              Pick your listing to autofill name and license. We'll show the masked email so you
+              know which inbox to use.
+            </p>
+          </div>
+
+          <form id="removalForm" class="removal-form" novalidate>
+            <label>
+              Full name
+              <input
+                type="text"
+                name="full_name"
+                autocomplete="name"
+                placeholder="Jamie Rivera"
+                required
+              />
+            </label>
+            <label>
+              CA license number
+              <input
+                type="text"
+                name="license_number"
+                autocomplete="off"
+                placeholder="e.g. 109462"
+                required
+              />
+            </label>
+            <label>
+              Email on your listing
+              <input type="email" name="email" autocomplete="email" required />
+              <span class="removal-field-hint" id="removalEmailHint">
+                We send the confirmation link to the email we have on file, not to a different
+                address.
+              </span>
+            </label>
+            <button type="submit" class="removal-submit">Send removal confirmation link</button>
+            <div
+              class="removal-status"
+              id="removalStatus"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+          </form>
+        </div>
+
+        <div class="remove-claim-cta">
+          <span>Changed your mind?</span>
+          <a href="claim.html">Claim your listing instead →</a>
+        </div>
+      </div>
+    </main>
+
+    <section class="remove-faq" aria-label="Frequently asked questions">
+      <h2>Common questions</h2>
+      <details class="remove-faq-item">
+        <summary>Why am I listed if I didn't sign up?</summary>
+        <p>
+          Listings are built from public California DCA license records and publicly visible
+          bipolar-specialty information from practice sites or public directories. Removal is
+          instant. Claiming gives you editorial control instead.
+        </p>
+      </details>
+      <details class="remove-faq-item">
+        <summary>What happens after I click the confirmation link?</summary>
+        <p>
+          Your listing is removed immediately. You'll no longer appear in the directory or in match
+          results. You can create a new listing any time via the signup page if you change your
+          mind.
+        </p>
+      </details>
+      <details class="remove-faq-item">
+        <summary>What if I don't have access to the email on file?</summary>
+        <p>
+          Email us directly at
+          <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a> with your
+          full name and CA license number. We'll verify your identity and process the removal
+          manually.
+        </p>
+      </details>
+    </section>
+
+    <footer class="site-mini-footer">
+      <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    </footer>
+
+    <script type="module" src="assets/remove.js"></script>
+  </body>
+</html>

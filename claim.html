@@ -151,14 +151,72 @@
         background: rgba(26, 122, 143, 0.06);
       }
 
+      /* Thin session banner */
+      .claim-thin-banner {
+        background: var(--teal-faint);
+        border-bottom: 1px solid rgba(26, 122, 143, 0.16);
+        padding: 0.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.88rem;
+        flex-wrap: wrap;
+      }
+      .claim-thin-banner[hidden] {
+        display: none;
+      }
+      .claim-thin-banner-text {
+        color: var(--navy);
+        font-weight: 500;
+        flex: 1;
+      }
+      .claim-thin-banner-links {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .claim-thin-banner-links a {
+        color: var(--teal-dark);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+      .claim-thin-banner-links a:hover {
+        text-decoration: underline;
+      }
+      .claim-thin-banner-dismiss {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 1.3rem;
+        line-height: 1;
+        padding: 0;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .claim-thin-banner-dismiss:hover {
+        color: var(--navy);
+      }
+
       .claim-main {
-        max-width: 900px;
+        max-width: 720px;
         margin: 0 auto;
         padding: 2.5rem 1.5rem 1.5rem;
       }
       .claim-shell {
         display: grid;
-        gap: 1.25rem;
+        gap: 1.5rem;
+      }
+
+      /* Hero */
+      .claim-hero {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .claim-hero-note {
+        color: var(--slate);
+        font-size: 0.88rem;
       }
       .claim-kicker {
         display: inline-block;
@@ -170,125 +228,93 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        margin-bottom: 0.85rem;
-      }
-      .claim-hero {
-        display: grid;
-        gap: 1rem;
       }
       .claim-hero h1 {
         font-family: "Lora", serif;
-        font-size: clamp(2rem, 4vw, 3rem);
-        line-height: 1.08;
+        font-size: clamp(1.9rem, 4vw, 2.7rem);
+        line-height: 1.1;
         color: var(--navy);
       }
       .claim-hero p {
         color: var(--slate);
         font-size: 1.05rem;
-        max-width: 66ch;
+        max-width: 60ch;
       }
       .claim-hero-support {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: 0.5rem;
         list-style: none;
+        margin-top: 0.15rem;
       }
       .claim-hero-support li {
-        padding: 0.48rem 0.78rem;
+        padding: 0.42rem 0.72rem;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.78);
         border: 1px solid rgba(26, 122, 143, 0.12);
         color: var(--navy);
-        font-size: 0.86rem;
+        font-size: 0.84rem;
         font-weight: 600;
       }
-      .claim-hero-removal-link {
-        margin-top: 0.1rem;
-        font-size: 0.85rem;
-      }
-      .claim-hero-removal-link a {
-        color: var(--muted);
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .claim-hero-removal-link a:hover {
-        color: var(--teal-dark);
-        text-decoration: underline;
-      }
 
-      .claim-session-banner {
+      /* Step areas */
+      .claim-step-area {
         display: grid;
-        gap: 0.45rem;
-        padding: 1rem 1.1rem;
-        border-radius: 16px;
-        border: 1px solid rgba(26, 122, 143, 0.16);
-        background: linear-gradient(135deg, rgba(26, 122, 143, 0.12), rgba(255, 255, 255, 0.95));
+        gap: 0.7rem;
       }
-      .claim-session-banner[hidden] {
+      .claim-step-area[hidden] {
         display: none;
       }
-      .claim-session-banner strong {
-        color: var(--navy);
-        font-size: 1rem;
-      }
-      .claim-session-banner p {
-        color: var(--slate);
-        font-size: 0.94rem;
-      }
-      .claim-session-banner-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.85rem;
-      }
-      .claim-session-banner-actions a {
-        color: var(--teal-dark);
-        text-decoration: none;
-        font-size: 0.92rem;
-        font-weight: 700;
-      }
-
-      .claim-search-card,
-      .claim-confirm-panel,
-      .quick-claim-form {
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid rgba(26, 122, 143, 0.16);
-        border-radius: 22px;
-        padding: 1.5rem;
-        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
-      }
-      .claim-search-card {
-        display: grid;
-        gap: 1rem;
-      }
-      .claim-search-card-header {
-        display: grid;
-        gap: 0.45rem;
-      }
-      .claim-search-card-kicker {
+      .claim-step-label {
         font-size: 0.78rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: var(--teal-dark);
       }
-      .claim-search-card h2 {
-        font-family: "Lora", serif;
-        font-size: clamp(1.55rem, 3vw, 2.05rem);
-        line-height: 1.1;
-      }
-      .claim-search-card-header p {
+      .claim-step-summary {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0.9rem;
+        background: rgba(26, 122, 143, 0.05);
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        border-radius: 10px;
+        font-size: 0.9rem;
         color: var(--slate);
-        max-width: 62ch;
       }
-      .claim-search-card-form {
+      .claim-step-summary[hidden] {
+        display: none;
+      }
+      .claim-step-summary strong {
+        color: var(--navy);
+      }
+      .claim-step-summary a {
+        color: var(--teal-dark);
+        text-decoration: none;
+        font-weight: 700;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .claim-step-summary a:hover {
+        text-decoration: underline;
+      }
+
+      /* Search card */
+      .claim-search-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 22px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
         display: grid;
-        gap: 0.9rem;
+        gap: 1rem;
       }
       .claim-search-card label {
         display: grid;
         gap: 0.42rem;
       }
-      .claim-search-card label > span {
+      .claim-search-card label > span:first-child {
         font-size: 0.78rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -309,29 +335,39 @@
         border-color: var(--teal);
         box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
       }
-      .quick-claim-search-summary {
-        padding: 0.95rem 1rem;
-        border-radius: 14px;
-        background: rgba(26, 122, 143, 0.06);
-        border: 1px solid rgba(26, 122, 143, 0.1);
+      .claim-field-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
       }
-      .quick-claim-search-summary[hidden],
-      .quick-claim-search-results[hidden] {
+
+      /* Search summary status (inside search card) */
+      .quick-claim-search-summary {
+        padding: 0.8rem 0.95rem;
+        border-radius: 12px;
+        background: rgba(26, 122, 143, 0.05);
+        border: 1px solid rgba(26, 122, 143, 0.08);
+        font-size: 0.9rem;
+      }
+      .quick-claim-search-summary[hidden] {
         display: none;
       }
       .quick-claim-search-summary strong {
         display: block;
         color: var(--navy);
-        font-size: 0.98rem;
-        margin-bottom: 0.2rem;
+        font-size: 0.92rem;
+        margin-bottom: 0.15rem;
       }
       .quick-claim-search-summary p {
         color: var(--slate);
-        font-size: 0.9rem;
       }
+
+      /* Search results — card style */
       .quick-claim-search-results {
         display: grid;
         gap: 0.6rem;
+      }
+      .quick-claim-search-results[hidden] {
+        display: none;
       }
       .quick-claim-search-state {
         padding: 1rem;
@@ -352,8 +388,8 @@
       .quick-claim-search-state-links {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.9rem;
-        margin-top: 0.65rem;
+        gap: 1rem;
+        margin-top: 0.75rem;
       }
       .quick-claim-search-state-links a,
       .quick-claim-search-state-links button {
@@ -367,10 +403,12 @@
         text-decoration: none;
         cursor: pointer;
       }
-      .quick-claim-search-result {
+      /* Directory-card style result */
+      .claim-result-card {
         display: grid;
-        gap: 0.25rem;
-        padding: 0.95rem 1rem;
+        grid-template-columns: 48px 1fr;
+        gap: 0.85rem;
+        padding: 1rem;
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 14px;
@@ -381,43 +419,91 @@
         transition:
           border-color 0.15s ease,
           background 0.15s ease;
+        width: 100%;
+        align-items: start;
       }
-      .quick-claim-search-result:hover {
+      .claim-result-card:hover {
         border-color: var(--teal);
         background: var(--teal-faint);
       }
-      .quick-claim-search-result:focus-visible {
+      .claim-result-card:focus-visible {
         outline: 3px solid rgba(26, 122, 143, 0.2);
         outline-offset: 2px;
       }
-      .quick-claim-search-result .result-name {
+      .claim-result-card.is-selected {
+        border-color: var(--teal);
+        border-width: 2px;
+        cursor: default;
+      }
+      .claim-result-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--white);
+        flex-shrink: 0;
+        margin-top: 0.1rem;
       }
-      .quick-claim-search-result .result-meta {
-        color: var(--muted);
-        font-size: 0.85rem;
+      .claim-result-body {
+        display: grid;
+        gap: 0.2rem;
       }
-      .quick-claim-search-hint {
-        font-size: 0.88rem;
+      .claim-result-name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--navy);
+        line-height: 1.3;
+      }
+      .claim-result-cred {
+        font-weight: 400;
+        color: var(--slate);
+      }
+      .claim-result-meta {
+        font-size: 0.84rem;
         color: var(--muted);
+      }
+      .claim-result-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.25rem;
+      }
+      .claim-result-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 0.18rem 0.52rem;
+        border-radius: 999px;
+      }
+      .claim-result-badge--verified {
+        color: var(--green);
+        background: rgba(58, 170, 122, 0.1);
+      }
+      .claim-result-badge--claimed {
+        color: var(--slate);
+        background: rgba(74, 101, 114, 0.1);
+      }
+      .claim-result-email {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-top: 0.1rem;
       }
 
+      /* Confirm panel */
       .claim-confirm-panel {
+        background: rgba(255, 255, 255, 0.98);
+        border: 2px solid rgba(26, 122, 143, 0.2);
+        border-radius: 22px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
         display: grid;
         gap: 1rem;
-        border-width: 2px;
-      }
-      .claim-confirm-panel[hidden],
-      .quick-claim-form[hidden],
-      .claim-trust-signals[hidden],
-      .claim-trial-subhint[hidden] {
-        display: none;
-      }
-      .claim-confirm-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.75rem;
       }
       .claim-confirm-label {
         font-size: 0.78rem;
@@ -426,49 +512,38 @@
         letter-spacing: 0.06em;
         color: var(--teal-dark);
       }
-      .claim-confirm-header a {
-        color: var(--muted);
-        font-size: 0.88rem;
-        text-decoration: none;
-      }
-      .claim-confirm-header a:hover {
-        color: var(--teal);
-      }
-      .claim-confirm-name {
-        font-family: "Lora", serif;
-        font-size: 1.48rem;
-        line-height: 1.1;
-        color: var(--navy);
-      }
-      .claim-confirm-meta {
-        color: var(--muted);
-        font-size: 0.92rem;
-      }
       .claim-confirm-destination {
         color: var(--navy);
         font-size: 0.95rem;
       }
-      .claim-confirm-unlocks-line {
-        padding: 0.85rem 1rem;
-        background: rgba(26, 122, 143, 0.06);
-        border-radius: 12px;
-        color: var(--slate);
-        font-size: 0.92rem;
+      .claim-confirm-recovery {
+        font-size: 0.9rem;
+      }
+      .claim-confirm-recovery a {
+        color: var(--teal-dark);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .claim-confirm-recovery a:hover {
+        text-decoration: underline;
       }
       .claim-trust-signals {
         list-style: none;
         display: grid;
-        gap: 0.45rem;
-        padding: 0.85rem 0.95rem;
+        gap: 0.4rem;
+        padding: 0.8rem 0.9rem;
         background: var(--teal-faint);
         border-radius: 10px;
+      }
+      .claim-trust-signals[hidden] {
+        display: none;
       }
       .claim-trust-signals li {
         display: flex;
         align-items: center;
-        gap: 0.55rem;
+        gap: 0.5rem;
         color: var(--navy);
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         font-weight: 500;
       }
       .claim-trust-signals li::before {
@@ -476,57 +551,70 @@
         color: var(--green);
         font-weight: 700;
       }
-      .claim-confirm-send,
-      .quick-claim-submit,
-      .claim-recovery-submit,
-      .listing-removal-submit {
+      .claim-confirm-unlocks-line {
+        padding: 0.8rem 0.95rem;
+        background: rgba(26, 122, 143, 0.05);
+        border-radius: 10px;
+        color: var(--slate);
+        font-size: 0.9rem;
+      }
+      .claim-confirm-send {
         background: var(--teal);
         color: var(--white);
         border: none;
         border-radius: 12px;
-        padding: 1rem 1rem;
+        padding: 1rem;
         font: inherit;
         font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
         transition: background 0.15s ease;
       }
-      .claim-confirm-send:hover:not(:disabled),
-      .quick-claim-submit:hover:not(:disabled),
-      .claim-recovery-submit:hover:not(:disabled) {
+      .claim-confirm-send:hover:not(:disabled) {
         background: var(--teal-dark);
       }
-      .claim-confirm-send:disabled,
-      .quick-claim-submit:disabled,
-      .claim-recovery-submit:disabled,
-      .listing-removal-submit:disabled {
+      .claim-confirm-send:disabled {
         background: var(--muted);
         cursor: not-allowed;
       }
-      .claim-trial-subhint {
+      .claim-confirm-subhint {
         color: var(--muted);
-        font-size: 0.86rem;
+        font-size: 0.85rem;
       }
-      .claim-trial-secondary {
-        background: transparent;
-        color: var(--teal-dark);
-        border: 1px solid rgba(26, 122, 143, 0.32);
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
-        font: inherit;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition:
-          background 0.15s ease,
-          border-color 0.15s ease;
-      }
-      .claim-trial-secondary:hover {
-        background: rgba(26, 122, 143, 0.06);
-        border-color: var(--teal);
-      }
-      .claim-trial-secondary[hidden] {
+      .claim-confirm-subhint[hidden] {
         display: none;
+      }
+      .claim-confirm-status {
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+      }
+      .claim-confirm-status[hidden] {
+        display: none;
+      }
+      .claim-confirm-status[data-tone="success"] {
+        background: rgba(47, 110, 128, 0.08);
+        color: var(--navy);
+      }
+      .claim-confirm-status[data-tone="warn"] {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+      }
+      .claim-confirm-resend {
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+      .claim-confirm-resend[hidden] {
+        display: none;
+      }
+      .claim-confirm-resend a {
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+      .claim-confirm-resend a[aria-disabled="true"] {
+        pointer-events: none;
+        color: var(--muted);
+        font-weight: 400;
       }
       .claim-confirm-alt {
         font-size: 0.88rem;
@@ -547,42 +635,19 @@
       .claim-confirm-dispute a:hover {
         color: #7a2f2f;
       }
-      .claim-confirm-status,
-      .quick-claim-status,
-      .claim-recovery-status,
-      .listing-removal-status {
-        padding: 0.75rem 0.9rem;
-        border-radius: 10px;
-        font-size: 0.9rem;
-      }
-      .claim-confirm-status[data-tone="success"],
-      .quick-claim-status[data-tone="success"],
-      .claim-recovery-status[data-tone="success"] {
-        background: rgba(47, 110, 128, 0.08);
-        color: var(--navy);
-      }
-      .claim-confirm-status[data-tone="warn"],
-      .quick-claim-status[data-tone="warn"],
-      .claim-recovery-status[data-tone="warn"] {
-        background: rgba(229, 62, 62, 0.08);
-        color: var(--red);
-      }
-      .claim-confirm-resend,
-      .quick-claim-resend,
-      .quick-claim-fineprint,
-      .quick-claim-fallback {
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-      .claim-confirm-resend a,
-      .quick-claim-resend a,
-      .quick-claim-fallback {
-        color: var(--teal-dark);
-      }
 
+      /* Quick claim fallback form */
       .quick-claim-form {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 22px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
         display: grid;
         gap: 0.9rem;
+      }
+      .quick-claim-form[hidden] {
+        display: none;
       }
       .quick-claim-form-banner {
         background: var(--teal-faint);
@@ -596,177 +661,103 @@
       .quick-claim-form-banner[hidden] {
         display: none;
       }
-      .quick-claim-form label,
-      .claim-recovery-form label,
-      .listing-removal-form label {
+      .quick-claim-form label {
         display: grid;
         gap: 0.35rem;
         font-size: 0.84rem;
         font-weight: 600;
       }
-      .quick-claim-form input,
-      .claim-recovery-form input,
-      .claim-recovery-form textarea,
-      .listing-removal-form input {
+      .quick-claim-form input {
         padding: 0.78rem 0.9rem;
         border: 1px solid var(--border);
         border-radius: 10px;
         font: inherit;
         background: var(--white);
       }
-      .quick-claim-form input:focus,
-      .claim-recovery-form input:focus,
-      .claim-recovery-form textarea:focus,
-      .listing-removal-form input:focus {
+      .quick-claim-form input:focus {
         outline: none;
         border-color: var(--teal);
         box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
       }
-      .quick-claim-field-hint,
-      .listing-removal-field-hint,
-      .listing-removal-search-hint {
+      .quick-claim-field-hint {
         font-size: 0.8rem;
         color: var(--muted);
         font-weight: 400;
       }
-
-      .claim-recovery-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 200;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-      }
-      .claim-recovery-modal[hidden] {
-        display: none;
-      }
-      .claim-recovery-backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(15, 65, 78, 0.55);
-      }
-      .claim-recovery-dialog {
-        position: relative;
-        background: var(--white);
-        border-radius: 18px;
-        padding: 1.75rem;
-        max-width: 540px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 48px rgba(15, 65, 78, 0.28);
-      }
-      .claim-recovery-close {
-        position: absolute;
-        top: 0.7rem;
-        right: 0.9rem;
-        background: transparent;
-        border: 0;
-        font-size: 1.6rem;
-        color: var(--muted);
-        cursor: pointer;
-        line-height: 1;
-      }
-      .claim-recovery-close:hover {
-        color: var(--navy);
-      }
-      .claim-recovery-heading {
-        font-family: "Lora", serif;
-        font-size: 1.35rem;
-        margin-bottom: 0.55rem;
-      }
-      .claim-recovery-sub {
-        margin-bottom: 1rem;
-        color: var(--slate);
-        font-size: 0.92rem;
-      }
-      .claim-recovery-form {
-        display: grid;
-        gap: 0.85rem;
-      }
-      .claim-recovery-form label em {
-        font-weight: 400;
-        color: var(--muted);
-        font-style: normal;
-      }
-
-      .claim-how-it-works,
-      .claim-help,
-      .claim-faq {
-        max-width: 900px;
-        margin: 3rem auto 0;
-        padding: 0 1.5rem;
-      }
-      .claim-how-it-works {
-        margin-top: 1rem;
-      }
-      .claim-how-it-works h2,
-      .claim-help h2,
-      .claim-faq h2 {
-        font-family: "Lora", serif;
-        font-size: 1.65rem;
-        color: var(--navy);
-        margin-bottom: 1rem;
-      }
-      .claim-how-it-works-grid,
-      .claim-help-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-      }
-      .claim-how-it-works-step,
-      .claim-help-card {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.2rem;
-      }
-      .claim-how-it-works-step-index {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
+      .quick-claim-submit {
         background: var(--teal);
         color: var(--white);
-        border-radius: 999px;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem;
+        font: inherit;
+        font-size: 1rem;
         font-weight: 700;
-        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
       }
-      .claim-how-it-works-step h3,
-      .claim-help-card strong {
+      .quick-claim-submit:hover:not(:disabled) {
+        background: var(--teal-dark);
+      }
+      .quick-claim-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .quick-claim-fineprint {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .quick-claim-status {
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+      }
+      .quick-claim-status[hidden] {
+        display: none;
+      }
+      .quick-claim-status[data-tone="success"] {
+        background: rgba(47, 110, 128, 0.08);
         color: var(--navy);
       }
-      .claim-how-it-works-step p,
-      .claim-help-intro,
-      .claim-help-card p,
-      .claim-faq-item p {
-        color: var(--slate);
+      .quick-claim-status[data-tone="warn"] {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
       }
-      .claim-help-intro {
-        max-width: 62ch;
-        margin-bottom: 1.2rem;
+      .quick-claim-resend {
+        color: var(--muted);
+        font-size: 0.86rem;
       }
-      .claim-help-card {
-        display: grid;
-        gap: 0.55rem;
+      .quick-claim-resend[hidden] {
+        display: none;
       }
-      .claim-help-card a,
-      .claim-help-card button {
-        width: fit-content;
-        border: 0;
-        background: none;
-        padding: 0;
+      .quick-claim-resend a {
         color: var(--teal-dark);
-        font: inherit;
-        font-size: 0.92rem;
+        font-weight: 600;
+      }
+      .quick-claim-resend a[aria-disabled="true"] {
+        pointer-events: none;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .quick-claim-fallback {
+        color: var(--teal-dark);
+        font-size: 0.86rem;
         font-weight: 700;
         text-decoration: none;
-        cursor: pointer;
       }
 
+      /* FAQ */
+      .claim-faq {
+        max-width: 720px;
+        margin: 2.5rem auto 0;
+        padding: 0 1.5rem;
+      }
+      .claim-faq h2 {
+        font-family: "Lora", serif;
+        font-size: 1.55rem;
+        color: var(--navy);
+        margin-bottom: 1rem;
+      }
       .claim-faq-item {
         background: var(--white);
         border: 1px solid var(--border);
@@ -800,104 +791,12 @@
       }
       .claim-faq-item p {
         padding: 0 1.25rem 1.15rem;
-      }
-
-      .claim-remove-details {
-        margin-top: 0.1rem;
-      }
-      .claim-remove-details summary {
-        color: var(--muted);
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .claim-remove-details[open] summary {
-        color: var(--navy);
-      }
-      .claim-remove-body {
-        margin-top: 0.9rem;
-        background: rgba(247, 251, 252, 0.82);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.2rem;
-      }
-      .claim-remove-intro {
         color: var(--slate);
-        font-size: 0.92rem;
-        margin-bottom: 1rem;
-      }
-      .listing-removal-search,
-      .listing-removal-form {
-        display: grid;
-        gap: 0.75rem;
-      }
-      .listing-removal-search {
-        padding: 0.9rem 1rem;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        margin-bottom: 0.9rem;
-      }
-      .listing-removal-search label {
-        display: grid;
-        gap: 0.35rem;
-        font-size: 0.78rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--teal-dark);
-      }
-      .listing-removal-search-results {
-        display: grid;
-        gap: 0.4rem;
-      }
-      .listing-removal-search-results[hidden] {
-        display: none;
-      }
-      .listing-removal-search-result {
-        display: grid;
-        gap: 0.2rem;
-        padding: 0.65rem 0.8rem;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        text-align: left;
-        font: inherit;
-        color: var(--navy);
-        cursor: pointer;
-      }
-      .listing-removal-search-result:hover {
-        border-color: var(--teal);
-        background: var(--teal-faint);
-      }
-      .listing-removal-search-result .result-name {
-        font-weight: 600;
-      }
-      .listing-removal-search-result .result-meta {
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
-      .listing-removal-search-empty {
-        padding: 0.6rem 0.8rem;
-        color: var(--muted);
-        font-size: 0.88rem;
-        font-style: italic;
-      }
-      .listing-removal-status.is-success {
-        background: rgba(58, 170, 122, 0.12);
-        color: var(--green);
-      }
-      .listing-removal-status.is-error {
-        background: rgba(229, 62, 62, 0.08);
-        color: var(--red);
       }
 
-      .claim-trial-offer[hidden] {
-        display: none !important;
-      }
-
+      /* Footer */
       .site-mini-footer {
-        max-width: 900px;
+        max-width: 720px;
         margin: 2.5rem auto 0;
         padding: 1.25rem 1.5rem 2rem;
         border-top: 1px solid var(--border);
@@ -913,11 +812,14 @@
       .site-mini-footer a:hover {
         color: var(--teal-dark);
       }
+      .site-mini-footer-removal {
+        display: block;
+        margin-top: 0.6rem;
+        font-size: 0.82rem;
+      }
 
       @media (max-width: 720px) {
         .claim-main,
-        .claim-how-it-works,
-        .claim-help,
         .claim-faq {
           padding-left: 1.25rem;
           padding-right: 1.25rem;
@@ -925,14 +827,13 @@
         .claim-main {
           padding-top: 1.75rem;
         }
-        .claim-how-it-works-grid,
-        .claim-help-grid {
-          grid-template-columns: 1fr;
-        }
         .claim-search-card,
         .claim-confirm-panel,
         .quick-claim-form {
           padding: 1.25rem;
+        }
+        .claim-thin-banner {
+          padding: 0.5rem 1.25rem;
         }
       }
       @media (max-width: 640px) {
@@ -947,14 +848,16 @@
           padding: 0.3rem 0.7rem !important;
           font-size: 0.78rem !important;
         }
-        /* Force 16px on every text-entry control so iOS Safari does
-           not auto-zoom when the user taps a field. */
-        .quick-claim-form input,
-        .claim-recovery-form input,
-        .claim-recovery-form textarea,
-        .claim-recovery-form select,
-        .listing-removal-form input,
-        .listing-removal-form textarea {
+        .claim-result-card {
+          grid-template-columns: 40px 1fr;
+        }
+        .claim-result-avatar {
+          width: 40px;
+          height: 40px;
+          font-size: 0.9rem;
+        }
+        /* Prevent iOS Safari auto-zoom on input focus */
+        .quick-claim-form input {
           font-size: 16px;
         }
       }
@@ -975,71 +878,64 @@
       </ul>
     </nav>
 
+    <!-- Thin session banner (shown only when therapist is already signed in) -->
+    <div id="claimThinBanner" class="claim-thin-banner" hidden aria-live="polite" role="status">
+      <span class="claim-thin-banner-text" id="claimThinBannerText"></span>
+      <div class="claim-thin-banner-links">
+        <a href="portal.html" id="claimThinBannerDashboard">Go to dashboard →</a>
+        <a href="claim.html" id="claimThinBannerClaim">Claim a different listing</a>
+      </div>
+      <button
+        type="button"
+        class="claim-thin-banner-dismiss"
+        id="claimThinBannerDismiss"
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+    </div>
+
     <main class="claim-main">
       <div class="claim-shell">
         <section class="claim-hero">
+          <p class="claim-hero-note">
+            Your listing was built from public California license records. Claiming gives you
+            control.
+          </p>
           <span class="claim-kicker">Claim your listing</span>
           <h1>Claim your BipolarTherapyHub listing</h1>
-          <p>
-            Find your public listing and send yourself a secure activation link. Claiming is free.
-          </p>
+          <p>Find your listing and send yourself a secure activation link. Claiming is free.</p>
           <ul class="claim-hero-support" aria-label="Claim reassurance">
             <li>No password required</li>
             <li>Free to claim</li>
             <li>Your CA license verification carries over</li>
           </ul>
-          <p class="claim-hero-removal-link">
-            <a href="#claimRemovalSection">Want to remove your listing instead? →</a>
-          </p>
         </section>
 
-        <section
-          class="claim-session-banner"
-          id="claimSessionBanner"
-          role="status"
-          aria-live="polite"
-          hidden
-        >
-          <strong id="claimSessionBannerTitle"></strong>
-          <p id="claimSessionBannerBody"></p>
-          <div class="claim-session-banner-actions">
-            <a href="portal.html" id="claimSessionBannerPrimary">Go to your dashboard →</a>
-            <a href="claim.html" id="claimSessionBannerSecondary">Claim a different listing →</a>
-          </div>
-        </section>
+        <!-- Step 1: Find your listing -->
+        <div class="claim-step-area" id="claimStep1Area">
+          <div class="claim-step-label" id="claimStep1Label">Step 1 of 2: Find your listing</div>
 
-        <section
-          class="claim-search-card"
-          id="quickClaimSearch"
-          aria-labelledby="claimSearchHeading"
-        >
-          <div class="claim-search-card-header">
-            <span class="claim-search-card-kicker">Primary step</span>
-            <h2 id="claimSearchHeading">Find your listing</h2>
-            <p>
-              Search by last name or California license number. We’ll show matching public listings
-              if we have one.
-            </p>
-          </div>
-          <div class="claim-search-card-form">
+          <!-- Active search card -->
+          <section
+            class="claim-search-card"
+            id="quickClaimSearch"
+            aria-labelledby="claimSearchHeading"
+          >
             <label for="quickClaimSearchInput">
-              <span>Search the directory</span>
+              <span id="claimSearchHeading">Search the directory</span>
               <input
                 type="search"
                 id="quickClaimSearchInput"
                 autocomplete="off"
                 autofocus
-                placeholder="Search by last name or California license number"
-                aria-describedby="quickClaimSearchHint quickClaimSearchSummary"
+                placeholder="Last name or California license number"
+                aria-describedby="quickClaimSearchHint"
               />
+              <span class="claim-field-hint" id="quickClaimSearchHint"
+                >Last name or California license number.</span
+              >
             </label>
-            <div
-              class="quick-claim-search-summary"
-              id="quickClaimSearchSummary"
-              role="status"
-              aria-live="polite"
-              hidden
-            ></div>
             <div
               class="quick-claim-search-results"
               id="quickClaimSearchResults"
@@ -1047,156 +943,79 @@
               aria-label="Listing matches"
               hidden
             ></div>
-            <p class="quick-claim-search-hint" id="quickClaimSearchHint">
-              Most claims finish in a few steps. If you do not see your listing, you can start a new
-              one below.
-            </p>
-          </div>
-        </section>
+            <div
+              class="quick-claim-search-summary"
+              id="quickClaimSearchSummary"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+          </section>
 
-        <div class="claim-confirm-panel" id="claimConfirmPanel" hidden>
-          <div class="claim-confirm-header">
+          <!-- Collapsed summary shown in step 2 instead of search card -->
+          <div class="claim-step-summary" id="claimStep1Summary" hidden>
+            <span>Searched: <strong id="claimSearchedTerm"></strong></span>
+            <a href="#" id="claimStep1Change">change →</a>
+          </div>
+        </div>
+
+        <!-- Step 2: Confirm and send link (hidden until listing selected) -->
+        <div class="claim-step-area" id="claimStep2Area" hidden>
+          <div class="claim-step-label">Step 2 of 2: Confirm and send link</div>
+
+          <div class="claim-confirm-panel" id="claimConfirmPanel">
             <span class="claim-confirm-label" id="claimConfirmLabel">Selected listing</span>
-            <a href="#" id="claimConfirmChange">Change →</a>
-          </div>
-          <h3 class="claim-confirm-name" id="claimConfirmName"></h3>
-          <p class="claim-confirm-meta" id="claimConfirmMeta"></p>
-          <ul class="claim-trust-signals" id="claimTrustSignals" hidden></ul>
-          <p class="claim-confirm-destination" id="claimConfirmDestination">
-            We’ll email your activation link to <strong id="claimConfirmEmail"></strong>.
-          </p>
-          <p class="claim-confirm-destination claim-confirm-unlocks-line">
-            After activation you can edit your listing, manage availability, and update visibility.
-          </p>
-          <button type="button" id="claimConfirmSend" class="claim-confirm-send">
-            Send activation link
-          </button>
-          <p class="claim-trial-subhint" id="claimTrialSubhint">No billing on this step.</p>
-          <button type="button" id="claimStartTrial" class="claim-trial-secondary" hidden>
-            Start 14-day free trial — $0 today
-          </button>
-          <p class="claim-confirm-alt">
-            <a href="#" id="claimConfirmRequestRecovery"
-              >Can’t access the email on file? Use account recovery instead →</a
-            >
-          </p>
-          <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
-            <a
-              href="mailto:support@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
-              id="claimConfirmDispute"
-              >Not your listing? Report a mistaken claim →</a
-            >
-          </p>
-          <div
-            class="claim-confirm-status"
-            id="claimConfirmStatus"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-          <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
-            Didn’t see it yet? Check spam, promotions, or the inbox on file, then
-            <a href="#" id="claimConfirmResendLink">resend the link</a>.
-          </p>
-        </div>
 
-        <div
-          class="claim-recovery-modal"
-          id="claimRecoveryModal"
-          hidden
-          aria-modal="true"
-          role="dialog"
-          aria-labelledby="claimRecoveryHeading"
-        >
-          <div class="claim-recovery-backdrop" id="claimRecoveryBackdrop"></div>
-          <div class="claim-recovery-dialog">
-            <button
-              type="button"
-              class="claim-recovery-close"
-              id="claimRecoveryClose"
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <h2 class="claim-recovery-heading" id="claimRecoveryHeading">
-              Request account recovery
-            </h2>
-            <p class="claim-recovery-sub">
-              Use this only if the email on file is outdated or incorrect. A human reviews every
-              request, verifies identity against your California license, and emails next steps
-              within one business day.
+            <!-- Selected listing card preview -->
+            <div id="claimSelectedCard"></div>
+
+            <ul class="claim-trust-signals" id="claimTrustSignals" hidden></ul>
+
+            <p class="claim-confirm-destination" id="claimConfirmDestination">
+              We'll send your activation link to <strong id="claimConfirmEmail"></strong>.
             </p>
-            <form id="claimRecoveryForm" class="claim-recovery-form" novalidate>
-              <label>
-                <span>Full name (as on your license)</span>
-                <input
-                  type="text"
-                  name="full_name"
-                  id="claimRecoveryFullName"
-                  autocomplete="name"
-                  required
-                />
-              </label>
-              <label>
-                <span>CA license number</span>
-                <input type="text" name="license_number" id="claimRecoveryLicense" required />
-              </label>
-              <label>
-                <span>Email you want access at</span>
-                <input
-                  type="email"
-                  name="requested_email"
-                  id="claimRecoveryRequestedEmail"
-                  autocomplete="email"
-                  required
-                />
-              </label>
-              <label>
-                <span>Email you used to have access to <em>(if you remember it)</em></span>
-                <input
-                  type="email"
-                  name="prior_email"
-                  id="claimRecoveryPriorEmail"
-                  autocomplete="email"
-                />
-              </label>
-              <button type="submit" class="claim-recovery-submit" id="claimRecoverySubmit">
-                Send recovery request
-              </button>
-              <div
-                class="claim-recovery-status"
-                id="claimRecoveryStatus"
-                role="status"
-                aria-live="polite"
-                hidden
-              ></div>
-            </form>
+
+            <p class="claim-confirm-recovery" id="claimConfirmRecoveryWrap">
+              <a href="recover.html" id="claimConfirmRequestRecovery"
+                >Don't have access to this email anymore? Recover your account →</a
+              >
+            </p>
+
+            <p class="claim-confirm-unlocks-line">
+              After activation you can edit your listing, manage availability, and update
+              visibility.
+            </p>
+
+            <button type="button" id="claimConfirmSend" class="claim-confirm-send">
+              Send activation link
+            </button>
+
+            <p class="claim-confirm-subhint" id="claimTrialSubhint">This step is free.</p>
+
+            <div
+              class="claim-confirm-status"
+              id="claimConfirmStatus"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+
+            <p class="claim-confirm-resend" id="claimConfirmResend" hidden>
+              Didn't get it?
+              <a href="#" id="claimConfirmResendLink" aria-disabled="true">Resend now</a>.
+            </p>
+
+            <p class="claim-confirm-alt claim-confirm-dispute" id="claimConfirmDisputeWrap" hidden>
+              <a
+                href="mailto:support@bipolartherapyhub.com?subject=Mistaken%20claim%20report"
+                id="claimConfirmDispute"
+                >Not your listing? Report a mistaken claim →</a
+              >
+            </p>
           </div>
         </div>
 
-        <div class="claim-trial-offer" id="claimTrialOffer" hidden>
-          <button
-            type="button"
-            class="claim-trial-cta"
-            id="claimTrialFounding"
-            data-plan="founding_monthly"
-            hidden
-          >
-            <span class="claim-trial-cta-title"></span>
-          </button>
-          <button
-            type="button"
-            class="claim-trial-cta"
-            id="claimTrialStandard"
-            data-plan="paid_monthly"
-            hidden
-          >
-            <span class="claim-trial-cta-title"></span>
-          </button>
-          <a href="#" id="claimTrialDismiss" hidden>dismiss</a>
-          <p id="claimTrialFeedback" hidden></p>
-        </div>
-
+        <!-- Quick claim fallback form (for listings with no email on file) -->
         <form id="quickClaimForm" class="quick-claim-form" novalidate hidden>
           <div class="quick-claim-form-banner" id="quickClaimFormBanner" hidden></div>
           <label>
@@ -1228,8 +1047,8 @@
             Send activation link
           </button>
           <p class="quick-claim-fineprint">
-            Claiming is free. If we cannot auto-verify this route, we will explain the next best
-            step clearly.
+            Claiming is free. If we cannot auto-verify this route, we will explain the next step
+            clearly.
           </p>
           <div
             class="quick-claim-status"
@@ -1239,160 +1058,20 @@
             hidden
           ></div>
           <p class="quick-claim-resend" id="quickClaimResend" hidden>
-            Didn’t see it yet? Check spam, promotions, or the inbox on file, then
-            <a href="#" id="quickClaimResendLink">resend the link</a>.
+            Didn't get it?
+            <a href="#" id="quickClaimResendLink" aria-disabled="true">Resend now</a>.
           </p>
           <a href="signup.html" class="quick-claim-fallback" id="quickClaimCreateNew" hidden>
             Not listed yet? Create a new listing instead →
           </a>
         </form>
+
         <div id="formCard"></div>
       </div>
     </main>
 
-    <section class="claim-how-it-works" aria-label="How it works">
-      <h2>How it works</h2>
-      <div class="claim-how-it-works-grid">
-        <div class="claim-how-it-works-step">
-          <div class="claim-how-it-works-step-index">1</div>
-          <h3>Find your listing</h3>
-          <p>
-            Search by last name or license number. We’ll show close public matches if we have one.
-          </p>
-        </div>
-        <div class="claim-how-it-works-step">
-          <div class="claim-how-it-works-step-index">2</div>
-          <h3>Confirm the email on file</h3>
-          <p>
-            Check the listing details and masked email so you can tell whether it is yours before
-            you continue.
-          </p>
-        </div>
-        <div class="claim-how-it-works-step">
-          <div class="claim-how-it-works-step-index">3</div>
-          <h3>Send the activation link</h3>
-          <p>
-            We send a one-time email link. After activation, you can stay free or continue into any
-            optional trial flow that applies.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="claim-help" aria-labelledby="claimHelpHeading">
-      <h2 id="claimHelpHeading">Need a different path?</h2>
-      <p class="claim-help-intro">
-        The common path is still finding your listing and sending the activation link. If that does
-        not fit your situation, these options stay available without taking over the page.
-      </p>
-      <div class="claim-help-grid">
-        <article class="claim-help-card">
-          <strong>Can’t access the email on file?</strong>
-          <p>
-            Use account recovery if the email is outdated, incorrect, or no longer accessible. We
-            verify identity before changing access.
-          </p>
-          <button type="button" id="claimHelpRecovery">Open account recovery →</button>
-        </article>
-        <article class="claim-help-card">
-          <strong>Not listed yet?</strong>
-          <p>
-            Start a new listing if we do not already have your public profile. This stays separate
-            from claiming an existing one.
-          </p>
-          <a href="signup.html" id="claimHelpNewListing">Create a new listing →</a>
-        </article>
-        <article class="claim-help-card" id="claimRemovalSection">
-          <strong>Need removal instead?</strong>
-          <p>
-            Removal is instant. We send a one-time confirmation link to the email on your listing,
-            and your page goes dark the moment you click it.
-          </p>
-          <details class="claim-remove-details" aria-label="Remove your listing">
-            <summary>Open removal request</summary>
-            <div class="claim-remove-body">
-              <p class="claim-remove-intro">
-                Your listing was built from your CA DCA license record and publicly visible
-                bipolar-specialty information. If you'd rather not be listed, confirm via the email
-                on file and the page is removed immediately.
-              </p>
-              <div class="listing-removal-search">
-                <label>
-                  <span>Find your listing</span>
-                  <input
-                    type="search"
-                    id="listingRemovalSearchInput"
-                    autocomplete="off"
-                    placeholder="Search your name or CA license number"
-                  />
-                </label>
-                <div
-                  class="listing-removal-search-results"
-                  id="listingRemovalSearchResults"
-                  role="listbox"
-                  hidden
-                ></div>
-                <p class="listing-removal-search-hint">
-                  Pick your listing to autofill the form below. We’ll show the masked email on file
-                  so you know which inbox to use.
-                </p>
-              </div>
-              <form id="listingRemovalForm" class="listing-removal-form" novalidate>
-                <label>
-                  <span>Full name</span>
-                  <input
-                    type="text"
-                    name="full_name"
-                    autocomplete="name"
-                    placeholder="Jamie Rivera"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>CA license number</span>
-                  <input
-                    type="text"
-                    name="license_number"
-                    autocomplete="off"
-                    placeholder="e.g. 109462"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>Email on your listing</span>
-                  <input type="email" name="email" autocomplete="email" required />
-                  <span class="listing-removal-field-hint" id="listingRemovalEmailHint">
-                    We send the confirmation link to the email we have on file, not to a different
-                    address. This prevents someone else from removing you.
-                  </span>
-                </label>
-                <button type="submit" class="listing-removal-submit">
-                  Send removal confirmation link
-                </button>
-                <div
-                  class="listing-removal-status"
-                  id="listingRemovalStatus"
-                  role="status"
-                  aria-live="polite"
-                  hidden
-                ></div>
-              </form>
-            </div>
-          </details>
-        </article>
-      </div>
-    </section>
-
     <section class="claim-faq" aria-label="Frequently asked questions">
       <h2>Common questions</h2>
-      <details class="claim-faq-item">
-        <summary>Why am I already listed?</summary>
-        <p>
-          Your listing was built from your CA DCA license record and publicly visible
-          bipolar-specialty information from your practice site or public directories. Claiming
-          gives you control over it. Removal is one click and instant.
-        </p>
-      </details>
       <details class="claim-faq-item">
         <summary>Does claiming cost anything?</summary>
         <p>
@@ -1401,18 +1080,18 @@
         </p>
       </details>
       <details class="claim-faq-item">
-        <summary>What if I can’t access the email on file?</summary>
+        <summary>What if I can't access the email on file?</summary>
         <p>
           Use account recovery after selecting your listing. We review that request manually,
           confirm identity against your California license, and email next steps within one business
-          day.
+          day. The recovery link appears in step 2, below the email destination.
         </p>
       </details>
       <details class="claim-faq-item">
-        <summary>What if I’m not yet listed?</summary>
+        <summary>How long does the activation link last?</summary>
         <p>
-          Use our short signup form instead. It is the right path when we do not already have your
-          public profile. <a href="signup.html">Sign up for a new listing →</a>
+          30 minutes. If it expires, just come back to this page and send a fresh one — there's no
+          limit on how many times you can request a new link.
         </p>
       </details>
     </section>
@@ -1420,10 +1099,13 @@
     <footer class="site-mini-footer">
       <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
       <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      <span class="site-mini-footer-removal">
+        Want to remove your listing instead?
+        <a href="remove.html">→</a>
+      </span>
     </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
-    <script type="module" src="assets/signup-listing-removal.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

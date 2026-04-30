@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-Q22R5G7VB5");
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>Recover your account — BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="Can't access the email on file? Request account recovery. A human verifies your identity against your California license and emails next steps within one business day."
+    />
+    <link rel="canonical" href="https://www.bipolartherapyhub.com/recover" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a7a8f;
+        --teal-light: #2a9cb3;
+        --teal-dark: #155f70;
+        --teal-faint: #e8f5f8;
+        --navy: #1d3a4a;
+        --slate: #4a6572;
+        --muted: #6b8290;
+        --border: #d4e4e9;
+        --bg: #f7fbfc;
+        --white: #ffffff;
+        --green: #3aaa7a;
+        --red: #e53e3e;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(42, 156, 179, 0.08), transparent 32%),
+          linear-gradient(180deg, #f8fcfd 0%, #f4f9fb 100%);
+        color: var(--navy);
+        line-height: 1.6;
+      }
+      nav {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.5rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+      }
+      .nav-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000;
+      }
+      .nav-name span {
+        color: var(--teal);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+      }
+      .nav-links a {
+        color: var(--navy);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+      .nav-links a:hover {
+        color: var(--teal);
+      }
+      .nav-signin-link {
+        color: var(--muted) !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem;
+      }
+      .nav-signin-link:hover {
+        color: var(--teal) !important;
+      }
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem !important;
+        color: var(--muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        border: 1px solid transparent;
+        border-radius: 999px;
+      }
+      .nav-zone-switch:hover {
+        color: var(--teal-dark) !important;
+        border-color: rgba(26, 122, 143, 0.22);
+        background: rgba(26, 122, 143, 0.06);
+      }
+
+      .recover-main {
+        max-width: 580px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 1.5rem;
+      }
+      .recover-shell {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .recover-hero {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .recover-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 500;
+      }
+      .recover-back:hover {
+        color: var(--teal-dark);
+      }
+      .recover-kicker {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .recover-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+        line-height: 1.1;
+        color: var(--navy);
+      }
+      .recover-hero p {
+        color: var(--slate);
+        font-size: 0.98rem;
+        max-width: 56ch;
+      }
+
+      .recover-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 22px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 44px rgba(15, 65, 78, 0.09);
+        display: grid;
+        gap: 1.1rem;
+      }
+      .recover-card-sub {
+        color: var(--slate);
+        font-size: 0.92rem;
+        padding: 0.8rem 0.95rem;
+        background: var(--teal-faint);
+        border-radius: 10px;
+      }
+
+      .recover-form {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .recover-form label {
+        display: grid;
+        gap: 0.38rem;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--navy);
+      }
+      .recover-form label em {
+        font-weight: 400;
+        color: var(--muted);
+        font-style: normal;
+      }
+      .recover-form input {
+        padding: 0.82rem 0.95rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+        background: var(--white);
+        color: var(--navy);
+      }
+      .recover-form input:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.12);
+      }
+      .recover-submit {
+        background: var(--teal);
+        color: var(--white);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .recover-submit:hover:not(:disabled) {
+        background: var(--teal-dark);
+      }
+      .recover-submit:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+      .recover-status {
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+      }
+      .recover-status[hidden] {
+        display: none;
+      }
+      .recover-status[data-tone="success"] {
+        background: rgba(47, 110, 128, 0.08);
+        color: var(--navy);
+      }
+      .recover-status[data-tone="warn"] {
+        background: rgba(229, 62, 62, 0.08);
+        color: var(--red);
+      }
+
+      .recover-alt {
+        font-size: 0.88rem;
+        color: var(--slate);
+      }
+      .recover-alt a {
+        color: var(--teal-dark);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .recover-alt a:hover {
+        text-decoration: underline;
+      }
+
+      .site-mini-footer {
+        max-width: 580px;
+        margin: 2.5rem auto 0;
+        padding: 1.25rem 1.5rem 2rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .site-mini-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        margin: 0 0.4rem;
+      }
+      .site-mini-footer a:hover {
+        color: var(--teal-dark);
+      }
+
+      @media (max-width: 720px) {
+        .recover-main {
+          padding-left: 1.25rem;
+          padding-right: 1.25rem;
+          padding-top: 1.75rem;
+        }
+        .recover-card {
+          padding: 1.25rem;
+        }
+      }
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 1rem;
+          height: 56px;
+        }
+        .nav-name {
+          font-size: 0.95rem;
+        }
+        .recover-form input {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="nav-logo">
+        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="signup.html">List Your Practice</a></li>
+        <li><a href="claim.html">Claim a Listing</a></li>
+        <li><a href="portal.html" class="nav-signin-link">Sign In</a></li>
+        <li class="nav-zone-switch-item">
+          <a href="directory.html" class="nav-zone-switch">← For patients</a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="recover-main">
+      <div class="recover-shell">
+        <section class="recover-hero">
+          <a href="claim.html" class="recover-back">← Back to claim</a>
+          <span class="recover-kicker">Account recovery</span>
+          <h1>Recover your account</h1>
+          <p>
+            Use this only if the email on file is outdated, incorrect, or no longer accessible. A
+            human reviews every request, verifies identity against your California license, and
+            emails next steps within one business day.
+          </p>
+        </section>
+
+        <div class="recover-card">
+          <p class="recover-card-sub">
+            Fields marked <em>(optional)</em> help speed up verification but are not required.
+          </p>
+
+          <form id="recoverForm" class="recover-form" novalidate>
+            <label>
+              Full name (as on your license)
+              <input
+                type="text"
+                name="full_name"
+                id="recoverFullName"
+                autocomplete="name"
+                placeholder="Jamie Rivera"
+                required
+              />
+            </label>
+            <label>
+              CA license number
+              <input
+                type="text"
+                name="license_number"
+                id="recoverLicense"
+                autocomplete="off"
+                placeholder="e.g. 109462"
+                required
+              />
+            </label>
+            <label>
+              Email you want access at
+              <input
+                type="email"
+                name="requested_email"
+                id="recoverRequestedEmail"
+                autocomplete="email"
+                required
+              />
+            </label>
+            <label>
+              Email you used to have access to <em>(optional — helps us verify faster)</em>
+              <input type="email" name="prior_email" id="recoverPriorEmail" autocomplete="email" />
+            </label>
+            <button type="submit" id="recoverSubmit" class="recover-submit">
+              Send recovery request
+            </button>
+            <div
+              class="recover-status"
+              id="recoverStatus"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+          </form>
+        </div>
+
+        <p class="recover-alt">
+          Actually have access to the email on file?
+          <a href="claim.html">Go back and send an activation link instead →</a>
+        </p>
+      </div>
+    </main>
+
+    <footer class="site-mini-footer">
+      <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    </footer>
+
+    <script type="module" src="assets/recover.js"></script>
+  </body>
+</html>

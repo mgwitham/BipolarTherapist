@@ -3288,7 +3288,7 @@ export async function handleAuthAndPortalRoutes(context) {
   // GET /portal/listing-removal/confirm?token=... — the link the
   // therapist clicks from the confirmation email. Validates the
   // signed token, flips listingActive to false + stamps
-  // listingRemovalRequestedAt, and redirects back to /signup with a
+  // listingRemovalRequestedAt, and redirects back to /remove with a
   // query param that drives the toast banner. No auth header needed —
   // the signed token is the auth.
   if (request.method === "GET" && routePath === "/portal/listing-removal/confirm") {
@@ -3297,7 +3297,7 @@ export async function handleAuthAndPortalRoutes(context) {
 
     function redirect(status) {
       response.statusCode = 302;
-      response.setHeader("Location", `${returnBase}/claim?removed=${status}`);
+      response.setHeader("Location", `${returnBase}/remove?removed=${status}`);
       response.end();
       return true;
     }
