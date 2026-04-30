@@ -13,10 +13,23 @@
 // GET /analytics/events  — admin-only, returns current log contents.
 
 const SINGLETON_ID = "funnelEventLog.singleton";
-const MAX_EVENTS = 500;
+const MAX_EVENTS = 1500;
 const MAX_PAYLOAD_BYTES = 1024;
 const MAX_EVENT_TYPE_LEN = 80;
 const MAX_BATCH_SIZE = 50;
+
+// High-volume auto-fired events that drown out conversion signals.
+// Each card render fires one of these, so a single browse session can
+// produce dozens. Aggregate volume is interesting (we still track it
+// via totalAppended), but per-event retention isn't — by the time a
+// reviewer cares about contact funnels, we've usually lost the
+// match_contact_modal_opened events to truncation. Filter at write
+// time so the ring buffer stays focused on intent + conversion.
+const FILTERED_NOISE_EVENTS = new Set(["directory_card_impression", "match_card_impression"]);
+
+function isNoiseEvent(type) {
+  return FILTERED_NOISE_EVENTS.has(type);
+}
 
 function safeString(value, max) {
   const s = typeof value === "string" ? value : String(value || "");
@@ -127,10 +140,18 @@ export async function handleAnalyticsRoutes(context) {
       return true;
     }
 
+    // Drop noise events from the ring buffer but still count them in the
+    // lifetime counter. Without this filter, impressions (~50% of all
+    // events) squeeze out conversion-funnel events before reviewers can
+    // act on them. See FILTERED_NOISE_EVENTS comment above.
+    const retainable = sanitized.filter(function (ev) {
+      return !isNoiseEvent(ev.type);
+    });
+
     const logDoc = await getOrCreateLog(client);
     const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
-    // Newest first. Prepend new batch, truncate tail.
-    const merged = sanitized.concat(existing).slice(0, MAX_EVENTS);
+    // Newest first. Prepend retained events, truncate tail.
+    const merged = retainable.concat(existing).slice(0, MAX_EVENTS);
     const totalAppended = Number(logDoc.totalAppended || 0) + sanitized.length;
 
     await client
@@ -142,7 +163,17 @@ export async function handleAnalyticsRoutes(context) {
       })
       .commit({ visibility: "async" });
 
-    sendJson(response, 200, { ok: true, appended: sanitized.length }, origin, config);
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        appended: retainable.length,
+        filtered: sanitized.length - retainable.length,
+      },
+      origin,
+      config,
+    );
     return true;
   }
 
