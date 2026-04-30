@@ -8,6 +8,12 @@ import {
 } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
+function gtagEvent(name, params) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", name, params || {});
+  }
+}
+
 // Element IDs
 const FORM_ID = "quickClaimForm";
 const STATUS_ID = "quickClaimStatus";
@@ -284,6 +290,7 @@ function initQuickClaim() {
   if (!form) return;
 
   trackFunnelEvent("claim_page_viewed", {});
+  gtagEvent("claim_page_viewed");
 
   const status = document.getElementById(STATUS_ID);
   const submitButton = document.getElementById(SUBMIT_BUTTON_ID);
@@ -364,6 +371,9 @@ function initQuickClaim() {
       trackFunnelEvent("claim_existing_session_detected", {
         therapist_slug: therapist.slug,
         claim_status: therapist.claim_status || "",
+      });
+      gtagEvent("claim_existing_session_detected", {
+        therapist_slug: therapist.slug,
       });
       return true;
     } catch (_error) {
@@ -456,7 +466,7 @@ function initQuickClaim() {
       } else if (isAlreadyClaimed) {
         confirmSend.textContent = "Email me a sign-in link";
       } else {
-        confirmSend.textContent = "Send activation link";
+        confirmSend.textContent = "Claim my listing →";
       }
       confirmSend.disabled = false;
       confirmSend.removeAttribute("aria-disabled");
@@ -539,6 +549,10 @@ function initQuickClaim() {
       has_email: Boolean(result && result.has_email),
       claim_status: (result && result.claim_status) || "unclaimed",
     });
+    gtagEvent("claim_listing_selected", {
+      therapist_slug: result && result.slug,
+      has_email: Boolean(result && result.has_email),
+    });
     clearSearchResults(searchResults);
     setStoredSelectedSlug(result && result.slug);
     if (searchInput) searchInput.value = result.name || "";
@@ -607,9 +621,15 @@ function initQuickClaim() {
     if (confirmResend) confirmResend.hidden = true;
 
     trackFunnelEvent("claim_send_link_clicked", { therapist_slug: pickedResult.slug });
+    gtagEvent("claim_send_link_clicked", { therapist_slug: pickedResult.slug });
 
+    const sendStart = Date.now();
     try {
       const result = await sendClaimLinkToSlug(pickedResult.slug);
+      const elapsed = Date.now() - sendStart;
+      await new Promise(function (r) {
+        window.setTimeout(r, Math.max(0, 1200 - elapsed));
+      });
       const hint = (result && result.email_hint) || pickedResult.email_hint || "your inbox";
       setConfirmStatus(
         "success",
@@ -621,6 +641,7 @@ function initQuickClaim() {
         therapist_slug: pickedResult.slug,
         method: "slug_picked",
       });
+      gtagEvent("claim_link_sent", { therapist_slug: pickedResult.slug, method: "slug_picked" });
       lastSend = { kind: "slug", slug: pickedResult.slug, target: "confirm" };
       startResendCountdown(confirmResend, confirmResendLink, 30);
     } catch (error) {
@@ -628,6 +649,7 @@ function initQuickClaim() {
       confirmSend.disabled = false;
       confirmSend.removeAttribute("aria-disabled");
       confirmSend.textContent = originalLabel;
+      gtagEvent("claim_send_error", { reason: reason || "unknown" });
       if (reason === "no_email_on_file") {
         setConfirmStatus(
           "warn",
@@ -670,6 +692,7 @@ function initQuickClaim() {
       trackFunnelEvent("claim_resend_clicked", {
         therapist_slug: pickedResult && pickedResult.slug,
       });
+      gtagEvent("claim_resend_clicked", { therapist_slug: pickedResult && pickedResult.slug });
       if (link) {
         link.textContent = "sent — check your inbox";
         window.setTimeout(function () {
@@ -723,6 +746,9 @@ function initQuickClaim() {
       trackFunnelEvent("claim_mistaken_report_clicked", {
         therapist_slug: pickedResult && pickedResult.slug,
       });
+      gtagEvent("claim_mistaken_report_clicked", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
     });
   }
 
@@ -730,6 +756,9 @@ function initQuickClaim() {
   if (recoveryLink) {
     recoveryLink.addEventListener("click", function () {
       trackFunnelEvent("claim_recovery_link_clicked", {
+        therapist_slug: pickedResult && pickedResult.slug,
+      });
+      gtagEvent("claim_recovery_link_clicked", {
         therapist_slug: pickedResult && pickedResult.slug,
       });
     });
@@ -749,6 +778,7 @@ function initQuickClaim() {
           }
         } else if (action === "new_listing") {
           trackFunnelEvent("claim_new_listing_clicked", { source: "no_results" });
+          gtagEvent("claim_new_listing_clicked", { source: "no_results" });
         }
       });
     });
@@ -776,6 +806,7 @@ function initQuickClaim() {
       wireSearchStateActions();
       if (!results.length) {
         trackFunnelEvent("claim_search_no_results", { query_length: trimmed.length });
+        gtagEvent("claim_search_no_results", { query_length: trimmed.length });
         setSearchSummary(
           searchSummary,
           "No listing found",
@@ -798,6 +829,10 @@ function initQuickClaim() {
         results_count: results.length,
         query_length: trimmed.length,
       });
+      gtagEvent("claim_search_submitted", {
+        results_count: results.length,
+        query_length: trimmed.length,
+      });
     } catch (_error) {
       clearSearchResults(searchResults);
       setSearchSummary(
@@ -808,6 +843,7 @@ function initQuickClaim() {
     }
   }, 250);
 
+  let searchFocusTracked = false;
   if (searchInput) {
     searchInput.addEventListener("input", function () {
       if (!searchInputTracked && searchInput.value.trim()) {
@@ -816,6 +852,10 @@ function initQuickClaim() {
       runSearch(searchInput.value);
     });
     searchInput.addEventListener("focus", function () {
+      if (!searchFocusTracked) {
+        searchFocusTracked = true;
+        gtagEvent("claim_search_focused");
+      }
       if (searchInput.value.trim().length >= 2) {
         runSearch(searchInput.value);
       }
@@ -905,6 +945,10 @@ function initQuickClaim() {
             : "We sent a one-time link that signs you into your profile.",
         );
         trackFunnelEvent("claim_link_sent", {
+          therapist_slug: (result && result.therapist_slug) || "",
+          method: "quick_claim_form",
+        });
+        gtagEvent("claim_link_sent", {
           therapist_slug: (result && result.therapist_slug) || "",
           method: "quick_claim_form",
         });

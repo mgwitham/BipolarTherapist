@@ -19,7 +19,7 @@ test("claim page: hero frames a calm guided claim flow", () => {
 });
 
 test("claim page: send-activation is the sole action — trial offer stripped", () => {
-  assert.match(claimHtml, />\s*Send activation link\s*</);
+  assert.match(claimHtml, /Claim my listing/);
   assert.match(claimHtml, /id="claimConfirmSend"/);
   // Trial button must not exist in the new flow
   assert.doesNotMatch(claimHtml, /id="claimStartTrial"/);
