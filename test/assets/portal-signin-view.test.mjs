@@ -14,7 +14,7 @@ const portalHtml = readFileSync(
 
 test("sign-in view: renders heading, supporting line, and email field", () => {
   assert.match(portalJs, /Sign in to manage your listing/);
-  assert.match(portalJs, /Manage your listing, availability, and dashboard activity\./);
+  assert.match(portalJs, /Edit your profile, update availability/);
   assert.match(portalJs, /id="portalSignInEmail"/);
   assert.match(portalJs, /type="email"/);
   assert.match(portalJs, /autocomplete="email"/);
@@ -27,14 +27,14 @@ test("sign-in view: primary CTA uses clear magic-link copy", () => {
 
 test("sign-in view: explains magic-link flow and security", () => {
   assert.match(portalJs, /secure sign-in link/);
-  assert.match(portalJs, /one-time email links instead of passwords/);
-  assert.match(portalJs, /expire.{0,12}15 minutes/i);
+  assert.match(portalJs, /No password needed/);
+  assert.match(portalJs, /expire.{0,12}60 minutes/i);
 });
 
 test("sign-in view: keeps claim and recovery in a secondary help section", () => {
   assert.match(portalJs, /Need help accessing your listing\?/);
   assert.match(portalJs, /Claim your profile/);
-  assert.match(portalJs, /Re-claim your profile/);
+  assert.match(portalJs, /Update the email on your listing/);
   const signInBlock = portalJs.split("portalSignInHelpHeading")[0];
   assert.ok(
     signInBlock.indexOf("portalSignInForm") < signInBlock.length,

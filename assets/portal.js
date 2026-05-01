@@ -781,10 +781,10 @@ function renderLookupState(options) {
     '<header class="portal-signin-head">' +
     '<p class="portal-eyebrow">Therapist portal</p>' +
     '<h1 id="portalSignInHeading" class="portal-signin-title">Sign in to manage your listing</h1>' +
-    '<p class="portal-signin-lede">Manage your listing, availability, and dashboard activity.</p>' +
+    '<p class="portal-signin-lede">Edit your profile, update availability, and see who\'s been viewing your listing.</p>' +
     "</header>" +
     '<form id="portalSignInForm" class="portal-signin-form" novalidate>' +
-    '<label for="portalSignInEmail" class="portal-signin-label">Work email</label>' +
+    '<label for="portalSignInEmail" class="portal-signin-label">Your listing email</label>' +
     '<input type="email" id="portalSignInEmail" name="email" class="portal-signin-input" ' +
     'placeholder="you@practice.com" autocomplete="email" inputmode="email" ' +
     'autocapitalize="none" spellcheck="false" required ' +
@@ -792,20 +792,20 @@ function renderLookupState(options) {
     '<p id="portalSignInHelper" class="portal-signin-helper">' +
     "We'll email a secure sign-in link to the address on your listing. It usually arrives within a minute." +
     "</p>" +
+    '<p class="portal-signin-security">' +
+    "No password needed — we'll email you a secure one-time link. Links expire after 60 minutes." +
+    "</p>" +
     '<button class="btn-primary portal-signin-submit" type="submit" id="portalSignInSubmit">' +
     "Email me a sign-in link" +
     "</button>" +
     '<p id="portalSignInFeedback" class="portal-signin-feedback" role="status" aria-live="polite"></p>' +
     "</form>" +
-    '<p class="portal-signin-security">' +
-    "For security, we use one-time email links instead of passwords. Links expire after 15 minutes." +
-    "</p>" +
     "</section>" +
     '<section class="portal-card portal-signin-help" aria-labelledby="portalSignInHelpHeading">' +
     '<h2 id="portalSignInHelpHeading" class="portal-signin-help-title">Need help accessing your listing?</h2>' +
     '<ul class="portal-signin-help-list">' +
     '<li>Haven\'t claimed your profile yet? <a href="claim.html">Claim your profile</a>.</li>' +
-    '<li>Used a different email? <a href="claim.html">Re-claim your profile</a> and we\'ll send a link to the email on your public listing.</li>' +
+    '<li>Need to update your email? <a href="claim.html">Update the email on your listing</a>.</li>' +
     '<li>Still stuck? <a href="mailto:support@bipolartherapyhub.com">Email support</a>.</li>' +
     "</ul>" +
     "</section>";

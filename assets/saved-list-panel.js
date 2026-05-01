@@ -443,7 +443,7 @@ function renderLoading() {
 
 function renderCard(entry, therapist) {
   var name = (therapist && therapist.name) || "Saved therapist";
-  var credentials = (therapist && therapist.credentials) || "";
+  var credentials = (therapist && (therapist.title || therapist.credentials)) || "";
   var location = therapist ? [therapist.city, therapist.state].filter(Boolean).join(", ") : "";
   var meta = [credentials, location].filter(Boolean).join(" · ");
   var photo = therapist && therapist.photo_url;
@@ -506,10 +506,10 @@ function renderEmailForm() {
     '<button type="button" class="saved-list-panel-link" data-saved-list-email-toggle>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;">' +
     '<path d="M4 5h16v14H4z"/><path d="M4 5l8 7 8-7"/></svg>' +
-    "Email this list to me" +
+    "Send to my email" +
     "</button>" +
     '<div class="saved-list-panel-email-form" data-saved-list-email-fields hidden>' +
-    '<label class="saved-list-card-note-label" for="savedListEmailInput">Send to</label>' +
+    '<label class="saved-list-card-note-label" for="savedListEmailInput">Your email</label>' +
     '<div class="saved-list-panel-email-row">' +
     '<input id="savedListEmailInput" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" data-saved-list-email-input />' +
     '<button type="button" class="saved-list-panel-cta saved-list-panel-cta-compact" data-saved-list-email-send>Send</button>' +
@@ -533,9 +533,9 @@ function renderFooter(list) {
       '<div class="saved-list-panel-footer">' +
       '<a class="saved-list-panel-cta" href="match.html?shortlist=' +
       encodeURIComponent(slugs) +
-      '" data-saved-list-compare>Compare in match flow</a>' +
+      '" data-saved-list-compare>Compare these therapists →</a>' +
       emailFormHtml +
-      '<a class="saved-list-panel-link" href="directory.html" data-saved-list-browse="footer">Browse more therapists</a>' +
+      '<a class="saved-list-panel-link" href="directory.html" data-saved-list-browse="footer">Browse more therapists →</a>' +
       "</div>"
     );
   }
@@ -557,9 +557,9 @@ function renderPanel() {
     } else {
       sub.textContent =
         list.length +
-        " of " +
+        " saved · " +
         MAX_ENTRIES +
-        " saved. Edit your notes; we keep them on this device.";
+        " max. Notes are saved to this browser. Clearing your history will remove them.";
     }
   }
 

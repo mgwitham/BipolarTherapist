@@ -288,7 +288,7 @@ export function renderCardMarkup(options) {
     '">' +
     '<svg width="16" height="16" viewBox="0 0 16 16" fill="' +
     (model.shortlisted ? "currentColor" : "none") +
-    '" aria-hidden="true"><path d="M8 12.5L3 9.5C1.5 8.5 1.5 6.5 3 5.5C4.5 4.5 6 5 8 7C10 5 11.5 4.5 13 5.5C14.5 6.5 14.5 8.5 13 9.5L8 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+    '" aria-hidden="true"><path d="M4 2h8a1 1 0 0 1 1 1v10.5l-5-3-5 3V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
     "</button>" +
     '<div class="t-card-body">' +
     '<div class="t-card-head"><div class="t-avatar">' +
@@ -344,11 +344,10 @@ export function renderDirectoryDetailsMarkup(options) {
       escapeHtml(initials) +
       "</div>";
 
-  // Credential + role line
-  var credLine = escapeHtml(therapist.credentials || "");
-  if (therapist.title) {
-    credLine += (credLine ? " · " : "") + escapeHtml(therapist.title);
-  }
+  // Credential + role line — prefer full title over abbreviation
+  var credLine = therapist.title
+    ? escapeHtml(therapist.title)
+    : escapeHtml(therapist.credentials || "");
 
   // Identity strip
   var identityHtml =
@@ -513,7 +512,7 @@ function bshContactIcon(method, href) {
       return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
     case "intake_form":
     case "website":
-      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 6h4M6 9h4M6 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+      return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 2c-1.5 2-2.5 3.8-2.5 6s1 4 2.5 6M8 2c1.5 2 2.5 3.8 2.5 6s-1 4-2.5 6M2 8h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
     default:
       return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 5l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
   }
@@ -692,7 +691,7 @@ export function renderBottomSheetMarkup(options) {
     '">' +
     '<svg width="16" height="16" viewBox="0 0 16 16" fill="' +
     (bookmarkSaved ? "currentColor" : "none") +
-    '" aria-hidden="true"><path d="M8 12.5L3 9.5C1.5 8.5 1.5 6.5 3 5.5C4.5 4.5 6 5 8 7C10 5 11.5 4.5 13 5.5C14.5 6.5 14.5 8.5 13 9.5L8 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+    '" aria-hidden="true"><path d="M4 2h8a1 1 0 0 1 1 1v10.5l-5-3-5 3V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
     "</button>";
 
   // Close button (top bar, right) — reuses existing ID for focus management
@@ -761,8 +760,14 @@ export function renderBottomSheetMarkup(options) {
       "</div>";
   }
 
-  // Specialties & Populations
-  var specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  // Specialties & Populations — "Bipolar disorder" always sorts first
+  var specialties = (Array.isArray(therapist.specialties) ? therapist.specialties : [])
+    .slice()
+    .sort(function (a, b) {
+      var aB = /bipolar/i.test(a);
+      var bB = /bipolar/i.test(b);
+      return aB === bB ? 0 : aB ? -1 : 1;
+    });
   var populations = Array.isArray(therapist.client_populations) ? therapist.client_populations : [];
   var specsHtml = "";
   if (specialties.length || populations.length) {
@@ -806,30 +811,30 @@ export function renderBottomSheetMarkup(options) {
     bshInsuranceHtml(plans, slug) +
     "</div>";
 
-  // Actions
+  // Actions — contact is primary when available; View profile is always present
   var profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
 
-  var primaryCta =
+  var profileCta =
     '<a href="' +
     escapeHtml(profileHref) +
-    '" class="bsh-cta-primary" target="_blank" rel="noopener" data-primary-cta="' +
+    '" class="bsh-cta-secondary" target="_blank" rel="noopener" data-primary-cta="' +
     escapeHtml(slug) +
     '" data-cta-tier="bottom-sheet">View full profile' +
     '<svg class="bsh-cta-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 12L12 2M12 2H7M12 2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
     "</a>";
 
-  var secondaryCta = "";
+  var contactCtaHtml = "";
   if (model.contactRoute) {
     var contactHref = model.contactRoute.href || "";
     var contactIcon = bshContactIcon(therapist.preferred_contact_method || "", contactHref);
-    secondaryCta =
+    contactCtaHtml =
       '<a href="' +
       escapeHtml(contactHref) +
       '"' +
       (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
-      ' class="bsh-cta-secondary" data-secondary-cta="' +
+      ' class="bsh-cta-primary" data-primary-cta="' +
       escapeHtml(slug) +
-      '">' +
+      '" data-cta-tier="bottom-sheet">' +
       contactIcon +
       escapeHtml(model.contactLabel || "Contact therapist") +
       "</a>";
@@ -842,8 +847,8 @@ export function renderBottomSheetMarkup(options) {
   var actionsHtml =
     '<div class="bsh-divider"></div>' +
     '<div class="bsh-actions">' +
-    primaryCta +
-    secondaryCta +
+    contactCtaHtml +
+    profileCta +
     footnoteHtml +
     "</div>";
 
