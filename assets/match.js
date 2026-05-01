@@ -4839,11 +4839,16 @@ function getFirstName(name) {
   return words[0] || "";
 }
 
-function getPersonalizedCtaLabel(routeType, firstName) {
+function getPersonalizedCtaLabel(routeType, firstName, routeHref) {
   var name = firstName || "therapist";
   if (routeType === "booking") return "Book with " + name;
   if (routeType === "phone") return "Call " + name;
   if (routeType === "email") return "Email " + name;
+  if (routeType === "website") {
+    var href = String(routeHref || "");
+    if (href.indexOf("psychologytoday.com") !== -1) return "View on Psychology Today";
+    return "View profile";
+  }
   return "Contact " + name;
 }
 
@@ -5090,7 +5095,11 @@ function renderLeadResultCard(entry, _backupName, options) {
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var firstName = getFirstName(therapist.name || "");
-  var ctaLabel = getPersonalizedCtaLabel(routeType, firstName);
+  var ctaLabel = getPersonalizedCtaLabel(
+    routeType,
+    firstName,
+    preferredRoute && preferredRoute.href,
+  );
   var reasonLine = buildMatchReasonLine(therapist, latestProfile);
   var quoteHtml = renderMatchCardQuote(therapist);
   var availHtml = renderMatchCardAvail(therapist);
@@ -5147,7 +5156,11 @@ function renderSupportingResultCard(entry, _rank, options) {
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var firstName = getFirstName(therapist.name || "");
-  var ctaLabel = getPersonalizedCtaLabel(routeType, firstName);
+  var ctaLabel = getPersonalizedCtaLabel(
+    routeType,
+    firstName,
+    preferredRoute && preferredRoute.href,
+  );
   var reasonLine = buildMatchReasonLine(therapist, latestProfile);
   var quoteHtml = renderMatchCardQuote(therapist);
   var availHtml = renderMatchCardAvail(therapist);

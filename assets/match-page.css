@@ -59,11 +59,22 @@
   font-size: 0.8rem;
   font-weight: 700;
 }
+/* .match-layout holds the refine-drawer form (.match-builder) which is
+   always display:none until body.match-refine-drawer-open; it must stay
+   in the DOM so form values persist, but must not paint visual space. */
 .match-layout {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 1.4rem 1.5rem 2rem;
+  padding: 0;
   display: block;
+}
+/* The section.match-results inside .match-layout wraps the hidden builder.
+   Without chrome-stripping it renders as an empty white bordered box. */
+.match-layout > .match-results {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 .match-panel,
 .match-results {
