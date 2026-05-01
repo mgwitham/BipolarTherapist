@@ -631,7 +631,7 @@ ${linkTags}
         <span class="public-mobile-nav-title">Directory</span>
         <span class="public-mobile-nav-copy">Keep context</span>
       </a>
-      <a href="/directory.html" class="public-mobile-nav-link nav-shortlist" data-shortlist-link>
+      <a href="#" class="public-mobile-nav-link is-current" aria-current="page" aria-disabled="true">
         <span class="public-mobile-nav-kicker">Profile</span>
         <span class="public-mobile-nav-title">Decision view</span>
         <span class="public-mobile-nav-copy">Saved <span data-shortlist-count>0</span> ready</span>
@@ -639,13 +639,13 @@ ${linkTags}
     </div>
 
     <div class="breadcrumb">
-      <a href="/index.html">Home</a> › <a href="/directory.html">Directory</a> ›
+      <a href="/">Home</a> › <a href="/directory" id="breadcrumbDirectoryLink">Directory</a> ›
       <span id="breadcrumbName">${esc(t.name)}</span>
     </div>
 
     <aside class="ts-claim-banner" id="inPageClaimBanner">
       <span class="ts-claim-banner-text">Is this your listing?</span>
-      <a href="/claim.html" id="heroClaimLink" class="ts-claim-banner-cta">Claim your profile →</a>
+      <a href="/claim" id="heroClaimLink" class="ts-claim-banner-cta">Claim your profile →</a>
     </aside>
 
     <div class="profile-wrap" id="profileWrap" data-ssr-rendered="true">
@@ -654,9 +654,9 @@ ${linkTags}
 
     <footer>
       <p style="margin-bottom:0.4rem"><strong style="color:white">BipolarTherapyHub</strong></p>
-      <p>Is this your listing? <a href="/claim.html" id="footerClaimLink">Claim or update your listing</a>.</p>
+      <p>Is this your listing? <a href="/claim" id="footerClaimLink">Claim or update your listing</a>.</p>
       <p class="footer-legal">
-        <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> ·
+        <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
         <a href="mailto:support@bipolartherapyhub.com">Contact</a>
       </p>
     </footer>
