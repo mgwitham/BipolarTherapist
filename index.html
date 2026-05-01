@@ -1914,7 +1914,7 @@
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    <nav>
+    <nav aria-label="Main navigation">
       <a href="index.html" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
@@ -1927,7 +1927,7 @@
             >In crisis? Call or text 988</a
           >
         </li>
-        <li><a href="directory.html">Find a Therapist</a></li>
+        <li><a href="directory.html">Browse Directory</a></li>
         <li class="nav-zone-switch-item">
           <a href="signup.html" class="nav-zone-switch">For therapists →</a>
         </li>
@@ -1937,7 +1937,7 @@
       <section class="hero" id="startMatch">
         <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
         <p class="hero-sub">
-          California therapists who actually treat bipolar. A calmer way to find care.
+          California therapists who specialise in bipolar disorder. A calmer way to find care.
         </p>
         <div class="hero-trust-chips" aria-label="What you get">
           <span class="hero-trust-chip">Bipolar-focused specialists</span>
@@ -2068,10 +2068,12 @@
         </div>
       </section>
 
-      <section class="home-section home-section--how">
+      <section class="home-section home-section--how" aria-labelledby="how-it-works">
         <div class="home-section-inner">
           <p class="home-section-eyebrow">How it works</p>
-          <h2 class="home-section-title">Three steps. First matches in 10 seconds.</h2>
+          <h2 class="home-section-title" id="how-it-works">
+            Three steps. First matches in 10 seconds.
+          </h2>
           <ol class="home-how-steps">
             <li class="home-how-step">
               <div class="home-how-num">1</div>
@@ -2104,10 +2106,12 @@
         </div>
       </section>
 
-      <section class="home-section home-section--educate">
+      <section class="home-section home-section--educate" aria-labelledby="what-to-look-for">
         <div class="home-section-inner">
           <p class="home-section-eyebrow">What to look for</p>
-          <h2 class="home-section-title">What makes a therapist bipolar-informed?</h2>
+          <h2 class="home-section-title" id="what-to-look-for">
+            What makes a therapist bipolar-informed?
+          </h2>
           <div class="home-educate-body">
             <p>
               Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
@@ -2134,10 +2138,10 @@
         </div>
       </section>
 
-      <section class="home-section home-section--faq">
+      <section class="home-section home-section--faq" aria-labelledby="faq">
         <div class="home-section-inner">
           <p class="home-section-eyebrow">For patients</p>
-          <h2 class="home-section-title">Questions we hear most</h2>
+          <h2 class="home-section-title" id="faq">Questions we hear most</h2>
           <div class="home-faq-list">
             <details class="home-faq-item" name="faq">
               <summary>How is this different from Psychology Today?</summary>
@@ -2223,8 +2227,6 @@
           </p>
         </div>
       </section>
-
-      <div id="pageSections"></div>
     </main>
 
     <footer>
@@ -2232,16 +2234,18 @@
       <p id="footerTagline">
         Every therapist here is verified for bipolar expertise. No generalists, no paid rankings.
       </p>
-      <ul class="footer-patient-row">
-        <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="privacy.html">Privacy</a></li>
-        <li><a href="terms.html">Terms</a></li>
-      </ul>
-      <ul class="footer-therapist-row">
-        <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="pricing.html">Pricing</a></li>
-        <li><a href="claim.html" id="footerContactLink">Claim a Listing</a></li>
-      </ul>
+      <nav aria-label="Footer navigation">
+        <ul class="footer-patient-row">
+          <li><a href="directory.html">Find a Therapist</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="terms.html">Terms</a></li>
+        </ul>
+        <ul class="footer-therapist-row">
+          <li><a href="signup.html">For Therapists</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="claim.html" id="footerContactLink">Claim a Listing</a></li>
+        </ul>
+      </nav>
       <div class="disc">
         BipolarTherapyHub is an information directory only. We do not provide medical advice,
         diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
