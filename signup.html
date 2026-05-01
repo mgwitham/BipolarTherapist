@@ -1059,7 +1059,26 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        margin-top: 0.15rem;
+      }
+      .signup-preview-cred {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.1rem;
+      }
+      .signup-preview-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.3rem;
+        align-items: center;
+      }
+      .signup-preview-tag {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--teal-dark);
+        background: var(--teal-faint);
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
       }
 
       /* =========================
@@ -1338,9 +1357,13 @@
                   <div class="signup-preview-name is-placeholder" id="signupPreviewName">
                     Your name
                   </div>
+                  <div class="signup-preview-cred">Licensed in California</div>
                   <div class="signup-preview-location" id="signupPreviewLocation"></div>
-                  <div class="signup-preview-badge" id="signupPreviewBadge" hidden>
-                    ✓ License verified
+                  <div class="signup-preview-tags">
+                    <span class="signup-preview-tag">Bipolar specialist</span>
+                    <span class="signup-preview-badge" id="signupPreviewBadge" hidden
+                      >✓ Verified</span
+                    >
                   </div>
                 </div>
               </div>
