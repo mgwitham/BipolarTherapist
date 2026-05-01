@@ -6549,7 +6549,7 @@ img.bth-avatar {
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.7rem;
-  background: #0f6e56;
+  background: var(--teal);
   color: #ffffff;
   border-radius: 999px;
   font-size: 0.7rem;
@@ -6700,7 +6700,7 @@ img.bth-avatar {
   font-weight: 500;
 }
 .bth-avail-now {
-  color: #0f6e56;
+  color: var(--green);
 }
 .bth-avail-wait {
   color: #ba7517;
@@ -6728,7 +6728,7 @@ img.bth-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #0f6e56;
+  background: var(--teal);
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
@@ -6739,14 +6739,14 @@ img.bth-avatar {
   min-height: 36px;
 }
 .bth-btn-primary:hover {
-  background: #085041;
+  background: var(--teal-dark);
 }
 .bth-btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #0f6e56;
+  color: var(--teal);
   font-size: 13px;
   font-weight: 500;
   padding: 6px 14px;
@@ -6756,12 +6756,13 @@ img.bth-avatar {
   min-height: 36px;
 }
 .bth-btn-secondary:hover {
-  background: #eef6f3;
+  background: var(--teal-faint);
+  color: var(--teal-dark);
 }
 .mx-profile-link {
   font-size: 13px;
   font-weight: 500;
-  color: #0f6e56;
+  color: var(--teal);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -6770,7 +6771,7 @@ img.bth-avatar {
   text-underline-offset: 2px;
 }
 .mx-profile-link:focus-visible {
-  outline: 2px solid #0f6e56;
+  outline: 2px solid var(--teal);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -6933,7 +6934,7 @@ img.bth-avatar {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #0f6e56;
+  color: var(--teal-dark);
   font-weight: 700;
 }
 .bth-modal-reach-item {
@@ -6950,7 +6951,7 @@ img.bth-avatar {
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: #0f6e56;
+  background: var(--teal);
   color: #ffffff;
   font-size: 15px;
   font-weight: 600;
@@ -6961,7 +6962,7 @@ img.bth-avatar {
   min-height: 48px;
 }
 .bth-modal-cta:hover {
-  background: #085041;
+  background: var(--teal-dark);
 }
 .bth-modal-secondary {
   margin: 0;
@@ -6970,7 +6971,7 @@ img.bth-avatar {
   text-align: center;
 }
 .bth-modal-secondary a {
-  color: #0f6e56;
+  color: var(--teal);
   text-decoration: none;
 }
 .bth-modal-secondary a:hover {
@@ -6980,7 +6981,7 @@ img.bth-avatar {
 .bth-modal-teaser {
   display: inline-block;
   margin-top: 0.85rem;
-  color: #0f6e56;
+  color: var(--teal);
   font-size: 0.88rem;
   text-decoration: none;
   font-weight: 500;
