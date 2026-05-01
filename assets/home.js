@@ -137,6 +137,14 @@ function syncHeroSearchState() {
     searchHelper.innerHTML = getHeroHelperCopy(interest, hasLocation);
   }
 
+  var careHint = document.getElementById("searchCareTypeHint");
+  if (careHint) {
+    careHint.textContent =
+      interest === "psychiatrist"
+        ? "We'll match you with psychiatrists and nurse practitioners for medication management."
+        : "";
+  }
+
   renderHomeSearchPreview(interest, String(locationInput.value || "").trim());
 
   if (isReady) {

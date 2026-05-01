@@ -662,6 +662,13 @@
         color: var(--slate);
         text-decoration-color: var(--slate);
       }
+      .search-care-hint {
+        margin: 0.35rem 0 0;
+        font-size: 0.78rem;
+        color: var(--teal-dark);
+        line-height: 1.45;
+        min-height: 0;
+      }
       .search-helper {
         margin-top: 0.2rem;
         text-align: center;
@@ -1955,6 +1962,7 @@
                   <option value="therapist" selected>Therapy</option>
                   <option value="psychiatrist">Psychiatry</option>
                 </select>
+                <p class="search-care-hint" id="searchCareTypeHint" aria-live="polite"></p>
               </div>
               <div class="search-field search-field--zip">
                 <label for="location" id="locationLabel">Enter your ZIP code</label>
