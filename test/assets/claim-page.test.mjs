@@ -23,7 +23,8 @@ test("claim page: send-activation is the sole action — trial offer stripped", 
   assert.match(claimHtml, /id="claimConfirmSend"/);
   // Trial button must not exist in the new flow
   assert.doesNotMatch(claimHtml, /id="claimStartTrial"/);
-  assert.match(claimHtml, /This step is free\./);
+  // "This step is free." copy intentionally removed (item #69)
+  assert.doesNotMatch(claimHtml, /This step is free\./);
 });
 
 test("claim page: search module explains what to enter and preserves clear action states", () => {

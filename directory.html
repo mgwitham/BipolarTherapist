@@ -47,7 +47,10 @@
       </a>
       <ul class="nav-links">
         <li>
-          <a href="directory.html" id="navBrowseLink" class="nav-link-current">Find a Therapist</a>
+          <a href="match.html" id="navBrowseLink">Get Matched</a>
+        </li>
+        <li>
+          <a href="directory.html" class="nav-link-current">Browse Directory</a>
         </li>
         <li>
           <a href="directory.html" class="nav-shortlist" data-shortlist-link
@@ -303,7 +306,6 @@
           ×
         </button>
         <h2>More filters</h2>
-        <button type="button" class="dir-vb-modal-clear" id="resetFiltersButton">Clear all</button>
       </div>
 
       <div class="dir-vb-modal-body" id="directoryFilters">
@@ -379,20 +381,6 @@
 
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
-              <h3 id="specialtyPanelTitle">Specialty</h3>
-            </div>
-            <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="specialty" id="specialtyLabelText">Focus area</label>
-                <select id="specialty">
-                  <option value="">All specialties</option>
-                </select>
-              </div>
-            </div>
-          </section>
-
-          <section class="dir-vb-section">
-            <div class="dir-vb-section-head">
               <h3>Treatment approach</h3>
             </div>
             <div class="dir-vb-section-body">
@@ -408,6 +396,7 @@
       </div>
 
       <div class="dir-vb-modal-foot">
+        <button type="button" class="dir-vb-modal-clear" id="resetFiltersButton">Reset</button>
         <button type="button" class="btn-filter dir-vb-modal-apply" id="applyFiltersButton">
           Show results
         </button>
