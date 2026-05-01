@@ -621,21 +621,21 @@ ${linkTags}
       </ul>
     </nav>
     <div class="public-mobile-nav" aria-label="Mobile navigation">
-      <a href="/index.html" class="public-mobile-nav-link">
+      <a href="/" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Start</span>
         <span class="public-mobile-nav-title">Homepage</span>
         <span class="public-mobile-nav-copy">Reorient fast</span>
       </a>
-      <a href="/directory.html" class="public-mobile-nav-link">
+      <a href="/directory" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Browse</span>
         <span class="public-mobile-nav-title">Directory</span>
         <span class="public-mobile-nav-copy">Keep context</span>
       </a>
-      <a href="#" class="public-mobile-nav-link is-current" aria-current="page" aria-disabled="true">
+      <span class="public-mobile-nav-link is-current" aria-current="page">
         <span class="public-mobile-nav-kicker">Profile</span>
         <span class="public-mobile-nav-title">Decision view</span>
         <span class="public-mobile-nav-copy">Saved <span data-shortlist-count>0</span> ready</span>
-      </a>
+      </span>
     </div>
 
     <div class="breadcrumb">
