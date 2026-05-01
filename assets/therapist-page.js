@@ -2086,7 +2086,7 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
   try {
     if (!slug) {
       document.getElementById("profileWrap").innerHTML =
-        '<div class="not-found"><h2>Choose a therapist to review</h2><p>Open a profile from the directory to compare bipolar-care fit, practical details, and the best next step in one place.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+        '<div class="not-found"><h2>Choose a therapist to review</h2><p>Open a profile from the directory to compare bipolar-care fit, practical details, and the best next step in one place.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
       return;
     }
 
@@ -2101,7 +2101,7 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     var therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       document.getElementById("profileWrap").innerHTML =
-        '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+        '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
       return;
     }
 
@@ -2119,7 +2119,7 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
   } catch (error) {
     console.error("Therapist profile failed to load.", error);
     document.getElementById("profileWrap").innerHTML =
-      '<div class="not-found"><h2>We could not load this profile</h2><p>Something went wrong while opening the therapist page. Please go back to the directory and try again.</p><a href="directory.html" class="back-link">← Back to Directory</a></div>';
+      '<div class="not-found"><h2>We could not load this profile</h2><p>Something went wrong while opening the therapist page. Please go back to the directory and try again.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
     var breadcrumbName = document.getElementById("breadcrumbName");
     if (breadcrumbName) {
       breadcrumbName.textContent = "Profile unavailable";
@@ -2328,7 +2328,7 @@ function renderProfile(t, therapistDirectory) {
   var navClaimLink = document.getElementById("navClaimLink");
   var heroClaimLink = document.getElementById("heroClaimLink");
   var footerClaimLink = document.getElementById("footerClaimLink");
-  var claimHref = "claim.html?confirm=" + encodeURIComponent(t.slug);
+  var claimHref = "/claim?confirm=" + encodeURIComponent(t.slug);
   if (navClaimLink) {
     navClaimLink.href = claimHref;
   }
@@ -2410,7 +2410,7 @@ function renderProfile(t, therapistDirectory) {
   // practice-site link (Psychology Today, etc.). When the clinician has
   // no usable contact path on this profile, surface a soft "Back to
   // directory" so the user keeps exploring on-platform.
-  var primaryActionFallback = '<a href="directory.html" class="btn-contact">Back to directory</a>';
+  var primaryActionFallback = '<a href="/directory" class="btn-contact">Back to directory</a>';
 
   var trustPills = renderValuePillRow(t, "value-pill");
 
@@ -3134,8 +3134,8 @@ function renderProfile(t, therapistDirectory) {
   var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
   var backNav =
     backNavRef === "match"
-      ? { href: "match.html", label: "← Back to your matches" }
-      : { href: "directory.html", label: "← Back to directory" };
+      ? { href: "/match", label: "← Back to your matches" }
+      : { href: "/directory", label: "← Back to directory" };
 
   var html =
     '<div class="profile-header" id="section-about" data-profile-section>' +
