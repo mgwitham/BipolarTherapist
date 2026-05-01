@@ -2316,6 +2316,13 @@ function renderProfile(t, therapistDirectory) {
   document.title = t.name + " — BipolarTherapyHub";
   applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
+  if (new URLSearchParams(window.location.search).get("ref") === "match") {
+    var breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
+    if (breadcrumbDirLink) {
+      breadcrumbDirLink.textContent = "Your matches";
+      breadcrumbDirLink.href = "match.html";
+    }
+  }
   // navClaimLink was removed from the nav (moved into heroClaimLink
   // banner). Keep the lookup for back-compat in case an older template
   // variant still renders it.
@@ -2411,6 +2418,7 @@ function renderProfile(t, therapistDirectory) {
   var contactBtns = "";
   var primaryContactLabel = String(t.preferred_contact_label || "").trim();
   var contactGuidance = String(t.contact_guidance || "").trim();
+  var therapistFirstName = (t.name || "").split(" ")[0] || t.name || "this therapist";
   var firstStepExpectation = String(t.first_step_expectation || "").trim();
   var therapistReportedFields = Array.isArray(t.therapist_reported_fields)
     ? t.therapist_reported_fields
@@ -2455,7 +2463,7 @@ function renderProfile(t, therapistDirectory) {
         '<a href="' +
         escapeHtml(t.website) +
         '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
-        escapeHtml(primaryContactLabel || "Visit website") +
+        escapeHtml(primaryContactLabel || "Visit " + therapistFirstName + "'s website →") +
         "</a>"
       );
     }
@@ -2464,7 +2472,7 @@ function renderProfile(t, therapistDirectory) {
         '<a href="tel:' +
         escapeHtml(t.phone) +
         '" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">' +
-        escapeHtml(primaryContactLabel || "Call " + t.phone) +
+        escapeHtml(primaryContactLabel || "Call " + t.phone + " →") +
         "</a>"
       );
     }
@@ -2473,7 +2481,7 @@ function renderProfile(t, therapistDirectory) {
         '<a href="mailto:' +
         escapeHtml(t.email) +
         '" class="btn-contact" data-profile-contact-route="email" data-profile-contact-priority="primary">' +
-        escapeHtml(primaryContactLabel || "Send an email →") +
+        escapeHtml(primaryContactLabel || "Email " + therapistFirstName + " →") +
         "</a>"
       );
     }
@@ -2624,7 +2632,11 @@ function renderProfile(t, therapistDirectory) {
   }
   var bestNextStepCopy =
     firstStepExpectation ||
-    "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.";
+    (t.preferred_contact_method === "email"
+      ? "Most therapists respond within 1–2 business days."
+      : t.preferred_contact_method === "website"
+        ? "You'll find a contact form or booking link on their site."
+        : "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.");
   var contactStrategy = getContactStrategy(
     t,
     responsivenessSignal,
@@ -3031,7 +3043,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-cockpit-strip">' +
     contactPrepCardsHtml +
     "</div>" +
-    '<div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
+    '<div class="profile-primary-action"><div class="primary-action-frame">' +
     (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
@@ -3099,17 +3111,11 @@ function renderProfile(t, therapistDirectory) {
 
   var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
   var scrubbedCareApproach = stripScrapedPrefix(stripIntakeStub(t.care_approach));
-  var bioBodyHtml =
-    (hasPaidSubscription
-      ? renderBioParagraphs(scrubbedBio)
-      : scrubbedBio
-        ? '<p class="profile-bio-paragraph">' + escapeHtml(scrubbedBio) + "</p>"
-        : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>') +
-    (scrubbedCareApproach
-      ? '<p class="profile-bio-paragraph profile-bio-approach">' +
-        escapeHtml(scrubbedCareApproach) +
-        "</p>"
-      : "");
+  var bioBodyHtml = hasPaidSubscription
+    ? renderBioParagraphs(scrubbedBio)
+    : scrubbedBio
+      ? '<p class="profile-bio-paragraph">' + escapeHtml(scrubbedBio) + "</p>"
+      : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>';
 
   var outreachHasTextChannel =
     isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
@@ -3210,6 +3216,13 @@ function renderProfile(t, therapistDirectory) {
       ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
       : "") +
     heroTelehealthLine +
+    '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
+    '<div class="profile-bio-text" id="profileBioPanel">' +
+    bioBodyHtml +
+    "</div>" +
+    '<div class="profile-bio-fade" aria-hidden="true"></div>' +
+    "</div>" +
+    '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>' +
     '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
     "</div></div></div>" +
@@ -3259,7 +3272,7 @@ function renderProfile(t, therapistDirectory) {
     (outreachPanelHtml
       ? '<button type="button" class="contact-outreach-toggle" aria-expanded="false" aria-controls="contactOutreachPanel" data-outreach-toggle>' +
         '<span class="profile-contact-icon" aria-hidden="true">✉️</span>' +
-        '<span class="contact-outreach-toggle-label">Outreach scripts</span>' +
+        '<span class="contact-outreach-toggle-label">What to say when you reach out</span>' +
         '<span class="contact-outreach-chevron" aria-hidden="true">+</span>' +
         "</button>" +
         '<div class="contact-outreach-panel" id="contactOutreachPanel" hidden>' +
@@ -3270,22 +3283,7 @@ function renderProfile(t, therapistDirectory) {
     buildFAQSection(t) +
     "</div>" +
     "</div>" +
-    (hasPaidSubscription
-      ? '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
-        '<div class="profile-bio-text" id="profileBioPanel">' +
-        bioBodyHtml +
-        "</div>" +
-        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
-        "</div>" +
-        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>'
-      : '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
-        '<div class="profile-bio-text" id="profileBioPanel">' +
-        bioBodyHtml +
-        "</div>" +
-        '<div class="profile-bio-fade" aria-hidden="true"></div>' +
-        "</div>" +
-        '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>') +
-    '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame"><div class="primary-action-label">Primary action</div>' +
+    '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame">' +
     (primaryButton || primaryActionFallback) +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +

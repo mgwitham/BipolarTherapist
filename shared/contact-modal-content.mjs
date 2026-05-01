@@ -138,15 +138,17 @@ function renderBookingLayout(therapist, firstName) {
 function renderWebsiteLayout(therapist, firstName) {
   const href = normalizeUrlHref(therapist.website);
   return (
-    renderHeading("Visit " + firstName + "'s website") +
+    renderHeading("Contact " + firstName) +
     renderBodyParagraph(
       firstName +
-        " points new clients to their practice website. Head there to learn more and find the best way to get in touch.",
+        "'s practice website has the best options for reaching out and booking a first session.",
     ) +
     '<div class="mx-contact-actions">' +
     '<a class="mx-btn-primary" href="' +
     escapeHtml(href) +
-    '" target="_blank" rel="noopener noreferrer" data-contact-primary="website">Open practice site →</a>' +
+    '" target="_blank" rel="noopener noreferrer" data-contact-primary="website">Continue to ' +
+    escapeHtml(firstName) +
+    "'s site →</a>" +
     "</div>"
   );
 }

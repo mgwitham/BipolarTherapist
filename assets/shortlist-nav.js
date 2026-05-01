@@ -25,6 +25,7 @@ function updateShortlistNav() {
 
   document.querySelectorAll("[data-shortlist-count]").forEach(function (element) {
     element.textContent = String(count);
+    element.hidden = count === 0;
     if (lastShortlistCount !== null && lastShortlistCount !== count) {
       element.classList.remove("motion-pulse");
       void element.offsetWidth;
