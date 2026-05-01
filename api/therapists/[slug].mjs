@@ -639,7 +639,7 @@ ${linkTags}
     </div>
 
     <div class="breadcrumb">
-      <a href="/index.html">Home</a> › <a href="/directory.html">Directory</a> ›
+      <a href="/">Home</a> › <a href="/directory" id="breadcrumbDirectoryLink">Directory</a> ›
       <span id="breadcrumbName">${esc(t.name)}</span>
     </div>
 
