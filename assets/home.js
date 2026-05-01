@@ -499,11 +499,9 @@ function initHeroCareDropdown() {
     return;
   }
 
-  ["change", "input"].forEach(function (eventName) {
-    select.addEventListener(eventName, function () {
-      hideHeroValidationPopup();
-      syncHeroSearchState();
-    });
+  select.addEventListener("change", function () {
+    hideHeroValidationPopup();
+    syncHeroSearchState();
   });
 
   syncHeroSearchState();
@@ -974,6 +972,14 @@ function initHomeSearchForm() {
 }
 
 (async function () {
+  try {
+    var isFreshVisit = !document.referrer || !document.referrer.includes(window.location.hostname);
+    if (isFreshVisit) {
+      window.sessionStorage.removeItem("bth_search_session");
+      window.sessionStorage.removeItem("matchResultsUrl");
+    }
+  } catch (_e) {}
+
   initHomeSearchForm();
   window.handleSearch = handleHomeSearch;
 

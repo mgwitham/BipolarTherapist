@@ -2319,7 +2319,7 @@ function renderProfile(t, therapistDirectory) {
       try {
         savedMatchUrl = window.sessionStorage.getItem("matchResultsUrl");
       } catch (_) {}
-      breadcrumbDirLink.href = savedMatchUrl || "/match";
+      breadcrumbDirLink.href = savedMatchUrl || "/match?mode=form";
     }
   }
   // navClaimLink was removed from the nav (moved into heroClaimLink
@@ -3132,9 +3132,13 @@ function renderProfile(t, therapistDirectory) {
       : "";
 
   var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
+  var backNavSavedUrl;
+  try {
+    backNavSavedUrl = window.sessionStorage.getItem("matchResultsUrl");
+  } catch (_) {}
   var backNav =
     backNavRef === "match"
-      ? { href: "/match", label: "← Back to your matches" }
+      ? { href: backNavSavedUrl || "/match?mode=form", label: "← Back to your matches" }
       : { href: "/directory", label: "← Back to directory" };
 
   var html =
