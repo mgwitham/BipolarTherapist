@@ -432,7 +432,7 @@ function renderEmptyState() {
     "</div>" +
     '<h3 class="saved-list-panel-empty-title">Save the therapists you want to revisit.</h3>' +
     '<p class="saved-list-panel-empty-copy">Tap the bookmark on any profile or match card. Your saved list lives here, ready when you are.</p>' +
-    '<a class="saved-list-panel-cta" href="directory.html" data-saved-list-browse="empty">Browse therapists</a>' +
+    '<a class="saved-list-panel-cta" href="/directory" data-saved-list-browse="empty">Browse therapists</a>' +
     "</div>"
   );
 }
@@ -531,17 +531,17 @@ function renderFooter(list) {
       .join(",");
     return (
       '<div class="saved-list-panel-footer">' +
-      '<a class="saved-list-panel-cta" href="match.html?shortlist=' +
+      '<a class="saved-list-panel-cta" href="/match.html?shortlist=' +
       encodeURIComponent(slugs) +
       '" data-saved-list-compare>Compare these therapists →</a>' +
       emailFormHtml +
-      '<a class="saved-list-panel-link" href="directory.html" data-saved-list-browse="footer">Browse more therapists →</a>' +
+      '<a class="saved-list-panel-link" href="/directory" data-saved-list-browse="footer">Browse more therapists →</a>' +
       "</div>"
     );
   }
   return (
     '<div class="saved-list-panel-footer">' +
-    '<a class="saved-list-panel-cta" href="directory.html" data-saved-list-browse="footer-single">Find your next pick</a>' +
+    '<a class="saved-list-panel-cta" href="/directory" data-saved-list-browse="footer-single">Find your next pick</a>' +
     emailFormHtml +
     "</div>"
   );

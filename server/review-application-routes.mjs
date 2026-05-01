@@ -288,9 +288,7 @@ export async function handleApplicationRoutes(context) {
         customerEmail: email,
         plan: "paid_monthly",
         returnPath:
-          "/portal.html?slug=" +
-          encodeURIComponent(therapistCreated.slug.current) +
-          "&stripe=success",
+          "/portal?slug=" + encodeURIComponent(therapistCreated.slug.current) + "&stripe=success",
       });
       stripeUrl = (checkout && checkout.url) || "";
     } catch (error) {

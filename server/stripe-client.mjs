@@ -59,7 +59,7 @@ export async function createFeaturedCheckoutSession(config, options) {
   const slug = String(therapistSlug);
   const returnBase = returnPath
     ? `${base}${String(returnPath).startsWith("/") ? returnPath : `/${returnPath}`}`
-    : `${base}/portal.html`;
+    : `${base}/portal`;
 
   // Build success/cancel URLs via URL API so we don't duplicate params
   // when returnPath already carries slug (was producing ?slug=x&stripe=...&slug=x).
@@ -113,7 +113,7 @@ export async function createBillingPortalSession(config, options) {
   const base = String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
   const returnUrl = returnPath
     ? `${base}${String(returnPath).startsWith("/") ? returnPath : `/${returnPath}`}`
-    : `${base}/portal.html`;
+    : `${base}/portal`;
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,

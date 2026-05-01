@@ -311,7 +311,7 @@ export async function handleStripeRoutes(context) {
                 therapist.email,
                 { ttlMs },
               );
-              activationUrl = `${url.protocol}//${url.host}/portal.html?token=${encodeURIComponent(token)}`;
+              activationUrl = `${url.protocol}//${url.host}/portal?token=${encodeURIComponent(token)}`;
             } catch (_error) {
               activationUrl = "";
             }

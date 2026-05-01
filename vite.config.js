@@ -5,10 +5,26 @@ import { fileURLToPath } from "url";
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
+  appType: "mpa",
   server: {
-    host: "127.0.0.1",
-    port: 5173,
+    host: "0.0.0.0",
+    port: 5200,
+    // Serve therapist.html for /therapists/:slug paths in dev (prod uses the SSR function)
+    fs: { strict: false },
   },
+  plugins: [
+    {
+      name: "therapist-profile-dev-fallback",
+      configureServer(server) {
+        server.middlewares.use(function (req, res, next) {
+          if (req.url && /^\/therapists\/[^/]+\/?(\?.*)?$/.test(req.url)) {
+            req.url = "/therapist.html";
+          }
+          next();
+        });
+      },
+    },
+  ],
   preview: {
     host: "127.0.0.1",
     port: 4173,

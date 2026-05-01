@@ -465,7 +465,7 @@ async function sendPortalClaimLink(config, therapist, requesterEmail, portalBase
 function buildRecoveryMagicLink(config, therapist, requestedEmail, portalBaseUrl) {
   const token = buildPortalClaimToken(config, therapist, requestedEmail);
   const base = String(portalBaseUrl || "").replace(/\/+$/, "");
-  return `${base}/portal.html?token=${encodeURIComponent(token)}`;
+  return `${base}/portal?token=${encodeURIComponent(token)}`;
 }
 
 // Listing-removal token — one-time, 24h, bound to therapist slug.

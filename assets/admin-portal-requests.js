@@ -89,7 +89,7 @@ export function renderPortalRequestsQueuePanel(options) {
             options.escapeHtml(item.id) +
             '" data-next-status="resolved">Resolve</button>'
           : "") +
-        '<a class="btn-secondary" href="portal.html?slug=' +
+        '<a class="btn-secondary" href="/portal?slug=' +
         encodeURIComponent(item.therapist_slug || "") +
         '">Open portal</a><a class="btn-secondary" href="therapist.html?slug=' +
         encodeURIComponent(item.therapist_slug || "") +

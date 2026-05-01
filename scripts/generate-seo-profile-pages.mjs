@@ -239,11 +239,6 @@ function injectSeo(template, therapist) {
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
     .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
     .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(/href="index\.html"/g, 'href="/"')
-    .replace(/href="directory\.html"/g, 'href="/directory"')
-    .replace(/href="match\.html"/g, 'href="/match"')
-    .replace(/href="signup\.html"/g, 'href="/signup"')
-    .replace(/href="claim\.html"/g, 'href="/claim"')
     .replace(/href="therapist\.html"/g, `href="${buildProfilePath(therapist.slug)}"`);
 
   return withHead.replace(

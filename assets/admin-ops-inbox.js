@@ -2602,7 +2602,7 @@ export function renderOpsInboxPanel(options) {
           options.escapeHtml(item.slug || "") +
           '">Mark applied</button>'
         : "") +
-      '<a class="btn-secondary" href="admin.html#confirmationQueue">Open confirmation queue</a>' +
+      '<a class="btn-secondary" href="/admin#confirmationQueue">Open confirmation queue</a>' +
       '</div><div class="review-coach-status" data-conversion-watch-status="' +
       options.escapeHtml(item.slug || "") +
       '"></div></article>'
@@ -2671,7 +2671,7 @@ export function renderOpsInboxPanel(options) {
       options.escapeHtml(item.slug || "") +
       '">Mark applied</button><a class="btn-secondary" href="therapist.html?slug=' +
       encodeURIComponent(item.slug || "") +
-      '">Open profile</a><a class="btn-secondary" href="admin.html#confirmationQueue">Open confirmation queue</a></div><div class="review-coach-status" data-conversion-watch-status="' +
+      '">Open profile</a><a class="btn-secondary" href="/admin#confirmationQueue">Open confirmation queue</a></div><div class="review-coach-status" data-conversion-watch-status="' +
       options.escapeHtml(item.slug || "") +
       '"></div></article>'
     );

@@ -2516,7 +2516,7 @@ function renderProfile(t, therapistDirectory) {
     '<button type="button" class="btn-website shortlist-profile-btn" id="profileShortlistButton" data-shortlist-trigger="profile">Save to list</button>';
   contactBtns += buildPreferredContactButton();
   contactBtns +=
-    '<a href="portal.html?slug=' +
+    '<a href="/portal?slug=' +
     encodeURIComponent(t.slug) +
     '" class="btn-website btn-contact-secondary">Claim or manage profile</a>';
   if (t.phone && t.preferred_contact_method !== "phone") {
@@ -2958,7 +2958,7 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
   }
   secondaryButtons +=
-    '<a href="portal.html?slug=' +
+    '<a href="/portal?slug=' +
     encodeURIComponent(t.slug) +
     '" class="btn-website">Claim or manage profile</a>';
   contactBtns =

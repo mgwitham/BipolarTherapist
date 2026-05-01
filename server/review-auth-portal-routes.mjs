@@ -1487,9 +1487,9 @@ export async function handleAuthAndPortalRoutes(context) {
     const token = deps.buildRecoveryConfirmToken(config, recovery._id, nonce);
     const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
     const confirmUrl =
-      portalBaseUrl + "/confirm-claim.html?token=" + encodeURIComponent(token) + "&response=yes";
+      portalBaseUrl + "/confirm-claim?token=" + encodeURIComponent(token) + "&response=yes";
     const denyUrl =
-      portalBaseUrl + "/confirm-claim.html?token=" + encodeURIComponent(token) + "&response=no";
+      portalBaseUrl + "/confirm-claim?token=" + encodeURIComponent(token) + "&response=no";
 
     try {
       await deps.sendRecoveryConfirmationEmail(
@@ -2264,7 +2264,7 @@ export async function handleAuthAndPortalRoutes(context) {
         therapistSlug: resolvedSlug,
         customerEmail: verificationEmail,
         plan: "paid_monthly",
-        returnPath: `/portal.html?slug=${encodeURIComponent(resolvedSlug)}`,
+        returnPath: `/portal?slug=${encodeURIComponent(resolvedSlug)}`,
       });
     } catch (error) {
       sendJson(

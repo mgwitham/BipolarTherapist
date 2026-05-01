@@ -55,9 +55,9 @@ test("claim page: recovery, new listing, and removal are secondary but accessibl
   // Recovery is a contextual link inside step 2 (no modal, no separate section)
   assert.match(claimHtml, /access to this email anymore.*Recover your account/s);
   assert.match(claimHtml, /id="claimConfirmRequestRecovery"/);
-  assert.match(claimHtml, /href="recover\.html"/);
+  assert.match(claimHtml, /href="\/recover"/);
   // Removal is a quiet footer link
-  assert.match(claimHtml, /href="remove\.html"/);
+  assert.match(claimHtml, /href="\/remove"/);
   // New listing link in no-results state
   assert.match(claimHtml, /Not listed yet\?/);
   // "Need a different path?" card section was removed

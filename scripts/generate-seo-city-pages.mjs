@@ -219,11 +219,6 @@ function injectSeo(template, city, state, slug, providers) {
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
     .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
     .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(/href="index\.html"/g, 'href="/"')
-    .replace(/href="directory\.html"/g, 'href="/directory"')
-    .replace(/href="match\.html"/g, 'href="/match"')
-    .replace(/href="signup\.html"/g, 'href="/signup"')
-    .replace(/href="claim\.html"/g, 'href="/claim"')
     .replace(
       /<main[^>]*>[\s\S]*?<\/main>/,
       "<main>\n      " + buildFallbackBodyHtml(city, state, providers) + "\n    </main>",
