@@ -9,6 +9,20 @@ import {
 import { renderValuePillRow } from "./therapist-pills.js";
 import { getZipDistanceMiles } from "./zip-lookup.js";
 
+// Strip scraped directory metadata: "Name, Credential, City, State, ZIP, (Phone), actual bio"
+var SCRAPED_PREFIX_RE = /^.+?\(\d{3}\)\s*\d{3}[- ]\d{4},?\s*/;
+// Suppress garbled aggregator blobs: "Find Psychiatrists in [City]: Name1; Name2..."
+var GARBLED_BIO_RE = /^Find\s+(?:Psychiatr|Therapist|Counselor|Psychologist)/i;
+
+function stripBioDisplay(value) {
+  if (typeof value !== "string") return "";
+  var text = value.trim();
+  if (!text || GARBLED_BIO_RE.test(text)) return "";
+  var stripped = text.replace(SCRAPED_PREFIX_RE, "").trim();
+  // Discard if the remaining text is too short to be a real bio
+  return stripped.length >= 10 ? stripped : "";
+}
+
 export function formatDirectoryFeeLabel(therapist, fallback) {
   if (!therapist) {
     return fallback || "Fees to confirm";
@@ -92,7 +106,9 @@ function buildMetaLine(therapist) {
 }
 
 function extractVoiceQuote(therapist) {
-  var src = String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim();
+  var src = stripBioDisplay(
+    String(therapist.care_approach || therapist.bio_preview || therapist.bio || ""),
+  );
   if (!src) {
     return "";
   }
@@ -526,7 +542,9 @@ export function buildDirectoryDetailsViewModel(options) {
 
   return Object.assign({}, baseModel, {
     detailSections: buildDetailSections(therapist, filters),
-    bio: String(therapist.care_approach || therapist.bio_preview || therapist.bio || "").trim(),
+    bio: stripBioDisplay(
+      String(therapist.care_approach || therapist.bio_preview || therapist.bio || ""),
+    ),
     bipolarApproach: String(therapist.bipolar_approach || "").trim(),
     quickAnswerPills: buildQuickAnswerPills(therapist),
     panelTrustSignals: panelTrustSignals,
