@@ -2324,7 +2324,7 @@ function renderProfile(t, therapistDirectory) {
       try {
         savedMatchUrl = window.sessionStorage.getItem("matchResultsUrl");
       } catch (_) {}
-      breadcrumbDirLink.href = savedMatchUrl || "/match.html";
+      breadcrumbDirLink.href = savedMatchUrl || "/match";
     }
   }
   // navClaimLink was removed from the nav (moved into heroClaimLink
