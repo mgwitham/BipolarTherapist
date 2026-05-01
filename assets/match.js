@@ -6502,4 +6502,14 @@ function refreshIntakeUiFromForm() {
     });
   }
   renderFeedbackInsights();
+  document.addEventListener("click", function (event) {
+    var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    var href = link.getAttribute("href") || "";
+    if (href.indexOf("/therapists/") !== -1 && href.indexOf("ref=match") !== -1) {
+      try {
+        window.sessionStorage.setItem("matchResultsUrl", window.location.href);
+      } catch (_) {}
+    }
+  });
 })();
