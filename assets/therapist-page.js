@@ -2320,7 +2320,7 @@ function renderProfile(t, therapistDirectory) {
     var breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
     if (breadcrumbDirLink) {
       breadcrumbDirLink.textContent = "Your matches";
-      breadcrumbDirLink.href = "match.html";
+      breadcrumbDirLink.href = "/match.html";
     }
   }
   // navClaimLink was removed from the nav (moved into heroClaimLink
