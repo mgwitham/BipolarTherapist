@@ -932,6 +932,9 @@ function handleHomeSearch(event) {
         location_query: validation.locationQuery || "",
       }),
     );
+    // Mark this tab as having an active search session so the homepage can
+    // distinguish a within-session back-navigation from a fresh visit.
+    window.sessionStorage.setItem("bth_search_session", "1");
   } catch (_e) {
     /* ignore */
   }
@@ -948,16 +951,21 @@ function initHomeSearchForm() {
   form.addEventListener("submit", handleHomeSearch);
   form.dataset.bound = "true";
 
-  // Restore last search values
+  // Restore last search values only within the same browser session.
+  // sessionStorage is cleared when the tab is closed, so a fresh visit
+  // (reopen site, bookmark, external link) always starts with a blank form.
   try {
-    var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
-    if (lastSearch) {
-      if (lastSearch.location_query && elements.locationInput) {
-        elements.locationInput.value = lastSearch.location_query;
-      }
-      if (lastSearch.interest && elements.interestInput) {
-        elements.interestInput.value = lastSearch.interest;
-        syncHomeSearchHiddenFields(lastSearch.interest, elements);
+    var sessionActive = window.sessionStorage.getItem("bth_search_session");
+    if (sessionActive) {
+      var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
+      if (lastSearch) {
+        if (lastSearch.location_query && elements.locationInput) {
+          elements.locationInput.value = lastSearch.location_query;
+        }
+        if (lastSearch.interest && elements.interestInput) {
+          elements.interestInput.value = lastSearch.interest;
+          syncHomeSearchHiddenFields(lastSearch.interest, elements);
+        }
       }
     }
   } catch (_e) {
