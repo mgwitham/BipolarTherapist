@@ -12,7 +12,7 @@
       gtag("config", "G-Q22R5G7VB5");
     </script>
     <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
@@ -36,13 +36,18 @@
     <meta property="og:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="BipolarTherapyHub — Find therapists who understand bipolar disorder"
+    />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Not every therapist gets bipolar. These do." />
     <meta
       name="twitter:description"
-      content="A calmer way to find bipolar care. Bipolar-informed therapists, matched by fit."
+      content="A calmer way to find bipolar care. Bipolar-informed therapists, matched by fit. Free. No account. No insurance needed."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
+    <meta name="theme-color" content="#1a7a8f" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -67,6 +72,17 @@
             ]
           },
           {
+            "@type": "MedicalOrganization",
+            "@id": "https://www.bipolartherapyhub.com/#medical",
+            "name": "BipolarTherapyHub",
+            "url": "https://www.bipolartherapyhub.com/",
+            "medicalSpecialty": {
+              "@type": "MedicalSpecialty",
+              "name": "Psychiatry"
+            },
+            "description": "A directory of California therapists and psychiatrists with verified bipolar disorder expertise."
+          },
+          {
             "@type": "WebSite",
             "@id": "https://www.bipolartherapyhub.com/#website",
             "url": "https://www.bipolartherapyhub.com/",
@@ -76,10 +92,71 @@
               "@type": "SearchAction",
               "target": {
                 "@type": "EntryPoint",
-                "urlTemplate": "https://www.bipolartherapyhub.com/directory?q={search_term_string}"
+                "urlTemplate": "https://www.bipolartherapyhub.com/match.html?location_query={search_term_string}"
               },
               "query-input": "required name=search_term_string"
             }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How is this different from Psychology Today?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Psychology Today is a paid listing where any therapist can claim any specialty. We review every therapist for documented bipolar work before they appear, so generalists claiming everything don't get in. Then the therapist maintains their own profile with the specifics that matter: training, years treating bipolar, modalities, insurance."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is this free for patients?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes, always. Patients pay nothing to search, match, or contact therapists."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need insurance?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Not required. Therapists list which insurance plans they accept and whether they offer sliding-scale rates or self-pay. Filter by what applies to you."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How are therapists vetted?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Every profile is license-verified against the California Department of Consumer Affairs. Bipolar expertise is confirmed through the therapist's listed training, bipolar-specific years of experience, treatment modalities, and operational details they personally maintain through a therapist portal."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What if I also need medication?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Select Psychiatry from the care type dropdown to find psychiatrists and nurse practitioners who manage bipolar medication. Many therapists here also coordinate with prescribers, which you can filter for on the results page."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do you have specialists for Bipolar II?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Every specialist here treats the full bipolar spectrum — Bipolar I, Bipolar II, cyclothymia, and related mood disorders. Many specifically list Bipolar II experience on their profiles."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is telehealth available?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Many specialists offer telehealth across California. After entering your ZIP, you can filter by telehealth availability on the results page."
+                }
+              }
+            ]
           }
         ]
       }
@@ -209,19 +286,21 @@
         margin-left: 0;
       }
       .nav-crisis-link {
-        color: rgba(255, 255, 255, 0.72) !important;
+        color: rgba(255, 255, 255, 1) !important;
         font-size: 0.8rem !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
       }
       .nav-crisis-link:hover {
         color: white !important;
+        text-decoration: underline;
+        text-underline-offset: 2px;
       }
       .nav-zone-switch {
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
         padding: 0.35rem 0.75rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
+        color: rgba(255, 255, 255, 1) !important;
         font-size: 0.82rem !important;
         font-weight: 500 !important;
         border: 1px solid rgba(255, 255, 255, 0.18);
@@ -231,6 +310,23 @@
         color: white !important;
         border-color: rgba(255, 255, 255, 0.5);
         background: rgba(255, 255, 255, 0.08);
+      }
+      .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        z-index: 9999;
+        padding: 0.5rem 1rem;
+        background: white;
+        color: var(--teal-dark);
+        font-weight: 700;
+        font-size: 0.875rem;
+        border-radius: 0 0 8px 8px;
+        text-decoration: none;
+        transition: top 0.1s;
+      }
+      .skip-link:focus {
+        top: 0;
       }
       .hero {
         background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
@@ -328,7 +424,7 @@
         margin-top: 0.7rem;
         text-align: center;
         font-size: 0.82rem;
-        color: var(--muted);
+        color: #4f6470;
         font-weight: 600;
         line-height: 1.4;
       }
@@ -566,6 +662,13 @@
         color: var(--slate);
         text-decoration-color: var(--slate);
       }
+      .search-care-hint {
+        margin: 0.35rem 0 0;
+        font-size: 0.78rem;
+        color: var(--teal-dark);
+        line-height: 1.45;
+        min-height: 0;
+      }
       .search-helper {
         margin-top: 0.2rem;
         text-align: center;
@@ -644,6 +747,8 @@
       }
       .waitlist-panel.is-open {
         display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .waitlist-panel-card {
         position: relative;
@@ -691,13 +796,23 @@
         border-color: var(--teal);
         color: var(--teal-dark);
       }
-      .waitlist-panel.is-open {
-        display: block;
-      }
       .waitlist-panel-row {
         display: grid;
         grid-template-columns: 1fr 100px;
         gap: 0.5rem;
+      }
+      .waitlist-panel label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--slate);
+        margin-bottom: 0.25rem;
+      }
+      .waitlist-panel-privacy {
+        margin-top: 0.4rem;
+        font-size: 0.76rem;
+        color: var(--muted);
+        text-align: center;
       }
       .waitlist-panel input,
       .waitlist-panel select {
@@ -1595,6 +1710,15 @@
         margin: 0 0 1.75rem;
         font-size: 1.05rem;
       }
+      .home-closing-headline {
+        font-family: "Lora", serif;
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 600;
+        line-height: 1.3;
+        color: #fff;
+        max-width: none;
+        margin: 0 auto 0.6rem;
+      }
       .home-closing-btn {
         display: inline-block;
         background: #fff;
@@ -1608,6 +1732,23 @@
       }
       .home-closing-btn:hover {
         transform: translateY(-2px);
+      }
+      .footer-patient-row,
+      .footer-therapist-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+        justify-content: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .footer-therapist-row {
+        margin-top: 0.6rem;
+        padding-top: 0.6rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.82rem;
+        opacity: 0.78;
       }
 
       @media (max-width: 860px) {
@@ -1772,251 +1913,339 @@
     </style>
   </head>
   <body>
-    <nav>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <nav aria-label="Main navigation">
       <a href="index.html" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="directory.html">Find a Therapist</a></li>
         <li class="nav-crisis-item">
-          <a href="tel:988" class="nav-crisis-link">In crisis? Call or text 988</a>
+          <a
+            href="tel:988"
+            class="nav-crisis-link"
+            aria-label="In crisis? Call or text the Suicide and Crisis Lifeline at 988"
+            >In crisis? Call or text 988</a
+          >
         </li>
+        <li><a href="directory.html">Browse Directory</a></li>
         <li class="nav-zone-switch-item">
           <a href="signup.html" class="nav-zone-switch">For therapists →</a>
         </li>
       </ul>
     </nav>
-
-    <section class="hero" id="startMatch">
-      <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
-      <p class="hero-sub">
-        California therapists who actually treat bipolar. A calmer way to find care.
-      </p>
-      <div class="hero-trust-chips" aria-label="What you get">
-        <span class="hero-trust-chip">Bipolar specialists only</span>
-        <span class="hero-trust-chip">California licensed, verified</span>
-        <span class="hero-trust-chip">Direct contact, no middleman</span>
-        <span class="hero-trust-chip">Free. No account. No insurance.</span>
-      </div>
-      <div class="tool-shell">
-        <div class="tool-card">
-          <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
-            <div class="hero-validation-list" id="heroValidationList"></div>
-          </div>
-          <form class="search-box" id="homeSearchForm" action="match.html" method="get" novalidate>
-            <div class="search-field search-field--prompt">
-              <label for="homepage_interest">What kind of support are you looking for?</label>
-              <select id="homepage_interest" required>
-                <option value="therapist" selected>Therapy</option>
-                <option value="psychiatrist">Psychiatry</option>
-              </select>
-            </div>
-            <div class="search-field search-field--zip">
-              <label id="locationLabel">Enter your ZIP code</label>
-              <div class="zip-inline">
-                <input
-                  type="text"
-                  id="location"
-                  name="location_query"
-                  placeholder="Enter ZIP code"
-                  inputmode="numeric"
-                  maxlength="5"
-                  pattern="[0-9]{5}"
-                  required
-                />
-                <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
-              </div>
-            </div>
-            <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
-            <input
-              type="hidden"
-              id="homepage_medication_need"
-              name="needs_medication_management"
-              value=""
-            />
-            <div class="search-launch-note">
-              California only —
-              <button type="button" class="search-launch-waitlist" id="waitlistToggle">
-                join the waitlist for other states
-              </button>
-            </div>
-            <div
-              class="waitlist-panel"
-              id="waitlistPanel"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="waitlistPanelTitle"
-              aria-hidden="true"
-            >
-              <div class="waitlist-panel-card">
-                <button
-                  type="button"
-                  class="waitlist-panel-close"
-                  id="waitlistClose"
-                  aria-label="Close waitlist"
-                >
-                  ×
-                </button>
-                <div class="waitlist-panel-title" id="waitlistPanelTitle">Join the waitlist</div>
-                <div class="waitlist-panel-subtitle">
-                  We'll email you when we launch in your state.
-                </div>
-                <div class="waitlist-panel-row">
-                  <input
-                    type="email"
-                    id="waitlistEmail"
-                    placeholder="your@email.com"
-                    autocomplete="email"
-                  />
-                  <select id="waitlistState" aria-label="Your state">
-                    <option value="">State</option>
-                  </select>
-                </div>
-                <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
-                  Join waitlist
-                </button>
-                <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
-              </div>
-            </div>
-            <button type="submit" class="search-btn" id="searchButton">Find care</button>
-          </form>
-          <p class="hero-expectation">About 10 seconds. No account required.</p>
-          <div class="hero-browse-link">
-            <a href="directory.html">Or browse specialists instead</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section--how">
-      <div class="home-section-inner">
-        <p class="home-section-eyebrow">How it works</p>
-        <h2 class="home-section-title">Three steps. First matches in 10 seconds.</h2>
-        <ol class="home-how-steps">
-          <li class="home-how-step">
-            <div class="home-how-num">1</div>
-            <h3>Tell us about you</h3>
-            <p>Tell us the kind of care you need and your ZIP. That's it.</p>
-          </li>
-          <li class="home-how-step">
-            <div class="home-how-num">2</div>
-            <h3>See matched specialists</h3>
-            <p>
-              Ranked by fit: bipolar experience, insurance, availability, distance. Not by who paid
-              the most.
-            </p>
-          </li>
-          <li class="home-how-step">
-            <div class="home-how-num">3</div>
-            <h3>Reach out on your terms</h3>
-            <p>
-              Message, call, or book directly with the therapist. No intermediaries, no automatic
-              intros, no pressure.
-            </p>
-          </li>
-        </ol>
-        <div class="home-how-cta">
-          <a href="#startMatch" class="home-section-link">Start with the guided match →</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section--educate">
-      <div class="home-section-inner">
-        <p class="home-section-eyebrow">What to look for</p>
-        <h2 class="home-section-title">What makes a therapist bipolar-informed?</h2>
-        <div class="home-educate-body">
-          <p>
-            Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
-            training, supervision, and case volume that bipolar-informed care requires. The
-            difference shows up when symptoms don't fit a textbook: mixed episodes, rapid cycling,
-            postpartum triggers, treatment resistance.
-          </p>
-          <p>
-            Bipolar-informed therapists tend to work in a few recognizable ways. They coordinate
-            with psychiatrists for medication management. They know evidence-based modalities like
-            Interpersonal and Social Rhythm Therapy (IPSRT) and Family-Focused Therapy. They help
-            you spot early warning signs of a mood shift before it becomes an episode. They
-            understand that stability is the long game, not a quick symptom fix.
-          </p>
-          <p>
-            Every profile here surfaces the operational details that actually matter: years treating
-            bipolar specifically, modalities, coordination practices, insurance accepted, estimated
-            wait time. No generic "everything" profiles.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section--faq">
-      <div class="home-section-inner">
-        <p class="home-section-eyebrow">Common questions</p>
-        <h2 class="home-section-title">Questions we hear most</h2>
-        <div class="home-faq-list">
-          <details class="home-faq-item">
-            <summary>How is this different from Psychology Today?</summary>
-            <p>
-              Psychology Today is a paid listing where any therapist can claim any specialty. We
-              review every therapist for documented bipolar work before they appear, so generalists
-              claiming everything don't get in. Then the therapist maintains their own profile with
-              the specifics that matter: training, years treating bipolar, modalities, insurance.
-            </p>
-          </details>
-          <details class="home-faq-item">
-            <summary>Is this free for patients?</summary>
-            <p>Yes, always. Patients pay nothing to search, match, or contact therapists.</p>
-          </details>
-          <details class="home-faq-item">
-            <summary>Do I need insurance?</summary>
-            <p>
-              Not required. Therapists list which insurance plans they accept and whether they offer
-              sliding-scale rates or self-pay. Filter by what applies to you.
-            </p>
-          </details>
-          <details class="home-faq-item">
-            <summary>How are therapists vetted?</summary>
-            <p>
-              Every profile is license-verified against the California Department of Consumer
-              Affairs. Bipolar expertise is confirmed through the therapist's listed training,
-              bipolar-specific years of experience, treatment modalities, and operational details
-              they personally maintain through a therapist portal.
-            </p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section--closing">
-      <div class="home-section-inner home-closing-inner">
-        <h2 class="home-section-title">Find a therapist who gets bipolar.</h2>
-        <p class="home-closing-sub">About 10 seconds.</p>
-        <a href="#startMatch" class="home-closing-btn">Find care →</a>
-        <p style="margin-top: 1rem; font-size: 0.82rem; color: rgba(255, 255, 255, 0.78)">
-          Or
-          <a
-            href="directory.html"
-            style="color: #fff; text-decoration: underline; text-underline-offset: 3px"
-            >browse specialists instead</a
-          >.
+    <main id="main-content">
+      <section class="hero" id="startMatch">
+        <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
+        <p class="hero-sub">
+          California therapists who specialise in bipolar disorder. A calmer way to find care.
         </p>
-      </div>
-    </section>
+        <div class="hero-trust-chips" aria-label="What you get">
+          <span class="hero-trust-chip">Bipolar-focused specialists</span>
+          <span class="hero-trust-chip">California licensed, verified</span>
+          <span class="hero-trust-chip">Contact therapists directly — no referral needed</span>
+          <span class="hero-trust-chip">Free. No account. No insurance.</span>
+        </div>
+        <div class="tool-shell">
+          <div class="tool-card">
+            <form
+              class="search-box"
+              id="homeSearchForm"
+              action="match.html"
+              method="get"
+              novalidate
+              role="search"
+              aria-label="Find bipolar-informed care"
+            >
+              <div class="search-field search-field--prompt">
+                <label for="homepage_interest">What kind of support are you looking for?</label>
+                <select id="homepage_interest" required>
+                  <option value="therapist" selected>Therapy</option>
+                  <option value="psychiatrist">Psychiatry</option>
+                </select>
+                <p class="search-care-hint" id="searchCareTypeHint" aria-live="polite"></p>
+              </div>
+              <div class="search-field search-field--zip">
+                <label for="location" id="locationLabel">Enter your ZIP code</label>
+                <div class="zip-inline">
+                  <input
+                    type="text"
+                    id="location"
+                    name="location_query"
+                    placeholder="Your ZIP code"
+                    inputmode="numeric"
+                    autocomplete="postal-code"
+                    aria-label="California ZIP code"
+                    maxlength="5"
+                    pattern="[0-9]{5}"
+                    required
+                  />
+                  <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
+                <div class="hero-validation-list" id="heroValidationList"></div>
+              </div>
+              <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
+              <input
+                type="hidden"
+                id="homepage_medication_need"
+                name="needs_medication_management"
+                value=""
+              />
+              <div class="search-launch-note">
+                California only —
+                <button type="button" class="search-launch-waitlist" id="waitlistToggle">
+                  join the waitlist for other states
+                </button>
+              </div>
+              <div
+                class="waitlist-panel"
+                id="waitlistPanel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="waitlistPanelTitle"
+                aria-hidden="true"
+              >
+                <div class="waitlist-panel-card">
+                  <button
+                    type="button"
+                    class="waitlist-panel-close"
+                    id="waitlistClose"
+                    aria-label="Close waitlist"
+                  >
+                    ×
+                  </button>
+                  <div class="waitlist-panel-title" id="waitlistPanelTitle">Join the waitlist</div>
+                  <div class="waitlist-panel-subtitle">
+                    We'll email you when we launch in your state.
+                  </div>
+                  <input type="hidden" id="waitlistCareType" name="care_type" value="" />
+                  <div class="waitlist-panel-row">
+                    <div>
+                      <label for="waitlistEmail">Email address</label>
+                      <input
+                        type="email"
+                        id="waitlistEmail"
+                        placeholder="your@email.com"
+                        autocomplete="email"
+                      />
+                    </div>
+                    <div>
+                      <label for="waitlistState">Your state</label>
+                      <select id="waitlistState">
+                        <option value="">State</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
+                    Join waitlist
+                  </button>
+                  <p class="waitlist-panel-privacy">
+                    One email when we launch in your state. Nothing else.
+                  </p>
+                  <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
+                </div>
+              </div>
+              <div
+                role="status"
+                aria-live="polite"
+                id="searchStatus"
+                style="
+                  position: absolute;
+                  width: 1px;
+                  height: 1px;
+                  overflow: hidden;
+                  clip: rect(0, 0, 0, 0);
+                "
+              ></div>
+              <button type="submit" class="search-btn" id="searchButton">Find care</button>
+            </form>
+            <p class="hero-expectation">About 10 seconds. No account required.</p>
+            <div class="hero-browse-link">
+              <a href="directory.html">Or browse specialists instead</a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <div id="pageSections"></div>
+      <section class="home-section home-section--how" aria-labelledby="how-it-works">
+        <div class="home-section-inner">
+          <p class="home-section-eyebrow">How it works</p>
+          <h2 class="home-section-title" id="how-it-works">
+            Three steps. First matches in 10 seconds.
+          </h2>
+          <ol class="home-how-steps">
+            <li class="home-how-step">
+              <div class="home-how-num">1</div>
+              <h3>Tell us about you</h3>
+              <p>Two questions — care type and ZIP code. No account, no profile, no pressure.</p>
+            </li>
+            <li class="home-how-step">
+              <div class="home-how-num">2</div>
+              <h3>See matched specialists</h3>
+              <p>
+                Ranked by fit: bipolar experience, insurance, availability, distance. Not by who
+                paid the most.
+              </p>
+            </li>
+            <li class="home-how-step">
+              <div class="home-how-num">3</div>
+              <h3>Reach out on your terms</h3>
+              <p>
+                Message, call, or book directly with the therapist. No intermediaries, no automatic
+                intros, no pressure.
+              </p>
+            </li>
+          </ol>
+          <div class="home-how-cta">
+            <a href="#startMatch" class="home-section-link">Start with the guided match →</a>
+          </div>
+          <div class="home-how-cta" style="margin-top: 0.5rem">
+            <a href="#startMatch" class="home-section-link">Ready? Start your match →</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section home-section--educate" aria-labelledby="what-to-look-for">
+        <div class="home-section-inner">
+          <p class="home-section-eyebrow">What to look for</p>
+          <h2 class="home-section-title" id="what-to-look-for">
+            What makes a therapist bipolar-informed?
+          </h2>
+          <div class="home-educate-body">
+            <p>
+              Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
+              training, supervision, and case volume that bipolar-informed care requires. The
+              difference shows up when symptoms don't fit a textbook: mixed episodes, rapid cycling,
+              postpartum triggers, treatment resistance.
+            </p>
+            <p>
+              Bipolar-informed therapists tend to work in a few recognizable ways. They coordinate
+              with psychiatrists for medication management. They know evidence-based modalities like
+              Interpersonal and Social Rhythm Therapy (IPSRT) and Family-Focused Therapy. They help
+              you spot early warning signs of a mood shift before it becomes an episode. They
+              understand that stability is the long game, not a quick symptom fix.
+            </p>
+            <p>
+              Every profile here surfaces the operational details that actually matter: years
+              treating bipolar specifically, modalities, coordination practices, insurance accepted,
+              estimated wait time. No generic "everything" profiles.
+            </p>
+          </div>
+          <p style="margin-top: 1.5rem">
+            <a href="#startMatch" class="home-section-link">Find a bipolar-informed specialist →</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="home-section home-section--faq" aria-labelledby="faq">
+        <div class="home-section-inner">
+          <p class="home-section-eyebrow">For patients</p>
+          <h2 class="home-section-title" id="faq">Questions we hear most</h2>
+          <div class="home-faq-list">
+            <details class="home-faq-item" name="faq">
+              <summary>How is this different from Psychology Today?</summary>
+              <p>
+                Psychology Today is a paid listing where any therapist can claim any specialty. We
+                review every therapist for documented bipolar work before they appear, so
+                generalists claiming everything don't get in. Then the therapist maintains their own
+                profile with the specifics that matter: training, years treating bipolar,
+                modalities, insurance.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>Is this free for patients?</summary>
+              <p>Yes, always. Patients pay nothing to search, match, or contact therapists.</p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>Do I need insurance?</summary>
+              <p>
+                Not required. Therapists list which insurance plans they accept and whether they
+                offer sliding-scale rates or self-pay. Filter by what applies to you.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>How are therapists vetted?</summary>
+              <p>
+                Every profile is license-verified against the California Department of Consumer
+                Affairs. Bipolar expertise is confirmed through the therapist's listed training,
+                bipolar-specific years of experience, treatment modalities, and operational details
+                they personally maintain through a therapist portal.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>What if I also need medication?</summary>
+              <p>
+                Select Psychiatry from the care type dropdown to find psychiatrists and nurse
+                practitioners who manage bipolar medication. Many therapists here also coordinate
+                with prescribers, which you can filter for on the results page.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>Do you have specialists for Bipolar II?</summary>
+              <p>
+                Yes. Every specialist here treats the full bipolar spectrum — Bipolar I, Bipolar II,
+                cyclothymia, and related mood disorders. Many specifically list Bipolar II
+                experience on their profiles.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>How quickly can I get an appointment?</summary>
+              <p>
+                It depends on the therapist. Many profiles list their current wait time. Use the
+                availability filter on the results page to surface therapists who are accepting
+                patients now.
+              </p>
+            </details>
+            <details class="home-faq-item" name="faq">
+              <summary>Is telehealth available?</summary>
+              <p>
+                Many specialists offer telehealth across California. After entering your ZIP, you
+                can filter by telehealth availability on the results page.
+              </p>
+            </details>
+          </div>
+          <p style="margin-top: 1.5rem; font-size: 0.92rem; color: var(--slate)">
+            Still have questions?
+            <a href="mailto:support@bipolartherapyhub.com" class="home-section-link">Email us →</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="home-section home-section--closing">
+        <div class="home-section-inner home-closing-inner">
+          <p class="home-closing-headline">You've been managing this long enough.</p>
+          <p class="home-closing-sub">Finding the right person takes 10 seconds.</p>
+          <a href="#startMatch" class="home-closing-btn">Find care →</a>
+          <p style="margin-top: 1rem; font-size: 0.82rem; color: rgba(255, 255, 255, 0.78)">
+            Or
+            <a
+              href="directory.html"
+              style="color: #fff; text-decoration: underline; text-underline-offset: 3px"
+              >browse the full directory →</a
+            >
+          </p>
+        </div>
+      </section>
+    </main>
 
     <footer>
       <div class="f-logo">BipolarTherapyHub</div>
       <p id="footerTagline">
-        A focused directory for finding bipolar-informed therapy with more clarity and less
-        overwhelm
+        Every therapist here is verified for bipolar expertise. No generalists, no paid rankings.
       </p>
-      <ul>
-        <li><a href="directory.html">Find a Therapist</a></li>
-        <li><a href="signup.html">For Therapists</a></li>
-        <li><a href="claim.html" id="footerContactLink">Claim or Update a Listing</a></li>
-        <li><a href="privacy.html">Privacy</a></li>
-        <li><a href="terms.html">Terms</a></li>
-      </ul>
+      <nav aria-label="Footer navigation">
+        <ul class="footer-patient-row">
+          <li><a href="directory.html">Find a Therapist</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="terms.html">Terms</a></li>
+        </ul>
+        <ul class="footer-therapist-row">
+          <li><a href="signup.html">For Therapists</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="claim.html" id="footerContactLink">Claim a Listing</a></li>
+        </ul>
+      </nav>
       <div class="disc">
         BipolarTherapyHub is an information directory only. We do not provide medical advice,
         diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
@@ -2099,6 +2328,8 @@
             btn.setAttribute("aria-busy", "true");
             btn.textContent = "Finding your matches…";
           }
+          var statusRegion = document.getElementById("searchStatus");
+          if (statusRegion) statusRegion.textContent = "Finding your matches…";
         });
 
         var button = document.getElementById("searchButton");
@@ -2199,6 +2430,11 @@
           }
         }
         toggle.addEventListener("click", function () {
+          var careTypeInput = document.getElementById("waitlistCareType");
+          var interestSel = document.getElementById("homepage_interest");
+          if (careTypeInput && interestSel) {
+            careTypeInput.value = interestSel.value === "psychiatrist" ? "Psychiatry" : "Therapy";
+          }
           setPanelOpen(true);
         });
         if (closeBtn) {
@@ -2242,7 +2478,11 @@
           fetch(apiBase() + "/waitlist", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email, state: state }),
+            body: JSON.stringify({
+              email: email,
+              state: state,
+              care_type: (document.getElementById("waitlistCareType") || {}).value || "",
+            }),
           })
             .then(function (res) {
               return res.json().then(function (body) {

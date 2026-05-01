@@ -432,8 +432,6 @@
    on every keystroke (because the preview innerHTML is replaced),
    and cleared on accordion close or successful save. */
 .tdc-preview-bio-editing .bth-voice {
-  border-left: 2px solid #0f6e56;
-  padding-left: 0.7rem;
   position: relative;
   animation: tdcBioBorderPulse 1.4s ease-out 1 forwards;
 }
@@ -467,6 +465,12 @@
   100% {
     opacity: 0;
   }
+}
+.td-form-sublabel {
+  display: block;
+  margin: 0.1rem 0 0.45rem;
+  font-size: 0.82rem;
+  color: #6b8189;
 }
 .td-form-helper {
   margin: 0;
