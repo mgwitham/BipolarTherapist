@@ -26,6 +26,7 @@ var trialClarity = document.getElementById("pricingTrialClarity");
 var freeFeedback = document.getElementById("pricingFreeFeedback");
 var paidFeedback = document.getElementById("pricingPaidFeedback");
 var previewCard = document.getElementById("pricingPreviewCard");
+var freeFeatureClaim = document.getElementById("pricingFreeFeatureClaim");
 
 var pricingState = {
   branch: therapistSessionToken ? "signed_in_loading" : "logged_out",
@@ -140,6 +141,10 @@ function applyLoggedOutState() {
       "Card required to start. No charge until day 15. Cancel anytime from your dashboard before billing begins.";
   }
 
+  if (freeFeatureClaim) {
+    freeFeatureClaim.innerHTML =
+      "<strong>Claim and manage your listing</strong> from the dashboard";
+  }
   setCardCurrent(freeCard, false);
   setCardCurrent(paidCard, false);
   setFeedback(freeFeedback, "", "");
@@ -181,6 +186,10 @@ function applySignedInFreeState(me, subscription) {
       "Card required to start. No charge until day 15. Cancel anytime from your dashboard before billing begins.";
   }
 
+  if (freeFeatureClaim) {
+    freeFeatureClaim.innerHTML =
+      "<strong>Edit your profile details</strong> directly from your dashboard";
+  }
   setCardCurrent(freeCard, true);
   setCardCurrent(paidCard, false);
   setFeedback(freeFeedback, "", "");
@@ -230,6 +239,10 @@ function applySignedInPaidState(me, subscription) {
       : "Billing is active. You can manage or cancel the subscription from your dashboard.";
   }
 
+  if (freeFeatureClaim) {
+    freeFeatureClaim.innerHTML =
+      "<strong>Edit your profile details</strong> directly from your dashboard";
+  }
   setCardCurrent(freeCard, false);
   setCardCurrent(paidCard, true);
   setFeedback(freeFeedback, "", "");

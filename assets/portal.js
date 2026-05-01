@@ -910,7 +910,7 @@ function renderLookupState(options) {
 
 function describeFeaturedStatus(subscription) {
   if (!subscription || subscription.plan === "none" || !subscription.status) {
-    return "You're on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits.";
+    return 'You\'re on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits. <a href="/pricing.html" style="color:var(--teal)">See what\'s included →</a>';
   }
   if (subscription.has_active_featured) {
     var endDate = formatDate(subscription.current_period_ends_at);
@@ -1796,9 +1796,10 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
       renderAnalyticsStat(ctaClicks, "Contact clicks this week", clicksTrend.label) +
       '<div style="grid-column:1 / -1;padding:0.85rem 1rem;border:1px dashed var(--teal);border-radius:12px;background:var(--teal-faint, #e8f5f8);display:flex;align-items:center;justify-content:space-between;gap:1rem">' +
       '<div style="font-weight:700;color:var(--teal-dark, #155f70);font-size:0.95rem">Upgrade to see your full analytics</div>' +
-      '<a href="#portalFeaturedCard" class="td-bottom-card-cta" style="text-decoration:none;white-space:nowrap">' +
-      "Start 14-day free trial →" +
-      "</a>" +
+      '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">' +
+      '<a href="#portalFeaturedCard" class="td-bottom-card-cta" style="text-decoration:none;white-space:nowrap">Start 14-day free trial →</a>' +
+      '<a href="/pricing.html" style="color:var(--teal-dark,#155f70);font-size:0.82rem;white-space:nowrap">See pricing</a>' +
+      "</div>" +
       "</div>";
     return;
   }
