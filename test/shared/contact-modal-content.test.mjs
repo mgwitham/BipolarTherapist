@@ -123,14 +123,14 @@ test("buildContactModalContent: booking layout renders 'Book with [First]'", () 
   assert.equal(/mx-contact-others/.test(result.html), false);
 });
 
-test("buildContactModalContent: website layout renders 'Visit [First]'s website'", () => {
+test("buildContactModalContent: website layout renders 'Contact [First]'", () => {
   const result = buildContactModalContent({
     ...FULL_THERAPIST,
     preferredContactMethod: "website",
   });
   assert.equal(result.layout, "website");
-  assert.match(result.html, /Visit Jamie&#39;s website/);
-  assert.match(result.html, /Open practice site/);
+  assert.match(result.html, /Contact Jamie/);
+  assert.match(result.html, /Continue to Jamie's site/);
   // Secondary contacts are no longer shown in the modal
   assert.equal(/Prefer to reach out directly\?/.test(result.html), false);
   assert.equal(/mx-contact-others/.test(result.html), false);
