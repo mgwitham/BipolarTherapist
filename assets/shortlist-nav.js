@@ -5,10 +5,10 @@ var lastShortlistCount = null;
 
 function buildShortlistHref(shortlist) {
   if (!shortlist.length) {
-    return "directory.html";
+    return "/directory";
   }
   return (
-    "match.html?shortlist=" +
+    "/match?shortlist=" +
     encodeURIComponent(
       shortlist
         .map(function (item) {

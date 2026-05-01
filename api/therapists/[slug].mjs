@@ -549,7 +549,7 @@ function renderSSRProfile(t) {
     </div>
     <div class="profile-sidebar-stack"></div>
     <div class="profile-foot-actions">
-      <a href="/directory.html" class="profile-foot-back">← Back to Directory</a>
+      <a href="/directory" class="profile-foot-back">← Back to Directory</a>
     </div>
   </div>`;
 }
