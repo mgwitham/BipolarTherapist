@@ -2276,11 +2276,6 @@ function renderProfile(t, therapistDirectory) {
   if (t.contact_guidance || t.first_step_expectation) {
     reviewedDetails.push("first-contact guidance");
   }
-  var reviewedDetailsCopy = reviewedDetails.length
-    ? "Reviewed details currently include " +
-      reviewedDetails.slice(0, 3).join(", ") +
-      ". This is a trust and clarity check, not a quality rating."
-    : "This profile has a usable trust foundation, but some practical details still need direct confirmation before you commit.";
   var operationalTrustSummary = getOperationalTrustSummary(t);
   var standoutReasons = [];
   if (t.verification_status === "editorially_verified") {
@@ -2554,13 +2549,7 @@ function renderProfile(t, therapistDirectory) {
   var insTags = renderList(t.insurance_accepted, "ins-item");
   var langPills = renderCompactTagList(t.languages || ["English"], "lang-pill", 3);
   var telehealthStates = renderCompactTagList(t.telehealth_states, "lang-pill", 4);
-  var therapistReportedCopy = therapistReportedFields.length
-    ? "Some operational details here were confirmed directly by the specialist" +
-      (therapistReportedDate ? " on " + therapistReportedDate : "") +
-      ", including " +
-      therapistReportedFields.join(", ").replace(/_/g, " ") +
-      "."
-    : "";
+
   var sourceReviewCopy = sourceReviewedDate
     ? "This profile was last reviewed against public sources on " +
       sourceReviewedDate +
@@ -2573,50 +2562,6 @@ function renderProfile(t, therapistDirectory) {
         : "") +
       "."
     : "";
-  var trustSectionCards = [
-    {
-      label: "Reviewed details",
-      title:
-        t.verification_status === "editorially_verified"
-          ? "The profile has already passed an editorial clarity pass"
-          : "This profile still depends more on your own confirmation",
-      copy: reviewedDetailsCopy,
-    },
-    {
-      label: "Direct confirmation",
-      title: therapistReportedFields.length
-        ? "Some access details came directly from the therapist"
-        : "Direct therapist confirmation is still thin here",
-      copy:
-        therapistReportedCopy ||
-        "That does not make the profile unusable, but it does mean logistics deserve a little more skepticism before you act.",
-    },
-    {
-      label: "What this means for you",
-      title:
-        freshness && freshness.status === "fresh"
-          ? "You can move faster with a little more confidence"
-          : "A short message is still the fastest way to reduce uncertainty",
-      copy:
-        freshness && freshness.status === "fresh"
-          ? "The trust signals here are stronger than average, so you can spend less time validating basics and more time deciding whether the fit is right."
-          : "This profile may still be worth contacting, but use the outreach to confirm timing, cost, and any missing trust details before you overcommit.",
-    },
-  ];
-  var trustSectionCardsHtml = trustSectionCards
-    .map(function (item) {
-      return (
-        '<div class="trust-section-card"><div class="trust-section-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="trust-section-title">' +
-        escapeHtml(item.title) +
-        '</div><div class="trust-section-copy">' +
-        escapeHtml(item.copy) +
-        "</div></div>"
-      );
-    })
-    .join("");
-
   var feesHtml = "";
   if (t.session_fee_min || t.session_fee_max) {
     feesHtml =
