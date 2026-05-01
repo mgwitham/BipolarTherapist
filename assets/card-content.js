@@ -234,7 +234,7 @@ export function getLocationModalityLabel(therapist, options) {
   var distLabel = formatDistanceMiles(opts.distanceMiles);
   var withDistance = cityState + (cityState && distLabel ? " · " + distLabel : "");
   if (tele && inPerson && cityState) {
-    return withDistance + " · also telehealth";
+    return withDistance + " · Also telehealth";
   }
   return withDistance;
 }
