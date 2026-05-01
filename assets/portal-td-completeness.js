@@ -481,7 +481,7 @@ function buildHint(field, therapist) {
   }
   if (field.key === "location") {
     var locParts = [t.city, t.state].filter(Boolean).join(", ");
-    return t.zip ? locParts + " · ZIP on file" : locParts;
+    return t.zip ? locParts + " · ZIP: " + t.zip : locParts;
   }
   if (field.key === "fee") {
     var min = Number(t.session_fee_min);
@@ -707,7 +707,7 @@ var FULL_BIO_CAP = 500;
 function getCardBioCounterText(len) {
   if (len === 0) return "0 / " + CARD_BIO_MIN + " minimum";
   if (len < CARD_BIO_MIN) return len + " / " + CARD_BIO_MIN + " minimum";
-  return len + " / " + CARD_BIO_CAP + " visible";
+  return len + " / " + CARD_BIO_CAP + " shown on your card";
 }
 
 function getCardBioCounterClass(len) {
@@ -725,6 +725,7 @@ function renderCardBioForm(t) {
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
     '<span class="td-form-label">Tell patients how you work with bipolar clients</span>' +
+    '<span class="td-form-sublabel">Shown on your directory card — 220 characters max.</span>' +
     '<textarea class="td-input td-textarea-bio" id="tdcCardBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
     escapeHtml(cardBio) +
     "</textarea>" +
@@ -749,6 +750,7 @@ function renderFullBioForm(t) {
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
     '<span class="td-form-label">Long-form bio for your full public profile</span>' +
+    '<span class="td-form-sublabel">Shown on your full profile page — no character limit. Does not appear on your directory card.</span>' +
     '<textarea class="td-input td-textarea-bio td-textarea-full-bio" id="tdcFullBio" rows="6" placeholder="Tell patients more about your training, philosophy, and what working with you looks like over time.">' +
     escapeHtml(fullBio) +
     "</textarea>" +
@@ -809,10 +811,10 @@ function renderContactRouteForm(t) {
       email: "intake@yourpractice.com",
       phone: "(310) 555-0100",
       website: "yourpractice.com",
-      booking: "calendly.com/yourname",
+      booking: "yourbooking.com/schedule",
     };
     var helpers = {
-      email: "Not shown publicly. Patient messages route through the platform.",
+      email: "We'll forward patient messages to this address.",
       phone: "Displayed publicly on your listing.",
       website: "Patients will be directed here to find the best way to contact you.",
       booking: "Any booking URL works (Calendly, SimplePractice, Acuity, etc.).",
@@ -846,13 +848,14 @@ function renderContactRouteForm(t) {
   return (
     '<div class="td-form td-form-route">' +
     '<p class="td-form-label">Pick how patients reach you first</p>' +
+    '<p class="td-form-sublabel">Your contact details are only used to route patient inquiries — we never share them beyond that.</p>' +
     '<div class="td-route-pills">' +
     pillsHtml +
     "</div>" +
-    inputBlock("email", true) +
-    inputBlock("phone", true) +
-    inputBlock("website", true) +
-    inputBlock("booking", true) +
+    inputBlock("email", !method || method === "email") +
+    inputBlock("phone", method === "phone") +
+    inputBlock("website", method === "website") +
+    inputBlock("booking", method === "booking") +
     '<p class="td-form-error" data-tdc-route-error hidden></p>' +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="contact">Save contact route</button>' +
@@ -1775,6 +1778,10 @@ export function mountPortalTdCompleteness(container, therapist, options) {
               sib.getAttribute("data-tdc-route") === formDraft.method,
             );
           });
+          bodyEl.querySelectorAll("[data-tdc-route-input]").forEach(function (inputBlock) {
+            inputBlock.hidden =
+              inputBlock.getAttribute("data-tdc-route-input") !== formDraft.method;
+          });
           var errEl = bodyEl.querySelector("[data-tdc-route-error]");
           if (errEl) {
             errEl.hidden = true;
@@ -2095,4 +2102,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     score: score,
     fields_remaining: remaining,
   });
+
+  return {
+    notifyAcceptingChanged: function (newValue) {
+      localTherapist.accepting_new_patients = newValue;
+      refreshPreview();
+    },
+  };
 }

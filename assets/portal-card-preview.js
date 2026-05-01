@@ -177,9 +177,10 @@ export function renderPortalCardPreview(state, options) {
     infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
   }
 
-  var infoRowHtml = infoParts.length
+  var filteredInfoParts = infoParts.filter(Boolean);
+  var infoRowHtml = filteredInfoParts.length
     ? '<div class="bth-card-info">' +
-      infoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
+      filteredInfoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
       "</div>"
     : "";
 

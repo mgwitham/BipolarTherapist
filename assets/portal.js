@@ -152,7 +152,6 @@ function buildPortalRequestOptions(verifiedClaim, therapist) {
     {
       value: "profile_update",
       label: "Help me update my profile",
-      selected: verifiedClaim,
     },
     {
       value: "pause_listing",
@@ -237,9 +236,12 @@ function buildPortalProgressData(application) {
     },
     {
       label: "Full profile submitted",
-      done: ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
-        portalState,
-      ),
+      done: [
+        "profile_submitted_after_claim",
+        "profile_in_review_after_claim",
+        "approved_ready_to_publish",
+        "live",
+      ].includes(portalState),
     },
   ];
 
@@ -494,8 +496,8 @@ function buildPortalTimeline(application, therapist) {
 function buildPortalExpectations(application) {
   if (!application) {
     return {
-      headline: "Claim review usually starts after ownership is confirmed.",
-      body: "Once a claim is verified, the next milestone is completing the fuller profile so it can move into listing review.",
+      headline: "Next step: complete your profile.",
+      body: "Fill in your contact route and card bio to go live. The completeness checklist above shows exactly what to add next.",
     };
   }
 
@@ -908,7 +910,7 @@ function renderLookupState(options) {
 
 function describeFeaturedStatus(subscription) {
   if (!subscription || subscription.plan === "none" || !subscription.status) {
-    return "You're on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edit review.";
+    return "You're on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits.";
   }
   if (subscription.has_active_featured) {
     var endDate = formatDate(subscription.current_period_ends_at);
@@ -921,7 +923,7 @@ function describeFeaturedStatus(subscription) {
       return (
         "Cancellation scheduled" +
         (cancelDate ? " for " + cancelDate : "") +
-        ". Your paid features (analytics, digest email, same-day edit review) continue through that date, then your listing reverts to free. Resume anytime from Manage subscription."
+        ". Your paid features (analytics, digest email, same-day profile edits) continue through that date, then your listing reverts to free. Resume anytime from Manage subscription."
       );
     }
     if (subscription.status === "trialing") {
@@ -1061,7 +1063,7 @@ function renderCancelScheduledBanner(subscription) {
     (endLabel ? " " + escapeHtml(endLabel) : "") +
     "</h2>" +
     '<p class="portal-subtle" style="margin:0">' +
-    "Analytics, Monday digest email, and same-day edit review continue through that date. " +
+    "Analytics, Monday digest email, and same-day profile edits continue through that date. " +
     "Your listing then reverts to the free tier (still ranked by fit, still listed in the directory). " +
     "Resume anytime from the Subscription card below." +
     "</p>";
@@ -1198,8 +1200,8 @@ function formatAnalyticsPeriodLabel(periodKey, periodStart) {
     }
   }
   const match = String(periodKey || "").match(/^(\d{4})-W(\d{2})$/);
-  if (match) return "Week " + Number(match[2]) + ", " + match[1];
-  return "This week";
+  if (match) return "this week";
+  return "this week";
 }
 
 function renderAnalyticsStat(number, subLabel, detail) {
@@ -3836,9 +3838,6 @@ function renderPortal(therapist, options) {
       "Upgrade for the full breakdown." +
       "</p>" +
       '<div id="portalAnalyticsGrid" hidden></div>' +
-      '<a class="td-bottom-card-link" href="#portalFeaturedCard" data-tdc-jump-plan="1">' +
-      "Upgrade for full analytics →" +
-      "</a>" +
       "</article>" +
       // "Your plan" — subscription card. Free-listing static copy
       // until the subscription handler hydrates the active plan state.
@@ -3874,8 +3873,13 @@ function renderPortal(therapist, options) {
     reviewTiming ||
     reviewerFeedback,
   );
+  var reviewZoneIsActive =
+    relatedApplication &&
+    !["approved_ready_to_publish", "live"].includes(relatedApplication.portal_state || "");
   var reviewZone = hasReviewContent
-    ? '<details class="portal-card portal-review-details"><summary><strong>Review activity &amp; coaching</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">Progress, feedback, and timing</span></summary><div class="portal-review-body">' +
+    ? '<details class="portal-card portal-review-details"' +
+      (reviewZoneIsActive ? " open" : "") +
+      '><summary><strong>Review activity &amp; coaching</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">See your claim status and next steps</span></summary><div class="portal-review-body">' +
       (progress
         ? '<section class="portal-review-block"><h3>Progress</h3><div class="portal-list"><div><strong>Current:</strong> ' +
           escapeHtml(progress.statusLabel) +
@@ -3995,7 +3999,7 @@ function renderPortal(therapist, options) {
     escapeHtml(claimedEmail) +
     '" required /></label><label>License number<input type="text" name="license_number" placeholder="Optional" value="' +
     escapeHtml(therapist.license_number || "") +
-    '" /></label><label>What do you need?<select name="request_type" required>' +
+    '" /></label><label>What do you need?<select name="request_type" required><option value="" disabled selected>Select a topic…</option>' +
     requestOptions
       .map(function (option) {
         return (
@@ -4103,10 +4107,11 @@ function renderPortal(therapist, options) {
   // legacy long-form editor stays in the DOM for now but is hidden;
   // any field whose inline form hasn't been built yet (TD-C / TD-D
   // scope) routes to it via the placeholder body.
+  var tdcApi = null;
   if (verifiedClaim && shouldShowCompleteness(therapist)) {
     var tdcMount = document.getElementById("portalTdCompletenessMount");
     if (tdcMount) {
-      mountPortalTdCompleteness(tdcMount, therapist, {
+      tdcApi = mountPortalTdCompleteness(tdcMount, therapist, {
         onSaved: function (updatedTherapist) {
           if (updatedTherapist) {
             claimSessionState = { therapist: updatedTherapist };
@@ -4241,6 +4246,7 @@ function renderPortal(therapist, options) {
         if (feedbackEl) {
           feedbackEl.textContent = "";
         }
+        if (tdcApi) tdcApi.notifyAcceptingChanged(next);
         trackFunnelEvent("portal_accepting_toggled", {
           slug: therapist.slug,
           accepting: next,
